@@ -10,6 +10,7 @@ import {
   getOnCallPolicyRunRecordResolvedMessage,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
@@ -68,6 +69,9 @@ RunCron(
           createdAt: true,
           // A page again ends when its record is resolved, not acknowledged.
           pageAgainNumber: true,
+          // So does a page a person asked for (OnCallPersonPage).
+          triggeredByUserId: true,
+          triggeredByWorkflowId: true,
           // A run OneUptime AI holds says how its hold ended.
           aiHoldOutcome: true,
           onCallDutyPolicy: {
@@ -131,8 +135,13 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
      * was acknowledged all along: it is over once the record is resolved.
      * Somebody acknowledging the page again itself ends it where they do
      * (UserOnCallLogTimelineService).
+     *
+     * A page a person asked for from Slack or Microsoft Teams
+     * (OnCallPersonPage) ends the same way: they asked for these people,
+     * and somebody else acknowledging the record - often before they paged
+     * at all - does not mean any of them has seen it.
      */
-    if (isOnCallPageAgainRun(executionLog)) {
+    if (isOnCallPageAgainRun(executionLog) || isOnCallPersonPage(executionLog)) {
       const resolvedRecordKind: string | null =
         await getResolvedRecordKind(executionLog);
 

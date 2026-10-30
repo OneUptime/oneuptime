@@ -223,6 +223,7 @@ import { AddNetworkDevicesToIncidentsAndAlerts1808320000000 } from "./1808320000
 import { AddCodeRepositoryProductionReviewLlmProvider1808330000000 } from "./1808330000000-AddCodeRepositoryProductionReviewLlmProvider";
 import { AddCodeRepositoryProductionReviewLlmProviderIndexAndKey1808340000000 } from "./1808340000000-AddCodeRepositoryProductionReviewLlmProviderIndexAndKey";
 import { AddSecurityHunts1808450000000 } from "./1808450000000-AddSecurityHunts";
+import { AddOnCallPageMessage1808470000000 } from "./1808470000000-AddOnCallPageMessage";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1648,4 +1649,5 @@ export default [
   AddCodeRepositoryProductionReviewLlmProvider1808330000000,
   AddCodeRepositoryProductionReviewLlmProviderIndexAndKey1808340000000,
   AddSecurityHunts1808450000000,
+  AddOnCallPageMessage1808470000000,
 ];

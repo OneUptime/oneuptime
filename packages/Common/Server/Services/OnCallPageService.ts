@@ -17,6 +17,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import { formatAwayUntil } from "../../Types/OnCallDutyPolicy/AwayTimelineMessage";
+import { toOnCallPersonPageMessage } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import {
   MAX_ON_CALL_DIRECT_PAGE_TARGETS,
   OnCallDirectPageTargets,
@@ -61,7 +62,9 @@ import UserService from "./UserService";
  *                right now) and on-call policies (their escalation rules),
  *                in any mix;
  *   ABOUT WHAT   an incident, an alert, or something new - a title and a
- *                message, which become a new alert;
+ *                message, which become a new alert. A page about an
+ *                incident or an alert that is there already can carry a
+ *                message of its own, kept on its runs (pageMessage);
  *   AS WHOM      the caller's own props: what they may not read is not
  *                found, and what they may not do is refused.
  *
@@ -126,6 +129,15 @@ export interface OnCallPageAbout {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
   newAlert?: OnCallPageNewAlert | undefined;
+  /*
+   * For a page about an incident or an alert that is there already: what
+   * the person who paged wrote to the people it pages - "Can you check the
+   * database?". Kept on the page's runs (pageMessage), where their Slack and
+   * Microsoft Teams message quotes it and the people paged read it
+   * (OnCallPersonPage). A page about something new says it in its alert's
+   * title instead, so this is not taken with `newAlert`.
+   */
+  message?: string | undefined;
 }
 
 export interface OnCallPageRequest {
@@ -333,6 +345,14 @@ export class Service {
     const notPaged: Array<string> = [...targets.notFound];
     const startedPolicies: Array<OnCallPageStartedPolicy> = [];
 
+    /*
+     * What the person who paged wrote, for a page about a record that is
+     * there already: kept on each run the page starts (pageMessage).
+     */
+    const pageMessage: string = record.isNew
+      ? ""
+      : toOnCallPersonPageMessage(request.about.message);
+
     if (record.isNew) {
       // Named on the new alert, which starts them as it starts its own.
       for (const policy of targets.policies) {
@@ -349,6 +369,7 @@ export class Service {
             policy: policy,
             record: record,
             props: props,
+            pageMessage: pageMessage,
           });
 
           startedPolicies.push({
@@ -392,6 +413,7 @@ export class Service {
             workflowId: props.workflowId,
             workflowName: props.workflowName,
           },
+          ...(pageMessage ? { pageMessage: pageMessage } : {}),
         });
 
       directPageExecutionLogId = run.executionLogId;
@@ -478,6 +500,13 @@ export class Service {
     if (about.newAlert && !(about.newAlert.title || "").trim()) {
       throw new BadDataException(
         "A page about something new needs a title: it is what the people paged are told.",
+      );
+    }
+
+    // Its alert's title says what a page about something new is about.
+    if (about.newAlert && (about.message || "").trim()) {
+      throw new BadDataException(
+        "A page about something new says what it is about in its alert's title. Leave the message out.",
       );
     }
   }
@@ -1195,6 +1224,8 @@ export class Service {
     policy: NamedTarget;
     record: OnCallPageRecord;
     props: DatabaseCommonInteractionProps;
+    // What the person who paged wrote, kept on the run. Empty for none.
+    pageMessage?: string | undefined;
   }): Promise<void> {
     const executionLog: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
@@ -1212,10 +1243,35 @@ export class Service {
         UserNotificationEventType.AlertCreated;
     }
 
-    await OnCallDutyPolicyExecutionLogService.create({
-      data: executionLog,
-      props: data.props,
-    });
+    const created: OnCallDutyPolicyExecutionLog =
+      await OnCallDutyPolicyExecutionLogService.create({
+        data: executionLog,
+        props: data.props,
+      });
+
+    /*
+     * The message is OneUptime's to write (no caller may), once the run is
+     * created as the caller: its chat message quotes it from the next time
+     * it is brought up to date - a moment after its first post at most.
+     * Never a reason the policy is not started.
+     */
+    if (data.pageMessage && created.id) {
+      try {
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: created.id,
+          data: {
+            pageMessage: data.pageMessage,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.error(err as Error, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+    }
   }
 
   /*
