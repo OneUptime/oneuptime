@@ -428,6 +428,8 @@
     "Elastic Security": "Elastic Security",
     "AWS Security Hub": "AWS Security Hub",
     "Okta System Log": "Okta-systemlog",
+    "Microsoft Entra ID": "Microsoft Entra ID",
+    "Google Workspace": "Google Workspace",
     "Global SSO": "Global SSO",
     "Import and Export Label Rules": "Import og eksport af etiketregler",
     "Run Rules on Existing Resources": "Kør regler på eksisterende ressourcer"

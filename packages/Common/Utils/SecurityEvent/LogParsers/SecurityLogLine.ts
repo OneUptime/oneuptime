@@ -113,6 +113,82 @@ export function readIpAddress(value: string): string {
   return IP.isIP(candidate) ? candidate : "";
 }
 
+/*
+ * The address a request came from, worth recording as an entity: a valid
+ * address that is not this machine's own (127.0.0.1, ::1) and not "any"
+ * (0.0.0.0, ::), else "". An IPv4 address written as IPv6
+ * (::ffff:203.0.113.7, as Windows writes a Kerberos client's) is read as
+ * the IPv4 address it is.
+ */
+export function readRemoteIpAddress(value: string): string {
+  let candidate: string = (value || "").trim();
+
+  if (candidate.toLowerCase().startsWith("::ffff:")) {
+    const mapped: string = candidate.slice("::ffff:".length);
+
+    if (readIpAddress(mapped) && !mapped.includes(":")) {
+      candidate = mapped;
+    }
+  }
+
+  const address: string = readIpAddress(candidate);
+
+  if (!address) {
+    return "";
+  }
+
+  const lower: string = address.toLowerCase();
+
+  if (
+    lower === "::1" ||
+    lower === "::" ||
+    lower === "0.0.0.0" ||
+    lower.startsWith("127.")
+  ) {
+    return "";
+  }
+
+  return address;
+}
+
+// The most attributes an event made from one structured record keeps.
+export const MAX_RECORD_ATTRIBUTES: number = 300;
+
+// The longest value of an attribute an event made from a record keeps.
+export const MAX_RECORD_ATTRIBUTE_VALUE_LENGTH: number = 1000;
+
+/*
+ * A record's fields as an event's attributes: flat key=text pairs, at most
+ * MAX_RECORD_ATTRIBUTES of them, each value cut to
+ * MAX_RECORD_ATTRIBUTE_VALUE_LENGTH - a source decides how much a record
+ * holds, the event keeps a bounded copy of it.
+ */
+export function boundAttributes(
+  flattened: JSONObject,
+  maxValueLength: number = MAX_RECORD_ATTRIBUTE_VALUE_LENGTH,
+): JSONObject {
+  const bounded: JSONObject = {};
+  let count: number = 0;
+
+  for (const key of Object.keys(flattened)) {
+    if (count >= MAX_RECORD_ATTRIBUTES) {
+      break;
+    }
+
+    const raw: unknown = flattened[key];
+
+    if (raw === null || raw === undefined || key === "__proto__") {
+      continue;
+    }
+
+    const value: string = typeof raw === "string" ? raw : String(raw);
+    bounded[key] = cutText(value, maxValueLength);
+    count++;
+  }
+
+  return bounded;
+}
+
 // A port number 1-65535, else 0.
 export function readPort(value: string): number {
   const candidate: string = (value || "").trim();
@@ -174,11 +250,26 @@ export interface LogSecurityEventInput {
   line: SecurityLogLine;
   format: SecurityLogFormat;
   classUid: number;
+  /*
+   * The class's name, for a record no OCSF class fits (class 0): what the
+   * source calls that kind of record. Left out, it is OCSF's name.
+   */
+  className?: string | undefined;
   activityName: string;
   statusName: string;
   severity: OcsfSeverity;
   message: string;
   time?: Date | undefined;
+  /*
+   * Who made the record, when the line says so itself: a CEF or LEEF
+   * header's vendor and product, a Windows provider, Microsoft Entra ID's
+   * own records among an Azure export. Left out, the format's.
+   */
+  vendorName?: string | undefined;
+  productName?: string | undefined;
+  // The rule that found it, for a record that is a finding.
+  ruleId?: string | undefined;
+  ruleName?: string | undefined;
   // The source's own id for the record (an audit ID, a CloudTrail event ID).
   eventUid?: string | undefined;
   // Distinguishes the events of one line that holds several records.
@@ -214,8 +305,11 @@ export function buildLogSecurityEvent(
     getSecurityLogFormatDefinition(input.format);
   const category: { categoryUid: number; categoryName: string } =
     ocsfCategoryForClassUid(input.classUid);
+  // A record no OCSF class fits (class 0) keeps the name its source gives it.
   const className: string =
-    ocsfEventClassByUid(input.classUid)?.name || "Base Event";
+    (input.classUid === 0 ? (input.className || "").trim() : "") ||
+    ocsfEventClassByUid(input.classUid)?.name ||
+    "Base Event";
   const logId: string = input.line.logId || "";
 
   const principalUser: string = (input.principalUser || "").trim();
@@ -268,10 +362,16 @@ export function buildLogSecurityEvent(
     severityName: input.severity,
     statusName: input.statusName,
     message: cutText(input.message, MAX_EVENT_MESSAGE_LENGTH),
-    vendorName: definition?.vendorName || "",
-    productName: definition?.productName || "",
-    ruleId: "",
-    ruleName: "",
+    vendorName: cutText(
+      (input.vendorName || "").trim() || definition?.vendorName || "",
+      MAX_TOKEN_LENGTH,
+    ),
+    productName: cutText(
+      (input.productName || "").trim() || definition?.productName || "",
+      MAX_TOKEN_LENGTH,
+    ),
+    ruleId: cutText((input.ruleId || "").trim(), MAX_TOKEN_LENGTH),
+    ruleName: cutText((input.ruleName || "").trim(), MAX_TOKEN_LENGTH),
     mitreTactics: input.mitreTactics || [],
     mitreTechniques: input.mitreTechniques || [],
     principalUser,

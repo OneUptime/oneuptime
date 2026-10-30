@@ -37,6 +37,8 @@ enum ProviderLogo {
   AwsSecurityHub = "aws-security-hub",
   Okta = "okta",
   GoogleSecurityOperations = "google-security-operations",
+  MicrosoftEntraId = "microsoft-entra-id",
+  GoogleWorkspace = "google-workspace",
 
   // Clouds
   Aws = "aws",
@@ -148,6 +150,8 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.AwsSecurityHub]: "AWS Security Hub",
   [ProviderLogo.Okta]: "Okta",
   [ProviderLogo.GoogleSecurityOperations]: "Google Security Operations",
+  [ProviderLogo.MicrosoftEntraId]: "Microsoft Entra ID",
+  [ProviderLogo.GoogleWorkspace]: "Google Workspace",
   [ProviderLogo.Aws]: "Amazon Web Services",
   [ProviderLogo.Azure]: "Microsoft Azure",
   [ProviderLogo.GoogleCloud]: "Google Cloud",

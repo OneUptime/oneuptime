@@ -58,6 +58,18 @@ const OCSF_CLASSES_BY_PROVIDER: Record<
     "Account Change",
     "Detection Finding",
   ],
+  [SecurityEventConnectorProvider.MicrosoftEntraId]: [
+    "Authentication",
+    "Account Change",
+    "User Access Management",
+    "Detection Finding",
+  ],
+  [SecurityEventConnectorProvider.GoogleWorkspace]: [
+    "Authentication",
+    "Detection Finding",
+    "User Access Management",
+    "File Hosting Activity",
+  ],
   [SecurityEventConnectorProvider.GoogleSecOps]: ["Detection Finding"],
 };
 

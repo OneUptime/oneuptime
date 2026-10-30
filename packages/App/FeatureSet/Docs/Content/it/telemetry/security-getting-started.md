@@ -58,8 +58,13 @@ La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni.
 | --- | --- |
 | Accessi SSH | Accessi SSH falliti e riusciti dal log di autenticazione, dal journal o dal syslog di un server |
 | sudo | Comandi eseguiti come un altro utente, password di sudo errate e persone che non possono usare sudo |
-| Log di audit di Kubernetes | Modifiche al cluster, shell aperte nei pod, secret letti e richieste rifiutate |
+| Eventi Windows | Accessi, nuovi processi, account e gruppi modificati, servizi installati e log cancellati, da Windows, Sysmon e Microsoft Defender |
 | AWS CloudTrail | Accessi alla console, modifiche nei tuoi account AWS e chiamate che AWS ha rifiutato |
+| Log di audit di Google Cloud | Modifiche nei tuoi progetti Google Cloud, chiamate che Google ha rifiutato e accessi a Google Workspace condivisi con Google Cloud |
+| Log di attività di Azure e di Entra ID | Modifiche nelle tue sottoscrizioni Azure, avvisi di Defender for Cloud, e accessi e modifiche alla directory di Microsoft Entra ID |
+| CEF | Minacce, connessioni bloccate e accessi da firewall, IDS, WAF e altri prodotti di sicurezza che inviano Common Event Format |
+| LEEF | Lo stesso dai prodotti che inviano Log Event Extended Format, come molti fanno per IBM QRadar |
+| Log di audit di Kubernetes | Modifiche al cluster, shell aperte nei pod, secret letti e richieste rifiutate |
 | Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell |
 
 I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventano eventi: mai ogni pagina servita da un server web, né ogni lettura di un'API.
@@ -83,7 +88,7 @@ Di solito il caso si apre prima che il pulsante risponda; quando la regola è an
 :::
 
 :::details Dai miei log non arriva alcun evento di sicurezza
-Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la scheda **I tuoi log** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, di audit, CloudTrail o di accesso non ha niente da trovare.
+Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la scheda **I tuoi log** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, Windows, di audit, CEF, LEEF o di accesso non ha niente da trovare. Incolla una delle sue righe in **Verifica una riga di log**, su **I tuoi log**, per vedere se OneUptime la legge.
 :::
 
 :::details Panoramica dice che l'ultimo evento di sicurezza è arrivato giorni fa

@@ -178,7 +178,22 @@ La pagina **Guida alla configurazione**, sotto **Connessioni**, contiene questi 
 
 ### Trovare eventi di sicurezza nei tuoi log
 
-La scheda **I tuoi log**, in cima a **Connessioni**, rende una sorgente i log che invii già a OneUptime. Con **Trova eventi di sicurezza nei tuoi log** attivo, i nuovi log del progetto vengono letti ogni minuto, e ogni accesso SSH, comando sudo, voce di audit di Kubernetes, modifica di AWS CloudTrail e attacco web che contengono viene salvato come evento di sicurezza. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started#trovare-eventi-di-sicurezza-nei-tuoi-log) per cosa copre ciascun tipo.
+La scheda **I tuoi log**, in cima a **Connessioni**, rende una sorgente i log che invii già a OneUptime. Con **Trova eventi di sicurezza nei tuoi log** attivo, i nuovi log del progetto vengono letti ogni minuto, e ogni accesso SSH o Windows, comando sudo, voce di audit di un cloud, record CEF o LEEF di un prodotto di sicurezza, voce di audit di Kubernetes e attacco web che contengono viene salvato come evento di sicurezza. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started#trovare-eventi-di-sicurezza-nei-tuoi-log) per cosa copre ciascun tipo.
+
+Ogni tipo arriva a OneUptime come normali log:
+
+| Tipo | Inviarlo da |
+| --- | --- |
+| Accessi SSH, sudo | Il journal o il log di autenticazione di una macchina Linux, con l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| Eventi Windows | Il receiver `windowseventlog` del collector sulla macchina, o un forwarder che scrive ogni evento come JSON, come NXLog o Winlogbeat |
+| AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector |
+| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text` |
+| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw` |
+| CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
+| Log di audit di Kubernetes | Il file di log di audit dell'API server, letto dal receiver `filelog` del collector |
+| Attacchi web | Il log di accesso di un server web, letto dal receiver `filelog` del collector |
+
+Su **I tuoi log**, ogni tipo indica quando è stato trovato l'ultima volta, e **Verifica una riga di log** mostra cosa diventa una riga che incolli, prima che ne arrivi una.
 
 ### Collegare un prodotto di sicurezza
 
@@ -194,6 +209,8 @@ La scheda **I tuoi log**, in cima a **Connessioni**, rende una sorgente i log ch
 | Elastic Security | Avvisi di rilevamento, come Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding, come Detection e Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventi di accesso, MFA, account e criteri | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | Accessi e modifiche alla directory, e dal log di audit di Microsoft 365 l'inoltro della posta, le condivisioni e i verdetti di phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | Accessi, i rilevamenti di Google, le modifiche di amministrazione e gli accessi concessi alle app, e le condivisioni in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Gli avvisi propri del prodotto di livello pari o superiore a **Open Cases From** (**Alta e superiori** a meno che tu non scelga un altro livello, oppure **Mai**) aprono [casi](/docs/telemetry/security-cases), raggruppati per l'utente, l'host o l'indirizzo che riguardano.
 - Una connessione legge i record in base al momento in cui il prodotto li ha creati, non al momento dell'attività che descrivono. Una regola SIEM che gira ogni ora crea rilevamenti molto dopo gli eventi corrispondenti, e vengono comunque importati.
