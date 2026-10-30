@@ -34,6 +34,10 @@ import {
   getExceptionTriageActions,
   getResolveInNextReleaseAction,
 } from "../../Utils/ExceptionDetailPresentation";
+import {
+  ExceptionAssignmentWrite,
+  isSameAssignment,
+} from "../../Utils/ExceptionAssignment";
 
 /*
  * Resolve or Reopen, and Archive or Unarchive, in each exception's ⋯ menu
@@ -359,6 +363,176 @@ export const getExceptionBulkActions: () => Array<
       };
     },
   );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Assignment: Assign to me in a row's ⋯ menu, Assign to… in Bulk Actions
+ * ---------------------------------------------------------------------------
+ *
+ * An exception is assigned to one person or one team (ExceptionAssignment).
+ * A row offers to assign it to the reader when it is not theirs already;
+ * Bulk Actions opens a dialog to pick anyone, or nobody, for a selection
+ * (ExceptionAssignModal), and the run writes each exception as the header
+ * would - one request each - leaving one already there alone, saying so.
+ */
+
+export const EXCEPTION_ASSIGN_TO_ME_TITLE: string = "Assign to me";
+export const EXCEPTION_ASSIGN_TITLE: string = "Assign to…";
+
+export const EXCEPTION_ASSIGN_RESULT_LABELS: {
+  succeeded: PluralTemplate;
+  failed: PluralTemplate;
+} = {
+  succeeded: {
+    one: "{{count}} {{itemName}} assigned",
+    other: "{{count}} {{itemsName}} assigned",
+  },
+  failed: {
+    one: "{{count}} {{itemName}} not assigned",
+    other: "{{count}} {{itemsName}} not assigned",
+  },
+};
+
+export const EXCEPTION_ALREADY_ASSIGNED: string = translationKey(
+  "Already assigned there.",
+);
+export const EXCEPTION_NOT_ASSIGNED: string = translationKey(
+  "Not assigned to anyone.",
+);
+
+export const getExceptionAssignmentRowActions: (data: {
+  // The reader; null when no one is signed in, which offers nothing.
+  currentUserId: ObjectID | null;
+  onChanged: () => void;
+}) => Array<ActionButtonSchema<TelemetryException>> = (data: {
+  currentUserId: ObjectID | null;
+  onChanged: () => void;
+}): Array<ActionButtonSchema<TelemetryException>> => {
+  const me: ObjectID | null = data.currentUserId;
+
+  if (!me) {
+    return [];
+  }
+
+  const gate: PermissionGateResult = PermissionGate.check(
+    new TelemetryException(),
+    ModelAction.Update,
+  );
+
+  return [
+    {
+      title: EXCEPTION_ASSIGN_TO_ME_TITLE,
+      icon: IconProp.User,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      isVisible: (exception: TelemetryException): boolean => {
+        return exception.assignToUserId?.toString() !== me.toString();
+      },
+      ...(!gate.isAllowed && gate.disabledReason
+        ? { disabled: true, tooltip: gate.disabledReason }
+        : {}),
+      onClick: async (
+        exception: TelemetryException,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): Promise<void> => {
+        try {
+          const exceptionId: string = getExceptionId(exception);
+
+          if (!exceptionId) {
+            throw new Error("Exception not found");
+          }
+
+          await ModelAPI.updateById<TelemetryException>({
+            id: new ObjectID(exceptionId),
+            modelType: TelemetryException,
+            data: { assignToUserId: me, assignToTeamId: null },
+          });
+
+          data.onChanged();
+          onCompleteAction();
+        } catch (err) {
+          onError(new Error(API.getFriendlyMessage(err)));
+        }
+      },
+    },
+  ];
+};
+
+/*
+ * Assign to… in Bulk Actions: opens the dialog (the list holds it), which
+ * hands its pick to runExceptionAssignment.
+ */
+export const getExceptionAssignBulkAction: (data: {
+  onOpen: (actionProps: BulkActionOnClickProps<TelemetryException>) => void;
+}) => BulkActionButtonSchema<TelemetryException> = (data: {
+  onOpen: (actionProps: BulkActionOnClickProps<TelemetryException>) => void;
+}): BulkActionButtonSchema<TelemetryException> => {
+  const gate: PermissionGateResult = PermissionGate.check(
+    new TelemetryException(),
+    ModelAction.Update,
+    { sentence: EXCEPTION_BULK_LOCK_SENTENCE },
+  );
+
+  return {
+    title: EXCEPTION_ASSIGN_TITLE,
+    icon: IconProp.User,
+    buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.Change,
+    resultLabels: EXCEPTION_ASSIGN_RESULT_LABELS,
+    ...(!gate.isAllowed && gate.disabledReason
+      ? { disabled: true, tooltip: gate.disabledReason }
+      : {}),
+    onClick: async (
+      actionProps: BulkActionOnClickProps<TelemetryException>,
+    ): Promise<void> => {
+      data.onOpen(actionProps);
+    },
+  };
+};
+
+// The run Assign to… starts once its dialog has a pick.
+export const runExceptionAssignment: (
+  actionProps: BulkActionOnClickProps<TelemetryException>,
+  write: ExceptionAssignmentWrite,
+) => Promise<void> = async (
+  actionProps: BulkActionOnClickProps<TelemetryException>,
+  write: ExceptionAssignmentWrite,
+): Promise<void> => {
+  await runBulkAction<TelemetryException>({
+    actionProps: actionProps,
+    concurrency: BULK_ACTION_CONCURRENCY,
+    step: async (exception: TelemetryException): Promise<BulkItemOutcome> => {
+      if (isSameAssignment(exception, write)) {
+        const reason: string =
+          !write.assignToUserId && !write.assignToTeamId
+            ? EXCEPTION_NOT_ASSIGNED
+            : EXCEPTION_ALREADY_ASSIGNED;
+
+        return bulkItemUnchanged(
+          getGlobalTranslator().translateText(reason) || reason,
+        );
+      }
+
+      const exceptionId: string = getExceptionId(exception);
+
+      if (!exceptionId) {
+        throw new Error("Exception not found");
+      }
+
+      await ModelAPI.updateById<TelemetryException>({
+        id: new ObjectID(exceptionId),
+        modelType: TelemetryException,
+        data: {
+          assignToUserId: write.assignToUserId,
+          assignToTeamId: write.assignToTeamId,
+        },
+      });
+
+      return BULK_ITEM_CHANGED;
+    },
+  });
 };
 
 export const getExceptionRowActions: (data: {
