@@ -4,16 +4,25 @@ import DataStoreFeedService from "./DataStoreFeedService";
 import { DataStoreFeedEventType } from "../../Models/DatabaseModels/DataStoreFeed";
 import DataStoreLabelRuleEngineService from "./DataStoreLabelRuleEngineService";
 import DataStoreOwnerRuleEngineService from "./DataStoreOwnerRuleEngineService";
+import DataSecurityIssueService from "./DataSecurityIssueService";
 import UserService from "./UserService";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
 import { describeDataStoreChanges } from "../Utils/DataSecurity/DataStoreChangeFeed";
+import DataSecurityIssueAlerts, {
+  ClosedDataSecurityIssue,
+} from "../Utils/DataSecurity/DataSecurityIssueAlerts";
+import DataSecurityIssue from "../../Models/DatabaseModels/DataSecurityIssue";
 import URL from "../../Types/API/URL";
+import Includes from "../../Types/BaseDatabase/Includes";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
 import { Blue500, Gray500, Yellow500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -42,7 +51,19 @@ import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
  * The store's Timeline (DataStoreFeed) says when it was found or added,
  * what a person changed on it and to what (DataStoreChangeFeed), and when
  * discovery stopped seeing it or found it again.
+ *
+ * A store deleted takes its issues with it; an alert an open one raised
+ * ends with it (DataSecurityIssueAlerts), as when its check passes.
  */
+
+// Why a deleted store's issues are no longer open, for their alerts.
+export const DELETED_STORE_WHY: string = "its store was deleted";
+
+interface DeletedStores {
+  stores: Array<Model>;
+  // Their open issues, read before the delete takes them.
+  openIssues: Array<DataSecurityIssue>;
+}
 
 // The engines a worker can sample, by the scheme of their connection strings.
 const SCANNABLE_CONNECTION_STRING: RegExp =
@@ -274,6 +295,136 @@ export class Service extends ProjectReferencesService<Model> {
           return Boolean(projectId);
         }),
     };
+  }
+
+  /*
+   * The stores a delete removes, and the delete held to them, with their
+   * open issues: the issues go with the store, so they are read first.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const stores: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+      },
+    );
+    const carryForward: DeletedStores = {
+      stores: stores,
+      openIssues: await this.findOpenIssuesOf(stores),
+    };
+
+    return {
+      deleteBy,
+      carryForward: carryForward,
+    };
+  }
+
+  // The deleted stores' open issues' alerts end with them.
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const carried: DeletedStores | undefined = onDelete.carryForward as
+      | DeletedStores
+      | undefined;
+
+    if (!carried || carried.openIssues.length === 0) {
+      return onDelete;
+    }
+
+    const deletedStoreIds: Set<string> = new Set(
+      Service.getRowsDeleted<Model>({
+        rows: carried.stores,
+        deletedIds: deletedIds,
+      }).map((store: Model): string => {
+        return store.id!.toString().toLowerCase();
+      }),
+    );
+    const byProject: Map<
+      string,
+      { projectId: ObjectID; issues: Array<ClosedDataSecurityIssue> }
+    > = new Map();
+
+    for (const issue of carried.openIssues) {
+      if (
+        !issue.id ||
+        !issue.projectId ||
+        !issue.dataStoreId ||
+        !deletedStoreIds.has(issue.dataStoreId.toString().toLowerCase())
+      ) {
+        continue;
+      }
+
+      const key: string = issue.projectId.toString();
+      const group: {
+        projectId: ObjectID;
+        issues: Array<ClosedDataSecurityIssue>;
+      } = byProject.get(key) || { projectId: issue.projectId, issues: [] };
+
+      group.issues.push({ issueId: issue.id, why: DELETED_STORE_WHY });
+      byProject.set(key, group);
+    }
+
+    for (const group of byProject.values()) {
+      // Best effort, and the issues are gone with their Timeline.
+      await DataSecurityIssueAlerts.resolveForClosedIssues({
+        projectId: group.projectId,
+        issues: group.issues,
+        noteOnIssue: false,
+      });
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * The open issues of these stores, as OneUptime reads them. Best effort:
+   * a read that fails is logged, and the delete goes on.
+   */
+  private async findOpenIssuesOf(
+    stores: Array<Model>,
+  ): Promise<Array<DataSecurityIssue>> {
+    const storeIds: Array<ObjectID> = stores
+      .map((store: Model): ObjectID | undefined => {
+        return store.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (storeIds.length === 0) {
+      return [];
+    }
+
+    try {
+      return await DataSecurityIssueService.findBy({
+        query: {
+          dataStoreId: new Includes(storeIds),
+          status: DataSecurityIssueStatus.Open,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          dataStoreId: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        "DataSecurity: could not read the open issues of the stores being deleted:",
+      );
+      logger.error(error);
+      return [];
+    }
   }
 
   @CaptureSpan()

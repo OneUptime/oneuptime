@@ -19,10 +19,11 @@ import logger from "../Logger";
  * A Critical issue can raise an alert (DataSecurityIntegrations), which
  * pages whoever is on call and escalates until somebody acknowledges it.
  * The alert is about the issue, so it ends with it: when the issue's check
- * passes, when the store is no longer checked that way, or when a person
- * marks it resolved, accepts its risk or says it is not an issue, its open
- * alert is resolved - nobody is paged for an exposure that is closed. An
- * issue that opens again raises a new alert.
+ * passes, when the store is no longer checked that way, when the store is
+ * archived or deleted, or when a person marks it resolved, accepts its risk
+ * or says it is not an issue, its open alert is resolved - nobody is paged
+ * for an exposure that is closed. An issue that opens again raises a new
+ * alert.
  *
  * Its security case and its incident stay as they are: a case can hold
  * other detections, and an incident has its own people, status pages and
@@ -49,6 +50,11 @@ export default class DataSecurityIssueAlerts {
   public static async resolveForClosedIssues(data: {
     projectId: ObjectID;
     issues: Array<ClosedDataSecurityIssue>;
+    /*
+     * Whether the issue's Timeline says so: not when the issue is gone, with
+     * its Timeline - a deleted store's.
+     */
+    noteOnIssue?: boolean | undefined;
   }): Promise<number> {
     if (data.issues.length === 0) {
       return 0;
@@ -115,6 +121,10 @@ export default class DataSecurityIssueAlerts {
             },
           });
           resolved++;
+
+          if (data.noteOnIssue === false) {
+            continue;
+          }
 
           await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
             projectId: data.projectId,

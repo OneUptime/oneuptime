@@ -241,6 +241,28 @@ describe("resolveForClosedIssues", () => {
     ]);
   });
 
+  test("an issue that is gone, with its store: its alert is resolved, saying why, and nothing is written on its timeline", async () => {
+    alertFindSpy.mockResolvedValue([openAlert(ALERT_A, ISSUE_A)] as never);
+
+    await expect(
+      DataSecurityIssueAlerts.resolveForClosedIssues({
+        projectId: PROJECT_ID,
+        issues: [closed(ISSUE_A, "its store was deleted")],
+        noteOnIssue: false,
+      }),
+    ).resolves.toBe(1);
+
+    expect(
+      timelines().map((timeline: AlertStateTimeline) => {
+        return timeline.rootCause;
+      }),
+    ).toEqual([
+      "Resolved by Data Security, as the issue it was raised for is no longer open: its store was deleted.",
+    ]);
+    expect(feedSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
   test("an alert of no closed issue is left alone", async () => {
     alertFindSpy.mockResolvedValue([
       openAlert(ALERT_A, ISSUE_A),
