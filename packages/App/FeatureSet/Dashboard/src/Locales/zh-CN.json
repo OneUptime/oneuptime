@@ -8466,7 +8466,7 @@
   "CPU per pod": "CPU per pod",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.": "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.": "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.",
-  "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)": "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)",
+  "CPU utilization as a ratio `0`–`1` (the device inventory shows it as a percentage)": "以 `0`–`1` 比率表示的 CPU 使用率（设备清单会将其显示为百分比）",
   "CPU, CPU ready, memory (incl. ballooning / swapping), disk and network for this virtual machine over the selected time range. CPU and I/O series exist only while the VM is powered on.": "此虚拟机在所选时间范围内的 CPU、CPU 就绪、内存（含气球回收 / 交换）、磁盘和网络。CPU 和 I/O 序列仅在虚拟机开机时存在。",
   "CPU, CPU ready, memory, ballooning and swapping across all virtual machines. CPU series exist only for powered-on VMs.": "所有虚拟机的 CPU、CPU 就绪、内存、气球回收和交换。CPU 序列仅针对已开机的虚拟机。",
   "CPU, memory and disk latency across every ESXi host managed by this vCenter.": "此 vCenter 管理的每台 ESXi 主机的 CPU、内存和磁盘延迟。",

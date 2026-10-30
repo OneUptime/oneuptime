@@ -195,7 +195,7 @@ A telemetry payload may also carry `"attributes"`, a map of strings stamped on e
 
 ### Offline detection with Last Will
 
-Register an MQTT Last Will on `oneuptime/<fleet>/<device>/status` with the payload `offline`. If the device dies or drops off the network, OneUptime publishes `iot_device_up = 0` for it the moment its session ends, which trips the stock Device Offline alert template and marks the device down in the inventory, with no polling. Publish `online` to the same topic after connecting, so the device shows as up again.
+Register an MQTT Last Will on `oneuptime/<fleet>/<device>/status` with the payload `offline`. If the device dies or drops off the network, OneUptime publishes `iot_device_up = 0` for it the moment its session ends, which trips the stock Device Offline alert template and marks the device down in the inventory, with no polling. Publish `online` to the same topic after connecting, so the device shows as up again. Any reading the device publishes counts as up too, so a device that keeps sending readings stays up without publishing its status again.
 
 ### Examples
 
@@ -281,7 +281,7 @@ OneUptime recognizes these `iot_*` metric names. Send only the ones that make se
 | `iot_battery_percent` | Battery charge, `0` to `100` (%). |
 | `iot_signal_strength_dbm` | Wireless signal strength in dBm, such as Wi-Fi, LoRa or cellular RSSI. |
 | `iot_temperature_celsius` | Device or sensor temperature in °C. |
-| `iot_cpu_usage_ratio` | CPU use as a ratio from `0` to `1`. OneUptime stores and shows it as a percentage. |
+| `iot_cpu_usage_ratio` | CPU use as a ratio from `0` to `1`. OneUptime stores it as sent, and the device inventory shows it as a percentage. |
 | `iot_memory_usage_bytes` | Memory in use, in bytes. |
 | `iot_memory_size_bytes` | Total memory on the device, in bytes. |
 | `iot_uptime_seconds` | Seconds since the device last booted. |
@@ -289,7 +289,7 @@ OneUptime recognizes these `iot_*` metric names. Send only the ones that make se
 ## Check that the fleet appears
 
 1. Check that the device, the gateway's collector or the MQTT client sends without errors: look for export failures and HTTP `401` or `422` answers in its logs, or a connection refused with return code 4.
-2. Open **Products → Infrastructure → IoT → All Fleets**. The fleet appears as `iot/<fleet>` within a minute or so of its first readings.
+2. Open **Products → Infrastructure → IoT → All Fleets**. The fleet appears under its name within a minute or so of its first readings.
 3. Open the fleet's **Devices** page. Each device you sent should be listed with its latest battery, signal, temperature, CPU, memory and up or down status.
 4. Open the fleet's **Metrics** page to chart any of the `iot_*` series.
 

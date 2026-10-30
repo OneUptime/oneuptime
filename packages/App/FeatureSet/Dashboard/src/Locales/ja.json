@@ -8466,7 +8466,7 @@
   "CPU per pod": "Pod ごとの CPU",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.": "ゲストごとの CPU 使用率（pve_cpu_usage_ratio × 100）。",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.": "ノードごとの CPU 使用率（pve_cpu_usage_ratio × 100）。",
-  "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)": "`0`〜`1` の比率で表した CPU 使用率（OneUptime ではパーセンテージとして保存します）",
+  "CPU utilization as a ratio `0`–`1` (the device inventory shows it as a percentage)": "`0`〜`1` の比率で表した CPU 使用率（デバイスのインベントリではパーセンテージとして表示します）",
   "CPU, CPU ready, memory (incl. ballooning / swapping), disk and network for this virtual machine over the selected time range. CPU and I/O series exist only while the VM is powered on.": "選択した期間における、この仮想マシンの CPU、CPU Ready、メモリ（バルーニング / スワップを含む）、ディスク、ネットワーク。CPU と I/O の系列は VM の電源がオンの間のみ存在します。",
   "CPU, CPU ready, memory, ballooning and swapping across all virtual machines. CPU series exist only for powered-on VMs.": "すべての仮想マシンの CPU、CPU Ready、メモリ、バルーニング、スワップ。CPU の系列は電源オンの VM についてのみ存在します。",
   "CPU, memory and disk latency across every ESXi host managed by this vCenter.": "この vCenter が管理するすべての ESXi ホストの CPU、メモリ、ディスクレイテンシ。",

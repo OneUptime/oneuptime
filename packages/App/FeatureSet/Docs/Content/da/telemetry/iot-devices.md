@@ -195,7 +195,7 @@ En telemetri-payload kan også bære `"attributes"`, et map af strenge, der stem
 
 ### Offline-registrering med Last Will
 
-Registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med payloaden `offline`. Hvis enheden dør eller falder af netværket, publicerer OneUptime `iot_device_up = 0` for den i det øjeblik, dens session slutter, hvilket udløser den medfølgende advarselsskabelon Device Offline og markerer enheden som nede i inventaret, uden polling. Publicer `online` til det samme topic efter forbindelsen, så enheden vises som oppe igen.
+Registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med payloaden `offline`. Hvis enheden dør eller falder af netværket, publicerer OneUptime `iot_device_up = 0` for den i det øjeblik, dens session slutter, hvilket udløser den medfølgende advarselsskabelon Device Offline og markerer enheden som nede i inventaret, uden polling. Publicer `online` til det samme topic efter forbindelsen, så enheden vises som oppe igen. Enhver måling, enheden publicerer, tæller også som oppe, så en enhed, der bliver ved med at sende målinger, forbliver oppe uden at publicere sin status igen.
 
 ### Eksempler
 
@@ -281,7 +281,7 @@ OneUptime genkender disse `iot_*`-metriknavne. Send kun dem, der giver mening fo
 | `iot_battery_percent` | Batteriniveau, `0` til `100` (%). |
 | `iot_signal_strength_dbm` | Trådløs signalstyrke i dBm, såsom RSSI for Wi-Fi, LoRa eller mobilnet. |
 | `iot_temperature_celsius` | Enheds- eller sensortemperatur i °C. |
-| `iot_cpu_usage_ratio` | CPU-forbrug som et forhold fra `0` til `1`. OneUptime gemmer og viser det som en procentdel. |
+| `iot_cpu_usage_ratio` | CPU-forbrug som et forhold fra `0` til `1`. OneUptime gemmer det, som det sendes, og enhedsinventaret viser det som en procentdel. |
 | `iot_memory_usage_bytes` | Hukommelse i brug, i bytes. |
 | `iot_memory_size_bytes` | Samlet hukommelse på enheden, i bytes. |
 | `iot_uptime_seconds` | Sekunder siden enheden sidst startede. |
@@ -289,7 +289,7 @@ OneUptime genkender disse `iot_*`-metriknavne. Send kun dem, der giver mening fo
 ## Kontrollér, at flåden vises
 
 1. Kontrollér, at enheden, gatewayens collector eller MQTT-klienten sender uden fejl: kig efter eksportfejl og HTTP-svar `401` eller `422` i dens logs eller en forbindelse, der afvises med returkode 4.
-2. Åbn **Produkter → Infrastruktur → IoT → All Fleets**. Flåden vises som `iot/<fleet>` inden for et minuts tid efter dens første målinger.
+2. Åbn **Produkter → Infrastruktur → IoT → All Fleets**. Flåden vises under sit navn inden for et minuts tid efter dens første målinger.
 3. Åbn flådens side **Enheder**. Hver enhed, du har sendt, bør være opført med sit seneste batteri, signal, temperatur, CPU, hukommelse og status oppe eller nede.
 4. Åbn flådens side **Metrikker** for at vise en hvilken som helst af `iot_*`-serierne i en graf.
 

@@ -8466,7 +8466,7 @@
   "CPU per pod": "CPU por pod",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.": "Porcentaje de uso de CPU (pve_cpu_usage_ratio × 100), desglosado por invitado.",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.": "Porcentaje de uso de CPU (pve_cpu_usage_ratio × 100), desglosado por nodo.",
-  "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)": "Utilización de CPU como proporción `0`–`1` (OneUptime la almacena como porcentaje)",
+  "CPU utilization as a ratio `0`–`1` (the device inventory shows it as a percentage)": "Utilización de CPU como proporción `0`–`1` (el inventario de dispositivos la muestra como porcentaje)",
   "CPU, CPU ready, memory (incl. ballooning / swapping), disk and network for this virtual machine over the selected time range. CPU and I/O series exist only while the VM is powered on.": "CPU, CPU ready, memoria (incl. ballooning / swapping), disco y red de esta máquina virtual durante el intervalo de tiempo seleccionado. Las series de CPU y E/S solo existen mientras la VM está encendida.",
   "CPU, CPU ready, memory, ballooning and swapping across all virtual machines. CPU series exist only for powered-on VMs.": "CPU, CPU ready, memoria, ballooning y swapping de todas las máquinas virtuales. Las series de CPU solo existen para las VM encendidas.",
   "CPU, memory and disk latency across every ESXi host managed by this vCenter.": "Latencia de CPU, memoria y disco de todos los hosts ESXi administrados por este vCenter.",
