@@ -38854,5 +38854,20 @@
   "Pick one person or one team. Pick nobody to unassign them.": "یک نفر یا یک تیم را انتخاب کنید. برای لغو واگذاری، کسی را انتخاب نکنید.",
   "Pick someone": "انتخاب یک نفر",
   "Search people and teams": "جست‌وجوی افراد و تیم‌ها",
-  "Sort: {{order}}": "مرتب‌سازی: {{order}}"
+  "Sort: {{order}}": "مرتب‌سازی: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "وظایف هوش مصنوعی در مخزن این استثنا کار می‌کنند، پس شروع یک وظیفه به اجازهٔ ویرایش آن نیاز دارد.",
+  "Checking for tasks that are already running.": "در حال بررسی وظایفی که از قبل در حال اجرا هستند.",
+  "Finish the setup checklist above to start AI tasks.": "برای شروع وظایف هوش مصنوعی، فهرست راه‌اندازی بالا را کامل کنید.",
+  "Reopen and unarchive this exception to start AI tasks.": "برای شروع وظایف هوش مصنوعی، این استثنا را دوباره باز کنید و از بایگانی خارج کنید.",
+  "High priority": "اولویت بالا",
+  "Low priority": "اولویت پایین",
+  "Medium priority": "اولویت متوسط",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "در {{hours}} ساعت گذشته هیچ استثنایی نخستین بار دیده نشده یا برنگشته است.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI خلاصه‌ای برنگرداند. لطفاً دوباره تلاش کنید.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI استثناهایی را که در {{hours}} ساعت گذشته نخستین بار دیده شده‌اند، و آن‌هایی را که پس از برطرف شدن برگشته‌اند، خلاصه می‌کند و می‌گوید اول به کدام نگاه کنید.",
+  "Summarize again": "خلاصهٔ دوباره",
+  "Summarize with OneUptime AI": "خلاصه با OneUptime AI",
+  "Summarizing…": "در حال خلاصه کردن…",
+  "What's new": "چه خبر تازه‌ای هست",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "نوشته‌شده توسط OneUptime AI {{time}}، از استثناهایی که در {{hours}} ساعت گذشته نخستین بار دیده شده‌اند یا برگشته‌اند."
 }

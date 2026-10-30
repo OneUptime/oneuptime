@@ -38854,5 +38854,20 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Выберите одного человека или одну команду. Не выбирайте никого, чтобы снять назначение.",
   "Pick someone": "Выбрать человека",
   "Search people and teams": "Искать людей и команды",
-  "Sort: {{order}}": "Сортировка: {{order}}"
+  "Sort: {{order}}": "Сортировка: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "Задачи ИИ работают в репозитории этого исключения, поэтому для запуска задачи нужно право изменять его.",
+  "Checking for tasks that are already running.": "Проверяем, не выполняются ли уже задачи.",
+  "Finish the setup checklist above to start AI tasks.": "Завершите список настройки выше, чтобы запускать задачи ИИ.",
+  "Reopen and unarchive this exception to start AI tasks.": "Откройте это исключение снова и верните его из архива, чтобы запускать задачи ИИ.",
+  "High priority": "Высокий приоритет",
+  "Low priority": "Низкий приоритет",
+  "Medium priority": "Средний приоритет",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "За последние {{hours}} ч. ни одно исключение не появилось впервые и не вернулось.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI не вернул итог. Попробуйте ещё раз.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI подытоживает исключения, впервые замеченные за последние {{hours}} ч., и те, что вернулись после устранения, и говорит, на какие смотреть в первую очередь.",
+  "Summarize again": "Подвести итог снова",
+  "Summarize with OneUptime AI": "Подвести итог с OneUptime AI",
+  "Summarizing…": "Подводим итог…",
+  "What's new": "Что нового",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Написано OneUptime AI {{time}} по исключениям, впервые замеченным или вернувшимся за последние {{hours}} ч."
 }

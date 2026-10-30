@@ -38854,5 +38854,20 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Escolha uma pessoa ou uma equipe. Não escolha ninguém para remover a atribuição.",
   "Pick someone": "Escolher alguém",
   "Search people and teams": "Pesquisar pessoas e equipes",
-  "Sort: {{order}}": "Ordem: {{order}}"
+  "Sort: {{order}}": "Ordem: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "As tarefas de IA trabalham no repositório desta exceção, então iniciar uma exige permissão para editá-lo.",
+  "Checking for tasks that are already running.": "Verificando se já há tarefas em andamento.",
+  "Finish the setup checklist above to start AI tasks.": "Conclua a lista de configuração acima para iniciar tarefas de IA.",
+  "Reopen and unarchive this exception to start AI tasks.": "Reabra e desarquive esta exceção para iniciar tarefas de IA.",
+  "High priority": "Prioridade alta",
+  "Low priority": "Prioridade baixa",
+  "Medium priority": "Prioridade média",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "Nenhuma exceção foi vista pela primeira vez nem voltou nas últimas {{hours}} horas.",
+  "OneUptime AI did not return a summary. Please try again.": "A OneUptime AI não retornou um resumo. Tente novamente.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "A OneUptime AI resume as exceções vistas pela primeira vez nas últimas {{hours}} horas, e as que voltaram depois de resolvidas, e diz quais olhar primeiro.",
+  "Summarize again": "Resumir de novo",
+  "Summarize with OneUptime AI": "Resumir com a OneUptime AI",
+  "Summarizing…": "Resumindo…",
+  "What's new": "Novidades",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Escrito pela OneUptime AI {{time}}, a partir das exceções vistas pela primeira vez ou que voltaram nas últimas {{hours}} horas."
 }

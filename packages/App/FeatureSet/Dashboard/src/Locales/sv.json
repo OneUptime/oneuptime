@@ -38854,5 +38854,20 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Välj en person eller ett team. Välj ingen för att ta bort tilldelningen.",
   "Pick someone": "Välj någon",
   "Search people and teams": "Sök efter personer och team",
-  "Sort: {{order}}": "Sortering: {{order}}"
+  "Sort: {{order}}": "Sortering: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI-uppgifter arbetar i det här undantagets förråd, så att starta en kräver behörighet att redigera det.",
+  "Checking for tasks that are already running.": "Kontrollerar om några uppgifter redan körs.",
+  "Finish the setup checklist above to start AI tasks.": "Slutför konfigurationschecklistan ovan för att starta AI-uppgifter.",
+  "Reopen and unarchive this exception to start AI tasks.": "Öppna undantaget igen och avarkivera det för att starta AI-uppgifter.",
+  "High priority": "Hög prioritet",
+  "Low priority": "Låg prioritet",
+  "Medium priority": "Medelhög prioritet",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "Inga undantag sågs för första gången eller kom tillbaka de senaste {{hours}} timmarna.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI returnerade ingen sammanfattning. Försök igen.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI sammanfattar de undantag som först sågs de senaste {{hours}} timmarna, och de som kom tillbaka efter att de lösts, och säger vilka du ska titta på först.",
+  "Summarize again": "Sammanfatta igen",
+  "Summarize with OneUptime AI": "Sammanfatta med OneUptime AI",
+  "Summarizing…": "Sammanfattar…",
+  "What's new": "Vad är nytt",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Skrivet av OneUptime AI {{time}}, utifrån de undantag som först sågs eller kom tillbaka de senaste {{hours}} timmarna."
 }

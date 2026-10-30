@@ -38854,5 +38854,20 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Kies één persoon of één team. Kies niemand om de toewijzing op te heffen.",
   "Pick someone": "Iemand kiezen",
   "Search people and teams": "Personen en teams zoeken",
-  "Sort: {{order}}": "Sortering: {{order}}"
+  "Sort: {{order}}": "Sortering: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI-taken werken in de repository van deze uitzondering, dus een taak starten vraagt toestemming om die te bewerken.",
+  "Checking for tasks that are already running.": "Controleren op taken die al lopen.",
+  "Finish the setup checklist above to start AI tasks.": "Rond de configuratiechecklist hierboven af om AI-taken te starten.",
+  "Reopen and unarchive this exception to start AI tasks.": "Heropen deze uitzondering en haal haar uit het archief om AI-taken te starten.",
+  "High priority": "Hoge prioriteit",
+  "Low priority": "Lage prioriteit",
+  "Medium priority": "Gemiddelde prioriteit",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "Er is in de laatste {{hours}} uur geen uitzondering voor het eerst gezien of teruggekomen.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI gaf geen samenvatting terug. Probeer het opnieuw.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI vat de uitzonderingen samen die in de laatste {{hours}} uur voor het eerst gezien zijn, en de uitzonderingen die terugkwamen nadat ze opgelost waren, en zegt welke u eerst moet bekijken.",
+  "Summarize again": "Opnieuw samenvatten",
+  "Summarize with OneUptime AI": "Samenvatten met OneUptime AI",
+  "Summarizing…": "Samenvatten…",
+  "What's new": "Wat is er nieuw",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Geschreven door OneUptime AI {{time}}, op basis van de uitzonderingen die in de laatste {{hours}} uur voor het eerst gezien zijn of terugkwamen."
 }

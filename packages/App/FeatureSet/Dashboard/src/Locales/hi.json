@@ -38854,5 +38854,20 @@
   "Pick one person or one team. Pick nobody to unassign them.": "एक व्यक्ति या एक टीम चुनें। असाइनमेंट हटाने के लिए किसी को न चुनें।",
   "Pick someone": "किसी को चुनें",
   "Search people and teams": "लोग और टीमें खोजें",
-  "Sort: {{order}}": "क्रम: {{order}}"
+  "Sort: {{order}}": "क्रम: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI कार्य इस अपवाद की रिपॉज़िटरी में काम करते हैं, इसलिए कार्य शुरू करने के लिए उसे संपादित करने की अनुमति चाहिए।",
+  "Checking for tasks that are already running.": "पहले से चल रहे कार्यों की जाँच हो रही है।",
+  "Finish the setup checklist above to start AI tasks.": "AI कार्य शुरू करने के लिए ऊपर की सेटअप चेकलिस्ट पूरी करें।",
+  "Reopen and unarchive this exception to start AI tasks.": "AI कार्य शुरू करने के लिए इस अपवाद को फिर से खोलें और संग्रह से हटाएँ।",
+  "High priority": "उच्च प्राथमिकता",
+  "Low priority": "निम्न प्राथमिकता",
+  "Medium priority": "मध्यम प्राथमिकता",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "पिछले {{hours}} घंटों में कोई अपवाद पहली बार नहीं देखा गया और कोई नहीं लौटा।",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI ने सारांश नहीं लौटाया। कृपया फिर से कोशिश करें।",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI पिछले {{hours}} घंटों में पहली बार देखे गए अपवादों और सुलझाए जाने के बाद लौटे अपवादों का सारांश देता है, और बताता है कि पहले किसे देखें।",
+  "Summarize again": "फिर से सारांश बनाएँ",
+  "Summarize with OneUptime AI": "OneUptime AI से सारांश बनाएँ",
+  "Summarizing…": "सारांश बन रहा है…",
+  "What's new": "नया क्या है",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "OneUptime AI ने {{time}} लिखा, पिछले {{hours}} घंटों में पहली बार देखे गए या लौटे अपवादों से।"
 }
