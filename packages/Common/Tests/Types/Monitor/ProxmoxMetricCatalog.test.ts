@@ -105,3 +105,47 @@ describe("ProxmoxMetricCatalog", () => {
     expect(getProxmoxMetricByMetricName("pve_uptime_seconds")).toBeDefined();
   });
 });
+
+
+/*
+ * The agent scrapes every 30 seconds and a metric monitor reads one-minute
+ * buckets, so a Sum adds two or three scrapes of every series: the info
+ * series summed "to count the nodes" read twice the nodes, and a lifetime
+ * counter summed read twice its total. No default adds scrapes together.
+ */
+describe("ProxmoxMetricCatalog - defaults that do not add scrapes together (regression)", () => {
+  test("no metric defaults to Sum", () => {
+    for (const metric of getAllProxmoxMetrics()) {
+      expect({ id: metric.id, sum: metric.defaultAggregation === "Sum" }).toEqual(
+        { id: metric.id, sum: false },
+      );
+    }
+  });
+
+  test("no description says to sum a series to count", () => {
+    for (const metric of getAllProxmoxMetrics()) {
+      expect({
+        id: metric.id,
+        says: /sum (it )?to count|sum across/i.test(metric.description),
+      }).toEqual({ id: metric.id, says: false });
+    }
+  });
+
+  test("the info series read 1 while their object exists, and the counters their latest total", () => {
+    for (const id of [
+      "pve-node-info",
+      "pve-guest-info",
+      "pve-storage-info",
+      "pve-replication-info",
+      "pve-network-receive-bytes",
+      "pve-network-transmit-bytes",
+      "pve-disk-read-bytes",
+      "pve-disk-write-bytes",
+    ]) {
+      const metric: ProxmoxMetricDefinition | undefined =
+        getProxmoxMetricById(id);
+
+      expect(metric?.defaultAggregation).toBe("Max");
+    }
+  });
+});

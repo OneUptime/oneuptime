@@ -102,3 +102,40 @@ describe("CephMetricCatalog", () => {
     expect(getCephMetricByMetricName("ceph_health_detail")).toBeDefined();
   });
 });
+
+
+/*
+ * The agent scrapes every 30 seconds and a metric monitor reads one-minute
+ * buckets, so a Sum adds two or three scrapes of every series: with 12 OSDs
+ * and one down, "OSD Up < 12" read 22 to 24 and never fired. No default
+ * adds scrapes together.
+ */
+describe("CephMetricCatalog - defaults that do not add scrapes together (regression)", () => {
+  test("no metric defaults to Sum", () => {
+    for (const metric of getAllCephMetrics()) {
+      expect({ id: metric.id, sum: metric.defaultAggregation === "Sum" }).toEqual(
+        { id: metric.id, sum: false },
+      );
+    }
+  });
+
+  test("no description says to sum a series to count", () => {
+    for (const metric of getAllCephMetrics()) {
+      expect({
+        id: metric.id,
+        says: /sum (it )?to count|sum across|sum to count/i.test(
+          metric.description,
+        ),
+      }).toEqual({ id: metric.id, says: false });
+    }
+  });
+
+  test("up, in and quorum default to Min, so one OSD or monitor down reads 0", () => {
+    for (const id of ["ceph-osd-up", "ceph-osd-in", "ceph-mon-quorum-status"]) {
+      const metric: CephMetricDefinition | undefined = getCephMetricById(id);
+
+      expect(metric?.defaultAggregation).toBe("Min");
+      expect(metric?.description).toContain("the minimum reads 0");
+    }
+  });
+});
