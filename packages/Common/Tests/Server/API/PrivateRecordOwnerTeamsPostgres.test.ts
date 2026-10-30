@@ -1540,10 +1540,7 @@ describePostgres(
         for (const write of WRITES) {
           for (const incident of INCIDENTS) {
             const expected: boolean = canWrite(config, incident);
-            const startedAt: number = Date.now();
             const actual: boolean = await tryWrite(write, incident);
-            // eslint-disable-next-line no-console
-            console.log("TIMING", write, actual, Date.now() - startedAt);
 
             if (expected !== actual) {
               mismatches.push(
@@ -1551,11 +1548,9 @@ describePostgres(
               );
             }
 
+            // A write that was made is undone before the next one.
             if (actual) {
-              const seededAt: number = Date.now();
               await seedIncidents();
-              // eslint-disable-next-line no-console
-              console.log("TIMING seed", Date.now() - seededAt);
             }
           }
         }
