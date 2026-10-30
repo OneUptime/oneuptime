@@ -1721,9 +1721,17 @@ describe("the questions follow the incident on screen", () => {
       "title",
       "Summarize this incident: what happened, how long it lasted, and how it was resolved.",
     );
-    // One read of the incident, its state with its title.
+    /*
+     * One read of the incident, its state with its title - and its number
+     * as the project numbered it, which the chip leads with (INC-42).
+     */
     expect(incidentReads()).toEqual([
-      { title: true, incidentNumber: true, currentIncidentStateId: true },
+      {
+        title: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        currentIncidentStateId: true,
+      },
     ]);
 
     await act(async () => {
