@@ -38794,5 +38794,9 @@
   "View task": "Visa uppgift",
   "What OneUptime AI found, and what it is doing about it.": "Vad OneUptime AI hittade, och vad den gör åt det.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Ett godkännande kör exakt det som visas, i ditt namn."
+  "Approving runs exactly what is shown, under your name.": "Ett godkännande kör exakt det som visas, i ditt namn.",
+  "The {{plan}} plan": "Abonnemanget {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Markera mottagarna som ska påminnas. De som är klara har inget att konfigurera.",
+  "Who is on call and when, with every layer applied.": "Vem som har jour och när, med alla lager tillämpade.",
+  "You do not have permission to page on-call policies.": "Du har inte behörighet att larma via jourpolicyer."
 }

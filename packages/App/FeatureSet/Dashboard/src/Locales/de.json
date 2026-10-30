@@ -38794,5 +38794,9 @@
   "View task": "Aufgabe ansehen",
   "What OneUptime AI found, and what it is doing about it.": "Was OneUptime AI gefunden hat und was es dagegen unternimmt.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Eine Genehmigung führt genau das Gezeigte unter Ihrem Namen aus."
+  "Approving runs exactly what is shown, under your name.": "Eine Genehmigung führt genau das Gezeigte unter Ihrem Namen aus.",
+  "The {{plan}} plan": "Der Tarif {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Markieren Sie die Bearbeiter, die erinnert werden sollen. Wer bereit ist, hat nichts einzurichten.",
+  "Who is on call and when, with every layer applied.": "Wer wann Bereitschaft hat, mit allen angewendeten Ebenen.",
+  "You do not have permission to page on-call policies.": "Sie haben keine Berechtigung, über Bereitschaftsrichtlinien zu alarmieren."
 }

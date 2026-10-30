@@ -789,6 +789,29 @@ describe("the On-Call Rules page draws one kind at a time", () => {
      */
     expect(getMountedTables()).toHaveLength(0);
   });
+
+  /*
+   * The person's own tiles sit in the grid the project's Readiness page
+   * uses: four a row only where the card has room for four, by the card's
+   * width and not the window's - beside the side menu at 1024 pixels four a
+   * row left each name a few letters a line.
+   */
+  test("the readiness page's tiles sit in the shared grid, four a row only where the card has room", async () => {
+    renderPage(SECTION_PAGES[0]!);
+
+    await settle();
+
+    const grid: HTMLElement = await screen.findByTestId("stat-tile-grid");
+
+    expect(grid.className).toContain(
+      "[@container(min-width:45rem)]:grid-cols-4",
+    );
+    expect(grid.className).not.toContain("lg:grid-cols-4");
+    expect(grid.parentElement!.className).toContain(
+      "[container-type:inline-size]",
+    );
+    expect(screen.getAllByTestId("stat-tile-body")).toHaveLength(4);
+  });
 });
 
 describe("the section shares one load of the person it is about", () => {

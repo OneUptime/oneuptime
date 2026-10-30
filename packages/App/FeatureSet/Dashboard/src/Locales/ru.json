@@ -38794,5 +38794,9 @@
   "View task": "Открыть задачу",
   "What OneUptime AI found, and what it is doing about it.": "Что нашёл OneUptime AI и что он делает для исправления.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Подтверждение запускает ровно то, что показано, от вашего имени."
+  "Approving runs exactly what is shown, under your name.": "Подтверждение запускает ровно то, что показано, от вашего имени.",
+  "The {{plan}} plan": "Тариф {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Отметьте получателей, которым нужно напомнить. Тем, кто готов, настраивать нечего.",
+  "Who is on call and when, with every layer applied.": "Кто и когда дежурит с учётом всех слоёв.",
+  "You do not have permission to page on-call policies.": "У вас нет прав на вызов по политикам дежурств."
 }

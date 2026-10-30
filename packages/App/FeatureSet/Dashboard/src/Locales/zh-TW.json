@@ -38794,5 +38794,9 @@
   "View task": "檢視任務",
   "What OneUptime AI found, and what it is doing about it.": "OneUptime AI 發現了什麼，以及正在採取什麼行動。",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "核准後將以您的名義完全依所示內容執行。"
+  "Approving runs exactly what is shown, under your name.": "核准後將以您的名義完全依所示內容執行。",
+  "The {{plan}} plan": "{{plan}} 方案",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "勾選要提醒的回應者。已就緒的回應者無需設定。",
+  "Who is on call and when, with every layer applied.": "套用所有層後誰在何時待命。",
+  "You do not have permission to page on-call policies.": "您沒有透過待命策略呼叫的權限。"
 }

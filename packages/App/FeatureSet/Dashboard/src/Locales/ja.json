@@ -38794,5 +38794,9 @@
   "View task": "タスクを表示",
   "What OneUptime AI found, and what it is doing about it.": "OneUptime AI が見つけたことと、その対処状況です。",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "承認すると、表示されている内容がそのままあなたの名前で実行されます。"
+  "Approving runs exactly what is shown, under your name.": "承認すると、表示されている内容がそのままあなたの名前で実行されます。",
+  "The {{plan}} plan": "{{plan}} プラン",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "リマインドする対応者にチェックを入れてください。準備完了の対応者には設定することがありません。",
+  "Who is on call and when, with every layer applied.": "すべてのレイヤーを適用した、誰がいつオンコールか。",
+  "You do not have permission to page on-call policies.": "オンコールポリシーで呼び出す権限がありません。"
 }

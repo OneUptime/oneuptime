@@ -38794,5 +38794,9 @@
   "View task": "Vis oppgave",
   "What OneUptime AI found, and what it is doing about it.": "Hva OneUptime AI fant, og hva den gjør med det.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Godkjenning kjører nøyaktig det som vises, i ditt navn."
+  "Approving runs exactly what is shown, under your name.": "Godkjenning kjører nøyaktig det som vises, i ditt navn.",
+  "The {{plan}} plan": "Abonnementet {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Kryss av mottakerne som skal påminnes. De som er klare, har ingenting å sette opp.",
+  "Who is on call and when, with every layer applied.": "Hvem som har vakt og når, med alle lag brukt.",
+  "You do not have permission to page on-call policies.": "Du har ikke tillatelse til å tilkalle via vaktretningslinjer."
 }

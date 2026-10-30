@@ -38794,5 +38794,9 @@
   "View task": "مشاهده وظیفه",
   "What OneUptime AI found, and what it is doing about it.": "آنچه OneUptime AI یافت و کاری که درباره آن انجام می‌دهد.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "تأیید، دقیقاً همان چیزی را که نشان داده شده، به نام شما اجرا می‌کند."
+  "Approving runs exactly what is shown, under your name.": "تأیید، دقیقاً همان چیزی را که نشان داده شده، به نام شما اجرا می‌کند.",
+  "The {{plan}} plan": "طرح {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "پاسخ‌دهندگانی را که باید یادآوری شوند علامت بزنید. آماده‌ها چیزی برای راه‌اندازی ندارند.",
+  "Who is on call and when, with every layer applied.": "چه کسی و چه زمانی آنکال است، با اعمال همه لایه‌ها.",
+  "You do not have permission to page on-call policies.": "مجوز فراخوانی از طریق سیاست‌های آنکال را ندارید."
 }

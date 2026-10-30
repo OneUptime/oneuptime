@@ -38794,5 +38794,9 @@
   "View task": "Voir la tâche",
   "What OneUptime AI found, and what it is doing about it.": "Ce que OneUptime AI a trouvé, et ce qu'il fait pour y remédier.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Approuver exécute exactement ce qui est affiché, en votre nom."
+  "Approving runs exactly what is shown, under your name.": "Approuver exécute exactement ce qui est affiché, en votre nom.",
+  "The {{plan}} plan": "Le forfait {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Cochez les intervenants à relancer. Ceux qui sont prêts n'ont rien à configurer.",
+  "Who is on call and when, with every layer applied.": "Qui est d'astreinte et quand, avec toutes les couches appliquées.",
+  "You do not have permission to page on-call policies.": "Vous n'avez pas l'autorisation d'alerter via les politiques d'astreinte."
 }

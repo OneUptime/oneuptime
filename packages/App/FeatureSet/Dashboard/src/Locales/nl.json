@@ -38794,5 +38794,9 @@
   "View task": "Taak bekijken",
   "What OneUptime AI found, and what it is doing about it.": "Wat OneUptime AI vond, en wat het eraan doet.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Goedkeuren voert precies uit wat wordt getoond, op uw naam."
+  "Approving runs exactly what is shown, under your name.": "Goedkeuren voert precies uit wat wordt getoond, op uw naam.",
+  "The {{plan}} plan": "Het {{plan}}-abonnement",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Vink de ontvangers aan die u wilt herinneren. Wie gereed is, hoeft niets in te stellen.",
+  "Who is on call and when, with every layer applied.": "Wie wanneer dienst heeft, met alle lagen toegepast.",
+  "You do not have permission to page on-call policies.": "U hebt geen toestemming om via bereikbaarheidsbeleid op te roepen."
 }
