@@ -506,6 +506,10 @@ jobs:
           # its 28 minutes on that run with Security Operations taking 26.5 of
           # them. This group's step took 12.9 to 14.6 minutes on the four runs
           # before it: about 22.
+          # 14.0.98's gate run of 2026-10-30 (41063278179), a slow runner,
+          # took this group 25.5 minutes, the new suite 8.2 of them, and group
+          # 11 15.1: Status Timeline (2.2 minutes there) and Runbook Triggers
+          # (1.7) moved to group 11 the same day: about 21.5 at that pace.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -514,8 +518,6 @@ jobs:
               test-packet-capture-ui
               test-custom-field-options-ui
               test-pagination-ui
-              test-status-timeline-ui
-              test-runbook-triggers-ui
               test-network-first-run-ui
               test-runbook-variables-ui
               test-dashboard-value-widget-ui
@@ -920,10 +922,17 @@ jobs:
           # EntityRisk, RuleExceptions and Watchlists, 7.8 minutes - left for
           # a suite of their own, Security Cases and Detections, in group 5:
           # about 20 at that run's pace.
+          # 14.0.98's gate run of 2026-10-30 (41063278179) took this group 15.1
+          # minutes (Security Operations 13.9) and group 5 25.5: Status
+          # Timeline (2.2 minutes there) and Runbook Triggers (1.7) joined it
+          # from group 5 the same day: about 19 at that pace, and about 24 at
+          # the pace of the run where Security Operations' long spec took 17.3.
           - group: 11
             suites: >-
               test-security-operations-ui
               test-ai-context-ui
+              test-status-timeline-ui
+              test-runbook-triggers-ui
           # Added on 2026-10-26, when group 9 ran past its run step's 28
           # minutes on 14.0.93's gate run with every suite passing: Code had
           # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
