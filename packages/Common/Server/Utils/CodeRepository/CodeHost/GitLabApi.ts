@@ -16,6 +16,8 @@ import {
   CodeHostTransport,
 } from "./CodeHostHttp";
 import {
+  CODE_HOST_MAX_COMMITS,
+  CODE_HOST_MAX_FILES,
   CodeHostAccount,
   CodeHostBranch,
   CodeHostBranchNames,
@@ -23,9 +25,16 @@ import {
   CodeHostChangedFiles,
   CodeHostCiSummary,
   CodeHostComment,
+  CodeHostCommitFile,
+  CodeHostCommitMade,
+  CodeHostCommitRange,
+  CodeHostCommitSummary,
   CodeHostFileContent,
+  CodeHostFileWrite,
+  CodeHostOpenedPullRequest,
   CodeHostPullRequestDetails,
   CodeHostPullRequestState,
+  CodeHostPullRequestSummary,
   CodeHostRepository,
   CodeHostRepositoryPage,
 } from "./CodeHostTypes";
@@ -38,9 +47,11 @@ import CodeHostText from "./CodeHostText";
  * project's branches and files, a merge request's state and the pipeline
  * on its head - and, for a production review, a merge request, its diff,
  * the project's visibility, its members' roles, its recently changed merge
- * requests and the note the review keeps on one. Merge requests are opened
- * by the Runner, which holds the token for the run
- * (Runner/Utils/PullRequests/GitLabMergeRequests).
+ * requests and the note the review keeps on one. A run's merge request is
+ * opened by the Runner, which holds the token for the run
+ * (Runner/Utils/PullRequestOpener); chat's code writes make a branch, a
+ * commit and a merge request here (CodeHostWriter), and a deploy's list of
+ * commits is read here too (CodeHostCommits).
  *
  * A project is read by its id, which stays the same when it is renamed or
  * moved to another group; its path ("group/subgroup/project") is the
@@ -617,7 +628,10 @@ export default class GitLabApi {
         updated_after: data.updatedAfter.toISOString(),
         order_by: "updated_at",
         sort: "asc",
-        per_page: Math.max(1, Math.min(GITLAB_PAGE_SIZE, Math.floor(data.limit))),
+        per_page: Math.max(
+          1,
+          Math.min(GITLAB_PAGE_SIZE, Math.floor(data.limit)),
+        ),
         page: 1,
       },
     );
@@ -725,6 +739,427 @@ export default class GitLabApi {
     return GitLabApi.readNote(answer.json, data.mergeRequestUrl);
   }
 
+  /*
+   * A branch made from another, as chat's code writes start one: true when
+   * it was made, false when a branch of that name is there already.
+   */
+  public async createBranch(data: {
+    project: string;
+    branchName: string;
+    fromBranchName: string;
+  }): Promise<boolean> {
+    if (await this.getBranch(data.project, data.branchName)) {
+      return false;
+    }
+
+    try {
+      await this.client.postJson(
+        `${GitLabApi.projectPath(data.project)}/repository/branches`,
+        { branch: data.branchName, ref: data.fromBranchName },
+      );
+    } catch (error) {
+      // GitLab answers 400 for a branch made since it was looked for.
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.Rejected &&
+        (await this.getBranch(data.project, data.branchName))
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+
+    return true;
+  }
+
+  /*
+   * One commit on a branch that writes each file whole: GitLab's commits
+   * API, which takes several files at once. Each file is created, or
+   * updated where it is there already - which GitLab needs said - and sent
+   * in base64, so no text is changed on its way.
+   */
+  public async commitFiles(data: {
+    project: string;
+    branchName: string;
+    commitMessage: string;
+    files: Array<CodeHostFileWrite>;
+  }): Promise<CodeHostCommitMade> {
+    const actions: Array<JSONObject> = [];
+
+    for (const file of data.files) {
+      const isThere: boolean = await this.isFileThere({
+        project: data.project,
+        ref: data.branchName,
+        filePath: file.filePath,
+      });
+
+      actions.push({
+        action: isThere ? "update" : "create",
+        file_path: file.filePath,
+        content: Buffer.from(file.content, "utf8").toString("base64"),
+        encoding: "base64",
+      });
+    }
+
+    const answer: CodeHostApiAnswer = await this.client.postJson(
+      `${GitLabApi.projectPath(data.project)}/repository/commits`,
+      {
+        branch: data.branchName,
+        commit_message: data.commitMessage,
+        actions,
+      },
+    );
+
+    const commit: JSONObject = GitLabApi.asObject(
+      answer.json,
+      "the commit it made",
+    );
+    const commitSha: string = CodeHostText.readString(commit["id"]);
+
+    if (!CodeHostText.isCommitSha(commitSha)) {
+      throw GitLabApi.badAnswer("the commit it made");
+    }
+
+    return {
+      commitSha,
+      htmlUrl: CodeHostText.readString(commit["web_url"]),
+    };
+  }
+
+  /*
+   * A merge request from one branch into another, ready for review. Its
+   * branch is kept when it merges, as the Runner's merge requests keep
+   * theirs.
+   */
+  public async createMergeRequest(data: {
+    project: string;
+    sourceBranch: string;
+    targetBranch: string;
+    title: string;
+    description: string;
+  }): Promise<CodeHostOpenedPullRequest> {
+    const answer: CodeHostApiAnswer = await this.client.postJson(
+      `${GitLabApi.projectPath(data.project)}/merge_requests`,
+      {
+        source_branch: data.sourceBranch,
+        target_branch: data.targetBranch,
+        title: data.title,
+        description: data.description,
+        remove_source_branch: false,
+      },
+    );
+
+    const mergeRequest: JSONObject = GitLabApi.asObject(
+      answer.json,
+      "the merge request it opened",
+    );
+    const number: number = Number(mergeRequest["iid"]);
+    const id: number = Number(mergeRequest["id"]);
+
+    if (!Number.isSafeInteger(number) || number <= 0) {
+      throw GitLabApi.badAnswer("the merge request it opened");
+    }
+
+    return {
+      id: Number.isSafeInteger(id) && id > 0 ? id : number,
+      number,
+      htmlUrl: CodeHostText.readString(mergeRequest["web_url"]),
+      state:
+        CodeHostText.readString(mergeRequest["state"]) === "merged"
+          ? PullRequestState.Merged
+          : CodeHostText.readString(mergeRequest["state"]) === "closed"
+            ? PullRequestState.Closed
+            : PullRequestState.Open,
+    };
+  }
+
+  /*
+   * What a deploy shipped since the one before it: the commits from `base`
+   * to `head` and the files they changed (GitLab's compare, from their
+   * merge base). None from base to head is either the same commit or an
+   * older one - a rollback - which the compare the other way tells apart.
+   */
+  public async compareCommits(data: {
+    project: string;
+    base: string;
+    head: string;
+  }): Promise<CodeHostCommitRange> {
+    const forward: JSONObject = await this.readCompare({
+      project: data.project,
+      from: data.base,
+      to: data.head,
+    });
+    const commits: Array<CodeHostCommitSummary> = GitLabApi.readCommits(
+      forward["commits"],
+    );
+
+    if (commits.length === 0) {
+      const backward: JSONObject = await this.readCompare({
+        project: data.project,
+        from: data.head,
+        to: data.base,
+      });
+      const isBehind: boolean =
+        GitLabApi.readCommits(backward["commits"]).length > 0;
+
+      return {
+        status: isBehind ? "behind" : "identical",
+        totalCommits: 0,
+        commits: [],
+        files: [],
+        isTruncated: false,
+      };
+    }
+
+    const files: Array<CodeHostCommitFile> = GitLabApi.readDiffFiles(
+      forward["diffs"],
+    );
+
+    return {
+      status: "ahead",
+      totalCommits: commits.length,
+      commits: commits.slice(0, CODE_HOST_MAX_COMMITS),
+      files: files.slice(0, CODE_HOST_MAX_FILES),
+      isTruncated:
+        commits.length > CODE_HOST_MAX_COMMITS ||
+        files.length > CODE_HOST_MAX_FILES ||
+        forward["compare_timeout"] === true,
+    };
+  }
+
+  // One commit, and the files it changed with their lines counted.
+  public async getCommit(data: { project: string; sha: string }): Promise<{
+    commit: CodeHostCommitSummary;
+    files: Array<CodeHostCommitFile>;
+  }> {
+    const path: string = `${GitLabApi.projectPath(data.project)}/repository/commits/${encodeURIComponent(data.sha)}`;
+    const answer: CodeHostApiAnswer = await this.client.getJson(path);
+    const commit: CodeHostCommitSummary | null = GitLabApi.readCommit(
+      answer.json,
+    );
+
+    if (!commit) {
+      throw GitLabApi.badAnswer("the commit");
+    }
+
+    const diff: CodeHostApiAnswer = await this.client.getJson(`${path}/diff`, {
+      per_page: GITLAB_PAGE_SIZE,
+      page: 1,
+    });
+
+    return {
+      commit,
+      files: GitLabApi.readDiffFiles(diff.json).slice(0, CODE_HOST_MAX_FILES),
+    };
+  }
+
+  // The merge requests a commit is in, as GitLab lists them.
+  public async listMergeRequestsOfCommit(data: {
+    project: string;
+    sha: string;
+  }): Promise<Array<CodeHostPullRequestSummary>> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${GitLabApi.projectPath(data.project)}/repository/commits/${encodeURIComponent(data.sha)}/merge_requests`,
+    );
+
+    const entries: JSONArray = Array.isArray(answer.json)
+      ? (answer.json as JSONArray)
+      : [];
+    const mergeRequests: Array<CodeHostPullRequestSummary> = [];
+
+    for (const entry of entries) {
+      const mergeRequest: JSONObject | null =
+        entry && typeof entry === "object" && !Array.isArray(entry)
+          ? (entry as JSONObject)
+          : null;
+      const number: number = Number(mergeRequest?.["iid"]);
+
+      if (!mergeRequest || !Number.isSafeInteger(number) || number <= 0) {
+        continue;
+      }
+
+      const login: string = CodeHostText.readString(
+        ((mergeRequest["author"] as JSONObject | null) || {})["username"],
+      );
+      const mergedAt: string = CodeHostText.readString(
+        mergeRequest["merged_at"],
+      );
+
+      mergeRequests.push({
+        number,
+        title: CodeHostText.readString(mergeRequest["title"]),
+        ...(login ? { authorLogin: login } : {}),
+        ...(mergedAt ? { mergedAt } : {}),
+        url: CodeHostText.readString(mergeRequest["web_url"]),
+      });
+    }
+
+    return mergeRequests;
+  }
+
+  // GitLab's compare of two commits, as it answers it.
+  private async readCompare(data: {
+    project: string;
+    from: string;
+    to: string;
+  }): Promise<JSONObject> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${GitLabApi.projectPath(data.project)}/repository/compare`,
+      { from: data.from, to: data.to },
+    );
+
+    return GitLabApi.asObject(answer.json, "how the two commits compare");
+  }
+
+  // Whether a file is at a path on a branch: a folder or nothing is not.
+  private async isFileThere(data: {
+    project: string;
+    ref: string;
+    filePath: string;
+  }): Promise<boolean> {
+    try {
+      await this.client.getJson(
+        `${GitLabApi.projectPath(data.project)}/repository/files/${encodeURIComponent(data.filePath)}`,
+        { ref: data.ref },
+      );
+
+      return true;
+    } catch (error) {
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.NotFound
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Commits as GitLab's compare lists them - oldest first - newest first,
+   * as a deploy's list says them.
+   */
+  public static readCommits(raw: unknown): Array<CodeHostCommitSummary> {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    const commits: Array<CodeHostCommitSummary> = [];
+
+    for (const entry of raw as JSONArray) {
+      const commit: CodeHostCommitSummary | null = GitLabApi.readCommit(entry);
+
+      if (commit) {
+        commits.push(commit);
+      }
+    }
+
+    return commits.reverse();
+  }
+
+  // One commit as GitLab answers it, or null for one that is not.
+  public static readCommit(raw: unknown): CodeHostCommitSummary | null {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+
+    const commit: JSONObject = raw as JSONObject;
+    const sha: string = CodeHostText.readString(commit["id"]);
+
+    if (!CodeHostText.isCommitSha(sha)) {
+      return null;
+    }
+
+    const message: string =
+      CodeHostText.readString(commit["message"]) ||
+      CodeHostText.readString(commit["title"]);
+    const date: string =
+      CodeHostText.readString(commit["authored_date"]) ||
+      CodeHostText.readString(commit["committed_date"]);
+
+    return {
+      sha,
+      message: (message.split("\n")[0] || "").trim(),
+      authorName: CodeHostText.readString(commit["author_name"]) || "unknown",
+      ...(date ? { date } : {}),
+      pullRequestNumbers: GitLabApi.readMergeRequestNumbers(message),
+    };
+  }
+
+  // The files of a diff GitLab lists (a compare's, a commit's), counted.
+  public static readDiffFiles(raw: unknown): Array<CodeHostCommitFile> {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    const files: Array<CodeHostCommitFile> = [];
+
+    for (const entry of raw as JSONArray) {
+      const file: CodeHostChangedFile | null = GitLabApi.readDiff(entry);
+
+      if (file) {
+        files.push({
+          path: file.filename,
+          status: file.status,
+          additions: file.additions,
+          deletions: file.deletions,
+        });
+      }
+    }
+
+    return files;
+  }
+
+  /*
+   * The merge requests a commit's message names, as GitLab writes a merge
+   * commit's: "See merge request acme/checkout!482". Read line by line with
+   * indexOf: the message is whoever committed's text.
+   */
+  public static readMergeRequestNumbers(message: string): Array<number> {
+    const numbers: Array<number> = [];
+    const marker: string = "merge request ";
+
+    for (const line of (message || "").split("\n")) {
+      const at: number = line.toLowerCase().indexOf(marker);
+
+      if (at < 0) {
+        continue;
+      }
+
+      // The reference: the text after the marker, up to the next space.
+      const rest: string = line.substring(at + marker.length).trim();
+      const space: number = rest.indexOf(" ");
+      const reference: string = space >= 0 ? rest.substring(0, space) : rest;
+      const bang: number = reference.lastIndexOf("!");
+
+      if (bang < 0) {
+        continue;
+      }
+
+      const digits: string = reference.substring(bang + 1);
+
+      if (
+        digits.length === 0 ||
+        digits.length > 9 ||
+        !Array.from(digits).every((character: string): boolean => {
+          return character >= "0" && character <= "9";
+        })
+      ) {
+        continue;
+      }
+
+      const number: number = Number(digits);
+
+      if (number > 0 && !numbers.includes(number)) {
+        numbers.push(number);
+      }
+    }
+
+    return numbers;
+  }
+
   // A merge request as the API answers it, or null for one that is not.
   public static readMergeRequest(
     raw: unknown,
@@ -803,7 +1238,9 @@ export default class GitLabApi {
     const isNew: boolean = entry["new_file"] === true;
     const isRenamed: boolean =
       entry["renamed_file"] === true && !isNew && !isDeleted;
-    const filename: string = isDeleted ? oldPath || newPath : newPath || oldPath;
+    const filename: string = isDeleted
+      ? oldPath || newPath
+      : newPath || oldPath;
 
     if (!filename) {
       return null;
@@ -845,7 +1282,10 @@ export default class GitLabApi {
    * A note as GitLab answers it, with its address: GitLab gives none, and
    * its page is the merge request's, at #note_<id>.
    */
-  public static readNote(raw: unknown, mergeRequestUrl: string): CodeHostComment {
+  public static readNote(
+    raw: unknown,
+    mergeRequestUrl: string,
+  ): CodeHostComment {
     const id: number = Number(
       raw && typeof raw === "object" ? (raw as JSONObject)["id"] : undefined,
     );

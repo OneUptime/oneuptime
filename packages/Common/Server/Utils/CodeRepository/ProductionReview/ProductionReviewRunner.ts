@@ -27,7 +27,11 @@ import { CodeAgentScopedService } from "../../AI/CodeFix/CodeAgentTelemetryScope
 import ProductionReviewAI, {
   ProductionReviewAiResult,
 } from "./ProductionReviewAI";
-import ProductionReviewComposer from "./ProductionReviewComposer";
+import ProductionReviewComposer, {
+  ProductionReviewCheckRunText,
+  ProductionReviewCommentInput,
+} from "./ProductionReviewComposer";
+import { GitHubCheckRunWritten } from "../GitHub/GitHubCheckRuns";
 import { ChangedCode, readChangedCode } from "./ProductionReviewDiff";
 import ProductionReviewFindings, {
   ProductionReviewFindingsResult,
@@ -117,6 +121,11 @@ export const PRODUCTION_REVIEW_FAILED_MESSAGE: () => string = (): string => {
   return getProductionReviewFailedMessage("pull request");
 };
 
+// The name a review's check run has in a pull request's checks.
+export function getProductionReviewCheckName(): string {
+  return `${ProductBrandingText.getProductName()} production review`;
+}
+
 // The host's word for a pull request: GitLab's merge request.
 export function getPullRequestTerm(
   provider: CodeRepositoryType | string | null | undefined,
@@ -136,7 +145,9 @@ export function getPullRequestDraftMessage(term: PullRequestTerm): string {
   return `The ${term} is a draft. It is reviewed once it is marked ready for review, or when someone asks.`;
 }
 
-export function getProductionReviewFailedMessage(term: PullRequestTerm): string {
+export function getProductionReviewFailedMessage(
+  term: PullRequestTerm,
+): string {
   return `${ProductBrandingText.getProductName()} could not finish this production review, even after trying again. A push to the ${term}, or Review again, starts a new one.`;
 }
 
@@ -604,7 +615,8 @@ export default class ProductionReviewRunner {
    * a public repository), written, or the one there edited in place - or
    * nothing, when OneUptime started the review, production has nothing to
    * say about the change, and there is no comment of its own to bring up to
-   * date.
+   * date. On GitHub the review is a check run on the pull request's head
+   * too (writeCheck), quiet or not: a check is no comment in the thread.
    */
   public static async post(data: {
     run: AIRun;
@@ -616,12 +628,12 @@ export default class ProductionReviewRunner {
     update: ProductionReviewContextUpdate;
   }): Promise<void> {
     const hasSignal: boolean = ProductionReviewUtil.hasSignal(data.report);
-
-    if (
+    const isQuiet: boolean =
       !hasSignal &&
       !data.review.commentId &&
-      data.review.trigger === ProductionReviewTrigger.PullRequestChanged
-    ) {
+      data.review.trigger === ProductionReviewTrigger.PullRequestChanged;
+
+    if (isQuiet && !data.host.writeCheckRun) {
       data.report.posting = ProductionReviewPosting.None;
       return;
     }
@@ -635,10 +647,7 @@ export default class ProductionReviewRunner {
       isPublic,
     });
 
-    data.report.posting = posting;
-    data.report.isPublicRepository = isPublic === true;
-
-    const body: string = ProductionReviewComposer.compose({
+    const input: ProductionReviewCommentInput = {
       report: data.report,
       posting,
       reviewUrl: GitHubRunReply.buildRunUrl({
@@ -655,7 +664,33 @@ export default class ProductionReviewRunner {
       isPublicRepository: isPublic,
       pullRequestTerm: data.host.pullRequestTerm,
       asksAgainInProduct: data.host.provider !== CodeRepositoryType.GitHub,
-    });
+    };
+
+    if (isQuiet) {
+      data.report.posting = ProductionReviewPosting.None;
+    } else {
+      await ProductionReviewRunner.writeComment({ ...data, input });
+    }
+
+    await ProductionReviewRunner.writeCheck({ ...data, input });
+  }
+
+  // The review's comment, as `post` decided it.
+  private static async writeComment(data: {
+    run: AIRun;
+    review: ProductionReviewTaskContext;
+    host: ProductionReviewHost;
+    pullRequest: CodeHostPullRequestDetails;
+    report: ProductionReviewReport;
+    update: ProductionReviewContextUpdate;
+    input: ProductionReviewCommentInput;
+  }): Promise<void> {
+    const posting: ProductionReviewPosting = data.input.posting;
+
+    data.report.posting = posting;
+    data.report.isPublicRepository = data.input.isPublicRepository === true;
+
+    const body: string = ProductionReviewComposer.compose(data.input);
 
     let comment: CodeHostComment;
 
@@ -696,6 +731,59 @@ export default class ProductionReviewRunner {
     data.update.commentUrl = comment.htmlUrl;
     data.update.commentPosting = posting;
     data.report.commentUrl = comment.htmlUrl || undefined;
+  }
+
+  /*
+   * The review as a GitHub check run on the pull request's head: success
+   * when production has nothing to say, neutral when something is worth a
+   * look, its Details the review in OneUptime - and its summary what the
+   * comment holds, the link alone where the comment is a link. Edited in
+   * place while the head is the same. An App that may not write checks
+   * there writes none, and a check that cannot be written never fails the
+   * review: the comment and the page in Code stand without it.
+   */
+  private static async writeCheck(data: {
+    run: AIRun;
+    review: ProductionReviewTaskContext;
+    host: ProductionReviewHost;
+    report: ProductionReviewReport;
+    update: ProductionReviewContextUpdate;
+    input: ProductionReviewCommentInput;
+  }): Promise<void> {
+    const headSha: string = data.report.pullRequest.headSha;
+
+    if (!data.host.writeCheckRun || !headSha) {
+      return;
+    }
+
+    try {
+      const text: ProductionReviewCheckRunText =
+        ProductionReviewComposer.composeCheckRun(data.input);
+
+      const written: GitHubCheckRunWritten | null =
+        await data.host.writeCheckRun({
+          checkRunId: data.review.checkRunId,
+          checkRunHeadSha: data.review.checkRunHeadSha,
+          content: {
+            name: getProductionReviewCheckName(),
+            headSha,
+            conclusion: text.conclusion,
+            title: text.title,
+            summary: text.summary,
+            detailsUrl: data.input.reviewUrl,
+            externalId: data.run.id!.toString(),
+          },
+        });
+
+      if (written) {
+        data.update.checkRunId = written.checkRunId;
+        data.update.checkRunHeadSha = headSha;
+      }
+    } catch (error) {
+      logger.info(
+        `Production review ${data.run.id?.toString()}: its check run could not be written, so the review stands without it: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   // A review that ends without reviewing: done, and why.

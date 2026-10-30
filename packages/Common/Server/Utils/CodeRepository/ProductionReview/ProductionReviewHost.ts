@@ -14,6 +14,10 @@ import GitHubConversation, {
   GitHubPullRequestDetails,
   GitHubPullRequestFile,
 } from "../GitHub/GitHubConversation";
+import GitHubCheckRuns, {
+  GitHubCheckRunContent,
+  GitHubCheckRunWritten,
+} from "../GitHub/GitHubCheckRuns";
 import GitHubInstallationBinding from "../GitHub/GitHubInstallationBinding";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import { GitHubTaskContext } from "../../../../Types/AI/CodeFixTaskContext";
@@ -83,6 +87,19 @@ export interface ProductionReviewHost {
    * no commands - there, Review again in OneUptime asks.
    */
   getReviewCommand(): Promise<string | null>;
+  /*
+   * GitHub only: the review as a check run on the pull request's head -
+   * written, or the one of the same head edited in place. Null when the
+   * App may not write checks there (GitHubCheckRuns). Left out on hosts
+   * with no checks OneUptime writes.
+   */
+  writeCheckRun?:
+    | ((data: {
+        checkRunId: number | undefined;
+        checkRunHeadSha: string | undefined;
+        content: GitHubCheckRunContent;
+      }) => Promise<GitHubCheckRunWritten | null>)
+    | undefined;
 }
 
 /*
@@ -382,6 +399,18 @@ export default class ProductionReviewHosts {
         const slug: string | null = await GitHubConversation.getAppSlug();
 
         return slug ? `@${slug} production review` : null;
+      },
+      writeCheckRun: async (args: {
+        checkRunId: number | undefined;
+        checkRunHeadSha: string | undefined;
+        content: GitHubCheckRunContent;
+      }): Promise<GitHubCheckRunWritten | null> => {
+        return await GitHubCheckRuns.write({
+          ...repository,
+          checkRunId: args.checkRunId,
+          checkRunHeadSha: args.checkRunHeadSha,
+          content: args.content,
+        });
       },
     };
   }

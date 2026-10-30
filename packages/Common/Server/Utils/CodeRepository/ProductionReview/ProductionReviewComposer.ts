@@ -20,6 +20,7 @@ import {
   ProductionReviewWhere,
 } from "../../../../Types/CodeRepository/ProductionReview";
 import { PullRequestTerm } from "../../../../Types/CodeRepository/CodeHost";
+import { GitHubCheckConclusion } from "../GitHub/GitHubCheckRuns";
 
 /*
  * THE PRODUCTION REVIEW COMMENT, AS GITHUB, GITLAB, FORGEJO AND GITEA SHOW IT.
@@ -85,8 +86,31 @@ export interface ProductionReviewCommentInput {
   asksAgainInProduct?: boolean | undefined;
 }
 
+/*
+ * What a review's GitHub check run says: its conclusion - success when
+ * production has nothing to say, neutral when there is something worth a
+ * look (a review never fails a pull request) - a title, and a summary that
+ * holds what the comment holds: the review, or only a link to it.
+ */
+export interface ProductionReviewCheckRunText {
+  conclusion: GitHubCheckConclusion;
+  title: string;
+  summary: string;
+}
+
+// The titles a review's check run has.
+export const PRODUCTION_REVIEW_CHECK_TITLES: {
+  worthALook: string;
+  nothingFound: string;
+} = {
+  worthALook: "Something in production is worth a look",
+  nothingFound: "Nothing in production runs through these changes",
+};
+
 // The input's word for a pull request.
-function termOf(input: { pullRequestTerm?: PullRequestTerm | undefined }): PullRequestTerm {
+function termOf(input: {
+  pullRequestTerm?: PullRequestTerm | undefined;
+}): PullRequestTerm {
   return input.pullRequestTerm || "pull request";
 }
 
@@ -269,6 +293,44 @@ export default class ProductionReviewComposer {
           return part.toString();
         }),
     ].join("\n\n");
+  }
+
+  /*
+   * The review as its GitHub check run says it: what it concluded, a title
+   * that says only whether production has something to say - which the
+   * comment says too, on a public repository - and as its summary the
+   * comment's own heading and body, the review or the link to it, without
+   * the comment's marker.
+   */
+  public static composeCheckRun(
+    input: ProductionReviewCommentInput,
+  ): ProductionReviewCheckRunText {
+    const hasSignal: boolean = ProductionReviewUtil.hasSignal(input.report);
+
+    const summary: string = [
+      ProductionReviewComposer.heading(input),
+      input.posting === ProductionReviewPosting.Link
+        ? ProductionReviewComposer.linkBody(input)
+        : ProductionReviewComposer.reviewBody(input),
+      ProductionReviewComposer.footer(input),
+    ]
+      .filter((part: MarkdownText): boolean => {
+        return !part.isEmpty();
+      })
+      .map((part: MarkdownText): string => {
+        return part.toString();
+      })
+      .join("\n\n");
+
+    return {
+      conclusion: hasSignal
+        ? GitHubCheckConclusion.Neutral
+        : GitHubCheckConclusion.Success,
+      title: hasSignal
+        ? PRODUCTION_REVIEW_CHECK_TITLES.worthALook
+        : PRODUCTION_REVIEW_CHECK_TITLES.nothingFound,
+      summary,
+    };
   }
 
   /*

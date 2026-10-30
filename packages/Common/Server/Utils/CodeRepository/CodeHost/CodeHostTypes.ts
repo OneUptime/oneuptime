@@ -145,3 +145,87 @@ export interface CodeHostComment {
   commentId: number;
   htmlUrl: string;
 }
+
+/*
+ * One file OneUptime writes in a commit: its path in the repository and
+ * its whole new text (chat's code writes, CodeHostWriter).
+ */
+export interface CodeHostFileWrite {
+  filePath: string;
+  content: string;
+}
+
+// A commit OneUptime made: its SHA, and its page on the host.
+export interface CodeHostCommitMade {
+  commitSha: string;
+  htmlUrl: string;
+}
+
+// A pull (or merge) request OneUptime opened.
+export interface CodeHostOpenedPullRequest {
+  // The server's own id for it (GitLab's global id, Forgejo's id).
+  id: number;
+  // Its number on its pages: GitLab's iid ("!12"), Forgejo's index ("#12").
+  number: number;
+  htmlUrl: string;
+  state: PullRequestState;
+}
+
+/*
+ * One commit, as a deploy's list of them says it (get_change_details):
+ * the first line of its message, who wrote it, when, and the pull (or
+ * merge) requests its message names.
+ */
+export interface CodeHostCommitSummary {
+  sha: string;
+  // The first line of the commit message.
+  message: string;
+  authorName: string;
+  authorLogin?: string | undefined;
+  date?: string | undefined;
+  // "(#482)", "Merge pull request #482", GitLab's "See merge request x!12".
+  pullRequestNumbers: Array<number>;
+}
+
+/*
+ * A file a commit, or a range of them, changed. Forgejo and Gitea say
+ * which files and how, not how many lines: their counts are left out.
+ */
+export interface CodeHostCommitFile {
+  path: string;
+  // "added", "removed", "modified" or "renamed".
+  status: string;
+  additions?: number | undefined;
+  deletions?: number | undefined;
+}
+
+/*
+ * What a deploy shipped since the one before it: the commits from one to
+ * the other, newest first, and the files they changed.
+ */
+export interface CodeHostCommitRange {
+  /*
+   * "ahead" (the head has commits the base does not), "behind" (the head
+   * is older than the base: a rollback) or "identical" - GitHub's words,
+   * to which GitHub adds "diverged".
+   */
+  status: string;
+  totalCommits: number;
+  // Newest first, at most CODE_HOST_MAX_COMMITS.
+  commits: Array<CodeHostCommitSummary>;
+  files: Array<CodeHostCommitFile>;
+  isTruncated: boolean;
+}
+
+// A pull (or merge) request a commit came from.
+export interface CodeHostPullRequestSummary {
+  number: number;
+  title: string;
+  authorLogin?: string | undefined;
+  mergedAt?: string | undefined;
+  url: string;
+}
+
+// The most commits and files a deploy's list keeps, as GitHub's does.
+export const CODE_HOST_MAX_COMMITS: number = 30;
+export const CODE_HOST_MAX_FILES: number = 50;

@@ -250,6 +250,13 @@ export interface ProductionReviewTaskContext {
   commentUrl?: string | undefined;
   commentPosting?: ProductionReviewPosting | undefined;
   reviewedHeadSha?: string | undefined;
+  /*
+   * GitHub only: the check run the review wrote on the pull request's
+   * head, and that head - edited in place while the head is the same, a
+   * new one written for a new head (GitHub keeps checks per commit).
+   */
+  checkRunId?: number | undefined;
+  checkRunHeadSha?: string | undefined;
   // OneUptime AI's reads of this pull request today (UTC), and the input of the last.
   aiReadDay?: string | undefined;
   aiReadsToday?: number | undefined;

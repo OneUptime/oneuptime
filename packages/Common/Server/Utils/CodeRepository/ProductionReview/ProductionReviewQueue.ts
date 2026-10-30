@@ -120,6 +120,8 @@ export interface ProductionReviewContextUpdate {
   commentUrl?: string | undefined;
   commentPosting?: ProductionReviewTaskContext["commentPosting"];
   reviewedHeadSha?: string | undefined;
+  checkRunId?: number | undefined;
+  checkRunHeadSha?: string | undefined;
   aiReadDay?: string | undefined;
   aiReadsToday?: number | undefined;
   aiInputHash?: string | undefined;
@@ -701,7 +703,9 @@ export default class ProductionReviewQueue {
    * The lock on the pull request a run reviews, whichever host it is on -
    * or none for a run that names none.
    */
-  private static async lockReviewOf(run: AIRun): Promise<SemaphoreMutex | null> {
+  private static async lockReviewOf(
+    run: AIRun,
+  ): Promise<SemaphoreMutex | null> {
     const reviewed: ReviewedPullRequest | null = getReviewedPullRequest(
       run.taskContext,
     );
