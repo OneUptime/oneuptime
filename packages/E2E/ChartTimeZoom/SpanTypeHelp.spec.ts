@@ -513,4 +513,26 @@ test.describe("Traces explorer on a phone: what each Span Type option is", () =>
     await info.tap();
     await expect(page.getByRole("tooltip")).toHaveCount(0);
   });
+
+  test("a tap on an option still chooses it, and nothing it showed stays once the next tap lands elsewhere", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { width: 390 });
+
+    const rootSpans: Locator = spanTypeSection(page).getByRole("radio", {
+      name: "Root spans",
+      exact: true,
+    });
+    await rootSpans.scrollIntoViewIfNeeded();
+
+    await rootSpans.tap();
+    await expect(rootSpans).toHaveAttribute("aria-checked", "true");
+
+    // The next tap, somewhere with nothing to do.
+    await page.getByTestId("synthetic-banner").tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(rootSpans).toHaveAttribute("aria-checked", "true");
+  });
 });
