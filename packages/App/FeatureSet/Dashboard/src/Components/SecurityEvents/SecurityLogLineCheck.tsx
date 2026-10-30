@@ -301,9 +301,13 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
             {/*
              * The menu hangs from the trigger into the card: leftwards from
              * the end of a left-to-right row, rightwards in a right-to-left
-             * one, where the trigger sits at the left.
+             * one, where the trigger sits at the left. The trigger is named
+             * by the words it shows: a custom trigger is otherwise called
+             * "More options", which a screen reader would read and a voice
+             * command could not find.
              */}
             <MoreMenu
+              ariaLabel={LOG_LINE_CHECK_EXAMPLES}
               isMenuPortaled={true}
               isMenuLeftAligned={isPageRightToLeft()}
               elementToBeShownInsteadOfButton={
@@ -359,11 +363,14 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
 
         {/*
          * Button carries md:ml-3, a dialog footer's spacing: cleared here so
-         * Check lines up with the box above it.
+         * Check line lines up with the box above it. "Check line", not
+         * "Check": the Dashboard's "Check" is a noun (Data Security's issue
+         * filter), and German, French and the rest read it as one
+         * ("Prüfung") on a button that does something.
          */}
         <div className="[&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
           <Button
-            title="Check"
+            title="Check line"
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
             disabled={!text.trim()}

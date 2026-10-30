@@ -2387,6 +2387,9 @@ test.describe("connections: your logs and your SIEM", () => {
       lineCheck(page).getByTestId("security-log-line-check-run"),
     ).toBeDisabled();
 
+    // Named by the words it shows, never MoreMenu's "More options".
+    await expect(examplesTrigger(page)).toHaveAccessibleName("Try an example");
+
     // The menu's trigger ends the label's row, level with the label.
     const label: Box = await documentBox(
       lineCheck(page).getByText("Log line", { exact: true }),

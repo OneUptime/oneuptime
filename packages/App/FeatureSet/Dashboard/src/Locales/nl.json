@@ -38722,5 +38722,6 @@
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Verbind Microsoft Entra ID, Google Workspace, Okta of een andere bron, of vind SSH- en Windows-aanmeldingen in de logboeken die u verstuurt.",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "Verbind een EDR zoals CrowdStrike Falcon of Microsoft Defender XDR, of vind de processen die Windows en Sysmon starten en de opdrachten die met sudo zijn uitgevoerd in de logboeken die u verstuurt.",
   "Showing the first {{count}}.": "De eerste {{count}} worden getoond.",
-  "Try an example": "Probeer een voorbeeld"
+  "Try an example": "Probeer een voorbeeld",
+  "Check line": "Regel controleren"
 }

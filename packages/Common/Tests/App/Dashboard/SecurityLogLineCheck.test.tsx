@@ -285,6 +285,13 @@ describe("SecurityLogLineCheck", () => {
     expect(
       screen.getByTestId(`${SECURITY_LOG_LINE_CHECK_ID}-run`),
     ).toBeDisabled();
+    /*
+     * A verb that says what it checks: the Dashboard's "Check" is a noun
+     * (Data Security's issue filter), translated as one ("Prüfung").
+     */
+    expect(screen.getByTestId(`${SECURITY_LOG_LINE_CHECK_ID}-run`)).toBe(
+      screen.getByRole("button", { name: "Check line" }),
+    );
 
     await paste(CEF_THREAT);
     await check();
@@ -438,6 +445,15 @@ describe("SecurityLogLineCheck", () => {
 
     expect(trigger.tagName).toBe("BUTTON");
     expect(trigger).toHaveTextContent("Try an example");
+    /*
+     * Named by the words it shows: MoreMenu calls a custom trigger "More
+     * options" unless told otherwise, which a screen reader would read
+     * and a voice command could not find.
+     */
+    expect(trigger).toHaveAccessibleName("Try an example");
+    expect(
+      screen.getByRole("button", { name: "Try an example" }),
+    ).toBe(trigger);
     expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     // The label and the menu share a row, the label first.

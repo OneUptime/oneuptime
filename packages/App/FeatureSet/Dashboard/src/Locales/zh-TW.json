@@ -38722,5 +38722,6 @@
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "連接 Microsoft Entra ID、Google Workspace、Okta 或其他來源，或在你傳送的日誌中尋找 SSH 和 Windows 登入。",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "連接 CrowdStrike Falcon 或 Microsoft Defender XDR 等 EDR，或在你傳送的日誌中尋找 Windows 和 Sysmon 啟動的處理程序以及以 sudo 執行的指令。",
   "Showing the first {{count}}.": "僅顯示前 {{count}} 個。",
-  "Try an example": "試試範例"
+  "Try an example": "試試範例",
+  "Check line": "檢查此行"
 }
