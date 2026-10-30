@@ -397,14 +397,21 @@ describe("the dialog is the composer, in one step", () => {
      * (PrivateRecordScope).
      */
     expect(hook).toContain(
-      "const gate: NoteCreateGate = getNoteKindCreateGate( entry.kind, translator, privateRecordGate(new entry.kind.modelType()), );",
+      "const gate: NoteCreateGate = getNoteKindCreateGate( entry.kind, translator, privateRecordGate(new entry.kind.modelType()), isPrivateNoteOffered, );",
+    );
+    /*
+     * And a private event's locked public note points to a private note
+     * unless the private note is refused them too, asked the same way.
+     */
+    expect(hook).toContain(
+      "const isPrivateNoteOffered: boolean = !isNoteCreateRefused( getNoteKindCreateGate( options.privateNoteKind, translator, privateRecordGate(new options.privateNoteKind.modelType()), ), );",
     );
     /*
      * The kind's gate is the composer's own, and locks a private event's
      * public note with why it takes none.
      */
     expect(composer).toContain(
-      'if (kind.isPrivateEvent && kind.visibility === "public") { return { isShown: true, isDisabled: true, tooltip: getPrivateEventPublicNoteRefusal(kind.eventNoun, translator), }; } return getNoteCreateGate(kind.modelType, options);',
+      'if (kind.isPrivateEvent && kind.visibility === "public") { return { isShown: true, isDisabled: true, tooltip: getPrivateEventPublicNoteRefusal( kind.eventNoun, translator, isPrivateNoteOffered !== false, ), }; } return getNoteCreateGate(kind.modelType, options);',
     );
     expect(hook).toContain("isDisabled={gate.isDisabled}");
     expect(hook).toContain("tooltip={gate.tooltip}");
