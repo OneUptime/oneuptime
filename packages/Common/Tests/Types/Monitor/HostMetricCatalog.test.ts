@@ -137,9 +137,9 @@ describe("HostMetricCatalog - what a Custom Metric's one query reads", () => {
   });
 
   test("each filesystem is judged on its own, so one full disk is not averaged away", () => {
-    expect(
-      entry("system.filesystem.utilization").groupByAttributeKeys,
-    ).toEqual(["mountpoint"]);
+    expect(entry("system.filesystem.utilization").groupByAttributeKeys).toEqual(
+      ["mountpoint"],
+    );
     expect(entry("system.filesystem.usage").groupByAttributeKeys).toEqual([
       "mountpoint",
     ]);

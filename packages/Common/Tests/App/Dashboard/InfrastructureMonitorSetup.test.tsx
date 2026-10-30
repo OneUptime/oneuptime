@@ -188,7 +188,9 @@ function hostTemplateView(
   }).data!.hostMonitor!;
 }
 
-function storageArrayMetricName(config: MonitorStepStorageArrayMonitor): string {
+function storageArrayMetricName(
+  config: MonitorStepStorageArrayMonitor,
+): string {
   return config.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
     .metricName as string;
 }
@@ -376,16 +378,16 @@ describe("a storage array's default alert follows the array's platform", () => {
     ]);
 
     const savedOnFlashArray: MonitorStepStorageArrayMonitor =
-      getStorageArrayAlertTemplateById("purefa-critical-alerts")!.getMonitorStep(
-        {
-          arrayIdentifier: "fa-01",
-          onlineMonitorStatusId: ObjectID.generate(),
-          offlineMonitorStatusId: ObjectID.generate(),
-          defaultIncidentSeverityId: ObjectID.generate(),
-          defaultAlertSeverityId: ObjectID.generate(),
-          monitorName: "fa-01",
-        },
-      ).data!.storageArrayMonitor!;
+      getStorageArrayAlertTemplateById(
+        "purefa-critical-alerts",
+      )!.getMonitorStep({
+        arrayIdentifier: "fa-01",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "fa-01",
+      }).data!.storageArrayMonitor!;
 
     render(
       <StorageArrayHarness initial={savedOnFlashArray} onChange={onChange} />,
@@ -492,7 +494,9 @@ describe("a saved monitor opens the way it was made", () => {
     );
     await settle();
 
-    expect(screen.queryByTestId("alert-template-picked")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("alert-template-picked"),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId("infrastructure-monitor-setup"))
         .getByTestId("folded-section-header")

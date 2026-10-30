@@ -360,9 +360,9 @@ describe("an infrastructure monitor's setup starts on its default alert", () => 
       // The do-it-yourself ways wait, folded (mounted, out of sight).
       expect(moreFieldsIsOpen()).toBe(false);
       expect(
-        within(screen.getByTestId("infrastructure-monitor-setup"))
-          .getByTestId("folded-section-body")
-          .className,
+        within(screen.getByTestId("infrastructure-monitor-setup")).getByTestId(
+          "folded-section-body",
+        ).className,
       ).toContain("invisible");
 
       // Every template is one Change away.

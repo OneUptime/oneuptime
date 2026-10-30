@@ -1381,9 +1381,9 @@ test.describe("Quick Setup's alert templates", () => {
     await expect(stoppedReporting).toHaveAttribute("aria-checked", "true");
     await expect(stoppedReporting).toHaveAttribute("tabindex", "0");
     await expect(
-      page.getByRole("radiogroup", { name: "Alert templates" }).locator(
-        '[role="radio"][aria-checked="true"]',
-      ),
+      page
+        .getByRole("radiogroup", { name: "Alert templates" })
+        .locator('[role="radio"][aria-checked="true"]'),
     ).toHaveCount(1);
     await expect(rows.nth(1)).toHaveAttribute("tabindex", "-1");
 

@@ -350,7 +350,8 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
         file: `${DASHBOARD_SRC}/Components/StorageArray/StorageArrayOnboarding.tsx`,
         reference: "STORAGE_ARRAY_ONBOARDING.addTitle",
       },
-      addOpens: "opens setup steps with your keys filled in, which wait for the first data.",
+      addOpens:
+        "opens setup steps with your keys filled in, which wait for the first data.",
     },
     [IOT]: {
       defaultTemplateName: getIoTAlertTemplateById(
@@ -362,7 +363,8 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
         file: `${DASHBOARD_SRC}/Components/IoT/IoTFleetOnboarding.tsx`,
         reference: "IOT_FLEET_ONBOARDING.addTitle",
       },
-      addOpens: "opens setup steps with your keys filled in, which wait for the first data.",
+      addOpens:
+        "opens setup steps with your keys filled in, which wait for the first data.",
     },
     [VMWARE]: {
       defaultTemplateName: getVMwareAlertTemplateById(
@@ -398,7 +400,9 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
         "Once picked, a line under the field says whether data is arriving.",
       );
       if (setupFacts.addTitleSource) {
-        expect(form).toContain(`title: ${setupFacts.addTitleSource.reference},`);
+        expect(form).toContain(
+          `title: ${setupFacts.addTitleSource.reference},`,
+        );
         expect(source(setupFacts.addTitleSource.file)).toContain(
           `addTitle: translationKey("${setupFacts.addTitle}"),`,
         );
