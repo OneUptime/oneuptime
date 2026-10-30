@@ -6,6 +6,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RowActions from "Common/UI/Components/ActionButton/RowActions";
+import ExceptionIssueBadges from "./ExceptionIssueBadges";
 
 export interface ExceptionRowProps {
   exception: TelemetryException;
@@ -140,6 +141,8 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               >
                 {statusPill}
               </span>
+              {/* Regressed or New, and Unhandled: what to look at first. */}
+              <ExceptionIssueBadges exception={exception} />
               <span
                 className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-600"
                 style={

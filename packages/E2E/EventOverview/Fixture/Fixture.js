@@ -213,7 +213,8 @@
  *   ?unknown= the people Slack does not know, as POST .../add answers them
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
- *   ?role=   owner (default) | alert-member | member | owner-people | loading
+ *   ?role=   owner (default) | alert-member | member | owner-people | viewer
+ *            | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
  *            is not a master admin and holds only Alert Member: it may
@@ -224,6 +225,9 @@
  *            "owner-people" holds only Create Incident Owner User: it may
  *            add people as an incident's owners but not teams, and give no
  *            role, so the Add owners list locks its teams with why.
+ *            "viewer" holds only Viewer: it may read the record and its
+ *            on-call runs but change nothing, so a page OneUptime AI holds
+ *            (?hold=1) is said to it with Page now locked, saying why.
  *            "loading" is the moment before the permission snapshot arrives
  *            (no permissions yet), when gated actions are hidden rather
  *            than refused.
@@ -586,9 +590,13 @@ const publishMode = ["later", "past"].includes(params.get("publish"))
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
-const roleMode = ["alert-member", "member", "owner-people", "loading"].includes(
-  params.get("role"),
-)
+const roleMode = [
+  "alert-member",
+  "member",
+  "owner-people",
+  "viewer",
+  "loading",
+].includes(params.get("role"))
   ? params.get("role")
   : "owner";
 // ?security=: what Incident #1042's Security card is told.
@@ -5647,6 +5655,9 @@ PermissionUtil.getAllPermissions = () => {
   }
   if (roleMode === "owner-people") {
     return [Permission.CreateIncidentOwnerUser];
+  }
+  if (roleMode === "viewer") {
+    return [Permission.Viewer];
   }
   if (roleMode === "loading") {
     return [];

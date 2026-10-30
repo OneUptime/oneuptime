@@ -59,7 +59,9 @@ import IncomingEmailMonitorLink, {
 import IncomingMonitorLink, {
   getHeartbeatUrl,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
-import ServerMonitorDocumentation from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ServerMonitor/Documentation";
+import ServerMonitorDocumentation, {
+  getServerMonitorSetupCommands,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ServerMonitor/Documentation";
 import ObjectID from "../../../Types/ObjectID";
 
 const EMAIL_SECRET: ObjectID = new ObjectID(
@@ -222,13 +224,14 @@ describe("The server agent's install cards", () => {
     ]) {
       const setup: HTMLElement = screen.getByTestId(testId);
       // CodeBlock draws the commands as <pre><code>, highlighted by hljs.
-      const code: Element | null = setup.querySelector("pre code");
+      const code: string = Array.from(setup.querySelectorAll("pre code"))
+        .map((block: Element): string => {
+          return block.textContent || "";
+        })
+        .join("\n");
 
-      expect(code).not.toBeNull();
-      expect(code!.textContent).toContain(
-        `--secret-key=${SERVER_SECRET.toString()}`,
-      );
-      expect(code!.textContent).toMatch(
+      expect(code).toContain(`--secret-key=${SERVER_SECRET.toString()}`);
+      expect(code).toMatch(
         /--oneuptime-url=https?:\/\/oneuptime\.example\.com/,
       );
       expectOutsideDescriptions(setup);
@@ -242,5 +245,59 @@ describe("The server agent's install cards", () => {
     ).toBeInTheDocument();
     expect(screen.queryAllByTestId("card-description")).toHaveLength(0);
     expect(nestingWarnings()).toEqual([]);
+  });
+
+  /*
+   * The cards used to configure the agent twice (the second time through a
+   * made-up proxy), then stop and uninstall it, all in the block that was
+   * copied whole; and on Windows they ran "#" lines, which Command Prompt
+   * does not take as comments. Each block now runs as pasted: install,
+   * connect, start, check - and no more.
+   */
+  test("run as pasted: install, connect, start and check, and stop there", () => {
+    const host: string = "https://oneuptime.example.com";
+    const commands: {
+      linux: string;
+      windowsInstall: string;
+      windowsConnect: string;
+    } = getServerMonitorSetupCommands({
+      secretKey: SERVER_SECRET,
+      host: host,
+    });
+    const runnable: (block: string, comment: string) => Array<string> = (
+      block: string,
+      comment: string,
+    ): Array<string> => {
+      return block.split("\n").filter((line: string): boolean => {
+        return line.trim() !== "" && !line.startsWith(comment);
+      });
+    };
+    const configure: string = `oneuptime-infrastructure-agent configure --secret-key=${SERVER_SECRET.toString()} --oneuptime-url=${host}`;
+
+    expect(runnable(commands.linux, "# ")).toEqual([
+      `curl -sSL ${host}/docs/static/scripts/infrastructure-agent/install.sh | sudo bash`,
+      `sudo ${configure}`,
+      "sudo oneuptime-infrastructure-agent start",
+      "sudo oneuptime-infrastructure-agent status",
+    ]);
+    expect(runnable(commands.windowsInstall, "REM ")).toEqual([
+      "winget install --id OneUptime.InfrastructureAgent --exact --scope machine",
+    ]);
+    expect(runnable(commands.windowsConnect, "REM ")).toEqual([
+      configure,
+      "oneuptime-infrastructure-agent start",
+      "oneuptime-infrastructure-agent status",
+    ]);
+
+    // The other ways to install are on the docs page the comments name.
+    for (const block of [commands.linux, commands.windowsInstall]) {
+      expect(block).toContain(`${host}/docs/monitor/server-monitor`);
+    }
+    expect(commands.linux).toContain("apt, dnf, yum or Homebrew");
+    expect(commands.windowsInstall).toContain("the MSI or the zip");
+    // Command Prompt has no "#" comments.
+    for (const block of [commands.windowsInstall, commands.windowsConnect]) {
+      expect(block).not.toMatch(/^#/m);
+    }
   });
 });

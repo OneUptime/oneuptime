@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção.
-- **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou.
+- **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou, e a exceção é marcada como **Regressão**. Uma ocorrência anterior à resolução que só chega ao OneUptime depois não a reabre.
 - **Uma exceção arquivada continua arquivada.** As novas ocorrências dela continuam sendo contadas, mas deixam de gerar notificações.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Acesse **Produtos → Observabilidade → Exceções**. O selo da aba **Exceçõ
 
 ### Escolher um status
 
-Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo.
+Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo. Uma linha marcada como **Regressão** voltou depois de ser resolvida, e uma marcada como **Novo** foi vista pela primeira vez nas últimas 24 horas.
 
 ### Escolher o que conta como problema
 
@@ -86,9 +86,12 @@ Os botões no topo da página da exceção, a página **Configurações** dela e
 | Ação | Quando usar | O que acontece depois |
 | --- | --- | --- |
 | **Resolver** | Você implantou a correção. | Ela sai da lista **Não resolvido**. Uma nova ocorrência a reabre. |
+| **Resolver na próxima versão** | A correção sai na sua próxima versão. | Ela sai da lista **Não resolvido**. Ocorrências da versão em que foi vista por último não a reabrem, e uma de qualquer outra versão a reabre. |
 | **Reabrir** | A correção não funcionou. | Ela volta a estar não resolvida. |
 | **Arquivar** | É ruído que você não pretende corrigir. | Ela sai da lista. As novas ocorrências são contadas, mas deixam de gerar notificações. |
 | **Desarquivar** | Você quer voltar a ouvir falar dela. | Ela volta para a lista a que pertence. |
+
+**Resolver na próxima versão** fica no menu ao lado de **Resolver**, no menu ⋯ da linha, em **Ações em massa** e em **Configurações**, enquanto as ocorrências da exceção informarem sua versão: o atributo de recurso `service.version`.
 
 **Configurações** mostra quem resolveu ou arquivou a exceção por último, e quando. Os botões dela dizem **Marcar como resolvido** ou **Marcar como não resolvido**, e **Arquivar** ou **Desarquivar**.
 
@@ -173,7 +176,7 @@ A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por
 :::
 
 :::details Uma exceção resolvida sempre volta
-Uma nova ocorrência reabre uma exceção resolvida de propósito: o erro ainda acontece. Verifique se a correção chegou à release que a informa, ou arquive a exceção se não quiser mais ouvir falar dela.
+Uma nova ocorrência reabre uma exceção resolvida de propósito: o erro ainda acontece. Verifique se a correção chegou à release que a informa, ou arquive a exceção se não quiser mais ouvir falar dela. Se pods antigos da versão continuarem a informá-la durante um rollout, use **Resolver na próxima versão**.
 :::
 
 ## Próximos passos

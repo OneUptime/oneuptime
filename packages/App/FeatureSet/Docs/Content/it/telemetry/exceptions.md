@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Un'eccezione per servizio ed errore.** L'impronta viene calcolata dal servizio, dal tipo di eccezione, dal messaggio e dallo stack trace. Prima vengono tolti i valori che cambiano da una chiamata all'altra: UUID e altri identificativi, timestamp, indirizzi IP ed email, e numeri di sette o più cifre. Così `Order id=1042 not found` e `Order id=2077 not found` sono un'unica eccezione.
-- **Una nuova occorrenza riapre un'eccezione risolta.** Se si ripresenta dopo che l'avete risolta, la correzione non ha retto.
+- **Una nuova occorrenza riapre un'eccezione risolta.** Se si ripresenta dopo che l'avete risolta, la correzione non ha retto, e l'eccezione viene segnata come **Regressione**. Un'occorrenza precedente alla risoluzione che arriva in ritardo a OneUptime non la riapre.
 - **Un'eccezione archiviata resta archiviata.** Le sue nuove occorrenze vengono ancora contate, ma smettono di generare notifiche.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Aprite **Prodotti → Osservabilità → Eccezioni**. Il badge sulla scheda **Ec
 
 ### Scegliere uno stato
 
-Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico sopra l'elenco mostra quante occorrenze sono state **Non gestito** e quante **Gestito** nel tempo.
+Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico sopra l'elenco mostra quante occorrenze sono state **Non gestito** e quante **Gestito** nel tempo. Una riga segnata **Regressione** si è ripresentata dopo essere stata risolta, e una segnata **Nuovo** è stata vista per la prima volta nelle ultime 24 ore.
 
 ### Scegliere che cosa conta come problema
 
@@ -86,9 +86,12 @@ I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e 
 | Azione | Quando usarla | Che cosa succede dopo |
 | --- | --- | --- |
 | **Risolvi** | Avete distribuito la correzione. | Lascia l'elenco **Non risolto**. Una nuova occorrenza la riapre. |
+| **Risolvi nella prossima release** | La correzione esce nella vostra prossima release. | Lascia l'elenco **Non risolto**. Le occorrenze della release in cui è stata vista per l'ultima volta non la riaprono, mentre una di qualsiasi altra release sì. |
 | **Riapri** | La correzione non ha funzionato. | È di nuovo non risolta. |
 | **Archivia** | È rumore che non intendete correggere. | Lascia l'elenco. Le nuove occorrenze vengono contate ma smettono di generare notifiche. |
 | **Annulla archiviazione** | Volete tornare a sentirne parlare. | Torna nell'elenco a cui appartiene. |
+
+**Risolvi nella prossima release** si trova nel menu accanto a **Risolvi**, nel menu ⋯ della riga, in **Azioni di massa** e in **Impostazioni**, finché le occorrenze dell'eccezione indicano la loro release: l'attributo di risorsa `service.version`.
 
 **Impostazioni** mostra chi ha risolto o archiviato l'eccezione per ultimo, e quando. I suoi pulsanti dicono **Segna come risolto** o **Segna come non risolto**, e **Archivia** o **Annulla archiviazione**.
 
@@ -173,7 +176,7 @@ L'impronta include il messaggio e lo stack trace. Quando differiscono, ad esempi
 :::
 
 :::details Un'eccezione risolta continua a tornare
-Una nuova occorrenza riapre di proposito un'eccezione risolta: l'errore si verifica ancora. Verificate che la correzione abbia raggiunto la release che la segnala, oppure archiviate l'eccezione se non volete più sentirne parlare.
+Una nuova occorrenza riapre di proposito un'eccezione risolta: l'errore si verifica ancora. Verificate che la correzione abbia raggiunto la release che la segnala, oppure archiviate l'eccezione se non volete più sentirne parlare. Se i vecchi pod della release continuano a segnalarla durante un rollout, usate invece **Risolvi nella prossima release**.
 :::
 
 ## Passaggi successivi

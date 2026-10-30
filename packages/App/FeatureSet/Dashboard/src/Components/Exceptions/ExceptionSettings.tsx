@@ -21,6 +21,7 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   ExceptionTriageAction,
   formatRelativeTime,
+  getResolveInNextReleaseAction,
 } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -47,10 +48,14 @@ interface StatusRow {
   history: string;
   historyTitle?: string | undefined;
   explanation: string;
+  // A sentence of its own under the explanation, in the reader's language.
+  detail?: string | undefined;
   action: ExceptionTriageAction;
   buttonLabel: string;
   buttonIcon: IconProp;
   buttonStyle: ButtonStyleType;
+  // A second, rarer way to take the step: Resolve in next release.
+  secondaryAction?: ExceptionTriageAction | undefined;
 }
 
 /*
@@ -145,6 +150,37 @@ export function describeExceptionStatusHistory(
   return translator.translateTemplate(templates.bare);
 }
 
+/*
+ * What the Resolution row says under its explanation: for an exception
+ * resolved in the next release, the release it waits out; for one that came
+ * back after it was resolved, when. Null when there is nothing more to say.
+ */
+export function describeExceptionResolutionDetail(
+  translator: Translator,
+  exception: Pick<
+    TelemetryException,
+    "isResolved" | "regressedAt" | "resolvedInReleaseAfter"
+  >,
+): string | null {
+  const release: string = (exception.resolvedInReleaseAfter || "").trim();
+
+  if (exception.isResolved && release) {
+    return translator.translateTemplate(
+      "Resolved in the next release: occurrences from {{release}} do not reopen it.",
+      { release },
+    );
+  }
+
+  if (!exception.isResolved && exception.regressedAt) {
+    return translator.translateTemplate(
+      "It came back {{time}}, after it was resolved.",
+      { time: OneUptimeDate.fromNow(new Date(exception.regressedAt)) },
+    );
+  }
+
+  return null;
+}
+
 const ExceptionSettings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -155,6 +191,18 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
   const updateGate: PermissionGateResult = useMemo(() => {
     return PermissionGate.check(new TelemetryException(), ModelAction.Update);
   }, []);
+
+  const resolveInNextRelease: ExceptionTriageAction | null =
+    getResolveInNextReleaseAction({
+      isResolved,
+      isArchived,
+      lastSeenInRelease: props.exception.lastSeenInRelease,
+    });
+
+  const resolutionDetail: string | null = describeExceptionResolutionDetail(
+    translator,
+    props.exception,
+  );
 
   const rows: Array<StatusRow> = [
     {
@@ -184,6 +232,8 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
         : undefined,
       explanation:
         "Resolve an exception once its fix is deployed. If it happens again it is reopened automatically.",
+      detail: resolutionDetail || undefined,
+      secondaryAction: resolveInNextRelease || undefined,
       action: isResolved
         ? {
             id: "unresolve",
@@ -301,9 +351,45 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
                     <p className="mt-0.5 text-xs text-gray-500">
                       {translator.translateText(row.explanation)}
                     </p>
+                    {row.detail && (
+                      <p
+                        className="mt-1 text-xs font-medium text-gray-700"
+                        data-testid={`exception-settings-${row.id}-detail`}
+                      >
+                        {row.detail}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="flex-shrink-0 sm:pl-4">
+                <div className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:pl-4 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                  {row.secondaryAction && (
+                    <Button
+                      title={row.secondaryAction.label}
+                      icon={IconProp.CheckCircle}
+                      buttonStyle={ButtonStyleType.NORMAL}
+                      buttonSize={ButtonSize.Small}
+                      dataTestId={`exception-settings-${row.secondaryAction.id}`}
+                      isLoading={
+                        props.pendingActionId === row.secondaryAction.id
+                      }
+                      disabled={
+                        !updateGate.isAllowed ||
+                        (Boolean(props.pendingActionId) &&
+                          props.pendingActionId !== row.secondaryAction.id)
+                      }
+                      tooltip={
+                        updateGate.isAllowed
+                          ? translator.translateTemplate(
+                              "Occurrences from {{release}} will not reopen it. One from any other release will.",
+                              { release: row.secondaryAction.release || "" },
+                            )
+                          : updateGate.disabledReason
+                      }
+                      onClick={() => {
+                        props.onAction(row.secondaryAction!);
+                      }}
+                    />
+                  )}
                   <Button
                     title={row.buttonLabel}
                     icon={row.buttonIcon}

@@ -158,6 +158,7 @@ describe("the actions", () => {
 
     expect(EXCEPTION_ROW_TRIAGE_ORDER).toEqual([
       "resolve",
+      "resolve-next-release",
       "unresolve",
       "archive",
       "unarchive",
@@ -168,6 +169,11 @@ describe("the actions", () => {
       }),
     ).toEqual([
       ["Resolve", IconProp.Check, ActionButtonPlacement.MoreMenu],
+      [
+        "Resolve in next release",
+        IconProp.CheckCircle,
+        ActionButtonPlacement.MoreMenu,
+      ],
       ["Reopen", IconProp.Refresh, ActionButtonPlacement.MoreMenu],
       ["Archive", IconProp.Archive, ActionButtonPlacement.MoreMenu],
       ["Unarchive", IconProp.Unarchive, ActionButtonPlacement.MoreMenu],
@@ -222,7 +228,9 @@ describe("the actions", () => {
         onChanged: (): void => {
           changed++;
         },
-      })[2]!;
+      }).find((action: ActionButtonSchema<TelemetryException>): boolean => {
+        return action.title === "Archive";
+      })!;
 
     await Promise.resolve(
       archive.onClick(
@@ -240,7 +248,7 @@ describe("the actions", () => {
     expect(changed).toBe(0);
   });
 
-  test("someone who may not update exceptions finds all four locked, saying why", () => {
+  test("someone who may not update exceptions finds all five locked, saying why", () => {
     permissionsForTest = [Permission.Viewer];
 
     for (const action of getExceptionRowActions({
@@ -344,7 +352,7 @@ const runBulk: (
 };
 
 describe("Bulk Actions on the exceptions list", () => {
-  test("offers the four triage actions, in the row's order, with the row's icons, grouped as a record's own state", () => {
+  test("offers the five triage actions, in the row's order, with the row's icons, grouped as a record's own state", () => {
     const bulk: Array<BulkActionButtonSchema<TelemetryException>> =
       getExceptionBulkActions();
     const rowActions: Array<ActionButtonSchema<TelemetryException>> =
@@ -354,7 +362,13 @@ describe("Bulk Actions on the exceptions list", () => {
       bulk.map((action: BulkActionButtonSchema<TelemetryException>) => {
         return action.title;
       }),
-    ).toEqual(["Resolve", "Reopen", "Archive", "Unarchive"]);
+    ).toEqual([
+      "Resolve",
+      "Resolve in next release",
+      "Reopen",
+      "Archive",
+      "Unarchive",
+    ]);
     expect(
       bulk.map((action: BulkActionButtonSchema<TelemetryException>) => {
         return action.icon;
@@ -367,7 +381,7 @@ describe("Bulk Actions on the exceptions list", () => {
     for (const action of bulk) {
       expect(action.menuGroup).toBe(ActionMenuGroup.Change);
     }
-    expect(EXCEPTION_ROW_TRIAGE_ORDER).toHaveLength(4);
+    expect(EXCEPTION_ROW_TRIAGE_ORDER).toHaveLength(5);
   });
 
   test("the result says what was done to each, in an incident list's words for Resolve", () => {
@@ -385,6 +399,11 @@ describe("Bulk Actions on the exceptions list", () => {
     ).toEqual([
       [
         "Resolve",
+        "{{count}} {{itemsName}} resolved",
+        "{{count}} {{itemsName}} not resolved",
+      ],
+      [
+        "Resolve in next release",
         "{{count}} {{itemsName}} resolved",
         "{{count}} {{itemsName}} not resolved",
       ],
@@ -450,7 +469,7 @@ describe("Bulk Actions on the exceptions list", () => {
       "Unarchive",
     ]);
     // Nothing selected yet: the menu lists every one.
-    expect(offeredFor([])).toHaveLength(4);
+    expect(offeredFor([])).toHaveLength(5);
   });
 
   test("Resolve writes each open exception's switch, one request each, and leaves a resolved one alone, saying so", async () => {
@@ -520,6 +539,7 @@ describe("Bulk Actions on the exceptions list", () => {
 
     expect(EXCEPTION_ALREADY_THERE).toEqual({
       resolve: "Already resolved.",
+      "resolve-next-release": "Already resolved.",
       unresolve: "Not resolved.",
       archive: "Already archived.",
       unarchive: "Not archived.",
@@ -542,7 +562,7 @@ describe("Bulk Actions on the exceptions list", () => {
     ]);
   });
 
-  test("someone who may not update exceptions finds all four locked in Bulk Actions too, saying why about the selection", () => {
+  test("someone who may not update exceptions finds all five locked in Bulk Actions too, saying why about the selection", () => {
     permissionsForTest = [Permission.Viewer];
 
     for (const action of getExceptionBulkActions()) {
@@ -559,7 +579,7 @@ describe("Bulk Actions on the exceptions list", () => {
     );
   });
 
-  test("someone who may update exceptions finds all four unlocked", () => {
+  test("someone who may update exceptions finds all five unlocked", () => {
     for (const action of getExceptionBulkActions()) {
       expect([action.title, action.disabled, action.tooltip]).toEqual([
         action.title,
@@ -661,5 +681,187 @@ describe("Bulk Actions on the exceptions list", () => {
 
     delete row._id;
     expect(getExceptionId(row)).toBe("");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Resolve in next release
+ * ---------------------------------------------------------------------------
+ *
+ * Beside Resolve, for an unresolved exception whose occurrences name a
+ * release: it is resolved after that release, so pods still running it
+ * during a rollout do not reopen it, and the next release does. It writes
+ * the release the exception was last seen in, each exception its own.
+ */
+describe("Resolve in next release", () => {
+  const withRelease: (
+    id: string,
+    state: { isResolved: boolean; isArchived: boolean },
+    release: string | undefined,
+  ) => TelemetryException = (
+    id: string,
+    state: { isResolved: boolean; isArchived: boolean },
+    release: string | undefined,
+  ): TelemetryException => {
+    const row: TelemetryException = exceptionWithId(id, state);
+
+    if (release !== undefined) {
+      row.lastSeenInRelease = release;
+    }
+
+    return row;
+  };
+
+  test("is offered beside Resolve only while unresolved and a release is known", () => {
+    expect(
+      offered(
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: false, isArchived: false },
+          "v1.4.0",
+        ),
+      ),
+    ).toEqual(["Resolve", "Resolve in next release", "Archive"]);
+    expect(
+      offered(
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: true, isArchived: false },
+          "v1.4.0",
+        ),
+      ),
+    ).toEqual(["Reopen", "Archive"]);
+    // No release, or only blanks: nothing to wait out.
+    expect(
+      offered(
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: false, isArchived: false },
+          undefined,
+        ),
+      ),
+    ).toEqual(["Resolve", "Archive"]);
+    expect(
+      isExceptionTriageActionOffered(
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: false, isArchived: false },
+          "   ",
+        ),
+        "resolve-next-release",
+      ),
+    ).toBe(false);
+  });
+
+  test("writes the switch and the release it is resolved after, trimmed", () => {
+    expect(
+      getExceptionTriageWrite("resolve-next-release", {
+        lastSeenInRelease: " v1.4.0 ",
+      }),
+    ).toEqual({ isResolved: true, resolvedInReleaseAfter: "v1.4.0" });
+    // Without a release it is a plain resolve, never a blank release.
+    expect(getExceptionTriageWrite("resolve-next-release")).toEqual({
+      isResolved: true,
+    });
+    expect(
+      getExceptionTriageWrite("resolve-next-release", {
+        lastSeenInRelease: "",
+      }),
+    ).toEqual({ isResolved: true });
+  });
+
+  test("the row's action sends the row's own release", async () => {
+    const action: ActionButtonSchema<TelemetryException> =
+      getExceptionRowActions({ onChanged: (): void => {} }).find(
+        (candidate: ActionButtonSchema<TelemetryException>): boolean => {
+          return candidate.title === "Resolve in next release";
+        },
+      )!;
+
+    await Promise.resolve(
+      action.onClick(
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: false, isArchived: false },
+          "2.3.1",
+        ),
+        (): void => {},
+        (): void => {},
+      ),
+    );
+
+    expect(updateCalls).toEqual([
+      {
+        id: EXCEPTION_ID,
+        data: { isResolved: true, resolvedInReleaseAfter: "2.3.1" },
+      },
+    ]);
+  });
+
+  test("Bulk Actions resolves each in its own release, and says why it left one alone", async () => {
+    const THIRD_ID: string = "99999999-9999-4999-8999-999999999993";
+
+    const run: BulkRun = await runBulk("Resolve in next release", [
+      withRelease(
+        EXCEPTION_ID,
+        { isResolved: false, isArchived: false },
+        "2.3.1",
+      ),
+      withRelease(SECOND_ID, { isResolved: true, isArchived: false }, "2.3.1"),
+      withRelease(THIRD_ID, { isResolved: false, isArchived: false }, ""),
+    ]);
+
+    expect(updateCalls).toEqual([
+      {
+        id: EXCEPTION_ID,
+        data: { isResolved: true, resolvedInReleaseAfter: "2.3.1" },
+      },
+    ]);
+    expect(run.succeeded).toEqual([EXCEPTION_ID]);
+    expect(run.unchanged).toEqual([
+      { id: SECOND_ID, reason: "Already resolved." },
+      { id: THIRD_ID, reason: "No release is recorded for it." },
+    ]);
+    expect(run.failed).toEqual([]);
+  });
+
+  test("Bulk Actions offers it while one selected exception has a release", () => {
+    const visible: (rows: Array<TelemetryException>) => boolean = (
+      rows: Array<TelemetryException>,
+    ): boolean => {
+      const action: BulkActionButtonSchema<TelemetryException> =
+        getExceptionBulkActions().find(
+          (candidate: BulkActionButtonSchema<TelemetryException>): boolean => {
+            return candidate.title === "Resolve in next release";
+          },
+        )!;
+
+      return action.isVisible ? action.isVisible(rows) !== false : true;
+    };
+
+    expect(
+      visible([
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: false, isArchived: false },
+          undefined,
+        ),
+        withRelease(
+          SECOND_ID,
+          { isResolved: false, isArchived: false },
+          "2.3.1",
+        ),
+      ]),
+    ).toBe(true);
+    expect(
+      visible([
+        withRelease(
+          EXCEPTION_ID,
+          { isResolved: false, isArchived: false },
+          undefined,
+        ),
+      ]),
+    ).toBe(false);
   });
 });

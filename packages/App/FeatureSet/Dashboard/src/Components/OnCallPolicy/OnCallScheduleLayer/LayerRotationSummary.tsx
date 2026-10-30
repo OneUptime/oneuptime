@@ -16,6 +16,10 @@ import {
   describeShiftOverride,
 } from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
+import {
+  SECTION_LABEL_CLASS_NAME,
+  UPCOMING_HAND_OFFS_LIST_CLASS_NAME,
+} from "./FinalScheduleSummary";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,6 +37,19 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+
+/*
+ * Drawn as the Final schedule under the layers draws its parts: labels in
+ * the reading's own case (SECTION_LABEL_CLASS_NAME), and the upcoming turns
+ * one list in one frame, ruled off row by row, the current turn tinted - not
+ * a framed box per turn under letter-spaced capitals. On the Layers page the
+ * two sit one above the other, and read as one schedule.
+ */
+export const LAYER_TURNS_LIST_CLASS_NAME: string = `${UPCOMING_HAND_OFFS_LIST_CLASS_NAME} overflow-hidden`;
+
+// A word on a turn: who it covers for, or that it is the one on call now.
+export const LAYER_TURN_PILL_CLASS_NAME: string =
+  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -256,7 +273,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
   const getRotationOrderRow: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <span className={`${SECTION_LABEL_CLASS_NAME} text-gray-500`}>
           {translator.translateText("Order")}
         </span>
         {orderedUsers.map((user: UserDisplay, i: number) => {
@@ -298,10 +315,8 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     return (
       <li
         key={`shift-${index}`}
-        className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 ${
-          isCurrent
-            ? "border-indigo-200 bg-indigo-50/50"
-            : "border-gray-200 bg-white"
+        className={`flex items-center gap-3 px-3 py-2.5 ${
+          isCurrent ? "bg-indigo-50/50" : ""
         }`}
       >
         <span
@@ -324,7 +339,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             {(turn.override || user.isSubstitute) && (
               <span
                 data-testid="rotation-covering-pill"
-                className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                className={`${LAYER_TURN_PILL_CLASS_NAME} bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200`}
               >
                 {turn.override
                   ? describeShiftOverride({
@@ -337,12 +352,16 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             )}
             {isCurrent &&
               (isActiveNow ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+                <span
+                  className={`${LAYER_TURN_PILL_CLASS_NAME} bg-indigo-100 text-indigo-700`}
+                >
                   <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
                   {translator.translateText("On call now")}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                <span
+                  className={`${LAYER_TURN_PILL_CLASS_NAME} bg-gray-100 text-gray-600`}
+                >
                   <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
                   {translator.translateText("Current turn · off-hours")}
                 </span>
@@ -450,10 +469,13 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
       {!isSingleUser &&
         (upcomingTurns.length > 0 ? (
           <>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <div className={`mb-2 ${SECTION_LABEL_CLASS_NAME} text-gray-500`}>
               {translator.translateText("Upcoming shifts")}
             </div>
-            <ol className="space-y-2">
+            <ol
+              className={LAYER_TURNS_LIST_CLASS_NAME}
+              data-testid="layer-upcoming-turns"
+            >
               {upcomingTurns.map((turn: OnCallShift, index: number) => {
                 return getShiftRow(turn, index);
               })}

@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag.
-- **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen.
+- **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen, och undantaget markeras som **Regression**. En förekomst från före lösningen som når OneUptime först senare öppnar det inte igen.
 - **Ett arkiverat undantag förblir arkiverat.** Dess nya förekomster räknas fortfarande, men de skickar inte längre aviseringar.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 ### Välj en status
 
-Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid.
+Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
 ### Välj vad som räknas som ett problem
 
@@ -86,9 +86,12 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 | Åtgärd | När du använder den | Vad som händer sedan |
 | --- | --- | --- |
 | **Lös** | Du har driftsatt rättelsen. | Det lämnar listan **Olöst**. En ny förekomst öppnar det igen. |
+| **Lös i nästa version** | Rättelsen kommer i din nästa version. | Det lämnar listan **Olöst**. Förekomster från den version där det senast sågs öppnar det inte igen, men en från vilken annan version som helst gör det. |
 | **Öppna igen** | Rättelsen fungerade inte. | Det är olöst igen. |
 | **Arkivera** | Det är brus som du inte tänker rätta. | Det lämnar listan. Nya förekomster räknas men skickar inte längre aviseringar. |
 | **Avarkivera** | Du vill höra om det igen. | Det är tillbaka i den lista där det hör hemma. |
+
+**Lös i nästa version** finns i menyn bredvid **Lös**, i radens meny ⋯, under **Massåtgärder** och på **Inställningar**, så länge undantagets förekomster anger sin version: resursattributet `service.version`.
 
 **Inställningar** visar vem som senast löste eller arkiverade undantaget, och när. Knapparna där heter **Markera som löst** eller **Markera som olöst**, och **Arkivera** eller **Avarkivera**.
 
@@ -173,7 +176,7 @@ Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, t
 :::
 
 :::details Ett löst undantag kommer tillbaka hela tiden
-En ny förekomst öppnar ett löst undantag igen med avsikt: felet inträffar fortfarande. Kontrollera att rättelsen nådde den release som rapporterar det, eller arkivera undantaget om du inte längre vill höra om det.
+En ny förekomst öppnar ett löst undantag igen med avsikt: felet inträffar fortfarande. Kontrollera att rättelsen nådde den release som rapporterar det, eller arkivera undantaget om du inte längre vill höra om det. Om gamla poddar från versionen fortsätter att rapportera det under en utrullning använder du **Lös i nästa version** i stället.
 :::
 
 ## Nästa steg

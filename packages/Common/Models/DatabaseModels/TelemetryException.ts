@@ -591,8 +591,9 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
-    title: "Accepted Invitation At",
-    description: "When did this team member accept invitation",
+    title: "Marked as Resolved At",
+    description:
+      "When this exception was last resolved. Empty while it is unresolved.",
     example: "2025-12-12T14:30:00.000Z",
   })
   @Column({
@@ -627,8 +628,9 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
-    title: "Accepted Invitation At",
-    description: "When did this team member accept invitation",
+    title: "Marked as Archived At",
+    description:
+      "When this exception was last archived. Empty while it is not archived.",
     example: "2025-12-12T15:45:00.000Z",
   })
   @Column({
@@ -663,8 +665,8 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
-    title: "Accepted Invitation At",
-    description: "When did this team member accept invitation",
+    title: "First Seen At",
+    description: "When the earliest occurrence of this exception happened.",
     example: "2025-12-10T08:15:00.000Z",
   })
   @Column({
@@ -699,8 +701,8 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
-    title: "Accepted Invitation At",
-    description: "When did this team member accept invitation",
+    title: "Last Seen At",
+    description: "When the latest occurrence of this exception happened.",
     example: "2025-12-12T16:20:00.000Z",
   })
   @Column({
@@ -1528,4 +1530,92 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: ColumnType.Date,
   })
   public aiFixDeclinedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Ingest stamps it (its upsert writes as OneUptime). Editors may clear
+     * it: resolving or reopening an exception does, in
+     * TelemetryExceptionService.onBeforeUpdate, so the write that turns the
+     * switch has to be allowed to carry it.
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
+  })
+  /*
+   * When this exception last came back after it was resolved: the ingest
+   * upsert reopens a resolved exception on an occurrence that happened after
+   * it was resolved (and, when it was resolved in the next release, came from
+   * another release) and stamps the time here. The exception reads as
+   * Regressed while it stays unresolved. Resolving or reopening it by hand
+   * clears it, so a manual reopen never reads as a regression.
+   */
+  @TableColumn({
+    title: "Regressed At",
+    description:
+      "When this exception last came back after it was resolved. Empty when it has not come back since someone last resolved or reopened it.",
+    required: false,
+    type: TableColumnType.Date,
+    example: "2026-01-01T00:00:00.000Z",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public regressedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
+  })
+  /*
+   * "Resolve in next release": the release that was current when the
+   * exception was resolved, while the fix ships in the one after it.
+   * Occurrences from this release - pods still running it during a rollout -
+   * do not reopen the exception; one from any other release does. Empty for
+   * a plain resolve, where any later occurrence reopens it. Cleared whenever
+   * the exception is reopened.
+   */
+  @TableColumn({
+    title: "Resolved in Release After",
+    description:
+      "Set when the exception was resolved in the next release: the release it was resolved after. Occurrences from this release do not reopen the exception; an occurrence from any other release does.",
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    example: "v1.4.0",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public resolvedInReleaseAfter?: string = undefined;
 }

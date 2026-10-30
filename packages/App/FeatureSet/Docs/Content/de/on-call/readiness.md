@@ -42,10 +42,9 @@ Eine Lücke ist ein Schweregrad ohne Regel, auf dem Tab für Vorfälle, Vorfalle
 | --- | --- |
 | **Bearbeiter** | Die Person, mit ihrer E-Mail-Adresse. |
 | **Status** | **Bereit**, **Nicht erreichbar** oder wie viele Lücken die Person hat. |
-| **Teams** | Die Teams, die sie über eine Eskalationsregel alarmieren. |
 | **Kanäle** | Ein Segment pro Kanal: gefüllt für eine verifizierte Methode, hohl für eine, die noch nicht verifiziert ist. |
 | **Abdeckung** | Wie viele Schweregrade eine Regel haben, auf jedem Tab, von allen. |
-| **Erreicht über** | Wie die Richtlinien die Person erreichen: `Direct`, `Team`, `Schedule` oder `Override`. |
+| **Erreicht über** | Wie die Richtlinien die Person erreichen: jedes Team, das sie über eine Eskalationsregel alarmiert, mit seinem Namen, oder **Direkt**, **Zeitplan** oder **Vertretung**. |
 
 **Abdeckung** in einer Zeile zeigt die Benachrichtigungsmethoden der Person, warum sie ihren Status hat, und ein Raster aller Schweregrade mit oder ohne Regel. Der Trichter filtert die Liste nach **Bearbeiter**, **Status**, **Team** oder **Erreicht über**. Die Antwort kann eine Minute alt sein: **Aktualisieren** ermittelt sie neu.
 
