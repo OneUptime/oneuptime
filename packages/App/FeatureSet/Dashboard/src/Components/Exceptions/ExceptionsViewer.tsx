@@ -140,6 +140,13 @@ import {
   runExceptionAssignment,
 } from "./ExceptionRowActions";
 import ExceptionAssignModal from "./ExceptionAssignModal";
+import {
+  EXCEPTION_LIST_STATS_ROUTE,
+  ExceptionListStatsById,
+  buildExceptionListStatsRequest,
+  getExceptionRowStats,
+  readExceptionListStatsById,
+} from "../../Utils/ExceptionListStats";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import {
   BulkActionButtonSchema,
@@ -651,6 +658,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     useState<BulkActionOnClickProps<TelemetryException> | null>(null);
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
+  /*
+   * The range the rows above were read for, set with them: the rows'
+   * affected users and trend charts are counted over the same range.
+   */
+  const [listWindow, setListWindow] = useState<InBetween<Date> | null>(null);
+  // Each row's affected users and trend, by exception id, for this page.
+  const [listStats, setListStats] = useState<ExceptionListStatsById | null>(
+    null,
+  );
+  const [isListStatsLoading, setIsListStatsLoading] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
@@ -1574,6 +1591,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const fetchExceptions: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
     setError("");
+    const readWindow: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
     try {
       const result: ModelListResult<TelemetryException> =
         await ModelAPI.getList({
@@ -1606,6 +1625,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           sort: getExceptionListSortOrder(sort) as never,
         });
       setExceptions(result.data || []);
+      setListWindow(readWindow);
       setTotalCount(result.count);
       setHasListAnswered(true);
     } catch (err) {
@@ -1613,7 +1633,48 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [query, page, pageSize, sort]);
+  }, [query, page, pageSize, sort, timeRange]);
+
+  /*
+   * The page's affected users and trend charts, in one request once its
+   * rows are in (ExceptionListStatsReader). Best effort: the rows show
+   * without them if it fails.
+   */
+  useEffect(() => {
+    const request: JSONObject | null = listWindow
+      ? buildExceptionListStatsRequest({ exceptions, window: listWindow })
+      : null;
+
+    if (!request) {
+      setListStats(null);
+      setIsListStatsLoading(false);
+      return;
+    }
+
+    let isCancelled: boolean = false;
+    setIsListStatsLoading(true);
+
+    postApi(EXCEPTION_LIST_STATS_ROUTE, request)
+      .then((response: HTTPResponse<JSONObject>): void => {
+        if (!isCancelled) {
+          setListStats(readExceptionListStatsById(response.data));
+        }
+      })
+      .catch((): void => {
+        if (!isCancelled) {
+          setListStats(null);
+        }
+      })
+      .finally((): void => {
+        if (!isCancelled) {
+          setIsListStatsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [exceptions, listWindow]);
 
   useEffect(() => {
     if (holdsReads) {
@@ -2556,6 +2617,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
               handleRowClick(exception);
             }}
             actionButtons={exceptionRowActions}
+            stats={getExceptionRowStats(listStats, exception)}
+            isStatsLoading={isListStatsLoading && !listStats}
           />
         );
       }}

@@ -38955,6 +38955,11 @@
   "{{monitorName}}: a new exception": "{{monitorName}}: uma exceção nova",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: uma exceção resolvida voltou",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: pico de exceções",
+  "Distinct users this exception happened to in this time range": "Usuários distintos afetados por esta exceção neste intervalo",
   "Pick who to page.": "Escolha quem acionar.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Escolha quem este fluxo de trabalho aciona. Você pode alterar depois na etapa de acionamento, no Construtor."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Escolha quem este fluxo de trabalho aciona. Você pode alterar depois na etapa de acionamento, no Construtor.",
+  "{{count}} events in this time range": "{{count}} eventos neste intervalo",
+  "{{count}} events in this time range_one": "{{count}} evento neste intervalo",
+  "{{number}} users": "{{number}} usuários",
+  "{{number}} users_one": "{{number}} usuário"
 }

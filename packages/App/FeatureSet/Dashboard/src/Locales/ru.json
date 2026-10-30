@@ -38955,6 +38955,11 @@
   "{{monitorName}}: a new exception": "{{monitorName}}: новое исключение",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: устранённое исключение вернулось",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений",
+  "Distinct users this exception happened to in this time range": "Разные пользователи, у которых это исключение возникло за этот период",
   "Pick who to page.": "Выберите, кого вызывать.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Выберите, кого вызывает этот рабочий процесс. Это можно изменить позже в шаге вызова в Конструкторе."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Выберите, кого вызывает этот рабочий процесс. Это можно изменить позже в шаге вызова в Конструкторе.",
+  "{{count}} events in this time range": "Событий за этот период: {{count}}",
+  "{{count}} events in this time range_one": "{{count}} событие за этот период",
+  "{{number}} users": "Пользователей: {{number}}",
+  "{{number}} users_one": "{{number}} пользователь"
 }

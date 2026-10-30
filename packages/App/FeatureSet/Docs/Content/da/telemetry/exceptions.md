@@ -52,6 +52,8 @@ Gå til **Produkter → Observabilitet → Undtagelser**. Mærket på fanen **Un
 
 Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid. En række markeret **Regression** kom igen, efter at den var løst, og en markeret **Ny** blev set første gang inden for de seneste 24 timer.
 
+Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med.
+
 ### Vælg, hvad der tæller som et problem
 
 **Problemer**, som er standard, skjuler brugerfejl og forventede afvisninger, så listen viser det, der kræver en rettelse. **User errors** viser kun dem, og **Alle** viser hver undtagelse.

@@ -38955,6 +38955,11 @@
   "{{monitorName}}: a new exception": "{{monitorName}}: et nytt unntak",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: et løst unntak kom tilbake",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: unntakene toppet seg",
+  "Distinct users this exception happened to in this time range": "Ulike brukere som dette unntaket rammet i dette tidsrommet",
   "Pick who to page.": "Velg hvem som skal varsles.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Velg hvem denne arbeidsflyten varsler. Du kan endre det senere i varslingssteget i Bygger."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Velg hvem denne arbeidsflyten varsler. Du kan endre det senere i varslingssteget i Bygger.",
+  "{{count}} events in this time range": "{{count}} hendelser i dette tidsrommet",
+  "{{count}} events in this time range_one": "{{count}} hendelse i dette tidsrommet",
+  "{{number}} users": "{{number}} brukere",
+  "{{number}} users_one": "{{number}} bruker"
 }

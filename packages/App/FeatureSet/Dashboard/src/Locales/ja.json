@@ -38955,6 +38955,11 @@
   "{{monitorName}}: a new exception": "{{monitorName}}: 新しい例外",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 解決済みの例外が再発",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: 例外が急増",
+  "Distinct users this exception happened to in this time range": "この期間にこの例外が発生したユーザーの数(重複なし)",
   "Pick who to page.": "呼び出す相手を選んでください。",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "このワークフローが呼び出す相手を選んでください。後からビルダーの呼び出しステップで変更できます。"
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "このワークフローが呼び出す相手を選んでください。後からビルダーの呼び出しステップで変更できます。",
+  "{{count}} events in this time range": "この期間のイベント {{count}} 件",
+  "{{count}} events in this time range_one": "この期間のイベント {{count}} 件",
+  "{{number}} users": "{{number}} 人のユーザー",
+  "{{number}} users_one": "{{number}} 人のユーザー"
 }

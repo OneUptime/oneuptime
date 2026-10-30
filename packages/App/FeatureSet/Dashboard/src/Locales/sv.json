@@ -38955,6 +38955,11 @@
   "{{monitorName}}: a new exception": "{{monitorName}}: ett nytt undantag",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: ett löst undantag kom tillbaka",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: undantagen toppade",
+  "Distinct users this exception happened to in this time range": "Olika användare som det här undantaget drabbade under den här perioden",
   "Pick who to page.": "Välj vem som ska larmas.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Välj vem det här arbetsflödet larmar. Du kan ändra det senare i larmsteget i Byggare."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Välj vem det här arbetsflödet larmar. Du kan ändra det senare i larmsteget i Byggare.",
+  "{{count}} events in this time range": "{{count}} händelser under den här perioden",
+  "{{count}} events in this time range_one": "{{count}} händelse under den här perioden",
+  "{{number}} users": "{{number}} användare",
+  "{{number}} users_one": "{{number}} användare"
 }
