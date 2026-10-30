@@ -414,6 +414,7 @@ export interface SimulatedAggregateByArgs {
   sort?: Dictionary<unknown> | undefined;
   groupBy?: Dictionary<unknown> | undefined;
   groupByAttributeKeys?: Array<string> | undefined;
+  includeSampleAttributes?: boolean | undefined;
 }
 
 // The WHERE columns the stand-in emulates; anything else throws.
@@ -596,10 +597,12 @@ export class SimulatedMetricTable {
 
   /*
    * MetricService.aggregateBy: one row per time bucket - and, grouped by
-   * attribute keys, per series too, with an `attributes` map of exactly
-   * those keys, each '' where a row lacks it (a Map(String, String) lookup).
-   * A model-column groupBy is not what a monitor sends, so the stand-in
-   * refuses one.
+   * attribute keys, per series too, with an `attributes` map of those keys,
+   * each '' where a row lacks it (a Map(String, String) lookup). With
+   * includeSampleAttributes, as a monitor's read asks, the map is the
+   * bucket's newest row's whole map with the grouped keys laid over it
+   * (mapUpdate(argMax(attributes, time), map(...))). A model-column
+   * groupBy is not what a monitor sends, so the stand-in refuses one.
    */
   public aggregateBy(args: SimulatedAggregateByArgs): AggregatedResult {
     if (
@@ -617,6 +620,8 @@ export class SimulatedMetricTable {
     }
 
     const attributeKeys: Array<string> = args.groupByAttributeKeys || [];
+    const withSample: boolean =
+      args.includeSampleAttributes === true && attributeKeys.length > 0;
 
     const interval: AggregationInterval =
       AggregationIntervalUtil.getAggregationIntervalForWindow({
@@ -632,7 +637,12 @@ export class SimulatedMetricTable {
 
     const buckets: Map<
       string,
-      { bucketMs: number; labels: JSONObject; values: Array<number> }
+      {
+        bucketMs: number;
+        labels: JSONObject;
+        values: Array<number>;
+        newest: SimulatedMetricRow;
+      }
     > = new Map();
     for (const row of this.selectRows(args.query)) {
       const bucketMs: number =
@@ -650,21 +660,41 @@ export class SimulatedMetricTable {
         }),
       )}`;
       let bucket:
-        | { bucketMs: number; labels: JSONObject; values: Array<number> }
+        | {
+            bucketMs: number;
+            labels: JSONObject;
+            values: Array<number>;
+            newest: SimulatedMetricRow;
+          }
         | undefined = buckets.get(bucketKey);
       if (!bucket) {
-        bucket = { bucketMs: bucketMs, labels: labels, values: [] };
+        bucket = {
+          bucketMs: bucketMs,
+          labels: labels,
+          values: [],
+          newest: row,
+        };
         buckets.set(bucketKey, bucket);
       }
       bucket.values.push(row.value);
+      if (row.time.getTime() > bucket.newest.time.getTime()) {
+        bucket.newest = row;
+      }
     }
 
     const data: Array<AggregatedModel> = [];
     for (const bucket of buckets.values()) {
+      const attributes: JSONObject = withSample
+        ? {
+            ...(bucket.newest.attributes as JSONObject),
+            ...bucket.labels,
+          }
+        : bucket.labels;
+
       data.push({
         timestamp: new Date(bucket.bucketMs),
         value: this.aggregate(args.aggregationType, bucket.values),
-        ...(attributeKeys.length > 0 ? { attributes: bucket.labels } : {}),
+        ...(attributeKeys.length > 0 ? { attributes: attributes } : {}),
       });
     }
 

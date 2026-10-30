@@ -40,6 +40,17 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
    */
   groupByAttributeKeys?: Array<string> | undefined;
   /**
+   * With `groupByAttributeKeys`: each row's `attributes` also holds every
+   * other attribute of the newest datapoint in its bucket - the grouped
+   * keys keep their grouped values. A monitor that groups by a pod, a
+   * container or a Proxmox id names each affected resource from them (the
+   * pod's node and workload, whether the id is a node or a guest), as it
+   * did when it read raw rows. Off unless set: a chart needs only the
+   * grouped keys, and the whole map is the widest column a read can touch.
+   * Ignored without `groupByAttributeKeys`.
+   */
+  includeSampleAttributes?: boolean | undefined;
+  /**
    * Server-side Top-K group selection for grouped aggregations. When
    * set (and the aggregation is grouped via `groupBy` /
    * `groupByAttributeKeys`), the server ranks groups by `rankBy`

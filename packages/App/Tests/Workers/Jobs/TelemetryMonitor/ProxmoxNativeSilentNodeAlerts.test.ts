@@ -2152,6 +2152,11 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         expect(call.query["attributes"]).toEqual(scope);
         expect(call.aggregationType).toBe(MetricsAggregationType.Min);
         expect(call.limit).toBe(GROUPED_READ_ROW_LIMIT);
+        /*
+         * With each id's attributes besides the id - its pve.type, which
+         * names a node a Node in the root cause below.
+         */
+        expect(call.includeSampleAttributes).toBe(true);
         expect(
           call.endTimestamp.getTime() - call.startTimestamp.getTime(),
         ).toBe(WINDOW_MS);
@@ -2375,6 +2380,13 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
 
       expect(first!.nodeOffline.rootCause).toContain("node/pve3");
       expect(first!.nodeOffline.rootCause).not.toContain("node/pve1");
+      /*
+       * Named a Node from the id's own pve.type, which only the grouped
+       * read's sample attributes carry (#5281): grouped by `id` alone, the
+       * row said "Resource".
+       */
+      expect(first!.nodeOffline.rootCause).toContain("**Node** `node/pve3`");
+      expect(first!.nodeOffline.rootCause).not.toContain("**Resource**");
     });
 
     test("Quorum does not fire: availability settles at exactly 2 ÷ 3", () => {

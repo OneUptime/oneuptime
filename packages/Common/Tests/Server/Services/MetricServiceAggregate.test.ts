@@ -218,6 +218,123 @@ describe("MetricService aggregate statement generation", () => {
   });
 
   /*
+   * A monitor grouped by a pod, a container or a Proxmox id names each
+   * affected resource from its datapoints' other attributes - the pod's
+   * node, whether the id is a node or a guest. Its grouped read asks for
+   * them (includeSampleAttributes, #5281): each row's `attributes` is the
+   * newest datapoint of its bucket's whole map with the grouped keys laid
+   * over it. The grouping itself never changes, and a chart, which never
+   * asks, keeps its compact map of the grouped keys.
+   */
+  describe("sample attributes on a grouped read (includeSampleAttributes)", () => {
+    const SAMPLE_MAP: RegExp =
+      /mapUpdate\(argMax\(__sample_attrs, __sample_time\), map\(\{p\d+:String\}, __attr_grp_0\)\) AS attributes/;
+    const SAMPLE_COLUMNS: string =
+      "attributes AS __sample_attrs, time AS __sample_time";
+
+    it("lays the grouped keys over the bucket's newest datapoint's whole map, grouping as before", () => {
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+            includeSampleAttributes: true,
+          }),
+        );
+      const query: string = result.statement.query;
+
+      // One level down, the row's whole map and time under names of their own.
+      expect(query).toContain(SAMPLE_COLUMNS);
+      expect(query).toMatch(SAMPLE_MAP);
+      // Grouped on the extracted key alone, never on the map.
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+      expect(query).not.toContain("GROUP BY time, attributes");
+      expect(query).not.toMatch(/GROUP BY[^)]*__sample/);
+      expect(result.columns).toContain("attributes");
+
+      // The key is still bound twice: the extraction and the map's key.
+      expect(
+        Object.values(result.statement.query_params).filter(
+          (value: unknown) => {
+            return value === "resource.k8s.pod.name";
+          },
+        ),
+      ).toHaveLength(2);
+    });
+
+    it("does the same for a percentile, through the histogram fanout", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          aggregationType: AggregationType.P95,
+          groupByAttributeKeys: ["resource.k8s.pod.name"],
+          includeSampleAttributes: true,
+        }),
+      );
+
+      expect(query).toContain("quantileExactWeighted(0.95)");
+      expect(query).toContain(SAMPLE_COLUMNS);
+      expect(query).toMatch(SAMPLE_MAP);
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+    });
+
+    it("and over a whole window (Total): a row per series", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          groupByAttributeKeys: ["resource.k8s.pod.name"],
+          includeSampleAttributes: true,
+          aggregationInterval: AggregationInterval.Total,
+        }),
+      );
+
+      expect(query).toMatch(SAMPLE_MAP);
+      expect(query).toContain("GROUP BY __attr_grp_0");
+    });
+
+    it("keeps every grouped key in the map laid over the sample, in order", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          groupByAttributeKeys: [
+            "resource.k8s.namespace.name",
+            "resource.k8s.pod.name",
+          ],
+          includeSampleAttributes: true,
+        }),
+      );
+
+      expect(query).toMatch(
+        /mapUpdate\(argMax\(__sample_attrs, __sample_time\), map\(\{p\d+:String\}, __attr_grp_0, \{p\d+:String\}, __attr_grp_1\)\) AS attributes/,
+      );
+      expect(query).toContain("GROUP BY time, __attr_grp_0, __attr_grp_1");
+    });
+
+    it("is off unless asked: a chart's grouped read keeps the grouped keys alone", () => {
+      for (const aggregationType of [AggregationType.Avg, AggregationType.P90]) {
+        const query: string = getQuery(
+          buildAggregateBy({
+            aggregationType: aggregationType,
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+          }),
+        );
+
+        expect(query).not.toContain("__sample_attrs");
+        expect(query).not.toContain("mapUpdate");
+        expect(query).toMatch(
+          /map\(\{p\d+:String\}, __attr_grp_0\) AS attributes/,
+        );
+      }
+    });
+
+    it("means nothing without grouped keys: an ungrouped read still routes to the rollup", () => {
+      const query: string = getQuery(
+        buildAggregateBy({ includeSampleAttributes: true }),
+      );
+
+      expect(query).toContain("MetricItemAggMV1m");
+      expect(query).not.toContain("__sample_attrs");
+      expect(query).not.toContain("mapUpdate");
+    });
+  });
+
+  /*
    * The `aggregationInterval` override lets callers pin the time bucket
    * independent of the query window (the two scenarios from the customer
    * thread: "daily uptime per host over a week" and "one weekly average

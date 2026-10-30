@@ -628,13 +628,33 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   }
 
   /**
+   * Whether a grouped read's rows carry the attributes of a datapoint of
+   * their bucket besides the grouped keys (AggregateBy's
+   * includeSampleAttributes): only when grouped by attribute keys.
+   */
+  private wantsSampleAttributes(
+    aggregateBy: AggregateBy<Metric>,
+    attributeGroupKeys: Array<string>,
+  ): boolean {
+    return (
+      aggregateBy.includeSampleAttributes === true &&
+      attributeGroupKeys.length > 0
+    );
+  }
+
+  /**
    * Appends `, attributes[{key}] AS __attr_grp_<i>` for every group-by
    * attribute key. Used in the (inner) SELECT so the outer/main query
    * can group on and re-project the extracted values.
+   *
+   * With sample attributes, the row's whole map and its time ride along
+   * too (`__sample_attrs`, `__sample_time`), under names of their own so
+   * the outer `... AS attributes` can never shadow the real column.
    */
   private appendAttributeGroupExtractionColumns(
     statement: Statement,
     attributeGroupKeys: Array<string>,
+    sample?: { timestampColumn: string } | undefined,
   ): void {
     attributeGroupKeys.forEach((key: string, index: number) => {
       statement.append(`, `);
@@ -643,21 +663,38 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       );
       statement.append(` AS __attr_grp_${index}`);
     });
+
+    if (sample && attributeGroupKeys.length > 0) {
+      statement.append(
+        `, attributes AS __sample_attrs, ${sample.timestampColumn} AS __sample_time`,
+      );
+    }
   }
 
   /**
    * Appends `, map({key0}, __attr_grp_0, ...) AS attributes` so grouped
    * rows return exactly the selected keys as an attributes map — the
    * same shape series splitters already read (`row.attributes[key]`).
+   *
+   * With sample attributes, the map is the newest datapoint of the
+   * bucket's whole map with the grouped keys laid over it:
+   * `mapUpdate(argMax(__sample_attrs, __sample_time), map(...))`. The
+   * grouped keys keep their grouped values ('' where a row lacks one),
+   * so a series' labels and fingerprint are the same either way.
    */
   private appendAttributeGroupMapColumn(
     statement: Statement,
     attributeGroupKeys: Array<string>,
+    withSampleAttributes?: boolean | undefined,
   ): void {
     if (attributeGroupKeys.length === 0) {
       return;
     }
-    statement.append(`, map(`);
+    statement.append(
+      withSampleAttributes
+        ? `, mapUpdate(argMax(__sample_attrs, __sample_time), map(`
+        : `, map(`,
+    );
     attributeGroupKeys.forEach((key: string, index: number) => {
       if (index > 0) {
         statement.append(`, `);
@@ -665,7 +702,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(SQL`${{ value: key, type: TableColumnType.Text }}`);
       statement.append(`, __attr_grp_${index}`);
     });
-    statement.append(`) AS attributes`);
+    statement.append(withSampleAttributes ? `)) AS attributes` : `) AS attributes`);
   }
 
   /**
@@ -1240,7 +1277,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * fragment the quantile into one near-constant series per unique
      * attribute combination.
      */
-    this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+    const percentileSampleAttributes: boolean = this.wantsSampleAttributes(
+      aggregateBy,
+      attributeGroupKeys,
+    );
+    this.appendAttributeGroupMapColumn(
+      statement,
+      attributeGroupKeys,
+      percentileSampleAttributes,
+    );
 
     /*
      * Server-side Top-K: rank groups over the whole window, restrict
@@ -1268,7 +1313,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     statement.append(SQL` FROM (`);
     statement.append(`SELECT ${innerSelectClause}`);
-    this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
+    this.appendAttributeGroupExtractionColumns(
+      statement,
+      attributeGroupKeys,
+      percentileSampleAttributes
+        ? { timestampColumn: aggregationTimestampColumn }
+        : undefined,
+    );
     statement.append(
       ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
     );
@@ -1520,7 +1571,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     for (const key of groupByKeys) {
       statement.append(`, ${key}`);
     }
-    this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+    const scalarSampleAttributes: boolean = this.wantsSampleAttributes(
+      aggregateBy,
+      attributeGroupKeys,
+    );
+    this.appendAttributeGroupMapColumn(
+      statement,
+      attributeGroupKeys,
+      scalarSampleAttributes,
+    );
     if (scalarApplyTopK) {
       this.appendTotalGroupsColumn({
         statement,
@@ -1554,7 +1613,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
       statement.append(SQL` FROM (`);
       statement.append(`SELECT ${innerColumns.join(", ")}`);
-      this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
+      this.appendAttributeGroupExtractionColumns(
+        statement,
+        attributeGroupKeys,
+        scalarSampleAttributes
+          ? { timestampColumn: aggregationTimestampColumn }
+          : undefined,
+      );
       statement.append(
         ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
       );

@@ -450,7 +450,8 @@ const taskDownTemplate: DockerSwarmAlertTemplate = {
          * default — see UnhealthyCriteriaArgs.metricAggregationType.
          *
          * Samples are bucketed per MINUTE before the criteria sees them
-         * (aggregatePerSeriesFromRawMetrics), so a Past1Minute window is
+         * (the worker's grouped read, MonitorTelemetryMonitor's
+         * readQueryDataPoints), so a Past1Minute window is
          * one or two buckets. Under AllValues EVERY bucket would have to
          * read under 60s, which stops being true the moment the window
          * straddles uptime crossing 60 — leaving a firing window as

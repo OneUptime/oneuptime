@@ -275,14 +275,20 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       }),
     );
 
-    // One device of the fleet still reports, so the silent ones can be told apart.
-    metricFindBy.mockResolvedValue([
-      {
-        time: new Date(),
-        value: 80,
-        attributes: { "device.id": "sensor-001" },
-      },
-    ]);
+    /*
+     * One device of the fleet still reports, so the silent ones can be told
+     * apart: its minute as the grouped read returns it, grouped in SQL by
+     * the device (#5281).
+     */
+    metricAggregateBy.mockResolvedValue({
+      data: [
+        {
+          timestamp: new Date(),
+          value: 80,
+          attributes: { "device.id": "sensor-001" },
+        },
+      ],
+    });
 
     await monitorIoT({
       monitorStep: step,

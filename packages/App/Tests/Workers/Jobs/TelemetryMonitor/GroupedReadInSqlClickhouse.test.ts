@@ -11,6 +11,7 @@ import {
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -46,13 +47,16 @@ import {
  * What a mock cannot show is what ClickHouse makes of that SQL: that it
  * returns rows at all (a GROUP BY on the whole attributes Map once returned
  * none through the client's parameter binding), that each row's attributes
- * hold exactly the grouped keys, that every aggregation folds a series'
- * minute as the evaluator expects, that the read is whole where the raw
- * read was cut, and that a read past its limit keeps the newest buckets and
- * says where it is complete. So this suite loads a window of pod metrics
- * into a table built from the real Metric model, reads it through the
- * worker's readQueryDataPoints on both analyzers, and holds every bucket to
- * one worked out from the rows themselves.
+ * hold the bucket's newest data point's attributes with the grouped key
+ * laid over them - what Affected Resources names a pod's node from, as it
+ * did from the raw rows (includeSampleAttributes) - while a chart's read
+ * still gets the grouped keys alone, that every aggregation folds a
+ * series' minute as the evaluator expects, that the read is whole where
+ * the raw read was cut, and that a read past its limit keeps the newest
+ * buckets and says where it is complete. So this suite loads a window of
+ * pod metrics into a table built from the real Metric model, reads it
+ * through the worker's readQueryDataPoints on both analyzers, and holds
+ * every bucket to one worked out from the rows themselves.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -140,6 +144,13 @@ const POINT_SECONDS: Array<number> = [10, 40];
  */
 const FLEET: string = "k8s.pod.memory.working_set";
 const FLEET_PODS: number = Math.ceil(GROUPED_READ_ROW_LIMIT / 13);
+
+/*
+ * A metric some of whose rows lack the grouped key - a pod's restarts sent
+ * by an exporter that names no pod: they make one series of their own,
+ * labelled '', as they did when the monitor read raw rows.
+ */
+const RESTARTS: string = "k8s.container.restarts";
 
 const inThirtyDays: string = OneUptimeDate.toClickhouseDateTime(
   OneUptimeDate.addRemoveDays(new Date(), 30),
@@ -244,6 +255,96 @@ function cpuPoints(random: SeededRandom): Array<Point> {
   }
 
   return points;
+}
+
+function restartPoints(): Array<Point> {
+  const points: Array<Point> = [];
+
+  for (let minute: number = 0; minute < 3; minute++) {
+    points.push({
+      name: RESTARTS,
+      timeMs: WINDOW_START_MS + minute * MINUTE + 15 * SECOND,
+      value: minute,
+      attributes: {
+        [POD_KEY]: podName(1),
+        [NAMESPACE_KEY]: "shop",
+        [CLUSTER_KEY]: "prod",
+        "resource.k8s.node.name": "node-1",
+      },
+      projectId: projectId,
+    });
+    points.push({
+      name: RESTARTS,
+      timeMs: WINDOW_START_MS + minute * MINUTE + 25 * SECOND,
+      value: 10 + minute,
+      attributes: {
+        [NAMESPACE_KEY]: "shop",
+        [CLUSTER_KEY]: "prod",
+        "exporter.name": "kube-state-metrics",
+      },
+      projectId: projectId,
+    });
+  }
+
+  return points;
+}
+
+/*
+ * The newest data point of each metric's pod and minute among the rows a
+ * monitor's query reads, worked out once from the points.
+ */
+let newestPoints: Map<string, Point> | undefined = undefined;
+
+function newestPointKey(
+  metricName: string,
+  pod: string,
+  minuteMs: number,
+): string {
+  return `${metricName}|${pod}|${minuteMs}`;
+}
+
+/*
+ * The attributes a sample read gives a pod's minute: those of its newest
+ * data point - the one at :40 - with the grouped key as grouped.
+ */
+function newestAttributes(
+  metricName: string,
+  pod: string,
+  minuteMs: number,
+): Record<string, string> {
+  if (!newestPoints) {
+    newestPoints = new Map();
+
+    for (const point of points) {
+      if (
+        point.projectId.toString() !== projectId.toString() ||
+        point.attributes[NAMESPACE_KEY] !== "shop" ||
+        point.attributes[CLUSTER_KEY] !== "prod" ||
+        point.timeMs > WINDOW_END_MS
+      ) {
+        continue;
+      }
+
+      const key: string = newestPointKey(
+        point.name,
+        point.attributes[POD_KEY] || "",
+        Math.floor(point.timeMs / MINUTE) * MINUTE,
+      );
+      const newest: Point | undefined = newestPoints.get(key);
+
+      if (!newest || point.timeMs > newest.timeMs) {
+        newestPoints.set(key, point);
+      }
+    }
+  }
+
+  const newest: Point | undefined = newestPoints.get(
+    newestPointKey(metricName, pod, minuteMs),
+  );
+
+  expect(newest).toBeDefined();
+
+  return { ...newest!.attributes, [POD_KEY]: pod };
 }
 
 function fleetPoints(): Array<Point> {
@@ -405,11 +506,12 @@ const AGGREGATIONS: Array<MetricsAggregationType> = [
   MetricsAggregationType.Count,
 ];
 
+let points: Array<Point> = [];
+
 integration("Grouped infrastructure reads, grouped in SQL", () => {
   let clickhouse: ClickhouseDatabase;
   let client: ClickhouseClient;
   let original: ServiceConnection | undefined;
-  let points: Array<Point> = [];
 
   beforeAll(async (): Promise<void> => {
     const url: URL = new URL(endpoint!);
@@ -445,7 +547,11 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
     MetricService.ingestDatabase = clickhouse;
     MetricService.ingestDatabaseClient = client;
 
-    points = [...cpuPoints(seededRandom(5281)), ...fleetPoints()];
+    points = [
+      ...cpuPoints(seededRandom(5281)),
+      ...fleetPoints(),
+      ...restartPoints(),
+    ];
 
     // In slices: one insert of every row is a request of tens of megabytes.
     const rows: Array<JSONObject> = points.map(metricRow);
@@ -523,11 +629,20 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
         expect(seen.has(key)).toBe(false);
         seen.add(key);
 
-        // The minute's start, and the series' grouped key alone.
-        expect(new Date(row.timestamp).getTime() % MINUTE).toBe(0);
-        expect(row["attributes"]).toEqual({
-          [POD_KEY]: String((row["attributes"] as JSONObject)[POD_KEY]),
-        });
+        /*
+         * The minute's start, and the attributes of the pod's newest data
+         * point of that minute - its uid of :40, its node - with its name.
+         */
+        const minuteMs: number = new Date(row.timestamp).getTime();
+        const pod: string = String((row["attributes"] as JSONObject)[POD_KEY]);
+
+        expect(minuteMs % MINUTE).toBe(0);
+        expect(row["attributes"]).toEqual(
+          newestAttributes(CPU, pod, minuteMs),
+        );
+        expect((row["attributes"] as JSONObject)["resource.k8s.pod.uid"]).toBe(
+          `uid-${Number(pod.slice(9))}-${(minuteMs - WINDOW_START_MS) / MINUTE}-40`,
+        );
         expect(expected.has(key)).toBe(true);
         expect(Number(row.value)).toBeCloseTo(expected.get(key)!, 6);
       }
@@ -585,6 +700,85 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
     }
   });
 
+  test("a chart's grouped read, which asks for no sample, still gets the grouped key alone", async () => {
+    const result: AggregatedResult = await MetricService.aggregateBy({
+      query: {
+        projectId: projectId,
+        time: windowRange(),
+        name: CPU,
+        attributes: { [NAMESPACE_KEY]: "shop", [CLUSTER_KEY]: "prod" },
+      },
+      aggregationType: MetricsAggregationType.Avg,
+      aggregateColumnName: "value",
+      aggregationTimestampColumnName: "time",
+      startTimestamp: new Date(WINDOW_START_MS),
+      endTimestamp: new Date(WINDOW_END_MS),
+      limit: GROUPED_READ_ROW_LIMIT,
+      skip: 0,
+      groupByAttributeKeys: [POD_KEY],
+      props: { isRoot: true },
+    });
+
+    expect(result.data).toHaveLength(PODS * WINDOW_MINUTES);
+
+    for (const row of result.data) {
+      expect(Object.keys(row["attributes"] as JSONObject)).toEqual([POD_KEY]);
+    }
+  });
+
+  test("rows without the grouped key make a series of their own, labelled '', with their own attributes", async () => {
+    const read: QueryDataPoints = await readGrouped({
+      metricName: RESTARTS,
+      aggregationType: MetricsAggregationType.Max,
+    });
+    const rows: Array<AggregatedModel> = read.aggregatedResult.data;
+
+    // Two series - the pod and the rows that name none - over three minutes.
+    expect(rows).toHaveLength(6);
+
+    for (const row of rows) {
+      const minuteMs: number = new Date(row.timestamp).getTime();
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+      const pod: string = String(attributes[POD_KEY]);
+      const minute: number = (minuteMs - WINDOW_START_MS) / MINUTE;
+
+      expect(attributes).toEqual(newestAttributes(RESTARTS, pod, minuteMs));
+
+      if (pod === "") {
+        expect(attributes["exporter.name"]).toBe("kube-state-metrics");
+        expect(Number(row.value)).toBe(10 + minute);
+      } else {
+        expect(pod).toBe(podName(1));
+        expect(attributes["resource.k8s.node.name"]).toBe("node-1");
+        expect(Number(row.value)).toBe(minute);
+      }
+    }
+  });
+
+  test.each([MetricsAggregationType.P50, MetricsAggregationType.P95])(
+    "%s, read as ClickHouse computes a percentile, carries the same sample attributes",
+    async (aggregationType: MetricsAggregationType) => {
+      const read: QueryDataPoints = await readGrouped({
+        metricName: CPU,
+        aggregationType: aggregationType,
+      });
+      const rows: Array<AggregatedModel> = read.aggregatedResult.data;
+
+      expect(rows).toHaveLength(PODS * WINDOW_MINUTES);
+
+      for (const row of rows) {
+        const minuteMs: number = new Date(row.timestamp).getTime();
+        const pod: string = String(
+          (row["attributes"] as JSONObject)[POD_KEY],
+        );
+
+        expect(row["attributes"]).toEqual(
+          newestAttributes(CPU, pod, minuteMs),
+        );
+      }
+    },
+  );
+
   test("the older analyzer reads the same buckets", async () => {
     const found: { json: () => Promise<unknown> } = await client.query({
       query:
@@ -597,12 +791,18 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
       return;
     }
 
-    const byKey: (rows: Array<AggregatedModel>) => Record<string, number> = (
+    const byKey: (
       rows: Array<AggregatedModel>,
-    ): Record<string, number> => {
-      const out: Record<string, number> = {};
+    ) => Record<string, { value: number; attributes: JSONObject }> = (
+      rows: Array<AggregatedModel>,
+    ): Record<string, { value: number; attributes: JSONObject }> => {
+      const out: Record<string, { value: number; attributes: JSONObject }> =
+        {};
       for (const row of rows) {
-        out[bucketKey(row)] = Number(row.value);
+        out[bucketKey(row)] = {
+          value: Number(row.value),
+          attributes: row["attributes"] as JSONObject,
+        };
       }
       return out;
     };

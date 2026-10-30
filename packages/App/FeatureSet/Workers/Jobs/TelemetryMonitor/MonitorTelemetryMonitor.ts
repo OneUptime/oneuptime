@@ -856,9 +856,15 @@ export interface QueryDataPoints {
  * Podman, Proxmox, VMware, IoT, Docker Swarm, Ceph, storage arrays) over its
  * window, aggregated by ClickHouse per time bucket - and, for a grouped
  * query, per series: GROUP BY the query's attribute keys, which returns one
- * row per series and bucket with an `attributes` map holding exactly those
- * keys, the shape buildSeriesBreakdown reads. It is the Metrics monitor's
- * read, so a series' buckets are the ones its chart draws.
+ * row per series and bucket, the shape buildSeriesBreakdown reads. It is
+ * the Metrics monitor's read, so a series' buckets are the ones its chart
+ * draws.
+ *
+ * A grouped row's `attributes` hold the grouped keys and every other
+ * attribute of the bucket's newest datapoint (includeSampleAttributes), as
+ * the raw rows' did: Affected Resources names a pod's node and workload,
+ * or whether a Proxmox id is a node or a guest, from them
+ * (MonitorCriteriaEvaluator's series context).
  *
  * A grouped query used to read raw rows - up to LIMIT_PER_PROJECT of them,
  * newest first - and aggregate them per series and minute in code, because
@@ -900,6 +906,8 @@ export const readQueryDataPoints: (input: {
     skip: 0,
     groupBy: input.groupBy,
     groupByAttributeKeys: isGrouped ? input.groupByAttributeKeys : undefined,
+    // A resource's context for Affected Resources, besides its labels.
+    includeSampleAttributes: isGrouped ? true : undefined,
     // Alerting path: fail loud on timeout, never score partial buckets.
     timeoutOverflowMode: "throw",
     props: {
