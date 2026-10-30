@@ -41,7 +41,11 @@ template text is.
 
 ## UI review
 
-Taken the same way after the UI review, from the review branch:
+Taken the same way after the UI review, from the review branch. The Persian
+ones load production's reading-direction script after the Tailwind runtime
+(Common/UI/Styles/TailwindReadingDirection.js), as every index.ejs does and
+as the fixture now does, so left and right follow the page; the `review-*-before`
+Persian shots are the builder's version drawn the same way.
 
 - `who-to-page-required-*-after`, `zabbix-settings-*-after`: retaken. The
   step's sentence is now one sentence for every template that pages, with no
