@@ -373,15 +373,15 @@ test.describe("Create a workflow", () => {
   });
 
   /*
-   * A paging template asks this dialog for nothing, and still needs somebody
-   * picked before it does anything: who it pages is one of the project's own
-   * schedules, teams, policies or people, picked in the Builder. So where
-   * another template with no settings says "Nothing to fill in.", its
-   * details say what it needs and where that is picked; the Name step says
-   * which step to open; and the workflow it creates, switched off, holds its
-   * Page step with nobody in it yet.
+   * A paging template asks who to page in this dialog, the step after Name:
+   * one of the project's own schedules, teams, policies or people, which no
+   * template can name. Its details list it under What you'll need; the
+   * dialog does not create the workflow until somebody is picked; and the
+   * workflow it creates holds the pick on its Page step, so the Builder
+   * opens on it with nothing left to set up - where it used to open with
+   * "1 error", the Page step waiting for who to page.
    */
-  test("a paging template says what it still needs and where that is picked, and is created with its Page step waiting for it", async ({
+  test("a paging template asks who to page after Name, does not create the workflow without it, and saves the pick on its Page step", async ({
     page,
   }: {
     page: Page;
@@ -401,18 +401,23 @@ test.describe("Create a workflow", () => {
 
     const details: Locator = row.getByTestId("workflow-template-details");
     const needs: Locator = details.getByTestId(
-      "workflow-template-details-in-builder",
+      "workflow-template-details-who-to-page-page-on-call-1",
     );
 
-    await expect(needs).toHaveText(
-      "An on-call schedule to page. You pick it in the Builder.",
-    );
+    await expect(needs).toHaveText("Who to page for critical incidents");
+    await expect(
+      details.getByTestId("workflow-template-details-in-builder"),
+    ).toHaveCount(0);
     await expect(
       details.getByTestId("workflow-template-details-no-settings"),
     ).toHaveCount(0);
+    // Its two steps after the trigger, and no Log on an Error output.
     await expect(
       details.getByTestId("workflow-template-details-step"),
-    ).toContainText(["If / Else", "Page Whoever Is On Call", "Log"]);
+    ).toHaveCount(2);
+    await expect(
+      details.getByTestId("workflow-template-details-step"),
+    ).toContainText(["If / Else", "Page Whoever Is On Call"]);
 
     // Inside its row, at a laptop's width and at a phone's.
     const rowBox: Box = await boxOf(row);
@@ -423,14 +428,46 @@ test.describe("Create a workflow", () => {
       rowBox.x + rowBox.width + 0.5,
     );
 
-    // Nothing to configure: Name is the last step, and says what to open.
     await nextButton(dialog).click();
     await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
       "Page on-call for critical incidents",
     );
-    await expect(dialog).toContainText(
-      "Open the Page step and pick the schedule.",
+    await nextButton(dialog).click();
+
+    // The last step asks who to page, and nothing else.
+    const question: Locator = dialog.getByTestId(
+      "workflow-who-to-page-page-on-call-1",
     );
+
+    await expect(question).toBeVisible();
+    await expect(dialog).toContainText(
+      "Page whoever is on call when a critical incident is created pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+    );
+    await expect(
+      dialog.locator("#workflow-who-to-page-page-on-call-1-label"),
+    ).toContainText("Who to page for critical incidents");
+
+    // Nobody picked: the dialog says so where the question is, and creates nothing.
+    await submitButton(dialog).click();
+    await expect(dialog).toContainText("Pick who to page.");
+    expect(await createdRecords(page)).toEqual([]);
+
+    await question
+      .getByRole("button", { name: "Add on-call schedule" })
+      .click();
+
+    const list: Locator = page.getByRole("dialog", {
+      name: "Add on-call schedule",
+    });
+
+    await list.getByText("Primary", { exact: true }).click();
+    await expect(question.getByTestId("people-chip")).toHaveCount(1);
+    // Escape closes the list, not the dialog.
+    await page.keyboard.press("Escape");
+    await expect(list).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+    await expect(dialog).not.toContainText("Pick who to page.");
+
     await submitButton(dialog).click();
 
     await expect(page.getByTestId("created-workflow")).toHaveText(
@@ -458,11 +495,11 @@ test.describe("Create a workflow", () => {
     });
 
     expect(pageSteps).toHaveLength(1);
-    // About the incident that started it, and nobody picked to page yet.
-    expect(pageSteps[0]?.data?.arguments).toMatchObject({ about: "incident" });
-    expect(Object.keys(pageSteps[0]?.data?.arguments || {})).not.toContain(
-      "on-call-schedules",
-    );
+    // About the incident that started it, and paging the schedule picked.
+    expect(pageSteps[0]?.data?.arguments).toMatchObject({
+      about: "incident",
+      "on-call-schedules": ["5c4e0000-0000-4000-8000-000000000001"],
+    });
   });
 
   /*
@@ -620,15 +657,16 @@ test.describe("Create a workflow", () => {
   });
 
   /*
-   * The workflow Zabbix sends its problems to asks for one thing, the
-   * address its links to a problem go to, and says what else it needs:
-   * who to page, picked in the Builder. A page's address pasted from the
-   * address bar is refused where it is typed, and nothing is created; the
-   * address Zabbix is opened at, under a path and with the slash an address
-   * bar ends it with, is saved as typed, and the workflow is created with
-   * its Page step waiting for who to page.
+   * The workflow Zabbix sends its problems to asks for one setting, the
+   * address its links to a problem go to, and who to page for High and
+   * Disaster problems, which it may leave empty. A page's address pasted
+   * from the address bar is refused where it is typed, and nothing is
+   * created; the address Zabbix is opened at, under a path and with the
+   * slash an address bar ends it with, is saved as typed. With nobody
+   * picked, the workflow is created without its Page step and the If / Else
+   * only that step needs, so nothing in it waits to be set up.
    */
-  test("the Zabbix problems template asks for the Zabbix URL alone, refuses a page's address there, and is created with its Page step waiting", async ({
+  test("the Zabbix problems template asks for the Zabbix URL and, optionally, who to page, refuses a page's address there, and with nobody picked leaves the Page step out", async ({
     page,
   }: {
     page: Page;
@@ -654,9 +692,17 @@ test.describe("Create a workflow", () => {
     await expect(
       details.getByTestId("workflow-template-details-setting-zabbixUrl"),
     ).toContainText("Zabbix URL");
+    const whoToPage: Locator = details.getByTestId(
+      "workflow-template-details-who-to-page-page-on-call-policy-1",
+    );
+
+    await expect(whoToPage).toContainText(
+      "Who to page for High and Disaster problems",
+    );
+    await expect(whoToPage).toContainText("(Optional)");
     await expect(
       details.getByTestId("workflow-template-details-in-builder"),
-    ).toHaveText("An on-call policy to page. You pick it in the Builder.");
+    ).toHaveCount(0);
 
     await nextButton(dialog).click();
     await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
@@ -676,6 +722,13 @@ test.describe("Create a workflow", () => {
     await expect(
       dialog.getByTestId("workflow-variable-zabbixApiToken"),
     ).toHaveCount(0);
+    // Who to page comes after the settings, and is kept on the Page step.
+    await expect(dialog.getByTestId("workflow-who-to-page-intro")).toHaveText(
+      "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+    );
+    await expect(
+      dialog.getByTestId("workflow-who-to-page-page-on-call-policy-1"),
+    ).toBeVisible();
 
     await url.fill("https://example.com/zabbix/zabbix.php?action=problem.view");
     await submitButton(dialog).click();
@@ -728,12 +781,13 @@ test.describe("Create a workflow", () => {
         return node.data?.metadataId === "webhook";
       }),
     ).toHaveLength(1);
-    expect(pageSteps).toHaveLength(1);
-    // About the incident it opens, and nobody picked to page yet.
-    expect(pageSteps[0]?.data?.arguments).toMatchObject({ about: "incident" });
-    expect(Object.keys(pageSteps[0]?.data?.arguments || {})).not.toContain(
-      "on-call-policies",
-    );
+    // Nobody picked: no Page step, and not the If / Else in front of it.
+    expect(pageSteps).toHaveLength(0);
+    expect(
+      nodes.map((node: StoredNode): string => {
+        return node.data?.metadataId || "";
+      }),
+    ).toEqual(["webhook", "javascript-check", "incident-from-another-tool"]);
   });
 
   /*
@@ -809,10 +863,22 @@ test.describe("Create a workflow", () => {
         workflowId: CREATED_WORKFLOW_ID,
       },
     ]);
-    // The workflow reads the token by reference, and never holds it.
+    // The workflow reads the token by reference, and never holds it: Update Zabbix Problem sends it.
     const graph: string = JSON.stringify(records[0]?.graph);
 
-    expect(graph).toContain("Bearer {{local.variables.zabbixApiToken}}");
+    type StoredNode = {
+      data?: { metadataId?: string; arguments?: Record<string, unknown> };
+    };
+
+    const update: StoredNode | undefined = (
+      (records[0]?.graph?.nodes || []) as Array<StoredNode>
+    ).find((node: StoredNode): boolean => {
+      return node.data?.metadataId === "zabbix-update-problem";
+    });
+
+    expect(update?.data?.arguments?.["api-token"]).toBe(
+      "{{local.variables.zabbixApiToken}}",
+    );
     expect(graph).not.toContain(token);
   });
 
