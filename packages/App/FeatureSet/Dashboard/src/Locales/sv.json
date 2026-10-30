@@ -17967,7 +17967,7 @@
   "Update Credentials": "Uppdatera inloggningsuppgifter",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "Uppdatering tillgänglig",
   "Update credentials": "Uppdatera inloggningsuppgifter",
   "Update everything that emails it.": "Uppdatera allt som skickar e-post till den här monitorn.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Det här projektet åtgärdar nya incidenter och larm automatiskt.",
   "This project fixes new incidents automatically, but not new alerts.": "Det här projektet åtgärdar nya incidenter automatiskt, men inte nya larm.",
   "Turn on for alerts": "Slå på för larm",
-  "Turn on for incidents": "Slå på för incidenter"
+  "Turn on for incidents": "Slå på för incidenter",
+  "Opens the upgrade guide in a new tab.": "Öppnar uppgraderingsguiden i en ny flik.",
+  "Security Advisories": "Säkerhetsmeddelanden",
+  "Security Advisories Checked At": "Säkerhetsmeddelanden kontrollerade",
+  "Security Advisories Emailed": "Säkerhetsmeddelanden skickade via e-post",
+  "Security advisory": "Säkerhetsmeddelande",
+  "Security update": "Säkerhetsuppdatering",
+  "Update Check Last Attempted At": "Senaste försök till uppdateringskontroll",
+  "Update Check Last Failure": "Senaste fel vid uppdateringskontroll",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Version {{latest}} finns tillgänglig. Den här installationen kör version {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} publicerade säkerhetsmeddelanden berör version {{current}}, som den här installationen kör. Ingen version åtgärdar dem alla ännu.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "Ett publicerat säkerhetsmeddelande berör version {{current}}, som den här installationen kör. Ingen version åtgärdar det ännu.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} publicerade säkerhetsmeddelanden berör version {{current}}, som den här installationen kör. Uppgradera till {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "Ett publicerat säkerhetsmeddelande berör version {{current}}, som den här installationen kör. Uppgradera till {{recommended}}."
 }

@@ -17967,7 +17967,7 @@
   "Update Credentials": "Обновить учётные данные",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "Доступно обновление",
   "Update credentials": "Обновить учётные данные",
   "Update everything that emails it.": "Обновите всё, что отправляет письма на этот монитор.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Этот проект автоматически исправляет новые инциденты и оповещения.",
   "This project fixes new incidents automatically, but not new alerts.": "Этот проект автоматически исправляет новые инциденты, но не новые оповещения.",
   "Turn on for alerts": "Включить для оповещений",
-  "Turn on for incidents": "Включить для инцидентов"
+  "Turn on for incidents": "Включить для инцидентов",
+  "Opens the upgrade guide in a new tab.": "Открывает руководство по обновлению в новой вкладке.",
+  "Security Advisories": "Бюллетени безопасности",
+  "Security Advisories Checked At": "Бюллетени безопасности проверены",
+  "Security Advisories Emailed": "Бюллетени безопасности, отправленные по почте",
+  "Security advisory": "Бюллетень безопасности",
+  "Security update": "Обновление безопасности",
+  "Update Check Last Attempted At": "Последняя попытка проверки обновлений",
+  "Update Check Last Failure": "Последняя ошибка проверки обновлений",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Доступна версия {{latest}}. Эта установка работает на версии {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "Опубликованные бюллетени безопасности ({{count}}) затрагивают версию {{current}}, на которой работает эта установка. Выпуска, устраняющего все эти уязвимости, пока нет.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "Опубликованный бюллетень безопасности затрагивает версию {{current}}, на которой работает эта установка. Выпуска, устраняющего эту уязвимость, пока нет.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "Опубликованные бюллетени безопасности ({{count}}) затрагивают версию {{current}}, на которой работает эта установка. Обновитесь до версии {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "Опубликованный бюллетень безопасности затрагивает версию {{current}}, на которой работает эта установка. Обновитесь до версии {{recommended}}."
 }

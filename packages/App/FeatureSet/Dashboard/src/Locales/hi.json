@@ -17967,7 +17967,7 @@
   "Update Credentials": "क्रेडेंशियल अपडेट करें",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "अपडेट उपलब्ध",
   "Update credentials": "क्रेडेंशियल अपडेट करें",
   "Update everything that emails it.": "इस मॉनिटर को ईमेल भेजने वाली हर चीज़ अपडेट करें।",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "यह प्रोजेक्ट नई घटनाओं और अलर्ट को अपने आप ठीक करता है।",
   "This project fixes new incidents automatically, but not new alerts.": "यह प्रोजेक्ट नई घटनाओं को अपने आप ठीक करता है, लेकिन नए अलर्ट को नहीं।",
   "Turn on for alerts": "अलर्ट के लिए चालू करें",
-  "Turn on for incidents": "घटनाओं के लिए चालू करें"
+  "Turn on for incidents": "घटनाओं के लिए चालू करें",
+  "Opens the upgrade guide in a new tab.": "अपग्रेड गाइड नए टैब में खोलता है।",
+  "Security Advisories": "सुरक्षा एडवाइज़री",
+  "Security Advisories Checked At": "सुरक्षा एडवाइज़री की जाँच का समय",
+  "Security Advisories Emailed": "ईमेल की गई सुरक्षा एडवाइज़री",
+  "Security advisory": "सुरक्षा एडवाइज़री",
+  "Security update": "सुरक्षा अपडेट",
+  "Update Check Last Attempted At": "अपडेट जाँच के अंतिम प्रयास का समय",
+  "Update Check Last Failure": "अपडेट जाँच की अंतिम विफलता",
+  "Version {{latest}} is available. This installation runs {{current}}.": "संस्करण {{latest}} उपलब्ध है। यह इंस्टॉलेशन {{current}} चला रहा है।",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} प्रकाशित सुरक्षा एडवाइज़री संस्करण {{current}} को प्रभावित करती हैं, जिसे यह इंस्टॉलेशन चला रहा है। अभी तक कोई रिलीज़ इन सभी को ठीक नहीं करती।",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "एक प्रकाशित सुरक्षा एडवाइज़री संस्करण {{current}} को प्रभावित करती है, जिसे यह इंस्टॉलेशन चला रहा है। अभी तक कोई रिलीज़ इसे ठीक नहीं करती।",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} प्रकाशित सुरक्षा एडवाइज़री संस्करण {{current}} को प्रभावित करती हैं, जिसे यह इंस्टॉलेशन चला रहा है। {{recommended}} पर अपग्रेड करें।",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "एक प्रकाशित सुरक्षा एडवाइज़री संस्करण {{current}} को प्रभावित करती है, जिसे यह इंस्टॉलेशन चला रहा है। {{recommended}} पर अपग्रेड करें।"
 }

@@ -17967,7 +17967,7 @@
   "Update Credentials": "Inloggegevens bijwerken",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "Update beschikbaar",
   "Update credentials": "Inloggegevens bijwerken",
   "Update everything that emails it.": "Werk alles bij wat e-mail naar deze monitor stuurt.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Dit project herstelt nieuwe incidenten en waarschuwingen automatisch.",
   "This project fixes new incidents automatically, but not new alerts.": "Dit project herstelt nieuwe incidenten automatisch, maar geen nieuwe waarschuwingen.",
   "Turn on for alerts": "Inschakelen voor waarschuwingen",
-  "Turn on for incidents": "Inschakelen voor incidenten"
+  "Turn on for incidents": "Inschakelen voor incidenten",
+  "Opens the upgrade guide in a new tab.": "Opent de upgradehandleiding in een nieuw tabblad.",
+  "Security Advisories": "Beveiligingsadviezen",
+  "Security Advisories Checked At": "Beveiligingsadviezen gecontroleerd op",
+  "Security Advisories Emailed": "Per e-mail verstuurde beveiligingsadviezen",
+  "Security advisory": "Beveiligingsadvies",
+  "Security update": "Beveiligingsupdate",
+  "Update Check Last Attempted At": "Updatecontrole laatst geprobeerd op",
+  "Update Check Last Failure": "Laatste fout bij updatecontrole",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Versie {{latest}} is beschikbaar. Deze installatie draait {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} gepubliceerde beveiligingsadviezen treffen versie {{current}}, die deze installatie draait. Er is nog geen versie die ze allemaal verhelpt.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "Een gepubliceerd beveiligingsadvies treft versie {{current}}, die deze installatie draait. Er is nog geen versie die het verhelpt.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} gepubliceerde beveiligingsadviezen treffen versie {{current}}, die deze installatie draait. Upgrade naar {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "Een gepubliceerd beveiligingsadvies treft versie {{current}}, die deze installatie draait. Upgrade naar {{recommended}}."
 }

@@ -17967,7 +17967,7 @@
   "Update Credentials": "Oppdater påloggingsinformasjon",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "Oppdatering tilgjengelig",
   "Update credentials": "Oppdater påloggingsinformasjon",
   "Update everything that emails it.": "Oppdater alt som sender e-post til denne monitoren.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Dette prosjektet retter nye hendelser og varsler automatisk.",
   "This project fixes new incidents automatically, but not new alerts.": "Dette prosjektet retter nye hendelser automatisk, men ikke nye varsler.",
   "Turn on for alerts": "Slå på for varsler",
-  "Turn on for incidents": "Slå på for hendelser"
+  "Turn on for incidents": "Slå på for hendelser",
+  "Opens the upgrade guide in a new tab.": "Åpner oppgraderingsveiledningen i en ny fane.",
+  "Security Advisories": "Sikkerhetsmeldinger",
+  "Security Advisories Checked At": "Sikkerhetsmeldinger kontrollert",
+  "Security Advisories Emailed": "Sikkerhetsmeldinger sendt på e-post",
+  "Security advisory": "Sikkerhetsmelding",
+  "Security update": "Sikkerhetsoppdatering",
+  "Update Check Last Attempted At": "Oppdateringskontroll sist forsøkt",
+  "Update Check Last Failure": "Siste feil i oppdateringskontroll",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Versjon {{latest}} er tilgjengelig. Denne installasjonen kjører {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} publiserte sikkerhetsmeldinger påvirker versjon {{current}}, som denne installasjonen kjører. Ingen utgivelse retter dem alle ennå.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "En publisert sikkerhetsmelding påvirker versjon {{current}}, som denne installasjonen kjører. Ingen utgivelse retter den ennå.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} publiserte sikkerhetsmeldinger påvirker versjon {{current}}, som denne installasjonen kjører. Oppgrader til {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "En publisert sikkerhetsmelding påvirker versjon {{current}}, som denne installasjonen kjører. Oppgrader til {{recommended}}."
 }

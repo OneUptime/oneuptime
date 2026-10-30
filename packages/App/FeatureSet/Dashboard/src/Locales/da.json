@@ -17967,7 +17967,7 @@
   "Update Credentials": "Opdater legitimationsoplysninger",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "Opdatering tilgængelig",
   "Update credentials": "Opdater legitimationsoplysninger",
   "Update everything that emails it.": "Opdater alt, der sender e-mail til denne monitor.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Dette projekt retter nye hændelser og advarsler automatisk.",
   "This project fixes new incidents automatically, but not new alerts.": "Dette projekt retter nye hændelser automatisk, men ikke nye advarsler.",
   "Turn on for alerts": "Slå til for advarsler",
-  "Turn on for incidents": "Slå til for hændelser"
+  "Turn on for incidents": "Slå til for hændelser",
+  "Opens the upgrade guide in a new tab.": "Åbner opgraderingsguiden i en ny fane.",
+  "Security Advisories": "Sikkerhedsmeddelelser",
+  "Security Advisories Checked At": "Sikkerhedsmeddelelser kontrolleret",
+  "Security Advisories Emailed": "Sikkerhedsmeddelelser sendt på e-mail",
+  "Security advisory": "Sikkerhedsmeddelelse",
+  "Security update": "Sikkerhedsopdatering",
+  "Update Check Last Attempted At": "Opdateringstjek sidst forsøgt",
+  "Update Check Last Failure": "Seneste fejl i opdateringstjek",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Version {{latest}} er tilgængelig. Denne installation kører {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} offentliggjorte sikkerhedsmeddelelser berører version {{current}}, som denne installation kører. Ingen udgivelse retter dem alle endnu.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "En offentliggjort sikkerhedsmeddelelse berører version {{current}}, som denne installation kører. Ingen udgivelse retter den endnu.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} offentliggjorte sikkerhedsmeddelelser berører version {{current}}, som denne installation kører. Opgrader til {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "En offentliggjort sikkerhedsmeddelelse berører version {{current}}, som denne installation kører. Opgrader til {{recommended}}."
 }

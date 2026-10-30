@@ -1354,6 +1354,111 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public latestReleaseCheckedAt?: Date = undefined;
 
+  /*
+   * The security advisories OneUptime published on GitHub, as of the last
+   * update check that read them (Types/UpdateCheck/SecurityAdvisory.ts):
+   * a cache, like the latestRelease* columns, written only by the worker
+   * (GlobalConfigService.ROOT_ONLY_UPDATE_CHECK_COLUMNS). Whether one
+   * affects this installation is worked out when it is read, against the
+   * version that runs then, so an upgrade clears the notice at once.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Security Advisories",
+    description:
+      "The security advisories OneUptime published on GitHub, as of the last update check: each one's identifier, summary, severity and the versions it affects and that fix it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public securityAdvisories?: Array<JSONObject> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Security Advisories Checked At",
+    description:
+      "When this installation last read OneUptime's published security advisories from GitHub.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public securityAdvisoriesCheckedAt?: Date = undefined;
+
+  /*
+   * The advisories this installation's owners were emailed about, as each
+   * one's GHSA id and when (ISO). Each advisory is emailed once: the daily
+   * check that finds it again sends nothing.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Security Advisories Emailed",
+    description:
+      "The security advisories this installation's master admins were emailed about, and when. Each advisory is emailed once.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public securityAdvisoriesEmailed?: JSONObject = undefined;
+
+  /*
+   * When the update check last asked GitHub, answered or not. A check that
+   * asked within the last hour does not ask again, so a worker that restarts
+   * in a loop, or GitHub's rate limit, never turns into a stream of requests.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Update Check Last Attempted At",
+    description:
+      "When this installation last asked GitHub for the latest OneUptime release and its security advisories, whether or not GitHub answered.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public updateCheckLastAttemptAt?: Date = undefined;
+
+  // Why that attempt failed (Types/UpdateCheck/UpdateCheckFailure.ts); null when it did not.
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Update Check Last Failure",
+    description:
+      "Why the last update check could not read GitHub: rate-limited, unreachable, timed-out, http-error or malformed-response. Empty when it could.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public updateCheckLastFailure?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

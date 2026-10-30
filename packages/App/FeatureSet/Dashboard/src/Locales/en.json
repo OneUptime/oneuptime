@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "This project fixes new incidents and alerts automatically.",
   "This project fixes new incidents automatically, but not new alerts.": "This project fixes new incidents automatically, but not new alerts.",
   "Turn on for alerts": "Turn on for alerts",
-  "Turn on for incidents": "Turn on for incidents"
+  "Turn on for incidents": "Turn on for incidents",
+  "Opens the upgrade guide in a new tab.": "Opens the upgrade guide in a new tab.",
+  "Security Advisories": "Security Advisories",
+  "Security Advisories Checked At": "Security Advisories Checked At",
+  "Security Advisories Emailed": "Security Advisories Emailed",
+  "Security advisory": "Security advisory",
+  "Security update": "Security update",
+  "Update Check Last Attempted At": "Update Check Last Attempted At",
+  "Update Check Last Failure": "Update Check Last Failure",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Version {{latest}} is available. This installation runs {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "A published security advisory affects version {{current}}, which this installation runs. No release fixes it yet.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "A published security advisory affects version {{current}}, which this installation runs. Upgrade to {{recommended}}."
 }

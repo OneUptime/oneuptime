@@ -1,4 +1,5 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
+import SecurityAdvisoryNotice from "../../Components/SecurityAdvisories/SecurityAdvisoryNotice";
 import ServerSetupChecklist from "../../Components/ServerSetup/ServerSetupChecklist";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -413,9 +414,12 @@ const Users: FunctionComponent = (): ReactElement => {
     >
       <Fragment>
         {/*
-         * The Admin Dashboard's first page: a self-hosted server that still
-         * lacks email, HTTPS or a choice about sign-ups says so here first.
+         * The Admin Dashboard's first page: a self-hosted server whose
+         * version a published security advisory affects says so here before
+         * anything else, and one that still lacks email, HTTPS or a choice
+         * about sign-ups says so next.
          */}
+        <SecurityAdvisoryNotice />
         <ServerSetupChecklist />
         <ModelTable<User>
           modelType={User}

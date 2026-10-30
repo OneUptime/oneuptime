@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Dieses Projekt behebt neue Vorfälle und Warnungen automatisch.",
   "This project fixes new incidents automatically, but not new alerts.": "Dieses Projekt behebt neue Vorfälle automatisch, aber keine neuen Warnungen.",
   "Turn on for alerts": "Für Warnungen einschalten",
-  "Turn on for incidents": "Für Vorfälle einschalten"
+  "Turn on for incidents": "Für Vorfälle einschalten",
+  "Opens the upgrade guide in a new tab.": "Öffnet die Upgrade-Anleitung in einem neuen Tab.",
+  "Security Advisories": "Sicherheitshinweise",
+  "Security Advisories Checked At": "Sicherheitshinweise geprüft am",
+  "Security Advisories Emailed": "Per E-Mail gemeldete Sicherheitshinweise",
+  "Security advisory": "Sicherheitshinweis",
+  "Security update": "Sicherheitsupdate",
+  "Update Check Last Attempted At": "Update-Prüfung zuletzt versucht am",
+  "Update Check Last Failure": "Letzter Fehler der Update-Prüfung",
+  "Version {{latest}} is available. This installation runs {{current}}.": "Version {{latest}} ist verfügbar. Auf dieser Installation läuft Version {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} veröffentlichte Sicherheitshinweise betreffen die Version {{current}}, die auf dieser Installation läuft. Noch gibt es kein Release, das sie alle behebt.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "Ein veröffentlichter Sicherheitshinweis betrifft die Version {{current}}, die auf dieser Installation läuft. Noch gibt es kein Release, das ihn behebt.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} veröffentlichte Sicherheitshinweise betreffen die Version {{current}}, die auf dieser Installation läuft. Aktualisieren Sie auf Version {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "Ein veröffentlichter Sicherheitshinweis betrifft die Version {{current}}, die auf dieser Installation läuft. Aktualisieren Sie auf Version {{recommended}}."
 }

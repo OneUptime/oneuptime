@@ -17967,7 +17967,7 @@
   "Update Credentials": "Mettre à jour les identifiants",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "Mise à jour disponible",
   "Update credentials": "Mettre à jour les identifiants",
   "Update everything that emails it.": "Mettez à jour tout ce qui envoie des e-mails à ce moniteur.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "Ce projet corrige automatiquement les nouveaux incidents et les nouvelles alertes.",
   "This project fixes new incidents automatically, but not new alerts.": "Ce projet corrige automatiquement les nouveaux incidents, mais pas les nouvelles alertes.",
   "Turn on for alerts": "Activer pour les alertes",
-  "Turn on for incidents": "Activer pour les incidents"
+  "Turn on for incidents": "Activer pour les incidents",
+  "Opens the upgrade guide in a new tab.": "Ouvre le guide de mise à niveau dans un nouvel onglet.",
+  "Security Advisories": "Avis de sécurité",
+  "Security Advisories Checked At": "Avis de sécurité vérifiés le",
+  "Security Advisories Emailed": "Avis de sécurité envoyés par e-mail",
+  "Security advisory": "Avis de sécurité",
+  "Security update": "Mise à jour de sécurité",
+  "Update Check Last Attempted At": "Dernière tentative de vérification des mises à jour le",
+  "Update Check Last Failure": "Dernier échec de la vérification des mises à jour",
+  "Version {{latest}} is available. This installation runs {{current}}.": "La version {{latest}} est disponible. Cette installation exécute la version {{current}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "{{count}} avis de sécurité publiés concernent la version {{current}}, qu'exécute cette installation. Aucune version ne les corrige encore tous.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "Un avis de sécurité publié concerne la version {{current}}, qu'exécute cette installation. Aucune version ne le corrige encore.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "{{count}} avis de sécurité publiés concernent la version {{current}}, qu'exécute cette installation. Mettez à niveau vers la version {{recommended}}.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "Un avis de sécurité publié concerne la version {{current}}, qu'exécute cette installation. Mettez à niveau vers la version {{recommended}}."
 }

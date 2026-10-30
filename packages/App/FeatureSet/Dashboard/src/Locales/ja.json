@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "このプロジェクトは、新しいインシデントとアラートを自動的に修正します。",
   "This project fixes new incidents automatically, but not new alerts.": "このプロジェクトは、新しいインシデントを自動的に修正しますが、新しいアラートは修正しません。",
   "Turn on for alerts": "アラート用にオンにする",
-  "Turn on for incidents": "インシデント用にオンにする"
+  "Turn on for incidents": "インシデント用にオンにする",
+  "Opens the upgrade guide in a new tab.": "アップグレードガイドを新しいタブで開きます。",
+  "Security Advisories": "セキュリティアドバイザリ",
+  "Security Advisories Checked At": "セキュリティアドバイザリの確認日時",
+  "Security Advisories Emailed": "メール送信済みのセキュリティアドバイザリ",
+  "Security advisory": "セキュリティアドバイザリ",
+  "Security update": "セキュリティアップデート",
+  "Update Check Last Attempted At": "アップデート確認の最終試行日時",
+  "Update Check Last Failure": "アップデート確認の最終エラー",
+  "Version {{latest}} is available. This installation runs {{current}}.": "バージョン {{latest}} が公開されています。このインストールで実行中のバージョンは {{current}} です。",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "公開されている {{count}} 件のセキュリティアドバイザリが、このインストールで実行中のバージョン {{current}} に影響します。すべてを修正するリリースはまだありません。",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "公開されているセキュリティアドバイザリが、このインストールで実行中のバージョン {{current}} に影響します。これを修正するリリースはまだありません。",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "公開されている {{count}} 件のセキュリティアドバイザリが、このインストールで実行中のバージョン {{current}} に影響します。{{recommended}} にアップグレードしてください。",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "公開されているセキュリティアドバイザリが、このインストールで実行中のバージョン {{current}} に影響します。{{recommended}} にアップグレードしてください。"
 }

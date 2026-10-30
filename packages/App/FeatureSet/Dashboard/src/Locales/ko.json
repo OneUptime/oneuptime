@@ -17967,7 +17967,7 @@
   "Update Credentials": "자격 증명 업데이트",
   "Update Master Password": "Update Master Password",
   "Update Profile Picture": "Update Profile Picture",
-  "Update available": "Update available",
+  "Update available": "업데이트 가능",
   "Update credentials": "자격 증명 업데이트",
   "Update everything that emails it.": "이 모니터로 이메일을 보내는 모든 곳을 업데이트하세요.",
   "Update how this resource shows up on the status page.": "Update how this resource shows up on the status page.",
@@ -37233,5 +37233,18 @@
   "This project fixes new incidents and alerts automatically.": "이 프로젝트는 새 인시던트와 경고를 자동으로 수정합니다.",
   "This project fixes new incidents automatically, but not new alerts.": "이 프로젝트는 새 인시던트는 자동으로 수정하지만 새 경고는 수정하지 않습니다.",
   "Turn on for alerts": "경고에 대해 켜기",
-  "Turn on for incidents": "인시던트에 대해 켜기"
+  "Turn on for incidents": "인시던트에 대해 켜기",
+  "Opens the upgrade guide in a new tab.": "새 탭에서 업그레이드 가이드를 엽니다.",
+  "Security Advisories": "보안 권고",
+  "Security Advisories Checked At": "보안 권고 확인 시각",
+  "Security Advisories Emailed": "이메일로 보낸 보안 권고",
+  "Security advisory": "보안 권고",
+  "Security update": "보안 업데이트",
+  "Update Check Last Attempted At": "업데이트 확인 마지막 시도 시각",
+  "Update Check Last Failure": "업데이트 확인 마지막 오류",
+  "Version {{latest}} is available. This installation runs {{current}}.": "{{latest}} 버전을 사용할 수 있습니다. 이 설치는 {{current}} 버전을 실행 중입니다.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet.": "게시된 보안 권고 {{count}}건이 이 설치에서 실행 중인 {{current}} 버전에 영향을 줍니다. 아직 이를 모두 수정하는 릴리스가 없습니다.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. No release fixes them all yet._one": "게시된 보안 권고가 이 설치에서 실행 중인 {{current}} 버전에 영향을 줍니다. 아직 이를 수정하는 릴리스가 없습니다.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}.": "게시된 보안 권고 {{count}}건이 이 설치에서 실행 중인 {{current}} 버전에 영향을 줍니다. {{recommended}} 버전으로 업그레이드하세요.",
+  "{{count}} published security advisories affect version {{current}}, which this installation runs. Upgrade to {{recommended}}._one": "게시된 보안 권고가 이 설치에서 실행 중인 {{current}} 버전에 영향을 줍니다. {{recommended}} 버전으로 업그레이드하세요."
 }
