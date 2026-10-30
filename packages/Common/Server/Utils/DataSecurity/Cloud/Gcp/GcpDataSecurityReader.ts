@@ -340,6 +340,30 @@ function lower(value: string): string {
   return value.toLowerCase();
 }
 
+/*
+ * Whether an address is a Google service account's: its domain is
+ * gserviceaccount.com or one under it (project.iam.gserviceaccount.com,
+ * appspot.gserviceaccount.com, developer.gserviceaccount.com) - never a
+ * domain that merely ends in the same letters, such as
+ * evilgserviceaccount.com.
+ */
+const SERVICE_ACCOUNT_DOMAIN: string = "gserviceaccount.com";
+
+export function isServiceAccountEmail(email: string): boolean {
+  const at: number = email.lastIndexOf("@");
+
+  if (at < 1) {
+    return false;
+  }
+
+  const domain: string = lower(email.slice(at + 1));
+
+  return (
+    domain === SERVICE_ACCOUNT_DOMAIN ||
+    domain.endsWith(`.${SERVICE_ACCOUNT_DOMAIN}`)
+  );
+}
+
 function flag(value: unknown): boolean | null {
   if (typeof value === "boolean") {
     return value;
@@ -955,7 +979,7 @@ function datasetAccessMember(
 
   if (user) {
     return readMember(
-      lower(user).endsWith("gserviceaccount.com")
+      isServiceAccountEmail(user)
         ? `serviceAccount:${user}`
         : `user:${user}`,
     );

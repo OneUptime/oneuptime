@@ -19,6 +19,7 @@ import {
   GCP_DATA_STORE_POLICY_ASSET_TYPES,
   GCS_READ_SCOPE,
   createGcsObjectStoreReader,
+  isServiceAccountEmail,
   readBigQuerySample,
   readGcpDataSecurity,
 } from "../../../../../Server/Utils/DataSecurity/Cloud/Gcp/GcpDataSecurityReader";
@@ -855,6 +856,34 @@ describe("BigQuery datasets", () => {
     expect(raw.posture.publicRead).toBe(true);
     expect(raw.posture.customerManagedKey).toBe(false);
     expect(raw.posture.replicationRegions).toEqual([]);
+  });
+});
+
+describe("service account addresses", () => {
+  test("an address on gserviceaccount.com or a domain under it is a service account's, in any case", () => {
+    expect(
+      isServiceAccountEmail("etl@acme-prod.iam.gserviceaccount.com"),
+    ).toBe(true);
+    expect(isServiceAccountEmail("acme-prod@appspot.gserviceaccount.com")).toBe(
+      true,
+    );
+    expect(
+      isServiceAccountEmail("123-compute@developer.gserviceaccount.com"),
+    ).toBe(true);
+    expect(isServiceAccountEmail("robot@gserviceaccount.com")).toBe(true);
+    expect(isServiceAccountEmail("ETL@ACME.IAM.GSERVICEACCOUNT.COM")).toBe(true);
+  });
+
+  test("a domain that only ends in the same letters, or an address with no domain, is a person's", () => {
+    expect(isServiceAccountEmail("mallory@evilgserviceaccount.com")).toBe(
+      false,
+    );
+    expect(
+      isServiceAccountEmail("mallory@gserviceaccount.com.example.org"),
+    ).toBe(false);
+    expect(isServiceAccountEmail("gserviceaccount.com")).toBe(false);
+    expect(isServiceAccountEmail("@gserviceaccount.com")).toBe(false);
+    expect(isServiceAccountEmail("ana@acme.com")).toBe(false);
   });
 });
 

@@ -106,8 +106,9 @@ describe("checkCustomDataType", () => {
     }
   });
 
-  test("accepts a pattern it can run, even one that backtracking engines cannot", () => {
-    for (const pattern of ["EMP-[0-9]{6}", "(?<=id:)[0-9]{4}", "(a+)+b"]) {
+  // a*a*a*b takes a backtracking engine cubic time on a long run of a's; the scanner's engine is linear.
+  test("accepts a pattern it can run, even one that backtracking engines are slow on", () => {
+    for (const pattern of ["EMP-[0-9]{6}", "(?<=id:)[0-9]{4}", "a*a*a*b"]) {
       expect([
         pattern,
         checkCustomDataType({ dataTypeId: "custom:a", pattern }),

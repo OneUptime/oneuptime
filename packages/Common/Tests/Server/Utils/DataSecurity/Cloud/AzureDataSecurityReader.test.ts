@@ -68,6 +68,15 @@ const NOW: Date = new Date("2026-10-27T12:00:00Z");
 const ARM_TOKEN: string = "arm-access-token";
 const STORAGE_TOKEN: string = "storage-access-token";
 
+// The host a token request's scope names ("https://storage.azure.com/.default"), or "" for none.
+function hostOfScope(scope: string): string {
+  try {
+    return new URL(scope).host;
+  } catch {
+    return "";
+  }
+}
+
 const RG: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data`;
 const PUBLIC_ACCOUNT: string = `${RG}/providers/Microsoft.Storage/storageAccounts/acmepublic`;
 const LOCKED_ACCOUNT: string = `${RG}/providers/Microsoft.Storage/storageAccounts/acmelocked`;
@@ -487,9 +496,10 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeProviderApi {
         );
 
         return json({
-          access_token: scope.startsWith("https://storage.azure.com")
-            ? STORAGE_TOKEN
-            : ARM_TOKEN,
+          access_token:
+            hostOfScope(scope) === "storage.azure.com"
+              ? STORAGE_TOKEN
+              : ARM_TOKEN,
           expires_in: 3599,
         });
       },
@@ -1382,7 +1392,7 @@ describe("the Blob service's data plane", () => {
     host: string = BLOB_HOST,
   ): FakeProviderApi {
     return createFakeAzure({
-      cloud: host.endsWith("usgovcloudapi.net") ? "usgov" : "public",
+      cloud: host.endsWith(".usgovcloudapi.net") ? "usgov" : "public",
       blobRoutes: [{ host, path: /^\//, respond }],
     });
   }
