@@ -113,7 +113,7 @@ På hændelsens kort **Video Call** læser **Hent fra Zoom**, **Hent fra Google 
 
 ### OneUptime AI læser den
 
-Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, delt op i **Bekræftet i opkaldet** og **Hypoteser**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål. Det, OneUptime AI læste, slås også op i hændelsens feed og derfra i hændelsens Slack- og Microsoft Teams-kanaler.
+Inden for et minut eller to viser hændelsens kort **OneUptime AI** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, delt op i **Bekræftet i opkaldet** og **Hypoteser**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål. Det, OneUptime AI læste, slås også op i hændelsens feed og derfra i hændelsens Slack- og Microsoft Teams-kanaler.
 
 ### Brug den, eller afvis den
 

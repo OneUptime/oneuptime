@@ -106,7 +106,7 @@ Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM
 | Ett undantags sida **AI Assistance** | **Åtgärda med AI** | Åtgärdar buggen bakom undantaget. |
 | Ett undantags sida **AI Assistance** | **Generate Regression Test** | Lägger till ett test som återskapar undantaget och fallerar tills buggen är åtgärdad. |
 | Ett undantags sida **AI Assistance** | **Förbättra felhantering** | För ett förväntat fel, som ogiltig indata: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
-| En incidents eller ett larms kort **AI Investigation** | **Open Fix PR from this analysis** | Åtgärdar grundorsaken som utredningen publicerade (se [Automatiska kodåtgärder från utredningar](#automatiska-kodåtgärder-från-utredningar)). |
+| Steget **Åtgärd** på en incidents eller ett larms kort **OneUptime AI** | **Öppna pull request med rättning** | Åtgärdar grundorsaken som utredningen publicerade (se [Automatiska kodåtgärder från utredningar](#automatiska-kodåtgärder-från-utredningar)). |
 | Ett spår som är värt att åtgärda | **Åtgärda prestandan med AI** | Åtgärdar det långsamma mönster som knappen nämner, som en N+1-fråga eller anrop som kunde köras parallellt. |
 | En tjänsts sida **Loggar** | **Förbättra loggning** | Gör tjänstens loggar strukturerade, med rätt allvarlighetsgrad och kopplade till dess spår, utan att ändra beteendet. |
 | En tjänsts sida **Spår** | **Förbättra spårning** | Lägger till spans och attribut där tjänstens tracing saknas, utan att ändra beteendet. |
@@ -135,7 +135,7 @@ OneUptime vet vad din kod gör i produktion, så en åtgärd behöver inte utgå
 | --- | --- |
 | **Åtgärda med AI** på ett undantag | Hur ofta det kastas nu och sedan vilken release, loggarna och spåret för en förekomst. |
 | **Åtgärda prestandan med AI** | Hur belastad och hur långsam operationen är över alla dess spår, inte bara det analyserade. Den ändrar inget när operationen inte längre är långsam. |
-| **Open Fix PR from this analysis**, och åtgärder som öppnas automatiskt från utredningar | Driftsättningarna före incidenten, dess fel, loggar och långsamma operationer, och om orsaken har slagit till tidigare. |
+| **Öppna pull request med rättning**, och åtgärder som öppnas automatiskt från utredningar | Driftsättningarna före incidenten, dess fel, loggar och långsamma operationer, och om orsaken har slagit till tidigare. |
 | `@oneuptime review` från GitHub | Vad produktionen säger om den ändrade koden (se [Granskningar med produktionskontext](/docs/ai/github-app#granskningar-med-produktionskontext)). |
 
 Pull requestens beskrivning säger vilka frågor agenten ställde och vad de visade. Andra uppgifter, som regressionstester och förbättringar av loggning eller spårning, ställer inga frågor mot produktionen.
@@ -305,7 +305,7 @@ Alla sätt att köra containern fungerar (Docker Compose, Kubernetes och så vid
 
 ## Automatiska kodåtgärder från utredningar
 
-När en [AI-utredning](/docs/ai/ai-sre) publicerar en grundorsaksanalys på en incident eller ett larm, och dess noggranna klassificering rekommenderar en ändring i koden, erbjuder utredningskortet **Open Fix PR from this analysis**: en åtgärdsuppgift vars hela kontext är den publicerade analysen. Knappen är dold när åtgärden är driftmässig, bara gäller infrastruktur, är extern, är ett förväntat nekande, ett användarfel eller utan slutsats. Lämpliga åtgärder sker utan klicket så länge **Åtgärda nya incidenter automatiskt** är på på **Incidenter → AI → Inställningar** (och **Åtgärda nya larm automatiskt** på **Larm → AI → Inställningar**). Åtgärdandet börjar avslaget, även för nya projekt. Utan AI-regler öppnas varje lämplig korrigering; med regler bara en för det som en regel matchar, när regeln har **Pull requests med korrigeringar** påslaget (det har en ny regel), i de kodrepositorier som den nämner.
+När en [AI-utredning](/docs/ai/ai-sre) publicerar en grundorsaksanalys på en incident eller ett larm, och dess noggranna klassificering rekommenderar en ändring i koden, erbjuder steget **Åtgärd** på kortet **OneUptime AI** knappen **Öppna pull request med rättning**: en åtgärdsuppgift vars hela kontext är den publicerade analysen. Den erbjuds inte när åtgärden är driftmässig, bara gäller infrastruktur, är extern, är ett förväntat nekande, ett användarfel eller utan slutsats. Lämpliga åtgärder sker utan klicket så länge **Åtgärda nya incidenter automatiskt** är på på **Incidenter → AI → Inställningar** (och **Åtgärda nya larm automatiskt** på **Larm → AI → Inställningar**). Åtgärdandet börjar avslaget, även för nya projekt. Utan AI-regler öppnas varje lämplig korrigering; med regler bara en för det som en regel matchar, när regeln har **Pull requests med korrigeringar** påslaget (det har en ny regel), i de kodrepositorier som den nämner.
 
 Medan åtgärdandet är på ställer en utredning som slutar med en säker, belagd grundorsak som en kodändring kan åtgärda samma åtgärdsuppgift i kö som knappen skapar. Beslutet är en avgränsad klassificering som servern kontrollerar, aldrig ett mönster som matchas mot analysens text: bara en positiv bedömning om en kodåtgärd öppnar en pull request. Saknade belägg, en åtgärd utanför koden och en misslyckad klassificering slutar alla med att inget händer.
 

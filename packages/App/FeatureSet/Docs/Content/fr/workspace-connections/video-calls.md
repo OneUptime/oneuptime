@@ -113,7 +113,7 @@ Sur la carte **Appel vidéo** de l'incident, **Récupérer depuis Zoom**, **Réc
 
 ### L'IA de OneUptime la lit
 
-En une ou deux minutes, la carte **Investigation IA** de l'incident affiche la **Cause racine suggérée**, marquée **Non confirmée**, avec les lignes de la transcription sur lesquelles elle repose, citées avec leur heure et leur intervenant. En dessous, repliée, se trouve la suite de ce que l'appel a dit : les constats, répartis entre **Confirmé pendant l'appel** et **Hypothèses**, puis ce qui a été essayé, les décisions, les suivis et les questions ouvertes. Ce que l'IA de OneUptime y a lu est aussi publié dans le fil de l'incident, et de là dans les canaux Slack et Microsoft Teams de l'incident.
+En une ou deux minutes, la carte **OneUptime AI** de l'incident affiche la **Cause racine suggérée**, marquée **Non confirmée**, avec les lignes de la transcription sur lesquelles elle repose, citées avec leur heure et leur intervenant. En dessous, repliée, se trouve la suite de ce que l'appel a dit : les constats, répartis entre **Confirmé pendant l'appel** et **Hypothèses**, puis ce qui a été essayé, les décisions, les suivis et les questions ouvertes. Ce que l'IA de OneUptime y a lu est aussi publié dans le fil de l'incident, et de là dans les canaux Slack et Microsoft Teams de l'incident.
 
 ### L'utiliser, ou la masquer
 

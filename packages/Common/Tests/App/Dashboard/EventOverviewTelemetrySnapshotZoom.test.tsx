@@ -273,12 +273,6 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard",
-  () => {
-    return stubModule("Remediation");
-  },
-);
-jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentMemberRoleAssignment",
   () => {
     return stubModule("Roles");

@@ -113,7 +113,7 @@ En la tarjeta **Videollamada** del incidente, **Obtener de Zoom**, **Obtener de 
 
 ### La IA de OneUptime la lee
 
-En uno o dos minutos, la tarjeta **Investigación de IA** del incidente muestra la **Causa raíz sugerida**, marcada como **Sin confirmar**, con las líneas de la transcripción en las que se basa, citadas con su hora y quién habló. Debajo, plegado, está el resto de lo que dijo la llamada: los hallazgos, separados en **Confirmado en la llamada** e **Hipótesis**, y luego lo que se intentó, las decisiones, los seguimientos y las preguntas abiertas. Lo que leyó la IA de OneUptime también se publica en el feed del incidente, y desde allí en los canales de Slack y Microsoft Teams del incidente.
+En uno o dos minutos, la tarjeta **OneUptime AI** del incidente muestra la **Causa raíz sugerida**, marcada como **Sin confirmar**, con las líneas de la transcripción en las que se basa, citadas con su hora y quién habló. Debajo, plegado, está el resto de lo que dijo la llamada: los hallazgos, separados en **Confirmado en la llamada** e **Hipótesis**, y luego lo que se intentó, las decisiones, los seguimientos y las preguntas abiertas. Lo que leyó la IA de OneUptime también se publica en el feed del incidente, y desde allí en los canales de Slack y Microsoft Teams del incidente.
 
 ### Úsala o descártala
 

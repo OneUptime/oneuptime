@@ -26,9 +26,9 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
   getActionErrorTitle,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import CloudDryRunNote, {
   CLOUD_DRY_RUN_NOTE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/CloudDryRunNote";
@@ -136,7 +136,9 @@ async function renderCard(
   row: AutoRemediationSuggestion,
 ): Promise<HTMLElement> {
   serve(row);
-  render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+  render(
+    <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
+  );
   const command: HTMLElement = await screen.findByText(COMMAND);
   const commandRow: HTMLElement | null = command.closest("li");
 
@@ -210,6 +212,36 @@ describe("CloudDryRunNote", () => {
       "--count 4 is above 3, the most the ECS service may run.",
     );
   });
+
+  /*
+   * The note sits on the AI card's Remediation step, and the card is the
+   * only frame (block 43): words and a tinted mark, never a box.
+   */
+  const BOX_CLASS_NAME: RegExp =
+    /(^|\s)(border(-\d+)?|rounded(-\w+)?|bg-[a-z]+-\d+|shadow(-\w+)?)(\s|$)/;
+
+  test.each<[AiRemediationDryRunStatus]>([
+    [AiRemediationDryRunStatus.WouldRun],
+    [AiRemediationDryRunStatus.WouldBeRefused],
+    [AiRemediationDryRunStatus.Failed],
+  ])(
+    "a %s note draws no box of its own",
+    (status: AiRemediationDryRunStatus) => {
+      const note: HTMLElement = renderNote({
+        status,
+        checkedAt: NOW.toISOString(),
+        summary: "What the agent said.",
+      });
+
+      for (const element of [note, ...Array.from(note.querySelectorAll("*"))]) {
+        const className: string = element.getAttribute("class") || "";
+        expect({
+          className,
+          box: BOX_CLASS_NAME.test(className),
+        }).toEqual({ className, box: false });
+      }
+    },
+  );
 
   test("could not finish: says so, with why", () => {
     const note: HTMLElement = renderNote({
@@ -453,7 +485,12 @@ describe("the Remediation card", () => {
         }),
       ]),
     );
-    render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
     await screen.findByText("docker restart web");
 
     expect(

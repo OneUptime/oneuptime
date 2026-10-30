@@ -21,14 +21,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The AI card as one line, inside the incident and alert pages' one AI card
  * (InvestigationPanel): it folds when OneUptime AI did not investigate the
- * record for a reason the project chose AND the page's Remediation card
+ * record for a reason the project chose AND the card's own Remediation step
  * says fixing did nothing for one either; it stays whole whenever either
- * part did something, or could not for a reason that needs someone to
+ * step did something, or could not for a reason that needs someone to
  * look. Folded, the line is the card's header, the conversation it closes
  * with is folded into the line's Ask OneUptime AI while it is empty, and
  * the project's switches are read so the line says what is on now - read
  * while the card may still fold, and folded only once they are, so the
  * line is drawn once, in its final words.
+ *
+ * The Remediation step is a stand-in (RemediationStepStub) that says what a
+ * test sets, and records how the card told it it is drawn.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -62,14 +65,24 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep",
+  () => {
+    return jest.requireActual("./RemediationStepStub");
+  },
+);
+
 import InvestigationPanel, {
   InvestigationConversationSlot,
   InvestigationSubjectType,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
+import { RemediationFoldState } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummaryData";
 import {
-  AiCardFold,
-  RemediationFoldState,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummaryData";
+  lastAiCardFold,
+  lastRemediationStepProps,
+  resetRemediationStepStub,
+  setRemediationStepReads,
+} from "./RemediationStepStub";
 import { AI_INVESTIGATION_PANEL_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -222,34 +235,32 @@ async function advance(milliseconds: number): Promise<void> {
 }
 
 interface Rendered {
-  onFold: MockFunction;
   rerender: (data: {
     remediationState?: RemediationFoldState | undefined;
     subjectId?: ObjectID;
   }) => void;
 }
 
+/*
+ * The card, with its Remediation step saying what fixing did for the
+ * record (remediationState) - or, left out, not having read it yet.
+ */
 function renderPanel(data: {
   subjectType?: InvestigationSubjectType;
   remediationState?: RemediationFoldState | undefined;
   withConversation?: boolean;
 }): Rendered {
-  const onFold: MockFunction = getJestMockFunction();
   const subjectType: InvestigationSubjectType = data.subjectType || "incident";
 
   const element: (props: {
-    remediationState?: RemediationFoldState | undefined;
     subjectId: ObjectID;
   }) => React.ReactElement = (props: {
-    remediationState?: RemediationFoldState | undefined;
     subjectId: ObjectID;
   }): React.ReactElement => {
     return (
       <InvestigationPanel
         subjectType={subjectType}
         subjectId={props.subjectId}
-        remediationState={props.remediationState}
-        onCardFoldChange={onFold as unknown as (fold: AiCardFold) => void}
         renderConversation={
           data.withConversation === false
             ? undefined
@@ -261,35 +272,24 @@ function renderPanel(data: {
     );
   };
 
+  setRemediationStepReads(data.remediationState || null);
   const view: ReturnType<typeof render> = render(
-    element({
-      remediationState: data.remediationState,
-      subjectId: SUBJECT_ID,
-    }),
+    element({ subjectId: SUBJECT_ID }),
   );
 
   return {
-    onFold,
     rerender: (next: {
       remediationState?: RemediationFoldState | undefined;
       subjectId?: ObjectID;
     }): void => {
-      view.rerender(
-        element({
-          remediationState: next.remediationState,
-          subjectId: next.subjectId || SUBJECT_ID,
-        }),
-      );
+      setRemediationStepReads(next.remediationState || null);
+      view.rerender(element({ subjectId: next.subjectId || SUBJECT_ID }));
     },
   };
 }
 
-function lastFold(onFold: MockFunction): AiCardFold {
-  return onFold.mock.calls[onFold.mock.calls.length - 1]![0] as AiCardFold;
-}
-
 function region(): HTMLElement {
-  return screen.getByRole("region", { name: "AI Investigation" });
+  return screen.getByRole("region", { name: "OneUptime AI" });
 }
 
 function isAiOn(value: boolean): void {
@@ -306,6 +306,7 @@ beforeEach(() => {
   getItemMock.mockReset();
   getItemMock.mockResolvedValue(null);
   slots.length = 0;
+  resetRemediationStepStub();
   jest
     .spyOn(PermissionUtil, "getAllPermissions")
     .mockReturnValue([Permission.ProjectOwner]);
@@ -361,7 +362,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         reason: string,
       ) => {
         postMock.mockResolvedValue(noRun(code));
-        const { onFold } = renderPanel({
+        renderPanel({
           subjectType,
           remediationState: FIXING_OFF,
         });
@@ -385,7 +386,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
 
         // No header of its own: no title, no pill, no description.
         expect(
-          screen.queryByRole("heading", { name: "AI Investigation" }),
+          screen.queryByRole("heading", { name: "OneUptime AI" }),
         ).toBeNull();
         expect(screen.queryByLabelText("Investigation status")).toBeNull();
         expect(screen.queryByTestId("card-header")).toBeNull();
@@ -394,25 +395,25 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         expect(screen.queryByTestId("investigation-not-started")).toBeNull();
         expect(screen.queryByText(`Server title for ${code}`)).toBeNull();
 
-        expect(lastFold(onFold)).toBe("folded");
+        expect(lastAiCardFold()).toBe("folded");
       },
     );
 
     test("nothing recorded about fixing folds it too", async () => {
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-      const { onFold } = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: { kind: "off", reason: "not_recorded" },
       });
       await flush();
 
       expect(screen.getByTestId("ai-off-summary")).toBeVisible();
-      expect(lastFold(onFold)).toBe("folded");
+      expect(lastAiCardFold()).toBe("folded");
     });
 
-    test("while the Remediation card is still reading, the card checks rather than draw one and then the other", async () => {
+    test("while the Remediation step is still reading, the card checks rather than draw one and then the other", async () => {
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-      const { onFold, rerender } = renderPanel({
+      const { rerender } = renderPanel({
         subjectType,
         remediationState: { kind: "loading" },
       });
@@ -421,7 +422,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(region()).toHaveAttribute("aria-busy", "true");
       expect(screen.getByText("Checking investigation status…")).toBeVisible();
       expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-      expect(lastFold(onFold)).toBe("checking");
+      expect(lastAiCardFold()).toBe("checking");
       // The conversation waits for the card to know, as it does while checking.
       expect(lastSlot().investigationStage).toBe("checking");
 
@@ -429,12 +430,12 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       await flush();
 
       expect(screen.getByTestId("ai-off-summary")).toBeVisible();
-      expect(lastFold(onFold)).toBe("folded");
+      expect(lastAiCardFold()).toBe("folded");
     });
 
     test("fixing did something: the card stays whole, as it was", async () => {
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-      const { onFold } = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: { kind: "on" },
       });
@@ -442,7 +443,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
 
       expect(screen.queryByTestId("ai-off-summary")).toBeNull();
       expect(
-        screen.getByRole("heading", { level: 2, name: "AI Investigation" }),
+        screen.getByRole("heading", { level: 2, name: "OneUptime AI" }),
       ).toBeVisible();
       expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
         "Not investigated",
@@ -450,20 +451,44 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(
         screen.getByText("Server title for automatic_investigation_disabled"),
       ).toBeVisible();
-      expect(lastFold(onFold)).toBe("full");
+      expect(lastAiCardFold()).toBe("full");
       expect(lastSlot().fold).toBeUndefined();
     });
 
-    test("a page that does not say what fixing did never folds the card", async () => {
+    /*
+     * The step is the card's own now, and says what fixing did for every
+     * record: until it has, the card never folds on a guess - it checks.
+     */
+    test("until its Remediation step says what fixing did, the card never folds", async () => {
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-      const { onFold } = renderPanel({ subjectType });
+      renderPanel({ subjectType });
       await flush();
+      await advance(30_000);
 
       expect(screen.queryByTestId("ai-off-summary")).toBeNull();
+      expect(region()).toHaveAttribute("aria-busy", "true");
+      expect(lastAiCardFold()).toBe("checking");
+    });
+
+    test("the step is told the record and how far the investigation got", async () => {
+      postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
+      renderPanel({ subjectType, remediationState: { kind: "on" } });
+      await flush();
+
+      const props: ReturnType<typeof lastRemediationStepProps> =
+        lastRemediationStepProps();
       expect(
-        screen.getByRole("heading", { level: 2, name: "AI Investigation" }),
-      ).toBeVisible();
-      expect(lastFold(onFold)).toBe("full");
+        (subjectType === "incident"
+          ? props.incidentId
+          : props.alertId
+        )?.toString(),
+      ).toBe(SUBJECT_ID.toString());
+      expect(
+        subjectType === "incident" ? props.alertId : props.incidentId,
+      ).toBeUndefined();
+      expect(props.investigationStage).toBe("none");
+      expect(props.codeFix?.isRecommended).toBe(false);
+      expect(screen.getByTestId("remediation-step")).toBeVisible();
     });
 
     test.each<[InvestigationNotStartedCode]>([
@@ -480,7 +505,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       "%s keeps the card whole, fixing off or not",
       async (code: InvestigationNotStartedCode) => {
         postMock.mockResolvedValue(noRun(code));
-        const { onFold } = renderPanel({
+        renderPanel({
           subjectType,
           remediationState: FIXING_OFF,
         });
@@ -488,13 +513,13 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
 
         expect(screen.queryByTestId("ai-off-summary")).toBeNull();
         expect(screen.getByText(`Server title for ${code}`)).toBeVisible();
-        expect(lastFold(onFold)).toBe("full");
+        expect(lastAiCardFold()).toBe("full");
       },
     );
 
     test("a run, or an AI rule's wait, keeps the card whole", async () => {
       postMock.mockResolvedValue(queuedRun());
-      const queued: Rendered = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: FIXING_OFF,
       });
@@ -504,12 +529,14 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
         "Queued",
       );
-      expect(lastFold(queued.onFold)).toBe("full");
+      expect(lastAiCardFold()).toBe("full");
+      // A card that cannot fold never reads the switches.
+      expect(getItemMock).not.toHaveBeenCalled();
 
       cleanup();
       postMock.mockReset();
       postMock.mockResolvedValue(waiting());
-      const waited: Rendered = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: FIXING_OFF,
       });
@@ -519,7 +546,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
         "Waiting",
       );
-      expect(lastFold(waited.onFold)).toBe("full");
+      expect(lastAiCardFold()).toBe("full");
     });
 
     test("opens to what can be done, and closes again", async () => {
@@ -616,7 +643,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         });
       });
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-      const { onFold } = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: FIXING_OFF,
       });
@@ -626,7 +653,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(getItemMock).toHaveBeenCalledTimes(1);
       expect(region()).toHaveAttribute("aria-busy", "true");
       expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-      expect(lastFold(onFold)).toBe("checking");
+      expect(lastAiCardFold()).toBe("checking");
 
       answer(
         Object.assign(new Project(), {
@@ -647,12 +674,12 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(screen.getByTestId("ai-off-summary-reason")).toHaveTextContent(
         `“Investigate new ${noun}s” was off when this ${noun} was created.`,
       );
-      expect(lastFold(onFold)).toBe("folded");
+      expect(lastAiCardFold()).toBe("folded");
       // The card never drew the present tense over steps that are done.
       expect(screen.queryByText("AI investigation is off")).toBeNull();
     });
 
-    test("reads the switches beside the Remediation card's own read", async () => {
+    test("reads the switches beside the Remediation step's own read", async () => {
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
       renderPanel({ subjectType, remediationState: { kind: "loading" } });
       await flush();
@@ -661,13 +688,26 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(getItemMock).toHaveBeenCalledTimes(1);
     });
 
-    test("a whole card never reads them", async () => {
+    /*
+     * They are read beside the step's own first read, so the line is never
+     * held up by them; once the step says fixing did something, the card
+     * stays whole and never reads them again.
+     */
+    test("a card its step keeps whole reads them no more than once, and draws no line", async () => {
       postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
       renderPanel({ subjectType, remediationState: { kind: "on" } });
       await flush();
       await flush();
 
-      expect(getItemMock).not.toHaveBeenCalled();
+      expect(getItemMock.mock.calls.length).toBeLessThanOrEqual(1);
+      const reads: number = getItemMock.mock.calls.length;
+
+      await advance(30_000);
+      await advance(30_000);
+
+      expect(getItemMock).toHaveBeenCalledTimes(reads);
+      expect(screen.queryByTestId("ai-off-summary")).toBeNull();
+      expect(lastAiCardFold()).toBe("full");
     });
 
     test("switches that cannot be read leave the steps worded as ones to turn on", async () => {
@@ -762,10 +802,10 @@ describe("the folded card follows what changes", () => {
     postMock
       .mockResolvedValueOnce(noRun("automatic_investigation_disabled"))
       .mockResolvedValue(queuedRun());
-    const { onFold } = renderPanel({ remediationState: FIXING_OFF });
+    renderPanel({ remediationState: FIXING_OFF });
     await flush();
 
-    expect(lastFold(onFold)).toBe("folded");
+    expect(lastAiCardFold()).toBe("folded");
 
     fireEvent.click(screen.getByRole("button", { name: "Ask OneUptime AI" }));
     fireEvent.change(screen.getByLabelText("Stub question"), {
@@ -779,31 +819,31 @@ describe("the folded card follows what changes", () => {
     expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
       "Queued",
     );
-    expect(lastFold(onFold)).toBe("full");
+    expect(lastAiCardFold()).toBe("full");
     // The same conversation, in the same place: its text survived.
     expect(screen.getByLabelText("Stub question")).toHaveValue("What changed?");
   });
 
   test("fixing that does something later unfolds it", async () => {
     postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-    const { onFold, rerender } = renderPanel({ remediationState: FIXING_OFF });
+    const { rerender } = renderPanel({ remediationState: FIXING_OFF });
     await flush();
 
-    expect(lastFold(onFold)).toBe("folded");
+    expect(lastAiCardFold()).toBe("folded");
 
     rerender({ remediationState: { kind: "on" } });
     await flush();
 
     expect(screen.queryByTestId("ai-off-summary")).toBeNull();
     expect(
-      screen.getByRole("heading", { level: 2, name: "AI Investigation" }),
+      screen.getByRole("heading", { level: 2, name: "OneUptime AI" }),
     ).toBeVisible();
-    expect(lastFold(onFold)).toBe("full");
+    expect(lastAiCardFold()).toBe("full");
   });
 
   test("the next record starts folded shut, with nothing asked", async () => {
     postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
-    const { onFold, rerender } = renderPanel({ remediationState: FIXING_OFF });
+    const { rerender } = renderPanel({ remediationState: FIXING_OFF });
     await flush();
 
     fireEvent.click(screen.getByRole("button", { name: "What you can do" }));
@@ -822,7 +862,7 @@ describe("the folded card follows what changes", () => {
     expect(
       screen.getByRole("button", { name: "Ask OneUptime AI" }),
     ).toBeVisible();
-    expect(lastFold(onFold)).toBe("folded");
+    expect(lastAiCardFold()).toBe("folded");
     // It asked about the new record.
     const lastRequest: { data: JSONObject } = postMock.mock.calls[
       postMock.mock.calls.length - 1
@@ -834,13 +874,13 @@ describe("the folded card follows what changes", () => {
 
   test("an answer that cannot be loaded is never folded", async () => {
     postMock.mockRejectedValue(new Error("offline"));
-    const { onFold } = renderPanel({ remediationState: FIXING_OFF });
+    renderPanel({ remediationState: FIXING_OFF });
     await flush();
 
     expect(screen.queryByTestId("ai-off-summary")).toBeNull();
     expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
       "Unable to check",
     );
-    expect(lastFold(onFold)).toBe("full");
+    expect(lastAiCardFold()).toBe("full");
   });
 });

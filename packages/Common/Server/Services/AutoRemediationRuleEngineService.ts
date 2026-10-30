@@ -59,6 +59,7 @@ import {
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import { Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import AlertService from "./AlertService";
@@ -105,6 +106,35 @@ import {
   AI_AFFECTED_RESOURCE_KINDS,
   AiAffectedResourceKindInfo,
 } from "../../Types/AI/AiAffectedResources";
+import {
+  REMEDIATION_TRY_AGAIN_COOLDOWN_SECONDS,
+  RemediationTryAgainRefusal,
+  RemediationTryAgainResult,
+} from "../../Types/AutoRemediation/RemediationTryAgain";
+
+/*
+ * Deciding again about one incident or alert - after a link of what it is
+ * about (onSubjectLinksChanged) or a person's Try again (tryAgain) - is
+ * serialized per record under this one lock, so a link and a Try again made
+ * together decide once.
+ */
+export const REMEDIATION_RETRY_LOCK_NAMESPACE: string =
+  "AutoRemediationRuleEngine";
+
+export function getRemediationRetryLockKey(subjectId: ObjectID): string {
+  return `auto-remediation-relinked-${subjectId.toString()}`;
+}
+
+/*
+ * The fixes still on their way for a record: being worked out (Planning) or
+ * waiting for a person's approval (Suggested). While one is, deciding again
+ * would only find it.
+ */
+export const IN_FLIGHT_SUGGESTION_STATUSES: ReadonlyArray<AutoRemediationSuggestionStatus> =
+  [
+    AutoRemediationSuggestionStatus.Planning,
+    AutoRemediationSuggestionStatus.Suggested,
+  ];
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -1586,8 +1616,8 @@ class AutoRemediationRuleEngineServiceClass {
 
       try {
         mutex = await Semaphore.lock({
-          key: `auto-remediation-relinked-${subjectId.toString()}`,
-          namespace: "AutoRemediationRuleEngine",
+          key: getRemediationRetryLockKey(subjectId),
+          namespace: REMEDIATION_RETRY_LOCK_NAMESPACE,
           lockTimeout: 2 * 60 * 1000,
           acquireTimeout: 30 * 1000,
         });
@@ -1700,6 +1730,177 @@ class AutoRemediationRuleEngineServiceClass {
       await ResourceAiAccessService.getResourcesForSubject(subject);
 
     return resources.length > 0;
+  }
+
+  /*
+   * A person's Try again on the record's Remediation step
+   * (Types/AutoRemediation/RemediationTryAgain): OneUptime AI decides again,
+   * now, with the project's settings of now, as it decides for a new
+   * incident - Enable AI, the fixing switch, the AI rules, each cluster's
+   * and resource's fix mode and the per-record cap all decide, and a new
+   * decision is written down. Only for an open record whose latest decision
+   * is made (not still waiting for its investigation), at least
+   * REMEDIATION_TRY_AGAIN_COOLDOWN_SECONDS old, and with no fix being worked
+   * out or waiting for approval. Serialized per record with the linking
+   * retry (getRemediationRetryLockKey) and decided again inside the lock:
+   * without the lock it does not try, rather than risk two decisions - and
+   * two fixes - at once. The caller checks who may ask.
+   */
+  @CaptureSpan()
+  public async tryAgain(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<RemediationTryAgainResult> {
+    const subjectId: ObjectID | undefined = data.incidentId || data.alertId;
+
+    if (!subjectId || (data.incidentId && data.alertId)) {
+      throw new BadDataException(
+        "Exactly one incident or alert is required to try fixing it again.",
+      );
+    }
+
+    const refusal: RemediationTryAgainRefusal | null =
+      await this.getTryAgainRefusal(data);
+
+    if (refusal) {
+      return refusal;
+    }
+
+    let mutex: SemaphoreMutex;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: getRemediationRetryLockKey(subjectId),
+        namespace: REMEDIATION_RETRY_LOCK_NAMESPACE,
+        lockTimeout: 2 * 60 * 1000,
+        acquireTimeout: 5 * 1000,
+      });
+    } catch (error) {
+      logger.warn(
+        `AutoRemediationRuleEngine: could not take the lock to try again on a subject; not trying again: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return RemediationTryAgainResult.Busy;
+    }
+
+    try {
+      // Another try, or a link, may have decided again while this one waited.
+      const refusalInLock: RemediationTryAgainRefusal | null =
+        await this.getTryAgainRefusal(data);
+
+      if (refusalInLock) {
+        return refusalInLock;
+      }
+
+      if (data.incidentId) {
+        await this.applyRulesToIncidentById({
+          incidentId: data.incidentId,
+          projectId: data.projectId,
+        });
+      } else if (data.alertId) {
+        await this.applyRulesToAlertById({
+          alertId: data.alertId,
+          projectId: data.projectId,
+        });
+      }
+
+      return RemediationTryAgainResult.Evaluated;
+    } finally {
+      try {
+        await Semaphore.release(mutex);
+      } catch (error) {
+        logger.error(
+          `AutoRemediationRuleEngine: failed to release the lock of a subject tried again: ${error}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+      }
+    }
+  }
+
+  /*
+   * Why Try again does not decide again about this record now, or null when
+   * it may: resolved, still waiting for its investigation, decided moments
+   * ago, or a fix on its way.
+   */
+  private async getTryAgainRefusal(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<RemediationTryAgainRefusal | null> {
+    const isResolved: boolean = data.incidentId
+      ? await IncidentService.isIncidentResolved({
+          incidentId: data.incidentId,
+        })
+      : await AlertService.isAlertResolved({ alertId: data.alertId! });
+
+    if (isResolved) {
+      return RemediationTryAgainResult.Resolved;
+    }
+
+    const subjectQuery: { incidentId: ObjectID } | { alertId: ObjectID } =
+      data.incidentId
+        ? { incidentId: data.incidentId }
+        : { alertId: data.alertId! };
+
+    const latestEvaluated: AutoRemediationDecision | null =
+      await AutoRemediationDecisionService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          stage: AutoRemediationDecisionStage.Evaluated,
+          ...subjectQuery,
+        },
+        select: { _id: true, createdAt: true },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+    if (!latestEvaluated) {
+      /*
+       * Never decided: while its investigation runs, remediation waits for
+       * it and decides then. A record nobody decided about at all - one
+       * from before decisions were written down - may be decided now.
+       */
+      const waiting: AutoRemediationDecision | null =
+        await AutoRemediationDecisionService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            stage: AutoRemediationDecisionStage.WaitingForInvestigation,
+            ...subjectQuery,
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      if (waiting) {
+        return RemediationTryAgainResult.WaitingForInvestigation;
+      }
+    } else if (
+      latestEvaluated.createdAt &&
+      OneUptimeDate.getSecondsBetweenTwoDates(
+        latestEvaluated.createdAt,
+        OneUptimeDate.getCurrentDate(),
+      ) < REMEDIATION_TRY_AGAIN_COOLDOWN_SECONDS
+    ) {
+      return RemediationTryAgainResult.TooSoon;
+    }
+
+    const fixInFlight: number = (
+      await AutoRemediationSuggestionService.countBy({
+        query: {
+          projectId: data.projectId,
+          status: QueryHelper.any([...IN_FLIGHT_SUGGESTION_STATUSES]),
+          ...subjectQuery,
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (fixInFlight > 0) {
+      return RemediationTryAgainResult.FixInProgress;
+    }
+
+    return null;
   }
 
   @CaptureSpan()

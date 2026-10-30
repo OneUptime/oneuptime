@@ -37,7 +37,7 @@ Im Modus **Nur Lesezugriff** werden dem Modell keine Aktionen angeboten, die Unt
 
 KI fragen öffnet sich in der Mitte des Bildschirms über der Seite, auf der Sie waren, und füllt auf einem Telefon den ganzen Bildschirm. Drücken Sie `Esc` oder klicken Sie daneben, um zur Seite zurückzukehren. Die Unterhaltung bleibt, wo Sie sie verlassen haben: Öffnen Sie KI fragen erneut, um weiterzumachen. Schließen Sie den Chat, während er noch antwortet, sagt ein Hinweis in der Ecke, wann die Antwort fertig ist, und öffnet sie.
 
-Bei einem Vorfall oder einer Warnung hat die Karte **KI-Untersuchung** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#mit-oneuptime-ai-über-den-vorfall-sprechen).
+Bei einem Vorfall oder einer Warnung hat die Karte **OneUptime AI** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#mit-oneuptime-ai-über-den-vorfall-sprechen).
 
 ## Was KI fragen sehen kann
 
