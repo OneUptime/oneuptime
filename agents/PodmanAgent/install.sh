@@ -65,8 +65,10 @@ else
 fi
 
 # Without the API socket the collector cannot start, and the container would
-# restart in a loop: say so now, with the command that turns it on.
-if [ ! -S "$PODMAN_SOCKET" ]; then
+# restart in a loop: say so now, with the command that turns it on. Podman
+# says whether its socket is there; a socket at the path will do too.
+PODMAN_SOCKET_EXISTS="$(podman info --format '{{.Host.RemoteSocket.Exists}}' 2>/dev/null || true)"
+if [ "$PODMAN_SOCKET_EXISTS" != "true" ] && [ ! -S "$PODMAN_SOCKET" ]; then
     echo "Error: Podman's API socket is not at $PODMAN_SOCKET."
     echo "Turn it on with: $SOCKET_FIX"
     echo "then run this script again."

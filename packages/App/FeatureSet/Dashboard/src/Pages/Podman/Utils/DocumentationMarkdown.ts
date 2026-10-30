@@ -531,7 +531,7 @@ function getTroubleshootingTopics(data: GuideData): Array<SetupGuideTopic> {
 
 ${codeBlock("bash", "sudo systemctl enable --now podman.socket")}
 
-That is rootful Podman's socket, the one the agent reads. Running Podman rootless? Its socket is \`/run/user/<uid>/podman/podman.sock\` (turn it on with \`systemctl --user enable --now podman.socket\`) and its storage \`~/.local/share/containers/storage\`: mount those at \`${PODMAN_SOCKET_PATH}\` and \`${PODMAN_STORAGE_PATH}\` instead, or run the agent's \`install.sh\` as that user, which mounts them for you — see the Podman agent documentation.`,
+That is rootful Podman's socket, the one the agent reads. Running Podman rootless? Its socket is \`/run/user/<uid>/podman/podman.sock\` (turn it on with \`systemctl --user enable --now podman.socket\`) and its storage \`~/.local/share/containers/storage\`: mount those at \`${PODMAN_SOCKET_PATH}\` and \`${PODMAN_STORAGE_PATH}\` in the agent's container instead — see the Podman agent documentation.`,
     },
     {
       title: 'Agent restarts with "client version is too new"',
@@ -545,10 +545,10 @@ Maximum supported API version is 1.41`,
 )}
 
 A server that enforces a maximum refuses a newer client, the collector exits with it, and the container restart-loops. The agent pins a Docker API version only when \`DOCKER_API_VERSION\` names one, and an older agent image pinned \`1.44\`. ${
-  cli
-    ? `Remove the agent (\`podman rm -f ${name}\`), pull the latest image (\`podman pull ${PODMAN_AGENT_IMAGE}\`) and run the command from step 2 again, without \`-e DOCKER_API_VERSION\`.`
-    : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list, then run `podman compose pull` and `podman compose up -d`."
-} The agent then negotiates the version with the socket.
+        cli
+          ? `Remove the agent (\`podman rm -f ${name}\`), pull the latest image (\`podman pull ${PODMAN_AGENT_IMAGE}\`) and run the command from step 2 again, without \`-e DOCKER_API_VERSION\`.`
+          : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list, then run `podman compose pull` and `podman compose up -d`."
+      } The agent then negotiates the version with the socket.
 
 To pin a version anyway, use no more than the version the socket reports:
 

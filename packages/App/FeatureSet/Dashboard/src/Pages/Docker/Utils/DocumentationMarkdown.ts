@@ -527,10 +527,10 @@ Maximum supported API version is 1.41`,
 )}
 
 The daemon refuses a client newer than its own maximum, the collector exits with it, and the container restart-loops. The agent pins a version only when \`DOCKER_API_VERSION\` names one, and an older agent image pinned \`1.44\`, which Docker Engine 20.10 to 24 refuse. ${
-  cli
-    ? `Remove the agent (\`docker rm -f ${name}\`), pull the latest image (\`docker pull ${DOCKER_AGENT_IMAGE}\`) and run the command from step 2 again, without \`-e DOCKER_API_VERSION\`.`
-    : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list, then run `docker compose pull` and `docker compose up -d`."
-} The agent then negotiates the version with the daemon.
+        cli
+          ? `Remove the agent (\`docker rm -f ${name}\`), pull the latest image (\`docker pull ${DOCKER_AGENT_IMAGE}\`) and run the command from step 2 again, without \`-e DOCKER_API_VERSION\`.`
+          : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list, then run `docker compose pull` and `docker compose up -d`."
+      } The agent then negotiates the version with the daemon.
 
 To pin a version anyway, use no more than the daemon's maximum:
 

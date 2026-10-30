@@ -361,10 +361,10 @@ ${codeBlock(
 | \`ONEUPTIME_SERVICE_TOKEN\` | Yes | The telemetry ingestion key from step 1 |
 | \`DOCKER_SWARM_CLUSTER_NAME\` | Yes | The cluster's name in OneUptime, and its join key: stamped on every signal as the \`docker.swarm.cluster.name\` resource attribute. Defaults to \`${DOCKER_SWARM_DEFAULT_CLUSTER_NAME}\` |
 | \`DOCKER_SWARM_NODE_NAME\` | No | This node's name, stamped on its containers' metrics and logs as \`docker.swarm.node.name\` — what a Docker Swarm monitor's **Node Name** filter matches. ${
-          script
-            ? "The install script sets it to the node's hostname, the name `docker node ls` shows"
-            : `Set it to the node's hostname, the name \`docker node ls\` shows: \`${DOCKER_SWARM_NODE_NAME_COMMAND}\``
-        }. Empty: no node name is stamped |
+        script
+          ? "The install script sets it to the node's hostname, the name `docker node ls` shows"
+          : `Set it to the node's hostname, the name \`docker node ls\` shows: \`${DOCKER_SWARM_NODE_NAME_COMMAND}\``
+      }. Empty: no node name is stamped |
 | \`DOCKER_INVENTORY_INTERVAL_SECONDS\` | No | How often the poller refreshes the inventory snapshot (default \`${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}\`) |
 | \`DOCKER_API_VERSION\` | No | Docker Engine API version the collector and the inventory poller speak. Empty by default: they use the daemon's own, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |
 
