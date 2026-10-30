@@ -286,6 +286,7 @@ import "./Jobs/LlmObservability/PullLlmConnections";
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";
+import "./Jobs/DetectionRules/EvaluateRealTimeDetections";
 import "./Jobs/SecurityEvents/PollSecurityEventConnections";
 import "./Jobs/SecurityEvents/RunSecurityEventConnection";
 import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";

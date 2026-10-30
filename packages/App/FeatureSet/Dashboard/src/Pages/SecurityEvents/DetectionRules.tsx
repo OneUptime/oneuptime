@@ -129,6 +129,14 @@ export const DETECTION_RULE_YAML_TOOLS_TEST_ID: string =
 const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
   getAdvancedFormSection<DetectionRule>();
 
+// Whether the form's rule checks each event as it arrives (a switch Postgres may hand back as "true").
+export function runsInRealTime(values: FormValues<DetectionRule>): boolean {
+  const value: unknown = (values as unknown as { isRealTime?: unknown })
+    .isRealTime;
+
+  return value === true || value === "true";
+}
+
 /*
  * A single Sigma rule counts its matches by the form's Group By Field,
  * Distinct Count Field and Match Count Threshold; a correlation says how it
@@ -293,6 +301,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         }}
         createInitialValues={{
           isEnabled: true,
+          isRealTime: false,
           evaluationIntervalInMinutes: 5,
           /*
            * Mirror the DB defaults (DetectionRule.ts): without these the
@@ -487,8 +496,31 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             advancedSection,
           ),
           {
+            /*
+             * A rule that fires on one event can check each event as it
+             * arrives (Types/SecurityEvent/RealTimeDetection); the server
+             * says why when the rule cannot. A correlation reads events
+             * together, so it is never offered.
+             */
+            field: {
+              isRealTime: true,
+            },
+            showIf: countsByFormFields,
+            title: "Run in Real Time",
+            stepId: "on-match",
+            description:
+              "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            collapsibleSection: advancedSection,
+          },
+          {
             field: {
               evaluationIntervalInMinutes: true,
+            },
+            // A real-time rule runs on no interval.
+            showIf: (values: FormValues<DetectionRule>): boolean => {
+              return !runsInRealTime(values);
             },
             title: "Evaluation Interval (Minutes)",
             stepId: "on-match",
@@ -697,6 +729,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           sigmaRuleYaml: true,
           // Whether each row is on, for Enable and Disable to count.
           isEnabled: true,
+          // A real-time rule's Status and Interval say so.
+          isRealTime: true,
         }}
         columns={[
           /*
@@ -829,9 +863,27 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               evaluationIntervalInMinutes: true,
             },
             title: "Interval (Minutes)",
-            type: FieldType.Number,
-            noValueMessage: "-",
+            type: FieldType.Element,
             isHiddenByDefault: true,
+            // A real-time rule runs on no interval: it says so instead.
+            getElement: (item: DetectionRule): ReactElement => {
+              if (item.isRealTime) {
+                return (
+                  <span className="text-gray-700">
+                    {translator.translateText("Real time")}
+                  </span>
+                );
+              }
+
+              return (
+                <span>
+                  {item.evaluationIntervalInMinutes !== undefined &&
+                  item.evaluationIntervalInMinutes !== null
+                    ? translator.formatNumber(item.evaluationIntervalInMinutes)
+                    : "-"}
+                </span>
+              );
+            },
           },
           {
             field: {

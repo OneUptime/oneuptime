@@ -139,6 +139,19 @@ export interface DetectionRuleSetupTest {
 }
 
 /*
+ * A real-time run (RealTime/RealTimeDetections): the rule reads only the
+ * events ingest screened for it (`restrictTo`, their ids) over the times
+ * they happened, and does everything a scheduled run does - alert,
+ * incident, finding, case, risk - but leaves the rule's schedule as it
+ * was: a real-time rule runs on no interval.
+ */
+export interface DetectionRuleRealTimeRun {
+  restrictTo: Statement;
+  startTime: Date;
+  endTime: Date;
+}
+
+/*
  * The detections-as-code engine: every minute, evaluate due Sigma rules
  * against the SecurityEvent table; matches open deduped alerts and write
  * Detection Finding rows back into the events table.
@@ -150,6 +163,11 @@ export interface DetectionRuleSetupTest {
  * The work is spread by project (SecurityProjectWork): the cron queues one
  * turn for each project with a rule due, and a turn evaluates that
  * project's due rules, the longest overdue first.
+ *
+ * A real-time rule (isRealTime) is never due: every path that writes
+ * security events screens them against it as they arrive
+ * (RealTime/RealTimeDetections), and a job confirms what it may match
+ * (evaluateRealTime).
  */
 export const DETECTION_RULES_PROJECT_WORK: SecurityProjectWorkDefinition = {
   jobName: "DetectionRules:EvaluateProject",
@@ -176,6 +194,13 @@ const DETECTION_RULE_EVALUATION_SELECT: Select<DetectionRule> = {
   alertSeverityId: true,
   incidentSeverityId: true,
   lastEvaluatedAt: true,
+};
+
+// ...and what a real-time run reads, to tell a rule turned off or back to its schedule since.
+export const DETECTION_RULE_REAL_TIME_SELECT: Select<DetectionRule> = {
+  ...DETECTION_RULE_EVALUATION_SELECT,
+  isEnabled: true,
+  isRealTime: true,
 };
 
 // Detection Finding rows written per insert.
@@ -216,6 +241,8 @@ export default class DetectionRuleEvaluator {
     const rules: Array<DetectionRule> = await DetectionRuleService.findAllBy({
       query: {
         isEnabled: true,
+        // A real-time rule checks events as they arrive, on no interval.
+        isRealTime: false,
       },
       select: {
         _id: true,
@@ -259,6 +286,7 @@ export default class DetectionRuleEvaluator {
       query: {
         projectId,
         isEnabled: true,
+        isRealTime: false,
       },
       select: DETECTION_RULE_EVALUATION_SELECT,
       sort: {
@@ -335,6 +363,47 @@ export default class DetectionRuleEvaluator {
     }
   }
 
+  /*
+   * A real-time run of a rule (DetectionRuleRealTimeRun), with a failure
+   * recorded on the rule rather than thrown - its Last Error, as a scheduled
+   * run's is, but never its schedule.
+   */
+  @CaptureSpan()
+  public static async evaluateRealTime(
+    rule: DetectionRule,
+    run: DetectionRuleRealTimeRun,
+  ): Promise<DetectionRuleEvaluationResult | null> {
+    try {
+      return await this.evaluateRule(rule, { realTime: run });
+    } catch (error) {
+      logger.error(
+        `DetectionRuleEvaluator: real-time run of rule ${rule.id?.toString()} failed:`,
+      );
+      logger.error(error);
+
+      if (rule.id) {
+        const ruleId: ObjectID = rule.id;
+
+        await ConnectorErrorMessage.recordFailure({
+          label: `DetectionRuleEvaluator: rule ${ruleId.toString()}`,
+          write: async (): Promise<void> => {
+            await DetectionRuleService.updateOneById({
+              id: ruleId,
+              data: {
+                lastError: ConnectorErrorMessage.toMessage(error),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          },
+        });
+      }
+
+      return null;
+    }
+  }
+
   // evaluateRule, with a failure recorded on the rule rather than thrown.
   private static async evaluateRuleRecordingFailure(
     rule: DetectionRule,
@@ -393,6 +462,7 @@ export default class DetectionRuleEvaluator {
     rule: DetectionRule,
     options: {
       setupTest?: DetectionRuleSetupTest | undefined;
+      realTime?: DetectionRuleRealTimeRun | undefined;
       exceptions?: Array<DetectionRuleExceptionShape> | undefined;
       watchlists?: SecurityWatchlistReader | undefined;
     } = {},
@@ -402,18 +472,30 @@ export default class DetectionRuleEvaluator {
     }
 
     const setupTest: DetectionRuleSetupTest | undefined = options.setupTest;
+    const realTime: DetectionRuleRealTimeRun | undefined = setupTest
+      ? undefined
+      : options.realTime;
     const definition: DetectionRuleDefinition = await (
       options.watchlists || SecurityWatchlists.readerFor(rule.projectId)
     ).bind(await this.loadRuleDefinition(rule));
     // What the findings, alerts and cases are written as: the rule, or the correlation.
     const parsedRule: SigmaRule = detectionRuleHeader(definition);
 
+    // A correlation reads events together over its timespan: never a handful at a time.
+    if (realTime && definition.kind === "correlation") {
+      throw new Error(
+        "A correlation runs on its interval, never in real time.",
+      );
+    }
+
     const endTime: Date = setupTest
       ? setupTest.endTime
-      : OneUptimeDate.addRemoveSeconds(
-          OneUptimeDate.getCurrentDate(),
-          -DETECTION_EVALUATION_DELAY_IN_SECONDS,
-        );
+      : realTime
+        ? realTime.endTime
+        : OneUptimeDate.addRemoveSeconds(
+            OneUptimeDate.getCurrentDate(),
+            -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+          );
     const intervalInMinutes: number = Math.max(
       1,
       rule.evaluationIntervalInMinutes || 1,
@@ -434,6 +516,11 @@ export default class DetectionRuleEvaluator {
 
     if (setupTest) {
       startTime = setupTest.startTime;
+    }
+
+    // The events it was handed, whenever they happened.
+    if (realTime) {
+      startTime = realTime.startTime;
     }
 
     const exceptions: Array<DetectionRuleExceptionShape> = setupTest
@@ -483,7 +570,7 @@ export default class DetectionRuleEvaluator {
         parsedRule,
         startTime,
         endTime,
-        setupTest,
+        restrictTo: setupTest?.restrictTo || realTime?.restrictTo,
         exceptionsFilter,
       });
     }
@@ -632,8 +719,32 @@ export default class DetectionRuleEvaluator {
       }
     }
 
+    /*
+     * A real-time run says how it went - a match, an overflow - but leaves
+     * the schedule as it was: when the rule goes back to its interval, the
+     * service starts it from then (DetectionRuleService).
+     */
+    if (realTime) {
+      if (overflowNotice) {
+        logger.warn(
+          `DetectionRuleEvaluator: rule ${rule.id.toString()}: ${overflowNotice}`,
+        );
+      }
+
+      await DetectionRuleService.updateOneById({
+        id: rule.id,
+        data: {
+          lastError: overflowNotice as unknown as string,
+          ...(split.recorded.length > 0 ? { lastMatchAt: endTime } : {}),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     // A setup test leaves the rule's own schedule as it was.
-    if (!setupTest) {
+    if (!setupTest && !realTime) {
       if (overflowNotice) {
         logger.warn(
           `DetectionRuleEvaluator: rule ${rule.id.toString()}: ${overflowNotice}`,
@@ -712,22 +823,24 @@ export default class DetectionRuleEvaluator {
     parsedRule: SigmaRule;
     startTime: Date;
     endTime: Date;
-    setupTest: DetectionRuleSetupTest | undefined;
+    // A setup test's own events, or the events a real-time run was handed.
+    restrictTo: Statement | undefined;
     // The events no exception skips (buildDetectionRuleExceptionsFilter), or null.
     exceptionsFilter: Statement | null;
   }): Promise<Array<DetectionMatchGroup>> {
-    const { rule, setupTest } = data;
+    const { rule } = data;
     const ruleWhereFragment: Statement = SigmaClickhouseCompiler.compile(
       data.parsedRule,
     );
 
     /*
-     * A setup test reads only its own events; a run reads only the events
-     * the rule's exceptions leave it.
+     * A setup test reads only its own events, and a real-time run only the
+     * events it was handed; a run reads only the events the rule's
+     * exceptions leave it.
      */
     const whereFragment: Statement =
       andRestrictions(
-        andRestrictions(ruleWhereFragment, setupTest?.restrictTo),
+        andRestrictions(ruleWhereFragment, data.restrictTo),
         data.exceptionsFilter,
       ) || ruleWhereFragment;
 

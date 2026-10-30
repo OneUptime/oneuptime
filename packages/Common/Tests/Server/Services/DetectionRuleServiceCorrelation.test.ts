@@ -223,17 +223,41 @@ detection:
     expect(findAllBy).toHaveBeenCalledTimes(1);
   });
 
-  test("an update with a self-contained correlation reads no rows", async () => {
+  test("an update with a self-contained correlation reads no other rule, and its own rows only to see whether they run in real time", async () => {
     const hold: Spy = getJestSpyOn(
       DetectionRuleService,
       "findRowsAndHoldUpdateToThem",
-    );
+    ).mockResolvedValue([
+      storedRule(RULE_ID.toString(), FAILED),
+    ] as never);
+    const findAllBy: Spy = getJestSpyOn(DetectionRuleService, "findAllBy");
 
     const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
       updateBy({ sigmaRuleYaml: SELF_CONTAINED }),
     );
 
     expect(result.carryForward).toBeNull();
-    expect(hold).not.toHaveBeenCalled();
+    // A correlation cannot run in real time: the rows are read once, for that.
+    expect(hold).toHaveBeenCalledTimes(1);
+    expect(
+      (hold.mock.calls[0]![1] as { isRealTime?: boolean }).isRealTime,
+    ).toBe(true);
+    expect(findAllBy).not.toHaveBeenCalled();
+  });
+
+  test("a real-time rule's YAML cannot become a correlation: it is told to go back to its interval first", async () => {
+    const realTime: DetectionRule = storedRule(RULE_ID.toString(), FAILED);
+    realTime.isRealTime = true;
+
+    getJestSpyOn(
+      DetectionRuleService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([realTime] as never);
+
+    await expect(
+      service.onBeforeUpdate(updateBy({ sigmaRuleYaml: SELF_CONTAINED })),
+    ).rejects.toThrow(
+      "This rule cannot run in real time. A correlation reads several events together over its timespan, so it runs on its interval.",
+    );
   });
 });
