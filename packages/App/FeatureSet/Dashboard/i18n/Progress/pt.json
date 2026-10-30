@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36935,
-    "untranslated": 13347
+    "keys": 37063,
+    "untranslated": 13340
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -72,6 +72,7 @@
     "Manual",
     "Marketplace",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Monitor",
     "Namespace",
     "Namespaces",

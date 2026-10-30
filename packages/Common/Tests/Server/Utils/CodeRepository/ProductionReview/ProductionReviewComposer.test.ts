@@ -1,5 +1,7 @@
 import ProductionReviewComposer, {
   MAX_LISTED_IN_COMMENT,
+  PRODUCTION_REVIEW_CHECK_TITLES,
+  ProductionReviewCheckRunText,
   ProductionReviewCommentInput,
   formatAge,
   formatCount,
@@ -30,6 +32,7 @@ import {
 } from "./ProductionReviewFixtures";
 import { describe, expect, test } from "@jest/globals";
 import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
+import { GitHubCheckConclusion } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCheckRuns";
 
 /*
  * The production review comment: one per pull request, edited in place, so
@@ -53,7 +56,7 @@ function input(
     dashboardUrl: "https://oneuptime.com/dashboard",
     projectId: PROJECT_ID,
     productName: "OneUptime",
-    appSlug: "oneuptime",
+    reviewCommand: "@oneuptime production review",
     updatesOnPush: true,
     isPublicRepository: false,
     ...change,
@@ -383,9 +386,30 @@ describe("ProductionReviewComposer.compose: the footer", () => {
   test("without the app's handle it still says to ask again", () => {
     expect(
       ProductionReviewComposer.compose(
-        input({ updatesOnPush: false, appSlug: null }),
+        input({ updatesOnPush: false, reviewCommand: null }),
       ),
     ).toContain("Not updated on its own: ask again after new commits.");
+  });
+
+  /*
+   * GitLab, Forgejo and Gitea: OneUptime reads no command there, so a
+   * pull request it does not follow is asked again in OneUptime - the
+   * footer links Review again, and names no command anyone could type.
+   */
+  test("where no command is read, it says to press Review again in OneUptime, linked", () => {
+    const body: string = ProductionReviewComposer.compose(
+      input({
+        updatesOnPush: false,
+        reviewCommand: null,
+        asksAgainInProduct: true,
+        pullRequestTerm: "merge request",
+      }),
+    );
+
+    expect(body).toContain(
+      `Not updated on its own: press [Review again](${REVIEW_URL}) in OneUptime after new commits.`,
+    );
+    expect(body).not.toContain("@oneuptime");
   });
 
   test("a renamed product is named as it is renamed", () => {
@@ -670,5 +694,128 @@ describe("formatting", () => {
     expect(
       githubSafeAiText("see https://x.example and www.y.example", 200),
     ).toBe("see https:⁠//x.example and www⁠.y.example");
+  });
+});
+
+/*
+ * A GitLab merge request's review says merge request wherever the comment
+ * names what it reviews - GitLab's own word - and nothing else changes.
+ */
+describe("ProductionReviewComposer: in the host's words", () => {
+  test("a merge request's review says merge request, everywhere it names one", () => {
+    const review: string = ProductionReviewComposer.compose(
+      input({ pullRequestTerm: "merge request" }),
+    );
+
+    expect(review).toContain(
+      "This merge request changes code that runs in production in **checkout-api**",
+    );
+    expect(review).toContain("Updated when the merge request changes.");
+    expect(review).not.toContain("pull request");
+
+    const link: string = ProductionReviewComposer.compose(
+      input({
+        pullRequestTerm: "merge request",
+        posting: ProductionReviewPosting.Link,
+        isPublicRepository: true,
+      }),
+    );
+
+    expect(link).toContain(
+      "OneUptime reviewed this merge request against production and found something worth a look in the code it changes.",
+    );
+
+    const nothing: string = ProductionReviewComposer.compose(
+      input({
+        pullRequestTerm: "merge request",
+        report: emptyReport({ services: [], codeFileCount: 0 }),
+      }),
+    );
+
+    expect(nothing).toContain(
+      "This merge request changes no code production runs, so production has nothing to say about it.",
+    );
+    expect(
+      ProductionReviewComposer.summarize(emptyReport(), "merge request"),
+    ).toBe("Nothing in production runs through this merge request's changes.");
+  });
+
+  test("a pull request on any other host says pull request, as it always did", () => {
+    expect(ProductionReviewComposer.compose(input())).toContain(
+      "This pull request changes code that runs in production",
+    );
+  });
+});
+
+/*
+ * A GitHub pull request's review is a check run too: success when
+ * production has nothing to say, neutral when something is worth a look -
+ * never a failure - and a summary that holds what the comment holds, the
+ * link alone where the comment is a link.
+ */
+describe("ProductionReviewComposer.composeCheckRun", () => {
+  test("something worth a look is neutral, its summary the review without the comment's marker", () => {
+    const check: ProductionReviewCheckRunText =
+      ProductionReviewComposer.composeCheckRun(input());
+    const comment: string = ProductionReviewComposer.compose(input());
+
+    expect(check.conclusion).toBe(GitHubCheckConclusion.Neutral);
+    expect(check.title).toBe(PRODUCTION_REVIEW_CHECK_TITLES.worthALook);
+    expect(check.title).toBe("Something in production is worth a look");
+    expect(check.summary).not.toContain(PRODUCTION_REVIEW_COMMENT_MARKER);
+    expect(`${PRODUCTION_REVIEW_COMMENT_MARKER}\n\n${check.summary}`).toBe(
+      comment,
+    );
+  });
+
+  test("nothing to say is a success", () => {
+    const check: ProductionReviewCheckRunText =
+      ProductionReviewComposer.composeCheckRun(
+        input({ report: emptyReport() }),
+      );
+
+    expect(check.conclusion).toBe(GitHubCheckConclusion.Success);
+    expect(check.title).toBe(
+      "Nothing in production runs through these changes",
+    );
+    expect(check.summary).toContain(
+      "Nothing in production runs through this pull request's changes",
+    );
+  });
+
+  test("a public repository's check holds no fact of production: the link alone", () => {
+    const check: ProductionReviewCheckRunText =
+      ProductionReviewComposer.composeCheckRun(
+        input({
+          posting: ProductionReviewPosting.Link,
+          isPublicRepository: true,
+        }),
+      );
+
+    expect(check.summary).toContain(
+      `**[Open the production review](${REVIEW_URL})**`,
+    );
+
+    for (const fact of [
+      "checkout-api",
+      "TypeError",
+      "chargeCard",
+      "INC-45",
+      "v1.4.2",
+      "12,431",
+    ]) {
+      expect(check.summary).not.toContain(fact);
+    }
+  });
+
+  test("its summary is no command of the app, and a renamed product is named as renamed", () => {
+    const check: ProductionReviewCheckRunText =
+      ProductionReviewComposer.composeCheckRun(
+        input({ productName: "Acme Observe", updatesOnPush: false }),
+      );
+
+    expect(parsesAsCommand(check.summary)).toBe(false);
+    expect(check.summary).toContain("Production review by Acme Observe");
+    expect(check.summary).not.toContain("by OneUptime");
   });
 });

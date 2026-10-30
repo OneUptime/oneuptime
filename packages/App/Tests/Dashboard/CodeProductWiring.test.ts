@@ -590,4 +590,39 @@ describe("a repository's Production Reviews", () => {
     expect(job).toContain("schedule:EVERY_MINUTE");
     expect(job).toContain("ProductionReviewRunner.runDueReviews()");
   });
+
+  /*
+   * GitLab, Forgejo and Gitea send OneUptime no webhooks: every minute the
+   * Workers read each of their repositories with Production Review on for
+   * the pull requests that changed, and ask for the reviews - which the job
+   * above runs. A tick never holds the next one back.
+   */
+  test("the Workers find GitLab's, Forgejo's and Gitea's pull requests to review, every minute", () => {
+    const workers: string = fs.readFileSync(
+      path.join(APP_ROOT, "FeatureSet", "Workers", "Index.ts"),
+      "utf8",
+    );
+    const job: string = dense(
+      fs.readFileSync(
+        path.join(
+          APP_ROOT,
+          "FeatureSet",
+          "Workers",
+          "Jobs",
+          "AIAgent",
+          "FindPullRequestsToReviewInProduction.ts",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(workers).toContain(
+      'import "./Jobs/AIAgent/FindPullRequestsToReviewInProduction";',
+    );
+    expect(job).toContain('"AIAgent:FindPullRequestsToReviewInProduction"');
+    expect(job).toContain("schedule:EVERY_MINUTE");
+    expect(job).toContain("runOnStartup:false");
+    expect(job).toContain("timeoutInMS:POLL_TICK_BUDGET_MS+2*60*1000");
+    expect(job).toContain("ProductionReviewPoller.pollAll()");
+  });
 });

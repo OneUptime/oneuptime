@@ -1523,8 +1523,9 @@ describe("a repository's Production Reviews", () => {
     const status: HTMLElement = await screen.findByTestId(
       "code-production-reviews-status",
     );
+    // Review a pull request, on this page, still asks for one.
     expect(status).toHaveTextContent(
-      "Pull requests are not reviewed against production.",
+      "Pull requests are reviewed only when someone with write access asks for one here.",
     );
     expect(status).not.toHaveTextContent("production review on it");
     expect(status.querySelector("code")).toBeNull();
@@ -1532,7 +1533,7 @@ describe("a repository's Production Reviews", () => {
       within(status).getByTestId("code-production-reviews-settings"),
     ).toHaveTextContent("Turn on in Settings");
 
-    // On, only the repository's own pull requests: no line for anyone else's.
+    // On: anyone else's pull request is asked for here, never by command.
     cleanup();
     getRepositoryMock.mockResolvedValue(
       repositoryAnswer({ isGitHubCommandsEnabled: false }) as never,
@@ -1543,9 +1544,13 @@ describe("a repository's Production Reviews", () => {
     ).toHaveTextContent(
       "A pull request from someone with write access is reviewed when it opens and each time it changes.",
     );
-    expect(
-      screen.queryByTestId("code-production-reviews-status-others"),
-    ).toBeNull();
+    const others: HTMLElement = screen.getByTestId(
+      "code-production-reviews-status-others",
+    );
+    expect(others).toHaveTextContent(
+      "A pull request from anyone else is reviewed when someone with write access asks for it here.",
+    );
+    expect(others.querySelector("code")).toBeNull();
   });
 
   test("a repository the GitHub App no longer reaches says nothing is reviewed, whatever its switch - and links to connect it", async () => {

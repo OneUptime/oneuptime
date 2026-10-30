@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36935,
-    "untranslated": 13355
+    "keys": 37063,
+    "untranslated": 13348
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -65,6 +65,7 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "Managers",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Mexico (+52)",
     "Nav",
     "New Zealand (+64)",

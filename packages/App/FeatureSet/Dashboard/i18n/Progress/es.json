@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36930,
-    "untranslated": 3047
+    "keys": 37063,
+    "untranslated": 3045
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -231,6 +231,7 @@
     "Mayotte",
     "Mbps",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Mesh / VPN",
     "Microsoft Entra ID",
     "Mistral",

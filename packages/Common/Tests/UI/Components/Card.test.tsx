@@ -942,8 +942,7 @@ describe("Card description: words or an element", () => {
           </Card>,
         );
 
-        const description: HTMLElement =
-          screen.getByTestId("card-description");
+        const description: HTMLElement = screen.getByTestId("card-description");
 
         expect(description.tagName).toBe("DIV");
         expect(
@@ -968,6 +967,7 @@ describe("Card description: words or an element", () => {
                 {
                   title: "Act",
                   buttonStyle: ButtonStyleType.NORMAL,
+                  icon: IconProp.Add,
                   onClick: () => {},
                 },
               ]

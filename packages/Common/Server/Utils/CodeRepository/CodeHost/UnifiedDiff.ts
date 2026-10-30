@@ -158,14 +158,15 @@ export default class UnifiedDiff {
     }
 
     if (path.startsWith('"') && path.endsWith('"') && path.length >= 2) {
+      // A quoted path is the whole path: a tab in it was escaped (\t).
       path = UnifiedDiff.unquote(path.substring(1, path.length - 1));
-    }
+    } else {
+      // A tab may follow the path, then a time (diff's own format).
+      const tab: number = path.indexOf("\t");
 
-    // A tab may follow the path, then a time (diff's own format).
-    const tab: number = path.indexOf("\t");
-
-    if (tab >= 0) {
-      path = path.substring(0, tab);
+      if (tab >= 0) {
+        path = path.substring(0, tab);
+      }
     }
 
     if (path.startsWith("a/") || path.startsWith("b/")) {

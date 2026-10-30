@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36935,
-    "untranslated": 13364
+    "keys": 37063,
+    "untranslated": 13357
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -76,6 +76,7 @@
     "Managers",
     "Max",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Nav",
     "Normal",
     "Null",

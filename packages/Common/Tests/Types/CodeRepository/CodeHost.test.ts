@@ -18,7 +18,7 @@ import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType
  */
 
 describe("what each host can do", () => {
-  test("GitHub does everything; GitLab and Forgejo all but commands and production reviews; a Git server only branches", () => {
+  test("GitHub does everything; GitLab and Forgejo all but commands from comments; a Git server only branches", () => {
     const can: (type: CodeRepositoryType) => Array<CodeHostCapability> = (
       type: CodeRepositoryType,
     ): Array<CodeHostCapability> => {
@@ -37,12 +37,14 @@ describe("what each host can do", () => {
       CodeRepositoryType.GitLab,
       CodeRepositoryType.Forgejo,
     ]) {
+      // Their pull (merge) requests are reviewed against production too.
       expect(can(type).sort()).toEqual(
         [
           CodeHostCapability.PullRequests,
           CodeHostCapability.PullRequestTracking,
           CodeHostCapability.Branches,
           CodeHostCapability.ReadCode,
+          CodeHostCapability.ProductionReview,
         ].sort(),
       );
     }
