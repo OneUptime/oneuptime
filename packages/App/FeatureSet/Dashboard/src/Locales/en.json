@@ -38838,16 +38838,19 @@
   "Where to look": "Where to look",
   "Written by OneUptime AI {{time}}.": "Written by OneUptime AI {{time}}.",
   "Written by OneUptime AI.": "Written by OneUptime AI.",
+  "Split by": "Split by",
+  "Top": "Top",
+  "then by": "then by",
   "Already assigned there.": "Already assigned there.",
+  "Assign to me": "Assign to me",
+  "Assign to…": "Assign to…",
   "Assign {{count}} exceptions": "Assign {{count}} exceptions",
   "Assign {{count}} exceptions_one": "Assign {{count}} exception",
   "Assigned to me": "Assigned to me",
   "Most events": "Most events",
   "Not assigned to anyone.": "Not assigned to anyone.",
   "Pick one person or one team. Pick nobody to unassign them.": "Pick one person or one team. Pick nobody to unassign them.",
+  "Pick someone": "Pick someone",
   "Search people and teams": "Search people and teams",
-  "Sort: {{order}}": "Sort: {{order}}",
-  "Assign to me": "Assign to me",
-  "Assign to…": "Assign to…",
-  "Pick someone": "Pick someone"
+  "Sort: {{order}}": "Sort: {{order}}"
 }

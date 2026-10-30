@@ -48,6 +48,8 @@ import {
   buildFacetHelp,
 } from "Common/UI/Components/TelemetryViewer/FacetHelp";
 import FacetHelpButton from "Common/UI/Components/TelemetryViewer/components/FacetHelpButton";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
@@ -305,22 +307,55 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
   );
 };
 
-// The table's columns after what its rows are grouped by, as it draws them.
+/*
+ * The table's columns after what its rows are grouped by: the ids of their
+ * widths, and the English its headers are drawn from in the reader's
+ * language, beside the columns of what the rows are split by - named as the
+ * toolbar names them.
+ */
 const TRACES_ANALYTICS_METRIC_HEADERS: Array<string> = [
-  "Requests",
-  "Errors",
-  "Avg",
-  "P50",
-  "P90",
-  "P95",
-  "P99",
-  "Min",
-  "Max",
+  translationKey("Requests"),
+  translationKey("Errors"),
+  translationKey("Avg"),
+  translationKey("P50"),
+  translationKey("P90"),
+  translationKey("P95"),
+  translationKey("P99"),
+  translationKey("Min"),
+  translationKey("Max"),
 ];
+
+// A control's choice: what it sets, and the words it is drawn with.
+interface SelectOption {
+  value: string | number;
+  label: string;
+}
 
 const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   props: TracesAnalyticsViewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * The toolbar's own words - its captions, the charts, the measures, the
+   * span fields to split by, None - in the reader's language. What it
+   * draws as written: an attribute's key, the Span Type's choices (named
+   * the same in every language, as the sidebar and the docs name them) and
+   * the numbers of the Top control.
+   */
+  const translateOptions: (
+    options: ReadonlyArray<SelectOption>,
+  ) => Array<SelectOption> = (
+    options: ReadonlyArray<SelectOption>,
+  ): Array<SelectOption> => {
+    return options.map((option: SelectOption): SelectOption => {
+      return {
+        value: option.value,
+        label: translator.translateText(option.label) || option.label,
+      };
+    });
+  };
+
   const [chartType, setChartType] = useState<AnalyticsChartType>("timeseries");
   const [metric, setMetric] = useState<string>("count");
   const [groupByFields, setGroupByFields] = useState<Array<string>>(["name"]);
@@ -365,8 +400,22 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
             return { value: attr, label: attr };
           });
 
-      return [...DIMENSION_OPTIONS, ...attributeOptions];
-    }, [props.attributeKeys]);
+      // The span's own fields in the reader's language; an attribute as written.
+      const spanFieldOptions: Array<{ value: string; label: string }> =
+        DIMENSION_OPTIONS.map(
+          (option: {
+            value: string;
+            label: string;
+          }): { value: string; label: string } => {
+            return {
+              value: option.value,
+              label: translator.translateText(option.label) || option.label,
+            };
+          },
+        );
+
+      return [...spanFieldOptions, ...attributeOptions];
+    }, [props.attributeKeys, translator]);
 
   /*
    * Split by "Service", a group value is a span's primaryEntityId. The
@@ -555,6 +604,14 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
    * (see pivotTraceAnalyticsTimeseries). Keying them by the display label
    * merged two same-named entities into one series.
    */
+  // An unsplit series is named for its measure, as the toolbar names it.
+  const metricLabel: string =
+    translator.translateText(
+      METRIC_OPTIONS.find((opt: { value: string }) => {
+        return opt.value === metric;
+      })?.label,
+    ) || metric;
+
   const {
     pivotedData,
     seriesKeys,
@@ -564,18 +621,13 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     seriesKeys: Array<string>;
     seriesGroupValues: Record<string, Record<string, string>>;
   } = useMemo(() => {
-    const metricLabel: string =
-      METRIC_OPTIONS.find((opt: { value: string }) => {
-        return opt.value === metric;
-      })?.label || metric;
-
     return pivotTraceAnalyticsTimeseries({
       rows: timeseriesData,
       serviceNameMap: props.serviceNameMap,
       entityNames,
       metricLabel,
     });
-  }, [timeseriesData, metric, props.serviceNameMap, entityNames]);
+  }, [timeseriesData, metricLabel, props.serviceNameMap, entityNames]);
 
   /*
    * Only the timeseries has a time axis: a window dragged across a top
@@ -626,25 +678,32 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     );
   };
 
+  /*
+   * One control of the toolbar: its caption (English, a key of the
+   * locales: drawn in the reader's language), its select, named by the same
+   * words, and the choices it is handed, drawn as they come.
+   */
   const renderSelectControl: (
     label: string,
     value: string | number,
     onChange: (val: string) => void,
-    options: Array<{ value: string | number; label: string }>,
+    options: Array<SelectOption>,
     help?: FacetHelp | undefined,
   ) => ReactElement = (
     label: string,
     value: string | number,
     onChange: (val: string) => void,
-    options: Array<{ value: string | number; label: string }>,
+    options: Array<SelectOption>,
     help?: FacetHelp | undefined,
   ): ReactElement => {
+    const caption: string = translator.translateText(label) || label;
+
     return (
       <div className="flex items-center">
         <span
           className={`${help ? "mr-0.5" : "mr-2"} text-[11px] font-medium uppercase tracking-wider text-gray-400`}
         >
-          {label}
+          {caption}
         </span>
         {/*
          * What the choices mean, as the sidebar's (i) beside the same
@@ -663,7 +722,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         )}
         <select
           className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-          aria-label={label}
+          aria-label={caption}
           value={value}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             onChange(e.target.value);
@@ -674,7 +733,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
             backgroundPosition: "right 6px center",
           }}
         >
-          {options.map((opt: { value: string | number; label: string }) => {
+          {options.map((opt: SelectOption) => {
             return (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -696,7 +755,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         {spanType && onSpanTypeChange && (
           <>
             {renderSelectControl(
-              "Span Type",
+              translationKey("Span Type"),
               spanType,
               (val: string) => {
                 onSpanTypeChange(parseTraceSpanType(val) || spanType);
@@ -719,7 +778,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         )}
 
         {renderSelectControl(
-          "Chart",
+          translationKey("Chart"),
           chartType,
           (val: string) => {
             setChartType(val as AnalyticsChartType);
@@ -728,28 +787,28 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
               setGroupByFields(["name"]);
             }
           },
-          [
+          translateOptions([
             { value: "timeseries", label: "Timeseries" },
             { value: "toplist", label: "Top List" },
             { value: "table", label: "Table" },
-          ],
+          ]),
         )}
 
         <div className="h-4 w-px bg-gray-200" />
 
         {renderSelectControl(
-          "Measure",
+          translationKey("Measure"),
           metric,
           (val: string) => {
             setMetric(val);
           },
-          METRIC_OPTIONS,
+          translateOptions(METRIC_OPTIONS),
         )}
 
         <div className="h-4 w-px bg-gray-200" />
 
         {renderSelectControl(
-          "Split by",
+          translationKey("Split by"),
           groupByFields[0] || "",
           (val: string) => {
             setGroupByFields((prev: Array<string>) => {
@@ -761,7 +820,10 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
             });
           },
           chartType === "timeseries"
-            ? [{ value: "", label: "None" }, ...allDimensionOptions]
+            ? [
+                ...translateOptions([{ value: "", label: "None" }]),
+                ...allDimensionOptions,
+              ]
             : allDimensionOptions,
         )}
 
@@ -769,7 +831,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           groupByFields[0].length > 0 &&
           chartType !== "toplist" &&
           renderSelectControl(
-            "then by",
+            translationKey("then by"),
             groupByFields[1] || "",
             (val: string) => {
               setGroupByFields((prev: Array<string>) => {
@@ -783,7 +845,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
               });
             },
             [
-              { value: "", label: "None" },
+              ...translateOptions([{ value: "", label: "None" }]),
               ...allDimensionOptions.filter((opt: { value: string }) => {
                 return opt.value !== groupByFields[0];
               }),
@@ -793,7 +855,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         <div className="h-4 w-px bg-gray-200" />
 
         {renderSelectControl(
-          "Top",
+          translationKey("Top"),
           limit,
           (val: string) => {
             setLimit(Number(val));
@@ -815,9 +877,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 }),
               });
             }}
-            title="Persist this analysis as a metric via a Trace Recording Rule"
+            title={translator.translateText(
+              "Persist this analysis as a metric via a Trace Recording Rule",
+            )}
           >
-            Create metric…
+            {translator.translateText("Create metric…")}
           </button>
         )}
       </div>
@@ -1208,17 +1272,20 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   );
                 })}
                 {TRACES_ANALYTICS_METRIC_HEADERS.map((title: string) => {
+                  const header: string =
+                    translator.translateText(title) || title;
+
                   return (
                     <ResizableHeaderCell
                       key={title}
                       className={`text-right ${headerCell}`}
                       resize={resizableColumns.getResize(
                         `metric:${title}`,
-                        title,
+                        header,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>{title}</span>
+                      <span>{header}</span>
                     </ResizableHeaderCell>
                   );
                 })}
