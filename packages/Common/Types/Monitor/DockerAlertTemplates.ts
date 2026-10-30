@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
@@ -11,7 +13,11 @@ import MonitorStepDockerMonitor from "./MonitorStepDockerMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
-export type DockerAlertTemplateCategory = "Container" | "Resource" | "Host";
+export type DockerAlertTemplateCategory =
+  | "Availability"
+  | "Container"
+  | "Resource"
+  | "Host";
 
 export type DockerAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -80,14 +86,13 @@ function dockerTitleSuffix(args: DockerAlertTemplateArgs): string {
  *
  * The Docker SWARM agent runs the SAME docker_stats receiver with no
  * attribute-moving transform (DockerSwarmAgent/otel-collector-config.yaml:
- * receivers `[docker_stats]`, processors `[memory_limiter, resource,
- * batch]`, where `resource` only upserts `docker.swarm.cluster.name` and
+ * its `resource` processor only upserts `docker.swarm.cluster.name` and
  * `oneuptime.agent.version`), so Swarm container identity is stored
- * `resource.`-prefixed too. DockerSwarmAlertTemplates.ts groups by the bare
- * `container.name`; that key matches no stored attribute, and
- * aggregatePerSeriesFromRawMetrics labels a missing key "" — collapsing
- * every Swarm container into ONE series with an empty label. Do not copy
- * that spelling.
+ * `resource.`-prefixed too, and DockerSwarmAlertTemplates.ts groups by
+ * `resource.container.name` like these do. The bare `container.name`
+ * matches no stored attribute: aggregatePerSeriesFromRawMetrics labels a
+ * missing key "", which would collapse every container into ONE series
+ * with an empty label.
  */
 
 export function buildDockerMonitorStep(args: {
@@ -365,6 +370,53 @@ export function buildDockerDeltaMonitorConfig(args: {
 
 // --- Template Definitions ---
 
+const hostStoppedReportingTemplate: DockerAlertTemplate = {
+  id: "docker-host-stopped-reporting",
+  name: "Host Stopped Reporting",
+  summary: "The Docker host sends no container metrics for 10 minutes.",
+  description:
+    "Alert when the Docker host sends no container metrics for ten minutes: the host is down, or the Docker agent stopped, lost its route to OneUptime or had its token revoked. A host with no other containers still reports, because the agent runs as a container itself and reports its own.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildDockerMonitorStep({
+      dockerMonitor: buildDockerMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        /*
+         * The heartbeat. docker_stats reports RUNNING containers only, so a
+         * host with nothing else running would look silent - except that
+         * the agent itself runs as a container (`oneuptime-docker-agent`,
+         * DockerAgent/docker-compose.yml, also under its systemd unit,
+         * which runs `docker compose up`) and the receiver excludes no
+         * image, so its own container.memory.percent arrives every 30s for
+         * as long as the agent runs. Ungrouped and counted: only a window
+         * with no row from any container is the breach.
+         */
+        metricName: "container.memory.percent",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Docker host",
+        incidentTitle: `[Docker] Host Stopped Reporting${dockerTitleSuffix(args)}`,
+        incidentDescription: `OneUptime has received no container metrics from this Docker host for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the host is up, whether the \`oneuptime-docker-agent\` container is running and what its logs say (\`docker logs oneuptime-docker-agent\`), and whether the host can reach OneUptime with the agent's token. The incident resolves on its own once metrics arrive again.`,
+        criteriaName: "Host Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the Docker host sends no container metrics for the whole ten-minute window.",
+      }),
+    });
+  },
+};
+
 const highCpuTemplate: DockerAlertTemplate = {
   id: "docker-high-cpu",
   name: "High Container CPU Usage",
@@ -468,7 +520,7 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
   name: "Container Restart Loop",
   summary: "A container restarts more than 3 times in 15 minutes.",
   description:
-    "Alert when a container's restart count climbs by more than 3 within fifteen minutes, indicating a crash loop. One alert per container.",
+    "Alert when a container's restart count climbs by more than 3 within fifteen minutes, indicating a crash loop. The count only grows between two samples of the same minute, and the agent samples running containers only, so a container that exits the moment it starts is rarely seen at all: Container Restarted (Low Uptime) catches every restart the agent does see. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -504,6 +556,16 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
          * Docker's restart backoff (doubling, capped at 60s) puts a real
          * crash loop at ~20 restarts per fifteen minutes, so the threshold
          * below still clears with room to spare.
+         *
+         * What it cannot see: docker_stats samples RUNNING containers only,
+         * so a container that exits the moment it starts is almost never
+         * sampled, twice in a minute or at all. Taking the counter's growth
+         * across the WHOLE window instead would need the alerting path to
+         * difference values across buckets, which it cannot (no rate or
+         * delta in AggregationType or EvaluateOverTimeType, and formulas
+         * are evaluated point by point); and even that would need two
+         * samples of the container. Container Restarted (Low Uptime) fires
+         * on every restart the agent does sample.
          */
         rollingTime: RollingTime.Past15Minutes,
         groupByAttributeKey: "resource.container.name",
@@ -668,33 +730,35 @@ const highProcessCountTemplate: DockerAlertTemplate = {
 };
 
 /*
- * KNOWN INERT — do not copy this shape, and do not assume it gives adopters
- * container-down coverage.
+ * A container that RESTARTED, not one that stopped: the id still says
+ * "down" and deliberately stays that way, because it is the stable key the
+ * recommendation catalog and the already-created-monitor diff match on
+ * (MonitorRecommendationCatalog.buildRecommendationId).
  *
- * `container.uptime` is seconds-since-start from the docker_stats receiver,
- * which only scrapes RUNNING containers, so the value is a positive double
- * and `= 0` is unreachable. Absence cannot substitute either: a stopped
- * container emits no datapoint, so it produces no series, and
- * MonitorCriteriaEvaluator discards a grouped criteria whose per-series
- * match list is empty — `onNoDataPolicy: Trigger` would be inert too. The
- * worker's only absent-series injectors are host- and IoT-device-scoped
- * (injectExpectedAbsentHostSeries / injectExpectedAbsentIoTDeviceSeries,
- * gated by HostAbsenceSeries.getHostAbsenceGroupByKey).
+ * This used to fire on `container.uptime = 0`, which can never match:
+ * uptime is seconds-since-start from the docker_stats receiver, which only
+ * scrapes RUNNING containers, so the value is a positive double and is
+ * never sampled at the instant a container starts. Absence cannot
+ * substitute either: a stopped container emits no datapoint, so it
+ * produces no series, and MonitorCriteriaEvaluator discards a grouped
+ * criteria whose per-series match list is empty - the worker's only
+ * absent-series injectors are host- and IoT-device-scoped
+ * (injectExpectedAbsentHostSeries / injectExpectedAbsentIoTDeviceSeries).
+ * A container that stops and stays stopped therefore cannot be detected
+ * per container from this data; Host Stopped Reporting covers the host
+ * going silent.
  *
- * Real per-container down detection needs an absent-CONTAINER injector in
- * App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts.
- * Until that exists this template cannot fire. Removing it is the honest
- * alternative, but that also touches TemplateGroupByKeys.test.ts and six
- * localised docs tables, so it is deliberately left for a follow-up rather
- * than half-done here. PodmanAlertTemplates and DockerSwarmAlertTemplates
- * carry the identical inert design.
+ * A LOW uptime is the signal the metric can carry: the container started
+ * again recently - the restart policy brought it back after a crash, or it
+ * was redeployed. Same shape as PodmanAlertTemplates' podman-container-down.
  */
 const containerUptimeTemplate: DockerAlertTemplate = {
   id: "docker-container-down",
-  name: "Container Down (Low Uptime)",
-  summary: "A container stops or crashes.",
+  name: "Container Restarted (Low Uptime)",
+  summary:
+    "A container restarted, crashed or was redeployed in the last 2 minutes.",
   description:
-    "Alert when a container's uptime drops to zero, indicating it has stopped or crashed. One alert per container.",
+    "Alert when a container's uptime resets, meaning it restarted, crashed and was brought back by its restart policy, or was redeployed in the last two minutes. A container that stops and stays stopped sends no data, so this catches restarts, not a permanent shutdown. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -706,6 +770,11 @@ const containerUptimeTemplate: DockerAlertTemplate = {
         metricName: "container.uptime",
         metricAlias,
         rollingTime: RollingTime.Past1Minute,
+        /*
+         * Min WITHIN each container's series: the low sample taken just
+         * after a restart survives instead of being averaged away by the
+         * scrapes around it.
+         */
         aggregationType: MetricsAggregationType.Min,
         groupByAttributeKey: "resource.container.name",
       }),
@@ -715,18 +784,26 @@ const containerUptimeTemplate: DockerAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
-        filterType: FilterType.EqualTo,
-        value: 0,
-        incidentTitle: `[Docker] Container Down${dockerTitleSuffix(args)}`,
-        incidentDescription: `A Docker container has stopped running. The container uptime is zero, indicating it has crashed, been stopped, or been removed. Check the container status and logs for details.`,
-        criteriaName: "Container Down - Uptime = 0",
-        criteriaDescription: "Triggers when container uptime drops to zero.",
+        /*
+         * Two minutes is deliberately wider than the 30 s scrape interval
+         * and the 60 s evaluation interval, so the once-a-minute evaluator
+         * sees the whole Past1Minute window under the threshold whatever
+         * the phase of the scrapes; a 60 s threshold on a 60 s window can
+         * miss a restart entirely.
+         */
+        filterType: FilterType.LessThan,
+        value: 120,
+        incidentTitle: `[Docker] Container Restarted (uptime < 2m)${dockerTitleSuffix(args)}`,
+        incidentDescription: `A Docker container's uptime counter has reset, so it crashed and was restarted by its restart policy, was restarted by hand, or was redeployed within the last two minutes. On the host, \`docker inspect\` shows why the last run ended and \`docker logs --since 5m\` what it printed. A container that stops and stays stopped reports no metrics at all, so this alert detects restarts rather than a permanent shutdown, and a container that is meant to run for less than two minutes stays in this state for its whole life. Check the root cause for the container and the observed uptime.`,
+        criteriaName: "Container Restarted - Uptime < 120s",
+        criteriaDescription:
+          "Triggers when a container's uptime stays under 120 seconds for the whole window, which means it started or restarted within the last two minutes.",
       }),
       onlineCriteriaInstance: buildDockerOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.GreaterThan,
-        value: 0,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 120,
       }),
     });
   },
@@ -734,6 +811,7 @@ const containerUptimeTemplate: DockerAlertTemplate = {
 
 export function getAllDockerAlertTemplates(): Array<DockerAlertTemplate> {
   return [
+    hostStoppedReportingTemplate,
     highCpuTemplate,
     highMemoryTemplate,
     containerRestartLoopTemplate,
@@ -759,4 +837,13 @@ export function getDockerAlertTemplateById(
   return getAllDockerAlertTemplates().find((template: DockerAlertTemplate) => {
     return template.id === id;
   });
+}
+
+/*
+ * The template a NEW Docker monitor starts on: the host going silent. It is
+ * the one template that still speaks when every other one has stopped being
+ * evaluated, and it has no threshold to tune.
+ */
+export function getDockerDefaultAlertTemplateId(): string {
+  return hostStoppedReportingTemplate.id;
 }

@@ -13,9 +13,17 @@ import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import { AGENT_EMITTED_METRIC_NAMES } from "./Utils/KubernetesAgentEmittedMetrics";
 import MonitorStepKubernetesMonitor from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
-import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  SamplesByAlias,
+  evaluateTemplateCriteria,
+} from "./Utils/TemplateCriteriaEvaluation";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * These tests lock in the subtle, easy-to-regress decisions in the
@@ -145,7 +153,11 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
   },
   {
     id: "k8s-high-memory",
-    numerator: "k8s.node.memory.usage",
+    /*
+     * The working set, not `k8s.node.memory.usage`: usage counts page cache
+     * the kernel reclaims, so a node full of cache read near 100%.
+     */
+    numerator: "k8s.node.memory.working_set",
     denominator: "k8s.node.allocatable_memory",
     numAlias: "used_mem",
     denAlias: "alloc_mem",
@@ -155,28 +167,11 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     groupBy: ["resource.k8s.node.name"],
   },
   /*
-   * Autoscaling saturation — Avg/Avg, and NOT keyed on the node.
-   *
-   * The HPA ratio groups per namespace+HPA object. Locking the group-by
-   * set here is the point of this case: it was the first ratio template in
-   * this file not keyed on `resource.k8s.node.name`, so a copy-paste of
-   * the node key would silently collapse every HPA into one mislabeled
-   * series that still renders and still alerts.
-   *
-   * The two POD-LIMIT saturation templates used to live here as ratios.
-   * They are single-query now — see SINGLE_QUERY_SATURATION.
+   * The HPA saturation template used to be here as a plain ratio. It is a
+   * three-query monitor now (current, max AND min replicas), so an HPA that
+   * idles at a floor within 10% of its ceiling does not page - see the
+   * "HPA Saturated at Max Replicas" suite below.
    */
-  {
-    id: "k8s-hpa-at-max-replicas",
-    numerator: "k8s.hpa.current_replicas",
-    denominator: "k8s.hpa.max_replicas",
-    numAlias: "current_replicas",
-    denAlias: "max_replicas",
-    resultAlias: "hpa_replica_saturation",
-    aggregation: MetricsAggregationType.Avg,
-    threshold: 90,
-    groupBy: ["resource.k8s.namespace.name", "resource.k8s.hpa.name"],
-  },
 ];
 
 /*
@@ -785,20 +780,32 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
    * and `Max` over a monotonic series is just the counter, so no per-window
    * count is computed anywhere.
    */
-  test("k8s-crashloopbackoff does not claim a per-window restart count", () => {
+  test("k8s-crashloopbackoff reads the restart count's growth, not its lifetime total", () => {
     const [offline] = getCriteriaInstances("k8s-crashloopbackoff");
-    const [query] = getQueryConfigs("k8s-crashloopbackoff");
+    const queries: Array<any> = getQueryConfigs("k8s-crashloopbackoff");
 
-    // The configuration that makes the old wording false is still in place.
-    expect(query.metricQueryData.filterData.metricName).toBe(
-      "k8s.container.restarts",
-    );
-    expect(query.metricQueryData.filterData.aggegationType).toBe(
-      MetricsAggregationType.Max,
-    );
+    expect(
+      queries.map((query: any) => {
+        return [
+          query.metricQueryData.filterData.metricName,
+          query.metricQueryData.filterData.aggegationType,
+        ];
+      }),
+    ).toEqual([
+      ["k8s.container.restarts", MetricsAggregationType.Max],
+      ["k8s.container.restarts", MetricsAggregationType.Min],
+      ["k8s.container.ready", MetricsAggregationType.Avg],
+    ]);
 
-    expect(offline.data.description).not.toContain("in the monitoring window");
-    expect(offline.data.description).toContain("cumulative");
+    // No criteria compares the raw lifetime count.
+    for (const filter of offline.data.filters as Array<any>) {
+      expect([
+        "container_restarts_max",
+        "container_restarts_min",
+      ]).not.toContain(filter.metricMonitorOptions.metricAlias);
+    }
+
+    expect(offline.data.description).not.toContain("cumulative");
   });
 
   /*
@@ -1242,6 +1249,310 @@ describe("KubernetesAlertTemplates - high node CPU", () => {
     expect(formulaConfigs).toHaveLength(1);
     expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
       "(used_cpu / alloc_cpu) * 100",
+    );
+  });
+});
+
+/*
+ * The audit's Kubernetes findings, each run through the real metric
+ * evaluator (MetricMonitorCriteria) with one series' per-minute samples.
+ */
+function evaluate(
+  id: string,
+  samplesByAlias: SamplesByAlias,
+): Promise<{ breached: boolean; healthy: boolean }> {
+  const step: MonitorStep = getStep(id);
+  const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(step);
+  const windowMinutes: Record<string, number> = {
+    [RollingTime.Past5Minutes]: 5,
+    [RollingTime.Past15Minutes]: 15,
+  };
+
+  return evaluateTemplateCriteria({
+    step,
+    viewConfig: monitor.metricViewConfig,
+    samplesByAlias,
+    windowMinutes: windowMinutes[monitor.rollingTime] as number,
+  });
+}
+
+describe("KubernetesAlertTemplates - Node Not Ready catches a node that went down", () => {
+  /*
+   * Regression: the template fired on `= 0`. The k8s_cluster receiver maps
+   * Ready to True 1, False 0, Unknown -1, and a node that crashes or loses
+   * its network stops posting status: the node controller sets Ready to
+   * Unknown. `= 0` never matched that.
+   */
+  test("fires on Unknown (-1), the value a node that went down reports", async () => {
+    expect(
+      await evaluate("k8s-node-not-ready", {
+        node_ready: [-1, -1, -1, -1, -1],
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("fires on NotReady (0) as before", async () => {
+    expect(
+      await evaluate("k8s-node-not-ready", { node_ready: [0, 0, 0, 0, 0] }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("recovers at exactly Ready (1), with no unreachable dead band", async () => {
+    expect(
+      await evaluate("k8s-node-not-ready", { node_ready: [1, 1, 1, 1, 1] }),
+    ).toEqual({ breached: false, healthy: true });
+
+    const [, online] = getCriteriaInstances("k8s-node-not-ready");
+    expect(online.data.filters[0].filterType).toBe(
+      FilterType.GreaterThanOrEqualTo,
+    );
+    expect(online.data.filters[0].value).toBe(1);
+  });
+
+  test("a node that flaps back to Ready inside the window does not fire", async () => {
+    expect(
+      await evaluate("k8s-node-not-ready", { node_ready: [-1, -1, 1, -1, -1] }),
+    ).toEqual({ breached: false, healthy: false });
+  });
+
+  test("the catalog says what -1 means", () => {
+    expect(
+      getKubernetesMetricByMetricName("k8s.node.condition_ready")!.description,
+    ).toContain("-1 = Unknown");
+  });
+});
+
+describe("KubernetesAlertTemplates - CrashLoopBackOff reads what is happening now", () => {
+  const READY_ALL_WINDOW: Array<number> = Array(15).fill(1);
+  const NOT_READY_ALL_WINDOW: Array<number> = Array(15).fill(0);
+
+  // A restart count that does not move, at a given lifetime total.
+  function steady(total: number): Array<number> {
+    return Array(15).fill(total);
+  }
+
+  test("a long-lived container with old restarts does not fire (it used to page at once, forever)", async () => {
+    expect(
+      await evaluate("k8s-crashloopbackoff", {
+        container_restarts_max: steady(42),
+        container_restarts_min: steady(42),
+        container_ready: READY_ALL_WINDOW,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("a container crash-looping now fires at its third restart (it used to wait for the sixth)", async () => {
+    // Restarts 1, 2 and 3 of a new loop, one of them seen inside a minute.
+    const max: Array<number> = [0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3];
+    const min: Array<number> = [0, 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3];
+
+    expect(
+      await evaluate("k8s-crashloopbackoff", {
+        container_restarts_max: max,
+        container_restarts_min: min,
+        container_ready: NOT_READY_ALL_WINDOW,
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("a one-off restart of a container that came straight back and stayed ready does not page", async () => {
+    const max: Array<number> = steady(4);
+    const min: Array<number> = steady(4);
+    max[3] = 5;
+    min[3] = 4;
+    for (let minute: number = 4; minute < 15; minute++) {
+      max[minute] = 5;
+      min[minute] = 5;
+    }
+    const ready: Array<number> = [...READY_ALL_WINDOW];
+    ready[3] = 0.5;
+
+    expect(
+      await evaluate("k8s-crashloopbackoff", {
+        container_restarts_max: max,
+        container_restarts_min: min,
+        container_ready: ready,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("clears when the container stops restarting", async () => {
+    expect(
+      await evaluate("k8s-crashloopbackoff", {
+        container_restarts_max: steady(9),
+        container_restarts_min: steady(9),
+        container_ready: NOT_READY_ALL_WINDOW,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("never fires on the restart count's history, whatever it is", async () => {
+    const random: SeededRandom = seededRandom(1407);
+
+    for (let draw: number = 0; draw < 50; draw++) {
+      const total: number = random(10000);
+
+      expect(
+        await evaluate("k8s-crashloopbackoff", {
+          container_restarts_max: steady(total),
+          container_restarts_min: steady(total),
+          container_ready: Array.from({ length: 15 }, (): number => {
+            return random(2);
+          }),
+        }),
+      ).toEqual(expect.objectContaining({ breached: false }));
+    }
+  });
+});
+
+describe("KubernetesAlertTemplates - High Node Memory reads the working set", () => {
+  test("divides the working set, not usage with page cache, by allocatable memory", () => {
+    const queries: Array<any> = getQueryConfigs("k8s-high-memory");
+
+    expect(
+      queries.map((query: any) => {
+        return query.metricQueryData.filterData.metricName;
+      }),
+    ).toEqual(["k8s.node.memory.working_set", "k8s.node.allocatable_memory"]);
+    expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.node.memory.working_set");
+    expect(
+      getKubernetesMetricByMetricName("k8s.node.memory.working_set"),
+    ).toBeDefined();
+  });
+
+  test("a node whose memory is mostly reclaimable cache does not fire", async () => {
+    // 60 of 64 GiB "used", 40 of it cache: the working set is 20 GiB.
+    const gib: number = 1024 * 1024 * 1024;
+
+    expect(
+      await evaluate("k8s-high-memory", {
+        used_mem: Array(5).fill(20 * gib),
+        alloc_mem: Array(5).fill(64 * gib),
+      }),
+    ).toEqual({ breached: false, healthy: true });
+    expect(
+      await evaluate("k8s-high-memory", {
+        used_mem: Array(5).fill(60 * gib),
+        alloc_mem: Array(5).fill(64 * gib),
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+});
+
+describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
+  test("a Job that failed once and then succeeded on its retry stops alerting", async () => {
+    // status.failed stays at 1 for the life of the Job object.
+    expect(
+      await evaluate("k8s-job-failures", {
+        failed_pods_max: Array(15).fill(1),
+        failed_pods_min: Array(15).fill(1),
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("a Job whose pods fail in the window fires", async () => {
+    expect(
+      await evaluate("k8s-job-failures", {
+        failed_pods_max: [0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3],
+        failed_pods_min: [0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("never compares the lifetime failed-pod count", () => {
+    const [offline, online] = getCriteriaInstances("k8s-job-failures");
+
+    for (const instance of [offline, online]) {
+      expect(instance.data.filters[0].metricMonitorOptions.metricAlias).toBe(
+        "failed_pods",
+      );
+      expect(
+        instance.data.filters[0].metricMonitorOptions.metricAggregationType,
+      ).toBe(EvaluateOverTimeType.Sum);
+    }
+
+    expect(
+      getQueryConfigs("k8s-job-failures").map((query: any) => {
+        return query.metricQueryData.filterData.aggegationType;
+      }),
+    ).toEqual([MetricsAggregationType.Max, MetricsAggregationType.Min]);
+  });
+});
+
+describe("KubernetesAlertTemplates - HPA Saturated at Max Replicas", () => {
+  function hpa(data: {
+    current: number;
+    min: number;
+    max: number;
+  }): SamplesByAlias {
+    return {
+      current_replicas: Array(5).fill(data.current),
+      max_replicas: Array(5).fill(data.max),
+      min_replicas: Array(5).fill(data.min),
+    };
+  }
+
+  test("an HPA idling at a floor within 10% of its ceiling does not fire (it used to, forever)", async () => {
+    expect(
+      await evaluate(
+        "k8s-hpa-at-max-replicas",
+        hpa({ current: 9, min: 9, max: 10 }),
+      ),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("an HPA that cannot scale (min = max) does not fire", async () => {
+    expect(
+      await evaluate(
+        "k8s-hpa-at-max-replicas",
+        hpa({ current: 4, min: 4, max: 4 }),
+      ),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("an HPA that scaled up to its ceiling fires", async () => {
+    expect(
+      await evaluate(
+        "k8s-hpa-at-max-replicas",
+        hpa({ current: 10, min: 2, max: 10 }),
+      ),
+    ).toEqual({ breached: true, healthy: false });
+    expect(
+      await evaluate(
+        "k8s-hpa-at-max-replicas",
+        hpa({ current: 10, min: 9, max: 10 }),
+      ),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("an HPA with headroom left does not fire", async () => {
+    expect(
+      await evaluate(
+        "k8s-hpa-at-max-replicas",
+        hpa({ current: 5, min: 2, max: 10 }),
+      ),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("reads current, max and min replicas of the same HPA", () => {
+    expect(
+      getQueryConfigs("k8s-hpa-at-max-replicas").map((query: any) => {
+        return [
+          query.metricQueryData.filterData.metricName,
+          query.metricQueryData.groupByAttributeKeys,
+        ];
+      }),
+    ).toEqual(
+      [
+        "k8s.hpa.current_replicas",
+        "k8s.hpa.max_replicas",
+        "k8s.hpa.min_replicas",
+      ].map((metricName: string) => {
+        return [
+          metricName,
+          ["resource.k8s.namespace.name", "resource.k8s.hpa.name"],
+        ];
+      }),
     );
   });
 });

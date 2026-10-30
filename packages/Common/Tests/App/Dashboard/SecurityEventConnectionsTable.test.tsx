@@ -401,9 +401,21 @@ function row(name: string = "Acme Okta"): HTMLElement {
  * and Update credentials are reached the way a person reaches them: open
  * that row's menu, then pick the item. The menu is portalled to the body,
  * so it is found on the screen rather than inside the row.
+ *
+ * It is opened as a mouse or a finger opens it - the press, then the click -
+ * so its first item takes the focus without bringing up that item's tooltip,
+ * which waits for the keys (MoreMenuItem). Opened from the keyboard, the
+ * tooltip comes up with the focus, and the first Escape puts it away before
+ * the next one closes the menu (TooltipEscape).
  */
 function openRowMenu(current: HTMLElement): HTMLElement {
-  fireEvent.click(within(current).getByTestId("row-actions-more-button"));
+  const button: HTMLElement = within(current).getByTestId(
+    "row-actions-more-button",
+  );
+  fireEvent.pointerDown(button);
+  fireEvent.mouseDown(button);
+  fireEvent.mouseUp(button);
+  fireEvent.click(button);
   return screen.getByRole("menu");
 }
 

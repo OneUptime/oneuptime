@@ -60,6 +60,8 @@ import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTDeviceCredentialService from "Common/Server/Services/IoTDeviceCredentialService";
 import { monitorIoT } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
@@ -117,7 +119,12 @@ afterEach(() => {
 });
 
 describe("monitorIoT: every resource filter that is set must match", () => {
-  test("Device ID, Device Type and Resource Scope are all on the query, next to the fleet", async () => {
+  /*
+   * A saved Resource Scope is ignored: it matched an `iot.scope` attribute
+   * nothing stamps, and the form set it on every metric picked, so every such
+   * monitor read no data at all.
+   */
+  test("Device ID and Device Type are on the query, next to the fleet; a saved Resource Scope is not", async () => {
     await monitorIoT({
       monitorStep: iotStep({
         resourceFilters: {
@@ -134,7 +141,6 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       "resource.iot.fleet.name": "warehouse-sensors",
       "device.id": "sensor-001",
       "iot.device.type": "sensor",
-      "iot.scope": "device",
     });
   });
 
@@ -179,7 +185,6 @@ describe("monitorIoT: every resource filter that is set must match", () => {
     expect(queriedAttributes(metricAggregateBy)).toEqual({
       "resource.iot.fleet.name": "warehouse-sensors",
       "device.id": "sensor-001",
-      "iot.scope": "device",
     });
     expect(
       (
@@ -205,11 +210,6 @@ describe("monitorIoT: every resource filter that is set must match", () => {
         resourceFilters: { deviceType: "camera" },
         key: "iot.device.type",
         value: "camera",
-      },
-      {
-        resourceFilters: { scope: IoTResourceScope.Fleet },
-        key: "iot.scope",
-        value: "fleet",
       },
     ];
 
@@ -239,6 +239,58 @@ describe("monitorIoT: every resource filter that is set must match", () => {
     expect(queriedAttributes(metricAggregateBy)).toEqual({
       "resource.iot.fleet.name": "warehouse-sensors",
     });
+  });
+
+  test("a saved Resource Scope alone leaves the fleet alone on the query", async () => {
+    for (const scope of [IoTResourceScope.Device, IoTResourceScope.Fleet]) {
+      metricAggregateBy.mockClear();
+
+      await monitorIoT({
+        monitorStep: iotStep({ resourceFilters: { scope: scope } }),
+        monitorId,
+        projectId,
+      });
+
+      expect(queriedAttributes(metricAggregateBy)).toEqual({
+        "resource.iot.fleet.name": "warehouse-sensors",
+      });
+    }
+  });
+
+  test("a saved Resource Scope does not stop silent registered devices from being seeded", async () => {
+    const step: MonitorStep = iotStep({
+      resourceFilters: { scope: IoTResourceScope.Device },
+      groupByDevice: true,
+    });
+
+    // The out-of-the-box criteria ask about silence (Has No Data).
+    step.setMonitorCriteria(
+      MonitorCriteria.getDefaultMonitorCriteria({
+        monitorType: MonitorType.IoTDevice,
+        monitorName: "Warehouse sensors",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+      }),
+    );
+
+    // One device of the fleet still reports, so the silent ones can be told apart.
+    metricFindBy.mockResolvedValue([
+      {
+        time: new Date(),
+        value: 80,
+        attributes: { "device.id": "sensor-001" },
+      },
+    ]);
+
+    await monitorIoT({
+      monitorStep: step,
+      monitorId,
+      projectId,
+    });
+
+    expect(fleetFindOneBy).toHaveBeenCalled();
   });
 
   test("with a filter set, silent registered devices are not seeded: they may be outside it", async () => {

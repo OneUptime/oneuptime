@@ -124,12 +124,23 @@ describe("IoT Device monitor form - resource filters", () => {
     expect(document.body.textContent).not.toMatch(/takes? precedence/i);
   });
 
-  test("the three filters stay side by side, Device ID among them", () => {
+  test("the two filters stay side by side, Device ID among them", () => {
     openAdvanced({});
 
-    for (const title of ["Resource Scope", "Device ID", "Device Type"]) {
+    for (const title of ["Device ID", "Device Type"]) {
       expect(screen.getByText(title)).toBeInTheDocument();
     }
+  });
+
+  /*
+   * Regression: Resource Scope matched an `iot.scope` attribute nothing
+   * stamps, and picking a metric set it to Device - every such monitor read
+   * no data at all. The field is gone, and picking a metric sets no scope.
+   */
+  test("there is no Resource Scope filter to set", () => {
+    openAdvanced({});
+
+    expect(screen.queryByText("Resource Scope")).not.toBeInTheDocument();
   });
 
   test("setting a Device ID keeps the Device Type and Resource Scope already set", () => {

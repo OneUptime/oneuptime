@@ -4,7 +4,7 @@ Un moniteur d'hôte surveille une machine – son CPU, sa mémoire, ses disques,
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-dhôte): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Cinq alertes prêtes à l'emploi pour le CPU, la mémoire, le disque, la charge et les processus.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Six alertes prêtes à l'emploi pour un hôte devenu silencieux, le CPU, la mémoire, le disque, la charge et les processus.
 - [Métriques](#métriques-collectées): Les métriques d'hôte sur lesquelles vous pouvez alerter, et leurs unités.
 - [Hôte ou Serveur / VM ?](#moniteur-dhôte-ou-moniteur-serveur-vm): Lequel des deux moniteurs de machines utiliser.
 :::
@@ -95,12 +95,13 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose cinq modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+**Quick Setup** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critique | `system.memory.usage`, Count, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | High CPU Utilization | Warning | `system.cpu.utilization` pour les états `user` et `system`, additionnés et affichés en pourcentage, 5 dernières minutes | Au-dessus de 80 % | À 72 % ou moins |
 | High Memory Utilization | Warning | `system.memory.utilization` pour l'état `used`, en pourcentage, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
 | High Filesystem Usage | Critique | `system.filesystem.utilization`, Max par `mountpoint` et `device`, en pourcentage, 5 dernières minutes | Au-dessus de 90 % | À 81 % ou moins |
@@ -109,6 +110,7 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
+- **Host Stopped Reporting** se déclenche quand rien n'arrive de l'hôte pendant dix minutes : la machine est en panne ou injoignable, ou son collecteur s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **CPU** correspond au temps occupé (`user` plus `system`), le même chiffre que trace la **Vue d'ensemble** de l'hôte. L'attente d'E/S et le steal sont exclus.
 - **Mémoire** exclut les tampons et le cache de pages, si bien qu'un hôte surtout rempli de cache ne le déclenche pas.
 - **Système de fichiers** ouvre un incident par montage. Les pseudo-systèmes de fichiers en lecture seule, comme les montages snap `squashfs` ou `devfs` sous macOS, sont toujours pleins à 100 % ; excluez-les dans le scraper `filesystem` du collecteur.
@@ -173,7 +175,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. |
 | **Seuil** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
@@ -189,11 +191,11 @@ Un moniteur que vous ne créez pas à partir d'un modèle commence avec deux cri
 
 | Ordre | Critère | Correspond quand | Ensuite |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Une valeur quelconque de la première requête vaut `0` | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
-| 2 | Check if _monitor name_ is online | Une valeur quelconque est au-dessus de `0` | Marque le moniteur **Opérationnel**. |
+| 1 | Check if _monitor name_ is offline | La première requête n'a aucune donnée sur toute la fenêtre | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
+| 2 | Check if _monitor name_ is online | La première requête a des données | Marque le moniteur **Opérationnel**. |
 
 > [!IMPORTANT]
-> Le silence ne correspond à aucun des deux critères : un hôte qui cesse d'envoyer des données laisse le moniteur tel qu'il était. Pour être prévenu quand l'hôte se tait, réglez **En l'absence de données** sur **Déclencheur** dans un critère. Le temps pendant lequel OneUptime lui-même ne recevait pas de données n'est jamais une absence de données : une vérification dont la fenêtre en contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
+> Une valeur de `0` est une donnée : une métrique souvent nulle, comme les redémarrages ou les erreurs, ne met pas le moniteur hors ligne. Pour être alerté sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts restent ouverts : le silence n'est pas un rétablissement. Le temps où OneUptime lui-même ne recevait rien ne compte jamais comme une absence de données : une vérification dont la fenêtre en contient attend, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Dépannage
 

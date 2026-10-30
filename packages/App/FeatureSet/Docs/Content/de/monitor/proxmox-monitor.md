@@ -4,7 +4,7 @@ Ein Proxmox-Monitor überwacht einen Proxmox-VE-Cluster – seine Knoten, VMs un
 
 :::cards
 - [Den Monitor erstellen](#einen-proxmox-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Elf fertige Warnungen, ein Vorfall pro Knoten, Gast oder Volume.
+- [Vorlagen](#fertige-warnungsvorlagen): Zwölf fertige Warnungen, ein Vorfall pro Knoten, Gast oder Volume.
 - [Ressourcenidentität](#ressourcenidentität): Wie Sie einen einzelnen Knoten, Gast oder ein Speicher-Volume ansprechen.
 - [Metriken](#erfasste-metriken): Jede `pve_*`-Reihe, bei der der Monitor warnen kann.
 :::
@@ -109,12 +109,13 @@ Filtern Sie nach `pve.scope` oder `pve.type` für eine Art von Ressource, nach `
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet 11 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+**Quick Setup** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und ein Schwellenwert-Kriterium wird 10 % jenseits seines Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisch | `pve_up`, Count über den gesamten Cluster, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | Node Offline | Kritisch | `pve_up` für `pve.scope = node`, Min pro `id` | Unter 1 | Bei 1 |
 | Guest Down | Warnung | `pve_up` und `pve_onboot_status` für `pve.scope = guest`, Min pro `id` | `pve_up` unter 1 liegt, während `pve_onboot_status` 1 ist | `pve_up` wieder bei 1 ist oder der Start beim Booten ausgeschaltet wird |
 | Cluster Quorum at Risk | Kritisch | `pve_up` ÷ `pve_node_info` × 100 für `pve.scope = node` (beide Summe): der Anteil der Knoten, die online sind | 50 % oder weniger | Über 55 % |
@@ -129,6 +130,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
+- **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Cluster eintrifft: Der Proxmox-Agent oder sein pve-exporter läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen, die Proxmox-API antwortet ihm nicht mehr, oder jeder Knoten einer nativen Übertragung ist verstummt. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Die Ausfall-Vorlagen verwenden Minimum**, sodass eine einzige Abfrage, bei der die Ressource ausgefallen war, sie auslöst, statt von den Abfragen verdeckt zu werden, bei denen sie lief.
 - **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen, sodass ein Gast, den Sie absichtlich gestoppt haben, nie jemanden alarmiert.
 - **Cluster Quorum at Risk** ist ein Näherungswert: pve-exporter hat keine corosync-Metrik, daher zählt die Vorlage die Knoten, die online sind.
@@ -223,7 +225,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, anhand ihres Variablennamens. |
 | **Aggregation** | Wie die Werte im Zeitfenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Zeitfenster) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** – oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** – oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte. |
 | **Schwellenwert** | Der Vergleichswert. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Wird bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -239,11 +241,11 @@ Ein Monitor, den Sie nicht aus einer Vorlage erstellen, beginnt mit zwei Kriteri
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Ein beliebiger Wert der ersten Abfrage `0` ist | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
-| 2 | Check if _monitor name_ is online | Ein beliebiger Wert über `0` liegt | Markiert den Monitor als **Betriebsbereit**. |
+| 1 | Check if _monitor name_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
+| 2 | Check if _monitor name_ is online | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
 
 > [!IMPORTANT]
-> Stille erfüllt keines der beiden Kriterien: Ein Cluster, der keine Daten mehr sendet, lässt den Monitor, wie er war. Um benachrichtigt zu werden, wenn keine Daten mehr kommen, setzen Sie **Bei keinen Daten** in einem Kriterium auf **Auslöser**. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
+> Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ## Fehlerbehebung
 

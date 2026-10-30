@@ -17,6 +17,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import ErrorClass from "../../Types/Telemetry/ErrorClass";
+import { ExceptionAIExplanation } from "../../Types/Telemetry/ExceptionAIExplanation";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -1618,4 +1619,71 @@ export default class TelemetryException extends DatabaseBaseModel {
     length: ColumnLength.LongText,
   })
   public resolvedInReleaseAfter?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Server-written only (isRoot bypasses column ACL): OneUptime AI's
+     * answer, written by ExceptionExplainer and nobody else, so a client
+     * PATCH cannot put words in its mouth.
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  /*
+   * OneUptime AI's explanation of this exception: what happened, the likely
+   * root cause and the suggested fix (ExceptionAIExplanation), written from
+   * its stack trace, the trace and logs of its latest occurrence and the
+   * deploys around it. Kept so the next reader does not pay for it again;
+   * anyone who may read the exception can ask for a new one.
+   */
+  @TableColumn({
+    title: "AI Explanation",
+    description:
+      "OneUptime AI's explanation of this exception: a summary, the likely root cause, a suggested fix, how confident it is, the suspect stack frames and next steps.",
+    required: false,
+    type: TableColumnType.JSON,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public aiExplanation?: ExceptionAIExplanation = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    title: "AI Explanation Generated At",
+    description:
+      "When OneUptime AI last wrote its explanation of this exception.",
+    required: false,
+    type: TableColumnType.Date,
+    example: "2026-01-01T00:00:00.000Z",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiExplanationGeneratedAt?: Date = undefined;
 }

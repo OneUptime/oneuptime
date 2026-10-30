@@ -58,7 +58,7 @@ Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráf
 
 ### Buscar y filtrar
 
-Escriba una consulta como `type:TypeError env:production`, consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#excepciones), o haga clic en un valor de la barra lateral **Filtros**: un servicio, un host u otro recurso, un **Tipo de excepción**, un **Entorno** o una **Clase de error**.
+Escriba una consulta como `type:TypeError env:production`, consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#excepciones), o haga clic en un valor de la barra lateral **Filtros**: un servicio, un host u otro recurso, un **Tipo de excepción**, un **Entorno** o una **Clase de error**. **Asignadas a mí** muestra solo las excepciones asignadas a usted, y el menú de orden ordena la lista por **Visto por última vez**, **Visto por primera vez** o **Más eventos**.
 
 ### Abrir una excepción
 
@@ -71,7 +71,7 @@ El menú lateral de la página agrupa lo que hace con una excepción:
 
 | Página | Qué muestra |
 | --- | --- |
-| **Vista general** | El mensaje, el servicio, cuántas veces ocurrió y cuándo se vio por primera y por última vez, su tendencia en el tiempo y su última ocurrencia: la versión, el entorno, el span, la traza y la sesión de usuario. |
+| **Vista general** | El mensaje, el servicio, cuántas veces ocurrió y cuándo se vio por primera y por última vez, su tendencia en el tiempo y su última ocurrencia: la versión, el entorno, el span, la traza y la sesión de usuario. Arriba, la explicación de OneUptime AI de lo que pasó, cuando la IA está activada. |
 | **Stack trace** | Los frames de la pila. Para código de navegador, los archivos y líneas originales, una vez que suba los [Source maps](/docs/telemetry/source-maps) de la versión. |
 | **Ocurrencias** | Cada ocurrencia, con su hora, su mensaje y la traza en la que ocurrió. |
 | **Contexto** | Los atributos de la última ocurrencia, su grabación de sesión cuando la hay, y los pasos que llevaron a ella. |
@@ -97,6 +97,8 @@ Los botones de la parte superior de la página de la excepción, su página **Aj
 
 Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre las filas para todas las excepciones de la página, y use las mismas acciones en **Acciones masivas**. El resultado indica qué excepciones cambió, cuáles dejó como estaban y por qué.
 
+**Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez.
+
 ## Clases de error
 
 Cada excepción tiene una clase de error, que dice de quién es el problema. OneUptime AI la fija cuando revisa un insight sobre la excepción, como una excepción nueva o que se dispara: consulte [AI SRE](/docs/ai/ai-sre#hallazgos-detección-proactiva). Una excepción que no ha revisado se queda en `unknown`.
@@ -110,6 +112,22 @@ Cada excepción tiene una clase de error, que dice de quién es el problema. One
 | `expected-denial` | Una comprobación que hace su trabajo, como un inicio de sesión rechazado. | No |
 
 Con **Archivar las excepciones esperadas** activado, en los ajustes de los insights de IA, las excepciones que la revisión identifica como denegaciones esperadas se archivan por usted.
+
+## Explicarla con IA
+
+En la parte superior de la **Vista general** de una excepción, **Explicar con OneUptime AI** pregunta a OneUptime AI qué salió mal. Lee la stack trace, la traza y los registros de la última ocurrencia, y los despliegues del servicio en torno al momento en que empezó la excepción, y responde en la tarjeta **Qué pasó**:
+
+| Parte | Qué dice |
+| --- | --- |
+| **Qué pasó** | Una o dos frases, lo seguro que está OneUptime AI y dónde está el fallo: el código, una dependencia, la infraestructura, una entrada incorrecta o la configuración. |
+| **Causa raíz probable** | La causa, y el frame, el span, la línea de registro o el despliegue que la muestra. |
+| **Corrección sugerida** | Qué cambiar. |
+| **Dónde mirar** | Los frames de la stack trace que conviene abrir primero. |
+| **Próximos pasos** | Como mucho tres pasos para confirmarla o corregirla. |
+
+La explicación se guarda en la excepción, así que la siguiente persona que la abre la lee al momento, y **Explicar de nuevo** pide una nueva. **Abrir una pull request con la corrección** abre la página **Asistencia de IA** de la excepción, y **Hacer una pregunta de seguimiento** abre Ask AI sobre la excepción.
+
+Los ID, las direcciones de correo e IP y los tokens se quitan de todo lo que se envía, y de los atributos de un span solo se envían unos pocos, como su ruta y su código de estado. La explicación usa el proveedor de LLM y los créditos de IA del proyecto, y no se ofrece mientras **Habilitar IA** esté desactivado. Cualquiera que pueda leer la excepción puede pedir una.
 
 ## Corregirla con IA
 

@@ -4,7 +4,7 @@ En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-co
 
 :::cards
 - [Opprett monitoren](#opprett-en-proxmox-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Elleve ferdige varsler, én hendelse per node, gjest eller volum.
+- [Maler](#ferdige-varslingsmaler): Tolv ferdige varsler, én hendelse per node, gjest eller volum.
 - [Ressursidentitet](#ressursidentitet): Slik treffer du én node, gjest eller ett lagringsvolum.
 - [Metrikker](#innsamlede-metrikker): Hver serie `pve_*` monitoren kan varsle på.
 :::
@@ -109,12 +109,13 @@ Filtrer på `pve.scope` eller `pve.type` for én type ressurs, på `pve.id` elle
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr 11 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
+**Quick Setup** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `pve_up`, Count over hele klyngen, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
 | Node Offline | Kritisk | `pve_up` for `pve.scope = node`, Min per `id` | Under 1 | På 1 |
 | Guest Down | Warning | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min per `id` | `pve_up` er under 1 mens `pve_onboot_status` er 1 | `pve_up` er tilbake på 1, eller start ved oppstart er slått av |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (begge Sum): andelen noder som er tilkoblet | 50 % eller mindre | Over 55 % |
@@ -129,6 +130,7 @@ Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteri
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
 
+- **Cluster Stopped Reporting** utløses når ingenting kommer fra klyngen på ti minutter: Proxmox-agenten eller pve-exporteren dens har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, Proxmox-API-et sluttet å svare den, eller hver node i et innebygd push ble stille. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Nedemalene bruker Minimum**, så én innsamling der ressursen var nede, utløser dem i stedet for å skjules av innsamlinger der den kjørte.
 - **Guest Down** ser bare på gjester som er satt til å starte ved oppstart, så en gjest du har stoppet med vilje, varsler aldri noen.
 - **Cluster Quorum at Risk** er en tilnærming: pve-exporter har ingen corosync-metrikk, så malen teller nodene som er tilkoblet.
@@ -223,7 +225,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. |
 | **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare avviksbetingelser. 14 dager (standard), 28, 60 eller 90 dager med historikk. |
@@ -239,11 +241,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | En hvilken som helst verdi i den første spørringen er `0` | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitor name_ is offline», som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | En hvilken som helst verdi er over `0` | Markerer monitoren som **I drift**. |
+| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitor name_ is offline», som løser seg selv når monitoren kommer seg. |
+| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stillhet samsvarer med ingen av kriteriene: en klynge som slutter å sende data, etterlater monitoren slik den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 

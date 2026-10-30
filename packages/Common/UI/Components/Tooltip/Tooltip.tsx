@@ -12,6 +12,7 @@ import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
 import useTranslateValue from "../../Utils/Translation";
 import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
+import { TOOLTIP_PLUGINS } from "./TooltipEscape";
 
 export interface ComponentProps {
   text?: string | undefined;
@@ -134,6 +135,12 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
        * impossible to build under it.
        */
       content={tooltipContent}
+      /*
+       * Escape closes it, however it was opened, and leaves the focus where
+       * it was; the Escape that closed it does not also close a dialog, menu
+       * or panel around its trigger (TooltipEscape, WCAG 1.4.13).
+       */
+      plugins={TOOLTIP_PLUGINS}
       {...(props.reference
         ? { reference: props.reference, showOnCreate: true }
         : { children: props.children })}

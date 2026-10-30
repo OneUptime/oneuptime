@@ -4,14 +4,14 @@ Un monitor Docker Swarm sorveglia i container dietro i task di servizio di un cl
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-docker-swarm): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-pronti): Quattro avvisi pronti, un incidente per task.
+- [Modelli](#modelli-di-avviso-pronti): Cinque avvisi pronti, un incidente per task.
 - [Metriche](#metriche-raccolte): Le metriche dei container su cui potete avvisare.
 - [Filtri](#impostazioni-del-monitor): Restringere un monitor a un servizio, un task o un'immagine.
 :::
 
 ## Come funziona
 
-L'agente Docker Swarm di OneUptime viene eseguito su un nodo manager. Il suo collector legge le statistiche dei container dal demone Docker di quel nodo ogni 30 secondi e contrassegna ogni lotto con il nome del cluster, `docker.swarm.cluster.name`. Un piccolo lettore dell'inventario al suo fianco legge i nodi, i servizi e i task del cluster dall'API di Swarm ogni 5 minuti. I primi dati registrano il cluster in OneUptime.
+L'agente Docker Swarm di OneUptime viene eseguito su un nodo manager. Il suo collector legge le statistiche dei container dal demone Docker di quel nodo ogni 30 secondi, contrassegna ogni lotto con il nome del cluster, `docker.swarm.cluster.name`, e le metriche di ogni task con il suo servizio e il suo nodo. Un piccolo lettore dell'inventario al suo fianco legge i nodi, i servizi e i task del cluster dall'API di Swarm ogni 5 minuti. I primi dati registrano il cluster in OneUptime.
 
 Il collector vede solo i container del nodo su cui gira. Per avere metriche da ogni nodo, eseguite il collector su ogni nodo con lo stesso `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. È l'unico attributo di risorsa apposto dall'agente, quindi il monitor non aggiunge filtri su `container.runtime` o `host.name`. |
-| **Nome del servizio** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `docker.swarm.service.name`, per esempio `web`. |
-| **Nome del nodo** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `docker.swarm.node.name`, per esempio `swarm-node-1`. |
+| **Docker Swarm Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. Le metriche di un task portano `container.runtime=docker` come quelle di un host Docker, e l'agente non appone mai `host.name`, quindi il monitor non filtra su nessuno dei due. |
+| **Nome del servizio** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.service.name`, il servizio come lo chiama `docker service ls`, per esempio `web` (`<stack>_web` in uno stack). |
+| **Nome del nodo** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.node.name`, l'hostname del nodo come lo mostra `docker node ls`, per esempio `swarm-node-1`. L'agente su quel nodo lo appone a partire da `DOCKER_SWARM_NODE_NAME`. |
 | **Nome del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.name`. Il container di un task si chiama `<service>.<slot>.<taskid>`, per esempio `web.1.abc123`. |
-| **Immagine del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.image.name`, per esempio `nginx:latest`. |
+| **Immagine del container** | Custom Metric, Avanzato | Facoltativo. Corrisponde a `resource.container.image.name` con o senza il digest che Swarm fissa all'immagine: `nginx:latest` corrisponde anche a `nginx:latest@sha256:…`, un digest che digitate viene ignorato, e un nome senza tag significa `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
 | **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
-> [!WARNING]
-> L'agente distribuito non imposta ancora `docker.swarm.service.name` né `docker.swarm.node.name`, quindi un monitor con **Nome del servizio** o **Nome del nodo** compilato non trova dati. Restringete invece per **Immagine del container**, oppure raggruppate per `resource.container.name`.
+> [!NOTE]
+> **Nome del servizio** e **Nome del nodo** richiedono i file dell'agente dalla versione 0.161.2 in poi: quelli più vecchi non inviano né il servizio né il nodo. [Aggiornate l'agente](/docs/telemetry/docker-swarm#aggiornare-lagent) su ogni nodo su cui gira.
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre quattro modelli. Ognuno costruisce un monitor completo: una query raggruppata per `resource.container.name`, un criterio che scatta e uno che ripristina. Ogni task viene giudicato separatamente e riceve il proprio incidente e il proprio avviso, la cui causa principale elenca i task interessati e i loro valori. Le soglie sono punti di partenza modificabili.
+**Quick Setup** offre cinque modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Cluster Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni task viene giudicato separatamente e riceve il proprio incidente e il proprio avviso, la cui causa principale elenca i task interessati e i loro valori. Le soglie sono punti di partenza modificabili.
 
 Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container del cluster, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | Task Down (Low Uptime) | Critico | `container.uptime`, Min per task, ultimo 1 minuto | Un valore qualsiasi è sotto i 60 secondi | Ogni valore è a 66 secondi o più |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
-| High Task Process Count | Warning | `container.pids.count`, Max per task, ultimi 5 minuti | Sopra 500 | A 450 o meno |
+| High Task Process Count | Warning | `container.pids.count`, Max per task, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** scatta quando dal cluster non arriva nulla per dieci minuti: i nodi che eseguono l'agente sono giù, oppure l'agente si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala. Un nodo senza task continua comunque a inviare dati, perché l'agente gira come container e invia i propri.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** scatta su un singolo campione recente perché un riavvio è un evento, non un livello. Swarm assegna a un task sostitutivo un nuovo container, e quindi una nuova serie, ed è per questo che il modello cerca un uptime inferiore a un minuto invece di uno 0. Anche un deploy o uno scale-up lo fanno scattare, e si risolve quando i nuovi task superano un minuto di uptime. Un task che muore e non viene sostituito non invia nulla, quindi non viene rilevato.
@@ -136,10 +140,10 @@ Il collector dell'agente usa il receiver OpenTelemetry `docker_stats`, quindi le
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
-| `container.pids.count` | count | Processi all'interno del container di un task. Un aumento improvviso può indicare una fork bomb o un leak. |
+| `container.pids.count` | count | Task nel container di un task: il controller pids del cgroup conta i thread oltre ai processi. Un aumento improvviso può indicare una fork bomb o una perdita di thread. |
 | `container.uptime` | secondi | Da quanto tempo è in esecuzione il container di un task. Un task ripianificato o riavviato avvia un nuovo container da 0. |
 
-Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` e `resource.docker.swarm.cluster.name`.
+Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (quando l'agente conosce il nome del nodo) e `resource.docker.swarm.cluster.name`.
 
 ## Criteri di monitoraggio
 
@@ -149,7 +153,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
@@ -165,11 +169,11 @@ Un monitor che non create da un modello parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Un valore qualsiasi della prima query è `0` | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor si riprende. |
-| 2 | Check if _monitor name_ is online | Un valore qualsiasi è sopra `0` | Segna il monitor come **Operativo**. |
+| 1 | Check if _monitor name_ is offline | La prima query non ha dati per l'intera finestra | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor si riprende. |
+| 2 | Check if _monitor name_ is online | La prima query ha dati | Segna il monitor come **Operativo**. |
 
 > [!IMPORTANT]
-> Il silenzio non corrisponde a nessuno dei due criteri: un cluster che smette di inviare dati lascia il monitor com'era. Per essere avvisati quando i dati si fermano, impostate **Se nessun dato** su **Trigger** in un criterio. Il tempo in cui OneUptime stesso non stava ricevendo non è mai assenza di dati: un controllo la cui finestra lo contiene attende invece, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valore di `0` è un dato: una metrica che spesso vale zero, come i riavvii o gli errori, non porta il monitor offline. Per ricevere un avviso su un valore, parti da un modello o aggiungi un criterio con una soglia. Quando non arriva alcun dato e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un ripristino. Il tempo in cui OneUptime stesso non riceveva dati non conta mai come assenza di dati: un controllo la cui finestra lo contiene attende, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Risoluzione dei problemi
 
@@ -182,7 +186,7 @@ Il collector legge il demone Docker del nodo su cui gira, quindi vede solo i tas
 :::
 
 :::details Un monitor filtrato per servizio o per nodo non trova dati
-**Nome del servizio** e **Nome del nodo** corrispondono a `docker.swarm.service.name` e `docker.swarm.node.name`, che l'agente distribuito non imposta. Svuotateli e restringete per **Immagine del container**, oppure raggruppate per `resource.container.name`.
+**Nome del servizio** e **Nome del nodo** corrispondono a `resource.docker.swarm.service.name` e `resource.docker.swarm.node.name`, che l'agente invia dalla versione 0.161.2 dei suoi file in poi: [aggiornatelo](/docs/telemetry/docker-swarm#aggiornare-lagent). Il nome del nodo viene da `DOCKER_SWARM_NODE_NAME` nel `.env` di ogni nodo, che lo script di installazione scrive; su un nodo configurato in un altro modo, aggiungetelo lì.
 :::
 
 :::details Tutti i task appaiono come un'unica serie

@@ -4,7 +4,7 @@ Een Host-monitor bewaakt één machine – de CPU, het geheugen, de schijven, de
 
 :::cards
 - [De monitor maken](#een-host-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vijf kant-en-klare waarschuwingen voor CPU, geheugen, schijf, belasting en processen.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Zes kant-en-klare waarschuwingen voor een stille host, CPU, geheugen, schijf, belasting en processen.
 - [Metrieken](#verzamelde-metrieken): De hostmetrieken waarop u kunt waarschuwen, en hun eenheden.
 - [Host of Server / VM?](#host-monitor-of-server-vm-monitor): Welke van de twee machinemonitoren u gebruikt.
 :::
@@ -95,12 +95,13 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt vijf sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. De drempels zijn uitgangspunten die u kunt aanpassen.
+**Quick Setup** biedt zes sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritiek | `system.memory.usage`, Count, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | High CPU Utilization | Warning | `system.cpu.utilization` voor de toestanden `user` en `system`, opgeteld en als percentage getoond, laatste 5 minuten | Boven 80% | Op of onder 72% |
 | High Memory Utilization | Warning | `system.memory.utilization` voor de toestand `used`, als percentage, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
 | High Filesystem Usage | Kritiek | `system.filesystem.utilization`, Max per `mountpoint` en `device`, als percentage, laatste 5 minuten | Boven 90% | Op of onder 81% |
@@ -109,6 +110,7 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
+- **Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de machine is uitgevallen of onbereikbaar, of de collector is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **CPU** is bezette tijd (`user` plus `system`), hetzelfde cijfer dat het **Overzicht** van de host in grafieken toont. Iowait en steal tellen niet mee.
 - **Geheugen** sluit buffers en paginacache uit, zodat een host die grotendeels cache bevat het sjabloon niet laat afgaan.
 - **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol; sluit ze uit in de scraper `filesystem` van de collector.
@@ -173,7 +175,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, op naam van de variabele. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. |
 | **Drempel** | De waarde waarmee wordt vergeleken. Ernaast staat een lijst met eenheden als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
@@ -189,11 +191,11 @@ Een monitor die u niet vanuit een sjabloon maakt, begint met twee criteria:
 
 | Volgorde | Criterium | Komt overeen als | Dan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Een willekeurige waarde van de eerste query `0` is | Markeert de monitor als **Offline** en meldt het incident "_monitor name_ is offline", dat zichzelf oplost als de monitor herstelt. |
-| 2 | Check if _monitor name_ is online | Een willekeurige waarde boven `0` ligt | Markeert de monitor als **Operationeel**. |
+| 1 | Check if _monitor name_ is offline | De eerste query heeft in het hele venster geen gegevens | Markeert de monitor als **Offline** en meldt het incident "_monitor name_ is offline", dat zichzelf oplost als de monitor herstelt. |
+| 2 | Check if _monitor name_ is online | De eerste query heeft gegevens | Markeert de monitor als **Operationeel**. |
 
 > [!IMPORTANT]
-> Stilte komt met geen van beide criteria overeen: een host die geen gegevens meer stuurt, laat de monitor zoals hij was. Om bericht te krijgen als de host stil wordt, zet u **Als geen gegevens** in een criterium op **Trigger**. Tijd waarin OneUptime zelf niet ontving, geldt nooit als ontbrekende gegevens: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
+> Een waarde van `0` is ook data: een metric die vaak nul is, zoals herstarts of fouten, zet de monitor niet offline. Wilt u een melding bij een waarde, begin dan met een sjabloon of voeg een criterium met een drempel toe. Komt er helemaal geen data binnen en past geen enkel criterium, dan houdt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf geen data ontving, telt nooit als geen data: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
 ## Problemen oplossen
 

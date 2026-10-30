@@ -58,7 +58,7 @@ Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over lis
 
 ### Søk og filtrer
 
-Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**.
+Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**. **Tildelt meg** viser bare unntakene som er tildelt deg, og sorteringsmenyen ordner listen etter **Sist sett**, **Først sett** eller **Flest hendelser**.
 
 ### Åpne et unntak
 
@@ -71,7 +71,7 @@ Sidemenyen på siden samler det du gjør med et unntak:
 
 | Side | Hva den viser |
 | --- | --- |
-| **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. |
+| **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. Øverst OneUptime AIs forklaring av hva som skjedde, når AI er på. |
 | **Stack trace** | Rammene i stakken. For nettleserkode de opprinnelige filene og linjene, når du har lastet opp [Source maps](/docs/telemetry/source-maps) for releasen. |
 | **Occurrences** | Hver forekomst, med tidspunkt, melding og sporet den skjedde i. |
 | **Context** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
@@ -97,6 +97,8 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 
+**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
+
 ## Feilklasser
 
 Hvert unntak har en feilklasse, som sier hvem sitt problem det er. OneUptime AI setter den når den går gjennom en innsikt om unntaket, som et nytt unntak eller et som øker kraftig: se [AI SRE](/docs/ai/ai-sre#innsikt-proaktiv-oppdagelse). Et unntak den ikke har gått gjennom, forblir `unknown`.
@@ -110,6 +112,22 @@ Hvert unntak har en feilklasse, som sier hvem sitt problem det er. OneUptime AI 
 | `expected-denial` | En kontroll som gjør jobben sin, som en avvist pålogging. | Nei |
 
 Med **Arkiver forventede unntak** slått på, i innstillingene for AI-innsikt, arkiveres unntak som gjennomgangen finner ut er forventede avvisninger, for deg.
+
+## Forklar det med AI
+
+Øverst på et unntaks **Oversikt** spør **Forklar med OneUptime AI** OneUptime AI om hva som gikk galt. Den leser stack trace, sporet og loggene for den siste forekomsten og tjenestens utrullinger rundt tidspunktet da unntaket begynte, og svarer i kortet **Hva som skjedde**:
+
+| Del | Hva den sier |
+| --- | --- |
+| **Hva som skjedde** | En setning eller to, hvor sikker OneUptime AI er, og hvor feilen ligger: koden, en avhengighet, infrastrukturen, ugyldig inndata eller konfigurasjonen. |
+| **Sannsynlig rotårsak** | Årsaken og rammen, spanet, logglinjen eller utrullingen som viser den. |
+| **Foreslått retting** | Hva som må endres. |
+| **Hvor du bør se** | Rammene i stack trace du bør åpne først. |
+| **Neste steg** | Høyst tre steg for å bekrefte eller rette det. |
+
+Forklaringen lagres på unntaket, så den neste som åpner det leser den med en gang, og **Forklar på nytt** ber om en ny. **Åpne en pull-forespørsel med rettingen** åpner unntakets side **AI Assistance**, og **Still et oppfølgingsspørsmål** åpner Ask AI om unntaket.
+
+ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
 ## Rett det med AI
 

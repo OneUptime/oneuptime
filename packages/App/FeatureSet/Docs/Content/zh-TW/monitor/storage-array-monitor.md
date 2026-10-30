@@ -4,7 +4,7 @@
 
 :::cards
 - [建立監測器](#建立儲存陣列監測器): 在儀表板中的六個步驟。
-- [範本](#預建警示範本): 十八個現成的警示，每個磁碟區、主機或元件一個事件。
+- [範本](#預建警示範本): 二十個現成的警示，每個磁碟區、主機或元件一個事件。
 - [Pure 序列的運作方式](#pure-序列的結構): 一個指標名稱，多個數值。
 - [指標](#收集的指標): 監測器可以據以發出警示的每個序列。
 :::
@@ -109,7 +109,7 @@ Pure 把多個數值放在 **一個** 指標名稱上，並用一個標籤區分
 
 ## 預建警示範本
 
-OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBlade——**Quick Setup** 會提供適用於陣列平台的那些範本。每個範本都會建構一個完整的監測器：指標查詢、其標籤篩選器、依物件自身標籤的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
+OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBlade——**Quick Setup** 會提供適用於陣列平台的那些範本。每個範本都會建構一個完整的監測器：指標查詢、其標籤篩選器、依物件自身標籤的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
 
 只有當條件對視窗中的 **每個** 值都成立時，條件才會觸發。在容量、延遲、落後或比率臨界值上觸發的監測器，只有超過臨界值 10% 之後才會復原，因此在臨界值附近徘徊的值不會來回切換；警示和硬體範本會在狀態消失時立即復原。
 
@@ -117,6 +117,7 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 
 | 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 |
 | --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 嚴重 | `purefa_info`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — Storage Array Agent 已停止、失去通往 OneUptime 的路由或權杖被撤銷，或者陣列不再回應它；資料再次送達時復原 |
 | Critical Array Alert | Array Health | 嚴重 | `purefa_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的嚴重警示(元件故障、容量緊急、複寫失敗)。每個警示一個事件；警示關閉時復原 |
 | Warning Array Alert | Array Health | Warning | `purefa_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
 | Capacity Above 80% | 容量 | Warning | `purefa_array_space_utilization`，Max，過去 15 分鐘 | > 80 — Pure 自己的第一個容量臨界值；≤ 72 時復原 |
@@ -133,6 +134,7 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 
 | 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 |
 | --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 嚴重 | `purefb_info`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — 代理程式、其匯出器或 FlashBlade 不再回應；資料再次送達時復原 |
 | Critical Array Alert | Array Health | 嚴重 | `purefb_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的嚴重警示。每個警示一個事件；警示關閉時復原 |
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
 | Capacity Above 80% | 容量 | Warning | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 15 分鐘 | > 80；≤ 72 時復原 |
@@ -143,6 +145,7 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 
+- **Array Stopped Reporting** 計算平台的識別序列(`purefa_info` 或 `purefb_info`)，代理程式收集的每個端點在每次收集時都會匯出該序列。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 - **未關閉的警示和硬體狀態使用 Max**，因為這類序列只在警示未關閉或元件處於該狀態時才存在，所以只要有一次收集顯示它，就會超過臨界值。
 - **每個依物件的範本都依物件自身的標籤分組**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每個受影響的物件各觸發一個事件，並且事件中會寫出該物件。
 - **延遲範本使用 Avg**，對陣列自身計算的每次作業平均值取平均；容量範本對陣列自身的使用率百分比取 **最大**。延遲固定以微秒為單位，容量固定以百分比為單位。
@@ -263,7 +266,7 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 | --- | --- |
 | **指標** | 要檢查的查詢或公式，依其變數名稱。 |
 | **彙總** | 視窗中的值如何變成一個答案：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**(整個視窗內每個值都必須相符)或 **Any Value**(一個就夠)。 |
-| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**無資料** 在查詢於視窗內沒有傳回任何資料時符合，**有資料** 在傳回了資料時符合。 |
 | **閾值** | 用於比較的值。指標有單位時，旁邊會有一份單位清單。異常條件不會顯示此欄位。 |
 | **敏感度** | 僅限異常條件。**低**(4σ)、**中**(3σ，預設)或 **高**(2σ)。 |
 | **基準視窗** | 僅限異常條件。14 天(預設)、28、60 或 90 天的歷史。 |
@@ -284,11 +287,11 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 
 | 順序 | 條件 | 相符時機 | 然後 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 第一個查詢的任一值為 `0` | 把監測器標記為 **離線**，並宣告事件 "_monitor name_ is offline"，監測器復原時該事件會自行解決。 |
-| 2 | Check if _monitor name_ is online | 任一值大於 `0` | 把監測器標記為 **運作中**。 |
+| 1 | Check if _monitor name_ is offline | 第一個查詢在整個視窗內沒有資料 | 把監測器標記為 **離線**，並宣告事件 "_monitor name_ is offline"，監測器復原時該事件會自行解決。 |
+| 2 | Check if _monitor name_ is online | 第一個查詢有資料 | 把監測器標記為 **運作中**。 |
 
 > [!IMPORTANT]
-> 靜默不會符合任何一個條件：停止傳送資料的陣列會讓監測器保持原樣。若要在資料停止時收到通知，請在某個條件上把 **如果沒有資料** 設定為 **觸發器**。OneUptime 本身未接收資料的時間永遠不算作沒有資料：視窗包含這段時間的檢查會改為等待，正如 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving) 所說明的那樣。
+> 值為 `0` 也是資料，因此經常為零的指標（例如重新啟動次數或錯誤數）不會讓監控器離線。要針對某個值告警，請從範本開始，或新增帶有閾值的條件。當完全沒有資料到達且沒有任何條件符合時，監控器會保持原有狀態，未解決的事件也保持開啟：沉默不等於恢復。OneUptime 本身未接收資料的時間絕不算作無資料：視窗包含這段時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## Terraform
 

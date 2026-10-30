@@ -13,7 +13,7 @@
 
 عامل سه کانتینر است که همه در یک `docker-compose.yml` تعریف شده‌اند:
 
-1. **کالکتور**: یک OpenTelemetry Collector که `docker_stats` را برای متریک‌های هر کانتینر می‌خواند، فایل‌های لاگ کانتینرها را دنبال می‌کند و فایل عکس فوری موجودی را هم دنبال می‌کند. همه‌چیز را با نام خوشه شما (`docker.swarm.cluster.name`) مُهر می‌زند و آن را روی OTLP به OneUptime می‌فرستد.
+1. **کالکتور**: یک OpenTelemetry Collector که `docker_stats` را برای متریک‌های هر کانتینر می‌خواند، فایل‌های لاگ کانتینرها را دنبال می‌کند و فایل عکس فوری موجودی را هم دنبال می‌کند. همه‌چیز را با نام خوشه شما (`docker.swarm.cluster.name`)، و متریک‌های هر وظیفه را با سرویس و گره آن مُهر می‌زند و آن را روی OTLP به OneUptime می‌فرستد.
 2. **پیمایشگر موجودی**: یک sidecar کوچک با `curl` و `jq` که هر ۵ دقیقه API مدیر swarm را می‌پیماید (`/nodes`، `/services`، `/tasks`، `/networks`، `/secrets`، `/configs`، `/volumes`) و پشته‌ها را از برچسب سرویس `com.docker.stack.namespace` به دست می‌آورد. به ازای هر شیء یک خط JSON می‌نویسد تا کالکتور آن را بفرستد.
 3. **عامل هوش مصنوعی**: `oneuptime-docker-swarm-ai-agent`، که فرمان‌های `docker` درخواستی OneUptime AI را هنگام بررسی یک حادثه یا هشدار روی این خوشه اجرا می‌کند. فقط‌خواندنی است، مگر اینکه اجازه اصلاح بدهید ([عامل هوش مصنوعی](#عامل-هوش-مصنوعی) را ببینید).
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-اسکریپت نشانی OneUptime شما، کلید دریافت داده و نامی برای خوشه را می‌پرسد. در `/opt/oneuptime-docker-swarm-agent` نصب می‌کند، یک فایل `.env` می‌نویسد که فقط مالکش می‌تواند بخواند، و هر سه کانتینر را راه می‌اندازد. برای کنار گذاشتن عامل هوش مصنوعی، `--no-ai-agent` را بیفزایید.
+اسکریپت نشانی OneUptime شما، کلید دریافت داده و نامی برای خوشه را می‌پرسد. در `/opt/oneuptime-docker-swarm-agent` نصب می‌کند، یک فایل `.env` می‌نویسد که فقط مالکش می‌تواند بخواند، با نام میزبان گره به‌عنوان `DOCKER_SWARM_NODE_NAME`، و هر سه کانتینر را راه می‌اندازد. برای کنار گذاشتن عامل هوش مصنوعی، `--no-ai-agent` را بیفزایید.
 @tab Docker Compose
 `docker-compose.yml`، `otel-collector-config.yaml` و `inventory-snapshot.sh` را از [پوشه DockerSwarmAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) در یک پوشه تازه روی یک گره مدیر دانلود کنید:
 
@@ -73,6 +73,12 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+نام گره را به آن بیفزایید. کالکتور آن را روی متریک‌های کانتینرهای گره مُهر می‌زند:
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 عامل را راه بیندازید:
@@ -98,15 +104,16 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ## متغیرهای محیطی
 
-اسکریپت نصب سه مورد نخست را در `/opt/oneuptime-docker-swarm-agent/.env` می‌نویسد؛ نصب با Docker Compose آن‌ها را از `.env` کنار `docker-compose.yml` می‌خواند. هر کدام را همان‌جا بیفزایید یا تغییر دهید، سپس `docker compose up -d` را در همان پوشه اجرا کنید.
+اسکریپت نصب چهار مورد نخست را در `/opt/oneuptime-docker-swarm-agent/.env` می‌نویسد؛ نصب با Docker Compose آن‌ها را از `.env` کنار `docker-compose.yml` می‌خواند. هر کدام را همان‌جا بیفزایید یا تغییر دهید، سپس `docker compose up -d` را در همان پوشه اجرا کنید.
 
 | متغیر | الزامی | توضیح |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | بله | نشانی OneUptime شما، مانند `https://oneuptime.com` یا نمونه خودمیزبان شما. اگر نمونه فقط HTTP دارد، از `http://` و پورتش استفاده کنید. |
 | `ONEUPTIME_SERVICE_TOKEN` | بله | کلید دریافت داده از **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده**. |
 | `DOCKER_SWARM_CLUSTER_NAME` | خیر | نام خوشه در OneUptime، و کلیدی که داده‌های هر گره با آن به هم می‌پیوندند: به‌صورت ویژگی منبع `docker.swarm.cluster.name` روی همه‌چیز مُهر زده می‌شود. ثابتش نگه دارید: تغییرش در آینده خوشه دومی ثبت می‌کند. پیش‌فرض آن `docker-swarm` است. |
+| `DOCKER_SWARM_NODE_NAME` | خیر | نام گره، که به‌صورت ویژگی منبع `docker.swarm.node.name` روی متریک‌ها و لاگ‌های کانتینرهایش مُهر زده می‌شود و یک [مانیتور Docker Swarm](/docs/monitor/docker-swarm-monitor#تنظیمات-مانیتور) بر پایه آن فیلتر می‌کند. اسکریپت نصب آن را روی نام میزبان گره تنظیم می‌کند، همان‌طور که `docker node ls` نشانش می‌دهد. خالی: هیچ نام گره‌ای مُهر زده نمی‌شود. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | خیر | اینکه پیمایشگر موجودی هر چند وقت یک عکس فوری می‌گیرد، بر حسب ثانیه. پیش‌فرض آن `300` است. |
-| `DOCKER_API_VERSION` | خیر | نسخه API موتور Docker که کالکتور و پیمایشگر موجودی با آن کار می‌کنند. پیش‌فرض آن `1.44` است؛ خالی، آن را با دیمن مذاکره می‌کند ([رفع اشکال](#رفع-اشکال) را ببینید). عامل هوش مصنوعی آن را مذاکره می‌کند، مگر اینکه یکی را تعیین کنید. |
+| `DOCKER_API_VERSION` | خیر | نسخه API موتور Docker که کالکتور و پیمایشگر موجودی با آن کار می‌کنند. به‌طور پیش‌فرض خالی است: نسخه خود دیمن را به کار می‌برند، پس هر Docker Engine از 20.10 به بعد کار می‌کند. فقط برای ثابت کردن یک نسخه آن را تنظیم کنید ([رفع اشکال](#رفع-اشکال) را ببینید). عامل هوش مصنوعی آن را مذاکره می‌کند، مگر اینکه یکی را تعیین کنید. |
 
 تنظیمات ویژه عامل هوش مصنوعی زیر [عامل هوش مصنوعی](#عامل-هوش-مصنوعی) آمده است.
 
@@ -119,9 +126,11 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 | CPU، حافظه، تعداد فرایندها و زمان کارکرد کانتینر | گیرنده `docker_stats` | صفحه **متریک‌ها** |
 | لاگ‌های stdout و stderr کانتینر | گیرنده `filelog` | صفحه **لاگ‌ها** |
 
+متریک‌های هر وظیفه هویت کانتینرش را با خود دارند، که گیرنده `docker_stats` می‌افزاید (`container.name`، `container.image.name`، `container.id` و `container.runtime=docker`)، سرویس و شناسه گره‌اش را، که کالکتور از برچسب‌هایی که Swarm روی وظیفه می‌گذارد کپی می‌کند (`docker.swarm.service.name` و `docker.swarm.node.id`)، و نام گره‌اش را از `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [مانیتورهای Docker Swarm](/docs/monitor/docker-swarm-monitor#تنظیمات-مانیتور) بر پایه این‌ها فیلتر می‌کنند.
+
 ### تفاوت آن با عامل Docker
 
-[عامل Docker](/docs/telemetry/docker-host) یک میزبان را مدل می‌کند و `host.name` و `container.runtime=docker` را مُهر می‌زند. عامل Docker Swarm عمداً فقط `docker.swarm.cluster.name` را مُهر می‌زند: آنگاه OneUptime داده‌ها را زیر خوشه swarm بایگانی می‌کند، به‌جای اینکه هر گره را میزبانی جداگانه ثبت کند.
+[عامل Docker](/docs/telemetry/docker-host) یک میزبان را مدل می‌کند و `host.name` را روی همه‌چیز مُهر می‌زند. عامل Docker Swarm عمداً `docker.swarm.cluster.name` را مُهر می‌زند و هرگز `host.name` را: آنگاه OneUptime داده‌ها را زیر خوشه swarm بایگانی می‌کند، به‌جای اینکه هر گره را میزبانی جداگانه ثبت کند.
 
 ## برچسب‌گذاری خوشه با برچسب‌های پروژه
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-بالاترین نسخه API دیمن پایین‌تر از پیش‌فرض `1.44` است (Docker Engine 20.10 در `1.41` می‌ایستد)، پس گیرنده `docker_stats` نمی‌تواند راه بیفتد و کانتینر پشت سر هم دوباره راه‌اندازی می‌شود. بالاترین نسخه دیمن را پیدا کنید:
+بالاترین نسخه API دیمن پایین‌تر از نسخه‌ای است که کالکتور درخواست کرد (Docker Engine 20.10 در `1.41` می‌ایستد)، پس گیرنده `docker_stats` نمی‌تواند راه بیفتد و کانتینر پشت سر هم دوباره راه‌اندازی می‌شود. کالکتور نسخه را با دیمن مذاکره می‌کند مگر اینکه `DOCKER_API_VERSION` نسخه‌ای را تعیین کند، و فایل‌های عامل پیش از نسخه 0.161.2 مقدار `1.44` را ثابت کرده بودند. [عامل را به‌روزرسانی کنید](#بهروزرسانی-عامل) و هر `DOCKER_API_VERSION` دارای نسخه را از `.env` بردارید (یا آن را خالی بگذارید، `DOCKER_API_VERSION=`)، روی هر گره‌ای که عامل روی آن اجرا می‌شود.
+
+اگر باز هم می‌خواهید نسخه‌ای را ثابت کنید، از بالاترین نسخه دیمن بالاتر نروید:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-`DOCKER_API_VERSION` را در `.env` روی همان مقدار تنظیم کنید و `docker compose up -d` را روی هر گره‌ای که عامل روی آن اجرا می‌شود اجرا کنید. دیمن‌های تازه‌تر همچنان نسخه‌های قدیمی‌تر API را ارائه می‌کنند، پس این تنظیم پس از ارتقای Docker هم کار می‌کند. یا `DOCKER_API_VERSION=` (خالی) را تنظیم کنید تا کالکتور به‌جای ثابت کردن یک نسخه، آن را با دیمن مذاکره کند.
+`DOCKER_API_VERSION` را در `.env` روی همان مقدار تنظیم کنید و `docker compose up -d` را روی هر گره‌ای که عامل روی آن اجرا می‌شود اجرا کنید. دیمن‌های تازه‌تر همچنان نسخه‌های قدیمی‌تر API را ارائه می‌کنند، پس این تنظیم پس از ارتقای Docker هم کار می‌کند.
 :::
 
 :::details خوشه با نام نادرست نمایان می‌شود

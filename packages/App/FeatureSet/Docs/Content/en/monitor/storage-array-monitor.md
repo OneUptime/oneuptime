@@ -4,7 +4,7 @@ A storage array monitor watches one storage array and tells you when the array r
 
 :::cards
 - [Create the monitor](#create-a-storage-array-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Eighteen ready-made alerts, one incident per volume, host or component.
+- [Templates](#pre-built-alert-templates): Twenty ready-made alerts, one incident per volume, host or component.
 - [How Pure's series work](#how-pures-series-are-shaped): One metric name, many figures.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
@@ -109,7 +109,7 @@ In monitor filters and group-by keys, the agent's attributes start with `resourc
 
 ## Pre-built Alert Templates
 
-OneUptime ships 18 templates — 11 for FlashArray and 7 for FlashBlade — and **Quick Setup** offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 20 templates — 12 for FlashArray and 8 for FlashBlade — and **Quick Setup** offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for **every** value in its window. A monitor that fired on a capacity, latency, lag or ratio threshold recovers only 10% past it, so a value hovering at the threshold does not flap; the alert and hardware templates recover as soon as the state clears.
 
@@ -117,6 +117,7 @@ A criteria fires only when the condition holds for **every** value in its window
 
 | Template                       | Category     | Severity | Watches                                                                                         | Fires when                                                                                                                                       |
 | ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Array Stopped Reporting        | Availability | Critical | `purefa_info`, Count, past 10 minutes                                                           | No data for the whole window — the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it; recovers when data arrives again |
 | Critical Array Alert           | Array Health | Critical | `purefa_alerts_open` filtered to `severity=critical`, Max per `summary`, past 5 minutes        | > 0 — the array has an open critical alert (a failed component, a capacity emergency, a replication failure). One incident per alert; recovers when the alert closes |
 | Warning Array Alert            | Array Health | Warning  | `purefa_alerts_open` filtered to `severity=warning`, Max per `summary`, past 5 minutes         | > 0 — the array has an open warning alert. One incident per alert; recovers when the alert closes                                               |
 | Capacity Above 80%             | Capacity     | Warning  | `purefa_array_space_utilization`, Max, past 15 minutes                                          | > 80 — Pure's own first capacity threshold; recovers at ≤ 72                                                                                     |
@@ -133,6 +134,7 @@ A criteria fires only when the condition holds for **every** value in its window
 
 | Template                     | Category     | Severity | Watches                                                                                                        | Fires when                                                                                                          |
 | ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Array Stopped Reporting      | Availability | Critical | `purefb_info`, Count, past 10 minutes                                                                          | No data for the whole window — the agent, its exporter or the FlashBlade stopped answering; recovers when data arrives again |
 | Critical Array Alert         | Array Health | Critical | `purefb_alerts_open` filtered to `severity=critical`, Max per `summary`, past 5 minutes                       | > 0 — the FlashBlade has an open critical alert. One incident per alert; recovers when the alert closes              |
 | Warning Array Alert          | Array Health | Warning  | `purefb_alerts_open` filtered to `severity=warning`, Max per `summary`, past 5 minutes                        | > 0 — the FlashBlade has an open warning alert. One incident per alert; recovers when the alert closes              |
 | Capacity Above 80%           | Capacity     | Warning  | `purefb_array_space_utilization` filtered to `type=array`, Max, past 15 minutes                               | > 80; recovers at ≤ 72                                                                                              |
@@ -143,6 +145,7 @@ A criteria fires only when the condition holds for **every** value in its window
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
+- **Array Stopped Reporting** counts the platform's identity series (`purefa_info` or `purefb_info`), which every endpoint the agent scrapes exports on every scrape. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Open alerts and hardware states use Max** of a series that exists only while the alert is open or the component is in that state, so one scrape that shows it trips the threshold.
 - **Every per-object template groups by the object's own label** (`summary`, `component_name`, `host`, `local_pod`, `name`), so one incident fires per affected object, and the incident names it.
 - **Latency templates use Avg** of the array's own average per operation, and capacity templates **Max** of its own utilization percentage. Latencies are pinned in microseconds and capacity in percent.
@@ -263,7 +266,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -284,11 +287,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: an array that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Terraform
 
