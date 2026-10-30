@@ -4,18 +4,18 @@ OneUptime Docker 代理程式是你在 Docker 主機上執行的一個容器。�
 
 :::cards
 - [安裝代理程式](#安裝代理程式): 兩個容器，使用 `docker run` 或 Docker Compose。
-- [代理程式收集的內容](#代理程式收集的內容): 每個容器的指標、日誌和清單。
+- [代理程式收集的內容](#代理程式收集的內容): 每個容器的指標和日誌。
 - [容器日誌需要 json-file](#容器日誌需要-json-file-日誌驅動程式): 檢查並切換容器的日誌驅動程式。
 - [疑難排解](#疑難排解): 重新啟動迴圈、缺少指標、缺少日誌。
 :::
 
 ## 運作方式
 
-該代理程式是一個內建 OneUptime 設定的 OpenTelemetry Collector。它會透過 Docker 通訊端每 30 秒讀取一次每個容器的統計資料，並每 5 分鐘列出一次所有容器、映像檔、網路和磁碟區。它會追蹤容器的日誌檔案，並使用你提供的擷取金鑰，透過 OTLP 將所有內容傳送到你的 OneUptime URL。
+該代理程式是一個內建 OneUptime 設定的 OpenTelemetry Collector。它會透過 Docker 通訊端每 30 秒讀取一次每個容器的統計資料。它會追蹤容器的日誌檔案，並使用你提供的擷取金鑰，透過 OTLP 將所有內容傳送到你的 OneUptime URL。
 
 ```mermaid title="Docker 主機上的兩個容器"
 flowchart TB
-    containers["你的容器"] -->|"統計、日誌檔案、<br/>清單"| agent["Docker 代理程式"]
+    containers["你的容器"] -->|"統計和<br/>日誌檔案"| agent["Docker 代理程式"]
     agent -->|"透過 HTTPS 的 OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"調查事件<br/>或警示"| ai["Docker AI 代理程式"]
     ai -->|"唯讀<br/>docker 指令"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到主機
 
-開啟 **產品 → 基礎設施 → Docker → 所有主機**。大約一分鐘內，主機會以其 `DOCKER_HOST_NAME` 出現，並帶有其容器、指標和日誌。AI 代理程式會在主機的 **AI 代理程式** 頁面上以及其 **概覽** 底部顯示為已連線。主機的 **拓撲** 頁面將其 Compose 專案、容器、映像檔、網路和磁碟區繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
+開啟 **產品 → 基礎設施 → Docker → 所有主機**。大約一分鐘內，主機會以其 `DOCKER_HOST_NAME` 出現，並帶有其容器、指標和日誌。AI 代理程式會在主機的 **AI 代理程式** 頁面上以及其 **概覽** 底部顯示為已連線。主機的 **拓撲** 頁面將其 Compose 專案和容器繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 環境變數
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_SERVICE_TOKEN` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
 | `DOCKER_HOST_NAME` | 否 | 主機在 OneUptime 中的名稱。預設為 `docker-host`，因此請為每台主機設定自己的名稱。 |
-| `DOCKER_API_VERSION` | 否 | 代理程式使用的 Docker Engine API 版本。預設為 `1.44`。在較舊的常駐程式上請調低它，或將其設為空值，讓它與常駐程式協商（請參閱 [疑難排解](#疑難排解)）。 |
+| `DOCKER_API_VERSION` | 否 | 代理程式使用的 Docker Engine API 版本。預設為空：代理程式會與常駐程式協商版本，因此從 20.10 起的每個 Docker Engine 都能使用。僅在需要固定某個版本時才設定它（請參閱 [疑難排解](#疑難排解)）。 |
 
 若要變更某個值，請移除代理程式並重新執行其指令（Docker CLI），或編輯 `docker-compose.yml` 並執行 `docker compose up -d`（Docker Compose）。
 
@@ -149,7 +149,6 @@ Everything is ready. Begin running and processing data.
 | --- | --- |
 | 容器指標 | 每個容器每 30 秒一次：CPU（用量、百分比、節流）、記憶體（用量、限制、百分比）、網路和區塊 I/O、執行時間、重新啟動次數和處理程序數。 |
 | 容器日誌 | 每個容器的 stdout 和 stderr，來自其 `json-file` 日誌檔案。 |
-| 清單 | 處於任何狀態的每個容器，以及每個映像檔、網路和磁碟區，每 5 分鐘一次。 |
 
 每個容器的指標和日誌都會歸入一個以該容器命名的服務下。每一行日誌的嚴重性取自它所寫明的等級，例如 `[ERROR]`、`level=warn` 或 `{"level":"info"}`；沒有寫明等級的行則採用其所在串流的嚴重性：stderr 為 `ERROR`，stdout 為 `INFO`。以空白或右括號開頭的行會併入前一行，因此堆疊追蹤會以單一記錄送達。代理程式自身的日誌不會被收集。
 
@@ -254,19 +253,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-常駐程式會拒絕比其自身上限更新的用戶端，因此接收器永遠無法啟動，Collector 也隨之結束。找出常駐程式的上限：
+常駐程式會拒絕比其自身上限更新的用戶端，因此接收器永遠無法啟動，Collector 也隨之結束。除非 `DOCKER_API_VERSION` 指定了版本，否則代理程式會與常駐程式協商版本（一次 `HEAD /_ping`，然後使用常駐程式自己的上限），而較舊的代理程式映像檔固定使用 `1.44`，Docker Engine 20.10 到 24 都會拒絕這個版本。[升級代理程式](#升級代理程式)，並在啟動它時不帶 `-e DOCKER_API_VERSION`（或從 Compose 中移除 `DOCKER_API_VERSION`）。
+
+如果仍要固定某個版本，請使用不超過常駐程式上限的版本：
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
 然後在 `docker run` 中加入 `-e DOCKER_API_VERSION=1.41`（或你得到的值），或在 Compose 中設定 `DOCKER_API_VERSION`。較新的常駐程式仍然支援較舊的 API 版本，因此該設定在升級後依然有效。
-
-不想查這個數字？將 `DOCKER_API_VERSION` 設為空字串。代理程式接著會與常駐程式協商版本（一次 `HEAD /_ping`，然後使用常駐程式自己的上限），這對新舊常駐程式都適用：
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Docker 通訊端權限遭拒

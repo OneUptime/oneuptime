@@ -82,11 +82,13 @@ ENV_ARGS=(
   -e "DOCKER_HOST_NAME=validate-only"
   -e "DOCKER_SWARM_CLUSTER_NAME=validate-only"
   -e "PODMAN_HOST_NAME=validate-only"
-  # The docker_stats receiver's api_version. An unset variable resolves to an
-  # empty string, which validate accepts and the receiver takes as "negotiate
-  # with the daemon" (see ContainerAgentDockerApiVersion.test.js) — so validate
-  # the value the images and compose files actually ship.
-  -e "DOCKER_API_VERSION=1.44"
+  # The docker_stats receiver's api_version: empty, the value the images and
+  # compose files ship, which the receiver takes as "negotiate with the
+  # daemon" (see ContainerAgentDockerApiVersion.test.js).
+  -e "DOCKER_API_VERSION="
+  # The Swarm node's name, which transform/swarm-node-name puts in an OTTL
+  # string: validate the statements with a name in them.
+  -e "DOCKER_SWARM_NODE_NAME=validate-only"
   -e "APP_VERSION=validate-only"
   -e "HOSTNAME=validate-only"
   -e "NODE_IP=127.0.0.1"

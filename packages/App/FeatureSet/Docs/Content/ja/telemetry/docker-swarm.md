@@ -13,7 +13,7 @@ OneUptime の Docker Swarm エージェントは Docker Swarm クラスターを
 
 エージェントは 3 つのコンテナーで、すべて 1 つの `docker-compose.yml` で定義されています:
 
-1. **Collector**: OpenTelemetry Collector です。各コンテナーのメトリクスとして `docker_stats` を読み取り、コンテナーのログファイルを追跡し、インベントリのスナップショットファイルも追跡します。すべてにクラスター名 (`docker.swarm.cluster.name`) を付与し、OTLP で OneUptime に送信します。
+1. **Collector**: OpenTelemetry Collector です。各コンテナーのメトリクスとして `docker_stats` を読み取り、コンテナーのログファイルを追跡し、インベントリのスナップショットファイルも追跡します。すべてにクラスター名 (`docker.swarm.cluster.name`) を、各タスクのメトリクスにそのサービスとノードを付与し、OTLP で OneUptime に送信します。
 2. **インベントリポーラー**: `curl` と `jq` による小さなサイドカーです。5 分ごとに Swarm マネージャーの API (`/nodes`、`/services`、`/tasks`、`/networks`、`/secrets`、`/configs`、`/volumes`) を巡回し、サービスラベル `com.docker.stack.namespace` からスタックを割り出します。オブジェクトごとに JSON を 1 行書き込み、Collector がそれを転送します。
 3. **AI エージェント**: `oneuptime-docker-swarm-ai-agent` です。OneUptime AI がこのクラスターのインシデントやアラートを調査する間、求められた `docker` コマンドを実行します。修正を許可しない限り読み取り専用です ([AI エージェント](#ai-エージェント) を参照)。
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前を尋ねます。`/opt/oneuptime-docker-swarm-agent` にインストールし、所有者だけが読める `.env` ファイルを書き込み、3 つのコンテナーすべてを起動します。AI エージェントを入れない場合は `--no-ai-agent` を付けます。
+スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前を尋ねます。`/opt/oneuptime-docker-swarm-agent` にインストールし、ノードのホスト名を `DOCKER_SWARM_NODE_NAME` として含む、所有者だけが読める `.env` ファイルを書き込み、3 つのコンテナーすべてを起動します。AI エージェントを入れない場合は `--no-ai-agent` を付けます。
 @tab Docker Compose
 [DockerSwarmAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) から、`docker-compose.yml`、`otel-collector-config.yaml`、`inventory-snapshot.sh` をマネージャーノード上の新しいフォルダーにダウンロードします:
 
@@ -73,6 +73,12 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+そこにノードの名前を追加します。Collector はこれをノードのコンテナーメトリクスに付与します:
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 エージェントを起動します:
@@ -98,15 +104,16 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ## 環境変数
 
-インストールスクリプトは最初の 3 つを `/opt/oneuptime-docker-swarm-agent/.env` に書き込みます。Docker Compose でのインストールでは、`docker-compose.yml` の横にある `.env` から読み取ります。そこでいずれかを追加または変更してから、そのフォルダーで `docker compose up -d` を実行してください。
+インストールスクリプトは最初の 4 つを `/opt/oneuptime-docker-swarm-agent/.env` に書き込みます。Docker Compose でのインストールでは、`docker-compose.yml` の横にある `.env` から読み取ります。そこでいずれかを追加または変更してから、そのフォルダーで `docker compose up -d` を実行してください。
 
 | 変数 | 必須 | 説明 |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_SERVICE_TOKEN` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
 | `DOCKER_SWARM_CLUSTER_NAME` | いいえ | OneUptime でのクラスターの名前で、すべてのノードのデータをまとめるキーです。すべてに `docker.swarm.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `docker-swarm` です。 |
+| `DOCKER_SWARM_NODE_NAME` | いいえ | ノードの名前。`docker.swarm.node.name` リソース属性として、そのノードのコンテナーのメトリクスとログに付与され、[Docker Swarm モニター](/docs/monitor/docker-swarm-monitor#モニター設定) はこれで絞り込みます。インストールスクリプトは、`docker node ls` に表示されるとおりのノードのホスト名を設定します。空の場合、ノード名は付与されません。 |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | いいえ | インベントリポーラーがスナップショットを取る間隔 (秒)。既定は `300` です。 |
-| `DOCKER_API_VERSION` | いいえ | Collector とインベントリポーラーが使う Docker Engine API のバージョン。既定は `1.44` です。空にするとデーモンとネゴシエートします ([トラブルシューティング](#トラブルシューティング) を参照)。AI エージェントは、指定しない限りネゴシエートします。 |
+| `DOCKER_API_VERSION` | いいえ | Collector とインベントリポーラーが使う Docker Engine API のバージョン。既定は空で、デーモン自身のバージョンを使うため、20.10 以降のすべての Docker Engine で動作します。バージョンを固定する場合にのみ設定します ([トラブルシューティング](#トラブルシューティング) を参照)。AI エージェントは、指定しない限りネゴシエートします。 |
 
 AI エージェント自身の設定は [AI エージェント](#ai-エージェント) にあります。
 
@@ -119,9 +126,11 @@ AI エージェント自身の設定は [AI エージェント](#ai-エージェ
 | コンテナーの CPU、メモリ、プロセス数、稼働時間 | `docker_stats` レシーバー | **メトリクス** ページ |
 | コンテナーの stdout と stderr のログ | `filelog` レシーバー | **ログ** ページ |
 
+各タスクのメトリクスには、`docker_stats` レシーバーが付けるコンテナーの識別情報 (`container.name`、`container.image.name`、`container.id`、`container.runtime=docker`)、Swarm がタスクに付けるラベルから Collector がコピーするサービスとノードの ID (`docker.swarm.service.name` と `docker.swarm.node.id`)、そして `DOCKER_SWARM_NODE_NAME` から得るノードの名前 (`docker.swarm.node.name`) が付きます。[Docker Swarm モニター](/docs/monitor/docker-swarm-monitor#モニター設定) はこれらで絞り込みます。
+
 ### Docker エージェントとの違い
 
-[Docker エージェント](/docs/telemetry/docker-host) は 1 台のホストをモデル化し、`host.name` と `container.runtime=docker` を付与します。Docker Swarm エージェントは意図的に `docker.swarm.cluster.name` だけを付与します。これにより OneUptime は、各ノードを個別のホストとして登録するのではなく、データを Swarm クラスターの下に整理します。
+[Docker エージェント](/docs/telemetry/docker-host) は 1 台のホストをモデル化し、すべてに `host.name` を付与します。Docker Swarm エージェントは意図的に `docker.swarm.cluster.name` を付与し、`host.name` は付与しません。これにより OneUptime は、各ノードを個別のホストとして登録するのではなく、データを Swarm クラスターの下に整理します。
 
 ## プロジェクトラベルでクラスターにタグを付ける
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-デーモンの最も高い API バージョンが既定の `1.44` より低いため (Docker Engine 20.10 は `1.41` まで)、`docker_stats` レシーバーが起動できず、コンテナーが再起動を繰り返します。デーモンの最も高いバージョンを確認します:
+デーモンの最も高い API バージョンが Collector の要求したバージョンより低いため (Docker Engine 20.10 は `1.41` まで)、`docker_stats` レシーバーが起動できず、コンテナーが再起動を繰り返します。`DOCKER_API_VERSION` でバージョンを指定しない限り、Collector はデーモンとバージョンをネゴシエートしますが、バージョン 0.161.2 より古いエージェントファイルは `1.44` に固定していました。[エージェントをアップグレード](#エージェントのアップグレード)し、エージェントが動いているすべてのノードで、バージョンを指定した `DOCKER_API_VERSION` を `.env` から削除してください (または `DOCKER_API_VERSION=` のように空にします)。
+
+それでもバージョンを固定する場合は、デーモンの最も高いバージョンを超えない値を使います:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-`.env` で `DOCKER_API_VERSION` をその値に設定し、エージェントが動いているすべてのノードで `docker compose up -d` を実行します。新しいデーモンも古い API バージョンを引き続き提供するため、Docker をアップグレードした後もこの設定は機能し続けます。あるいは `DOCKER_API_VERSION=` (空) に設定すると、Collector はバージョンを固定せず、デーモンとネゴシエートします。
+`.env` で `DOCKER_API_VERSION` をその値に設定し、エージェントが動いているすべてのノードで `docker compose up -d` を実行します。新しいデーモンも古い API バージョンを引き続き提供するため、Docker をアップグレードした後もこの設定は機能し続けます。
 :::
 
 :::details クラスターが誤った名前で表示される
