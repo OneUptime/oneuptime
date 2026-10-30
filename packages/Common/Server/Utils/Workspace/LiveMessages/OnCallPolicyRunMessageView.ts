@@ -141,14 +141,30 @@ import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/On
  *
  *   ⚠️ Nobody answered the page from Simon Lee for Incident INC-8
  *
- * A TEAM IS NAMED by each person it paged, as the person's reason for being
- * paged - "member of Platform" - the way a person covering for somebody is:
+ * A TEAM IS NAMED ONCE. A page of one team - everybody it paged was paged
+ * as a member of that team - says whom it pages in its first line, the way
+ * a person says it, and its list is the team's people:
+ *
+ *   📟 Simon Lee is paging Platform for Incident INC-8
+ *
+ *   • Nawaz: paged once · by SMS
+ *   • Sam: acknowledged · paged once
+ *
+ * The team was said on every line once ("Nawaz (member of Platform)"), and
+ * a team of six said it six times, each line two lines long on a phone. It
+ * stays in the first line while the page goes on and when it ends with
+ * nobody answering ("Nobody in Platform answered the page from Simon Lee");
+ * once somebody answers, who did is what the line says. People paged
+ * through different teams, or some by name, each say their own, as a
+ * person covering for somebody says whom:
  *
  *   • Nawaz (member of Platform): paged once · by SMS
- *   • Sam (member of Platform): acknowledged · paged once
+ *   • Alex: paged once · by call
  *
- * and an alarm names the team first, then its people: "Simon Lee paged
- * Platform (Nawaz and Sam), and paging has stopped".
+ * A policy's run names its policy first, so a level that pages one team
+ * lists its people as it always did. An alarm names each team first, then
+ * its people: "Simon Lee paged Platform (Nawaz and Sam), and paging has
+ * stopped".
  *
  * SOMEBODY WHO CANNOT TAKE A PAGE can escalate it (OnCallPagePassOn). Their
  * line says so, and the run's progress says where it moved on to - straight
@@ -464,6 +480,48 @@ export default class OnCallPolicyRunMessageView {
   }
 
   /*
+   * The one team everybody the run paged was paged through, by name - a
+   * page of one team. The message says it once, not on each person's line
+   * (see the header); a direct page says it in its first line. Null when
+   * nobody was paged yet, when somebody was paged by name or through a
+   * schedule, or through another team - or through two teams at once: each
+   * line then says its own.
+   */
+  public static getTeamOfEveryonePaged(run: OnCallPolicyRun): string | null {
+    let team: string | null = null;
+
+    for (const person of run.paged) {
+      const teams: Array<string> = person.teams || [];
+
+      if (teams.length !== 1 || (team !== null && teams[0] !== team)) {
+        return null;
+      }
+
+      team = teams[0]!;
+    }
+
+    return team;
+  }
+
+  /*
+   * The team a direct page of one team pages, for its first line: "**Platform**".
+   * Null for a policy's run - its first line names the policy - and for any
+   * other run (getTeamOfEveryonePaged).
+   */
+  private static getPagedTeam(run: OnCallPolicyRun): MarkdownText | null {
+    const team: string | null = run.directPage
+      ? this.getTeamOfEveryonePaged(run)
+      : null;
+
+    return team ? mdText`**${team}**` : null;
+  }
+
+  // The same, as plain text: what a notification shows of it.
+  private static getPagedTeamName(run: OnCallPolicyRun): string | null {
+    return run.directPage ? this.getTeamOfEveryonePaged(run) : null;
+  }
+
+  /*
    * Why a rule that pages the next person in a schedule's rotation paged
    * nobody there, for the alarm about a rule that reached nobody: "nobody
    * was next in the Primary rotation".
@@ -527,9 +585,17 @@ export default class OnCallPolicyRunMessageView {
       }
     }
 
+    /*
+     * Everybody paged as a member of one team: the team is said once (the
+     * first line, for a direct page), not on each of their lines.
+     */
+    const isTeamSaidOnce: boolean = this.getTeamOfEveryonePaged(run) !== null;
+
     const people: Array<MarkdownText> = [
       ...run.paged.map((person: OnCallPolicyRunPagedPerson): MarkdownText => {
-        return this.getPagedPersonLine(person);
+        return this.getPagedPersonLine(person, {
+          isTeamSaid: isTeamSaidOnce,
+        });
       }),
       ...run.notPaged.map((entry: OnCallPolicyRunNotPaged): MarkdownText => {
         return this.getNotPagedLine(entry, run.ruleCount);
@@ -605,6 +671,8 @@ export default class OnCallPolicyRunMessageView {
     });
     // A person's page: the paging stops, not the person (see the header).
     const isStartedByPerson: boolean = this.isStartedByPerson(run);
+    // A direct page of one team: whom it pages (see the header).
+    const team: string | null = this.getPagedTeamName(run);
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Waiting:
@@ -614,8 +682,12 @@ export default class OnCallPolicyRunMessageView {
           ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${pagerNameInSentence} did not page anyone`
           : `${pagerName} did not page anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Paging:
-        return run.pageAgainNumber
-          ? `${pagerName} is paging again for ${run.recordLabel}`
+        if (run.pageAgainNumber) {
+          return `${pagerName} is paging again for ${run.recordLabel}`;
+        }
+
+        return team
+          ? `${pagerName} is paging ${team} for ${run.recordLabel}`
           : `${pagerName} is paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Acknowledged:
         return `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
@@ -638,7 +710,9 @@ export default class OnCallPolicyRunMessageView {
           : `Nobody acknowledged ${run.recordLabel}`;
       // A person's page, about a record somebody else is on.
       case OnCallPolicyRunOutcome.NobodyAnswered:
-        return `Nobody answered the page from ${pagerNameInSentence} for ${run.recordLabel}`;
+        return team
+          ? `Nobody in ${team} answered the page from ${pagerNameInSentence} for ${run.recordLabel}`
+          : `Nobody answered the page from ${pagerNameInSentence} for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
         return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
@@ -759,7 +833,8 @@ export default class OnCallPolicyRunMessageView {
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
             mdText`⚠️ Nobody answered the page for ${record}: ${policy} paged ${this.getPagedNames(run)}, and paging has stopped. ${WHAT_TO_DO_WHEN_NOBODY_ANSWERED}`.toString(),
-          text: `Nobody answered the page from ${this.getPagerName(run, { isInSentence: true })} for ${run.recordLabel}`,
+          // The message's own line, as a notification shows it.
+          text: this.getPlainTextLine(run),
         });
         break;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
@@ -840,6 +915,11 @@ export default class OnCallPolicyRunMessageView {
     const soPagingStopped: MarkdownText = isStartedByPerson
       ? mdText`so paging stopped`
       : mdText`so ${policyInSentence} stopped paging`;
+    /*
+     * A direct page of one team says whom it pages: "Simon Lee is paging
+     * Platform for ..." (see the header).
+     */
+    const team: MarkdownText | null = this.getPagedTeam(run);
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Waiting:
@@ -854,8 +934,12 @@ export default class OnCallPolicyRunMessageView {
           : mdText`✅ ${record} is being handled, so ${policyInSentence} did not page anyone`;
       case OnCallPolicyRunOutcome.Paging:
         // A page again (OnCallAcknowledgementTimeout) says it is one.
-        return run.pageAgainNumber
-          ? mdText`📟 ${policy} is paging again for ${record}`
+        if (run.pageAgainNumber) {
+          return mdText`📟 ${policy} is paging again for ${record}`;
+        }
+
+        return team
+          ? mdText`📟 ${policy} is paging ${team} for ${record}`
           : mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
         return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
@@ -876,12 +960,18 @@ export default class OnCallPolicyRunMessageView {
         }
 
         // A direct page has no escalation rules to have gone through.
-        return run.directPage
-          ? mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`
-          : mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
+        if (run.directPage) {
+          return team
+            ? mdText`⚠️ ${policy} paged ${team} for ${record} and nobody acknowledged`
+            : mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`;
+        }
+
+        return mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
       // A person's page about a record somebody else is on.
       case OnCallPolicyRunOutcome.NobodyAnswered:
-        return mdText`⚠️ Nobody answered the page from ${policyInSentence} for ${record}`;
+        return team
+          ? mdText`⚠️ Nobody in ${team} answered the page from ${policyInSentence} for ${record}`
+          : mdText`⚠️ Nobody answered the page from ${policyInSentence} for ${record}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
         return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
@@ -993,10 +1083,12 @@ export default class OnCallPolicyRunMessageView {
    * "**Nitin**: paged twice · by SMS and email", with why somebody else's
    * page reached them: "(covering for Alex)", "(next in the Primary
    * rotation)" - and the team a page reached them through: "(member of
-   * Platform)".
+   * Platform)", unless the message says it once for everybody
+   * (`isTeamSaid`, getTeamOfEveryonePaged).
    */
   private static getPagedPersonLine(
     person: OnCallPolicyRunPagedPerson,
+    options: { isTeamSaid: boolean },
   ): MarkdownText {
     const why: Array<MarkdownText> = [];
 
@@ -1010,7 +1102,7 @@ export default class OnCallPolicyRunMessageView {
 
     const teams: Array<string> = person.teams || [];
 
-    if (teams.length > 0) {
+    if (teams.length > 0 && !options.isTeamSaid) {
       why.push(this.getTeamReason(teams));
     }
 

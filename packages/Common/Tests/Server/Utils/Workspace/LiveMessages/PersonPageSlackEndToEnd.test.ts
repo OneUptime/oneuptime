@@ -44,10 +44,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  * made Alert ALT-16 and ALT-18 to page people, and a paged team showed only
  * its members. Now Jane pages Team Platform from INC-8's own channel, with
  * a message: the page is about INC-8 (no alert), its run is ONE message in
- * the incident's channel that quotes her message and names the team on
- * each of its people, and - as a page a person asked for (OnCallPersonPage)
- * - it ends saying the page went unanswered, not that the incident needs
- * taking, when somebody else is on the incident by then.
+ * the incident's channel that says she is paging Platform, quotes her
+ * message and lists the team's people, and - as a page a person asked for
+ * (OnCallPersonPage) - it ends saying nobody in Platform answered, not that
+ * the incident needs taking, when somebody else is on the incident by then.
  *
  * Everything from the run to Slack's API is OneUptime's real code - the
  * execution log service's startDirectPage and its hooks, the escalation
@@ -225,26 +225,23 @@ describe("Jane pages Team Platform from INC-8's own channel, with a message", ()
     expect(isOnCallPersonPage(world.run!)).toBe(true);
   });
 
-  test("the incident's channel gets ONE message: Jane paging for the incident, her message, and the team on each of its people", () => {
+  test("the incident's channel gets ONE message: Jane paging Platform for the incident, her message, and the team's people - the team said once", () => {
     const message: SlackRequest = pageMessageNow();
 
     expect(message.channel).toBe(SLACK_INCIDENT_CHANNEL);
     expect(lines(message)).toEqual([
-      `📟 *Jane Doe* is paging for ${INCIDENT_IN_SLACK}`,
+      `📟 *Jane Doe* is paging *Platform* for ${INCIDENT_IN_SLACK}`,
       `“${MESSAGE}”`,
-      expect.stringMatching(
-        /^•\s+\*Nitin\* \(member of Platform\): paged once/,
-      ),
-      expect.stringMatching(
-        /^•\s+\*Jane Doe\* \(member of Platform\): paged once/,
-      ),
+      expect.stringMatching(/^•\s+\*Nitin\*: paged once/),
+      expect.stringMatching(/^•\s+\*Jane Doe\*: paged once/),
       expect.stringContaining("|See every step in OneUptime>"),
     ]);
+    expect(message.text).not.toContain("member of");
   });
 
-  test("its notification says who is paging for what, and her message", () => {
+  test("its notification says who is paging whom for what, and her message", () => {
     expect(pageMessageNow().notification).toBe(
-      `Jane Doe is paging for Incident INC-8: ${MESSAGE}`,
+      `Jane Doe is paging Platform for Incident INC-8: ${MESSAGE}`,
     );
   });
 
@@ -280,7 +277,7 @@ describe("a person's page that nobody it paged answers", () => {
     expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Completed);
 
     expect(lines(pageMessageNow())[0]).toBe(
-      `⚠️ Nobody answered the page from *Jane Doe* for ${INCIDENT_IN_SLACK}`,
+      `⚠️ Nobody in *Platform* answered the page from *Jane Doe* for ${INCIDENT_IN_SLACK}`,
     );
 
     expect(alarms()).toHaveLength(1);
@@ -288,7 +285,7 @@ describe("a person's page that nobody it paged answers", () => {
       `⚠️ Nobody answered the page for ${INCIDENT_IN_SLACK}: *Jane Doe* paged Platform (Nitin and Jane Doe), and paging has stopped. Page someone else, or reach them another way.`,
     );
     expect(alarms()[0]!.notification).toBe(
-      "Nobody answered the page from Jane Doe for Incident INC-8",
+      "Nobody in Platform answered the page from Jane Doe for Incident INC-8",
     );
     expect(alarms()[0]!.text).not.toContain("Someone needs to take it");
   });
@@ -440,7 +437,7 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
     expect(world.run!.acknowledgedAt).toBeUndefined();
     expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Executing);
     expect(lines(pageMessageNow())[0]).toBe(
-      `📟 *Jane Doe* is paging for ${INCIDENT_IN_SLACK}`,
+      `📟 *Jane Doe* is paging *Platform* for ${INCIDENT_IN_SLACK}`,
     );
   });
 
@@ -470,7 +467,7 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
 });
 
 describe("a workflow's direct page is no person's page: its ending is the one it always had", () => {
-  test("ended unanswered while the incident is acknowledged: 'nobody has acknowledged', as before", async () => {
+  test("ended unanswered while the incident is acknowledged: 'nobody acknowledged', as before - naming the one team it paged", async () => {
     world.recordAcknowledged = true;
 
     await world.startDirectPage({ targets: { teamIds: [TEAM_PLATFORM] } });
@@ -480,7 +477,7 @@ describe("a workflow's direct page is no person's page: its ending is the one it
     await world.directPageTick(ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES);
 
     expect(lines(pageMessageNow())[0]).toBe(
-      `⚠️ Workflow *<${DASHBOARD}/${PROJECT_ID.toString()}/workflows/${PAGING_WORKFLOW_ID.toString()}/builder|Page the on-call engineer>* paged for ${INCIDENT_IN_SLACK} and nobody acknowledged`,
+      `⚠️ Workflow *<${DASHBOARD}/${PROJECT_ID.toString()}/workflows/${PAGING_WORKFLOW_ID.toString()}/builder|Page the on-call engineer>* paged *Platform* for ${INCIDENT_IN_SLACK} and nobody acknowledged`,
     );
     expect(world.run!.pageMessage).toBeUndefined();
   });

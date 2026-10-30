@@ -35,6 +35,7 @@ import OnCallPolicyRunMessage from "../../../../Server/Utils/Workspace/LiveMessa
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspacePage, {
   WORKSPACE_PAGE_ACTION,
+  WORKSPACE_PAGE_NEW_ALERT_ACTION,
   WORKSPACE_PAGE_FORM_TEXT,
   WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
   WORKSPACE_PAGE_MAX_CHOICES_PER_KIND,
@@ -180,12 +181,19 @@ describe("WorkspacePage.assertMayPage: who may page", () => {
 
     await expect(WorkspacePage.assertMayPage(PROPS)).resolves.toBeUndefined();
 
-    // Both, as the page will be held to: the run, and the alert it is about.
+    /*
+     * Both, as the page will be held to: the run, and the alert it is
+     * about - refused as a page here, where a page creates an alert: who may
+     * page in an incident's own channel may not page here all the same.
+     */
     expect(asked).toEqual([
       [OnCallDutyPolicyExecutionLog, WORKSPACE_PAGE_ACTION],
-      [Alert, WORKSPACE_PAGE_ACTION],
+      [Alert, WORKSPACE_PAGE_NEW_ALERT_ACTION],
     ]);
     expect(WORKSPACE_PAGE_ACTION).toBe("page people");
+    expect(WORKSPACE_PAGE_NEW_ALERT_ACTION).toBe(
+      "page people here, where a page creates an alert",
+    );
   });
 
   test.each([
@@ -1995,8 +2003,12 @@ describe("WorkspacePage: what a page needs, and what its form says, by what it i
   });
 
   test("the form's message hint says where the message goes, and why when the channel's incident is resolved", () => {
+    /*
+     * Never "Optional.": Slack writes "(optional)" after an optional
+     * field's label, and Microsoft Teams marks the required ones.
+     */
     expect(WorkspacePage.getMessageHint(incident)).toBe(
-      "Optional. The people you page see it with Incident INC-42.",
+      "The people you page see it with Incident INC-42.",
     );
     expect(WorkspacePage.getMessageHint(undefined)).toBe(
       "The people you page get this as the title of a new alert.",

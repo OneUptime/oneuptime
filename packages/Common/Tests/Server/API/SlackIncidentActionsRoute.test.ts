@@ -1280,7 +1280,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(message["optional"]).toBe(true);
       expect((message["label"] as JSONObject)["text"]).toBe("Message");
       expect((message["hint"] as JSONObject)["text"]).toBe(
-        "Optional. The people you page see it with the incident.",
+        "The people you page see it with the incident.",
       );
       expect(elementOf(view, "incidentPageMessage")).toMatchObject({
         type: "plain_text_input",

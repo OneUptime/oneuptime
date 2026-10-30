@@ -1378,14 +1378,19 @@ describe("POST /slack/command: /oneuptime page", () => {
       expect(pages).toEqual([]);
     });
 
-    test("somebody who may not create the alert a page is: told so, and nobody is paged", async () => {
+    test("somebody who may not create the alert a page here is: told so - that a page here creates one - and nobody is paged", async () => {
       mayCreateAlert = false;
 
       await post("page <@U0NAWAZ|nawaz> db down");
       const calls: Array<SlackCall> = await slackCallsAfter(1);
 
+      /*
+       * They may page in an incident's own channel, where nothing is
+       * created: "You do not have permission to page people" alone would
+       * not be true.
+       */
       expect(textOf(calls[0]!.data["blocks"])).toBe(
-        "You do not have permission to page people. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
+        "You do not have permission to page people here, where a page creates an alert. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
       );
       expect(pages).toEqual([]);
     });
@@ -1589,10 +1594,11 @@ describe("POST /slack/command: /oneuptime page", () => {
       ).toBe(`🚨 *<${INCIDENT_URL}|INC-42>* Checkout is down\n`);
 
       const message: JSONObject = inputOf(view, "pageMessage")!;
+      // Slack writes "(optional)" after the label: the hint does not say it again.
       expect(message["optional"]).toBe(true);
       expect(message["hint"]).toEqual({
         type: "plain_text",
-        text: "Optional. The people you page see it with Incident INC-42.",
+        text: "The people you page see it with Incident INC-42.",
       });
       expect((message["element"] as JSONObject)["max_length"]).toBe(500);
 
@@ -1722,7 +1728,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       await slackCallsAfter(2, 30);
 
       expect(textOf(calls[0]!.data["blocks"])).toBe(
-        "You do not have permission to page people. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
+        "You do not have permission to page people here, where a page creates an alert. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
       );
       expect(pages).toEqual([]);
     });

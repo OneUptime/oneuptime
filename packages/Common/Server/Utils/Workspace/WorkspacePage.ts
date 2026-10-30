@@ -244,6 +244,15 @@ export const WORKSPACE_PAGE_MAX_TITLE_LENGTH: number = 500;
 export const WORKSPACE_PAGE_ACTION: string = "page people";
 
 /*
+ * What a refusal of a page about something new says it is about: the alert
+ * such a page creates. Somebody who may page in an incident's own channel,
+ * where nothing is created, may still not page here - "You do not have
+ * permission to page people" alone would not be true for them.
+ */
+export const WORKSPACE_PAGE_NEW_ALERT_ACTION: string =
+  "page people here, where a page creates an alert";
+
+/*
  * What the Page someone form says, in Slack's modal and Microsoft Teams'
  * card alike: the same form in both chats, in the same words.
  */
@@ -308,7 +317,7 @@ export default class WorkspacePage {
     await WorkspaceActionAuthorization.assertCanCreate({
       props: props,
       modelType: Alert,
-      action: WORKSPACE_PAGE_ACTION,
+      action: WORKSPACE_PAGE_NEW_ALERT_ACTION,
     });
   }
 
@@ -661,18 +670,20 @@ export default class WorkspacePage {
   }
 
   /*
-   * What the form says under its message: where it goes, and whether it is
-   * needed - "Optional. The people you page see it with Incident INC-18.";
-   * "The people you page get this as the title of a new alert."; and, in
-   * the channel of an incident that is resolved, why the page is about
-   * something new: "Incident INC-18 is resolved, so the people you page get
-   * this as the title of a new alert."
+   * What the form says under its message: where it goes - "The people you
+   * page see it with Incident INC-18."; "The people you page get this as the
+   * title of a new alert."; and, in the channel of an incident that is
+   * resolved, why the page is about something new: "Incident INC-18 is
+   * resolved, so the people you page get this as the title of a new
+   * alert." Whether it is needed is the field's own to say: Slack writes
+   * "(optional)" after an optional field's label, and Microsoft Teams marks
+   * a required one with "*" - "Optional." here said it twice.
    */
   public static getMessageHint(
     about: WorkspacePageSubject | undefined,
   ): string {
     if (about?.record) {
-      return `Optional. The people you page see it with ${about.record.name.label}.`;
+      return `The people you page see it with ${about.record.name.label}.`;
     }
 
     if (about?.resolvedRecord) {

@@ -1535,7 +1535,7 @@ describe("in an incident's own channel: the page is about the incident", () => {
     expect(messageInput["isRequired"]).toBeUndefined();
     expect(messageInput["errorMessage"]).toBeUndefined();
     expect(JSON.stringify(body)).toContain(
-      "Optional. The people you page see it with Incident INC-42.",
+      "The people you page see it with Incident INC-42.",
     );
 
     const page: JSONObject = (card["actions"] as Array<JSONObject>)[0]!;
@@ -1666,7 +1666,7 @@ describe("in an incident's own channel: the page is about the incident", () => {
 
     expect(pages).toEqual([]);
     expect(answerOf(sent(delivery)[0])).toBe(
-      "You do not have permission to page people. You need one of these permissions: Alert Member.",
+      "You do not have permission to page people here, where a page creates an alert. You need one of these permissions: Alert Member.",
     );
   });
 

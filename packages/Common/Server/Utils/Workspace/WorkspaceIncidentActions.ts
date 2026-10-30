@@ -173,8 +173,12 @@ export const WORKSPACE_INCIDENT_FORM_TEXT: {
    */
   pageHint:
     "They are paged about this incident until one of them answers. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
-  // The page's own message: the incident says what the page is about.
-  pageMessageHint: "Optional. The people you page see it with the incident.",
+  /*
+   * The page's own message: the incident says what the page is about.
+   * Optional, as the field itself says (Slack's "(optional)", no "*" in
+   * Microsoft Teams).
+   */
+  pageMessageHint: "The people you page see it with the incident.",
   customFieldsTitle: "Edit Custom Fields",
   customFieldsHint: "Leave a field empty to clear it.",
   save: "Save",

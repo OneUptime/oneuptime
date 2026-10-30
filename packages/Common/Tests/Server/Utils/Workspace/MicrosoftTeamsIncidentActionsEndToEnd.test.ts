@@ -1243,7 +1243,7 @@ describe("the incident card's menu: each form, as a card, filled in as Simon rea
     // Optional: the incident says what the page is about.
     expect(message["isRequired"]).toBeUndefined();
     expect(texts[body.indexOf(message) + 1]).toBe(
-      "Optional. The people you page see it with the incident.",
+      "The people you page see it with the incident.",
     );
     // After the list of who to page.
     expect(body.indexOf(message)).toBeGreaterThan(
