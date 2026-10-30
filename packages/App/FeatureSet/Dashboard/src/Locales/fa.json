@@ -38813,5 +38813,12 @@
   "Regressed At": "زمان بازگشت",
   "Resolve in next release": "رفع در نسخهٔ بعدی",
   "Resolved in Release After": "برطرف‌شده در نسخهٔ پس از",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "در نسخهٔ بعدی برطرف شد: رخدادهای {{release}} آن را دوباره باز نمی‌کنند."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "در نسخهٔ بعدی برطرف شد: رخدادهای {{release}} آن را دوباره باز نمی‌کنند.",
+  "Add vCenter": "افزودن vCenter",
+  "No data since {{time}}. Check that its agent is running.": "از {{time}} داده‌ای نرسیده است. بررسی کنید عامل آن در حال اجرا باشد.",
+  "Nothing is sending data yet.": "هنوز چیزی داده نمی‌فرستد.",
+  "Receiving data. Last data {{time}}.": "داده دریافت می‌شود. آخرین داده {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "مراحل نصب با کلیدهای شما پر شده‌اند و منتظر نخستین داده می‌مانند.",
+  "Watch a metric of your own, or build the query yourself.": "یک متریک دلخواه را پایش کنید یا پرس‌وجو را خودتان بسازید.",
+  "What to alert on": "هشدار برای چه"
 }

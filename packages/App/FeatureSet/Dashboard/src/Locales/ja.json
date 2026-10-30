@@ -38813,5 +38813,12 @@
   "Regressed At": "再発日時",
   "Resolve in next release": "次のリリースで解決",
   "Resolved in Release After": "このリリースの次で解決",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "次のリリースで解決済み：{{release}} からの発生では再オープンされません。"
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "次のリリースで解決済み：{{release}} からの発生では再オープンされません。",
+  "Add vCenter": "vCenter を追加",
+  "No data since {{time}}. Check that its agent is running.": "{{time}} からデータがありません。エージェントが動作しているか確認してください。",
+  "Nothing is sending data yet.": "まだ何もデータを送信していません。",
+  "Receiving data. Last data {{time}}.": "データを受信中です。最新のデータ {{time}}。",
+  "The install steps come with your keys filled in, and wait for the first data.": "インストール手順にはキーが入力済みで、最初のデータを待ちます。",
+  "Watch a metric of your own, or build the query yourself.": "独自のメトリクスを監視するか、クエリを自分で作成します。",
+  "What to alert on": "アラートの対象"
 }

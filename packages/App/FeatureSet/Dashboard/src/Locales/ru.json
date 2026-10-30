@@ -38813,5 +38813,12 @@
   "Regressed At": "Дата регрессии",
   "Resolve in next release": "Устранить в следующем релизе",
   "Resolved in Release After": "Устранено в релизе после",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Устранено в следующем релизе: случаи из {{release}} не открывают его снова."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Устранено в следующем релизе: случаи из {{release}} не открывают его снова.",
+  "Add vCenter": "Добавить vCenter",
+  "No data since {{time}}. Check that its agent is running.": "Нет данных с {{time}}. Проверьте, что агент работает.",
+  "Nothing is sending data yet.": "Пока ничто не отправляет данные.",
+  "Receiving data. Last data {{time}}.": "Данные поступают. Последние данные {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "В шагах установки ваши ключи уже подставлены, и они ждут первых данных.",
+  "Watch a metric of your own, or build the query yourself.": "Следите за своей метрикой или составьте запрос сами.",
+  "What to alert on": "О чём оповещать"
 }

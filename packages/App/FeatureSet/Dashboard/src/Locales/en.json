@@ -38813,5 +38813,12 @@
   "Regressed At": "Regressed At",
   "Resolve in next release": "Resolve in next release",
   "Resolved in Release After": "Resolved in Release After",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolved in the next release: occurrences from {{release}} do not reopen it."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolved in the next release: occurrences from {{release}} do not reopen it.",
+  "Add vCenter": "Add vCenter",
+  "No data since {{time}}. Check that its agent is running.": "No data since {{time}}. Check that its agent is running.",
+  "Nothing is sending data yet.": "Nothing is sending data yet.",
+  "Receiving data. Last data {{time}}.": "Receiving data. Last data {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "The install steps come with your keys filled in, and wait for the first data.",
+  "Watch a metric of your own, or build the query yourself.": "Watch a metric of your own, or build the query yourself.",
+  "What to alert on": "What to alert on"
 }

@@ -38813,5 +38813,12 @@
   "Regressed At": "दोबारा होने का समय",
   "Resolve in next release": "अगली रिलीज़ में सुलझाएं",
   "Resolved in Release After": "इस रिलीज़ के बाद वाली में सुलझाया गया",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "अगली रिलीज़ में सुलझाया गया: {{release}} की घटनाएं इसे फिर से नहीं खोलतीं।"
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "अगली रिलीज़ में सुलझाया गया: {{release}} की घटनाएं इसे फिर से नहीं खोलतीं।",
+  "Add vCenter": "vCenter जोड़ें",
+  "No data since {{time}}. Check that its agent is running.": "{{time}} से कोई डेटा नहीं। जाँचें कि उसका एजेंट चल रहा है।",
+  "Nothing is sending data yet.": "अभी कुछ भी डेटा नहीं भेज रहा है।",
+  "Receiving data. Last data {{time}}.": "डेटा मिल रहा है। आख़िरी डेटा {{time}}।",
+  "The install steps come with your keys filled in, and wait for the first data.": "इंस्टॉल के चरणों में आपकी कुंजियाँ पहले से भरी होती हैं, और वे पहले डेटा की प्रतीक्षा करते हैं।",
+  "Watch a metric of your own, or build the query yourself.": "अपना कोई मेट्रिक देखें, या क्वेरी ख़ुद बनाएँ।",
+  "What to alert on": "किस पर अलर्ट करना है"
 }

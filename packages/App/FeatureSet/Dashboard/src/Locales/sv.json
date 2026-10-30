@@ -38813,5 +38813,12 @@
   "Regressed At": "Regression den",
   "Resolve in next release": "Lös i nästa version",
   "Resolved in Release After": "Löst i versionen efter",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Löst i nästa version: förekomster från {{release}} öppnar inte det igen."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Löst i nästa version: förekomster från {{release}} öppnar inte det igen.",
+  "Add vCenter": "Lägg till vCenter",
+  "No data since {{time}}. Check that its agent is running.": "Inga data sedan {{time}}. Kontrollera att agenten körs.",
+  "Nothing is sending data yet.": "Inget skickar data ännu.",
+  "Receiving data. Last data {{time}}.": "Tar emot data. Senaste data {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "Installationsstegen har dina nycklar ifyllda och väntar på de första datan.",
+  "Watch a metric of your own, or build the query yourself.": "Övervaka ett eget mått eller bygg frågan själv.",
+  "What to alert on": "Vad som ska larmas om"
 }

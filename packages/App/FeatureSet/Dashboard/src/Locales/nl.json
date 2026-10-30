@@ -38813,5 +38813,12 @@
   "Regressed At": "Regressie op",
   "Resolve in next release": "Oplossen in volgende release",
   "Resolved in Release After": "Opgelost in release na",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Opgelost in de volgende release: voorvallen uit {{release}} heropenen haar niet."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Opgelost in de volgende release: voorvallen uit {{release}} heropenen haar niet.",
+  "Add vCenter": "vCenter toevoegen",
+  "No data since {{time}}. Check that its agent is running.": "Geen data sinds {{time}}. Controleer of de agent draait.",
+  "Nothing is sending data yet.": "Er stuurt nog niets data.",
+  "Receiving data. Last data {{time}}.": "Data komt binnen. Laatste data {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "De installatiestappen hebben uw sleutels al ingevuld en wachten op de eerste data.",
+  "Watch a metric of your own, or build the query yourself.": "Bewaak een eigen metric of bouw de query zelf.",
+  "What to alert on": "Waarover te waarschuwen"
 }

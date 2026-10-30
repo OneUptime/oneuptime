@@ -38813,5 +38813,12 @@
   "Regressed At": "재발 일시",
   "Resolve in next release": "다음 릴리스에서 해결",
   "Resolved in Release After": "해결 기준 릴리스",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "다음 릴리스에서 해결됨: {{release}}의 발생으로는 다시 열리지 않습니다."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "다음 릴리스에서 해결됨: {{release}}의 발생으로는 다시 열리지 않습니다.",
+  "Add vCenter": "vCenter 추가",
+  "No data since {{time}}. Check that its agent is running.": "{{time}} 이후 데이터가 없습니다. 에이전트가 실행 중인지 확인하세요.",
+  "Nothing is sending data yet.": "아직 아무것도 데이터를 보내지 않습니다.",
+  "Receiving data. Last data {{time}}.": "데이터를 받는 중입니다. 마지막 데이터 {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "설치 단계에는 키가 미리 채워져 있으며 첫 데이터를 기다립니다.",
+  "Watch a metric of your own, or build the query yourself.": "직접 고른 메트릭을 감시하거나 쿼리를 직접 만드세요.",
+  "What to alert on": "알림 대상"
 }

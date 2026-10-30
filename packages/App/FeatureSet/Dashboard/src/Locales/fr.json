@@ -38813,5 +38813,12 @@
   "Regressed At": "Régression le",
   "Resolve in next release": "Résoudre dans la prochaine version",
   "Resolved in Release After": "Résolue dans la version suivant",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Résolue dans la prochaine version : les occurrences de {{release}} ne la rouvrent pas."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Résolue dans la prochaine version : les occurrences de {{release}} ne la rouvrent pas.",
+  "Add vCenter": "Ajouter un vCenter",
+  "No data since {{time}}. Check that its agent is running.": "Aucune donnée depuis {{time}}. Vérifiez que son agent tourne.",
+  "Nothing is sending data yet.": "Rien n'envoie encore de données.",
+  "Receiving data. Last data {{time}}.": "Données reçues. Dernières données {{time}}.",
+  "The install steps come with your keys filled in, and wait for the first data.": "Les étapes d'installation arrivent avec vos clés déjà renseignées et attendent les premières données.",
+  "Watch a metric of your own, or build the query yourself.": "Surveillez une métrique de votre choix ou construisez la requête vous-même.",
+  "What to alert on": "Sur quoi alerter"
 }

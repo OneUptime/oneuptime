@@ -38813,5 +38813,12 @@
   "Regressed At": "回归时间",
   "Resolve in next release": "在下一版本中解决",
   "Resolved in Release After": "在此版本之后的版本中解决",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "已在下一版本中解决：来自 {{release}} 的发生不会重新打开它。"
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "已在下一版本中解决：来自 {{release}} 的发生不会重新打开它。",
+  "Add vCenter": "添加 vCenter",
+  "No data since {{time}}. Check that its agent is running.": "自 {{time}} 起没有数据。请检查其代理是否在运行。",
+  "Nothing is sending data yet.": "还没有任何东西在发送数据。",
+  "Receiving data. Last data {{time}}.": "正在接收数据。最新数据 {{time}}。",
+  "The install steps come with your keys filled in, and wait for the first data.": "安装步骤已填好你的密钥，并会等待第一批数据。",
+  "Watch a metric of your own, or build the query yourself.": "监控你自己的指标，或自己构建查询。",
+  "What to alert on": "告警内容"
 }
