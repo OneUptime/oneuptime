@@ -12,6 +12,7 @@ import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import Dictionary from "Common/Types/Dictionary";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -133,6 +134,18 @@ const otherProjectId: ObjectID = new ObjectID(
 const POD_KEY: string = "resource.k8s.pod.name";
 const NAMESPACE_KEY: string = "resource.k8s.namespace.name";
 const CLUSTER_KEY: string = "resource.k8s.cluster.name";
+
+/*
+ * The namespace and cluster a monitor's query watches, built apart from the
+ * queries: an object literal with computed keys, checked in place against
+ * Query<Metric>'s recursive attribute type, runs past TypeScript's
+ * instantiation depth (TS2589), as master's c9953698c5 found for the
+ * Docker Swarm filter.
+ */
+const WATCHED_SCOPE: Dictionary<string> = {
+  [NAMESPACE_KEY]: "shop",
+  [CLUSTER_KEY]: "prod",
+};
 
 // The pods of the namespace the monitor watches: two data points a minute each.
 const CPU: string = "k8s.pod.cpu.utilization";
@@ -448,10 +461,7 @@ async function readGrouped(data: {
       projectId: projectId,
       time: windowRange(),
       name: data.metricName,
-      attributes: {
-        [NAMESPACE_KEY]: "shop",
-        [CLUSTER_KEY]: "prod",
-      },
+      attributes: WATCHED_SCOPE,
     },
     aggregationType: data.aggregationType,
     groupByAttributeKeys: [POD_KEY],
@@ -579,7 +589,7 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
         projectId: projectId,
         time: windowRange(),
         name: CPU,
-        attributes: { [NAMESPACE_KEY]: "shop", [CLUSTER_KEY]: "prod" },
+        attributes: WATCHED_SCOPE,
       },
       select: { attributes: true, value: true, time: true },
       sort: { time: SortOrder.Descending },
@@ -708,7 +718,7 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
         projectId: projectId,
         time: windowRange(),
         name: CPU,
-        attributes: { [NAMESPACE_KEY]: "shop", [CLUSTER_KEY]: "prod" },
+        attributes: WATCHED_SCOPE,
       },
       aggregationType: MetricsAggregationType.Avg,
       aggregateColumnName: "value",
