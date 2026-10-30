@@ -11,7 +11,7 @@ Un monitor de Proxmox vigila un clúster de Proxmox VE – sus nodos, VM y conte
 
 ## Cómo funciona
 
-El agente de Proxmox de OneUptime se ejecuta en una máquina que puede llegar a la API de Proxmox VE. Cada 30 segundos consulta prometheus-pve-exporter con los recopiladores de clúster y de nodo, etiqueta cada serie con el recurso que describe y envía las métricas a OneUptime por OTLP, marcadas con el nombre del clúster, `proxmox.cluster.name`. Los primeros datos registran el clúster. Proxmox VE 9 y posteriores pueden, en cambio, enviar las métricas de forma nativa, sin instalar nada; consulte [el envío nativo](#el-envío-nativo-de-proxmox-ve).
+El agente de Proxmox de OneUptime se ejecuta en una máquina que puede llegar a la API de Proxmox VE. Cada 30 segundos consulta los recopiladores de clúster de prometheus-pve-exporter una vez y sus recopiladores de nodo una vez por cada nodo, etiqueta cada serie con el recurso que describe y envía las métricas a OneUptime por OTLP, marcadas con el nombre del clúster, `proxmox.cluster.name`. Los primeros datos registran el clúster. Proxmox VE 9 y posteriores pueden, en cambio, enviar las métricas de forma nativa, sin instalar nada; consulte [el envío nativo](#el-envío-nativo-de-proxmox-ve).
 
 Un monitor de Proxmox está vinculado a un clúster. Cada minuto ejecuta su consulta sobre las métricas de ese clúster y compara el resultado con sus criterios.
 
@@ -48,19 +48,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Proxmox
 
 ### Elegir el clúster
 
-En **Configuración del monitor de Proxmox**, elija el clúster en **Clúster de Proxmox**. Cada clúster que ha enviado datos está en la lista.
+En **Configuración del monitor de Proxmox**, elija el clúster en **Clúster de Proxmox**. Cada clúster que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir clúster de Proxmox** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** – haga clic en una [plantilla](#plantillas-de-alerta-listas-para-usar). Fija las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** – elija una métrica en **Métrica de Proxmox** y luego fije la **Agregación** y el **Intervalo de tiempo**. Los [filtros](#ajustes-del-monitor) la restringen a un tipo de recurso o a un solo recurso.
-- **Avanzado** – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un porcentaje de memoria a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para juzgar cada recurso por separado.
+- **Cambiar** – elija otra [plantilla](#plantillas-de-alerta-listas-para-usar). Fija las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) – elija una métrica en **Métrica de Proxmox** y luego fije la **Agregación** y el **Intervalo de tiempo**. Los [filtros](#ajustes-del-monitor) la restringen a un tipo de recurso o a un solo recurso.
+- **Avanzado** (en **Más campos**) – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un porcentaje de memoria a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para juzgar cada recurso por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que fije su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que fije su propio umbral.
 
 ### Crear el monitor
 
@@ -109,7 +109,7 @@ Filtre por `pve.scope` o `pve.type` para un tipo de recurso, por `pve.id` o `id`
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece 12 plantillas. Cada una crea un monitor completo: consultas, filtros de atributos, una agrupación, un criterio que se dispara y otro que se recupera. La mayoría agrupan por `id`, así que cada nodo, invitado, volumen o trabajo recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece 12 plantillas. Cada una crea un monitor completo: consultas, filtros de atributos, una agrupación, un criterio que se dispara y otro que se recupera. La mayoría agrupan por `id`, así que cada nodo, invitado, volumen o trabajo recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga lo contrario. Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y un criterio de umbral se recupera un 10 % más allá de su umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 y posteriores pueden enviar métricas mediante su servidor de métr
 
 ## Métricas recopiladas
 
-El agente consulta prometheus-pve-exporter cada 30 segundos con los recopiladores de clúster y de nodo, lo que también cubre los recopiladores `backup-info` y `replication` del exportador (ambos activados de forma predeterminada).
+El agente consulta prometheus-pve-exporter cada 30 segundos: sus recopiladores de clúster una vez, en `PVE_HOST`, y sus recopiladores de nodo una vez por cada nodo de `PVE_NODES`, porque solo leen el nodo al que pregunta el exportador. Los recopiladores de nodo son `config` (inicio en el arranque) y `replication`; los recopiladores `backup-info` (clúster) y `replication` del exportador están ambos activados de forma predeterminada.
 
 ### Disponibilidad
 
@@ -206,7 +206,7 @@ Proceden del recopilador `backup-info` del exportador, a nivel de clúster. Solo
 
 ### Replicación
 
-Proceden del recopilador `replication` del exportador, a nivel de nodo. Las series solo existen cuando el clúster tiene trabajos de replicación, y llevan el id del trabajo en `id`:
+Proceden del recopilador `replication` del exportador, a nivel de nodo, leído de cada nodo de `PVE_NODES`. Las series solo existen cuando el clúster tiene trabajos de replicación, y llevan el id del trabajo en `id`:
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Con el envío nativo de Proxmox VE, un nodo retirado del clúster parece igual q
 :::
 
 :::details Faltan las métricas de copia de seguridad o de replicación
-`pve_not_backed_up_*` procede del recopilador `backup-info` del exportador y `pve_replication_*` de su recopilador `replication`. Ambos están activados de forma predeterminada y cubiertos por los parámetros de consulta `cluster=1` y `node=1` de la configuración que se distribuye. Si ejecuta su propio exportador, compruebe que no los haya desactivado. `pve_replication_*` solo existe cuando el clúster tiene trabajos de replicación del almacenamiento.
+`pve_not_backed_up_*` procede del recopilador `backup-info` del exportador y `pve_replication_*` de su recopilador `replication`. Ambos están activados de forma predeterminada y cubiertos por la configuración que se distribuye: `cluster=1` una vez y `node=1` por cada nodo de `PVE_NODES`. Un nodo que falte en `PVE_NODES` no envía trabajos de replicación, ni sus invitados indicadores de inicio en el arranque, así que **Guest Down** nunca se activa para ellos. Si ejecuta su propio exportador, compruebe que no los haya desactivado. `pve_replication_*` solo existe cuando el clúster tiene trabajos de replicación del almacenamiento.
 :::
 
 :::details Los contadores como pve_network_receive_bytes solo crecen

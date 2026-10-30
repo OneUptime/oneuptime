@@ -11,7 +11,7 @@ Un monitor Proxmox sorveglia un cluster Proxmox VE – i suoi nodi, le VM e i co
 
 ## Come funziona
 
-L'agente Proxmox di OneUptime viene eseguito su una macchina che raggiunge l'API di Proxmox VE. Ogni 30 secondi interroga prometheus-pve-exporter con i collector di cluster e di nodo, etichetta ogni serie con la risorsa che descrive e invia le metriche a OneUptime tramite OTLP, contrassegnate con il nome del cluster, `proxmox.cluster.name`. I primi dati registrano il cluster. Proxmox VE 9 e successivi possono invece inviare le metriche in modo nativo, senza installare nulla; vedete [l'invio nativo](#linvio-nativo-di-proxmox-ve).
+L'agente Proxmox di OneUptime viene eseguito su una macchina che raggiunge l'API di Proxmox VE. Ogni 30 secondi interroga i collector di cluster di prometheus-pve-exporter una volta e i suoi collector di nodo una volta per ogni nodo, etichetta ogni serie con la risorsa che descrive e invia le metriche a OneUptime tramite OTLP, contrassegnate con il nome del cluster, `proxmox.cluster.name`. I primi dati registrano il cluster. Proxmox VE 9 e successivi possono invece inviare le metriche in modo nativo, senza installare nulla; vedete [l'invio nativo](#linvio-nativo-di-proxmox-ve).
 
 Un monitor Proxmox è legato a un cluster. Ogni minuto esegue la sua query sulle metriche di quel cluster e confronta il risultato con i suoi criteri.
 
@@ -48,19 +48,19 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Pro
 
 ### Scegliere il cluster
 
-In **Proxmox Monitor Configuration**, scegliete il cluster da **Cluster Proxmox**. Ogni cluster che ha inviato dati è nell'elenco.
+In **Proxmox Monitor Configuration**, scegliete il cluster da **Cluster Proxmox**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Proxmox** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Scegliete una delle tre schede:
+Un nuovo monitor parte da **Cluster Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup** – fate clic su un [modello](#modelli-di-avviso-pronti). Imposta le metriche, i filtri, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** – scegliete una metrica da **Proxmox Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un tipo di risorsa o a una singola risorsa.
-- **Avanzato** – costruite voi query e formule in **Seleziona metriche**, per esempio una percentuale di memoria da `pve_memory_usage_bytes / pve_memory_size_bytes`. Usate **Raggruppa per** `id` per giudicare ogni risorsa separatamente.
+- **Cambia** – scegliete un altro [modello](#modelli-di-avviso-pronti). Imposta le metriche, i filtri, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**) – scegliete una metrica da **Proxmox Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un tipo di risorsa o a una singola risorsa.
+- **Avanzato** (in **Altri campi**) – costruite voi query e formule in **Seleziona metriche**, per esempio una percentuale di memoria da `pve_memory_usage_bytes / pve_memory_size_bytes`. Usate **Raggruppa per** `id` per giudicare ogni risorsa separatamente.
 
 ### Rivedere i criteri
 
-Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
+Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi impostate la vostra soglia.
 
 ### Creare il monitor
 
@@ -109,7 +109,7 @@ Filtrate su `pve.scope` o `pve.type` per un tipo di risorsa, su `pve.id` o `id` 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre 12 modelli. Ognuno costruisce un monitor completo: query, filtri di attributi, un raggruppamento, un criterio che scatta e uno che ripristina. La maggior parte raggruppa per `id`, così ogni nodo, guest, volume o job riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+L'elenco di **Su cosa avvisare** offre 12 modelli. Ognuno costruisce un monitor completo: query, filtri di attributi, un raggruppamento, un criterio che scatta e uno che ripristina. La maggior parte raggruppa per `id`, così ogni nodo, guest, volume o job riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e un criterio a soglia si ripristina il 10% oltre la sua soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
@@ -148,7 +148,7 @@ Funzionano anche **Node Offline** e **Cluster Quorum at Risk**: ogni nodo invia 
 
 ## Metriche raccolte
 
-L'agente interroga prometheus-pve-exporter ogni 30 secondi con i collector di cluster e di nodo, il che copre anche i collector `backup-info` e `replication` dell'exporter (entrambi attivi per impostazione predefinita).
+L'agente interroga prometheus-pve-exporter ogni 30 secondi: i suoi collector di cluster una volta, su `PVE_HOST`, e i suoi collector di nodo una volta per ogni nodo in `PVE_NODES`, perché leggono solo il nodo che l'exporter interroga. I collector di nodo sono `config` (avvio al boot) e `replication`; i collector `backup-info` (cluster) e `replication` dell'exporter sono entrambi attivi per impostazione predefinita.
 
 ### Disponibilità
 
@@ -206,7 +206,7 @@ Provengono dal collector `backup-info` dell'exporter, a livello di cluster. Ripo
 
 ### Replica
 
-Provengono dal collector `replication` dell'exporter, a livello di nodo. Le serie esistono solo quando il cluster ha job di replica, e portano l'id del job in `id`:
+Provengono dal collector `replication` dell'exporter, a livello di nodo, letto da ogni nodo in `PVE_NODES`. Le serie esistono solo quando il cluster ha job di replica, e portano l'id del job in `id`:
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Con l'invio nativo di Proxmox VE, un nodo tolto dal cluster sembra uguale a uno 
 :::
 
 :::details Mancano le metriche di backup o di replica
-`pve_not_backed_up_*` proviene dal collector `backup-info` dell'exporter e `pve_replication_*` dal suo collector `replication`. Entrambi sono attivi per impostazione predefinita e coperti dai parametri di raccolta `cluster=1` e `node=1` della configurazione distribuita. Se eseguite un vostro exporter, verificate di non averli disattivati. `pve_replication_*` esiste solo quando il cluster ha job di replica dello storage.
+`pve_not_backed_up_*` proviene dal collector `backup-info` dell'exporter e `pve_replication_*` dal suo collector `replication`. Entrambi sono attivi per impostazione predefinita e coperti dalla configurazione distribuita: `cluster=1` una volta, e `node=1` per ogni nodo in `PVE_NODES`. Un nodo che manca in `PVE_NODES` non invia job di replica, né i suoi guest flag di avvio al boot, quindi **Guest Down** non scatta mai per loro. Se eseguite un vostro exporter, verificate di non averli disattivati. `pve_replication_*` esiste solo quando il cluster ha job di replica dello storage.
 :::
 
 :::details Contatori come pve_network_receive_bytes crescono soltanto

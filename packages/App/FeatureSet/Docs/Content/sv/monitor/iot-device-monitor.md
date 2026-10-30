@@ -50,19 +50,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT-enhet** un
 
 ### Välj flottan
 
-Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan.
+Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till IoT-flotta** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska bevakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Device Offline** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** - klicka på en [mall](#färdiga-larmmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** - välj ett mätvärde i **IoT Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en enhet eller en enhetstyp. Ett anpassat mätvärde grupperas inte: det bedömer flottan som helhet.
-- **Avancerad** - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
+- **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **IoT Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en enhet eller en enhetstyp. Ett anpassat mätvärde grupperas inte: det bedömer flottan som helhet.
+- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Select Metric Variable**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Select Metric Variable**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
@@ -88,7 +88,7 @@ Filtren verkar tillsammans: med ett **Device ID** och en **Device Type** matchar
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 5 mallar. Var och en bygger en komplett monitor: mätvärdesfrågan, en gruppering på `device.id`, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder 5 mallar. Var och en bygger en komplett monitor: mätvärdesfrågan, en gruppering på `device.id`, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret - utom **Device Offline**, som utlöser vid den första mätningen under 1. Ett tröskelkriterium återhämtar sig 10 % förbi tröskeln, så ett värde som pendlar kring linjen inte växlar fram och tillbaka.
 

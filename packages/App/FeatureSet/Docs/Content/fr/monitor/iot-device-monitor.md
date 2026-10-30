@@ -50,19 +50,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir la flotte
 
-Sous **Configuration du moniteur IoT**, choisissez la flotte dans **Flotte IoT**. Chaque flotte qui a envoyé des données figure dans la liste.
+Sous **Configuration du moniteur IoT**, choisissez la flotte dans **Flotte IoT**. Chaque flotte qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter une flotte IoT** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qui est surveillé
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Device Offline**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** - cliquez sur un [modèle](#modèles-dalerte-prédéfinis). Il définit la métrique, l'agrégation, la plage temporelle, un regroupement sur `device.id` et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez toujours modifier la **Plage temporelle**.
-- **Custom Metric** - choisissez une métrique dans **Métrique IoT**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un appareil ou à un type d'appareil. Une métrique personnalisée n'est pas regroupée : elle juge la flotte dans son ensemble.
-- **Avancé** - construisez vous-même requêtes et formules sous **Sélectionner les métriques**, y compris sur vos propres noms de métriques, par exemple la mémoire utilisée en pourcentage de la taille mémoire d'un appareil. Utilisez **Regrouper par** `device.id` pour juger chaque appareil séparément.
+- **Modifier** - choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit la métrique, l'agrégation, la plage temporelle, un regroupement sur `device.id` et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez toujours modifier la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) - choisissez une métrique dans **Métrique IoT**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un appareil ou à un type d'appareil. Une métrique personnalisée n'est pas regroupée : elle juge la flotte dans son ensemble.
+- **Avancé** (sous **Plus de champs**) - construisez vous-même requêtes et formules sous **Sélectionner les métriques**, y compris sur vos propres noms de métriques, par exemple la mémoire utilisée en pourcentage de la taille mémoire d'un appareil. Utilisez **Regrouper par** `device.id` pour juger chaque appareil séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez son **Select Metric Variable**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro, donc définissez votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez son **Select Metric Variable**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données, donc définissez votre propre seuil.
 
 ### Créer le moniteur
 
@@ -88,7 +88,7 @@ Les filtres s'appliquent ensemble : avec un **ID de l'appareil** et un **Type d'
 
 ## Modèles d'alerte prédéfinis
 
-**Quick Setup** propose 5 modèles. Chacun construit un moniteur complet : la requête de métrique, un regroupement sur `device.id`, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose 5 modèles. Chacun construit un moniteur complet : la requête de métrique, un regroupement sur `device.id`, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne déclenche que lorsque la condition est vraie pour chaque minute de sa fenêtre - sauf **Device Offline**, qui déclenche dès la première mesure inférieure à 1. Un critère de seuil se rétablit 10 % au-delà de son seuil, donc une valeur qui oscille autour de la ligne ne bascule pas sans cesse.
 

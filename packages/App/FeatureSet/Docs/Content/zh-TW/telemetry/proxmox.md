@@ -39,14 +39,14 @@ flowchart TB
 
 ## 開始之前
 
-- Docker Engine 20.10 或更新版本以及 Docker Compose v2 外掛程式，安裝在一台能透過連接埠 8006 連線到 Proxmox VE API 的機器上。
+- Docker Engine 20.10 或更新版本以及 Docker Compose v2 外掛程式，安裝在一台能透過連接埠 8006 連線到每個節點的 Proxmox VE API 的機器上。
 - 任一 Proxmox VE 節點上的 root shell，或 Proxmox 網頁 UI，用於建立 API 權杖。
 - 一把擷取金鑰。在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立一把並複製其值。
 - 從該機器到你的 OneUptime URL 的輸出 HTTPS。
 
 ### 在哪裡執行代理程式
 
-代理程式會透過網路查詢 Proxmox VE API，因此它不必在叢集節點上執行，也不應該這樣做：請在能夠撐過節點故障的機器上執行它（獨立硬體上的小型監控虛擬機器、管理主機），或讓 `PVE_HOST` 指向虛擬 IP 或循環配置 DNS 名稱，而不是某一個節點的位址。如果代理程式的 API 目標正是剛剛停止運作的節點，你的監控也會隨之失效。唯一的例外是選用的 journald 日誌管道，它必須在 Proxmox VE 節點上執行（請參閱 [傳送 Proxmox 服務日誌](#選用傳送-proxmox-服務日誌)）。
+代理程式會透過網路查詢 Proxmox VE API，因此它不必在叢集節點上執行，也不應該這樣做：請在能夠撐過節點故障的機器上執行它（獨立硬體上的小型監控虛擬機器、管理主機），或讓 `PVE_HOST` 指向虛擬 IP 或循環配置 DNS 名稱，而不是某一個節點的位址。如果代理程式的 API 目標正是剛剛停止運作的節點，你的監控也會隨之失效。`PVE_NODES` 則不同：它依每個節點自己的位址列出所有節點，絕不使用虛擬 IP（請參閱 [代理程式收集的內容](#代理程式收集的內容)）。唯一的例外是選用的 journald 日誌管道，它必須在 Proxmox VE 節點上執行（請參閱 [傳送 Proxmox 服務日誌](#選用傳送-proxmox-服務日誌)）。
 
 ## 安裝代理程式
 
@@ -87,7 +87,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-該指令碼會詢問你的 OneUptime URL、擷取金鑰、叢集名稱、Proxmox VE API 主機、是否執行內建匯出器，以及權杖 ID 和密鑰——還會詢問是否允許 [AI 代理程式](#ai-代理程式) 套用修正，如果允許，再詢問它自己的權杖以及它絕不能變更的客體。它會安裝到 `/opt/oneuptime-proxmox-agent`，寫入一個權限為 `0600` 的 `.env` 檔案，並使用 Docker Compose 啟動代理程式。再次執行該指令碼會重複使用該 `.env` 中的所有內容而不再詢問，這就是你 [升級代理程式](#升級代理程式) 的方式。
+該指令碼會詢問你的 OneUptime URL、擷取金鑰、叢集名稱、Proxmox VE API 主機、是否執行內建匯出器、權杖 ID 和密鑰，以及每個節點的位址（取得權杖後，它會提供叢集自己的節點清單）——還會詢問是否允許 [AI 代理程式](#ai-代理程式) 套用修正，如果允許，再詢問它自己的權杖以及它絕不能變更的客體。它會安裝到 `/opt/oneuptime-proxmox-agent`，寫入一個權限為 `0600` 的 `.env` 檔案，並使用 Docker Compose 啟動代理程式。再次執行該指令碼會重複使用該 `.env` 中的所有內容而不再詢問，這就是你 [升級代理程式](#升級代理程式) 的方式。
 @tab Docker Compose
 從 [ProxmoxAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) 下載 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一個新資料夾中：
 
@@ -104,12 +104,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
 ```
 
-`COMPOSE_PROFILES=pve-exporter` 也會啟動內建的匯出器。啟動代理程式：
+`PVE_NODES` 以方括號依每個節點自己的位址列出所有節點，`COMPOSE_PROFILES=pve-exporter` 也會啟動內建的匯出器。啟動代理程式：
 
 ```bash
 docker compose up -d
@@ -149,7 +150,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
 | `PROXMOX_CLUSTER_NAME` | 是 | 叢集在 OneUptime 中的名稱，會作為 `proxmox.cluster.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個叢集。預設為 `proxmox-cluster`。 |
-| `PVE_HOST` | 是 | 匯出器和 AI 代理程式查詢的 Proxmox VE API 主機（叢集中的任一節點），例如 `192.168.1.10`。 |
+| `PVE_HOST` | 是 | 匯出器從中讀取叢集、AI 代理程式查詢的 Proxmox VE API 主機：任一節點，或在節點之間切換的虛擬 IP，例如 `192.168.1.10`。 |
+| `PVE_NODES` | 叢集中需要 | 每個節點自己的 API 位址，以逗號分隔並放在方括號中，例如 `[192.168.1.10,192.168.1.11,192.168.1.12]`。匯出器只讀取它所詢問的那個節點的開機自動啟動、複寫和訂閱資訊，因此會依序詢問每個節點。預設只有 `PVE_HOST`，對單一節點來說已經足夠。 |
 | `PVE_EXPORTER_URL` | 否 | prometheus-pve-exporter 的位址（`host:port`，不帶通訊協定）。預設為內建匯出器 `pve-exporter:9221`。 |
 | `PVE_API_TOKEN_ID` | 內建匯出器或 AI 代理程式 | 完整的 Proxmox API 權杖 ID，例如 `monitoring@pam!oneuptime`。除非 AI 代理程式有自己的權杖（`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`），否則它會用這個權杖讀取 API。 |
 | `PVE_API_TOKEN_SECRET` | 內建匯出器或 AI 代理程式 | Proxmox API 權杖密鑰。 |
@@ -158,7 +160,7 @@ Everything is ready. Begin running and processing data.
 
 ## 代理程式收集的內容
 
-Collector 會每 30 秒抓取一次匯出器，同時開啟其叢集和節點收集器，這也涵蓋了匯出器預設開啟的 `backup-info`（叢集層級）和 `replication`（節點層級）收集器。每個序列都帶有一個識別資源的 `id` 標籤：`node/<name>`、`qemu/<vmid>`、`lxc/<vmid>` 或 `storage/<node>/<storage>`。
+Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST` 上抓取一次，其節點收集器對 `PVE_NODES` 中的每個節點各抓取一次。任一節點都會為整個叢集回應叢集收集器，其中包括預設開啟的 `backup-info`。節點收集器（用於開機自動啟動的 `config` 和 `replication`）只讀取匯出器所詢問的節點，因此 `PVE_NODES` 中缺少的節點既不會傳送其客體的開機自動啟動旗標（**Guest Down** 需要它），也不會傳送其複寫工作。每個序列都帶有一個識別資源的 `id` 標籤：`node/<name>`、`qemu/<vmid>`、`lxc/<vmid>` 或 `storage/<node>/<storage>`。
 
 | 類別 | 指標 |
 | --- | --- |
@@ -168,6 +170,7 @@ Collector 會每 30 秒抓取一次匯出器，同時開啟其叢集和節點收
 | 儲存空間 | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
 | 備份涵蓋範圍 | `pve_not_backed_up_total`（沒有任何備份工作涵蓋的客體；單一叢集層級序列，`id` 為 `cluster/<name>`）和 `pve_not_backed_up_info`（每個未被涵蓋的客體一個序列，帶有其 `id`）。被涵蓋是指至少有一個工作選擇了該客體：備份最近是否執行過或是否成功，匯出器並不提供。 |
+| 開機自動啟動 | `pve_onboot_status`，每個客體一個序列：客體設定為開機自動啟動時為 1。**Guest Down** 只針對這些客體發出警示。 |
 | 複寫 | 每個儲存空間複寫工作的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它們的 `id` 標籤是工作 ID（例如 `100-0`），而不是資源。 |
 
 監控器條件和屬性篩選器是依相等而不是依前置詞比對，因此 Collector 的 `transform/pve-identity` 處理器也會將 `id` 拆分為三個屬性。內建的 Proxmox 警示範本會依這些屬性篩選，所以如果你自訂設定，請保留這個處理器：
@@ -297,7 +300,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 代理程式會將其檔案所固定的 Collector 版本回報為它的 **代理程式版本**。當它比此 OneUptime 發行版本所固定的版本舊時，叢集 **概覽** 上它的旁邊會出現警告標誌。選取該標誌即可看到這些指令。在其檔案開始回報版本之前安裝的代理程式，在以這種方式升級之前不會顯示版本。
 
-Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的一個檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），提取映像檔並重新建立代理程式，讓 Collector 讀取新的設定。
+Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的一個檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），提取映像檔並重新建立代理程式，讓 Collector 讀取新的設定。早於 `PVE_NODES` 的 `.env` 仍然只讀取 `PVE_HOST`，指令碼會列出需要加入的節點。
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
@@ -359,6 +362,10 @@ API 權杖錯誤或缺少權限。請檢查權杖 ID 的格式（`user@realm!tok
 
 :::details 只有節點指標，沒有客體指標
 客體序列（`qemu/*` 和 `lxc/*` ID）來自匯出器的叢集收集器，隨附的設定會透過抓取參數 `cluster=1` 開啟它。如果你自訂了 `otel-collector-config.yaml`，請將 `cluster: ["1"]` 參數加回去。
+:::
+
+:::details Guest Down 或 Replication Failing 對某些客體從不觸發
+它們的開機自動啟動旗標和複寫工作來自它們所執行的節點，而代理程式只讀取 `PVE_NODES` 中的節點。在那裡列出每個節點自己的位址，例如 `PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`，然後執行 `docker compose up -d`。如果編輯後 Collector 無法再啟動，表示清單遺失了方括號。診斷指令碼會檢查清單中的每個節點。
 :::
 
 :::details 指標落在錯誤的叢集下

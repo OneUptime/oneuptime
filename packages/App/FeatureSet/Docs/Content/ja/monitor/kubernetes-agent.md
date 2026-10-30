@@ -60,8 +60,8 @@ helm repo update
 URL をあなたの OneUptime URL に置き換え、2 つのプレースホルダーを取り込みキーとクラスターの名前に置き換えます。
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -73,7 +73,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ### Pod が実行中か確認する
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
+kubectl get pods -n oneuptime-agent
 ```
 
 1、2 分以内に、すべての Pod が `Running` になるはずです。
@@ -100,16 +100,16 @@ GKE Autopilot と EKS Fargate は、eBPF インストルメンテーションと
 :::tabs
 @tab Standard
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
 @tab GKE Autopilot
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
@@ -117,8 +117,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ```
 @tab EKS Fargate
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
@@ -131,8 +131,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 インストール時に渡したラベルは、クラスターと、このエージェントが報告するサービスやホストに付けられます。`--set oneuptime.labels.<key>=<value>` は、`<key>:<value>` という名前のプロジェクトラベルになります。
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -156,8 +156,8 @@ clusterName: prod
 ```
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   -f values.yaml
 ```
 
@@ -182,8 +182,8 @@ Windows ノードでは、エージェントの Pod は実行されません。�
 Windows ノード上の Pod のログも収集するには、ハイブリッドモードをオンにします。
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -240,8 +240,8 @@ OBI は呼び出しをまたいでトレースも運びます。Pod A が HTTP �
 - **その他のログ行** は、リンクなしでそのまま収集されます。ただし `ebpf.logEnricher.plainText=true` も設定した場合は、OBI がその行に ` trace_id=… span_id=…` を追記し、ノードコレクターが ID をログレコードに移して行から取り除くため、OneUptime にはアプリが書いたとおりの行が表示されます。コンテナーのログファイルにある行 (`kubectl logs` が出力するもの) には、追記された内容がそのまま残ります。
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=true
 ```
 
@@ -310,8 +310,8 @@ ebpf:
 OBI が動作してトラフィックを見ているかを確認するには、次を実行します。
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl get pods -n oneuptime-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 ## 継続的な CPU プロファイリング
@@ -338,14 +338,14 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | オプション | デフォルト | 追加されるもの |
 | --- | --- | --- |
 | `hostMetrics.enabled` | オン | `/proc` と `/sys` からの各ノードの OS メトリクス: ディスク I/O キュー、ファイルシステムの inode、ネットワークインターフェイスのエラー、ページング、ロードアベレージ。ノードコレクターの中で動作し、追加の Pod は不要です。 |
-| `kubeletstats.utilizationMetrics.enabled` | オン | コンテナーと Pod の CPU とメモリを、request と limit に対する割合で。CPU とメモリの飽和モニターがこれを読み取ります。request も limit もない Pod では常に 0 です。 |
-| `kubeletstats.volumeMetrics.enabled` | オン | 各 PVC の空き容量と合計容量 (`k8s.volume.available`、`k8s.volume.capacity`)。PVC Low Disk Space モニターがこれを読み取ります。PVC と Pod の組ごとに 1 シリーズです。 |
+| `kubeletstats.utilizationMetrics.enabled` | オン | コンテナーと Pod の CPU とメモリを、request と limit に対する割合で。Pod CPU Saturating Container Limit と Pod Memory Saturating Container Limit のテンプレートがこれを読み取ります。limit (または request) のないコンテナーにはこれらのシリーズがなく、Pod にはそのすべてのコンテナーにある場合にだけあります。 |
+| `kubeletstats.volumeMetrics.enabled` | オン | 各 PVC の空き容量と合計容量 (`k8s.volume.available`、`k8s.volume.capacity`)。独自のグラフやメトリクスモニター向けで、組み込みのテンプレートはこれを読み取りません。PVC と Pod の組ごとに 1 シリーズです。 |
 | `cadvisor.enabled` | オン | 各 kubelet の `/metrics/cadvisor` からの CPU スロットリングと OOM kill: `container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`、`container_oom_events_total` だけです。 |
 | `kubeStateMetrics.enabled` | オフ | kube-state-metrics からの Pod のフェーズ (Pending、Terminating)、スケジュールできない Pod、コンテナーの待機理由 (CrashLoopBackOff、ImagePullBackOff)、リソースクォータの使用量。`kubeStateMetrics.mode: bundled` (デフォルト) は小さな kube-state-metrics を実行し、`external` はすでに実行しているものを `kubeStateMetrics.endpoint` で読み取ります。 |
 | `auditLogs.enabled` | オフ | Kubernetes の監査ログ `/var/log/kubernetes/audit.log`: API へのすべてのリクエストと、誰が何に対して行ったか。セルフマネージドのクラスターのみ: マネージドのクラスター (EKS、GKE、AKS、DOKS) はこれをクラウドプロバイダーに送ります。 |
 | `csi.enabled` | オフ | `app=csi-driver` または `app.kubernetes.io/component=csi-driver` のラベルが付いた Pod からの CSI ストレージドライバーのメトリクス: ボリュームのアタッチとデタッチの時間、プロビジョニングの失敗、IOPS。 |
 | `coreDns.enabled` | オフ | `:9153/metrics` 上の CoreDNS のメトリクス: クエリレート、レイテンシ、キャッシュヒット、エラー。 |
-| `controlPlane.enabled` | オフ | etcd、API サーバー、スケジューラー、コントローラーマネージャー。セルフマネージドのクラスターのみ: マネージドのクラスターはこれらを公開しません。 |
+| `controlPlane.enabled` | オフ | クラスター内のアドレスにある API サーバーと、指定したエンドポイントにある etcd、スケジューラー、コントローラーマネージャー ([コントロールプレーンの監視を有効にする](/docs/telemetry/kubernetes-agent#コントロールプレーンの監視を有効にする))。セルフマネージドのクラスターのみ: マネージドのクラスターはこれらを公開しません。 |
 | `cost.enabled` | オフ | 各ワークロードのコスト。[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照してください。 |
 
 ## よく使うオプション
@@ -376,8 +376,8 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values
 ```
 
@@ -385,9 +385,9 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm repo update
-helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
-  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent -f values.yaml
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
 ```
 
 `--reuse-values` でアップグレードしないでください。アップグレード元のチャートのデフォルト値も残してしまうため、新しいチャートのデフォルト値 (eBPF イメージを含む) が適用されなくなります。リリースが古いチャートのデフォルト値で動いている場合、インストールやアップグレードの後に Helm が表示するノートの最後に、警告と、それを直すコマンドが表示されます。
@@ -398,8 +398,8 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
 ## アンインストール
 
 ```bash
-helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
-kubectl delete namespace oneuptime-kubernetes-agent
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
 ```
 
 ## トラブルシューティング
@@ -409,7 +409,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
-  | bash -s -- -n oneuptime-kubernetes-agent
+  | bash -s -- -n oneuptime-agent
 ```
 
 特に再インストールの後によくある原因は、間違った、または失効した取り込みキーです。OneUptime がキーを拒否し、コレクターは Pod が `Running` のまま、すべてのバッチを破棄します。
@@ -420,8 +420,8 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set preset=gke-autopilot
 ```
@@ -437,8 +437,8 @@ EKS Fargate では `--set preset=eks-fargate` を使います。
 エージェントの Pod とそのログを確認します。
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
-kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
+kubectl get pods -n oneuptime-agent
+kubectl logs -n oneuptime-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
 `api` モードでは、ログテイラーがポート 13133 の `/healthz` で、エクスポートの状態を返します。`kubectl port-forward` でアクセスしてください。
@@ -448,7 +448,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptim
 OBI のログを読みます。
 
 ```bash
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 - **カーネルが古すぎるか、BTF がありません。** OBI には BTF 付きの Linux 5.8 以降が必要です。ノードで `uname -r` を実行して確認してください。アップグレードできない場合は、`--set ebpf.enabled=false` で eBPF をオフにします。
@@ -468,7 +468,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 名前空間を複数のリリースに分け、それぞれを独自の名前空間ルールでインストールします。
 
 ```bash
-helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
+helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
   --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...

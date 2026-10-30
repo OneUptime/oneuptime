@@ -23,7 +23,7 @@ flowchart TB
 ## Før du begynner
 
 - OneUptimes Kubernetes-agent kjører i klyngen. Se [Kubernetes-agent (Helm-installasjon)](/docs/monitor/kubernetes-agent); klyngen vises under **Kubernetes** noen minutter etter installasjonen.
-- For kontrollplanmalene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens innsamling fra kontrollplanet, `controlPlane.enabled`. Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så der mottar de monitorene aldri data.
+- For kontrollplanmalene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens innsamling fra kontrollplanet, `controlPlane.enabled`, som leser API-serveren uten videre; etcd og scheduleren trenger i tillegg at endepunktene deres er oppgitt (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så der mottar de monitorene aldri data.
 
 ## Opprett en Kubernetes-monitor
 
@@ -34,15 +34,15 @@ Gå til **Monitorer** og klikk på **Opprett monitor**. Velg **Kubernetes** unde
 
 ### Velg klyngen
 
-Velg den i **Kubernetes-klynge**. Listen inneholder hver klynge agenten har rapportert fra.
+Velg den i **Kubernetes-klynge**. Listen inneholder hver klynge agenten har rapportert fra. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Kubernetes-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Bruk en av de tre fanene:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**; **Endre** velger en annen mal. **Custom Metric** og **Avansert** ligger under **Flere felt**:
 
-| Fane | Hva du velger |
+| Hvor | Hva du velger |
 | --- | --- |
-| **Quick Setup** | En [ferdig varslingsmal](#ferdige-varslingsmaler). Den fyller inn metrikken, omfanget, tidsintervallet og kriteriene; du kan fortsatt endre **Tidsintervall**. |
+| **Hva det skal varsles om** | En [ferdig varslingsmal](#ferdige-varslingsmaler). Den fyller inn metrikken, omfanget, tidsintervallet og kriteriene; du kan fortsatt endre **Tidsintervall**. |
 | **Custom Metric** | Én metrikk fra [metrikkatalogen](#metrikkatalog), deretter **Ressursomfang**, filtre, **Aggregering** (Gjennomsnitt, Maksimum, Minimum, Sum eller Antall) og **Tidsintervall**. |
 | **Avansert** | **Ressursomfang**, filtre og **Tidsintervall**, og dine egne metrikkspørringer og formler under **Velg målinger**, med et livediagram over resultatet. |
 
@@ -128,7 +128,7 @@ Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **
 
 ## Ferdige varslingsmaler
 
-Fanen **Quick Setup** viser disse malene, gruppert etter kategori. Hver fyller inn to kriterier: ett som markerer monitoren som frakoblet og åpner en hendelse og et varsel mens betingelsen gjelder, og ett som setter den tilkoblet igjen når betingelsen opphører.
+Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kategori. Hver fyller inn to kriterier: ett som markerer monitoren som frakoblet og åpner en hendelse og et varsel mens betingelsen gjelder, og ett som setter den tilkoblet igjen når betingelsen opphører.
 
 | Mal | Kategori | Utløses når | Alvorlighetsgrad |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ Klynger registrerer seg selv fra agentens data, under det `clusterName` agenten 
 :::
 
 :::details En kontrollplanmal utløses aldri
-**etcd No Leader**, **API Server Request Saturation** og **Scheduler Backlog** leser metrikker som bare agentens innsamling fra kontrollplanet henter. Slå på `controlPlane.enabled` i agentens Helm-verdier; den er av som standard. Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så på dem mottar disse monitorene aldri data.
+**etcd No Leader**, **API Server Request Saturation** og **Scheduler Backlog** leser metrikker som bare agentens innsamling fra kontrollplanet henter. Slå på `controlPlane.enabled` i agentens Helm-verdier; den er av som standard. Det leser API-serveren. etcd og scheduleren kjører på kontrollplannodene, så **etcd No Leader** og **Scheduler Backlog** trenger også `controlPlane.etcd.endpoints` og `controlPlane.scheduler.endpoints` satt til adresser agentens pod kan nå (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så på dem mottar disse monitorene aldri data.
 :::
 
 :::details En CPU-terskel utløses aldri

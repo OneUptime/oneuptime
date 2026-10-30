@@ -48,19 +48,19 @@ Under **Monitor Type**, click **More monitor types** and pick **VMware** under *
 
 ### Choose the vCenter
 
-Under **VMware Monitor Configuration**, pick the vCenter from **vCenter**. Every vCenter that has sent data, or that you connected without an agent, is in the list.
+Under **VMware Monitor Configuration**, pick the vCenter from **vCenter**. Every vCenter that has sent data, or that you connected without an agent, is in the list. Once picked, a line under the field says whether data is arriving. **Add vCenter** opens the vCenters page, where you connect one.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **vCenter Stopped Reporting**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** - click a [template](#pre-built-alert-templates). It sets the metric, the attribute filters, the aggregation, the time range, the group-by and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** - pick one metric from **VMware Metric**, then set **Aggregation** and **Time Range**. The form groups it by the object it describes, so each host, VM or datastore is judged on its own, and the [filters](#monitor-settings) narrow it to one datacenter, cluster, host, VM, datastore or resource pool.
-- **Advanced** - build queries and formulas yourself under **Select Metrics**, with filters on attributes such as `disk_state`, `power_state` or `status`. Use **Group by** an [identity attribute](#identity-attributes) to judge each object on its own.
+- **Change** - pick another [template](#pre-built-alert-templates). It sets the metric, the attribute filters, the aggregation, the time range, the group-by and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) - pick one metric from **VMware Metric**, then set **Aggregation** and **Time Range**. The form groups it by the object it describes, so each host, VM or datastore is judged on its own, and the [filters](#monitor-settings) narrow it to one datacenter, cluster, host, VM, datastore or resource pool.
+- **Advanced** (under **More fields**) - build queries and formulas yourself under **Select Metrics**, with filters on attributes such as `disk_state`, `power_state` or `status`. Use **Group by** an [identity attribute](#identity-attributes) to judge each object on its own.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -106,7 +106,7 @@ In monitor filters and group-by keys, resource attributes start with `resource.`
 
 ## Pre-built Alert Templates
 
-OneUptime ships 24 templates for common VMware problems, and **Quick Setup** offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 24 templates for common VMware problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold, so a value hovering at the line does not flap.
 

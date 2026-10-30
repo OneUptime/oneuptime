@@ -11,7 +11,7 @@ En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och L
 
 ## Så fungerar det
 
-OneUptimes Proxmox-agent körs på en maskin som når Proxmox VE-API:t. Var 30:e sekund hämtar den data från prometheus-pve-exporter med kluster- och nodinsamlarna, märker varje serie med resursen den beskriver och skickar måtten till OneUptime över OTLP, stämplade med klustrets namn, `proxmox.cluster.name`. De första data registrerar klustret. Proxmox VE 9 och senare kan i stället pusha mått själv, utan att något installeras; se [den inbyggda pushen](#den-inbyggda-pushen-i-proxmox-ve).
+OneUptimes Proxmox-agent körs på en maskin som når Proxmox VE-API:t. Var 30:e sekund hämtar den data från klusterinsamlarna i prometheus-pve-exporter en gång och från nodinsamlarna en gång för varje nod, märker varje serie med resursen den beskriver och skickar måtten till OneUptime över OTLP, stämplade med klustrets namn, `proxmox.cluster.name`. De första data registrerar klustret. Proxmox VE 9 och senare kan i stället pusha mått själv, utan att något installeras; se [den inbyggda pushen](#den-inbyggda-pushen-i-proxmox-ve).
 
 En Proxmox-monitor är knuten till ett kluster. Varje minut kör den sin fråga över klustrets mätvärden och jämför resultatet med sina kriterier.
 
@@ -48,19 +48,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Proxmox** unde
 
 ### Välj klustret
 
-Välj klustret i **Proxmox-kluster** under **Proxmox Monitor Configuration**. Varje kluster som har skickat data finns i listan.
+Välj klustret i **Proxmox-kluster** under **Proxmox Monitor Configuration**. Varje kluster som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till Proxmox-kluster** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdena, filtren, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** – välj ett mätvärde i **Proxmox Metric** och ange sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en typ av resurs eller till en resurs.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**, till exempel en minnesprocent från `pve_memory_usage_bytes / pve_memory_size_bytes`. Använd **Gruppera efter** `id` för att bedöma varje resurs för sig.
+- **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdena, filtren, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Proxmox Metric** och ange sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en typ av resurs eller till en resurs.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel en minnesprocent från `pve_memory_usage_bytes / pve_memory_size_bytes`. Använd **Gruppera efter** `id` för att bedöma varje resurs för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -109,7 +109,7 @@ Filtrera på `pve.scope` eller `pve.type` för en typ av resurs, på `pve.id` el
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 12 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder 12 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och ett tröskelkriterium återställs 10 % förbi sin tröskel, så att ett värde som pendlar vid gränsen inte fladdrar.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 och senare kan pusha mått via sin inbyggda OpenTelemetry-måttserv
 
 ## Insamlade mätvärden
 
-Agenten hämtar data från prometheus-pve-exporter var 30:e sekund med både kluster- och nodinsamlarna, vilket också täcker exporterns insamlare `backup-info` och `replication` (båda påslagna som standard).
+Agenten hämtar data från prometheus-pve-exporter var 30:e sekund: klusterinsamlarna en gång, på `PVE_HOST`, och nodinsamlarna en gång för varje nod i `PVE_NODES`, eftersom de bara läser den nod som exportern frågar. Nodinsamlarna är `config` (start vid uppstart) och `replication`; exporterns insamlare `backup-info` (kluster) och `replication` är båda påslagna som standard.
 
 ### Tillgänglighet
 
@@ -206,7 +206,7 @@ Från exporterns insamlare `backup-info` på klusternivå. De rapporterar bara t
 
 ### Replikering
 
-Från exporterns insamlare `replication` på nodnivå. Serierna finns bara när klustret har replikeringsjobb, och bär jobbets id i `id`:
+Från exporterns insamlare `replication` på nodnivå, läst från varje nod i `PVE_NODES`. Serierna finns bara när klustret har replikeringsjobb, och bär jobbets id i `id`:
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likad
 :::
 
 :::details Mått för säkerhetskopiering eller replikering saknas
-`pve_not_backed_up_*` kommer från exporterns insamlare `backup-info` och `pve_replication_*` från dess insamlare `replication`. Båda är påslagna som standard och täcks av insamlingsparametrarna `cluster=1` och `node=1` i den medföljande konfigurationen. Om du kör en egen exporter kontrollerar du att du inte har stängt av dem. `pve_replication_*` finns bara när klustret har jobb för lagringsreplikering.
+`pve_not_backed_up_*` kommer från exporterns insamlare `backup-info` och `pve_replication_*` från dess insamlare `replication`. Båda är påslagna som standard och täcks av den medföljande konfigurationen: `cluster=1` en gång, och `node=1` för varje nod i `PVE_NODES`. En nod som saknas i `PVE_NODES` skickar inga replikeringsjobb, och dess gäster inga flaggor för start vid uppstart, så **Guest Down** utlöses aldrig för dem. Om du kör en egen exporter kontrollerar du att du inte har stängt av dem. `pve_replication_*` finns bara när klustret har jobb för lagringsreplikering.
 :::
 
 :::details Räknare som pve_network_receive_bytes bara växer

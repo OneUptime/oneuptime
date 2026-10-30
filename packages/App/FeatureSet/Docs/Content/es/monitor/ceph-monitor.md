@@ -57,19 +57,19 @@ En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Ceph** e
 
 ### Elegir el clúster
 
-En **Configuración del monitor de Ceph**, elige el clúster en **Clúster de Ceph**. Todos los clústeres que han enviado datos están en la lista.
+En **Configuración del monitor de Ceph**, elige el clúster en **Clúster de Ceph**. Todos los clústeres que han enviado datos están en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir clúster de Ceph** abre los pasos de configuración con tus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elige una de las tres pestañas:
+Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup**: haz clic en una [plantilla](#plantillas-de-alerta-predefinidas). Define las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puedes cambiar el **Intervalo de tiempo**.
-- **Custom Metric**: elige una métrica en **Métrica de Ceph** y luego ajusta **Agregación** e **Intervalo de tiempo**. **OSD** e **ID del pool** la limitan a un daemon o a un pool.
-- **Avanzado**: crea tú mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo una proporción de capacidad usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Agrupar por** `ceph_daemon` o `pool_id` para evaluar cada daemon o pool por separado.
+- **Cambiar**: elige otra [plantilla](#plantillas-de-alerta-predefinidas). Define las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puedes cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**): elige una métrica en **Métrica de Ceph** y luego ajusta **Agregación** e **Intervalo de tiempo**. **OSD** e **ID del pool** la limitan a un daemon o a un pool.
+- **Avanzado** (en **Más campos**): crea tú mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo una proporción de capacidad usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Agrupar por** `ceph_daemon` o `pool_id` para evaluar cada daemon o pool por separado.
 
 ### Revisar los criterios
 
-Abre cada criterio en **Criterios del monitor** y revisa su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que define tu propio umbral.
+Abre cada criterio en **Criterios del monitor** y revisa su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que define tu propio umbral.
 
 ### Crear el monitor
 
@@ -99,7 +99,7 @@ Las series de datos de los pools solo llevan la etiqueta `pool_id`: el nombre de
 
 ## Plantillas de alerta predefinidas
 
-**Quick Setup** ofrece 24 plantillas que cubren un clúster silencioso, la salud del clúster, los OSD, los placement groups y la capacidad. Cada una crea un monitor completo: consultas, filtros de etiquetas, una agrupación, un criterio que dispara y otro que recupera. Los umbrales son un punto de partida que puedes editar.
+La lista de **Sobre qué alertar** ofrece 24 plantillas que cubren un clúster silencioso, la salud del clúster, los OSD, los placement groups y la capacidad. Cada una crea un monitor completo: consultas, filtros de etiquetas, una agrupación, un criterio que dispara y otro que recupera. Los umbrales son un punto de partida que puedes editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un criterio solo dispara si la condición se cumple en cada minuto de su ventana, y un criterio con umbral se recupera un 10 % más allá de su umbral, para que un valor que ronda la línea no oscile. **Gravedad** es la etiqueta que muestra el selector; el incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de tu proyecto.
 

@@ -1,0 +1,139 @@
+# Control-plane monitoring (`controlPlane.*`). The scrapes run in the cluster
+# collector's pod, which has no host network, and the chart used to default
+# every component to `https://localhost:<port>/metrics`: the pod itself. So
+# `controlPlane.enabled=true`, all the docs and the Dashboard asked for,
+# scraped nothing at all. And etcd could not be scraped anywhere: its job was
+# HTTPS whatever the endpoint said (kubeadm's plain metrics port, 2381, is
+# HTTP) and sent no client certificate (its client port, 2379, asks for one).
+#
+# Now:
+#   - the API server defaults to where it answers inside every cluster,
+#     https://kubernetes.default.svc:443/metrics, read with the service
+#     account's token (the ClusterRole grants GET on /metrics);
+#   - etcd, the scheduler and the controller manager answer on the
+#     control-plane nodes, so they have no default, and a component with no
+#     endpoints gets no job instead of one that fails every 30 seconds;
+#   - a component's job takes its scheme from its endpoints (http:// is plain
+#     HTTP, anything else HTTPS) and refuses a list that mixes the two;
+#   - controlPlane.etcd.clientCertSecret mounts a Secret's ca.crt, tls.crt
+#     and tls.key into the collector, and the etcd job presents them.
+#
+# The patterns read the job with the ConfigMap's own indent stripped:
+# `- job_name:` at 8 spaces, its keys at 10, `- targets:` at 12, a target at
+# 16. Each spells out the whole job, from `job_name` to the first line past
+# it, so a key that should not be there fails the match.
+suite: control-plane scrapes reach the control plane
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+tests:
+  - it: scrapes the API server where it answers inside the cluster, with nothing else set
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-apiserver\\n          scheme: https\\n          metrics_path: /metrics\\n          tls_config:\\n            insecure_skip_verify: true\\n(?:            # [^\\n]*\\n)*            ca_file: /var/run/secrets/kubernetes\\.io/serviceaccount/ca\\.crt\\n          bearer_token_file: /var/run/secrets/kubernetes\\.io/serviceaccount/token\\n          static_configs:\\n            - targets:\\n                - \"kubernetes\\.default\\.svc:443\"\\n(?: {0,8}\\S|\\n)"
+      # Nothing points at the pod's own loopback any more.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "localhost:(2379|6443|10259|10257)"
+      # The prometheus receiver is in the metrics pipeline.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      receivers:\\n        - k8s_cluster\\n(?:        # [^\\n]*\\n)*(?:        - otlp\\n)?        - prometheus\\n"
+
+  - it: gives etcd, the scheduler and the controller manager no job until they have endpoints
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: (etcd|kube-scheduler|kube-controller-manager)\\n"
+
+  - it: scrapes nothing of the control plane while it is off
+    set:
+      clusterName: prod-us
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: (etcd|kube-apiserver|kube-scheduler|kube-controller-manager)\\n"
+
+  - it: adds no prometheus receiver when every component's list is empty, which would stop the collector
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.apiServer.endpoints: []
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  prometheus:\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - prometheus\\n"
+
+  - it: scrapes etcd's plain metrics port in plain HTTP
+    # kubeadm's --listen-metrics-urls, bound to the node's address.
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - http://10.0.0.10:2381/metrics
+        - http://10.0.0.11:2381
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: etcd\\n          scheme: http\\n          metrics_path: /metrics\\n          tls_config:\\n            insecure_skip_verify: true\\n          static_configs:\\n            - targets:\\n                - \"10\\.0\\.0\\.10:2381\"\\n            - targets:\\n                - \"10\\.0\\.0\\.11:2381\"\\n(?: {0,8}\\S|\\n)"
+
+  - it: presents the client certificate etcd's client port asks for, from the Secret it names
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - https://10.0.0.10:2379/metrics
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: etcd\\n          scheme: https\\n          metrics_path: /metrics\\n          tls_config:\\n            insecure_skip_verify: true\\n(?:            # [^\\n]*\\n)*            ca_file: /etc/oneuptime/etcd-client-cert/ca\\.crt\\n            cert_file: /etc/oneuptime/etcd-client-cert/tls\\.crt\\n            key_file: /etc/oneuptime/etcd-client-cert/tls\\.key\\n          static_configs:\\n            - targets:\\n                - \"10\\.0\\.0\\.10:2379\"\\n(?: {0,8}\\S|\\n)"
+
+  - it: scrapes the scheduler and the controller manager at the addresses given, with the token
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.scheduler.endpoints:
+        # host:port alone is HTTPS, as the components serve it.
+        - 10.0.0.10:10259
+      controlPlane.controllerManager.endpoints:
+        # A path other than /metrics never reaches the target.
+        - https://10.0.0.10:10257/metrics/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-scheduler\\n          scheme: https\\n          metrics_path: /metrics\\n          tls_config:\\n            insecure_skip_verify: true\\n          bearer_token_file: /var/run/secrets/kubernetes\\.io/serviceaccount/token\\n          static_configs:\\n            - targets:\\n                - \"10\\.0\\.0\\.10:10259\"\\n(?: {0,8}\\S|\\n)"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-controller-manager\\n          scheme: https\\n          metrics_path: /metrics\\n          tls_config:\\n            insecure_skip_verify: true\\n          bearer_token_file: /var/run/secrets/kubernetes\\.io/serviceaccount/token\\n          static_configs:\\n            - targets:\\n                - \"10\\.0\\.0\\.10:10257\"\\n(?: {0,8}\\S|\\n)"
+
+  - it: refuses a component whose endpoints mix http:// and https://
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - http://10.0.0.10:2381
+        - https://10.0.0.11:2379
+    asserts:
+      - failedTemplate:
+          errorMessage: "controlPlane.etcd.endpoints mixes http:// and https:// endpoints. A component is scraped by one job, with one scheme: list its endpoints with the same one."
+
+  - it: takes the client certificate Secret in the values schema
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - notFailedTemplate: {}

@@ -57,19 +57,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir le cluster
 
-Sous **Configuration du moniteur Ceph**, choisissez le cluster dans **Cluster Ceph**. Tout cluster ayant envoyé des données figure dans la liste.
+Sous **Configuration du moniteur Ceph**, choisissez le cluster dans **Cluster Ceph**. Tout cluster ayant envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un cluster Ceph** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** — cliquez sur un [modèle](#modèles-dalerte-prédéfinis). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez encore modifier la **Plage temporelle**.
-- **Custom Metric** — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool.
-- **Avancé** — construisez vous-même requêtes et formules sous **Sélectionner les métriques**, par exemple un ratio de capacité utilisée à partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Utilisez **Regrouper par** `ceph_daemon` ou `pool_id` pour juger chaque démon ou pool séparément.
+- **Modifier** — choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez encore modifier la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool.
+- **Avancé** (sous **Plus de champs**) — construisez vous-même requêtes et formules sous **Sélectionner les métriques**, par exemple un ratio de capacité utilisée à partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Utilisez **Regrouper par** `ceph_daemon` ou `pool_id` pour juger chaque démon ou pool séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui tombe à zéro : définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données : définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -99,7 +99,7 @@ Les séries de données des pools ne portent que le label `pool_id` : le nom du 
 
 ## Modèles d'alerte prédéfinis
 
-**Quick Setup** propose 24 modèles couvrant un cluster devenu silencieux, la santé du cluster, les OSD, les placement groups et la capacité. Chacun construit un moniteur complet — requêtes, filtres de labels, un regroupement, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ modifiables.
+La liste de **Sur quoi alerter** propose 24 modèles couvrant un cluster devenu silencieux, la santé du cluster, les OSD, les placement groups et la capacité. Chacun construit un moniteur complet — requêtes, filtres de labels, un regroupement, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ modifiables.
 
 Les modèles lisent les 5 dernières minutes sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est vraie pendant chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil, pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse. **Gravité** est le libellé affiché par le sélecteur ; l'incident et l'alerte créés par un modèle démarrent avec la gravité d'incident et d'alerte la plus élevée de votre projet.
 

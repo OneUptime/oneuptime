@@ -61,19 +61,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Vært** under 
 
 ### Vælg værten
 
-Vælg maskinen i **Vært** under **Host Monitor Configuration**. Hver vært, der har sendt data, er på listen.
+Vælg maskinen i **Vært** under **Host Monitor Configuration**. Hver vært, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj vært** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Host Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -95,7 +95,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
@@ -113,13 +113,13 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 - **Host Stopped Reporting** udløses, når der ikke kommer noget fra værten i ti minutter: maskinen er nede eller utilgængelig, eller dens collector er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 - **CPU** er optaget tid (`user` plus `system`), det samme tal, som værtens **Oversigt** viser i diagrammer. Iowait og steal er udeladt.
 - **Hukommelse** udelader buffere og sidecache, så en vært, der mest indeholder cache, ikke udløser den.
-- **Filsystem** åbner én hændelse pr. montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer af typen `squashfs` eller `devfs` på macOS, er altid 100 % fulde; udelad dem i collectorens scraper `filesystem`.
+- **Filsystem** åbner én hændelse pr. montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer af typen `squashfs` eller `devfs` på macOS, er altid 100 % fulde: OneUptimes collector-konfigurationer udelader dem fra scraperen `filesystem` med `exclude_fs_types`, og en konfiguration, du selv skriver, skal have det samme.
 - **Belastningsgennemsnit** er en rå længde af kørselskøen, ikke divideret med antallet af kerner: 4 er mætning på en vært med 2 kerner og rutine på en med 32, så hæv den på store værter.
 - **Antal processer** sammenligner den største enkelte procestilstand (`running`, `sleeping`, …), ikke værtens samlede antal, så det vil ikke svare til en procesliste. Scraperen for processer rapporterer kun på Linux.
 
 ## Indsamlede metrikker
 
-Listen **Host Metric** tilbyder disse metrikker. Hver bærer `resource.host.name`, som er den måde, monitoren afgrænser sine forespørgsler til én vært.
+Listen **Host Metric** tilbyder disse metrikker. Hver bærer `resource.host.name`, som er den måde, monitoren afgrænser sine forespørgsler til én vært. Valgt dér tæller CPU tilstanden `user`, hukommelses- og filsystemforbrug tilstanden `used`, og filsystemer og processer giver én serie pr. monteringspunkt og status.
 
 > [!IMPORTANT]
 > Udnyttelsesmetrikkerne er et forhold fra 0 til 1, ikke en procent: brug `0.8` for 80 % i en tærskel på den rå metrik. Skabelonerne omregner til procent med en formel, så deres tærskler lyder 80, 85 og 90.
@@ -212,7 +212,7 @@ Monitoren afgrænser hver forespørgsel med `resource.host.name` lig med den væ
 :::
 
 :::details High Filesystem Usage udløses for en montering, der altid er fuld
-Skrivebeskyttede pseudofilsystemer, som snap-loop-monteringer af typen `squashfs` under `/snap` eller `devfs` på macOS, er 100 % fulde med vilje og kommer sig aldrig. Udelad dem fra collectorens scraper `filesystem`.
+Skrivebeskyttede pseudofilsystemer, som snap-loop-monteringer af typen `squashfs` under `/snap` eller `devfs` på macOS, er 100 % fulde med vilje og kommer sig aldrig. De konfigurationer, OneUptime kører og udleverer, udelader dem med `exclude_fs_types`; en konfiguration, du selv skriver, eller en Collector-konfiguration, der blev lavet før de gjorde det, skal have det samme: kopiér det fra [Værtsmetrikker](/docs/telemetry/host-otel-collector#værtsmetrikker). Udelad en anden montering, der altid er fuld, såsom en monteret `.dmg`, med `exclude_mount_points`.
 :::
 
 ## Næste trin

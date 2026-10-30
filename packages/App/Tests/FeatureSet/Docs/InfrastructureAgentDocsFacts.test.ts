@@ -34,6 +34,7 @@ import {
   getKubernetesSetupGuide,
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import {
   MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_ACTIVE_STATES,
@@ -444,21 +445,61 @@ describe("the Proxmox agent page, against the agent", () => {
     );
   });
 
-  it("scrapes every 30 seconds with the cluster and node collectors on", () => {
-    const scrape: YamlNode = (
-      at(
-        yamlOf(config),
-        "receivers.prometheus.config.scrape_configs",
-      ) as Array<YamlNode>
-    )[0] as YamlNode;
-    expect(scrape["scrape_interval"]).toBe("30s");
-    expect(at(scrape, "params.cluster")).toEqual(["1"]);
-    expect(at(scrape, "params.node")).toEqual(["1"]);
+  /*
+   * pve-exporter's node collectors (start-on-boot, replication, the
+   * subscription) read only the node whose API answers the scrape. One
+   * scrape of PVE_HOST with cluster=1&node=1 left the guests and jobs of
+   * every other node out, so Guest Down and Replication Failing never saw
+   * them.
+   */
+  it("scrapes the cluster collectors once, and the node collectors once per node, every 30 seconds", () => {
+    const jobs: Array<YamlNode> = at(
+      yamlOf(config),
+      "receivers.prometheus.config.scrape_configs",
+    ) as Array<YamlNode>;
+    expect(
+      jobs.map((job: YamlNode): unknown => {
+        return job["job_name"];
+      }),
+    ).toEqual(["oneuptime-proxmox", "oneuptime-proxmox-nodes"]);
+    for (const job of jobs) {
+      expect(job["scrape_interval"]).toBe("30s");
+    }
+    expect(at(jobs[0], "params")).toEqual({
+      target: ["${env:PVE_HOST}"],
+      cluster: ["1"],
+      node: ["0"],
+    });
+    expect(at(jobs[1], "params")).toEqual({ cluster: ["0"], node: ["1"] });
+    expect(jobs[1]!["static_configs"]).toEqual([
+      { targets: "${env:PVE_NODES}" },
+    ]);
+    expect(compose).toContain(
+      "- PVE_NODES=${PVE_NODES:-[${PVE_HOST:-localhost}]}",
+    );
+
     lineWith(
       PROXMOX_PAGE,
-      "scrapes the exporter every 30 seconds with both its cluster and node collectors on",
+      "scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`",
+    );
+    expect(rowOf(PROXMOX_PAGE, "`PVE_NODES`")[2]).toContain(
+      "comma-separated in square brackets, such as `[192.168.1.10,192.168.1.11,192.168.1.12]`",
+    );
+    expect(rowOf(PROXMOX_PAGE, "`PVE_NODES`")[2]).toContain(
+      "Defaults to `PVE_HOST` alone",
+    );
+    expect(english(PROXMOX_PAGE)).toContain(
+      "PVE_HOST=192.168.1.10\nPVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]\n",
     );
     lineWith(PROXMOX_PAGE, "`cluster=1`", '`cluster: ["1"]`');
+  });
+
+  it("says a virtual IP serves PVE_HOST, never PVE_NODES", () => {
+    lineWith(
+      PROXMOX_PAGE,
+      "point `PVE_HOST` at a virtual IP or round-robin DNS name",
+      "`PVE_NODES` is different: it lists every node at its own address, never a virtual IP",
+    );
   });
 
   it("names the eight journald units the shipped config's receiver reads", () => {
@@ -1239,6 +1280,58 @@ describe("the host collector page, against the setup guide", () => {
             (at(scrapers[scraper], "metrics") as YamlNode)[metric],
           ]).toEqual([metric, { enabled: true }]);
         }
+      }
+    });
+
+    /*
+     * Snap packages, CD and ISO images and macOS's /dev read 100% used for
+     * as long as they are mounted, so a config that measures them keeps
+     * High Filesystem Usage firing on them for good.
+     */
+    it("leaves the file systems that are full by design out, as OneUptime's default does", () => {
+      for (const config of configs) {
+        expect(
+          at(
+            config,
+            "receivers.hostmetrics.scrapers.filesystem.exclude_fs_types",
+          ),
+        ).toEqual({
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        });
+      }
+      lineWith(
+        HOST_PAGE,
+        "The configs above leave out of the `filesystem` scraper the file systems that are full by design",
+        "`exclude_fs_types`",
+        "`exclude_mount_points`",
+      );
+    });
+
+    it("and so does every other hostmetrics receiver it hands out", () => {
+      const receivers: Array<YamlNode> = fencesOf(HOST_PAGE)
+        .filter((fence: DocsFence): boolean => {
+          return fence.lang === "yaml";
+        })
+        .map((fence: DocsFence): YamlNode => {
+          return yamlOf(fence.code);
+        })
+        .map((document: YamlNode): YamlNode => {
+          return at(document, "receivers.hostmetrics.scrapers") as YamlNode;
+        })
+        .filter((scrapers: YamlNode | undefined): boolean => {
+          return Boolean(scrapers) && "filesystem" in scrapers!;
+        });
+
+      // The four configs and the narrowed process scraper.
+      expect(receivers).toHaveLength(5);
+      for (const scrapers of receivers) {
+        expect(
+          (scrapers["filesystem"] as YamlNode)["exclude_fs_types"],
+        ).toEqual({
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        });
       }
     });
 

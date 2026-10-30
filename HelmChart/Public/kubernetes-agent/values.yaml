@@ -370,25 +370,56 @@ deployment:
 # Control plane monitoring (etcd, API server, scheduler, controller manager)
 # Disabled by default — enable for self-managed clusters.
 # Managed K8s (EKS, GKE, AKS) typically don't expose control plane metrics.
+#
+# The scrapes run in the cluster collector's pod, which has no host network:
+# `localhost` there is the pod itself, never a control-plane node. So each
+# component is scraped at the endpoints in its own list, and a component
+# with no endpoints is not scraped at all.
+#
+# An endpoint is host:port, or a URL: `http://` is scraped in plain HTTP,
+# anything else over HTTPS, and a path other than /metrics is not kept (the
+# components serve /metrics). A component's endpoints share one scheme.
 controlPlane:
   enabled: false
   etcd:
-    # Endpoints to scrape etcd metrics from
-    endpoints:
-      - https://localhost:2379/metrics
-    # TLS configuration for etcd
+    # Empty by default: etcd runs on the control-plane nodes, and serves its
+    # metrics either
+    #   - in plain HTTP on kubeadm's --listen-metrics-urls (port 2381, bound
+    #     to 127.0.0.1 unless you add the node's address), e.g.
+    #     http://10.0.0.10:2381/metrics; or
+    #   - over HTTPS on its client port (2379), which asks for a client
+    #     certificate: see clientCertSecret.
+    endpoints: []
     insecureSkipVerify: true
+    # The name of a Secret in the release's namespace that holds the client
+    # certificate etcd asks for over HTTPS: `ca.crt`, `tls.crt` and
+    # `tls.key`. It is mounted read-only into the cluster collector, and the
+    # etcd scrape presents it. On kubeadm, the health-check client's:
+    #   kubectl -n <namespace> create secret generic etcd-client-cert \
+    #     --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+    #     --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+    #     --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+    clientCertSecret: ""
   apiServer:
+    # Where the API server answers inside every cluster, read with the
+    # service account's token (the ClusterRole grants GET on /metrics).
     endpoints:
-      - https://localhost:6443/metrics
+      - https://kubernetes.default.svc:443/metrics
+    # Set to false to check the API server's certificate against the
+    # cluster's CA (the service account's ca.crt), which signs the in-cluster
+    # address above.
     insecureSkipVerify: true
   scheduler:
-    endpoints:
-      - https://localhost:10259/metrics
+    # Empty by default: the scheduler serves HTTPS on port 10259 of each
+    # control-plane node and accepts the service account's token, but
+    # kubeadm binds it to 127.0.0.1. Give it a --bind-address the agent's pod
+    # can reach, then list the nodes, e.g. https://10.0.0.10:10259/metrics.
+    endpoints: []
     insecureSkipVerify: true
   controllerManager:
-    endpoints:
-      - https://localhost:10257/metrics
+    # Empty by default, for the same reason: port 10257, e.g.
+    # https://10.0.0.10:10257/metrics.
+    endpoints: []
     insecureSkipVerify: true
 
 # Pod log collection.
@@ -504,14 +535,17 @@ collectionInterval: 30s
 # To drop the series anyway, list them in `filters.metrics.exclude`.
 kubeletstats:
   # Saturation metrics — container & pod CPU/memory expressed as a
-  # percentage of request and limit. Enables the "Container CPU vs
-  # Limit", "Container Memory vs Limit", "Container CPU/Memory Request"
-  # saturation monitors.
+  # percentage of request and limit. The "Pod CPU Saturating Container
+  # Limit" and "Pod Memory Saturating Container Limit" monitors read the
+  # pod-level limit ones (k8s.pod.cpu_limit_utilization,
+  # k8s.pod.memory_limit_utilization).
   #
   # Enables 8 derived metric families (4 container-level, 4 pod-level)
-  # from data the receiver already collects — no extra scrape. Always 0
-  # when a pod has no request/limit set, so it's harmless on clusters
-  # that don't use them.
+  # from data the receiver already collects — no extra scrape. A series
+  # exists only where there is something to divide by: a container with no
+  # limit (or request) gets none of the limit (or request) ones, and a pod
+  # only when every container in it has one. So it is harmless, and adds
+  # nothing, on clusters that don't set them.
   #
   # The receiver exposes request/limit utilization only at the
   # container and pod level — there is NO node-level
@@ -521,9 +555,9 @@ kubeletstats:
   # vs. node allocatable (e.g. via kube-state-metrics).
   utilizationMetrics:
     enabled: true
-  # Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`).
-  # Enables the "PVC Low Disk Space" monitor — running out of PVC space
-  # is otherwise a silent killer.
+  # Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`), for
+  # charts and metric monitors of your own — running out of PVC space is
+  # otherwise a silent killer. No built-in monitor template reads them.
   #
   # Emits one series per PVC per pod, which is bounded for most clusters
   # but can be substantial on stateful workloads (Kafka, databases) with
@@ -537,7 +571,10 @@ kubeletstats:
 # Prometheus scrape in every DaemonSet collector, against its own node's
 # kubelet (authorized by the nodes/metrics grant in templates/rbac.yaml).
 #
-# Enables: OOM Kills, High CPU Throttling, CPU Throttle Ratio monitors.
+# They are for charts and metric monitors of your own: no built-in monitor
+# template reads them. (The "Pod CPU/Memory Saturating Container Limit"
+# templates, which catch a pod heading for throttling or an OOM kill, read
+# kubeletstats' utilization metrics above.)
 #
 # cAdvisor exposes hundreds of metrics by default — `metricsAllowlist`
 # drops everything except the named metrics at the receiver, so
@@ -553,9 +590,9 @@ cadvisor:
     - container_cpu_cfs_periods_total
     - container_oom_events_total
 
-# Cluster-state metrics from kube-state-metrics (KSM). Powers the
-# monitors that need to know *why* a pod is unhealthy, not just that
-# it's unhealthy:
+# Cluster-state metrics from kube-state-metrics (KSM): *why* a pod is
+# unhealthy, not just that it's unhealthy, for charts and metric monitors
+# of your own (no built-in monitor template reads them):
 #
 #   - CrashLoopBackOff (kube_pod_container_status_waiting_reason)
 #   - ImagePullBackOff  (kube_pod_container_status_waiting_reason)
@@ -607,12 +644,15 @@ kubeStateMetrics:
     - pods
     - resourcequotas
   # Allowlist that gates which KSM metrics are forwarded to OneUptime.
-  # KSM exports ~100 metric families by default; only keep the ones
-  # that power monitors.
+  # KSM exports ~100 metric families by default; keep only the ones you
+  # chart or alert on.
   #
-  # Each entry is used as a prefix: `.*` is appended to it, so
-  # `kube_pod_status` also keeps `kube_pod_status_phase`. Anchor by
-  # writing the full name when you want just the one metric.
+  # Each entry is a regular expression the WHOLE metric name must match:
+  # the collector keeps a metric only when its name matches `^(entry)$`.
+  # So `kube_pod_status` keeps nothing (no metric has that exact name);
+  # write `kube_pod_status_phase`, or `kube_pod_status_.*` for every
+  # kube_pod_status_* metric. (The bundled KSM is started with `.*` after
+  # each entry, so it emits a little more than this keeps.)
   #
   # In `bundled` mode an entry only produces series if its object is in
   # `collectResources` above.

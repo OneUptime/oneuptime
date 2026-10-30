@@ -11,7 +11,7 @@ Ein Proxmox-Monitor überwacht einen Proxmox-VE-Cluster – seine Knoten, VMs un
 
 ## So funktioniert es
 
-Der OneUptime-Proxmox-Agent läuft auf einem Rechner, der die Proxmox-VE-API erreicht. Alle 30 Sekunden fragt er prometheus-pve-exporter mit den Cluster- und Knoten-Kollektoren ab, versieht jede Reihe mit der Ressource, die sie beschreibt, und sendet die Metriken über OTLP an OneUptime, versehen mit dem Namen des Clusters, `proxmox.cluster.name`. Die ersten Daten registrieren den Cluster. Proxmox VE 9 und neuer kann Metriken stattdessen nativ übertragen, ohne dass etwas installiert werden muss; siehe [die native Übertragung](#die-native-übertragung-von-proxmox-ve).
+Der OneUptime-Proxmox-Agent läuft auf einem Rechner, der die Proxmox-VE-API erreicht. Alle 30 Sekunden fragt er die Cluster-Kollektoren von prometheus-pve-exporter einmal und seine Knoten-Kollektoren einmal für jeden Knoten ab, versieht jede Reihe mit der Ressource, die sie beschreibt, und sendet die Metriken über OTLP an OneUptime, versehen mit dem Namen des Clusters, `proxmox.cluster.name`. Die ersten Daten registrieren den Cluster. Proxmox VE 9 und neuer kann Metriken stattdessen nativ übertragen, ohne dass etwas installiert werden muss; siehe [die native Übertragung](#die-native-übertragung-von-proxmox-ve).
 
 Ein Proxmox-Monitor ist an einen Cluster gebunden. Jede Minute führt er seine Abfrage über die Metriken dieses Clusters aus und vergleicht das Ergebnis mit seinen Kriterien.
 
@@ -48,19 +48,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Den Cluster wählen
 
-Wählen Sie unter **Proxmox-Monitor-Konfiguration** den Cluster aus **Proxmox-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **Proxmox-Monitor-Konfiguration** den Cluster aus **Proxmox-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Proxmox-Cluster hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** – klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie legt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** – wählen Sie eine Metrik unter **Proxmox-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf eine Art von Ressource oder auf eine einzelne Ressource ein.
-- **Erweitert** – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Speicherprozentsatz aus `pve_memory_usage_bytes / pve_memory_size_bytes`. Verwenden Sie **Gruppieren nach** `id`, um jede Ressource einzeln zu beurteilen.
+- **Ändern** – wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie legt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) – wählen Sie eine Metrik unter **Proxmox-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf eine Art von Ressource oder auf eine einzelne Ressource ein.
+- **Erweitert** (unter **Weitere Felder**) – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Speicherprozentsatz aus `pve_memory_usage_bytes / pve_memory_size_bytes`. Verwenden Sie **Gruppieren nach** `id`, um jede Ressource einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn eine Metrik auf null fällt; legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Den Monitor erstellen
 
@@ -109,7 +109,7 @@ Filtern Sie nach `pve.scope` oder `pve.type` für eine Art von Ressource, nach `
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und ein Schwellenwert-Kriterium wird 10 % jenseits seines Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 und neuer kann Metriken über seinen eingebauten OpenTelemetry-Metr
 
 ## Erfasste Metriken
 
-Der Agent fragt prometheus-pve-exporter alle 30 Sekunden mit den Cluster- und den Knoten-Kollektoren ab, was auch die Kollektoren `backup-info` und `replication` des Exporters abdeckt (beide standardmäßig eingeschaltet).
+Der Agent fragt prometheus-pve-exporter alle 30 Sekunden ab: seine Cluster-Kollektoren einmal, bei `PVE_HOST`, und seine Knoten-Kollektoren einmal für jeden Knoten in `PVE_NODES`, weil sie nur den Knoten lesen, den der Exporter abfragt. Die Knoten-Kollektoren sind `config` (Start beim Booten) und `replication`; die Kollektoren `backup-info` (Cluster) und `replication` des Exporters sind beide standardmäßig eingeschaltet.
 
 ### Verfügbarkeit
 
@@ -206,7 +206,7 @@ Aus dem clusterweiten Kollektor `backup-info` des Exporters. Sie melden nur die 
 
 ### Replikation
 
-Aus dem knotenbezogenen Kollektor `replication` des Exporters. Die Reihen gibt es nur, wenn der Cluster Replikationsjobs hat, und sie tragen die Job-ID in `id`:
+Aus dem knotenbezogenen Kollektor `replication` des Exporters, von jedem Knoten in `PVE_NODES` gelesen. Die Reihen gibt es nur, wenn der Cluster Replikationsjobs hat, und sie tragen die Job-ID in `id`:
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Bei der nativen Übertragung von Proxmox VE sieht ein aus dem Cluster genommener
 :::
 
 :::details Backup- oder Replikationsmetriken fehlen
-`pve_not_backed_up_*` kommt vom Kollektor `backup-info` des Exporters und `pve_replication_*` von seinem Kollektor `replication`. Beide sind standardmäßig eingeschaltet und durch die Abfrageparameter `cluster=1` und `node=1` der mitgelieferten Konfiguration abgedeckt. Wenn Sie Ihren eigenen Exporter betreiben, prüfen Sie, dass Sie sie nicht ausgeschaltet haben. `pve_replication_*` gibt es nur, wenn der Cluster Speicherreplikationsjobs hat.
+`pve_not_backed_up_*` kommt vom Kollektor `backup-info` des Exporters und `pve_replication_*` von seinem Kollektor `replication`. Beide sind standardmäßig eingeschaltet und durch die mitgelieferte Konfiguration abgedeckt: `cluster=1` einmal und `node=1` für jeden Knoten in `PVE_NODES`. Ein Knoten, der in `PVE_NODES` fehlt, sendet keine Replikationsjobs und seine Gäste keine Start-beim-Booten-Flags, daher löst **Guest Down** für sie nie aus. Wenn Sie Ihren eigenen Exporter betreiben, prüfen Sie, dass Sie sie nicht ausgeschaltet haben. `pve_replication_*` gibt es nur, wenn der Cluster Speicherreplikationsjobs hat.
 :::
 
 :::details Zähler wie pve_network_receive_bytes wachsen nur

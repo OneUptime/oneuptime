@@ -23,7 +23,7 @@ flowchart TB
 ## 시작하기 전에
 
 - 클러스터에서 OneUptime Kubernetes 에이전트가 실행 중이어야 합니다. [Kubernetes 에이전트(Helm 설치)](/docs/monitor/kubernetes-agent)를 참고하세요. 설치 후 몇 분 안에 클러스터가 **Kubernetes** 에 나타납니다.
-- 컨트롤 플레인 템플릿(**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**)에는 에이전트의 컨트롤 플레인 수집 `controlPlane.enabled`가 필요합니다. 관리형 클러스터(EKS, GKE, AKS)는 이 엔드포인트를 노출하지 않으므로, 그곳에서는 이 모니터들이 데이터를 받지 못합니다.
+- 컨트롤 플레인 템플릿(**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**)에는 에이전트의 컨트롤 플레인 수집 `controlPlane.enabled`가 필요합니다. 이것으로 API 서버는 바로 읽히지만, etcd와 스케줄러는 엔드포인트도 지정해야 합니다([컨트롤 플레인 모니터링 활성화](/docs/telemetry/kubernetes-agent#컨트롤-플레인-모니터링-활성화) 참고). 관리형 클러스터(EKS, GKE, AKS)는 이 엔드포인트를 노출하지 않으므로, 그곳에서는 이 모니터들이 데이터를 받지 못합니다.
 
 ## Kubernetes 모니터 만들기
 
@@ -34,15 +34,15 @@ flowchart TB
 
 ### 클러스터 선택
 
-**Kubernetes 클러스터** 에서 선택합니다. 목록에는 에이전트가 보고한 모든 클러스터가 있습니다.
+**Kubernetes 클러스터** 에서 선택합니다. 목록에는 에이전트가 보고한 모든 클러스터가 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **Kubernetes 클러스터 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
 
 ### 감시할 대상 선택
 
-세 탭 중 하나를 사용합니다.
+새 모니터는 **알림 대상** 아래의 **Cluster Stopped Reporting** 에서 시작하며, **변경** 으로 다른 템플릿을 고릅니다. **Custom Metric** 과 **고급** 은 **추가 필드** 아래에 있습니다.
 
-| 탭 | 선택하는 내용 |
+| 위치 | 선택하는 내용 |
 | --- | --- |
-| **Quick Setup** | [미리 만들어진 알림 템플릿](#미리-만들어진-알림-템플릿). 메트릭, 범위, 시간 범위, 기준을 채웁니다. **시간 범위** 는 계속 바꿀 수 있습니다. |
+| **알림 대상** | [미리 만들어진 알림 템플릿](#미리-만들어진-알림-템플릿). 메트릭, 범위, 시간 범위, 기준을 채웁니다. **시간 범위** 는 계속 바꿀 수 있습니다. |
 | **Custom Metric** | [메트릭 카탈로그](#메트릭-카탈로그)의 메트릭 하나와 그 **리소스 범위**, 필터, **집계**(평균, 최대, 최소, 합계, 개수), **시간 범위**. |
 | **고급** | **리소스 범위**, 필터, **시간 범위**, 그리고 **메트릭 선택** 아래의 직접 만든 메트릭 쿼리와 수식. 결과의 실시간 차트가 함께 표시됩니다. |
 
@@ -128,7 +128,7 @@ flowchart TB
 
 ## 미리 만들어진 알림 템플릿
 
-**Quick Setup** 탭은 다음 템플릿을 범주별로 보여 줍니다. 각 템플릿은 두 개의 기준을 채웁니다. 하나는 조건이 유지되는 동안 모니터를 오프라인으로 표시하고 인시던트와 알림을 열며, 다른 하나는 조건이 해소되면 모니터를 다시 온라인으로 돌립니다.
+**알림 대상** 목록은 다음 템플릿을 범주별로 보여 줍니다. 각 템플릿은 두 개의 기준을 채웁니다. 하나는 조건이 유지되는 동안 모니터를 오프라인으로 표시하고 인시던트와 알림을 열며, 다른 하나는 조건이 해소되면 모니터를 다시 온라인으로 돌립니다.
 
 | 템플릿 | 범주 | 작동 조건 | 심각도 |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ flowchart TB
 :::
 
 :::details 컨트롤 플레인 템플릿이 작동하지 않음
-**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog** 는 에이전트의 컨트롤 플레인 수집만 모으는 메트릭을 읽습니다. 에이전트의 Helm 값에서 `controlPlane.enabled`를 켜세요. 기본값은 꺼짐입니다. 관리형 클러스터(EKS, GKE, AKS)는 이 엔드포인트를 노출하지 않으므로, 그곳에서는 이 모니터들이 데이터를 받지 못합니다.
+**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog** 는 에이전트의 컨트롤 플레인 수집만 모으는 메트릭을 읽습니다. 에이전트의 Helm 값에서 `controlPlane.enabled`를 켜세요. 기본값은 꺼짐입니다. 이것으로 API 서버가 읽힙니다. etcd와 스케줄러는 컨트롤 플레인 노드에서 실행되므로, **etcd No Leader**와 **Scheduler Backlog**에는 에이전트의 Pod가 도달할 수 있는 주소로 설정한 `controlPlane.etcd.endpoints`와 `controlPlane.scheduler.endpoints`도 필요합니다([컨트롤 플레인 모니터링 활성화](/docs/telemetry/kubernetes-agent#컨트롤-플레인-모니터링-활성화) 참고). 관리형 클러스터(EKS, GKE, AKS)는 이 엔드포인트를 노출하지 않으므로, 그곳에서는 이 모니터들이 데이터를 받지 못합니다.
 :::
 
 :::details CPU 임계값이 작동하지 않음

@@ -51,7 +51,11 @@ function runUnoptimized(script: string): Report {
 
         const built = esbuild.buildSync({
           stdin: {
-            contents: 'export * from "./Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt";',
+            contents:
+              'export * from "./Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt";\n' +
+              'export * from "./Server/Utils/AI/TelemetryAi/ExceptionDigestPrompt";\n' +
+              'export * from "./Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheckPrompt";\n' +
+              'export * from "./Server/Utils/Telemetry/ExceptionSimilarity";',
             resolveDir: process.cwd(),
             loader: "ts",
             sourcefile: "explanation-huge-text.ts",
@@ -195,5 +199,146 @@ describe("Sixteen megabytes of an exception, where V8 compiles regular expressio
     expect(report.regexpOnItsOwn).toBe(false);
     expectEveryCheckPassed(report);
     expect(Object.keys(report.results)).toHaveLength(9);
+  }, 600000);
+
+  /*
+   * The day's digest (ExceptionDigestPrompt) is built from the same values,
+   * twenty exceptions at a time: each is cut before it is scrubbed, and the
+   * stack trace before its top frame is read.
+   */
+  test("the digest's prompt is built, bounded, from twenty long exceptions, and a long answer is read", () => {
+    const report: Report = runUnoptimized(String.raw`
+      const exceptionOf = (overrides) => ({
+        telemetryExceptionId: "id",
+        kind: "new",
+        exceptionType: "Error",
+        message: "",
+        stackTrace: "",
+        occurrenceCount: 1,
+        unhandled: false,
+        ...overrides,
+      });
+
+      const shapes = {
+        "messages of one line of letters": () => exceptionOf({ message: line("ab") }),
+        "messages of emails": () => exceptionOf({ message: line("priya@example.com ") }),
+        "stack traces of one line": () => exceptionOf({ stackTrace: line("x") }),
+        "stack traces of many frames": () =>
+          exceptionOf({ stackTrace: "Error: x\n" + repeatTo("    at f (/app/src/a.ts:1:1)\n", SIZE) }),
+        "types, services and releases of one line": () =>
+          exceptionOf({
+            exceptionType: line("Type"),
+            resourceName: line("svc "),
+            environment: line("prod "),
+            release: line("1.2.3."),
+          }),
+      };
+
+      for (const [name, exceptionFor] of Object.entries(shapes)) {
+        attempt(name, () => {
+          const one = exceptionFor();
+          const exceptions = Array.from({ length: 20 }, (_, index) => ({
+            ...one,
+            telemetryExceptionId: "id-" + index,
+          }));
+          const started = Date.now();
+          const prompt = lib.buildExceptionDigestPrompt(exceptions);
+
+          return {
+            "is bounded": prompt.length < 64 * 1024,
+            "took under ten seconds": Date.now() - started < 10000,
+          };
+        });
+      }
+
+      attempt("a digest answer of sixteen megabytes", () => {
+        const started = Date.now();
+        const given = [exceptionOf({ message: line("ab") })];
+        const answer =
+          '{"headline": "' + repeatTo("h", 1000) + '", "items": [{"ref": "E1", "summary": "s"}]}' +
+          line("{ab}");
+        lib.parseExceptionDigestResponse(answer, given);
+        const unclosed = "{" + line('"a": ');
+        const nothing = lib.parseExceptionDigestResponse(unclosed, given);
+
+        return {
+          "an unclosed answer is none": nothing === null,
+          "took under ten seconds": Date.now() - started < 10000,
+        };
+      });
+    `);
+
+    expect(report.regexpOnItsOwn).toBe(false);
+    expectEveryCheckPassed(report);
+    expect(Object.keys(report.results)).toHaveLength(6);
+  }, 600000);
+
+  /*
+   * Similar exceptions compare signatures of what applications sent
+   * (ExceptionSimilarity), and the duplicate check sends them to OneUptime
+   * AI (ExceptionDuplicateCheckPrompt): both cut first.
+   */
+  test("similar exceptions are compared, and the duplicate check's prompt built, from sixteen-megabyte exceptions", () => {
+    const report: Report = runUnoptimized(String.raw`
+      const shapes = {
+        "messages of one line of letters": { message: line("ab"), stackTrace: "" },
+        "messages of emails": { message: line("priya@example.com "), stackTrace: "" },
+        "stack traces of one line": { message: "m", stackTrace: line("x") },
+        "stack traces of many frames": {
+          message: "m",
+          stackTrace: "Error: x\n" + repeatTo("    at f (/app/src/a.ts:1:1)\n", SIZE),
+        },
+      };
+
+      for (const [name, shape] of Object.entries(shapes)) {
+        attempt(name, () => {
+          const exception = (id) => ({
+            id,
+            telemetryExceptionId: id,
+            exceptionType: line("Type"),
+            message: shape.message,
+            stackTrace: shape.stackTrace,
+            occurrenceCount: 1,
+            isResolved: false,
+            isArchived: false,
+          });
+          const started = Date.now();
+          const ranked = lib.rankSimilarExceptions(exception("t"), [
+            exception("a"),
+            exception("b"),
+          ]);
+          const prompt = lib.buildExceptionDuplicateCheckPrompt({
+            target: exception("t"),
+            candidates: [exception("a"), exception("b"), exception("c"), exception("d"), exception("e")],
+          });
+
+          return {
+            "compared": Array.isArray(ranked),
+            "is bounded": prompt.length < 64 * 1024,
+            "took under ten seconds": Date.now() - started < 10000,
+          };
+        });
+      }
+
+      attempt("a duplicate-check answer of sixteen megabytes", () => {
+        const started = Date.now();
+        const given = [{ telemetryExceptionId: "a", message: "m", stackTrace: "" }];
+        const answer =
+          '{"items": [{"ref": "C1", "verdict": "duplicate", "reason": "' + repeatTo("r", 1000) + '"}]}' +
+          line("{ab}");
+        lib.parseExceptionDuplicateCheckResponse(answer, given);
+        const unclosed = "{" + line('"a": ');
+        const nothing = lib.parseExceptionDuplicateCheckResponse(unclosed, given);
+
+        return {
+          "an unclosed answer is none": nothing === null,
+          "took under ten seconds": Date.now() - started < 10000,
+        };
+      });
+    `);
+
+    expect(report.regexpOnItsOwn).toBe(false);
+    expectEveryCheckPassed(report);
+    expect(Object.keys(report.results)).toHaveLength(5);
   }, 600000);
 });

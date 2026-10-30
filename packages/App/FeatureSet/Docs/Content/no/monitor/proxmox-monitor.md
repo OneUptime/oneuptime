@@ -11,7 +11,7 @@ En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-co
 
 ## Slik fungerer det
 
-OneUptimes Proxmox-agent kjører på en maskin som kan nå Proxmox VE-API-et. Hvert 30. sekund henter den data fra prometheus-pve-exporter med klynge- og nodeinnsamlerne, merker hver serie med ressursen den beskriver, og sender metrikkene til OneUptime over OTLP, stemplet med klyngens navn, `proxmox.cluster.name`. De første dataene registrerer klyngen. Proxmox VE 9 og nyere kan i stedet pushe metrikker selv, uten å installere noe; se [det innebygde pushet](#det-innebygde-pushet-i-proxmox-ve).
+OneUptimes Proxmox-agent kjører på en maskin som kan nå Proxmox VE-API-et. Hvert 30. sekund henter den data fra klyngeinnsamlerne i prometheus-pve-exporter én gang og fra nodeinnsamlerne én gang for hver node, merker hver serie med ressursen den beskriver, og sender metrikkene til OneUptime over OTLP, stemplet med klyngens navn, `proxmox.cluster.name`. De første dataene registrerer klyngen. Proxmox VE 9 og nyere kan i stedet pushe metrikker selv, uten å installere noe; se [det innebygde pushet](#det-innebygde-pushet-i-proxmox-ve).
 
 En Proxmox-monitor er knyttet til én klynge. Hvert minutt kjører den spørringen sin over klyngens metrikker og sammenligner resultatet med kriteriene sine.
 
@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Proxmox** unde
 
 ### Velg klyngen
 
-Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen.
+Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Proxmox-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** – klikk på en [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
-- **Avansert** – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
+- **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -109,7 +109,7 @@ Filtrer på `pve.scope` eller `pve.type` for én type ressurs, på `pve.id` elle
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 og nyere kan pushe metrikker gjennom den innebygde OpenTelemetry-me
 
 ## Innsamlede metrikker
 
-Agenten henter data fra prometheus-pve-exporter hvert 30. sekund med både klynge- og nodeinnsamlerne, noe som også dekker exporterens innsamlere `backup-info` og `replication` (begge på som standard).
+Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: klyngeinnsamlerne én gang, på `PVE_HOST`, og nodeinnsamlerne én gang for hver node i `PVE_NODES`, fordi de bare leser noden exporteren spør. Nodeinnsamlerne er `config` (start ved oppstart) og `replication`; exporterens innsamlere `backup-info` (klynge) og `replication` er begge på som standard.
 
 ### Tilgjengelighet
 
@@ -206,7 +206,7 @@ Fra exporterens innsamler `backup-info` på klyngenivå. De rapporterer bare dek
 
 ### Replikering
 
-Fra exporterens innsamler `replication` på nodenivå. Seriene finnes bare når klyngen har replikeringsjobber, og bærer jobb-id-en i `id`:
+Fra exporterens innsamler `replication` på nodenivå, lest fra hver node i `PVE_NODES`. Seriene finnes bare når klyngen har replikeringsjobber, og bærer jobb-id-en i `id`:
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik
 :::
 
 :::details Sikkerhetskopi- eller replikeringsmetrikker mangler
-`pve_not_backed_up_*` kommer fra exporterens innsamler `backup-info` og `pve_replication_*` fra innsamleren `replication`. Begge er på som standard og dekkes av innsamlingsparameterne `cluster=1` og `node=1` i den medfølgende konfigurasjonen. Hvis du kjører din egen exporter, kontrollerer du at du ikke har slått dem av. `pve_replication_*` finnes bare når klyngen har jobber for lagringsreplikering.
+`pve_not_backed_up_*` kommer fra exporterens innsamler `backup-info` og `pve_replication_*` fra innsamleren `replication`. Begge er på som standard og dekkes av den medfølgende konfigurasjonen: `cluster=1` én gang, og `node=1` for hver node i `PVE_NODES`. En node som mangler i `PVE_NODES`, sender ingen replikeringsjobber, og gjestene dens ingen flagg for start ved oppstart, så **Guest Down** utløses aldri for dem. Hvis du kjører din egen exporter, kontrollerer du at du ikke har slått dem av. `pve_replication_*` finnes bare når klyngen har jobber for lagringsreplikering.
 :::
 
 :::details Tellere som pve_network_receive_bytes bare vokser
