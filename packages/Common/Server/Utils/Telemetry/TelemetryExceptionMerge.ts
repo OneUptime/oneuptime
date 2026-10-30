@@ -437,9 +437,13 @@ export default class TelemetryExceptionMerge {
     const mergedId: string = data.telemetryExceptionId.toString();
 
     // Permission on the merged one first, then on the one it is merged into.
-    const [merged] = await TelemetryExceptionMerge.readEditable({
-      ids: [data.telemetryExceptionId],
-      props: data.props,
+    const merged: TelemetryException | undefined = (
+      await TelemetryExceptionMerge.readEditable({
+        ids: [data.telemetryExceptionId],
+        props: data.props,
+      })
+    ).find((exception: TelemetryException): boolean => {
+      return sameId(exception.id?.toString(), mergedId);
     });
 
     if (!merged) {
@@ -459,9 +463,13 @@ export default class TelemetryExceptionMerge {
       };
     }
 
-    const [survivor] = await TelemetryExceptionMerge.readEditable({
-      ids: [survivorId],
-      props: data.props,
+    const survivor: TelemetryException | undefined = (
+      await TelemetryExceptionMerge.readEditable({
+        ids: [survivorId],
+        props: data.props,
+      })
+    ).find((exception: TelemetryException): boolean => {
+      return sameId(exception.id?.toString(), survivorId.toString());
     });
 
     if (!survivor) {
