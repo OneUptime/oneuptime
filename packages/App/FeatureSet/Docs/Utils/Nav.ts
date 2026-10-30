@@ -926,6 +926,50 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
+   * Data Security (DSPM) is its own product beside Security Operations: the
+   * sensitive data a project keeps in its buckets, databases and telemetry,
+   * what is wrong with how it is kept, and the frameworks it is held to. The
+   * Dashboard's Data Security pages link to its overview.
+   */
+  {
+    title: "Data Security",
+    section: "Observability",
+    links: [
+      {
+        title: "Data Security Overview",
+        url: "/docs/data-security/index",
+      },
+      {
+        title: "Set Up Data Security",
+        url: "/docs/data-security/setup",
+      },
+      {
+        title: "Sensitive Data Types",
+        url: "/docs/data-security/data-types",
+      },
+      {
+        title: "Data Security Checks & Issues",
+        url: "/docs/data-security/checks-and-issues",
+      },
+      {
+        title: "Sensitive Data in Telemetry",
+        url: "/docs/data-security/telemetry",
+      },
+      {
+        title: "Data Flows, Access & Residency",
+        url: "/docs/data-security/flows-access-residency",
+      },
+      {
+        title: "Data Security Compliance",
+        url: "/docs/data-security/compliance",
+      },
+      {
+        title: "Data Security Integrations",
+        url: "/docs/data-security/integrations",
+      },
+    ],
+  },
+  /*
    * RUM is its own product surface in the dashboard (Resources → Real User
    * Monitoring) with applications, rules, clients and session replay — not
    * just one more "how to send telemetry from X" recipe — so it gets its own

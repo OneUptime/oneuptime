@@ -14,7 +14,7 @@ flowchart TB
 
 ## Quais regras podem ser executadas
 
-- **Regras de Rótulos** e **Regras de proprietário**, para cada recurso que as tem: monitores, incidentes, episódios de incidente, alertas, episódios de alerta, eventos de manutenção programada, páginas de status, serviços, hosts, clusters Kubernetes, hosts Docker, clusters Docker Swarm, hosts Podman, clusters Proxmox, vCenters VMware, clusters Ceph, storage arrays, bancos de dados, filas, frotas de IoT, funções serverless, recursos de nuvem, aplicações RUM, dashboards, políticas de plantão, escalas de plantão, políticas de chamadas recebidas, workflows, runbooks, dispositivos de rede e SLOs.
+- **Regras de Rótulos** e **Regras de proprietário**, para cada recurso que as tem: monitores, incidentes, episódios de incidente, alertas, episódios de alerta, eventos de manutenção programada, páginas de status, serviços, hosts, clusters Kubernetes, hosts Docker, clusters Docker Swarm, hosts Podman, clusters Proxmox, vCenters VMware, clusters Ceph, storage arrays, bancos de dados, repositórios de dados, filas, frotas de IoT, funções serverless, recursos de nuvem, aplicações RUM, dashboards, políticas de plantão, escalas de plantão, políticas de chamadas recebidas, workflows, runbooks, dispositivos de rede e SLOs.
 - **Regras de privacidade**, para incidentes, alertas, episódios de incidente e episódios de alerta.
 - **Regras de monitor** numa página de status. Elas já ressincronizam a página sempre que uma regra é salva; executar uma ressincroniza a página na hora.
 - **Regras de monitor** num SLO. Elas já ressincronizam o SLO sempre que uma regra é salva; executar uma ressincroniza na hora os monitores do SLO. Veja [Monitores e regras de monitor](/docs/slo/monitor-rules).

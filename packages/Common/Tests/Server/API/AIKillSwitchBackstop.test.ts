@@ -549,6 +549,12 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
   { file: "Common/Server/API/IncidentAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/IncidentEpisodeAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/AlertAPI.ts", delivery: "throw" },
+  /*
+   * Explain on a Data Security issue: the person waits on the request
+   * (POST /data-security-issue/:id/explain), and a refusal is the message
+   * the issue page shows above its fix.
+   */
+  { file: "Common/Server/API/DataSecurityAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/ScheduledMaintenanceAPI.ts", delivery: "throw" },
   { file: "Common/Server/Services/IncidentService.ts", delivery: "throw" },
 ];

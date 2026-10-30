@@ -53,7 +53,7 @@ Quando você entra em um projeto, estes eventos começam ativados, por e-mail. T
 | **Páginas de status** | Nenhum | **Página de status criada**, **Anúncio da página de status publicado**, **Adicionado como proprietário da página de status** |
 | **Manutenção programada** | **Maintenance reminder** | **Evento de manutenção criado**, **Estado da manutenção alterado**, **Nota de manutenção publicada**, **Adicionado como proprietário da manutenção** |
 | **Plantão** | **Você entra no plantão**, **Você é o próximo no plantão**, **Você sai do plantão**, **Adicionado à política de plantão**, **Removido da política de plantão**, **Chamada perdida**, e também por push: **Antes de o meu turno de prevenção começar**, **O meu próximo turno de prevenção é reatribuído** | Nenhum |
-| **Segurança** | Também por push: **Novo caso de segurança** (casos High e Crítico), **Caso de segurança atribuído a mim**, **Etapa de playbook aguardando minha aprovação**, **Meta de resposta de caso de segurança**, **Tarefa de caso de segurança atribuída a mim** | Nenhum |
+| **Segurança** | Também por push: **Novo caso de segurança** (casos High e Crítico), **Caso de segurança atribuído a mim**, **Etapa de playbook aguardando minha aprovação**, **Meta de resposta de caso de segurança**, **Tarefa de caso de segurança atribuída a mim**, **Uma caçada encontrou eventos de segurança** | Nenhum |
 
 > [!IMPORTANT]
 > **Status do monitor alterado** começa desativado. Para saber quando um monitor seu cai ou volta, ative-o na aba **Monitoramento**.

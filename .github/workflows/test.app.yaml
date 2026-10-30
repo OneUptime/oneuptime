@@ -336,7 +336,12 @@ jobs:
           # (0.8) moved to group 13 on 2026-10-27, when that run took this group
           # 20.9 minutes: about 18. Every group has Firefox since the groups run
           # in the Playwright image.
-          # Chart Time Zoom gained SpanTypeHelp.spec.ts on 2026-10-30 (8 tests,
+          # Data Security (1.3 minutes locally with its bundle, 25 tests)
+          # joined them on 2026-10-29, the lightest group: about 19.5. Its UI
+          # review grew it to 59 tests (3.3 minutes) on 2026-10-30, which
+          # would have taken this group to about 21.5, so it moved to group
+          # 14: about 18.
+          # Chart Time Zoom gained SpanTypeHelp.spec.ts the same day (8 tests,
           # about 25 seconds locally: the traces sidebar's Span Type with no
           # paragraph under its title, its (i) on hover, from the keyboard,
           # tapped on a phone and dark, its options' own tooltips, and its
@@ -491,6 +496,14 @@ jobs:
           # Create sends, when it is not asked, at 1280 and 390 pixels, German
           # and Persian dark) joined it the same day, beside Incoming Call
           # Policies and Owners on Create: about 19.
+          # Security Cases and Detections (the five shorter specs on the
+          # Security Operations fixture - CaseWork, ConnectedSignals,
+          # EntityRisk, RuleExceptions and Watchlists - as a suite of its own:
+          # 110 tests, 7.8 minutes on master's run of 2026-10-30, Chromium
+          # only) joined it on 2026-10-30 from group 11, whose run step hit
+          # its 28 minutes on that run with Security Operations taking 26.5 of
+          # them. This group's step took 12.9 to 14.6 minutes on the four runs
+          # before it: about 22.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -508,6 +521,7 @@ jobs:
               test-first-on-call-policy-ui
               test-side-by-side-pages-ui
               test-owner-filters-ui
+              test-security-cases-detections-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -880,6 +894,14 @@ jobs:
           # Evidence): about 20. Hunts.spec.ts left it for a suite of its own,
           # Security Hunts, in group 6 on 2026-10-30, when its UI review grew
           # it to 16 tests and these groups ran 20 to 25 minutes: about 19.5.
+          # That day's master run took this group's step past its 28 minutes
+          # all the same: Security Operations alone took 26.5, its
+          # SecurityOperations.spec.ts 17.3 of them, on a runner slower than
+          # the runs before (this group had taken 19.9 to 27.5 minutes on
+          # them). Its five shorter specs - CaseWork, ConnectedSignals,
+          # EntityRisk, RuleExceptions and Watchlists, 7.8 minutes - left for
+          # a suite of their own, Security Cases and Detections, in group 5:
+          # about 20 at that run's pace.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -965,6 +987,18 @@ jobs:
           # both halves of Event Overview, Traces AI (1.9 minutes on that
           # run, Chromium only) from group 1 and Network Traffic Names (1.7,
           # Chromium only) from group 10 joined them: about 15.5.
+          # Data Security (3.3 minutes locally with its bundle, 59 tests,
+          # Chromium only: the Overview's riskiest issues, a store's Timeline,
+          # an issue's Fix it from here - asked, run and on both timelines,
+          # with the connection's response off and for a Security Viewer - a
+          # Critical issue's case, alert and incident links, Settings > Scan
+          # Settings' incidents beside alerts, ten pages on a phone, dark,
+          # German and Persian; and its UI review's layout checks: every list
+          # beside the side menu with a busy project in German and Persian,
+          # the day chart's dates on a laptop and a phone, a new project,
+          # failed reads, owners, scans, dialogs and Compliance) moved here
+          # from group 2 on 2026-10-30, when its UI review grew it from 25
+          # tests: about 19.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -975,6 +1009,7 @@ jobs:
               test-episode-bulk-add-ui
               test-traces-ai-ui
               test-network-traffic-names-ui
+              test-data-security-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1077,7 +1112,10 @@ jobs:
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/security-operations-ui/*.png
             output/playwright/security-operations-ui/test-results
+            output/playwright/data-security-ui/*.png
+            output/playwright/data-security-ui/test-results
             output/playwright/security-hunts-ui/test-results
+            output/playwright/security-cases-detections-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results

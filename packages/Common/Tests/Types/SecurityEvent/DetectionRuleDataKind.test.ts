@@ -2,6 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import { JSONValue } from "../../../Types/JSON";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
+  DATA_SECURITY_SIGNAL_PRODUCT_NAME,
+  DATA_SECURITY_STORE_CHANGE_SIGNAL,
+} from "../../../Types/SecurityEvent/DataSecuritySignal";
+import {
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -206,6 +210,11 @@ describe("the kinds of event library rules read", () => {
         SecurityEventConnectorProvider.OktaSystemLog,
       )!;
 
+    expect(
+      getDetectionRuleDataKindDefinition(DetectionRuleDataKind.DataSecurity)
+        ?.productNames,
+    ).toEqual([DATA_SECURITY_SIGNAL_PRODUCT_NAME]);
+
     for (const kind of [
       DetectionRuleDataKind.OktaSystemLog,
       DetectionRuleDataKind.AccountChanges,
@@ -287,6 +296,17 @@ describe("each library rule names the kind of event its Sigma reads", () => {
         case DetectionRuleDataKind.SessionReplays:
           // What a source of your OneUptime data found, as each of its events names it.
           expect(readsField(entry, "oneuptime.signal")).toBe(true);
+          break;
+        case DetectionRuleDataKind.DataSecurity:
+          // A change to a sensitive store, as Data Security writes one.
+          expect(
+            readsField(
+              entry,
+              "oneuptime.signal",
+              DATA_SECURITY_STORE_CHANGE_SIGNAL,
+            ),
+          ).toBe(true);
+          expect(readsField(entry, "oneuptime.cloud.operation")).toBe(true);
           break;
         default:
           throw new Error(`No check for ${String(entry.dataKind)}`);

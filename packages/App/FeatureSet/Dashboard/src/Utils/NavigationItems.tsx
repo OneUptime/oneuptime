@@ -306,6 +306,33 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      title: t("navbar.items.dataSecurityTitle", "Data Security"),
+      keywords: [
+        "dspm",
+        "data security posture management",
+        "pii",
+        "personal data",
+        "sensitive data",
+        "data classification",
+        "data discovery",
+        "gdpr",
+        "pci",
+        "hipaa",
+      ],
+      description: t(
+        "navbar.items.dataSecurityDescription",
+        "Find sensitive data in your clouds, databases and telemetry, see who can reach it, and fix what matters first.",
+      ),
+      // The overview opens the product; every Data Security page keeps it lit.
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATA_SECURITY_OVERVIEW] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DATA_SECURITY],
+      icon: IconProp.ShieldCheck,
+      iconColor: "violet",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.topologyTitle"),
       keywords: [
         "service map",

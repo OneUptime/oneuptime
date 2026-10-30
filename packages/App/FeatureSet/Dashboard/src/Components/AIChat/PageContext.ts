@@ -15,6 +15,8 @@ import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
@@ -225,6 +227,27 @@ const entityPageRules: Array<EntityPageRule> = [
     icon: IconProp.ShieldExclamation,
     isValidId: isUuid,
   },
+  /*
+   * A data store's pages, and a data security issue's: Ask AI reads the
+   * store - what it holds, who can reach it, its issues - or the issue and
+   * how to fix it (DataSecurityTools), never a sensitive value.
+   */
+  {
+    pageMapKey: PageMap.DATA_SECURITY_STORE_VIEW,
+    type: AIChatPageContextType.DataStore,
+    noun: translationKey("data store"),
+    chipLabel: "This data store",
+    icon: IconProp.Database,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.DATA_SECURITY_ISSUE_VIEW,
+    type: AIChatPageContextType.DataSecurityIssue,
+    noun: translationKey("data security issue"),
+    chipLabel: "This data security issue",
+    icon: IconProp.ShieldExclamation,
+    isValidId: isUuid,
+  },
 ];
 
 const areaPageRules: Array<AreaPageRule> = [
@@ -309,6 +332,18 @@ const areaPageRules: Array<AreaPageRule> = [
     noun: translationKey("security events"),
     chipLabel: "Security Events",
     icon: IconProp.ShieldExclamation,
+  },
+  {
+    /*
+     * Every other Data Security page - the overview, the stores, issues,
+     * sensitive data, access, compliance: Ask AI reads the stores, the
+     * issues and who can reach what.
+     */
+    baseRoute: RouteMap[PageMap.DATA_SECURITY],
+    type: AIChatPageContextType.DataSecurity,
+    noun: translationKey("data security"),
+    chipLabel: "Data Security",
+    icon: IconProp.ShieldCheck,
   },
   {
     /*
@@ -605,6 +640,23 @@ export default class PageContextUtil {
               ? `${item.caseNumberWithPrefix} ${item.title}`
               : item.title,
           };
+        }
+        case AIChatPageContextType.DataStore: {
+          const item: DataStore | null = await ModelAPI.getItem<DataStore>({
+            modelType: DataStore,
+            id: id,
+            select: { name: true },
+          });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.DataSecurityIssue: {
+          const item: DataSecurityIssue | null =
+            await ModelAPI.getItem<DataSecurityIssue>({
+              modelType: DataSecurityIssue,
+              id: id,
+              select: { title: true },
+            });
+          return PageContextUtil.titleOnly(item?.title);
         }
         default:
           return null;
@@ -1315,6 +1367,87 @@ export default class PageContextUtil {
             title: "Worst offender",
             question:
               "Take the most frequent unresolved exception, find the code that throws it, and explain the bug.",
+          },
+        ];
+      case AIChatPageContextType.DataStore:
+        return [
+          {
+            icon: IconProp.Fingerprint,
+            title: "What's inside",
+            question:
+              "What sensitive data does this store hold, and where in it?",
+          },
+          {
+            icon: IconProp.Key,
+            title: "Who can reach it",
+            question:
+              "Who can reach this store? Start with public access and accounts outside ours.",
+          },
+          {
+            icon: IconProp.ShieldExclamation,
+            title: "Fix first",
+            question:
+              "Which of this store's issues should I fix first, and how?",
+          },
+          {
+            icon: IconProp.MagnifyingGlass,
+            title: "How sure",
+            question:
+              "When was this store last scanned, and how sure are its findings?",
+          },
+        ];
+      case AIChatPageContextType.DataSecurityIssue:
+        return [
+          {
+            icon: IconProp.Document,
+            title: "Explain",
+            question:
+              "Explain this issue in plain words: what is wrong, and what could happen.",
+          },
+          {
+            icon: IconProp.Wrench,
+            title: "How to fix",
+            question:
+              "How do I fix this issue on the store's cloud? Give me the steps and the command.",
+          },
+          {
+            icon: IconProp.Key,
+            title: "Who can reach it",
+            question:
+              "Who can reach the store this issue is on, and is any of it from outside our accounts?",
+          },
+          {
+            icon: IconProp.ChartBar,
+            title: "How serious",
+            question:
+              "How serious is this issue, given what the store holds and how exposed it is?",
+          },
+        ];
+      case AIChatPageContextType.DataSecurity:
+        return [
+          {
+            icon: IconProp.ShieldExclamation,
+            title: "Fix first",
+            question:
+              "What are the riskiest data security issues right now, and what should I fix first?",
+          },
+          {
+            icon: IconProp.Fingerprint,
+            title: "Card numbers",
+            question:
+              "Which data stores hold card numbers, and are any of them public?",
+          },
+          {
+            icon: IconProp.Globe,
+            title: "Exposed data",
+            question:
+              "Which sensitive stores are public or shared with accounts outside ours?",
+          },
+          {
+            icon: IconProp.Key,
+            title: "Blast radius",
+            question:
+              "If one of our roles leaked, which sensitive stores could it reach? List the roles with the most access first.",
           },
         ];
       default:

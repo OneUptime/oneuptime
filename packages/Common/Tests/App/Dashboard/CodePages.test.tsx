@@ -2870,12 +2870,14 @@ describe("a task's conversation", () => {
       expect(trail[2]?.isRecordName).toBe(true);
 
       /*
-       * 1,000 fresh + a tenth of 8,000 read from the cache + one and a
-       * quarter of 1,000 written to it: 1,000 + 800 + 1,250.
+       * At claude-opus-5-5's own prices (the cost catalog: $0.20 a million
+       * read from the cache and $5 written to it, against $4 fresh), 1,000
+       * fresh + a twentieth of 8,000 read from the cache + one and a quarter
+       * of 1,000 written to it: 1,000 + 400 + 1,250.
        */
       expect(
         await screen.findByTestId("code-log-call-tokens"),
-      ).toHaveTextContent("3,050 tokens");
+      ).toHaveTextContent("2,650 tokens");
     } finally {
       postSpy.mockRestore();
     }

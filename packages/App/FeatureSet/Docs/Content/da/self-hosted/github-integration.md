@@ -78,7 +78,7 @@ Angiv disse **Repository permissions** under **Permissions & events**:
 | Contents | Read and write | Læse filer i repositoryet og pushe branches til AI-rettelsers pull requests |
 | Pull requests | Read and write | Åbne og opdatere pull requests og poste reviews |
 | Issues | Read and write | Poste appens kommentarer — **også på pull requests**, hvis samtale GitHub sender gennem issues-API'et |
-| Checks | Read-only | Valgfri. Læse CI-resultatet af rettelsers pull requests. Uden den forbliver deres CI-status uverificeret |
+| Checks | Read and write | Valgfri. Læse CI-resultatet af rettelsers pull requests og tilføje et check med hver produktionsgennemgang. Med Read-only læses CI-resultatet, men der tilføjes intet check; uden den forbliver CI-statussen for rettelsers pull requests uverificeret |
 | Metadata | Read-only | Grundlæggende metadata for repositoryet (krævet af GitHub) |
 
 **Det er Issues: Read and write, der gør appen interaktiv.** Uden den modtages omtaler, men de mislykkes lydløst, når appen prøver at svare — GitHub leverer kommentarer i pull request-samtaler fra issues-API'et, så denne ene tilladelse afgør hvert svar, appen skriver. Se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app).

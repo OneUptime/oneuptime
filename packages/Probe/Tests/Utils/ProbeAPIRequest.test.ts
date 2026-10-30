@@ -36,9 +36,15 @@ describe("getDefaultRequestBody", () => {
        * tableResults was handed no tables; from one that does not, the
        * server says the probe has to be updated to walk them. Only a probe
        * that declares "snmpWalk" is handed SNMP walks, and the device's
-       * credentials with them.
+       * credentials with them; only one that declares "dataSecurityScan"
+       * is handed databases to scan for Data Security.
        */
-      probeCapabilities: ["networkDevicePing", "snmpTables", "snmpWalk"],
+      probeCapabilities: [
+        "networkDevicePing",
+        "snmpTables",
+        "snmpWalk",
+        "dataSecurityScan",
+      ],
     });
   });
 });

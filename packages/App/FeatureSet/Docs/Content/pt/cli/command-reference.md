@@ -195,6 +195,7 @@ Os registros aceitam `list`, `get`, `create`, `update`, `delete` e `count`:
 | Manutenção programada | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Equipes e plantão | `team`, `on-call-policy` |
 | Segurança | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Segurança de dados | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | Rótulos | `label` |
 
 A telemetria aceita `list`, `create` e `count`:

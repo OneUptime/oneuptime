@@ -62,6 +62,7 @@ import {
   PRODUCTION_REVIEW_SETTINGS_COPY,
   getPickedProductionReviewContent,
   getValuesForProductionReviewContent,
+  inReviewHostWords,
   readProductionReviewContent,
 } from "../../../Components/Code/CodeProductionReviewCopy";
 import { ProductionReviewPullRequestContent } from "Common/Types/CodeRepository/ProductionReview";
@@ -470,9 +471,15 @@ const CodeRepositorySettings: FunctionComponent<
             column="isProductionReviewEnabled"
             cardId={CodeRepositorySetting.ProductionReview}
             cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.cardTitle}
-            title={PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle}
+            title={inReviewHostWords(
+              PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle,
+              provider,
+            )}
             getDescription={(): string => {
-              return PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription;
+              return inReviewHostWords(
+                PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription,
+                provider,
+              );
             }}
             onChange={(isOn: boolean): void => {
               remember({ isProductionReviewEnabled: isOn });
@@ -883,8 +890,10 @@ const CodeRepositorySettings: FunctionComponent<
             name="Repository > Production Review Comment"
             cardProps={{
               title: PRODUCTION_REVIEW_SETTINGS_COPY.contentCardTitle,
-              description:
+              description: inReviewHostWords(
                 PRODUCTION_REVIEW_SETTINGS_COPY.contentCardDescription,
+                provider,
+              ),
               id: CodeRepositorySetting.ProductionReviewComment,
             }}
             isEditable={true}
@@ -904,8 +913,10 @@ const CodeRepositorySettings: FunctionComponent<
                     return {
                       value: content,
                       title: PRODUCTION_REVIEW_CONTENT_COPY[content].title,
-                      description:
+                      description: inReviewHostWords(
                         PRODUCTION_REVIEW_CONTENT_COPY[content].description,
+                        provider,
+                      ),
                     };
                   },
                 ),

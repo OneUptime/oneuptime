@@ -150,7 +150,7 @@ GitHub App의 **Permissions & events** 설정에서 다음을 구독하세요:
 | **Pull request review** | 제출된 리뷰 본문 안의 멘션 |
 | **Pull request review comment** | diff에 단 인라인 댓글 안의 멘션 |
 
-**Repository permissions** 에서 **Issues** 는 **Read & write** 여야 합니다. GitHub는 풀 리퀘스트의 대화 댓글을 이슈 API로 보내므로, 이 권한이 있어야 앱이 풀 리퀘스트에도 댓글을 달 수 있습니다.
+**Repository permissions** 에서 **Issues** 는 **Read & write** 여야 합니다. GitHub는 풀 리퀘스트의 대화 댓글을 이슈 API로 보내므로, 이 권한이 있어야 앱이 풀 리퀘스트에도 댓글을 달 수 있습니다. **Checks** 가 **Read & write** 이면 각 프로덕션 리뷰가 풀 리퀘스트의 최신 커밋에 체크를 추가할 수 있습니다. 이 권한이 없으면 리뷰는 댓글만 게시합니다.
 
 ## 프롬프트 인젝션: 보호되는 것과 보호되지 않는 것
 

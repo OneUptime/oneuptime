@@ -66,6 +66,7 @@ const CATEGORY_ICONS: Record<DetectionRuleLibraryCategory, IconProp> = {
   [DetectionRuleLibraryCategory.Network]: IconProp.Globe,
   [DetectionRuleLibraryCategory.Web]: IconProp.GlobeAlt,
   [DetectionRuleLibraryCategory.Kubernetes]: IconProp.Cube,
+  [DetectionRuleLibraryCategory.DataSecurity]: IconProp.Database,
 };
 
 /*
