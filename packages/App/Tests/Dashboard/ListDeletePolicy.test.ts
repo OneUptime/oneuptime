@@ -73,6 +73,8 @@ const BULK_WITHOUT_DELETE: Record<string, string> = {
     "A monitor's SLOs: an SLO can measure several monitors, so it is deleted from the SLOs list, not from under one of its monitors.",
   "Dashboard/src/Pages/NetworkDevice/View/Interfaces.tsx":
     "Interfaces are discovered from the device on every SNMP poll, so a deleted one comes back; Mute is how one stops being monitored.",
+  "Dashboard/src/Pages/DataSecurity/DataStores.tsx":
+    "Most data stores are discovered - from a cloud account, a database or a service's telemetry - and come back on the next discovery while they exist there: one is deleted from its own Delete page, which says so, and one that is gone is archived on its own.",
   "Dashboard/src/Pages/Cloud/Accounts/View/Resources.tsx":
     "An account's resources come back on its connection's next listing: they are labelled and owned in bulk here, and archived or deleted from All Resources, which says why archiving is better.",
   "Dashboard/src/Components/TelemetryService/TelemetryServiceTable.tsx":

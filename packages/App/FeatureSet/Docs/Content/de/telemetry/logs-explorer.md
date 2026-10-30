@@ -131,7 +131,7 @@ Der Tab **Einblicke** zeigt, was Ihre Dienste in einem Zeitraum protokolliert ha
 | **Häufigste Fehler** | Die unterschiedlichen Meldungen mit dem Schweregrad Error oder Fatal, die häufigsten zuerst. |
 | **Quellen, die Protokolle melden** | Das Volumen und das Fehlersignal jedes Dienstes, Hosts oder jeder anderen Quelle. |
 
-Wählen Sie einen der häufigsten Fehler, um zu sehen, was um ihn herum geschah: wann er auftrat, was seine Vorkommen gemeinsam haben, wo er auftritt, welche Traces ihn tragen und seine letzten Zeilen. **Passende Protokolle öffnen** öffnet sie im **Betrachter**, und **Explain with AI** öffnet [Ask AI](/docs/ai/ask-ai) mit dem Fehler und seinen Belegen als Prompt, den Sie bearbeiten können.
+Wählen Sie einen der häufigsten Fehler, um zu sehen, was um ihn herum geschah: wann er auftrat, was seine Vorkommen gemeinsam haben, wo er auftritt, welche Traces ihn tragen und seine letzten Zeilen. **Passende Protokolle öffnen** öffnet sie im **Betrachter**, und **Mit KI erklären** öffnet [Ask AI](/docs/ai/ask-ai) mit dem Fehler und seinen Belegen als Prompt, den Sie bearbeiten können.
 
 ## Fehlerprotokolle, fehlende und übermäßige Protokolle mit KI finden und beheben
 

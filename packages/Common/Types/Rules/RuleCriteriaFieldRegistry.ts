@@ -144,6 +144,19 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "dashboardNamePattern",
     "dashboardDescriptionPattern",
   ],
+  // A data store's labels, its name and description, and its cloud tags.
+  DataStoreLabelRule: [
+    "matchLabels",
+    "nameRegexPattern",
+    "descriptionRegexPattern",
+    "cloudTagPattern",
+  ],
+  DataStoreOwnerRule: [
+    "matchLabels",
+    "nameRegexPattern",
+    "descriptionRegexPattern",
+    "cloudTagPattern",
+  ],
   DatabaseServerLabelRule: [
     "databaseServerLabels",
     "databaseServerNamePattern",

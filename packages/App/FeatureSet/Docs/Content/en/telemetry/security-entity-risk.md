@@ -1,6 +1,6 @@
 # Entity Risk (Risk-Based Alerting)
 
-One finding rarely says much. A burst of failed sign-ins, a first sudo on a host and a sign-in from a new country are each worth a glance; the same account in all three within a week is worth a case. Entity risk adds up what your detection rules, threat intelligence and connected products find about each user, host and IP address, lists the riskiest first, and opens a case about one whose risk reaches the project's threshold.
+One finding rarely says much. A burst of failed sign-ins, a first sudo on a host and a sign-in from a new country are each worth a glance; the same account in all three within a week is worth a case. Entity risk adds up what your detection rules, threat intelligence, connected products and Data Security find about each user, host, IP address and data store, lists the riskiest first, and opens a case about one whose risk reaches the project's threshold.
 
 :::cards
 - [How a score is counted](#how-a-score-is-counted): Points by severity, and each source once a week.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"At the<br/>threshold"| case["A case opens, or the<br/>open case takes it in"]
 ```
 
-Open **Products → Security Events → Entity Risk**: every user, host and IP address with risk now, the riskiest first, with its level, how much it matters, what found it and when. Each one opens on a page of its own. The Overview's **Riskiest Entities** shows the top of this list, and **Look Up an Entity**, under it, looks any value up across 30 days of events, a domain or a file hash too.
+Open **Products → Security Events → Entity Risk**: every user, host, IP address and data store with risk now, the riskiest first, with its level, how much it matters, what found it and when. Each one opens on a page of its own. The Overview's **Riskiest Entities** shows the top of this list, and **Look Up an Entity**, under it, looks any value up across 30 days of events, a domain or a file hash too.
 
 ## Before you begin
 
@@ -34,7 +34,7 @@ Open **Products → Security Events → Entity Risk**: every user, host and IP a
 
 ## How a score is counted
 
-Every finding adds risk points to the user, host or IP address it is about:
+Every finding adds risk points to the user, host, IP address or data store it is about:
 
 | A finding of severity | Adds |
 | --- | --- |
@@ -44,8 +44,8 @@ Every finding adds risk points to the user, host or IP address it is about:
 | Critical | 75 points |
 
 - An informational finding adds nothing, and a finding of unknown severity counts as Medium.
-- A detection rule's points go to the value it groups by. A threat intelligence match adds to the IP address the indicator names. A connected product's alert adds to the user and the host it names, or else to its IP address.
-- Each source counts once. A detection rule, a threat intelligence feed or a connected product's rule counts once in 7 days, at the most it added, however often it fires: one noisy rule cannot make an entity look worse than three different ones.
+- A detection rule's points go to the value it groups by. A threat intelligence match adds to the IP address the indicator names. A connected product's alert adds to the user and the host it names, or else to its IP address. A Data Security issue adds to the data store it was found on.
+- Each source counts once. A detection rule, a threat intelligence feed, a connected product's rule or a Data Security check counts once in 7 days, at the most it added, however often it fires: one noisy rule cannot make an entity look worse than three different ones.
 - A source that has found nothing for 7 days stops counting, and the score falls. Scores are checked every 15 minutes, so a score falls on time without a new finding.
 
 An entity's score is what its sources add up to, weighed by its criticality. The test attack from **Send a test attack**, and a case someone opens by hand, add no risk.
@@ -82,7 +82,7 @@ Some entities matter more than others: a domain controller, an executive's accou
 | High | ×1.5 |
 | Extreme | ×2 |
 
-An entry is a value or a `*` pattern, matched whatever its case: `dc-*` names every domain controller, and `*@contractors.example` every contractor. **Type** narrows it to users, hosts or IP addresses; empty matches any of them. When several entries name an entity, the most specific counts: a value written out over a pattern, and a longer pattern over a shorter one. A change reaches every entity's score within minutes.
+An entry is a value or a `*` pattern, matched whatever its case: `dc-*` names every domain controller, and `*@contractors.example` every contractor. **Type** narrows it to users, hosts, IP addresses or data stores; empty matches any of them. When several entries name an entity, the most specific counts: a value written out over a pattern, and a longer pattern over a shorter one. A change reaches every entity's score within minutes. Data Security lists the data stores it finds sensitive itself, Confidential ones at High and Restricted ones at Extreme; change one and it is yours, and Data Security leaves it alone.
 
 ## An entity's page
 

@@ -131,6 +131,7 @@ export type SecurityEntityType =
   | "URL"
   | "File Hash"
   | "Process"
+  | "Data Store"
   | "Other";
 
 export interface SecurityEntityTerm {
@@ -147,6 +148,7 @@ export const SECURITY_ENTITY_TERMS: ReadonlyArray<SecurityEntityTerm> = [
   { type: "URL", label: "URL", icon: "link-outline" },
   { type: "File Hash", label: "File hash", icon: "document-outline" },
   { type: "Process", label: "Process", icon: "terminal-outline" },
+  { type: "Data Store", label: "Data store", icon: "server-outline" },
   { type: "Other", label: "Other", icon: "ellipse-outline" },
 ];
 
@@ -208,6 +210,7 @@ const SOURCE_LABELS: Readonly<Record<string, string>> = {
   "Threat Intel": "Threat intel",
   "Connected Product": "Connected product",
   "Entity Risk": "Entity risk",
+  "Data Security": "Data security",
   Manual: "A person",
 };
 
