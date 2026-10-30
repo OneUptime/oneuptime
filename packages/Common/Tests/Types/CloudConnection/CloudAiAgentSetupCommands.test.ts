@@ -24,6 +24,9 @@ import {
   CloudAiAgentEnvironmentVariable,
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
+  GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS,
+  GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE,
+  GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS,
   GCP_CLOUD_AI_AGENT_ENV_FILE,
   GCP_CLOUD_AI_AGENT_KEY_FILE,
   GCP_CLOUD_AI_AGENT_KEY_FILE_END,
@@ -277,7 +280,8 @@ function isAwsRead(action: string): boolean {
  * aws, az and gcloud as bash functions: each records its argv (arguments
  * apart by \037, calls by \036, characters no checked value may hold) and
  * answers as the scenario's FAKE_ variables say. A function wins over any
- * real CLI on PATH, so nothing reaches a cloud.
+ * real CLI on PATH, so nothing reaches a cloud. sleep is one too: it is
+ * recorded, and nothing waits.
  */
 const FAKE_CLIS: string = String.raw`
 record() {
@@ -321,6 +325,12 @@ gcloud() {
       if [ "$FAKE_EXISTS" = 1 ]; then echo "ALREADY_EXISTS" >&2; return 1; fi ;;
     "run deploy $GCP_SERVICE")
       cp "$ENV_FILE" "$CAPTURED/env.yaml"
+      DEPLOYS=$(( $(cat "$CAPTURED/deploys" 2> /dev/null || echo 0) + 1 ))
+      echo "$DEPLOYS" > "$CAPTURED/deploys"
+      if [ "$DEPLOYS" -le "$FAKE_DEPLOY_REFUSALS" ]; then
+        echo "Permission denied on secret: $GCP_SECRET" >&2
+        return 1
+      fi
       return "$FAKE_DEPLOY_EXIT" ;;
     "secrets create $GCP_SECRET")
       if [ "$FAKE_EXISTS" = 1 ]; then echo "ALREADY_EXISTS" >&2; return 1; fi ;;
@@ -328,6 +338,9 @@ gcloud() {
       cat > "$CAPTURED/secret.txt" ;;
   esac
   return 0
+}
+sleep() {
+  record sleep "$@"
 }
 `;
 
@@ -337,6 +350,8 @@ interface Scenario {
   subnets?: string | undefined;
   stackStatus?: string | undefined;
   deployExit?: number | undefined;
+  // How many Google Cloud deploys Cloud Run refuses first, as it does while a new grant is on its way.
+  deployRefusals?: number | undefined;
   // The role, group, environment and service account are there already.
   exists?: boolean | undefined;
 }
@@ -399,6 +414,7 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
         FAKE_SUBNETS: scenario.subnets ?? "subnet-1\tsubnet-2\tsubnet-3",
         FAKE_STACK_STATUS: scenario.stackStatus ?? "",
         FAKE_DEPLOY_EXIT: String(scenario.deployExit ?? 0),
+        FAKE_DEPLOY_REFUSALS: String(scenario.deployRefusals ?? 0),
         FAKE_EXISTS: scenario.exists ? "1" : "0",
         FAKE_ROLE_ID: ROLE_ID,
         FAKE_PRINCIPAL: PRINCIPAL,
@@ -2108,6 +2124,67 @@ describe("Google Cloud: the command", () => {
         ingestionKey: GCP_CLOUD_AI_AGENT_KEY_FILE_END,
       });
     }).toThrow(BadDataException);
+  });
+
+  /*
+   * Cloud Run checks, as it deploys, that the service account may read the
+   * key's secret, and the access the command granted a moment before can
+   * take a minute or two to reach it: a refused deploy is tried again, 30
+   * seconds later, three tries in all, and the shell says why it waits.
+   */
+  test("a deploy Cloud Run refuses while the key's new access is on its way is tried again, 30 seconds later, saying why", () => {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+      deployRefusals: 2,
+    });
+
+    expect(callsTo(shell, "gcloud", "run", "deploy")).toHaveLength(3);
+    expect(callsTo(shell, "sleep")).toEqual([
+      ["sleep", String(GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS)],
+      ["sleep", String(GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS)],
+    ]);
+    expect(shell.output).toEqual([
+      GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE,
+      GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE,
+      CLOUD_AI_AGENT_STARTED_MESSAGE,
+    ]);
+    // The key went into its secret once; the variables' file is gone.
+    expect(callsTo(shell, "gcloud", "secrets", "versions", "add")).toHaveLength(
+      1,
+    );
+    expect(shell.files).toEqual([]);
+  });
+
+  test("a deploy that never works stops after three tries, waits after none but the first two, and never says the agent is starting", () => {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+      deployExit: 1,
+    });
+
+    expect(GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS).toBe(3);
+    expect(callsTo(shell, "gcloud", "run", "deploy")).toHaveLength(3);
+    expect(callsTo(shell, "sleep")).toHaveLength(2);
+    expect(shell.output).toEqual([
+      GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE,
+      GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE,
+    ]);
+    expect(shell.files).toEqual([]);
+  });
+
+  test("a deploy that works the first time waits for nothing", () => {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+
+    expect(callsTo(shell, "gcloud", "run", "deploy")).toHaveLength(1);
+    expect(callsTo(shell, "sleep")).toEqual([]);
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+  });
+
+  test("the line between tries names its wait, and is safe inside the double quotes it is echoed in", () => {
+    expect(GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE).toBe(
+      "Cloud Run did not start the agent. Access to the key granted a moment ago can take a minute or two to reach it, so the deploy runs again in 30 seconds.",
+    );
+
+    for (const character of ['"', "$", "`", "\\"]) {
+      expect(GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE).not.toContain(character);
+    }
   });
 
   test("running it again adds a new version of the key to the secret it made the first time", () => {

@@ -227,6 +227,18 @@ export const GCP_CLOUD_AI_AGENT_KEY_FILE_END: string = "KEY ENDS";
 export const GCP_SECRET_ACCESSOR_ROLE: string =
   "roles/secretmanager.secretAccessor";
 
+/*
+ * Cloud Run checks, as it deploys, that the service account may read the
+ * key's secret, and access granted a moment before can take a minute or
+ * two to reach it. So the Google Cloud command tries a deploy that did not
+ * work again, three tries in all, 30 seconds apart, and says why between
+ * them. The line is echoed in double quotes: it holds none, and no $, `
+ * or backslash.
+ */
+export const GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS: number = 3;
+export const GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS: number = 30;
+export const GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE: string = `Cloud Run did not start the agent. Access to the key granted a moment ago can take a minute or two to reach it, so the deploy runs again in ${GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS} seconds.`;
+
 // How long the agent's AWS logs are kept: long enough to read what went wrong.
 export const AWS_CLOUD_AI_AGENT_LOG_RETENTION_DAYS: number = 7;
 
@@ -1442,9 +1454,10 @@ export function getGcpCloudAiAgentServices(
  * there) and its binding, the key as a new version of a Secret Manager
  * secret only that service account may read, then the service, which
  * `gcloud run deploy` creates or moves to a new revision with exactly
- * these variables and the key from the secret. The variables and the key
- * go through files the shell does not expand, each removed once read: the
- * key is never on a command line, and never one of the service's
+ * these variables and the key from the secret - tried again, 30 seconds
+ * later, while Cloud Run cannot read the secret yet. The variables and the
+ * key go through files the shell does not expand, each removed once read:
+ * the key is never on a command line, and never one of the service's
  * variables, which anyone who may view the service reads.
  */
 export function getGcpCloudAiAgentSetupCommand(
@@ -1474,6 +1487,19 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
     .map((variable: CloudAiAgentEnvironmentVariable): string => {
       return `${variable.name}=${secret}:latest`;
     });
+  const deploy: string = [
+    `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} ${project} --region ${setup.region as string}`,
+    `--image ${setup.image} --service-account "${member}"`,
+    `--no-cpu-throttling --min-instances 1 --max-instances 1 --cpu ${size.vcpu} --memory ${size.memoryGiB * 1024}Mi`,
+    `--no-allow-unauthenticated --ingress internal --port ${RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT}`,
+    `--env-vars-file ${GCP_CLOUD_AI_AGENT_ENV_FILE} --set-secrets ${secrets.join(",")} --quiet`,
+  ].join(" ");
+  const attempts: Array<number> = Array.from(
+    { length: GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS },
+    (_: unknown, index: number): number => {
+      return index + 1;
+    },
+  );
 
   return [
     `PROJECT_ID=${setup.accountId}`,
@@ -1499,13 +1525,11 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
         return `${variable.name}: ${JSON.stringify(variable.value)}`;
       }),
     "ENV",
-    [
-      `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} ${project} --region ${setup.region as string}`,
-      `--image ${setup.image} --service-account "${member}"`,
-      `--no-cpu-throttling --min-instances 1 --max-instances 1 --cpu ${size.vcpu} --memory ${size.memoryGiB * 1024}Mi`,
-      `--no-allow-unauthenticated --ingress internal --port ${RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT}`,
-      `--env-vars-file ${GCP_CLOUD_AI_AGENT_ENV_FILE} --set-secrets ${secrets.join(",")} --quiet && echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
-    ].join(" "),
+    // A deploy that did not work is tried again: the key's access may still be on its way.
+    `for ATTEMPT in ${attempts.join(" ")}; do`,
+    `  if ${deploy}; then echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"; break; fi`,
+    `  [ "$ATTEMPT" = ${GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS} ] || { echo "${GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE}"; sleep ${GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS}; }`,
+    "done",
     `rm ${GCP_CLOUD_AI_AGENT_ENV_FILE}`,
   ].join("\n");
 }
