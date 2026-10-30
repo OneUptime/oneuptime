@@ -5193,7 +5193,7 @@ test.describe("playbooks", () => {
     const dialog: Locator = page.getByRole("dialog").first();
 
     await expect(dialog).toContainText(
-      "Eine Notiz zum Fall schreiben: eine Checkliste",
+      "Eine Notiz zum Fall schreiben: Kontext für",
     );
     await expect(dialog).not.toContainText("Edit Step");
     await expect(dialog).not.toContainText("Write a note on the case");
