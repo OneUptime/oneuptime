@@ -16,6 +16,8 @@ import MutableMetricService from "../../../Server/Services/MutableMetricService"
 import MeasurementMetricWriter from "../../../Server/Utils/Measurement/MeasurementMetricWriter";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
+import { AcknowledgeIncidentTool } from "../../../Server/Utils/AI/Toolbox/IncidentWriteTools";
+import { ToolContext } from "../../../Server/Utils/AI/Toolbox/ToolTypes";
 import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 import StatusPageOverviewCache from "../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
@@ -1464,6 +1466,28 @@ describePostgres(
           ).rejects.toThrow(
             "You do not have permission to acknowledge this incident: this incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this.",
           );
+        });
+
+        test("Ask AI does not acknowledge INC-17 for Test User 2, and says why", async () => {
+          // Ask AI's tools act as the person who asked, never as OneUptime.
+          const ctx: ToolContext = {
+            projectId: projectId,
+            props: await memberProps(),
+          };
+
+          await expect(
+            AcknowledgeIncidentTool.execute(
+              { incidentId: inc17.id.toString() },
+              ctx,
+            ),
+          ).rejects.toThrow(
+            "The incident it belongs to is private, so it is changed only with the permissions of the teams that own that incident and of the people named as its owners",
+          );
+          expect(
+            await countRows("IncidentStateTimeline", `"incidentId" = $1`, [
+              inc17.id.toString(),
+            ]),
+          ).toBe(0);
         });
       },
     );
