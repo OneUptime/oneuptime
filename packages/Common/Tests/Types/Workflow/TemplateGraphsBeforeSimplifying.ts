@@ -39,7 +39,10 @@ const FIXTURE_PATH: string = path.join(
 interface FrozenGraphs {
   source: string;
   templates: Record<string, JSONObject>;
-  huntressConnections: Record<string, { options: JSONObject; graph: JSONObject }>;
+  huntressConnections: Record<
+    string,
+    { options: JSONObject; graph: JSONObject }
+  >;
 }
 
 let frozen: FrozenGraphs | null = null;

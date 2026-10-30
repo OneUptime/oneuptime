@@ -38,8 +38,7 @@ import {
  * people, and the create the dialog makes.
  */
 
-const getListMock: jest.Mock<(...args: Array<any>) => Promise<unknown>> =
-  jest.fn<(...args: Array<any>) => Promise<unknown>>();
+const getListMock: MockFunction = jest.fn() as unknown as MockFunction;
 
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {

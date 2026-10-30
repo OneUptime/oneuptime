@@ -343,9 +343,13 @@ describe.each(KINDS)("$problemTemplateId", (kind: Kind) => {
       place: number,
       pages: boolean,
     ) => {
-      const run: TemplateRun = await receive(zabbixPostedBody({ severityNumber }));
+      const run: TemplateRun = await receive(
+        zabbixPostedBody({ severityNumber }),
+      );
 
-      expect(recordsOf(run, kind)[0]?.["severity"]).toBe(kind.severities[place]);
+      expect(recordsOf(run, kind)[0]?.["severity"]).toBe(
+        kind.severities[place],
+      );
       expect(run.outcome.pages).toEqual(
         pages
           ? [
@@ -384,7 +388,11 @@ describe.each(KINDS)("$problemTemplateId", (kind: Kind) => {
 
     expect(kind.records(run.world)).toHaveLength(1);
     expect(run.outcome.pages).toEqual([]);
-    expect(run.trace.executed).toEqual(["webhook-1", "read-event-1", kind.step]);
+    expect(run.trace.executed).toEqual([
+      "webhook-1",
+      "read-event-1",
+      kind.step,
+    ]);
     expect(run.trace.failedSteps).toEqual([]);
   });
 
@@ -404,7 +412,8 @@ describe.each(KINDS)("$problemTemplateId", (kind: Kind) => {
     const run: TemplateRun = await receive(
       zabbixPostedBody(),
       (world: TemplateWorld): void => {
-        (kind === INCIDENT ? world.incidents : world.alerts).severities.rows = [];
+        (kind === INCIDENT ? world.incidents : world.alerts).severities.rows =
+          [];
       },
     );
 
@@ -530,7 +539,10 @@ describe.each(KINDS)("$problemTemplateId", (kind: Kind) => {
     "an update that %s is a private note, and moves the record nowhere",
     async (action: string) => {
       const run: TemplateRun = await receive(
-        zabbixPostedBody({ kind: ZabbixEventKind.Update, updateAction: action }),
+        zabbixPostedBody({
+          kind: ZabbixEventKind.Update,
+          updateAction: action,
+        }),
         (world: TemplateWorld): void => {
           kind.add(world);
         },
@@ -643,9 +655,9 @@ describe.each(KINDS)("$problemTemplateId", (kind: Kind) => {
       },
     });
 
-    expect(String(recordsOf(run, kind)[0]?.["description"]).split("\n")[0]).toBe(
-      `${kind.Created} from Zabbix problem ${EVENT_ID}.`,
-    );
+    expect(
+      String(recordsOf(run, kind)[0]?.["description"]).split("\n")[0],
+    ).toBe(`${kind.Created} from Zabbix problem ${EVENT_ID}.`);
   });
 });
 
@@ -656,7 +668,10 @@ const triggerModel: (kind: Kind, world: TemplateWorld) => JSONObject = (
   world: TemplateWorld,
 ): JSONObject => {
   return {
-    model: BaseModel.toJSON(kind.records(world)[0] as BaseModel, kind.modelType),
+    model: BaseModel.toJSON(
+      kind.records(world)[0] as BaseModel,
+      kind.modelType,
+    ),
   };
 };
 
@@ -751,9 +766,11 @@ describe.each(KINDS)("$stateTemplateId", (kind: Kind) => {
       },
     );
 
-    expect(zabbix.calls.map((call: { method: string }) => call.method)).toEqual([
-      "event.get",
-    ]);
+    expect(
+      zabbix.calls.map((call: { method: string }) => {
+        return call.method;
+      }),
+    ).toEqual(["event.get"]);
     expect(run.trace.ports["update-problem-1"]).toBe("unchanged");
   });
 
@@ -762,13 +779,18 @@ describe.each(KINDS)("$stateTemplateId", (kind: Kind) => {
       fake.add({ manual_close: "1", r_eventid: "99001" });
     });
 
-    expect(zabbix.calls.map((call: { method: string }) => call.method)).toEqual([
-      "event.get",
-    ]);
+    expect(
+      zabbix.calls.map((call: { method: string }) => {
+        return call.method;
+      }),
+    ).toEqual(["event.get"]);
   });
 
   test.each([
-    [`an ${kind.noun} no Zabbix problem opened`, { stateName: "Resolved", eventId: null }],
+    [
+      `an ${kind.noun} no Zabbix problem opened`,
+      { stateName: "Resolved", eventId: null },
+    ],
     [`a private ${kind.noun}`, { stateName: "Resolved", isPrivate: true }],
     [
       "a state that is neither acknowledged nor resolved",
@@ -799,19 +821,20 @@ describe.each(KINDS)("$stateTemplateId", (kind: Kind) => {
     );
 
     expect(run.trace.failedSteps).toEqual(["update-problem-1"]);
-    expect(run.trace.portReasons["update-problem-1"]).toContain(
-      "Zabbix said:",
-    );
+    expect(run.trace.portReasons["update-problem-1"]).toContain("Zabbix said:");
   });
 
   test("a problem the token's user cannot see sends nothing, and says so", async () => {
-    const run: TemplateRun = await changed(
-      { stateName: "Acknowledged", eventId: OTHER_EVENT_ID },
-    );
+    const run: TemplateRun = await changed({
+      stateName: "Acknowledged",
+      eventId: OTHER_EVENT_ID,
+    });
 
-    expect(zabbix.calls.map((call: { method: string }) => call.method)).toEqual([
-      "event.get",
-    ]);
+    expect(
+      zabbix.calls.map((call: { method: string }) => {
+        return call.method;
+      }),
+    ).toEqual(["event.get"]);
     expect(run.trace.portReasons["update-problem-1"]).toBe(
       `Zabbix has no problem with event ID ${OTHER_EVENT_ID}, or the API token's user cannot see it, so Zabbix was not updated.`,
     );
@@ -919,9 +942,17 @@ describe.each(KINDS)("$noteTemplateId", (kind: Kind) => {
   });
 
   test.each([
-    ["a note that came from Zabbix", `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Ada updated it.`, {}],
+    [
+      "a note that came from Zabbix",
+      `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Ada updated it.`,
+      {},
+    ],
     ["an empty note", "  ", {}],
-    [`a note on an ${kind.noun} no Zabbix problem opened`, "Hi", { eventId: null }],
+    [
+      `a note on an ${kind.noun} no Zabbix problem opened`,
+      "Hi",
+      { eventId: null },
+    ],
     [`a note on a private ${kind.noun}`, "Hi", { isPrivate: true }],
   ] as Array<[string, string, RecordProps]>)(
     "%s sends nothing",
@@ -937,7 +968,9 @@ describe.each(KINDS)("$noteTemplateId", (kind: Kind) => {
   test("a note longer than Zabbix keeps is cut to fit, and Zabbix takes it", async () => {
     await noted("x".repeat(5000));
 
-    expect(zabbix.problem().messages[0]?.length).toBe(ZABBIX_MESSAGE_MAX_LENGTH);
+    expect(zabbix.problem().messages[0]?.length).toBe(
+      ZABBIX_MESSAGE_MAX_LENGTH,
+    );
   });
 });
 
@@ -952,7 +985,9 @@ describe("both ways at once, the templates settle instead of echoing each other"
         INCIDENT.add(world);
       },
       trigger: (): JSONObject => {
-        return webhookDelivery(zabbixPostedBody({ kind: ZabbixEventKind.Update }));
+        return webhookDelivery(
+          zabbixPostedBody({ kind: ZabbixEventKind.Update }),
+        );
       },
       picks: PICKS,
     });
@@ -973,9 +1008,11 @@ describe("both ways at once, the templates settle instead of echoing each other"
       }),
     });
 
-    expect(zabbix.calls.map((call: { method: string }) => call.method)).toEqual([
-      "event.get",
-    ]);
+    expect(
+      zabbix.calls.map((call: { method: string }) => {
+        return call.method;
+      }),
+    ).toEqual(["event.get"]);
     expect(outbound.trace.ports["update-problem-1"]).toBe("unchanged");
   });
 

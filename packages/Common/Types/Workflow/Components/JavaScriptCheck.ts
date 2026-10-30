@@ -156,8 +156,7 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Yes",
-        description:
-          "Runs next when the code returns true, or proceed: true.",
+        description: "Runs next when the code returns true, or proceed: true.",
         id: JAVASCRIPT_CHECK_PORT_IDS.yes,
       },
       {

@@ -150,7 +150,13 @@ export const getZabbixRequestBody: ZabbixRequestBodyFunction = (
   auth?: string | undefined,
 ): JSONObject => {
   if (auth) {
-    return { jsonrpc: "2.0", auth: auth, method: method, params: params, id: 1 };
+    return {
+      jsonrpc: "2.0",
+      auth: auth,
+      method: method,
+      params: params,
+      id: 1,
+    };
   }
 
   return { jsonrpc: "2.0", method: method, params: params, id: 1 };
@@ -392,7 +398,8 @@ const components: Array<ComponentMetadata> = [
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.eventId,
         name: "Event ID",
-        description: "The problem's event ID in Zabbix, usually from an earlier step.",
+        description:
+          "The problem's event ID in Zabbix, usually from an earlier step.",
         type: ComponentInputType.Text,
         required: true,
         placeholder: "40312",

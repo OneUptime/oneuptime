@@ -1261,7 +1261,9 @@ describe("Zabbix", () => {
     }
 
     expect(
-      readRepoFile("Common/Server/Types/Workflow/Components/Zabbix/UpdateProblem.ts"),
+      readRepoFile(
+        "Common/Server/Types/Workflow/Components/Zabbix/UpdateProblem.ts",
+      ),
     ).toContain("{ Authorization: `Bearer ${data.token}` }");
   });
 
@@ -1432,9 +1434,9 @@ describe("Zabbix", () => {
       }),
     );
     expect(rows[0]?.[1]).toContain("titled `Zabbix: <problem> on <host>`");
-    expect(nodeOf(PROBLEM_TEMPLATE, "incident-from-another-tool-1").metadataId).toBe(
-      ComponentID.IncidentFromAnotherTool,
-    );
+    expect(
+      nodeOf(PROBLEM_TEMPLATE, "incident-from-another-tool-1").metadataId,
+    ).toBe(ComponentID.IncidentFromAnotherTool);
     expect(page).toContain(
       `the \`read-event-1\` ${bold("Check With JavaScript")} step reads the \`event\` the media type sends, and ${bold("Incident From Another Tool")}, or ${bold("Alert From Another Tool")} in the alert template, does what it means`,
     );
@@ -1462,16 +1464,16 @@ describe("Zabbix", () => {
   });
 
   it("tells Zabbix 6.0 where its token goes: the Update Zabbix Problem step's Zabbix 6.0 switch, under More fields", () => {
-    const step: ComponentMetadata = (Components as Array<ComponentMetadata>).find(
-      (component: ComponentMetadata): boolean => {
-        return component.id === ComponentID.ZabbixUpdateProblem;
-      },
-    ) as ComponentMetadata;
-    const setting: Argument | undefined = (step.arguments as Array<Argument>).find(
-      (argument: Argument): boolean => {
-        return argument.id === ZABBIX_UPDATE_ARGUMENT_IDS.zabbix60;
-      },
-    );
+    const step: ComponentMetadata = (
+      Components as Array<ComponentMetadata>
+    ).find((component: ComponentMetadata): boolean => {
+      return component.id === ComponentID.ZabbixUpdateProblem;
+    }) as ComponentMetadata;
+    const setting: Argument | undefined = (
+      step.arguments as Array<Argument>
+    ).find((argument: Argument): boolean => {
+      return argument.id === ZABBIX_UPDATE_ARGUMENT_IDS.zabbix60;
+    });
 
     expect(step.title).toBe("Update Zabbix Problem");
     expect(setting?.name).toBe("Zabbix 6.0");

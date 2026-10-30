@@ -318,7 +318,10 @@ export const makeFakeProject: MakeFakeProjectFunction = (data: {
     row.id = new ObjectID(nextId());
     row.setColumnValue("name", state.name);
     row.setColumnValue("order", state.order);
-    row.setColumnValue("isAcknowledgedState", state.isAcknowledgedState === true);
+    row.setColumnValue(
+      "isAcknowledgedState",
+      state.isAcknowledgedState === true,
+    );
     row.setColumnValue("isResolvedState", state.isResolvedState === true);
     row.setColumnValue("projectId", PROJECT_ID);
     states.rows.push(row);
@@ -348,9 +351,7 @@ export const makeFakeProject: MakeFakeProjectFunction = (data: {
     );
     row.setColumnValue(spec.model.stateRelation, states.rows[0]);
 
-    const severityId: unknown = row.getColumnValue(
-      spec.model.severityIdColumn,
-    );
+    const severityId: unknown = row.getColumnValue(spec.model.severityIdColumn);
     row.setColumnValue(
       spec.model.severityRelation,
       severities.rows.find((severity: BaseModel): boolean => {

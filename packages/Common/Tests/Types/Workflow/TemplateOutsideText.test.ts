@@ -54,7 +54,6 @@ import {
   parseHuntressWebhook,
 } from "../../../Types/Huntress/HuntressWebhook";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
-import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
   HuntressTriggerValue,
   getHuntressTriggerEvent,
@@ -99,6 +98,7 @@ import {
   INCIDENT_ID,
   JIRA_ISSUE_KEY,
   JIRA_SITE,
+  JiraStatusProps,
   alertLabel,
   changelogItem,
   incidentLabel,
@@ -269,7 +269,7 @@ async function recordFromIssue(
 interface JiraStatusChange {
   jiraStatus: string;
   changedBy: string;
-  jiraStatusCategory?: string | undefined;
+  jiraStatusCategory?: JiraStatusProps["categoryKey"] | undefined;
 }
 
 /*

@@ -47,7 +47,6 @@ import {
   quoted,
   recordModel,
   runZabbixScript,
-  stateNamed,
   zabbixFirstMediaTypeBody,
   zabbixPostedBody,
 } from "./ZabbixTemplateFixtures";
@@ -110,7 +109,10 @@ async function opensAt(
       pickSeverityIndex({
         given: String(result["severity"]),
         severities: ordered.map((severity: JSONObject) => {
-          return { id: String(severity["_id"]), name: String(severity["name"]) };
+          return {
+            id: String(severity["_id"]),
+            name: String(severity["name"]),
+          };
         }),
       }).index
     ]?.["name"],
@@ -794,7 +796,9 @@ describe("read-event-1: a recovery", () => {
           trigger_id: "",
         })
       )["reason"],
-    ).toBe(`${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: problem ${EVENT_ID} recovered.`);
+    ).toBe(
+      `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: problem ${EVENT_ID} recovered.`,
+    );
   });
 });
 
@@ -897,12 +901,12 @@ describe.each(KINDS)(
     });
 
     test("another state asks nothing, and says why", async () => {
-      expect(
-        await plan(kind, recordModel(kind, { state: "Created" })),
-      ).toEqual({
-        proceed: false,
-        reason: `${kind.number} moved to Created: only acknowledging or resolving the ${kind.noun} updates Zabbix.`,
-      });
+      expect(await plan(kind, recordModel(kind, { state: "Created" }))).toEqual(
+        {
+          proceed: false,
+          reason: `${kind.number} moved to Created: only acknowledging or resolving the ${kind.noun} updates Zabbix.`,
+        },
+      );
     });
 
     test("double braces in the record's number are broken up in the message", async () => {
@@ -1025,31 +1029,33 @@ describe("time", () => {
   ])(
     "%s, in every part a problem and an update carry, read in under two seconds",
     async (_name: string, text: string) => {
-      const timed: FastestRun<[JSONObject, JSONObject]> = await fastestRunAsync({
-        limitInMs: 2000 * 2,
-        run: async (): Promise<[JSONObject, JSONObject]> => {
-          return [
-            await read(
-              INCIDENT,
-              event({
-                name: text,
-                host: text,
-                opdata: text,
-                tags: [{ tag: text, value: text }],
-              }),
-            ),
-            await read(
-              INCIDENT,
-              event({
-                kind: ZabbixEventKind.Update,
-                updateAction: text,
-                updateMessage: text,
-                updateUser: text,
-              }),
-            ),
-          ];
+      const timed: FastestRun<[JSONObject, JSONObject]> = await fastestRunAsync(
+        {
+          limitInMs: 2000 * 2,
+          run: async (): Promise<[JSONObject, JSONObject]> => {
+            return [
+              await read(
+                INCIDENT,
+                event({
+                  name: text,
+                  host: text,
+                  opdata: text,
+                  tags: [{ tag: text, value: text }],
+                }),
+              ),
+              await read(
+                INCIDENT,
+                event({
+                  kind: ZabbixEventKind.Update,
+                  updateAction: text,
+                  updateMessage: text,
+                  updateUser: text,
+                }),
+              ),
+            ];
+          },
         },
-      });
+      );
       const [problem, update] = timed.result;
 
       expect(timed.inMs).toBeLessThan(2000 * 2);

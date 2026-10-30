@@ -28,13 +28,10 @@ import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInterna
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
-import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import QueryPermission from "../../../Server/Types/Database/Permissions/QueryPermission";
 import SelectPermission from "../../../Server/Types/Database/Permissions/SelectPermission";
-import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -538,9 +535,11 @@ describe("how the templates reach Zabbix's API", () => {
 
   test("only the two that write to Zabbix call it, each through one Update Zabbix Problem step", () => {
     expect(
-      updateSteps.map(([templateId, step]: [string, TemplateNodeSpec]): string => {
-        return `${templateId} ${step.componentId}`;
-      }),
+      updateSteps.map(
+        ([templateId, step]: [string, TemplateNodeSpec]): string => {
+          return `${templateId} ${step.componentId}`;
+        },
+      ),
     ).toEqual([
       "zabbix-update-problem-on-incident-state update-problem-1",
       "zabbix-message-from-incident-private-note update-problem-1",
@@ -717,10 +716,7 @@ describe("the Zabbix templates' scripts", () => {
 
   test("the scripts that write Zabbix's messages cut them to what Zabbix keeps", () => {
     for (const [templateId, componentId, code] of scripts) {
-      if (
-        componentId !== "build-message-1" &&
-        componentId !== "plan-state-1"
-      ) {
+      if (componentId !== "build-message-1" && componentId !== "plan-state-1") {
         continue;
       }
 
@@ -777,7 +773,11 @@ describe("the workflow Zabbix sends its problems to", () => {
       ]);
       expect(
         spec(templateId).edges.map(
-          (edge: { fromComponentId: string; fromPort: string; toComponentId: string }): string => {
+          (edge: {
+            fromComponentId: string;
+            fromPort: string;
+            toComponentId: string;
+          }): string => {
             return `${edge.fromComponentId} ${edge.fromPort} ${edge.toComponentId}`;
           },
         ),
@@ -850,9 +850,11 @@ describe("the workflow Zabbix sends its problems to", () => {
       ) as JSONObject;
 
       expect(
-        (graph["nodes"] as Array<JSONObject>).map((built: JSONObject): string => {
-          return (built["data"] as JSONObject)["id"] as string;
-        }),
+        (graph["nodes"] as Array<JSONObject>).map(
+          (built: JSONObject): string => {
+            return (built["data"] as JSONObject)["id"] as string;
+          },
+        ),
       ).toEqual([
         ZABBIX_WEBHOOK_COMPONENT_ID,
         "read-event-1",

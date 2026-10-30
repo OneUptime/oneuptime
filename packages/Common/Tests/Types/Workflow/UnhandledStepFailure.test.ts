@@ -24,7 +24,10 @@ describe("UnhandledStepFailure", () => {
         }),
       ).toBe(true);
       expect(
-        isUnhandledStepFailure({ portId: "error", connectedComponentIds: null }),
+        isUnhandledStepFailure({
+          portId: "error",
+          connectedComponentIds: null,
+        }),
       ).toBe(true);
     });
 

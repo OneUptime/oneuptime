@@ -32,7 +32,6 @@
 
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
-import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
   JIRA_SITE_URL_PATTERN,
   WorkflowTemplate,

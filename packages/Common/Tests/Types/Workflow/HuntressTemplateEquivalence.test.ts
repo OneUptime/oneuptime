@@ -241,9 +241,13 @@ describe("the template, old and new", () => {
 
   test("the severity a trigger setting picks", async () => {
     const run: EquivalenceRun = await runOldAndNew(
-      templateScenario(getHuntressIncidentReportBody(), {}, {
-        [HuntressTriggerSetting.CriticalIncidentSeverity]: SEVERITY_IDS[2],
-      }),
+      templateScenario(
+        getHuntressIncidentReportBody(),
+        {},
+        {
+          [HuntressTriggerSetting.CriticalIncidentSeverity]: SEVERITY_IDS[2],
+        },
+      ),
     );
 
     expectSameOutcome(run);
@@ -271,7 +275,12 @@ describe("the template, old and new", () => {
 
   test("a comment is a private note on the report's incident", async () => {
     const run: EquivalenceRun = await runOldAndNew(
-      templateScenario(getHuntressCommentBody("Contained the host and removed the scheduled task."), { setUp: withIncident() }),
+      templateScenario(
+        getHuntressCommentBody(
+          "Contained the host and removed the scheduled task.",
+        ),
+        { setUp: withIncident() },
+      ),
     );
 
     expectSameOutcome(run);
@@ -280,7 +289,11 @@ describe("the template, old and new", () => {
 
   test("a comment on a report no incident is about writes nothing", async () => {
     const run: EquivalenceRun = await runOldAndNew(
-      templateScenario(getHuntressCommentBody("Contained the host and removed the scheduled task.")),
+      templateScenario(
+        getHuntressCommentBody(
+          "Contained the host and removed the scheduled task.",
+        ),
+      ),
     );
 
     expectSameOutcome(run);
@@ -408,7 +421,9 @@ describe.each([
 
       expect(labels).toContain(ORGANIZATION_LABEL_ID);
 
-      if ((connection.options["labelIds"] as Array<string> | undefined)?.length) {
+      if (
+        (connection.options["labelIds"] as Array<string> | undefined)?.length
+      ) {
         expect(labels).toContain(CONNECTION_LABEL_ID);
       }
     },
@@ -416,7 +431,12 @@ describe.each([
 
   test("a comment is noted alike", async () => {
     const run: EquivalenceRun = await runOldAndNew(
-      connectionScenario(getHuntressCommentBody("Contained the host and removed the scheduled task."), withIncident()),
+      connectionScenario(
+        getHuntressCommentBody(
+          "Contained the host and removed the scheduled task.",
+        ),
+        withIncident(),
+      ),
     );
 
     expectSameOutcome(run);

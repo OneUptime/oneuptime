@@ -409,8 +409,10 @@ describe("the templates in one column", () => {
 
     expect(oneColumn.length).toBeGreaterThan(TEMPLATES.length / 2);
 
+    const integration: RegExp = /^(jira|dynamics|zabbix|huntress)-/;
+
     for (const template of TEMPLATES) {
-      if (/^(jira|dynamics|zabbix|huntress)-/.test(template.id)) {
+      if (integration.test(template.id)) {
         expect(oneColumn).toContain(template.id);
       }
     }

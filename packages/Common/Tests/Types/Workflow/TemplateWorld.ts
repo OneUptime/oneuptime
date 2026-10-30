@@ -181,9 +181,7 @@ export default class TemplateWorld {
         title: (record.getColumnValue("title") as JSONValue) ?? null,
         description:
           (record.getColumnValue("description") as JSONValue) ?? null,
-        severity: nameOf(
-          record.getColumnValue(project.model.severityRelation),
-        ),
+        severity: nameOf(record.getColumnValue(project.model.severityRelation)),
         state: nameOf(record.getColumnValue(project.model.stateRelation)),
         customFields:
           (record.getColumnValue("customFields") as JSONValue) ?? null,

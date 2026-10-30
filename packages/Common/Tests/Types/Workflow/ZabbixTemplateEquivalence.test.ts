@@ -50,7 +50,11 @@ import {
   zabbixFirstMediaTypeBody,
   zabbixPostedBody,
 } from "./ZabbixTemplateFixtures";
-import { SimulatedReply, SimulatedRequest, stubDnsLookups } from "./WorkflowTemplateSimulator";
+import {
+  SimulatedReply,
+  SimulatedRequest,
+  stubDnsLookups,
+} from "./WorkflowTemplateSimulator";
 import {
   afterEach,
   beforeEach,
@@ -156,9 +160,7 @@ const KINDS: Array<Kind> = [INCIDENT, ALERT];
  * A Zabbix of its own for each run, holding the problems given: what the
  * runs asked of it, and what it holds afterwards, are compared.
  */
-const zabbixWith: (
-  setUp?: (zabbix: FakeZabbix) => void,
-) => () => OtherTool = (
+const zabbixWith: (setUp?: (zabbix: FakeZabbix) => void) => () => OtherTool = (
   setUp?: (zabbix: FakeZabbix) => void,
 ): (() => OtherTool) => {
   return (): OtherTool => {
@@ -341,9 +343,13 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
 
   test("the same problem twice opens one record, and pages once", async () => {
     const run: EquivalenceRun = await runOldAndNew(
-      problemScenario(kind, zabbixPostedBody({ severityNumber: 5 }), (world: TemplateWorld) => {
-        kind.add(world, { eventId: EVENT_ID });
-      }),
+      problemScenario(
+        kind,
+        zabbixPostedBody({ severityNumber: 5 }),
+        (world: TemplateWorld) => {
+          kind.add(world, { eventId: EVENT_ID });
+        },
+      ),
     );
 
     expectSameOutcome(run);
@@ -358,7 +364,14 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
           kind,
           zabbixFirstMediaTypeBody({
             severityName,
-            severityNumber: ["Not classified", "Information", "Warning", "Average", "High", "Disaster"].indexOf(severityName),
+            severityNumber: [
+              "Not classified",
+              "Information",
+              "Warning",
+              "Average",
+              "High",
+              "Disaster",
+            ].indexOf(severityName),
           }),
         ),
       );
@@ -371,7 +384,10 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
     const run: EquivalenceRun = await runOldAndNew(
       problemScenario(
         kind,
-        zabbixPostedBody({ severityNumber: 4, severityName: "Sev-2 (renamed)" }),
+        zabbixPostedBody({
+          severityNumber: 4,
+          severityName: "Sev-2 (renamed)",
+        }),
       ),
     );
 
@@ -484,11 +500,7 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
       { updateAction: "commented", updateMessage: "Still looking." },
       undefined,
     ],
-    [
-      "an acknowledgment of a record acknowledged already",
-      {},
-      "Acknowledged",
-    ],
+    ["an acknowledgment of a record acknowledged already", {}, "Acknowledged"],
     ["an acknowledgment of a resolved record", {}, "Resolved"],
     [
       "a severity change",
@@ -499,7 +511,8 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
       "an update with markup in it",
       {
         updateUser: "**Mallory** [x](https://evil.example.com)",
-        updateMessage: "See {{local.variables.zabbixApiToken}} and ![img](https://evil.example.com/x.png)",
+        updateMessage:
+          "See {{local.variables.zabbixApiToken}} and ![img](https://evil.example.com/x.png)",
       },
       undefined,
     ],
@@ -507,7 +520,11 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
 
   test.each(updates)(
     "an update - %s",
-    async (_name: string, props: ZabbixEventProps, stateName: string | undefined) => {
+    async (
+      _name: string,
+      props: ZabbixEventProps,
+      stateName: string | undefined,
+    ) => {
       const run: EquivalenceRun = await runOldAndNew(
         problemScenario(
           kind,
@@ -547,20 +564,23 @@ describe.each(KINDS)("$problemTemplateId, old and new", (kind: Kind) => {
     ],
     ["an empty request", {}],
     ["a request that is not JSON", "not json"],
-  ])("%s changes nothing, in either", async (_name: string, body: JSONValue) => {
-    const run: EquivalenceRun = await runOldAndNew(
-      problemScenario(kind, body, (world: TemplateWorld) => {
-        kind.add(world);
-      }),
-    );
+  ])(
+    "%s changes nothing, in either",
+    async (_name: string, body: JSONValue) => {
+      const run: EquivalenceRun = await runOldAndNew(
+        problemScenario(kind, body, (world: TemplateWorld) => {
+          kind.add(world);
+        }),
+      );
 
-    expectSameOutcome(run);
-    expect(run.new.world[`${kind.noun}Notes`]).toEqual([]);
-    expect(run.new.world[`${kind.noun}StateChanges`]).toEqual([]);
-    expect(kind.records(run.newWorld)).toHaveLength(1);
-    expect(run.new.failed).toBe(false);
-    expect(run.newTrace.ports["read-event-1"]).toBe("no");
-  });
+      expectSameOutcome(run);
+      expect(run.new.world[`${kind.noun}Notes`]).toEqual([]);
+      expect(run.new.world[`${kind.noun}StateChanges`]).toEqual([]);
+      expect(kind.records(run.newWorld)).toHaveLength(1);
+      expect(run.new.failed).toBe(false);
+      expect(run.newTrace.ports["read-event-1"]).toBe("no");
+    },
+  );
 
   test("an update for a problem with no record changes nothing", async () => {
     const run: EquivalenceRun = await runOldAndNew(
@@ -630,7 +650,11 @@ describe.each(KINDS)("$stateTemplateId, old and new", (kind: Kind) => {
   };
 
   test.each([
-    ["acknowledged, acknowledges the problem", { stateName: "Acknowledged" }, undefined],
+    [
+      "acknowledged, acknowledges the problem",
+      { stateName: "Acknowledged" },
+      undefined,
+    ],
     ["resolved, closes the problem", { stateName: "Resolved" }, undefined],
     [
       "resolved, acknowledges a problem whose trigger cannot be closed by hand, and says why",
@@ -670,7 +694,11 @@ describe.each(KINDS)("$stateTemplateId, old and new", (kind: Kind) => {
       { stateName: kind === INCIDENT ? "Monitoring" : "Created" },
       undefined,
     ],
-    ["of a private record, does nothing", { stateName: "Resolved", isPrivate: true }, undefined],
+    [
+      "of a private record, does nothing",
+      { stateName: "Resolved", isPrivate: true },
+      undefined,
+    ],
     [
       "of a record no Zabbix problem opened, does nothing",
       { stateName: "Resolved", eventId: null },
@@ -683,7 +711,9 @@ describe.each(KINDS)("$stateTemplateId, old and new", (kind: Kind) => {
       record: RecordProps,
       zabbix: ((fake: FakeZabbix) => void) | undefined,
     ) => {
-      const run: EquivalenceRun = await runOldAndNew(stateScenario(record, zabbix));
+      const run: EquivalenceRun = await runOldAndNew(
+        stateScenario(record, zabbix),
+      );
 
       expectSameOutcome(run);
       expect(run.new.failed).toBe(false);
@@ -743,7 +773,12 @@ describe.each(KINDS)("$noteTemplateId, old and new", (kind: Kind) => {
   };
 
   test.each([
-    ["a note becomes a message on the problem", "Rolled the checkout pods back.", {}, undefined],
+    [
+      "a note becomes a message on the problem",
+      "Rolled the checkout pods back.",
+      {},
+      undefined,
+    ],
     ["a note by nobody named", "Rolled back.", {}, null],
     ["a note longer than Zabbix keeps is cut", "x".repeat(5000), {}, undefined],
     [
@@ -753,7 +788,12 @@ describe.each(KINDS)("$noteTemplateId, old and new", (kind: Kind) => {
       undefined,
     ],
     ["an empty note is not sent", "   ", {}, undefined],
-    ["a note on a private record is not sent", "Rolled back.", { isPrivate: true }, undefined],
+    [
+      "a note on a private record is not sent",
+      "Rolled back.",
+      { isPrivate: true },
+      undefined,
+    ],
     [
       "a note on a record no Zabbix problem opened is not sent",
       "Rolled back.",

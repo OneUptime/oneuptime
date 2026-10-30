@@ -376,7 +376,10 @@ export const getJavaScriptCheckDocumentation: UtilityDocumentationFunction = (
       },
     ],
     links: [
-      docsLink("Check With JavaScript guide", WorkflowDocsPaths.javascriptCheck),
+      docsLink(
+        "Check With JavaScript guide",
+        WorkflowDocsPaths.javascriptCheck,
+      ),
     ],
   };
 };

@@ -92,8 +92,8 @@ export default class ZabbixUpdateProblem extends ComponentCode {
     params: JSONObject;
   }): Promise<ZabbixAnswer> {
     // Zabbix 6.0 reads the token from the body; 6.4 and later from the header.
-    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post({
+    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+      {
         url: data.url,
         data: getZabbixRequestBody(
           data.method,
@@ -104,7 +104,8 @@ export default class ZabbixUpdateProblem extends ComponentCode {
           ? {}
           : { Authorization: `Bearer ${data.token}` },
         options: ApiComponentUtils.requestOptions,
-      });
+      },
+    );
 
     if (answer instanceof HTTPErrorResponse) {
       return {

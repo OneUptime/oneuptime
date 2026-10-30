@@ -992,7 +992,9 @@ describe("the Huntress page states what the trigger and its template do", () => 
       (templateNode("incident-from-another-tool-1").args || {})[
         FROM_ANOTHER_TOOL_ARGUMENT_IDS.whatHappened
       ],
-    ).toBe(`{{local.components.huntress-1.returnValues.${HuntressTriggerValue.Event}}}`);
+    ).toBe(
+      `{{local.components.huntress-1.returnValues.${HuntressTriggerValue.Event}}}`,
+    );
     expect(
       AllHuntressTriggerEvents.map((event: string): FromAnotherToolAction => {
         return readWhatHappened(event).action;
@@ -1094,9 +1096,11 @@ describe("the Huntress page states what the trigger and its template do", () => 
     expect(componentById(ComponentID.Switch).title).toBe("Switch / Case");
 
     // The create dialog asks who to page, in the words the page names.
-    expect(template?.whoToPage?.map((ask: { title: string }): string => {
-      return ask.title;
-    })).toEqual(["Who to page for high and critical reports"]);
+    expect(
+      template?.whoToPage?.map((ask: { title: string }): string => {
+        return ask.title;
+      }),
+    ).toEqual(["Who to page for high and critical reports"]);
     expect(sectionOf("en", "Set up the integration")).toContain(
       "under **Who to page for high and critical reports**, pick the on-call policies to page, or none to page nobody",
     );
@@ -1117,7 +1121,9 @@ describe("the Huntress page states what the trigger and its template do", () => 
       "For a high or critical report, **Page an On-Call Policy** pages your policy; a low report pages nobody.",
     );
     // closed resolves: the step moves the incident to a resolved state, and never only notes it here.
-    expect(readWhatHappened("closed").action).toBe(FromAnotherToolAction.Resolve);
+    expect(readWhatHappened("closed").action).toBe(
+      FromAnotherToolAction.Resolve,
+    );
     expect(
       (templateNode("incident-from-another-tool-1").args || {})[
         FROM_ANOTHER_TOOL_ARGUMENT_IDS.noteInsteadOfResolving
@@ -1171,7 +1177,9 @@ describe("the Huntress page states what the trigger and its template do", () => 
       (templateNode("incident-from-another-tool-1").args || {})[
         FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideId
       ],
-    ).toBe(`{{local.components.huntress-1.returnValues.${HuntressTriggerValue.ReportId}}}`);
+    ).toBe(
+      `{{local.components.huntress-1.returnValues.${HuntressTriggerValue.ReportId}}}`,
+    );
   });
 
   test("the trigger's URL it shows is the one the trigger serves", () => {

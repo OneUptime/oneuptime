@@ -36,12 +36,7 @@ import {
   jiraIssueCreatedEvent,
   jiraIssueUpdatedEvent,
 } from "./JiraTemplateFixtures";
-import {
-  EquivalenceRun,
-  EquivalenceScenario,
-  OtherTool,
-  runOldAndNew,
-} from "./TemplateEquivalence";
+import { EquivalenceRun, OtherTool, runOldAndNew } from "./TemplateEquivalence";
 import TemplateWorld from "./TemplateWorld";
 import {
   SimulatedReply,

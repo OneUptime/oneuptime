@@ -26,6 +26,7 @@ import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import ComponentMetadata from "../../../../../Types/Workflow/Component";
 import Components from "../../../../../Types/Workflow/Components";
 import {
+  ApiGetByIdUrl,
   MAX_API_GET_BY_ID_LENGTH,
   buildApiGetByIdUrl,
 } from "../../../../../Types/Workflow/Components/ApiGetById";
@@ -117,8 +118,10 @@ describe("buildApiGetByIdUrl", () => {
 
   test("the space around an ID is not part of it", () => {
     expect(
-      buildApiGetByIdUrl({ url: "https://z.example.com/e/{id}", id: " OPS-12 \n" })
-        .url,
+      buildApiGetByIdUrl({
+        url: "https://z.example.com/e/{id}",
+        id: " OPS-12 \n",
+      }).url,
     ).toBe("https://z.example.com/e/OPS-12");
   });
 
@@ -144,17 +147,20 @@ describe("buildApiGetByIdUrl", () => {
     ["has a bracket", "x)"],
     ["is not Latin", "تیکت-12"],
     ["is a double brace", "{{local.variables.token}}"],
-  ])("refuses an ID that %s, and sends nothing", (_name: string, id: string) => {
-    const placed: { url?: string; error?: string } = buildApiGetByIdUrl({
-      url: JIRA_URL,
-      id: id,
-    });
+  ])(
+    "refuses an ID that %s, and sends nothing",
+    (_name: string, id: string) => {
+      const placed: ApiGetByIdUrl = buildApiGetByIdUrl({
+        url: JIRA_URL,
+        id: id,
+      });
 
-    expect(placed.url).toBeUndefined();
-    expect(placed.error).toBe(
-      "ID is not a plain ID - only letters, digits, dashes and underscores - so nothing was read.",
-    );
-  });
+      expect(placed.url).toBeUndefined();
+      expect(placed.error).toBe(
+        "ID is not a plain ID - only letters, digits, dashes and underscores - so nothing was read.",
+      );
+    },
+  );
 
   test("never echoes the refused ID", () => {
     expect(

@@ -263,9 +263,7 @@ const ran: (trace: WorkflowStepTrace) => Array<string> = (
 const lastLogLine: (updateLogSpy: RecordedSpy) => string = (
   updateLogSpy: RecordedSpy,
 ): string => {
-  const lines: Array<string> = String(
-    lastPersisted(updateLogSpy)["logs"] || "",
-  )
+  const lines: Array<string> = String(lastPersisted(updateLogSpy)["logs"] || "")
     .split("\n")
     .filter((line: string): boolean => {
       return line.trim() !== "";
@@ -464,7 +462,9 @@ describe("a step that fails with nothing connected to its Error output", () => {
     expect(lastPersisted(updateLogSpy)["workflowStatus"]).toBe(
       WorkflowStatus.Error,
     );
-    expect(lastLogLine(updateLogSpy)).toContain("step a (Send Message to Slack)");
+    expect(lastLogLine(updateLogSpy)).toContain(
+      "step a (Send Message to Slack)",
+    );
   });
 
   test("names every step that failed unhandled, in one line, in the order they ran", async () => {

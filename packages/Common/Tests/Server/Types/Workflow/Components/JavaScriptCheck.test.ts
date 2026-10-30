@@ -100,9 +100,9 @@ describe("decideJavaScriptCheck", () => {
 
   test("only proceed: true counts, never a truthy stand-in", () => {
     for (const proceed of ["true", 1, "yes", {}, [true]]) {
-      expect(decideJavaScriptCheck({ proceed: proceed as JSONValue }).isYes).toBe(
-        false,
-      );
+      expect(
+        decideJavaScriptCheck({ proceed: proceed as JSONValue }).isYes,
+      ).toBe(false);
     }
   });
 
@@ -289,7 +289,10 @@ describe("Check With JavaScript, run in the real sandbox", () => {
     ["return true;", "yes"],
     ["return false;", "no"],
     ["return { proceed: args.environment === 'production' };", "yes"],
-    ["return { proceed: args.environment === 'staging', reason: 'not staging' };", "no"],
+    [
+      "return { proceed: args.environment === 'staging', reason: 'not staging' };",
+      "no",
+    ],
     ["return 'true';", "no"],
     ["throw new Error('broken');", "error"],
   ])("%s goes on by %s", async (code: string, port: string) => {

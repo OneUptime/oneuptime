@@ -38,7 +38,6 @@ import {
   SeverityChoice,
   pickSeverityIndex,
 } from "../../../Types/Workflow/Components/FromAnotherTool";
-import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
   JIRA_ALERT_LABEL_PREFIX,
   JIRA_INCIDENT_LABEL_PREFIX,
@@ -2689,7 +2688,6 @@ for (const kind of KINDS) {
 /* ------------------------- Jira -> OneUptime ------------------------- */
 
 type RecordArgsFunction = (
-  kind: RecordKind,
   payload: JSONValue,
   issue?: JSONValue,
   site?: string | null,
@@ -2703,7 +2701,6 @@ type RecordArgsFunction = (
  * out.
  */
 const recordArgs: RecordArgsFunction = (
-  kind: RecordKind,
   payload: JSONValue,
   issue?: JSONValue,
   site: string | null = JIRA_SITE,
@@ -2758,7 +2755,7 @@ const chosenPlace: ChosenPlaceFunction = async (
   editCode?: EditCodeFunction | undefined,
 ): Promise<string> => {
   const result: JSONObject = await kind.steps.prepareRecord(
-    recordArgs(kind, jiraIssueCreatedEvent({ priority: priority })),
+    recordArgs(jiraIssueCreatedEvent({ priority: priority })),
     editCode,
   );
 
@@ -2820,7 +2817,7 @@ for (const kind of KINDS) {
   describe(`${kind.prepareRecordStep} turns a new Jira issue into an ${kind.noun}`, () => {
     test(`makes the issue an ${kind.noun} with a severity from its priority and a link back`, async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent()),
+        recordArgs(jiraIssueCreatedEvent()),
       );
 
       expect(result).toEqual({
@@ -2835,12 +2832,12 @@ for (const kind of KINDS) {
     test("ignores every event but jira:issue_created", async () => {
       expectSkipped(
         await prepareRecord(
-          recordArgs(kind, jiraIssueUpdatedEvent({ items: STARTED_CHANGELOG })),
+          recordArgs(jiraIssueUpdatedEvent({ items: STARTED_CHANGELOG })),
         ),
         "Ignored a jira:issue_updated event: this workflow only handles jira:issue_created.",
       );
       expectSkipped(
-        await prepareRecord(recordArgs(kind, jiraCommentEvent())),
+        await prepareRecord(recordArgs(jiraCommentEvent())),
         "Ignored a comment_created event: this workflow only handles jira:issue_created.",
       );
     });
@@ -2849,7 +2846,7 @@ for (const kind of KINDS) {
       // A GET hands over an empty body; a ping from a load balancer may not even be JSON.
       for (const payload of [{}, "ping", "null"]) {
         expectSkipped(
-          await prepareRecord(recordArgs(kind, payload)),
+          await prepareRecord(recordArgs(payload)),
           NOT_A_JIRA_EVENT_REASON,
         );
       }
@@ -2867,7 +2864,7 @@ for (const kind of KINDS) {
       for (const labels of labelSets) {
         expectSkipped(
           await prepareRecord(
-            recordArgs(kind, jiraIssueCreatedEvent({ labels: labels })),
+            recordArgs(jiraIssueCreatedEvent({ labels: labels })),
           ),
           alreadyLinkedReason(kind),
         );
@@ -2877,7 +2874,6 @@ for (const kind of KINDS) {
     test("does not mistake other labels that start with oneuptime for a link", async () => {
       const result: JSONObject = await prepareRecord(
         recordArgs(
-          kind,
           jiraIssueCreatedEvent({ labels: ["oneuptime-team", "backend"] }),
         ),
       );
@@ -2890,7 +2886,7 @@ for (const kind of KINDS) {
       for (const key of ["../../myself", "OPS 1", "", "17", "OPS-17/comment"]) {
         expectSkipped(
           await prepareRecord(
-            recordArgs(kind, withIssue(jiraIssueCreatedEvent(), { key: key })),
+            recordArgs(withIssue(jiraIssueCreatedEvent(), { key: key })),
           ),
           NO_ISSUE_KEY_REASON,
         );
@@ -2939,7 +2935,6 @@ for (const kind of KINDS) {
     test("takes the title from the summary, on one line", async () => {
       const result: JSONObject = await prepareRecord(
         recordArgs(
-          kind,
           jiraIssueCreatedEvent({ summary: "Checkout\nAPI\t502\u0000s  " }),
         ),
       );
@@ -2949,7 +2944,7 @@ for (const kind of KINDS) {
 
     test("caps the title at 500 characters", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent({ summary: "s".repeat(700) })),
+        recordArgs(jiraIssueCreatedEvent({ summary: "s".repeat(700) })),
       );
       const title: string = textOf(result, "title");
 
@@ -2959,7 +2954,7 @@ for (const kind of KINDS) {
 
     test("names the issue when it has no summary", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent({ summary: "" })),
+        recordArgs(jiraIssueCreatedEvent({ summary: "" })),
       );
 
       expect(result["title"]).toBe("Jira issue OPS-17");
@@ -2967,7 +2962,7 @@ for (const kind of KINDS) {
 
     test("links the key on the workflow's Jira site when the issue has no REST URL", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent({ self: "" })),
+        recordArgs(jiraIssueCreatedEvent({ self: "" })),
       );
 
       expect(
@@ -2979,7 +2974,7 @@ for (const kind of KINDS) {
 
     test("without a Jira Site URL, writes the key without a link when the issue has no REST URL to read the site from", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent({ self: "" }), undefined, null),
+        recordArgs(jiraIssueCreatedEvent({ self: "" }), undefined, null),
       );
 
       expect(
@@ -2991,7 +2986,7 @@ for (const kind of KINDS) {
 
     test("leaves the priority line out when the issue has no priority", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent({ priority: null })),
+        recordArgs(jiraIssueCreatedEvent({ priority: null })),
       );
 
       expect(textOf(result, "description")).not.toContain("Priority:");
@@ -3000,7 +2995,6 @@ for (const kind of KINDS) {
     test("names the event's user when the issue has no reporter", async () => {
       const result: JSONObject = await prepareRecord(
         recordArgs(
-          kind,
           withIssueFields(
             jiraIssueCreatedEvent({ user: jiraUser("Sam Ortiz") }),
             { reporter: null },
@@ -3015,7 +3009,7 @@ for (const kind of KINDS) {
 
     test("flattens a description in Atlassian Document Format to text", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent({ description: ADF_TEXT })),
+        recordArgs(jiraIssueCreatedEvent({ description: ADF_TEXT })),
       );
 
       expect(textOf(result, "description").endsWith(`\n\n${ADF_AS_TEXT}`)).toBe(
@@ -3025,10 +3019,7 @@ for (const kind of KINDS) {
 
     test("caps the description at 20000 characters", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(
-          kind,
-          jiraIssueCreatedEvent({ description: "d".repeat(25000) }),
-        ),
+        recordArgs(jiraIssueCreatedEvent({ description: "d".repeat(25000) })),
       );
 
       expect(textOf(result, "description")).toHaveLength(20000);
@@ -3037,7 +3028,6 @@ for (const kind of KINDS) {
     test("defuses double braces in the summary, description and reporter", async () => {
       const result: JSONObject = await prepareRecord(
         recordArgs(
-          kind,
           jiraIssueCreatedEvent({
             summary: `Leak ${SECRET_REFERENCE}`,
             description: `Body ${SECRET_REFERENCE}`,
@@ -3056,10 +3046,10 @@ for (const kind of KINDS) {
     test("reads a request body that arrived as JSON text", async () => {
       // A manual run hands the body over as a string, quoted like any other.
       const fromText: JSONObject = await prepareRecord(
-        recordArgs(kind, JSON.stringify(jiraIssueCreatedEvent())),
+        recordArgs(JSON.stringify(jiraIssueCreatedEvent())),
       );
       const fromObject: JSONObject = await prepareRecord(
-        recordArgs(kind, jiraIssueCreatedEvent()),
+        recordArgs(jiraIssueCreatedEvent()),
       );
 
       expect(fromText).toEqual(fromObject);
@@ -3106,7 +3096,7 @@ for (const kind of KINDS) {
     issue: JSONValue,
   ): Promise<JSONObject> => {
     return await prepareRecord(
-      recordArgs(kind, jiraIssueCreatedEvent({ labels: [] }), issue),
+      recordArgs(jiraIssueCreatedEvent({ labels: [] }), issue),
     );
   };
 
@@ -3173,9 +3163,7 @@ for (const kind of KINDS) {
       );
       expect(
         (
-          await prepareRecord(
-            recordArgs(kind, jiraIssueCreatedEvent({ labels: [] })),
-          )
+          await prepareRecord(recordArgs(jiraIssueCreatedEvent({ labels: [] })))
         )["proceed"],
       ).toBe(true);
     });
@@ -3223,7 +3211,7 @@ for (const kind of KINDS) {
 
       expect(
         await prepareRecord({
-          ...recordArgs(kind, jiraIssueCreatedEvent({ labels: [] })),
+          ...recordArgs(jiraIssueCreatedEvent({ labels: [] })),
           issue: response,
         }),
       ).toEqual(await asJiraHasIt(response));
@@ -4038,7 +4026,7 @@ for (const pair of CROSS_KINDS) {
       for (const labels of otherLabelSets) {
         expectSkipped(
           await kind.steps.prepareRecord(
-            recordArgs(kind, jiraIssueCreatedEvent({ labels: labels })),
+            recordArgs(jiraIssueCreatedEvent({ labels: labels })),
           ),
           alreadyLinkedReason(kind),
         );
@@ -4050,7 +4038,6 @@ for (const pair of CROSS_KINDS) {
         expectSkipped(
           await kind.steps.prepareRecord(
             recordArgs(
-              kind,
               jiraIssueCreatedEvent({ labels: [] }),
               jiraIssueLabelsResponse(labels),
             ),
@@ -4770,7 +4757,6 @@ const adversarialProceeding: AdversarialCasesFunction = (
       templateId: kind.templates.createRecord,
       componentId: kind.prepareRecordStep,
       args: recordArgs(
-        kind,
         jiraIssueCreatedEvent({
           summary: ADVERSARIAL_TEXT,
           description: ADVERSARIAL_TEXT,
@@ -4784,7 +4770,6 @@ const adversarialProceeding: AdversarialCasesFunction = (
       componentId: kind.prepareRecordStep,
       // Labels are free text anyone who can edit the issue writes.
       args: recordArgs(
-        kind,
         jiraIssueCreatedEvent({ labels: [] }),
         jiraIssueLabelsResponse([ADVERSARIAL_TEXT, "backend"]),
       ),
@@ -4878,7 +4863,7 @@ for (const kind of KINDS) {
         {
           templateId: kind.templates.createRecord,
           componentId: kind.prepareRecordStep,
-          args: recordArgs(kind, {
+          args: recordArgs({
             ...jiraIssueCreatedEvent(),
             webhookEvent: ADVERSARIAL_TEXT,
           }),
@@ -4886,7 +4871,7 @@ for (const kind of KINDS) {
         {
           templateId: kind.templates.createRecord,
           componentId: kind.prepareRecordStep,
-          args: recordArgs(kind, jiraIssueCreatedEvent({ labels: [] }), {
+          args: recordArgs(jiraIssueCreatedEvent({ labels: [] }), {
             ...jiraIssueLabelsResponse(kind.linkLabels),
             key: ADVERSARIAL_TEXT,
           }),
@@ -4895,7 +4880,6 @@ for (const kind of KINDS) {
           templateId: kind.templates.createRecord,
           componentId: kind.prepareRecordStep,
           args: recordArgs(
-            kind,
             jiraIssueCreatedEvent({ labels: [] }),
             jiraIssueLabelsResponse([ADVERSARIAL_TEXT, ...kind.linkLabels]),
           ),

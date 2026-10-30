@@ -30,6 +30,7 @@ import Components from "../../../../../Types/Workflow/Components";
 import {
   ZABBIX_CANNOT_CLOSE_SENTENCE,
   ZABBIX_MESSAGE_MAX_LENGTH,
+  ZabbixAnswer,
   ZabbixProblemUpdate,
   chooseZabbixUpdate,
   getZabbixApiUrl,
@@ -246,7 +247,7 @@ describe("readZabbixProblemUpdate, getZabbixApiUrl and readZabbixAnswer", () => 
   });
 
   test("Zabbix's reason is put on one line, and cut when it is long", () => {
-    const answer: { error?: string } = readZabbixAnswer({
+    const answer: ZabbixAnswer = readZabbixAnswer({
       error: { message: "line one\nline two", data: "x".repeat(2000) },
     });
 
@@ -367,10 +368,11 @@ describe("Update Zabbix Problem", () => {
       });
 
       expect(result.executePort?.id).toBe("updated");
-      expect(sent.map((request: SentRequest) => request.method)).toEqual([
-        "event.get",
-        "event.acknowledge",
-      ]);
+      expect(
+        sent.map((request: SentRequest) => {
+          return request.method;
+        }),
+      ).toEqual(["event.get", "event.acknowledge"]);
 
       for (const request of sent) {
         expect(request.headers).toEqual({});
@@ -493,7 +495,8 @@ describe("Update Zabbix Problem", () => {
 
     const { result } = await run({
       "what-to-do": "message",
-      message: "Synced from OneUptime: private note on INC-12 by Ada.\n\nRolled back.",
+      message:
+        "Synced from OneUptime: private note on INC-12 by Ada.\n\nRolled back.",
     });
 
     expect(result.executePort?.id).toBe("updated");
@@ -504,7 +507,8 @@ describe("Update Zabbix Problem", () => {
     expect(sent[0]!.params).toEqual({
       eventids: ["40312"],
       action: 4,
-      message: "Synced from OneUptime: private note on INC-12 by Ada.\n\nRolled back.",
+      message:
+        "Synced from OneUptime: private note on INC-12 by Ada.\n\nRolled back.",
     });
   });
 
@@ -569,6 +573,7 @@ describe("Update Zabbix Problem", () => {
         params: {},
         headers: {},
         doNotFollowRedirects: true,
+        body: request.data,
       });
       return new HTTPResponse<JSONObject>(
         200,
@@ -606,7 +611,9 @@ describe("Update Zabbix Problem", () => {
     const { result } = await run({ "what-to-do": "message", message: "x" });
 
     expect(result.executePort?.id).toBe("error");
-    expect(result.executePortReason).toBe("Could not reach Zabbix: socket hang up");
+    expect(result.executePortReason).toBe(
+      "Could not reach Zabbix: socket hang up",
+    );
   });
 
   test.each([
@@ -614,14 +621,17 @@ describe("Update Zabbix Problem", () => {
     ["an empty event ID", { "event-id": "" }],
     ["an empty token", { "api-token": " " }],
     ["an empty URL", { "zabbix-url": "" }],
-  ])("%s goes down Error, and sends nothing", async (_name: string, args: JSONObject) => {
-    zabbixWith({});
+  ])(
+    "%s goes down Error, and sends nothing",
+    async (_name: string, args: JSONObject) => {
+      zabbixWith({});
 
-    const { result } = await run({ "what-to-do": "close", ...args });
+      const { result } = await run({ "what-to-do": "close", ...args });
 
-    expect(result.executePort?.id).toBe("error");
-    expect(sent).toHaveLength(0);
-  });
+      expect(result.executePort?.id).toBe("error");
+      expect(sent).toHaveLength(0);
+    },
+  );
 
   test("an event ID given as a number is one", async () => {
     zabbixWith({});

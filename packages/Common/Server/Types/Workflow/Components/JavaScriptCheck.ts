@@ -90,9 +90,7 @@ export default class JavaScriptCheck extends ComponentCode {
       const returned: JSONValue = returnResult.returnValue;
       const decision: JavaScriptCheckDecision = decideJavaScriptCheck(returned);
 
-      options.log(
-        `${decision.isYes ? "Yes" : "No"}: ${decision.reason}`,
-      );
+      options.log(`${decision.isYes ? "Yes" : "No"}: ${decision.reason}`);
 
       return {
         returnValues: {
