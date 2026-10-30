@@ -63,6 +63,11 @@ import {
   DetectionRuleShape,
   readDetectionRuleShape,
 } from "../../Components/SecurityEvents/DetectionRuleShape";
+import {
+  RealTimeFormValues,
+  getRealTimeFormProblem,
+  runsInRealTime as runsInRealTimeValues,
+} from "../../Components/SecurityEvents/DetectionRuleRealTime";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import RelativeTimeCell from "../../Components/SecurityEvents/RelativeTimeCell";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
@@ -131,10 +136,7 @@ const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
 
 // Whether the form's rule checks each event as it arrives (a switch Postgres may hand back as "true").
 export function runsInRealTime(values: FormValues<DetectionRule>): boolean {
-  const value: unknown = (values as unknown as { isRealTime?: unknown })
-    .isRealTime;
-
-  return value === true || value === "true";
+  return runsInRealTimeValues(values as unknown as RealTimeFormValues);
 }
 
 /*
@@ -499,10 +501,12 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           {
             /*
              * A rule that fires on one event can check each event as it
-             * arrives (Types/SecurityEvent/RealTimeDetection); the server
-             * says why when the rule cannot. A correlation reads events
-             * together, so it is not offered - unless the rule runs in real
-             * time already, so the switch that has to go off can.
+             * arrives (Types/SecurityEvent/RealTimeDetection). Turned on
+             * for a rule that cannot, the switch says why and what to
+             * change, before the rule is saved - as the server would
+             * refuse it. A correlation reads events together, so it is not
+             * offered - unless the rule runs in real time already, so the
+             * switch that has to go off can.
              */
             field: {
               isRealTime: true,
@@ -517,6 +521,14 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             collapsibleSection: advancedSection,
+            customValidation: (
+              values: FormValues<DetectionRule>,
+            ): string | null => {
+              return getRealTimeFormProblem(
+                values as unknown as RealTimeFormValues,
+                translator,
+              );
+            },
           },
           {
             field: {

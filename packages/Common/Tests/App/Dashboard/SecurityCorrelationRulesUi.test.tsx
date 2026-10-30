@@ -42,6 +42,9 @@ type CapturedFormField = {
   stepId?: string | undefined;
   collapsibleSection?: { title: string } | undefined;
   showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
+  customValidation?:
+    | ((values: Record<string, unknown>) => string | null)
+    | undefined;
   getFooterElement?:
     | ((values: Record<string, unknown>) => React.ReactElement | undefined)
     | undefined;
@@ -575,6 +578,52 @@ describe("the Detection Rules page", () => {
     expect(
       realTime.showIf!({ sigmaRuleYaml: SEQUENCE, isRealTime: "true" }),
     ).toBe(true);
+  });
+
+  test("turned on for a rule that cannot run in real time, the switch says why before the rule is saved", () => {
+    renderRulesPage();
+
+    const realTime: CapturedFormField = fieldTitled("Run in Real Time");
+
+    expect(
+      realTime.customValidation!({
+        sigmaRuleYaml: FAILED,
+        matchCountThreshold: 5,
+        isRealTime: true,
+      }),
+    ).toBe(
+      "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
+    );
+    expect(
+      realTime.customValidation!({
+        sigmaRuleYaml: FAILED,
+        distinctCountField: "principalUser",
+        isRealTime: true,
+      }),
+    ).toBe(
+      "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.",
+    );
+    // A correlation that still runs in real time: the switch that must go off says so.
+    expect(
+      realTime.customValidation!({ sigmaRuleYaml: SEQUENCE, isRealTime: true }),
+    ).toBe(
+      "A correlation reads several events together over its timespan, so it runs on its interval.",
+    );
+    // Off, or a rule that fires on one event: nothing to say.
+    expect(
+      realTime.customValidation!({
+        sigmaRuleYaml: FAILED,
+        matchCountThreshold: 5,
+        isRealTime: false,
+      }),
+    ).toBeNull();
+    expect(
+      realTime.customValidation!({
+        sigmaRuleYaml: FAILED,
+        matchCountThreshold: 1,
+        isRealTime: true,
+      }),
+    ).toBeNull();
   });
 
   test("a real-time rule runs on no interval: the interval hides, and the list says Real time", () => {

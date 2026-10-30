@@ -38880,5 +38880,9 @@
   "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "検出ルールは、OneUptime がスケジュールに従って、またはイベントが届くたびに、セキュリティイベントに対して実行する Sigma ルールです。ルールが一致すると、アラートやインシデントを作成し、検出結果を記録できます。",
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "{{min}}〜{{max}} 分ごと (任意に選択) に、ルールの Sigma 検出が前回の実行以降のイベントに対してチェックされます。リアルタイムで実行するルールは、イベントが届くたびにチェックします。",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "ステップ {{number}} はこのステップの結果を待ちます。先にステップ {{number}} の「このステップの実行」を変更してください。",
-  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "このステップはステップ {{number}} の結果を待つため、ステップ {{number}} の下に置かれます。"
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "このステップはステップ {{number}} の結果を待つため、ステップ {{number}} の下に置かれます。",
+  "A correlation reads several events together over its timespan, so it runs on its interval.": "相関ルールはその期間内の複数のイベントをまとめて読むため、評価間隔ごとに実行されます。",
+  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "異なる値を数えるため、評価間隔ごとに実行されます。リアルタイムで実行するには「ユニーク数を数えるフィールド」を空にしてください。",
+  "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "正規表現 (|re) はスケジュール実行でしか使えないため、評価間隔ごとに実行されます。リアルタイムで実行するには contains、startswith、endswith を使ってください。",
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "一致件数を待つため、評価間隔ごとに実行されます。リアルタイムで実行するには「一致件数のしきい値」を 1 にしてください。"
 }

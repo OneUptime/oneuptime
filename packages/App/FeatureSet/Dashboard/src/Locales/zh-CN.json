@@ -38880,5 +38880,9 @@
   "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "检测规则是 OneUptime 按计划或在每个事件到达时对你的安全事件运行的 Sigma 规则。规则匹配时，可以开启警报、开启事件，并记录 Detection Finding。",
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "每 {{min}}–{{max}} 分钟（由你选择），规则的 Sigma 检测会对其上次运行以来的事件进行检查。实时运行的规则会在每个事件到达时进行检查。",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "步骤 {{number}} 等待此步骤的结果。请先更改步骤 {{number}} 的“运行此步骤”。",
-  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "此步骤等待步骤 {{number}} 的结果，因此保持在步骤 {{number}} 下方。"
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "此步骤等待步骤 {{number}} 的结果，因此保持在步骤 {{number}} 下方。",
+  "A correlation reads several events together over its timespan, so it runs on its interval.": "关联规则会在其时间跨度内将多个事件放在一起读取，因此按其间隔运行。",
+  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "它统计不同的值，因此按其间隔运行：清空“去重计数字段”即可实时运行。",
+  "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "它使用了正则表达式 (|re)，而正则表达式只能按计划运行：改用 contains、startswith 或 endswith 即可实时运行。",
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "它要等待一定的匹配次数，因此按其间隔运行：将“匹配次数阈值”设为 1 即可实时运行。"
 }

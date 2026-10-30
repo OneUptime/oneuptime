@@ -7089,6 +7089,35 @@ test.describe("detection rules and threat intel", () => {
       fullPage: false,
     });
 
+    /*
+     * A threshold above 1 waits for a count of matches: the switch says so,
+     * and what to change, before anything is saved.
+     */
+    const threshold: Locator = dialog(page).getByRole("spinbutton", {
+      name: /^Match Count Threshold/,
+    });
+    const why: Locator = dialog(page).getByText(
+      "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
+    );
+    await threshold.fill("5");
+    await threshold.blur();
+    await expect(why).toBeVisible();
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(why).toBeVisible();
+    expect(
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "DetectionRule";
+        },
+      ),
+    ).toHaveLength(0);
+    await screenshot(page, "detection-rule-real-time-refused-desktop", {
+      fullPage: false,
+    });
+    await threshold.fill("1");
+    await threshold.blur();
+    await expect(why).toHaveCount(0);
+
     await dialog(page).getByTestId("modal-footer-submit-button").click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     const created: Array<{ data: Record<string, unknown> }> = (
