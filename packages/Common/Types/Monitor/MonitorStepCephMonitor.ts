@@ -29,6 +29,11 @@ export interface CephResourceFilters {
 
 export default interface MonitorStepCephMonitor {
   clusterIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   resourceFilters: CephResourceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;

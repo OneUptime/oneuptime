@@ -37,6 +37,11 @@ export interface IoTDeviceFilters {
 
 export default interface MonitorStepIoTMonitor {
   fleetIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   resourceFilters: IoTDeviceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;

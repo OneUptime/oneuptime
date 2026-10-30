@@ -9,6 +9,8 @@ import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import ObjectID from "../../../Types/ObjectID";
 import MonitorStepResourceIdentity from "./MonitorStepResourceIdentity";
+import InfrastructureResourceBinding from "./InfrastructureResourceBinding";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import { SeriesResourceRefs } from "./SeriesResourceLabels";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
@@ -75,7 +77,7 @@ export default class MonitorResourceContextUtil {
     try {
       const refs: SeriesResourceRefs =
         MonitorStepResourceIdentity.extractResourceRefsFromMonitor({
-          monitor: input.monitor,
+          monitor: await this.withCurrentResourceValues(input.monitor),
         });
 
       if (MonitorStepResourceIdentity.isEmpty(refs)) {
@@ -98,6 +100,46 @@ export default class MonitorResourceContextUtil {
       );
       return empty;
     }
+  }
+
+  /*
+   * The monitor with each infrastructure step on its bound resource's
+   * current value, so a cluster renamed since the monitor was saved is still
+   * the one its incidents and alerts are about (InfrastructureResourceBinding).
+   * The same monitor when nothing changed; a copy otherwise.
+   */
+  private static async withCurrentResourceValues(
+    monitor: Monitor,
+  ): Promise<Monitor> {
+    if (!monitor.monitorSteps || !monitor.projectId) {
+      return monitor;
+    }
+
+    const monitorSteps: MonitorSteps =
+      await InfrastructureResourceBinding.resolveMonitorSteps({
+        projectId: monitor.projectId,
+        monitorType: monitor.monitorType,
+        monitorSteps: monitor.monitorSteps,
+      });
+
+    if (monitorSteps === monitor.monitorSteps) {
+      return monitor;
+    }
+
+    const copy: Monitor = new Monitor();
+
+    if (monitor._id) {
+      copy._id = monitor._id;
+    }
+
+    if (monitor.monitorType) {
+      copy.monitorType = monitor.monitorType;
+    }
+
+    copy.projectId = monitor.projectId;
+    copy.monitorSteps = monitorSteps;
+
+    return copy;
   }
 
   /*

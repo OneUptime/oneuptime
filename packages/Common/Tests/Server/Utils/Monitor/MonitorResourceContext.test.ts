@@ -294,6 +294,49 @@ describe("MonitorResourceContext", () => {
     expect(capturedQueries).toHaveLength(0);
   });
 
+  test("a bound host renamed since the monitor was saved is linked by its current name", async () => {
+    /*
+     * The step keeps the host's id (InfrastructureResourceBinding); the
+     * host's name was edited since, so the stored "prod-01" names nothing.
+     */
+    const hostId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    jest
+      .spyOn(HostService, "findOneBy")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation(async (args: any): Promise<any> => {
+        return String(args.query._id) === hostId
+          ? { _id: hostId, hostIdentifier: "prod-01-renamed" }
+          : null;
+      });
+    const resolveRefs: jest.SpiedFunction<
+      typeof SeriesResourceLinker.resolveResourceRefs
+    > = jest
+      .spyOn(SeriesResourceLinker, "resolveResourceRefs")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
+
+    const monitor: Monitor = monitorWith(MonitorType.Host, {
+      hostMonitor: { hostIdentifier: "prod-01", resourceId: hostId },
+    });
+
+    await MonitorResourceContextUtil.resolveResourceContextForMonitor({
+      monitor,
+    });
+
+    expect(resolveRefs).toHaveBeenCalledTimes(1);
+    expect(resolveRefs.mock.calls[0]![0].refs.hostNames).toEqual([
+      "prod-01-renamed",
+    ]);
+    // The monitor itself is left as it was.
+    expect(
+      (
+        monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!
+          .data as never as {
+          hostMonitor: { hostIdentifier: string };
+        }
+      ).hostMonitor.hostIdentifier,
+    ).toBe("prod-01");
+  });
+
   test("returns empty instead of throwing when a lookup fails", async () => {
     /*
      * This runs inside the probe / telemetry queue workers. A throw here

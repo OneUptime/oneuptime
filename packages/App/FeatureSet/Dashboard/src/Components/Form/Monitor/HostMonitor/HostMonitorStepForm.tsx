@@ -286,7 +286,10 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Host"
         placeholder="Select a host..."
         options={hosts.options}
-        value={monitorStepHostMonitor.hostIdentifier}
+        value={hosts.valueOf({
+          value: monitorStepHostMonitor.hostIdentifier,
+          resourceId: monitorStepHostMonitor.resourceId,
+        })}
         onChange={changeHost}
         isLoading={hosts.isLoading}
         lastSeenAtByValue={hosts.lastSeenAtByValue}
