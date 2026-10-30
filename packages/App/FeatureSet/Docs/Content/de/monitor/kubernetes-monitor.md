@@ -84,14 +84,14 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 | Kategorie | Metriken |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Knoten | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Knoten | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Steuerungsebene | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist.
+> **Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist. **Node Ready Condition** ist 1 bei Ready, 0 bei NotReady und -1 bei Unknown, was ein ausgefallener Knoten meldet: Warnen Sie bei weniger als 1.
 
 ## Überwachungskriterien
 
@@ -133,13 +133,13 @@ Der Tab **Quick Setup** listet diese Vorlagen auf, gruppiert nach Kategorie. Jed
 | Vorlage | Kategorie | Löst aus, wenn | Schweregrad |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Verfügbarkeit | Vom Agent des Clusters 10 Minuten lang keine Daten eintreffen | Kritisch |
-| CrashLoopBackOff Detection | Workload | Ein Container seit der Erstellung seines Pods mehr als 5-mal neu gestartet wurde | Kritisch |
+| CrashLoopBackOff Detection | Workload | Ein Container innerhalb von 15 Minuten neu gestartet ist und weniger als die Hälfte davon bereit war | Kritisch |
 | Pod Stuck in Pending | Planung | Ein Pod in jedem Messwert eines 15-Minuten-Zeitfensters in der Phase Pending ist | Warnung |
-| Node Not Ready | Knoten | Ein Knoten NotReady meldet | Kritisch |
+| Node Not Ready | Knoten | Ein Knoten NotReady meldet oder seinen Status nicht mehr meldet (Unknown) | Kritisch |
 | High Node CPU Utilization | Knoten | Die durchschnittliche CPU-Nutzung eines Knotens über 90 % seiner zuweisbaren CPU liegt | Warnung |
-| High Node Memory Utilization | Knoten | Die durchschnittliche Speichernutzung eines Knotens über 85 % seines zuweisbaren Arbeitsspeichers liegt | Warnung |
+| High Node Memory Utilization | Knoten | Das durchschnittliche Speicher-Working-Set eines Knotens über 85 % seines zuweisbaren Arbeitsspeichers liegt | Warnung |
 | Deployment Replica Mismatch | Workload | Ein Deployment 15 Minuten lang weniger verfügbare Replikate als gewünscht hat | Warnung |
-| Job Failures | Workload | Ein Job fehlgeschlagene Pods hat | Warnung |
+| Job Failures | Workload | Ein Pod eines Jobs innerhalb von 15 Minuten fehlgeschlagen ist | Warnung |
 | etcd No Leader | Steuerungsebene | etcd keinen gewählten Leader hat | Kritisch |
 | API Server Request Saturation | Steuerungsebene | Der API-Server während des gesamten Zeitfensters 200 oder mehr laufende Anfragen hält | Kritisch |
 | Scheduler Backlog | Planung | Die Warteschlange ausstehender Pods des Schedulers 5 Minuten lang nicht leer ist | Warnung |
@@ -147,7 +147,7 @@ Der Tab **Quick Setup** listet diese Vorlagen auf, gruppiert nach Kategorie. Jed
 | DaemonSet Misscheduled Nodes | Workload | Ein DaemonSet Pods auf Knoten ausführt, die nicht mehr zu seinem Node-Selector, seiner Affinität oder seinen Tolerations passen | Warnung |
 | High Node CPU Request Commitment | Knoten | Die summierten CPU-Requests der Container eines Knotens 90 % seiner zuweisbaren CPU übersteigen | Warnung |
 | High Node Memory Request Commitment | Knoten | Die summierten Speicher-Requests der Container eines Knotens 90 % seines zuweisbaren Arbeitsspeichers übersteigen | Warnung |
-| HPA Saturated at Max Replicas | Workload | Ein HPA bei 90 % oder mehr seiner `maxReplicas` läuft | Kritisch |
+| HPA Saturated at Max Replicas | Workload | Ein über seine `minReplicas` skalierter HPA bei 90 % oder mehr seiner `maxReplicas` läuft | Kritisch |
 | Pod Memory Saturating Container Limit | Workload | Ein Pod mehr als 90 % seines Container-Speicherlimits nutzt | Kritisch |
 | Pod CPU Saturating Container Limit | Workload | Ein Pod mehr als 90 % seines Container-CPU-Limits nutzt | Warnung |
 
@@ -156,7 +156,7 @@ Vorlagen auf objektbezogenen Metriken werten jeden Knoten, Pod, jedes Deployment
 **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Agent des Clusters eintrifft: Der Agent wurde deinstalliert oder stürzt immer wieder ab, sein API-Schlüssel wurde widerrufen, er hat die Verbindung zu OneUptime verloren, oder der API-Server des Clusters antwortet ihm nicht mehr. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** liest die Neustartzahl des Containers über die gesamte Lebensdauer seines aktuellen Pods, keine Rate. Ein Container, der in einer Crash-Schleife war und sich dann erholt hat, hält die Warnung offen, bis sein Pod ersetzt wird.
+> **CrashLoopBackOff Detection** und **Job Failures** zählen, wie stark ein Neustart- oder Fehlschlag-Zähler im Zeitfenster gewachsen ist, nicht den Zähler selbst, und lösen sich daher von selbst, sobald die Neustarts oder Fehlschläge aufhören. Das Wachstum wird nur zwischen zwei Messungen derselben Minute gesehen: Beim 30-Sekunden-Intervall des Agenten ist das etwa die Hälfte. Eine Crash-Schleife startet immer wieder neu und wird erkannt; ein einzelner Neustart kann unbemerkt bleiben.
 
 ### Ursachen erkennen, nicht nur Symptome
 
@@ -184,8 +184,8 @@ Cluster registrieren sich selbst aus den Daten des Agents, unter dem `clusterNam
 **Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent, ein Schwellenwert von `80` bedeutet also 80 Kerne. Legen Sie den Schwellenwert in Kernen fest, oder beginnen Sie mit **High Node CPU Utilization** oder **Pod CPU Saturating Container Limit**, die einen Prozentwert vergleichen.
 :::
 
-:::details CrashLoopBackOff Detection bleibt offen, nachdem sich der Pod erholt hat
-Die Vorlage liest die Neustartzahl des Containers über die gesamte Lebensdauer seines aktuellen Pods, daher fällt die Zahl nicht mehr zurück, sobald sie 5 überschritten hat. Die Warnung wird aufgelöst, wenn der Pod ersetzt wird, zum Beispiel durch ein erneutes Deployment, eine Verdrängung oder das Leeren eines Knotens.
+:::details CrashLoopBackOff Detection hat bei einem Neustart nicht ausgelöst
+Die Vorlage löst aus, wenn die Neustartzahl eines Containers innerhalb von 15 Minuten wächst, während der Container weniger als die Hälfte davon bereit war; ein Container, der einmal neu gestartet hat und sofort wieder da war, löst also keine Benachrichtigung aus. Das Wachstum wird nur zwischen zwei Messungen derselben Minute gesehen, daher kann ein einzelner Neustart unbemerkt bleiben; eine Crash-Schleife startet alle paar Minuten neu und wird erkannt.
 :::
 
 ## Nächste Schritte

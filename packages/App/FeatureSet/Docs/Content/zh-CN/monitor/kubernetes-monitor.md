@@ -84,14 +84,14 @@ flowchart TB
 | 类别 | 指标 |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | 容器 | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。
+> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**Node Ready Condition** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时告警。
 
 ## 监控条件
 
@@ -133,13 +133,13 @@ flowchart TB
 | 模板 | 类别 | 触发时机 | 严重程度 |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 可用性 | 10 分钟内没有从集群的代理收到任何数据 | 严重 |
-| CrashLoopBackOff Detection | 工作负载 | 自 Pod 创建以来，某个容器重启超过 5 次 | 严重 |
+| CrashLoopBackOff Detection | 工作负载 | 某个容器在 15 分钟内重启，且其中不到一半的时间处于就绪状态 | 严重 |
 | Pod Stuck in Pending | 正在调度 | 在 15 分钟窗口的每个样本中，都有某个 Pod 处于 Pending 阶段 | Warning |
-| Node Not Ready | 节点 | 某个节点报告 NotReady | 严重 |
+| Node Not Ready | 节点 | 某个节点报告 NotReady，或不再报告其状态（Unknown） | 严重 |
 | High Node CPU Utilization | 节点 | 节点的平均 CPU 使用量超过其可分配 CPU 的 90% | Warning |
-| High Node Memory Utilization | 节点 | 节点的平均内存使用量超过其可分配内存的 85% | Warning |
+| High Node Memory Utilization | 节点 | 节点的平均内存工作集超过其可分配内存的 85% | Warning |
 | Deployment Replica Mismatch | 工作负载 | Deployment 的可用副本数在 15 分钟内一直少于期望值 | Warning |
-| Job Failures | 工作负载 | 某个 Job 有失败的 Pod | Warning |
+| Job Failures | 工作负载 | 某个 Job 的 Pod 在 15 分钟内失败 | Warning |
 | etcd No Leader | 控制平面 | etcd 没有选出的领导者 | 严重 |
 | API Server Request Saturation | 控制平面 | API 服务器在整个窗口内持有 200 个或更多正在处理的请求 | 严重 |
 | Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | Warning |
@@ -147,7 +147,7 @@ flowchart TB
 | DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | Warning |
 | High Node CPU Request Commitment | 节点 | 节点上容器的 CPU 请求总和超过其可分配 CPU 的 90% | Warning |
 | High Node Memory Request Commitment | 节点 | 节点上容器的内存请求总和超过其可分配内存的 90% | Warning |
-| HPA Saturated at Max Replicas | 工作负载 | HPA 运行在其 `maxReplicas` 的 90% 或以上 | 严重 |
+| HPA Saturated at Max Replicas | 工作负载 | 扩容到高于其 `minReplicas` 的 HPA 运行在其 `maxReplicas` 的 90% 或以上 | 严重 |
 | Pod Memory Saturating Container Limit | 工作负载 | Pod 使用了超过其容器内存限制的 90% | 严重 |
 | Pod CPU Saturating Container Limit | 工作负载 | Pod 使用了超过其容器 CPU 限制的 90% | Warning |
 
@@ -156,7 +156,7 @@ flowchart TB
 **Cluster Stopped Reporting** 会在集群的代理 10 分钟内没有任何数据到达时触发：代理被卸载或不断崩溃、它的 API 密钥被撤销、它失去了通往 OneUptime 的路由，或者集群的 API 服务器不再响应它。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** 模板读取的是容器在当前 Pod 中的累计重启次数，而不是速率。一个陷入崩溃循环后又恢复的容器，会让警报一直保持打开，直到它的 Pod 被替换。
+> **CrashLoopBackOff Detection** 和 **Job Failures** 统计的是重启计数或失败 Pod 计数在窗口内增长了多少，而不是计数本身，因此重启或失败停止后会自动恢复。增长只能在同一分钟的两个样本之间看到：在代理 30 秒的间隔下大约是一半。崩溃循环会一再重启并被捕获；单次重启可能被漏掉。
 
 ### 捕捉原因，而不仅仅是症状
 
@@ -184,8 +184,8 @@ flowchart TB
 **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比，所以阈值 `80` 表示 80 个核心。请以核心为单位设置阈值，或者从比较百分比的 **High Node CPU Utilization** 或 **Pod CPU Saturating Container Limit** 开始。
 :::
 
-:::details Pod 恢复后 CrashLoopBackOff Detection 仍保持打开
-模板读取的是容器在当前 Pod 中的累计重启次数，因此一旦超过 5，这个数字就不会再回落。当 Pod 被替换时（例如重新部署、驱逐或排空节点），警报才会解决。
+:::details CrashLoopBackOff Detection 没有因一次重启而触发
+当容器的重启计数在 15 分钟内增长、且容器在其中不到一半的时间处于就绪状态时，该模板触发；因此重启一次后立即恢复的容器不会告警。增长只能在同一分钟的两个样本之间看到，所以单次重启可能被漏掉；每隔几分钟就重启的崩溃循环会被捕获。
 :::
 
 ## 后续步骤

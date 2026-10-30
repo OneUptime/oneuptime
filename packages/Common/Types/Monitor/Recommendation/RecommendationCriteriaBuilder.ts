@@ -19,6 +19,13 @@ export interface AdditionalCriteriaFilterSpec {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  /*
+   * How THIS comparison reads its window, when it differs from the
+   * criteria's own. Kubernetes' CrashLoopBackOff template needs it: it
+   * sums a counter's per-minute growth (Sum) and qualifies it with the
+   * container's average readiness (Average). Unset: the criteria's.
+   */
+  metricAggregationType?: EvaluateOverTimeType | undefined;
 }
 
 /*
@@ -195,7 +202,8 @@ function buildFilters(data: {
       checkOn: CheckOn.MetricValue,
       filterType: spec.filterType,
       metricMonitorOptions: {
-        metricAggregationType: data.metricAggregationType,
+        metricAggregationType:
+          spec.metricAggregationType ?? data.metricAggregationType,
         metricAlias: spec.metricAlias,
         ...(data.onNoDataPolicy ? { onNoDataPolicy: data.onNoDataPolicy } : {}),
       },

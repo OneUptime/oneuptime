@@ -84,14 +84,14 @@ flowchart TB
 | 범주 | 메트릭 |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | 컨테이너 | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다.
+> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요.
 
 ## 모니터링 기준
 
@@ -133,13 +133,13 @@ flowchart TB
 | 템플릿 | 범주 | 작동 조건 | 심각도 |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 가용성 | 클러스터의 에이전트에서 10분 동안 데이터가 들어오지 않음 | 심각 |
-| CrashLoopBackOff Detection | 워크로드 | Pod가 생성된 이후 컨테이너가 5번 넘게 다시 시작됨 | 심각 |
+| CrashLoopBackOff Detection | 워크로드 | 컨테이너가 15분 안에 다시 시작되었고 그중 절반 미만 동안만 준비됨 | 심각 |
 | Pod Stuck in Pending | 예약 중 | 15분 기간의 모든 샘플에서 어떤 Pod가 Pending 단계에 있음 | Warning |
-| Node Not Ready | 노드 | 노드가 NotReady를 보고함 | 심각 |
+| Node Not Ready | 노드 | 노드가 NotReady를 보고하거나 상태 보고를 멈춤(Unknown) | 심각 |
 | High Node CPU Utilization | 노드 | 노드의 평균 CPU 사용량이 할당 가능한 CPU의 90%를 넘음 | Warning |
-| High Node Memory Utilization | 노드 | 노드의 평균 메모리 사용량이 할당 가능한 메모리의 85%를 넘음 | Warning |
+| High Node Memory Utilization | 노드 | 노드의 평균 메모리 워킹 셋이 할당 가능한 메모리의 85%를 넘음 | Warning |
 | Deployment Replica Mismatch | 워크로드 | Deployment의 사용 가능한 레플리카가 15분 동안 원하는 수보다 적음 | Warning |
-| Job Failures | 워크로드 | Job에 실패한 Pod가 있음 | Warning |
+| Job Failures | 워크로드 | Job의 Pod가 15분 안에 실패함 | Warning |
 | etcd No Leader | 컨트롤 플레인 | etcd에 선출된 리더가 없음 | 심각 |
 | API Server Request Saturation | 컨트롤 플레인 | API 서버가 기간 내내 처리 중인 요청을 200개 이상 보유함 | 심각 |
 | Scheduler Backlog | 예약 중 | 스케줄러의 대기 중인 Pod 큐가 5분 동안 비지 않음 | Warning |
@@ -147,7 +147,7 @@ flowchart TB
 | DaemonSet Misscheduled Nodes | 워크로드 | DaemonSet이 노드 셀렉터, 어피니티, 톨러레이션에 더 이상 맞지 않는 노드에서 Pod를 실행함 | Warning |
 | High Node CPU Request Commitment | 노드 | 노드의 컨테이너 CPU 요청 합계가 할당 가능한 CPU의 90%를 넘음 | Warning |
 | High Node Memory Request Commitment | 노드 | 노드의 컨테이너 메모리 요청 합계가 할당 가능한 메모리의 90%를 넘음 | Warning |
-| HPA Saturated at Max Replicas | 워크로드 | HPA가 `maxReplicas`의 90% 이상으로 실행됨 | 심각 |
+| HPA Saturated at Max Replicas | 워크로드 | `minReplicas`보다 크게 스케일된 HPA가 `maxReplicas`의 90% 이상으로 실행됨 | 심각 |
 | Pod Memory Saturating Container Limit | 워크로드 | Pod가 컨테이너 메모리 한도의 90% 넘게 사용함 | 심각 |
 | Pod CPU Saturating Container Limit | 워크로드 | Pod가 컨테이너 CPU 한도의 90% 넘게 사용함 | Warning |
 
@@ -156,7 +156,7 @@ flowchart TB
 **Cluster Stopped Reporting** 템플릿은 클러스터의 에이전트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트가 제거되었거나 계속 충돌하는 경우, API 키가 취소된 경우, OneUptime으로 가는 경로를 잃은 경우, 또는 클러스터의 API 서버가 에이전트에 더 이상 응답하지 않는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** 템플릿은 비율이 아니라 현재 Pod에서 컨테이너가 다시 시작된 누적 횟수를 읽습니다. 크래시 루프에 빠졌다가 회복한 컨테이너는 그 Pod가 교체될 때까지 알림을 열어 둡니다.
+> **CrashLoopBackOff Detection**과 **Job Failures**는 재시작 수나 실패한 Pod 수 자체가 아니라 창 안에서 그 수가 얼마나 늘었는지를 세므로, 재시작이나 실패가 멈추면 저절로 해제됩니다. 증가는 같은 분의 두 샘플 사이에서만 보이며, 에이전트의 30초 간격에서는 약 절반입니다. 크래시 루프는 계속 재시작하므로 잡히지만, 한 번의 재시작은 놓칠 수 있습니다.
 
 ### 증상이 아니라 원인을 잡기
 
@@ -184,8 +184,8 @@ flowchart TB
 **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어이므로, 임계값 `80`은 80코어를 뜻합니다. 임계값을 코어 단위로 정하거나, 퍼센트를 비교하는 **High Node CPU Utilization** 또는 **Pod CPU Saturating Container Limit** 에서 시작하세요.
 :::
 
-:::details Pod가 회복한 뒤에도 CrashLoopBackOff Detection이 열려 있음
-템플릿은 현재 Pod에서 컨테이너가 다시 시작된 누적 횟수를 읽으므로, 한 번 5를 넘으면 다시 내려가지 않습니다. 알림은 재배포, 축출, 노드 드레인 등으로 Pod가 교체되면 해결됩니다.
+:::details 재시작에 CrashLoopBackOff Detection이 발생하지 않음
+이 템플릿은 컨테이너의 재시작 수가 15분 안에 늘어나고 컨테이너가 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 증가는 같은 분의 두 샘플 사이에서만 보이므로 한 번의 재시작은 놓칠 수 있고, 몇 분마다 재시작하는 크래시 루프는 잡힙니다.
 :::
 
 ## 다음 단계

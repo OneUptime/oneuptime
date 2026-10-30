@@ -84,14 +84,14 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 | Kategori | Metrikker |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Arbejdsbyrde | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrolplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** og **Node CPU Usage** er i kerner, ikke procent: `0.18` er 0,18 af en kerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregér den med Maksimum eller Minimum, aldrig Sum. Kontrolplan-metrikker kommer kun, når agentens indsamling fra kontrolplanet er slået til.
+> **Pod CPU Usage** og **Node CPU Usage** er i kerner, ikke procent: `0.18` er 0,18 af en kerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregér den med Maksimum eller Minimum, aldrig Sum. Kontrolplan-metrikker kommer kun, når agentens indsamling fra kontrolplanet er slået til. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det, en node, der er gået ned, rapporterer: advar ved mindre end 1.
 
 ## Overvågningskriterier
 
@@ -133,13 +133,13 @@ Fanen **Quick Setup** viser disse skabeloner, grupperet efter kategori. Hver udf
 | Skabelon | Kategori | Udløses, når | Alvorlighed |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Tilgængelighed | Der kommer ingen data fra klyngens agent i 10 minutter | Kritisk |
-| CrashLoopBackOff Detection | Arbejdsbyrde | En container er genstartet mere end 5 gange, siden dens pod blev oprettet | Kritisk |
+| CrashLoopBackOff Detection | Arbejdsbyrde | En container genstartede inden for 15 minutter og var klar i mindre end halvdelen af dem | Kritisk |
 | Pod Stuck in Pending | Planlægning | En pod er i fasen Pending i hver måling i et vindue på 15 minutter | Warning |
-| Node Not Ready | Node | En node melder NotReady | Kritisk |
+| Node Not Ready | Node | En node melder NotReady eller holder op med at melde sin status (Unknown) | Kritisk |
 | High Node CPU Utilization | Node | En nodes gennemsnitlige CPU-forbrug er over 90 % af dens allokerbare CPU | Warning |
-| High Node Memory Utilization | Node | En nodes gennemsnitlige hukommelsesforbrug er over 85 % af dens allokerbare hukommelse | Warning |
+| High Node Memory Utilization | Node | En nodes gennemsnitlige working set-hukommelse er over 85 % af dens allokerbare hukommelse | Warning |
 | Deployment Replica Mismatch | Arbejdsbyrde | En deployment har færre tilgængelige replikaer end ønsket i 15 minutter | Warning |
-| Job Failures | Arbejdsbyrde | Et job har fejlede pods | Warning |
+| Job Failures | Arbejdsbyrde | En pod i et job fejlede inden for 15 minutter | Warning |
 | etcd No Leader | Kontrolplan | etcd har ingen valgt leder | Kritisk |
 | API Server Request Saturation | Kontrolplan | API-serveren holder 200 eller flere igangværende forespørgsler i hele vinduet | Kritisk |
 | Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Warning |
@@ -147,7 +147,7 @@ Fanen **Quick Setup** viser disse skabeloner, grupperet efter kategori. Hver udf
 | DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Warning |
 | High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Warning |
 | High Node Memory Request Commitment | Node | En nodes samlede hukommelses-requests fra containere overstiger 90 % af dens allokerbare hukommelse | Warning |
-| HPA Saturated at Max Replicas | Arbejdsbyrde | En HPA kører på 90 % eller mere af sin `maxReplicas` | Kritisk |
+| HPA Saturated at Max Replicas | Arbejdsbyrde | En HPA, der er skaleret over sin `minReplicas`, kører på 90 % eller mere af sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres hukommelsesgrænse | Kritisk |
 | Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Warning |
 
@@ -156,7 +156,7 @@ Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, D
 **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngens agent i ti minutter: agenten er afinstalleret eller går ned igen og igen, dens API-nøgle er tilbagekaldt, den har mistet sin rute til OneUptime, eller klyngens API-server er holdt op med at svare den. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** læser containerens samlede antal genstarter for dens nuværende pod, ikke en rate. En container, der sad fast i en crash-løkke og derefter kom sig, holder advarslen åben, indtil dens pod erstattes.
+> **CrashLoopBackOff Detection** og **Job Failures** tæller, hvor meget en genstarts- eller fejlet-pod-tæller voksede i vinduet, ikke selve tælleren, så de rydder af sig selv, når genstarterne eller fejlene stopper. Væksten ses kun mellem to målinger i samme minut: ved agentens 30-sekunders interval er det omkring halvdelen. Et crash loop genstarter igen og igen og bliver fanget; en enkelt genstart kan gå ubemærket hen.
 
 ### Fang årsager, ikke kun symptomer
 
@@ -184,8 +184,8 @@ Klynger registrerer sig selv ud fra agentens data under det `clusterName`, agent
 **Pod CPU Usage** og **Node CPU Usage** er i kerner, ikke procent, så en tærskel på `80` betyder 80 kerner. Angiv tærsklen i kerner, eller start fra **High Node CPU Utilization** eller **Pod CPU Saturating Container Limit**, som sammenligner en procentdel.
 :::
 
-:::details CrashLoopBackOff Detection forbliver åben, efter at poden er kommet sig
-Skabelonen læser containerens samlede antal genstarter for dens nuværende pod, så tallet falder ikke tilbage, når det først har passeret 5. Advarslen løses, når poden erstattes, f.eks. af en ny udrulning, en eviction eller en tømning af noden.
+:::details CrashLoopBackOff Detection udløstes ikke ved en genstart
+Skabelonen udløses, når en containers genstartstæller vokser inden for 15 minutter, mens containeren var klar i mindre end halvdelen af dem, så en container, der genstartede én gang og straks kom tilbage, sender ingen besked. Væksten ses kun mellem to målinger i samme minut, så en enkelt genstart kan gå ubemærket hen; et crash loop genstarter med få minutters mellemrum og bliver fanget.
 :::
 
 ## Næste trin

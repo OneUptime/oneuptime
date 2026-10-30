@@ -5289,10 +5289,12 @@ ${incomingRequestGrouping.rootCauseNote}
    * keeps the existing `> 0`, worst-highest-first list byte for byte.
    *
    * `floorEqualityFiresOnFall` additionally counts a FIRING `= 0` (or
-   * below) as a fall. Kubernetes needs it: k8s-node-not-ready and
-   * k8s-etcd-no-leader fire on `= 0` over k8s.node.condition_ready /
-   * etcd_server_has_leader, and zero is the floor of those metrics, so
-   * the only way to reach it is down. It is gated on the criteria opening
+   * below) as a fall. Kubernetes needs it: k8s-etcd-no-leader fires on
+   * `= 0` over etcd_server_has_leader, and zero is the floor of that
+   * metric, so the only way to reach it is down. (k8s-node-not-ready
+   * fires on `< 1`, a plain fall: k8s.node.condition_ready is 1 for
+   * Ready, 0 for NotReady and -1 for Unknown, the value a node that went
+   * down ends up reporting.) It is gated on the criteria opening
    * an incident or alert because the same `= 0` is also how the restart,
    * failed-pod and unavailable-replica templates express RECOVERY, and
    * that all-clear must not become a list of healthy zero rows. Ceph
