@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "Geschreven door OneUptime AI.",
   "Split by": "Splitsen op",
   "Top": "Top",
-  "then by": "daarna op"
+  "then by": "daarna op",
+  "Already assigned there.": "Al zo toegewezen.",
+  "Assign to me": "Aan mij toewijzen",
+  "Assign to…": "Toewijzen aan…",
+  "Assign {{count}} exceptions": "{{count}} uitzonderingen toewijzen",
+  "Assign {{count}} exceptions_one": "{{count}} uitzondering toewijzen",
+  "Assigned to me": "Aan mij toegewezen",
+  "Most events": "Meeste gebeurtenissen",
+  "Not assigned to anyone.": "Aan niemand toegewezen.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Kies één persoon of één team. Kies niemand om de toewijzing op te heffen.",
+  "Pick someone": "Iemand kiezen",
+  "Search people and teams": "Personen en teams zoeken",
+  "Sort: {{order}}": "Sortering: {{order}}"
 }

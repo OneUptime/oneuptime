@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "نوشته‌شده توسط OneUptime AI.",
   "Split by": "تفکیک بر اساس",
   "Top": "برترین",
-  "then by": "سپس بر اساس"
+  "then by": "سپس بر اساس",
+  "Already assigned there.": "از قبل به همان واگذار شده است.",
+  "Assign to me": "واگذاری به من",
+  "Assign to…": "واگذاری به…",
+  "Assign {{count}} exceptions": "واگذاری {{count}} استثنا",
+  "Assign {{count}} exceptions_one": "واگذاری {{count}} استثنا",
+  "Assigned to me": "واگذارشده به من",
+  "Most events": "بیشترین رویداد",
+  "Not assigned to anyone.": "به کسی واگذار نشده است.",
+  "Pick one person or one team. Pick nobody to unassign them.": "یک نفر یا یک تیم را انتخاب کنید. برای لغو واگذاری، کسی را انتخاب نکنید.",
+  "Pick someone": "انتخاب یک نفر",
+  "Search people and teams": "جست‌وجوی افراد و تیم‌ها",
+  "Sort: {{order}}": "مرتب‌سازی: {{order}}"
 }

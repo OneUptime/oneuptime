@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "由 OneUptime AI 撰寫。",
   "Split by": "拆分依據",
   "Top": "前",
-  "then by": "然後依"
+  "then by": "然後依",
+  "Already assigned there.": "已是該指派。",
+  "Assign to me": "指派給我",
+  "Assign to…": "指派給…",
+  "Assign {{count}} exceptions": "指派 {{count}} 個例外",
+  "Assign {{count}} exceptions_one": "指派 {{count}} 個例外",
+  "Assigned to me": "指派給我的",
+  "Most events": "事件最多",
+  "Not assigned to anyone.": "未指派給任何人。",
+  "Pick one person or one team. Pick nobody to unassign them.": "請選擇一個人或一個團隊。不選擇任何人則取消指派。",
+  "Pick someone": "選擇人員",
+  "Search people and teams": "搜尋人員和團隊",
+  "Sort: {{order}}": "排序：{{order}}"
 }

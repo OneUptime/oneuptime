@@ -58,7 +58,7 @@ Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De 
 
 ### Zoeken en filteren
 
-Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**.
+Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**. **Aan mij toegewezen** toont alleen de uitzonderingen die aan u zijn toegewezen, en het sorteermenu ordent de lijst op **Laatst gezien**, **Voor het eerst gezien** of **Meeste gebeurtenissen**.
 
 ### Een uitzondering openen
 
@@ -96,6 +96,8 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 **Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit archief halen**.
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
+
+**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
 
 ## Foutklassen
 
