@@ -9,6 +9,12 @@ import Tooltip from "../Tooltip/Tooltip";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue, { TranslatableValue } from "../../Utils/Translation";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   onChange: (value: boolean) => void;
@@ -129,6 +135,43 @@ export const TOGGLE_KNOB_ON_CLASS: string = "translate-x-5";
 export const TOGGLE_KNOB_ON_RIGHT_TO_LEFT_CLASS: string =
   "[&:dir(rtl)]:-translate-x-5";
 
+/*
+ * THE HELP ICON AFTER THE TITLE, AND WHAT IT SAYS - most often why a switch
+ * is locked ("You need one of these permissions: Project Owner, Project
+ * Admin."), sometimes what the switch does.
+ *
+ * It was an icon in a tooltip that opened on hover alone: on a phone a tap
+ * showed the words for a moment and took them away again as the finger
+ * lifted (Chrome sends mouseleave then), so a locked switch never said why,
+ * and the keyboard could not reach it at all. It is a real button now:
+ *
+ *   - a tap (or a click) shows the words and keeps them until the next one
+ *     (Tooltip's isShownOnPress), as a locked menu item's reason does;
+ *   - hovering shows them, as before;
+ *   - Tab reaches it after the switch, and its focus shows them;
+ *   - a screen reader hears it as "About <title>", described by the words.
+ *     The switch is still described by them too, so whoever is on the switch
+ *     hears why it is locked without moving.
+ *
+ * A press does nothing else: it is not part of the label, so it never flips
+ * the switch, and it is swallowed, so a row or a card around the switch
+ * that acts on a click or a key never hears it (as InfoTooltip does).
+ *
+ * 24px square, the row's own line height: the 16px question mark was too
+ * small a thing to tap.
+ */
+export const TOGGLE_HELP_BUTTON_CLASS_NAME: string =
+  "ml-0.5 inline-flex h-6 w-6 cursor-help items-center justify-center rounded-full align-top text-gray-400 transition-colors duration-150 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+export const TOGGLE_HELP_BUTTON_TEST_ID: string = "toggle-help";
+
+// Its name: what it tells about, the switch's title (InfoTooltip's words).
+export const TOGGLE_HELP_BUTTON_NAME_TEMPLATE: string =
+  translationKey("About {{label}}");
+
+// ...or, for a switch with no name of its own to give, just "Help".
+export const TOGGLE_HELP_BUTTON_FALLBACK_NAME: string = translationKey("Help");
+
 export interface ToggleClassNames {
   track: string;
   knob: string;
@@ -172,6 +215,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const uniqueId: string = useId();
   const switchId: string = props.id || `toggle-${uniqueId}`;
   const labelId: string = `toggle-label-${uniqueId}`;
@@ -232,10 +276,30 @@ const Toggle: FunctionComponent<ComponentProps> = (
     describedBy.push(descriptionId);
   }
 
-  // The help icon cannot be reached from the keyboard; its text can.
+  /*
+   * The help icon's words describe the switch too: whoever is on a locked
+   * switch hears why without moving to the icon.
+   */
   if (tooltip) {
     describedBy.push(tooltipId);
   }
+
+  /*
+   * "About <title>" - the title as it is written, translated with the
+   * sentence (a sentence is all in the reader's language or all in
+   * English). A switch with no title is named by its ariaLabel; one with
+   * neither, or a title that is not words, is "Help".
+   */
+  const helpSubject: string | undefined =
+    typeof props.title === "string" && props.title.trim()
+      ? props.title
+      : props.ariaLabel?.trim() || undefined;
+
+  const helpButtonName: string = helpSubject
+    ? translator.translateTemplate(TOGGLE_HELP_BUTTON_NAME_TEMPLATE, {
+        label: translatableTerm(helpSubject),
+      })
+    : translator.translateText(TOGGLE_HELP_BUTTON_FALLBACK_NAME);
 
   if (props.error) {
     describedBy.push(errorId);
@@ -332,13 +396,42 @@ const Toggle: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
                 {tooltip ? (
-                  <Tooltip text={tooltip}>
-                    <div className="ml-1 inline-flex h-6 items-center align-top">
-                      <Icon
-                        className="h-4 w-4 cursor-pointer text-gray-400"
-                        icon={IconProp.Help}
-                      />
-                    </div>
+                  /*
+                   * A button the words are shown from on a tap, a click, a
+                   * hover or the keyboard's focus
+                   * (TOGGLE_HELP_BUTTON_CLASS_NAME).
+                   */
+                  <Tooltip
+                    text={tooltip}
+                    isShownOnPress={true}
+                    isTriggerAlreadyDescribed={true}
+                  >
+                    <button
+                      type="button"
+                      className={TOGGLE_HELP_BUTTON_CLASS_NAME}
+                      data-testid={
+                        props.dataTestId
+                          ? `${props.dataTestId}-${TOGGLE_HELP_BUTTON_TEST_ID}`
+                          : TOGGLE_HELP_BUTTON_TEST_ID
+                      }
+                      aria-label={helpButtonName}
+                      aria-describedby={tooltipId}
+                      onClick={(
+                        event: React.MouseEvent<HTMLButtonElement>,
+                      ): void => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onKeyDown={(
+                        event: React.KeyboardEvent<HTMLButtonElement>,
+                      ): void => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.stopPropagation();
+                        }
+                      }}
+                    >
+                      <Icon className="h-4 w-4" icon={IconProp.Help} />
+                    </button>
                   </Tooltip>
                 ) : (
                   <></>

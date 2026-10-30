@@ -64,6 +64,7 @@ import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -339,7 +340,7 @@ function Buttons() {
 
       <Card
         title="Locked with a reason"
-        description="A locked button says why on hover."
+        description="A locked button or switch says why when it is tapped, clicked or pointed at."
         buttons={[
           {
             title: "Reset API Key",
@@ -381,6 +382,28 @@ function Buttons() {
           >
             {[<MoreMenuItem key="b" text="Every minute" onClick={() => {}} />]}
           </MoreMenu>
+        </div>
+        {/*
+         * A switch somebody may not change, its reason behind the help icon
+         * after its title (ModelSwitchRow draws a locked one so), and a
+         * switch whose help icon says what it does.
+         */}
+        <div className="mt-5 space-y-4" data-testid="switches-with-help">
+          <Toggle
+            title="Show on status page"
+            value={true}
+            disabled={true}
+            tooltip="You need one of these permissions: Project Owner, Project Admin."
+            dataTestId="locked-switch"
+            onChange={() => {}}
+          />
+          <Toggle
+            title="When filters match, create an alert"
+            value={false}
+            tooltip="Alerts notify the team but are not shown on the status page."
+            dataTestId="help-switch"
+            onChange={() => {}}
+          />
         </div>
       </Card>
 

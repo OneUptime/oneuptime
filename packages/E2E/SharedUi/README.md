@@ -23,6 +23,11 @@ The suite checks what jsdom cannot:
   cursor, keeps its own fill and keeps its look under the pointer; a busy
   button keeps its look, and a busy link keeps its spinner on its words'
   line; a locked button with a reason says why on hover;
+- on a phone (real touch events, 390 pixels), a tap on a locked button, or
+  on the help icon after a locked switch's title, shows why it is locked and
+  keeps it once the finger lifts, until the next tap; the help icon is a
+  24-pixel button on the title's line that never flips the switch, Tab
+  reaches it after the switch and its focus says why too;
 - a busy button keeps its look and its spinner also when its caller locks
   it for as long as it works (`disabled` and `isLoading` on one flag), and
   gives no hover wash;

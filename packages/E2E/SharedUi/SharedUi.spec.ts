@@ -81,6 +81,10 @@ const GREEN_700: string = "rgb(21, 128, 61)";
 const INDIGO_50: string = "rgb(238, 242, 255)";
 const INDIGO_700: string = "rgb(67, 56, 202)";
 
+// Why the fixture's switch is locked, behind the help icon after its title.
+const LOCKED_SWITCH_REASON: string =
+  "You need one of these permissions: Project Owner, Project Admin.";
+
 interface FixtureRecord {
   reads: Array<{ kind: string; tableName: string; id?: string }>;
   updates: Array<{ tableName: string; id: string; deleted?: boolean }>;
@@ -565,6 +569,33 @@ test.describe("a button that cannot be pressed looks it", () => {
     await screenshot(page, "locked-with-a-reason", { fullPage: false });
   });
 
+  test("a locked switch's help icon is a button after its title that says why under the pointer and on the keyboard's focus", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+
+    await expect(help).toHaveAttribute("type", "button");
+    await expect(help).toHaveAccessibleName("About Show on status page");
+    expect(await styleOf(help, "cursor")).toBe("help");
+
+    await help.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+
+    // From the keyboard: the switch, then its help icon, which says why.
+    await page.getByRole("switch", { name: "Show on status page" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(help).toBeFocused();
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    // The keyboard's focus is drawn: an indigo ring.
+    expect(await styleOf(help, "box-shadow")).toContain("rgb(99, 102, 241)");
+  });
+
   test("a busy link keeps its spinner beside its words", async ({
     page,
   }: {
@@ -591,6 +622,153 @@ test.describe("a button that cannot be pressed looks it", () => {
       expect(spinnerMiddle).toBeGreaterThan(wordsBox!.y);
       expect(spinnerMiddle).toBeLessThan(wordsBox!.y + wordsBox!.height);
     }
+  });
+});
+
+/*
+ * ON A PHONE, A TAP IS HOW SOMEBODY ASKS WHY.
+ *
+ * A locked button keeps its reason in a tooltip, and a locked switch keeps
+ * its reason behind the help icon after its title. Both opened on hover
+ * alone, and a tap ends with the pointer leaving - Chrome sends mouseleave
+ * as the finger lifts - so the reason showed for a moment and went: a
+ * locked switch or button just looked broken. Now a tap shows the reason
+ * and keeps it until the next tap. Real touch events, at a phone's width.
+ */
+test.describe("a locked button or switch says why on a tap", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+
+  // Long enough for a reason shown only until the finger lifted to be gone.
+  async function afterTheFingerLifts(page: Page): Promise<void> {
+    await page.waitForTimeout(700);
+  }
+
+  test("a tap on a locked button shows its reason, which stays once the finger lifts, and a second tap puts it away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const wrapper: Locator = page.getByTestId(
+      "locked-with-reason-disabled-wrapper",
+    );
+
+    await wrapper.scrollIntoViewIfNeeded();
+    await wrapper.tap();
+    await afterTheFingerLifts(page);
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Your role cannot change this monitor.",
+    );
+    await expect(page.getByRole("tooltip")).toBeVisible();
+    await screenshot(page, "locked-button-tapped-phone", { fullPage: false });
+
+    await wrapper.tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+  });
+
+  test("a tap on a locked switch's help icon says why it is locked, which stays, and the switch stays as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const theSwitch: Locator = page.getByRole("switch", {
+      name: "Show on status page",
+    });
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+
+    await help.scrollIntoViewIfNeeded();
+    await help.tap();
+    await afterTheFingerLifts(page);
+
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    await expect(page.getByRole("tooltip")).toBeVisible();
+    await expect(theSwitch).toHaveAttribute("aria-checked", "true");
+    await expect(theSwitch).toHaveAttribute("aria-disabled", "true");
+
+    // The reason fits the phone's width, wrapped rather than cut.
+    const tip: { left: number; right: number } = await page
+      .getByRole("tooltip")
+      .evaluate((element: Element): { left: number; right: number } => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return { left: box.left, right: box.right };
+      });
+    expect(tip.left).toBeGreaterThanOrEqual(0);
+    expect(tip.right).toBeLessThanOrEqual(390);
+
+    await screenshot(page, "locked-switch-tapped-phone", { fullPage: false });
+
+    await help.tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+  });
+
+  test("a switch's help icon is a target a finger can hit: 24 pixels square, on the title's line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+    const box: { width: number; height: number; y: number } | null =
+      await help.boundingBox();
+    const title: { y: number; height: number } | null = await page
+      .getByText("Show on status page", { exact: true })
+      .boundingBox();
+
+    expect(box).not.toBeNull();
+    expect(title).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(24);
+    expect(box!.height).toBeGreaterThanOrEqual(24);
+    // On the title's line: their middles within a few pixels.
+    expect(
+      Math.abs(box!.y + box!.height / 2 - (title!.y + title!.height / 2)),
+    ).toBeLessThan(4);
+  });
+
+  test("a tap on a switch's help icon shows what the switch does, and never flips it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const theSwitch: Locator = page.getByRole("switch", {
+      name: "When filters match, create an alert",
+    });
+
+    await page.getByTestId("help-switch-toggle-help").scrollIntoViewIfNeeded();
+    await page.getByTestId("help-switch-toggle-help").tap();
+    await afterTheFingerLifts(page);
+
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Alerts notify the team but are not shown on the status page.",
+    );
+    await expect(theSwitch).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("in the dark theme a tapped reason reads on the dark page (?theme=dark)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons&theme=dark");
+
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+
+    await help.scrollIntoViewIfNeeded();
+    await help.tap();
+    await afterTheFingerLifts(page);
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    await screenshot(page, "locked-switch-tapped-phone-dark", {
+      fullPage: false,
+    });
   });
 });
 
