@@ -44,7 +44,8 @@ La connexion s'authentifie avec le [flux d'informations d'identification du clie
 
 1. Allez dans **API permissions → Add a permission → Microsoft Graph → Application permissions**, choisissez `AuditLog.Read.All`, et sélectionnez **Add permissions**. Microsoft indique que sa liste des connexions peut aussi demander `Directory.Read.All` : ajoutez-la si les connexions sont refusées avec `403` une fois le consentement accordé.
 2. Pour le journal d'audit Microsoft 365, ajoutez une deuxième autorisation : **Add a permission → Office 365 Management APIs → Application permissions**, puis `ActivityFeed.Read`.
-3. Sélectionnez **Grant admin consent for** votre locataire, et confirmez. Le statut de chaque autorisation doit indiquer **Granted** : sans consentement, chaque lecture est refusée avec `403`.
+3. Pour que les playbooks puissent désactiver, activer et déconnecter des utilisateurs (voir [Confinement](/docs/telemetry/security-cases#confinement)), ajoutez de la même façon `User.Read.All`, `User.EnableDisableAccount.All` et `User.RevokeSessions.All`. Microsoft ne laisse modifier le compte d'un administrateur qu'à une application qui détient aussi le rôle Privileged Authentication Administrator.
+4. Sélectionnez **Grant admin consent for** votre locataire, et confirmez. Le statut de chaque autorisation doit indiquer **Granted** : sans consentement, chaque lecture est refusée avec `403`.
 
 ### Créer un secret client
 

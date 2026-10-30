@@ -452,16 +452,7 @@ Windows のノードプールがあるクラスターでは、すべてのエー
 
 ### コントロールプレーンの監視を有効にする
 
-クラスターの **コントロールプレーン** ページには、etcd、API サーバー、スケジューラー、コントローラーマネージャーのグラフが表示されます。`controlPlane.enabled` が `true` の場合、エージェントは 4 つすべてをスクレイプします:
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-各コンポーネントは、それぞれのリストにあるアドレスでスクレイプされます: `controlPlane.etcd.endpoints`、`controlPlane.apiServer.endpoints`、`controlPlane.scheduler.endpoints`、`controlPlane.controllerManager.endpoints`。スクレイプはホストネットワークを持たないエージェントの Pod で実行されるため、既定値 (`https://localhost:<port>/metrics`) はその Pod 自体を指します。各リストには Pod から到達できるアドレスを設定してください。どのクラスターでも、API サーバーはクラスター内から `https://kubernetes.default.svc:443/metrics` で応答します:
+クラスターの **コントロールプレーン** ページには、etcd、API サーバー、スケジューラー、コントローラーマネージャーのグラフが表示されます。`controlPlane.enabled` を有効にすると、エージェントは、どのクラスターでもクラスター内から応答する `https://kubernetes.default.svc:443/metrics` で、自身のサービスアカウントのトークンを使って API サーバーを読み取ります:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled` は 4 つのスクレイプをまとめて有効にします。エンドポイントでコンポーネントに到達できない場合 (マネージドクラスターの etcd、スケジューラー、コントローラーマネージャー、または `localhost` の既定値のまま)、そのスクレイプは毎回失敗します。Collector はスクレイプエラーをログに出してターゲットをダウンと報告しますが、それ以外は何も変わりません。
+このアドレスは `controlPlane.apiServer.endpoints` のチャートの既定値です。あわせて設定しておくと、古いチャートの `localhost` の既定値を保持したままのリリースも切り替わります。
 
-エージェントは HTTPS だけでスクレイプし、サービスアカウントのトークンを使い、クライアント証明書は使いません。そのため:
+etcd、スケジューラー、コントローラーマネージャーはコントロールプレーンのノードで動作し、スクレイプはホストネットワークを持たないエージェントの Pod で実行されます。そこでの `localhost` は Pod 自体です。そのため、`controlPlane.etcd.endpoints`、`controlPlane.scheduler.endpoints`、`controlPlane.controllerManager.endpoints` は各ノードのアドレスを指定するまで空のままで、エンドポイントのないコンポーネントはスクレイプされません:
 
-- **etcd** には、クライアント証明書を求めない HTTPS のメトリクスアドレスが必要です。etcd の通常のメトリクスポートには到達できません。`2381` の素の HTTP (kubeadm の `--listen-metrics-urls`) は HTTPS としてスクレイプされて失敗し、`2379` はクライアント証明書を必要とします。
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+エンドポイントはサービスアカウントのトークンを使って HTTPS でスクレイプされますが、`http://` で始まるものは素の HTTP でスクレイプされます。1 つのコンポーネントのエンドポイントは同じスキームを共有します。エンドポイントでコンポーネントに到達できない場合、そのスクレイプは毎回失敗します。Collector はスクレイプエラーをログに出してターゲットをダウンと報告しますが、それ以外は何も変わりません。
+
 - **スケジューラー** (`10259`) と **コントローラーマネージャー** (`10257`) は HTTPS で提供されトークンを受け付けますが、kubeadm はコントロールプレーンのノードでこれらを `127.0.0.1` にバインドします。エージェントの Pod から到達できる `--bind-address` が必要です。
+- **etcd** は `2381` の素の HTTP でメトリクスを提供します (kubeadm の `--listen-metrics-urls`。ノードのアドレスを追加するまでは `127.0.0.1` にバインドされています)。上の例のとおりです。クライアントポートの `2379` は HTTPS で提供され、クライアント証明書を求めます。証明書をエージェントの名前空間の Secret に `ca.crt`、`tls.crt`、`tls.key` のキーで格納し、その Secret を `controlPlane.etcd.clientCertSecret` に指定してください。kubeadm のコントロールプレーンのノードでは、ヘルスチェック用クライアントの証明書が使えます:
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 マネージドの Kubernetes サービス (EKS、GKE、AKS) は etcd、スケジューラー、コントローラーマネージャーを公開しないため、そこではこれらのタブは空のままです。タブのメトリクスが届くまで、**コントロールプレーン** ページはグラフの代わりに、設定すべき内容をコピー用のコマンドとともに表示します。
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-これで止まるのは Pod のログだけです。ノード、Pod、コンテナのメトリクスは流れ続け、それに基づくモニター (OOM kill、CPU スロットリング、PVC のディスク不足) も動き続けます。ノード Collector は残り、`/var/log/pods` の読み取りをやめるだけです。`logs.mode: api` と `logs.mode: disabled` も同様です。
+これで止まるのは Pod のログだけです。ノード、Pod、コンテナのメトリクスは流れ続け、それに基づくモニター (クラッシュループ、準備ができていないノード、上限に張り付いた Pod、ノードのディスクの空き不足) も動き続けます。ノード Collector は残り、`/var/log/pods` の読み取りをやめるだけです。`logs.mode: api` と `logs.mode: disabled` も同様です。
 
 ### eBPF の自動インストルメンテーションを削る
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 異なる系列の数であるカーディナリティは、頻度と同じくらい重要です。系列はそれぞれ個別に保存され、課金されるためです。
 
-- cAdvisor は意図的に許可リスト方式にしています。cAdvisor レシーバー (既定で有効) は数百のメトリクスを出力できますが、チャートはモニターが使う少数のメトリクス (`cadvisor.metricsAllowlist`) だけを転送します。リストは短く保ってください。各エントリはコンテナごとに保持されるため、メトリクスを 1 つ増やすと、クラスターのコンテナ数だけ倍になります。kube-state-metrics は既定でオフです。有効にした場合 (`kubeStateMetrics.enabled=true`)、その `kubeStateMetrics.metricsAllowlist` も同じように機能します。
+- cAdvisor は意図的に許可リスト方式にしています。cAdvisor レシーバー (既定で有効) は数百のメトリクスを出力できますが、チャートは `cadvisor.metricsAllowlist` にある CPU スロットリングと OOM kill のカウンターだけを、独自のグラフやメトリクスモニターのために転送します。組み込みのテンプレートはこれらを読み取りません。リストは短く保ってください。各エントリはコンテナごとに保持されるため、メトリクスを 1 つ増やすと、クラスターのコンテナ数だけ倍になります。kube-state-metrics は既定でオフです。有効にした場合 (`kubeStateMetrics.enabled=true`)、その `kubeStateMetrics.metricsAllowlist` も同じように機能し、各エントリはメトリクス名全体に一致する必要があります。
 - PVC ごとのボリュームメトリクス (`kubeletstats.volumeMetrics.enabled`、既定で有効) は、Pod ごと・PVC ごとに 1 つの系列を出力します。ほとんどのクラスターでは問題ありませんが、数千の PVC を持つステートフルなワークロード (Kafka、データベース) では大量になります。PVC のディスク容量を監視していない場合は、そこで `--set kubeletstats.volumeMetrics.enabled=false` によりオフにしてください。
 - 飽和度のメトリクス (`kubeletstats.utilizationMetrics.enabled`、既定で有効) は、「request または limit に対する %」の派生ファミリーを 8 つ追加します。追加のスクレイプは不要ですが、limit に対する CPU とメモリのモニターを使わない場合は、`--set kubeletstats.utilizationMetrics.enabled=false` で破棄してください。
 - レシーバーの許可リストでは表現できないものは、すべてのレシーバーに適用される `filters.metrics.exclude` で、名前によってメトリクスを破棄します ([名前によるメトリクスの包含と除外](#名前によるメトリクスの包含と除外) を参照):
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 必要に応じてさらに絞り込みます。`minSeverity` を `ERROR` に上げる、namespace ルールのスコープに `metrics` を追加する、すでに OpenTelemetry SDK からトレースを送信しているなら `ebpf.enabled=false` を設定する、といった方法です。
 
 > [!CAUTION]
-> 何を削るかに注意してください。一部のモニターは特定のシグナルに依存しています。`cadvisor` をオフにすると OOM kill と CPU スロットリングのモニターがなくなり、`kubeletstats.volumeMetrics` をオフにすると PVC のディスク不足のモニターがなくなり、ログをオフにするとログベースのアラートがなくなります。`sampling.traces.percentage` はモニターをなくしませんが、スパンベースのモニター (`Span Count` に対する **トレース**、`Exception Count` に対する **例外**) の値を小さくするため、しきい値を調整し直してください。削るのは対応に使っていないシグナルにし、モニターが監視しているものは削らないでください。
+> 何を削るかに注意してください。一部のモニターは特定のシグナルに依存しています。`kubeletstats.utilizationMetrics` をオフにすると、Pod をコンテナの上限と比べる 2 つのテンプレートが動かなくなり、ログをオフにするとログベースのアラートがなくなり、`cadvisor` または `kubeletstats.volumeMetrics` をオフにすると、独自のグラフやメトリクスモニターが読み取れるスロットリング、OOM kill、PVC のシリーズがなくなります。`sampling.traces.percentage` はモニターをなくしませんが、スパンベースのモニター (`Span Count` に対する **トレース**、`Exception Count` に対する **例外**) の値を小さくするため、しきい値を調整し直してください。削るのは対応に使っていないシグナルにし、モニターが監視しているものは削らないでください。
 
 ### 効果を測定する
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## 次のステップ
 
 :::cards
-- [Kubernetes モニター](/docs/monitor/kubernetes-monitor): クラッシュループ、OOM kill、CPU スロットリング、ディスクの空き不足に対してアラートを出します。
+- [Kubernetes モニター](/docs/monitor/kubernetes-monitor): クラッシュループ、準備ができていないノード、上限に張り付いた Pod、ノードのディスクの空き不足に対してアラートを出します。
 - [Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost): 各ワークロードのコストと、縮小すべき request を確認します。
 - [データベース](/docs/telemetry/databases): クラスター内のデータベースのワークロードが検出され、専用のページが作られます。
 - [ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Kubernetes の外にある Linux、macOS、Windows のマシンを監視します。

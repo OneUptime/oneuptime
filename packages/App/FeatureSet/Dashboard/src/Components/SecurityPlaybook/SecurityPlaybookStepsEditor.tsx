@@ -1,7 +1,13 @@
 import SecurityPlaybookStepDialog, {
   PlaybookConnectionOption,
 } from "./SecurityPlaybookStepDialog";
-import { moveStep } from "./SecurityPlaybookStepForm";
+import {
+  describeRunIf,
+  getStepDeleteBlock,
+  getStepMoveBlock,
+  moveStep,
+} from "./SecurityPlaybookStepForm";
+import Flag from "./SecurityPlaybookStepFlag";
 import {
   StepNameLookup,
   summarizeSecurityPlaybookStep,
@@ -14,6 +20,7 @@ import {
 import {
   SECURITY_PLAYBOOK_MAX_STEPS,
   SecurityPlaybookStep,
+  assertSecurityPlaybookStepConditions,
   doesStepNeedApproval,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -45,19 +52,14 @@ type StepDialog =
   | { kind: "delete"; index: number }
   | null;
 
-const Flag: FunctionComponent<{ icon: IconProp; text: string }> = (props: {
-  icon: IconProp;
-  text: string;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
-      <Icon icon={props.icon} className="h-3 w-3" />
-      {translator.translateText(props.text)}
-    </span>
-  );
-};
+/*
+ * The whole list as it would be saved, held to the branching rule first: a
+ * step that waits on another waits only on one before it, on a result it
+ * can have. The server holds it to the same rule.
+ */
+function checkConditions(steps: Array<SecurityPlaybookStep>): void {
+  assertSecurityPlaybookStepConditions(steps);
+}
 
 /*
  * A playbook's steps, in the order they run, as a column of cards joined by
@@ -81,6 +83,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
+      checkConditions(steps);
       await props.onSave(steps);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -167,6 +170,29 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                 const runsUnapproved: boolean = Boolean(
                   definition?.isDisruptive && !needsApproval,
                 );
+                // When it runs, if not always: "Only if step 1 found a known-bad entity".
+                const runIf: string = describeRunIf({
+                  step,
+                  steps: props.steps,
+                  translator,
+                });
+                const moveUpBlock: string | undefined = getStepMoveBlock({
+                  steps: props.steps,
+                  index,
+                  direction: -1,
+                  translator,
+                });
+                const moveDownBlock: string | undefined = getStepMoveBlock({
+                  steps: props.steps,
+                  index,
+                  direction: 1,
+                  translator,
+                });
+                const deleteBlock: string | undefined = getStepDeleteBlock({
+                  steps: props.steps,
+                  index,
+                  translator,
+                });
 
                 return (
                   <li
@@ -193,7 +219,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-gray-900">
                             <span className="mr-1.5 text-gray-400">
-                              {index + 1}.
+                              {translator.formatNumber(index + 1)}.
                             </span>
                             {translator.translateText(
                               definition?.title || step.action,
@@ -208,9 +234,19 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                           )}
                           {needsApproval ||
                           runsUnapproved ||
-                          step.onlyIfThreatIntelMatched ||
+                          runIf ||
                           step.continueOnFailure ? (
                             <div className="mt-2 flex flex-wrap gap-1.5">
+                              {runIf ? (
+                                <Flag
+                                  icon={IconProp.Condition}
+                                  text={runIf}
+                                  isTranslated={true}
+                                  dataTestId={`security-playbook-step-${index}-run-if`}
+                                />
+                              ) : (
+                                <></>
+                              )}
                               {needsApproval ? (
                                 <Flag
                                   icon={IconProp.Lock}
@@ -223,14 +259,6 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                                 <Flag
                                   icon={IconProp.LockOpen}
                                   text="Runs without approval"
-                                />
-                              ) : (
-                                <></>
-                              )}
-                              {step.onlyIfThreatIntelMatched ? (
-                                <Flag
-                                  icon={IconProp.Bug}
-                                  text="Only if threat intel matched"
                                 />
                               ) : (
                                 <></>
@@ -269,7 +297,8 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                               key="up"
                               icon={IconProp.ChevronUp}
                               text="Move Up"
-                              isDisabled={index === 0}
+                              isDisabled={index === 0 || Boolean(moveUpBlock)}
+                              tooltip={moveUpBlock}
                               onClick={() => {
                                 void save(moveStep(props.steps, index, -1));
                               }}
@@ -278,7 +307,8 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                               key="down"
                               icon={IconProp.ChevronDown}
                               text="Move Down"
-                              isDisabled={isLast}
+                              isDisabled={isLast || Boolean(moveDownBlock)}
+                              tooltip={moveDownBlock}
                               onClick={() => {
                                 void save(moveStep(props.steps, index, 1));
                               }}
@@ -288,6 +318,8 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                               icon={IconProp.Trash}
                               text="Delete Step"
                               isDestructive={true}
+                              isDisabled={Boolean(deleteBlock)}
+                              tooltip={deleteBlock}
                               onClick={() => {
                                 setDialog({ kind: "delete", index });
                               }}
@@ -308,6 +340,11 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
         <SecurityPlaybookStepDialog
           step={dialog.kind === "edit" ? props.steps[dialog.index] : undefined}
           index={dialog.kind === "edit" ? dialog.index : props.steps.length}
+          earlierSteps={
+            dialog.kind === "edit"
+              ? props.steps.slice(0, dialog.index)
+              : props.steps
+          }
           connections={props.connections}
           caseValues={props.caseValues}
           onClose={() => {
@@ -323,7 +360,8 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                   )
                 : [...props.steps, step];
 
-            // Thrown to the dialog, which shows the server's reason and stays open.
+            // Thrown to the dialog, which shows the reason and stays open.
+            checkConditions(steps);
             await props.onSave(steps);
             setDialog(null);
           }}

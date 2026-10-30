@@ -43,7 +43,8 @@ De verbinding meldt zich aan met de sleutel van een serviceaccount en [domeinbre
 ### Domeinbrede delegatie toestaan
 
 1. Open in de [Google Beheerdersconsole](https://admin.google.com), als superbeheerder, **Security → Access and data control → API controls → Manage domain-wide delegation** en selecteer **Add new**.
-2. Voer de **Unique ID** van het serviceaccount in als **Client ID**, en `https://www.googleapis.com/auth/admin.reports.audit.readonly` als het enige **OAuth scope**. Selecteer **Authorize**. Google kan er een paar minuten over doen om het toe te passen.
+2. Voer de **Unique ID** van het serviceaccount in als **Client ID**, en `https://www.googleapis.com/auth/admin.reports.audit.readonly` als **OAuth scope**. Selecteer **Authorize**. Google kan er een paar minuten over doen om het toe te passen.
+3. Om playbooks gebruikers te laten opschorten, de opschorting te laten opheffen en af te laten melden (zie [Inperking](/docs/telemetry/security-cases#inperking)), voeg je `https://www.googleapis.com/auth/admin.directory.user` en `https://www.googleapis.com/auth/admin.directory.user.security` toe aan de scopes van dezelfde client, gescheiden door komma's. De beheerder namens wie de verbinding werkt, moet die gebruikers dan beheren.
 
 ### De verbinding toevoegen in OneUptime
 

@@ -313,7 +313,7 @@ Hunts har samma REST-API som resten av OneUptime, under `/security-hunt`, och `P
 
 ## Detektionsregler
 
-En detektionsregel är en [Sigma](https://sigmahq.io/)-regel, ett öppet YAML-format för att beskriva misstänkt aktivitet, som OneUptime kör enligt ett schema mot dina händelser. När den träffar öppnar den ett [ärende](/docs/telemetry/security-cases) eller lägger träffen i ett som redan är öppet, öppnar ett larm, eventuellt en incident, och skriver ett Detection Finding tillbaka bland händelserna. **Regelbibliotek** har färdiga regler att utgå från.
+En detektionsregel är en [Sigma](https://sigmahq.io/)-regel, ett öppet YAML-format för att beskriva misstänkt aktivitet, som OneUptime kör enligt ett schema mot dina händelser, eller på varje händelse så fort den kommer in. När den träffar öppnar den ett [ärende](/docs/telemetry/security-cases) eller lägger träffen i ett som redan är öppet, öppnar ett larm, eventuellt en incident, och skriver ett Detection Finding tillbaka bland händelserna. **Regelbibliotek** har färdiga regler att utgå från.
 
 ```mermaid title="Så löser en detektionsregel ut"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Öppna ett ärende vid matchning** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
 5. Välj under **Larm och incidenter** vad en träff mer ska utlösa: **Skapa ett larm** (standard), **Deklarera en incident**, **Båda** eller **Ingetdera**, med valfri **Larmallvar** eller **Incidentallvar**.
-6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på) och hur träffar räknas; se [Utvärderingsinställningar](#utvärderingsinställningar).
+6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på), **Kör i realtid** (av) och hur träffar räknas; se [Utvärderingsinställningar](#utvärderingsinställningar).
 :::
 
 En första regel, som träffar misslyckade inloggningar utanför `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Fält | Vad det gör |
 | --- | --- |
 | **Utvärderingsintervall (minuter)** | Hur ofta regeln körs: hela minuter, 1 till 1440. Formuläret för en ny regel börjar på 5. |
+| **Kör i realtid** | Av för en ny regel. När den är på kontrollerar regeln varje händelse när den kommer in i stället för vid varje intervall; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfält** | Valfritt. Träffar som delar det här fältets värde, till exempel `principalHost`, räknas, larmas och dedupliceras tillsammans: ett larm per värd i stället för hundratals. |
 | **Fält för unik räkning** | Valfritt. Räkna de olika värdena i det här fältet i stället för de träffande händelserna. Tomma värden räknas inte. |
 | **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom en körning: 1 till 1000000, och 1 löser ut vid varje träff. |
@@ -450,6 +451,16 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
 - En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
 - Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
+
+### Realtidsregler
+
+En regel som utlöses av en enda händelse kan köras i realtid i stället för enligt sitt intervall: slå på **Kör i realtid** under **Fler fält** i steget **Vid träff**. Varje händelse som OneUptime tar emot, från alla källor, kontrolleras då mot regeln när den kommer in, och en träff öppnar sitt ärende, sitt larm och sitt fynd inom några sekunder.
+
+- Det passar en regel med en **Tröskel för antal träffar** på 1, utan **Fält för unik räkning** och utan modifieraren `re`. En korrelation räknar händelser tillsammans och körs därför enligt sitt intervall. Formuläret anger vad som ska ändras när en regel inte passar.
+- Ett projekt kör högst 50 regler i realtid, eftersom varje händelse kontrolleras mot var och en.
+- I **Detektionsregler** visar **Status** för en realtidsregel **Realtid**, och det gör även dess intervallkolumn. En kontroll som misslyckas visas under **Senaste fel**, precis som för en körning.
+- När den slås på läser regeln först det som kommit in sedan den senaste körningen, så att inget hamnar mellan schemat och realtid. När den slås av går den tillbaka till sitt intervall, från två minuter innan.
+- Undantag och bevakningslistor gäller för den som för alla regler, och **Kör på tidigare händelser** läser den som vilken annan regel som helst.
 
 ### Allvarlighetsgrad
 
@@ -573,6 +584,10 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 
 :::details En regel träffar aldrig
 Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+:::
+
+:::details Kör i realtid går inte att slå på
+Regeln räknar träffar, räknar unika värden, läser ett reguljärt uttryck eller är en korrelation, och formuläret anger vilket: sätt **Tröskel för antal träffar** till 1, töm **Fält för unik räkning**, eller använd `contains`, `startswith` eller `endswith` i stället för `re`. Ett projekt kör högst 50 regler i realtid: slå av det för en annan regel först.
 :::
 
 :::details En regel träffade, men inget larm öppnades

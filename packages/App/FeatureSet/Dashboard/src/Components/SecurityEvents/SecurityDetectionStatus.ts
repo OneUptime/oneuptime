@@ -44,6 +44,8 @@ export interface DetectionRuleStatusFields {
   isEnabled?: boolean | undefined;
   lastEvaluatedAt?: Date | undefined;
   lastError?: string | undefined;
+  // Checks each event as it arrives: it has no run to wait for.
+  isRealTime?: boolean | undefined;
 }
 
 export const SECURITY_DETECTION_ENABLED: SecurityDetectionStatus = {
@@ -109,6 +111,18 @@ export const DETECTION_RULE_WAITING: SecurityDetectionStatus = {
 };
 
 /*
+ * A real-time rule (Types/SecurityEvent/RealTimeDetection) runs on no
+ * interval: it is never waiting for a run, so working is what it says.
+ */
+export const DETECTION_RULE_REAL_TIME: SecurityDetectionStatus = {
+  text: translationKey("Real time"),
+  color: Green,
+  tooltip: translationKey(
+    "Checks each event as it arrives, within seconds, instead of every interval.",
+  ),
+};
+
+/*
  * The columns the messages live in, titled as the tables title them: the
  * dialog that shows a message in full names it the same way.
  */
@@ -164,6 +178,10 @@ export function getDetectionRuleStatus(
     return isDetectionRunNotice(rule.lastError)
       ? DETECTION_RULE_NEEDS_ATTENTION
       : DETECTION_RULE_RUN_FAILED;
+  }
+
+  if (rule.isRealTime) {
+    return DETECTION_RULE_REAL_TIME;
   }
 
   if (!rule.lastEvaluatedAt) {

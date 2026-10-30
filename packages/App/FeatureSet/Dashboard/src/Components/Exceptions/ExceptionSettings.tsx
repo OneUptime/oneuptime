@@ -20,14 +20,18 @@ import PermissionGate, {
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   ExceptionTriageAction,
-  formatRelativeTime,
+  exceptionTimeValue,
   getResolveInNextReleaseAction,
 } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { ExceptionTriageActionId } from "./ExceptionTriageActions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ComposedValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   exception: TelemetryException;
@@ -129,7 +133,8 @@ export function describeExceptionStatusHistory(
   }
 
   const templates: StatusChangeTemplates = STATUS_CHANGE_TEMPLATES[data.kind];
-  const time: string | null = formatRelativeTime(data.at, data.now);
+  // In the sentence's own language (exceptionTimeValue).
+  const time: ComposedValue | undefined = exceptionTimeValue(data.at, data.now);
   const name: string = (data.byName || "").trim();
 
   if (time && name) {

@@ -25,6 +25,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
+import ExceptionAIDigest from "./ExceptionAIDigest";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -424,6 +425,12 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
           />
         </div>
       </AppLink>
+
+      {/*
+       * What is new: OneUptime AI's summary of the exceptions first seen,
+       * or back, in the last day, on request (not while AI is off).
+       */}
+      <ExceptionAIDigest />
 
       {/* Stat strip — unified card, thin dividers */}
       <div className="rounded-2xl border border-gray-200 bg-white mb-6 overflow-hidden">

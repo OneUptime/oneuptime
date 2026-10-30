@@ -313,7 +313,7 @@ Les chasses ont la même API REST que le reste de OneUptime, sous `/security-hun
 
 ## Règles de détection
 
-Une règle de détection est une règle [Sigma](https://sigmahq.io/), un format YAML ouvert pour décrire une activité suspecte, que OneUptime exécute selon un calendrier sur vos événements. Quand elle correspond, elle ouvre un [dossier](/docs/telemetry/security-cases) ou s'y ajoute, ouvre une alerte, éventuellement un incident, et écrit un Detection Finding dans les événements. La **Bibliothèque de règles** propose des règles prêtes à l'emploi pour démarrer.
+Une règle de détection est une règle [Sigma](https://sigmahq.io/), un format YAML ouvert pour décrire une activité suspecte, que OneUptime exécute selon un calendrier sur vos événements, ou sur chaque événement dès son arrivée. Quand elle correspond, elle ouvre un [dossier](/docs/telemetry/security-cases) ou s'y ajoute, ouvre une alerte, éventuellement un incident, et écrit un Detection Finding dans les événements. La **Bibliothèque de règles** propose des règles prêtes à l'emploi pour démarrer.
 
 ```mermaid title="Comment une règle de détection se déclenche"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
 4. Dans **En cas de correspondance**, laissez **Ouvrir un dossier en cas de correspondance** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
 5. Sous **Alertes et incidents**, choisissez ce qu'une correspondance déclenche d'autre : **Créer une alerte** (par défaut), **Déclarer un incident**, **Les deux** ou **Aucun des deux**, avec une **Gravité de l'alerte** ou une **Gravité de l'incident** optionnelle.
-6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé) et la façon de compter les correspondances ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
+6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé), **Exécuter en temps réel** (désactivé) et la façon de compter les correspondances ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
 :::
 
 Une première règle, qui correspond aux échecs de connexion venant de l'extérieur de `10.x.x.x` :
@@ -428,6 +428,7 @@ detection:
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Intervalle d'évaluation (minutes)** | La fréquence d'exécution de la règle : des minutes entières, de 1 à 1440. Le formulaire d'une nouvelle règle commence à 5. |
+| **Exécuter en temps réel** | Désactivé sur une nouvelle règle. Activé, la règle vérifie chaque événement à son arrivée au lieu de le faire à chaque intervalle ; voir [Règles en temps réel](#règles-en-temps-réel). |
 | **Champ de regroupement** | Facultatif. Les correspondances qui partagent la valeur de ce champ, comme `principalHost`, sont comptées, alertées et dédupliquées ensemble : une alerte par hôte au lieu de centaines. |
 | **Champ de comptage distinct** | Facultatif. Compter les valeurs différentes de ce champ au lieu des événements correspondants. Les valeurs vides ne comptent pas. |
 | **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une exécution : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
@@ -450,6 +451,16 @@ OneUptime vérifie chaque minute quelles règles activées ont dépassé leur in
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
 - Un événement qui arrive avec plus de deux minutes de retard, une fois qu'une exécution a couvert son heure, est stocké et consultable, mais cette règle ne le lit jamais.
 - Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
+
+### Règles en temps réel
+
+Une règle qui se déclenche sur un seul événement peut s'exécuter en temps réel au lieu de suivre son intervalle : activez **Exécuter en temps réel**, sous **Plus de champs** à l'étape **En cas de correspondance**. Chaque événement que OneUptime reçoit, de toute source, est alors vérifié par la règle dès son arrivée, et une correspondance ouvre son dossier, son alerte et son résultat en quelques secondes.
+
+- Cela convient à une règle avec un **Seuil de nombre de correspondances** de 1, sans **Champ de comptage distinct** et sans le modificateur `re`. Une corrélation compte les événements ensemble, elle suit donc son intervalle. Le formulaire indique quoi changer quand une règle ne convient pas.
+- Un projet exécute au plus 50 règles en temps réel, puisque chaque événement est vérifié par chacune.
+- Dans **Règles de détection**, le **Statut** d'une règle en temps réel indique **Temps réel**, tout comme sa colonne d'intervalle. Une vérification qui échoue apparaît dans sa **Dernière erreur**, comme pour une exécution.
+- Une fois activée, la règle lit d'abord ce qui est arrivé depuis sa dernière exécution, si bien que rien ne passe entre son calendrier et le temps réel. Désactivée, elle revient à son intervalle, à partir de deux minutes plus tôt.
+- Les exceptions et les listes de surveillance s'y appliquent comme à toute règle, et **Exécuter sur les événements passés** la lit comme n'importe quelle autre.
 
 ### Gravité
 
@@ -573,6 +584,10 @@ Vérifiez la clé dans `x-oneuptime-token` et le chemin, `/security-events/v1/in
 
 :::details Une règle ne correspond jamais
 Vérifiez son **Statut** : avec **Désactivé**, la règle ne s'exécute pas, et avec **Échec de l'exécution**, **Voir l'erreur** dans sa ligne en donne la raison. Ouvrez un événement auquel elle aurait dû correspondre et comparez-le à la règle, champ par champ : une valeur simple doit égaler tout le champ, donc utilisez `contains` ou `*` pour une partie. Un attribut se nomme comme dans l'événement (`threat.matched`, pas `attributes.threat.matched`). Avec un seuil supérieur à 1, les correspondances doivent tomber dans une seule exécution.
+:::
+
+:::details Impossible d'activer Exécuter en temps réel
+La règle compte des correspondances, compte des valeurs distinctes, lit une expression régulière ou est une corrélation, et le formulaire indique laquelle de ces raisons : réglez **Seuil de nombre de correspondances** sur 1, videz **Champ de comptage distinct**, ou utilisez `contains`, `startswith` ou `endswith` à la place de `re`. Un projet exécute au plus 50 règles en temps réel : désactivez-le d'abord sur une autre règle.
 :::
 
 :::details Une règle a correspondu, mais aucune alerte ne s'est ouverte

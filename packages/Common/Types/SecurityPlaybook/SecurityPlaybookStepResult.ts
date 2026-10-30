@@ -93,6 +93,12 @@ export interface SecurityPlaybookStepResult {
   approval?: SecurityPlaybookApproval | undefined;
   // For a step that acts on users or hosts: the ones it picked, and how each went.
   targets?: Array<SecurityPlaybookTarget> | undefined;
+  /*
+   * For a step that looks something up and succeeded: whether it found
+   * something (a known-bad entity, activity), which a later step's
+   * condition can wait on (SecurityPlaybookStepCondition).
+   */
+  found?: boolean | undefined;
 }
 
 // The longest message or error a step result keeps.
@@ -272,6 +278,7 @@ export function readStepResults(
       error: readText(item?.["error"]),
       approval: readApproval(item?.["approval"]),
       targets: readStepTargets(item?.["targets"]),
+      found: typeof item?.["found"] === "boolean" ? item["found"] : undefined,
     };
   });
 }

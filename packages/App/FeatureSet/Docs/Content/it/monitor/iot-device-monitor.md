@@ -50,19 +50,19 @@ In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Disposi
 
 ### Scegliere la flotta
 
-In **IoT Monitor Configuration**, scegli la flotta da **IoT Fleet**. Ogni flotta che ha inviato dati è nell'elenco.
+In **IoT Monitor Configuration**, scegli la flotta da **IoT Fleet**. Ogni flotta che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi flotta IoT** apre i passi di configurazione con le tue chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa osservare
 
-Scegli una delle tre schede:
+Un nuovo monitor parte da **Device Offline**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup** - fai clic su un [modello](#modelli-di-avviso-predefiniti). Imposta la metrica, l'aggregazione, l'intervallo di tempo, un raggruppamento su `device.id` e le soglie, e sostituisce i criteri qui sotto con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** - scegli una metrica da **IoT Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un dispositivo o a un tipo di dispositivo. Una metrica personalizzata non è raggruppata: valuta la flotta nel suo insieme.
-- **Avanzato** - costruisci tu query e formule in **Seleziona metriche**, anche su nomi di metriche tuoi, per esempio la memoria in uso come percentuale della memoria di un dispositivo. Usa **Raggruppa per** `device.id` per valutare ogni dispositivo separatamente.
+- **Cambia** - scegli un altro [modello](#modelli-di-avviso-predefiniti). Imposta la metrica, l'aggregazione, l'intervallo di tempo, un raggruppamento su `device.id` e le soglie, e sostituisce i criteri qui sotto con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**) - scegli una metrica da **IoT Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un dispositivo o a un tipo di dispositivo. Una metrica personalizzata non è raggruppata: valuta la flotta nel suo insieme.
+- **Avanzato** (in **Altri campi**) - costruisci tu query e formule in **Seleziona metriche**, anche su nomi di metriche tuoi, per esempio la memoria in uso come percentuale della memoria di un dispositivo. Usa **Raggruppa per** `device.id` per valutare ogni dispositivo separatamente.
 
 ### Controllare i criteri
 
-Apri ogni criterio in **Criteri del monitor** e controlla **Select Metric Variable**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta la tua soglia.
+Apri ogni criterio in **Criteri del monitor** e controlla **Select Metric Variable**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi imposta la tua soglia.
 
 ### Creare il monitor
 
@@ -88,7 +88,7 @@ I filtri agiscono insieme: con un **Device ID** e un **Device Type**, un disposi
 
 ## Modelli di avviso predefiniti
 
-**Quick Setup** offre 5 modelli. Ognuno costruisce un monitor completo: la query della metrica, un raggruppamento su `device.id`, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
+L'elenco di **Su cosa avvisare** offre 5 modelli. Ognuno costruisce un monitor completo: la query della metrica, un raggruppamento su `device.id`, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
 
 Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra - tranne **Device Offline**, che scatta alla prima lettura sotto 1. Un criterio di soglia rientra il 10 % oltre la sua soglia, così un valore che oscila attorno alla linea non va avanti e indietro.
 

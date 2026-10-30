@@ -44,7 +44,8 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 1. **API permissions → Add a permission → Microsoft Graph → Application permissions** に移動し、`AuditLog.Read.All` を選んで **Add permissions** を選びます。Microsoft によると、サインインの一覧では `Directory.Read.All` も求められることがあります。同意を付与した後もサインインが `403` で拒否される場合は追加してください。
 2. Microsoft 365 監査ログには、2 つ目のアクセス許可を追加します。**Add a permission → Office 365 Management APIs → Application permissions** を選び、`ActivityFeed.Read` を追加します。
-3. テナントに対して **Grant admin consent for** を選び、確認します。各アクセス許可の状態は **Granted** になっている必要があります。同意がないと、すべての読み取りが `403` で拒否されます。
+3. プレイブックでユーザーの無効化、有効化、サインアウトを行うには ( [封じ込め](/docs/telemetry/security-cases#封じ込め) を参照)、同じ手順で `User.Read.All`、 `User.EnableDisableAccount.All`、 `User.RevokeSessions.All` を追加します。管理者のアカウントを変更できるのは、Privileged Authentication Administrator ロールも持つアプリだけです。
+4. テナントに対して **Grant admin consent for** を選び、確認します。各アクセス許可の状態は **Granted** になっている必要があります。同意がないと、すべての読み取りが `403` で拒否されます。
 
 ### クライアントシークレットを作成する
 

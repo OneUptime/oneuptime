@@ -61,19 +61,19 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Hos
 
 ### Scegliere la macchina
 
-In **Host Monitor Configuration**, scegliete la macchina da **Host**. Ogni host che ha inviato dati è nell'elenco.
+In **Host Monitor Configuration**, scegliete la macchina da **Host**. Ogni host che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi host** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Scegliete una delle tre schede:
+Un nuovo monitor parte da **Host Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup** – fate clic su un [modello](#modelli-di-avviso-pronti). Imposta la metrica, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** – scegliete una metrica da **Host Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**.
-- **Avanzato** – costruite voi query e formule in **Seleziona metriche**, per esempio un filtro su `state` o un raggruppamento per `mountpoint`.
+- **Cambia** – scegliete un altro [modello](#modelli-di-avviso-pronti). Imposta la metrica, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**) – scegliete una metrica da **Host Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**.
+- **Avanzato** (in **Altri campi**) – costruite voi query e formule in **Seleziona metriche**, per esempio un filtro su `state` o un raggruppamento per `mountpoint`.
 
 ### Rivedere i criteri
 
-Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
+Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi impostate la vostra soglia.
 
 ### Creare il monitor
 
@@ -95,7 +95,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre sei modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Le soglie sono punti di partenza modificabili.
+L'elenco di **Su cosa avvisare** offre sei modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Le soglie sono punti di partenza modificabili.
 
 Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
@@ -113,13 +113,13 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 - **Host Stopped Reporting** scatta quando dall'host non arriva nulla per dieci minuti: la macchina è giù o irraggiungibile, oppure il suo collector si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 - **CPU** è il tempo occupato (`user` più `system`), lo stesso valore mostrato nei grafici della **Panoramica** dell'host. Attesa I/O e steal sono esclusi.
 - **Memoria** esclude i buffer e la cache delle pagine, quindi un host occupato soprattutto dalla cache non la fa scattare.
-- **Filesystem** apre un incidente per ogni mount. I pseudo-filesystem in sola lettura, come i mount snap `squashfs` o `devfs` di macOS, sono sempre pieni al 100%; escludeteli nello scraper `filesystem` del collector.
+- **Filesystem** apre un incidente per ogni mount. I pseudo-filesystem in sola lettura, come i mount snap `squashfs` o `devfs` di macOS, sono sempre pieni al 100%: le configurazioni del collector di OneUptime li lasciano fuori dallo scraper `filesystem` con `exclude_fs_types`, e una configurazione vostra ha bisogno dello stesso.
 - **Media di carico** è una lunghezza grezza della coda di esecuzione, non divisa per il numero di core: 4 è saturazione su un host a 2 core e routine su uno a 32 core, quindi alzatela sugli host grandi.
 - **Numero di processi** confronta il singolo stato di processo più grande (`running`, `sleeping`, …), non il totale dell'host, quindi non corrisponderà a un elenco dei processi. Lo scraper dei processi comunica solo su Linux.
 
 ## Metriche raccolte
 
-L'elenco **Host Metric** offre queste metriche. Ognuna porta `resource.host.name`, che è il modo in cui il monitor limita le sue query a un host.
+L'elenco **Host Metric** offre queste metriche. Ognuna porta `resource.host.name`, che è il modo in cui il monitor limita le sue query a un host. Scelta lì, la CPU conta lo stato `user`, l'uso di memoria e file system lo stato `used`, e file system e processi danno una serie per punto di mount e per stato.
 
 > [!IMPORTANT]
 > Le metriche di utilizzo sono un rapporto da 0 a 1, non una percentuale: usate `0.8` per l'80% in una soglia sulla metrica grezza. I modelli convertono in percentuale con una formula, quindi le loro soglie indicano 80, 85 e 90.
@@ -212,7 +212,7 @@ Il monitor limita ogni query a `resource.host.name` uguale all'host che avete sc
 :::
 
 :::details High Filesystem Usage scatta per un mount sempre pieno
-I pseudo-filesystem in sola lettura, come i mount loop snap `squashfs` sotto `/snap` o `devfs` di macOS, sono pieni al 100% per progettazione e non si riprendono mai. Escludeteli dallo scraper `filesystem` del collector.
+I pseudo-filesystem in sola lettura, come i mount loop snap `squashfs` sotto `/snap` o `devfs` di macOS, sono pieni al 100% per progettazione e non si riprendono mai. Le configurazioni che OneUptime esegue e distribuisce li lasciano fuori con `exclude_fs_types`; una configurazione vostra, o una Configurazione del collector creata prima che lo facessero, ha bisogno dello stesso: copiatelo da [Metriche dell'host](/docs/telemetry/host-otel-collector#metriche-dellhost). Lasciate fuori un altro mount sempre pieno, come un `.dmg` montato, con `exclude_mount_points`.
 :::
 
 ## Passaggi successivi

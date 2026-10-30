@@ -57,19 +57,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Ceph** under *
 
 ### Välj klustret
 
-Välj klustret i **Ceph-kluster** under **Ceph Monitor Configuration**. Alla kluster som har skickat data finns i listan.
+Välj klustret i **Ceph-kluster** under **Ceph Monitor Configuration**. Alla kluster som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till Ceph-kluster** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** — klicka på en [mall](#färdiga-larmmallar). Den ställer in mätvärden, filter, aggregering, tidsintervall och tröskelvärden och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** — välj ett mätvärde i **Ceph Metric** och ställ sedan in **Aggregering** och **Tidsintervall**. **OSD** och **Pool ID** begränsar det till en daemon eller pool.
-- **Avancerad** — bygg frågor och formler själv under **Välj mått**, till exempel en kvot för använd kapacitet från `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Använd **Gruppera efter** `ceph_daemon` eller `pool_id` för att bedöma varje daemon eller pool för sig.
+- **Ändra** — välj en annan [mall](#färdiga-larmmallar). Den ställer in mätvärden, filter, aggregering, tidsintervall och tröskelvärden och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) — välj ett mätvärde i **Ceph Metric** och ställ sedan in **Aggregering** och **Tidsintervall**. **OSD** och **Pool ID** begränsar det till en daemon eller pool.
+- **Avancerad** (under **Fler fält**) — bygg frågor och formler själv under **Välj mått**, till exempel en kvot för använd kapacitet från `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Använd **Gruppera efter** `ceph_daemon` eller `pool_id` för att bedöma varje daemon eller pool för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
@@ -99,7 +99,7 @@ Poolernas dataserier har bara etiketten `pool_id`: Poolens namn finns bara i `ce
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 24 mallar för ett tyst kluster, klustrets hälsa, OSD:er, placement groups och kapacitet. Varje mall bygger en komplett monitor — frågor, etikettfilter, en gruppering, ett kriterium som utlöser och ett som återställer. Tröskelvärdena är utgångspunkter som du kan ändra.
+Listan under **Vad som ska larmas om** erbjuder 24 mallar för ett tyst kluster, klustrets hälsa, OSD:er, placement groups och kapacitet. Varje mall bygger en komplett monitor — frågor, etikettfilter, en gruppering, ett kriterium som utlöser och ett som återställer. Tröskelvärdena är utgångspunkter som du kan ändra.
 
 Mallar läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller under varje minut i fönstret, och ett tröskelkriterium återställs först 10 % bortom sitt tröskelvärde, så att ett värde som pendlar kring gränsen inte fladdrar. **Allvarlighetsgrad** är etiketten som väljaren visar; incidenten och larmet som en mall skapar börjar med projektets högsta allvarlighetsgrad för incidenter och larm.
 
@@ -175,7 +175,7 @@ Agenten hämtar från varje mgr-daemon var 30:e sekund och behåller Cephs egna 
 | `ceph_healthcheck_slow_ops` | antal | Långsamma OSD- och monitoroperationer som checken `SLOW_OPS` rapporterar. |
 | `ceph_daemon_health_metrics` | antal | Hälsomätvärden per daemon, med `type` (till exempel `SLOW_OPS`) och `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antal | 1 när monitorn är i quorum, per `ceph_daemon` (till exempel `mon.a`). |
-| `ceph_mon_metadata` | antal | Monitorns metadata, alltid 1. Summera för att räkna monitorer. |
+| `ceph_mon_metadata` | antal | Monitorns metadata, alltid 1 medan monitorn rapporterar. En summa lägger ihop varje skrapning under en minut, så den räknar inte monitorer. |
 | `ceph_cluster_total_bytes` | byte | Total rå kapacitet. |
 | `ceph_cluster_total_used_bytes` | byte | Rå kapacitet som används. |
 
@@ -190,7 +190,7 @@ Agenten hämtar från varje mgr-daemon var 30:e sekund och behåller Cephs egna 
 | `ceph_osd_stat_bytes` | byte | Rå kapacitet för OSD:ns enhet. |
 | `ceph_osd_stat_bytes_used` | byte | Använda råa byte på OSD:n. Jämför med totalen för att hitta ojämnt fyllda eller nästan fulla OSD:er. |
 | `ceph_osd_numpg` | antal | Placement groups på OSD:n. |
-| `ceph_osd_metadata` | antal | OSD:ns metadata (värdnamn, enhetsklass, version), alltid 1. Summera för att räkna OSD:er. |
+| `ceph_osd_metadata` | antal | OSD:ns metadata (värdnamn, enhetsklass, version), alltid 1 medan OSD:n rapporterar. En summa lägger ihop varje skrapning under en minut, så den räknar inte OSD:er. |
 
 ### Poolmätvärden
 
@@ -207,7 +207,7 @@ Agenten hämtar från varje mgr-daemon var 30:e sekund och behåller Cephs egna 
 
 ### Mätvärden för placement groups
 
-Varje `ceph_pg_*`-serie är per pool, med etiketten `pool_id`; summera över poolerna för ett värde för hela klustret.
+Varje `ceph_pg_*`-serie är per pool, med etiketten `pool_id`. En summa lägger ihop både varje skrapning under en minut och varje pool, så jämför pool för pool, grupperat efter `pool_id`, som PG-mallarna gör.
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |

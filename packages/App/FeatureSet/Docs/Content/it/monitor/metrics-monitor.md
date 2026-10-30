@@ -128,6 +128,8 @@ Questi monitor valutano sempre il **Metric Value**: il valore aggregato della qu
 | **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
 | **Anomalously Low** | sotto quell'intervallo |
 | **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
+| **Nessun dato** | assente: la query non ha inviato nulla nella finestra |
+| **Dati presenti** | presente: la query ha inviato qualcosa nella finestra |
 
 Le condizioni di anomalia non hanno soglia. **Quando avvisare** mostra invece **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto), e i criteri personalizzati anche una **Finestra di riferimento** (14 giorni, quella predefinita, 28, 60 o 90), e ogni punto dati viene confrontato con il riferimento della stessa ora della settimana costruito su quella finestra. Finché quell'ora della settimana non ha abbastanza storico, il criterio sta ancora imparando e non genera avvisi.
 

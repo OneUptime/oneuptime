@@ -128,6 +128,8 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 | **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
+| **Inga data** | frånvarande: frågan skickade ingenting i fönstret |
+| **Har data** | närvarande: frågan skickade något i fönstret |
 
 Avvikelsevillkoren har inget tröskelvärde. **När det ska larmas** visar i stället **Känslighet** (Låg, Medel, som är standard, eller Hög), och de egna kriterierna även ett **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och varje datapunkt jämförs med baslinjen för samma timme i veckan, byggd från det fönstret. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och ger inga larm.
 

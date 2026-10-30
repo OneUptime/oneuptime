@@ -61,19 +61,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Host** 
 
 ### Elegir la máquina
 
-En **Configuración del monitor de host**, elija la máquina en **Host**. Cada host que ha enviado datos está en la lista.
+En **Configuración del monitor de host**, elija la máquina en **Host**. Cada host que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir host** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Host Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** – haga clic en una [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** – elija una métrica en **Métrica del host** y luego fije la **Agregación** y el **Intervalo de tiempo**.
-- **Avanzado** – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un filtro sobre `state` o una agrupación por `mountpoint`.
+- **Cambiar** – elija otra [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) – elija una métrica en **Métrica del host** y luego fije la **Agregación** y el **Intervalo de tiempo**.
+- **Avanzado** (en **Más campos**) – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un filtro sobre `state` o una agrupación por `mountpoint`.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que fije su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que fije su propio umbral.
 
 ### Crear el monitor
 
@@ -95,7 +95,7 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
@@ -113,13 +113,13 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 - **Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: la máquina está caída o inaccesible, o su colector se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **CPU** es el tiempo ocupado (`user` más `system`), la misma cifra que grafica la **Vista general** del host. La espera de E/S y el steal quedan fuera.
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
-- **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %; exclúyalos en el scraper `filesystem` del colector.
+- **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %: las configuraciones de colector de OneUptime los dejan fuera del scraper `filesystem` con `exclude_fs_types`, y una configuración propia necesita lo mismo.
 - **Promedio de carga** es una longitud bruta de la cola de ejecución, no dividida por el número de núcleos: 4 es saturación en un host de 2 núcleos y rutina en uno de 32, así que súbalo en hosts grandes.
 - **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos solo informa en Linux.
 
 ## Métricas recopiladas
 
-La lista **Métrica del host** ofrece estas métricas. Cada una lleva `resource.host.name`, que es como el monitor limita sus consultas a un host.
+La lista **Métrica del host** ofrece estas métricas. Cada una lleva `resource.host.name`, que es como el monitor limita sus consultas a un host. Elegida ahí, la CPU cuenta el estado `user`, el uso de memoria y de sistemas de archivos el estado `used`, y los sistemas de archivos y los procesos dan una serie por punto de montaje y por estado.
 
 > [!IMPORTANT]
 > Las métricas de utilización son una proporción de 0 a 1, no un porcentaje: use `0.8` para el 80 % en un umbral sobre la métrica sin procesar. Las plantillas convierten a porcentaje con una fórmula, así que sus umbrales indican 80, 85 y 90.
@@ -212,7 +212,7 @@ El monitor limita cada consulta con `resource.host.name` igual al host que eligi
 :::
 
 :::details High Filesystem Usage se dispara por un montaje que siempre está lleno
-Los pseudo sistemas de archivos de solo lectura, como los montajes en bucle snap `squashfs` bajo `/snap` o `devfs` de macOS, están llenos al 100 % por diseño y nunca se recuperan. Exclúyalos del scraper `filesystem` del colector.
+Los pseudo sistemas de archivos de solo lectura, como los montajes en bucle snap `squashfs` bajo `/snap` o `devfs` de macOS, están llenos al 100 % por diseño y nunca se recuperan. Las configuraciones que OneUptime ejecuta y proporciona los dejan fuera con `exclude_fs_types`; una configuración propia, o una Configuración del recolector creada antes de que lo hicieran, necesita lo mismo: cópielo de [Métricas del host](/docs/telemetry/host-otel-collector#métricas-del-host). Deje fuera otro montaje siempre lleno, como un `.dmg` montado, con `exclude_mount_points`.
 :::
 
 ## Próximos pasos

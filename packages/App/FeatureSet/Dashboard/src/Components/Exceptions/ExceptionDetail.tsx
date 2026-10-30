@@ -54,7 +54,10 @@ function renderTime(
     <span>
       {OneUptimeDate.getDateAsLocalShortDateTimeString(date)}
       <span className="ml-1.5 text-gray-500">
-        ({formatRelativeTime(date) || translator.translateText("unknown")})
+        (
+        {formatRelativeTime(date, new Date(), translator.language) ||
+          translator.translateText("unknown")}
+        )
       </span>
     </span>
   );

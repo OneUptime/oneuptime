@@ -23,7 +23,7 @@ flowchart TB
 ## Prima di iniziare
 
 - L'agente Kubernetes di OneUptime in esecuzione nel cluster. Vedete [Agente Kubernetes (installazione Helm)](/docs/monitor/kubernetes-agent); il cluster compare in **Kubernetes** pochi minuti dopo l'installazione.
-- Per i modelli del piano di controllo (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): la raccolta del piano di controllo da parte dell'agente, `controlPlane.enabled`. I cluster gestiti (EKS, GKE, AKS) non espongono questi endpoint, quindi lì quei monitor non ricevono mai dati.
+- Per i modelli del piano di controllo (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): la raccolta del piano di controllo da parte dell'agente, `controlPlane.enabled`, che legge l'API server fin da subito; etcd e lo scheduler hanno anche bisogno dei loro endpoint (si veda [Attivare il monitoraggio del piano di controllo](/docs/telemetry/kubernetes-agent#attivare-il-monitoraggio-del-piano-di-controllo)). I cluster gestiti (EKS, GKE, AKS) non espongono questi endpoint, quindi lì quei monitor non ricevono mai dati.
 
 ## Creare un monitor Kubernetes
 
@@ -34,15 +34,15 @@ Andate in **Monitor** e fate clic su **Crea monitor**. In **Altri tipi di monito
 
 ### Scegliere il cluster
 
-Selezionatelo in **Cluster Kubernetes**. L'elenco contiene ogni cluster da cui l'agente ha inviato dati.
+Selezionatelo in **Cluster Kubernetes**. L'elenco contiene ogni cluster da cui l'agente ha inviato dati. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Kubernetes** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Usate una delle tre schede:
+Un nuovo monitor parte da **Cluster Stopped Reporting**, in **Su cosa avvisare**; **Cambia** sceglie un altro modello. **Custom Metric** e **Avanzato** sono in **Altri campi**:
 
-| Scheda | Cosa scegliete |
+| Dove | Cosa scegliete |
 | --- | --- |
-| **Quick Setup** | Un [modello di avviso pronto](#modelli-di-avviso-pronti). Compila la metrica, l'ambito, l'intervallo di tempo e i criteri; potete comunque cambiare l'**Intervallo di tempo**. |
+| **Su cosa avvisare** | Un [modello di avviso pronto](#modelli-di-avviso-pronti). Compila la metrica, l'ambito, l'intervallo di tempo e i criteri; potete comunque cambiare l'**Intervallo di tempo**. |
 | **Custom Metric** | Una metrica del [catalogo delle metriche](#catalogo-delle-metriche), poi il suo **Ambito della risorsa**, i filtri, l'**Aggregazione** (Media, Massimo, Minimo, Somma o Conteggio) e l'**Intervallo di tempo**. |
 | **Avanzato** | L'**Ambito della risorsa**, i filtri e l'**Intervallo di tempo**, più le vostre query di metriche e formule in **Seleziona metriche**, con un grafico in tempo reale del risultato. |
 
@@ -128,7 +128,7 @@ Ogni campione viene confrontato con una baseline della stessa ora della settiman
 
 ## Modelli di avviso pronti
 
-La scheda **Quick Setup** elenca questi modelli, raggruppati per categoria. Ognuno compila due criteri: uno che segna il monitor offline e apre un incidente e un avviso finché la condizione vale, e uno che lo riporta online quando non vale più.
+L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per categoria. Ognuno compila due criteri: uno che segna il monitor offline e apre un incidente e un avviso finché la condizione vale, e uno che lo riporta online quando non vale più.
 
 | Modello | Categoria | Scatta quando | Gravità |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ I cluster si registrano da soli a partire dai dati dell'agente, con il `clusterN
 :::
 
 :::details Un modello del piano di controllo non scatta mai
-**etcd No Leader**, **API Server Request Saturation** e **Scheduler Backlog** leggono metriche che raccoglie solo la raccolta del piano di controllo dell'agente. Attivate `controlPlane.enabled` nei valori Helm dell'agente; è disattivata per impostazione predefinita. I cluster gestiti (EKS, GKE, AKS) non espongono questi endpoint, quindi su di essi questi monitor non ricevono mai dati.
+**etcd No Leader**, **API Server Request Saturation** e **Scheduler Backlog** leggono metriche che raccoglie solo la raccolta del piano di controllo dell'agente. Attivate `controlPlane.enabled` nei valori Helm dell'agente; è disattivata per impostazione predefinita. Così si legge l'API server. etcd e lo scheduler girano sui nodi del piano di controllo, quindi **etcd No Leader** e **Scheduler Backlog** richiedono anche `controlPlane.etcd.endpoints` e `controlPlane.scheduler.endpoints` impostati su indirizzi che il pod dell'agente può raggiungere (si veda [Attivare il monitoraggio del piano di controllo](/docs/telemetry/kubernetes-agent#attivare-il-monitoraggio-del-piano-di-controllo)). I cluster gestiti (EKS, GKE, AKS) non espongono questi endpoint, quindi su di essi questi monitor non ricevono mai dati.
 :::
 
 :::details Una soglia di CPU non scatta mai

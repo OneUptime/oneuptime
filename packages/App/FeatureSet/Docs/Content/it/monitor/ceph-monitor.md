@@ -57,19 +57,19 @@ In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Ceph** 
 
 ### Scegliere il cluster
 
-In **Ceph Monitor Configuration**, scegli il cluster da **Cluster Ceph**. Ogni cluster che ha inviato dati è nell'elenco.
+In **Ceph Monitor Configuration**, scegli il cluster da **Cluster Ceph**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Ceph** apre i passi di configurazione con le tue chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Scegli una delle tre schede:
+Un nuovo monitor parte da **Cluster Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup**: fai clic su un [modello](#modelli-di-avviso-predefiniti). Imposta metriche, filtri, aggregazione, intervallo di tempo e soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric**: scegli una metrica da **Ceph Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. **OSD** e **Pool ID** la limitano a un daemon o a un pool.
-- **Avanzato**: costruisci da solo query e formule in **Seleziona metriche**, per esempio un rapporto di capacità usata da `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Raggruppa per** `ceph_daemon` o `pool_id` per valutare ogni daemon o pool separatamente.
+- **Cambia**: scegli un altro [modello](#modelli-di-avviso-predefiniti). Imposta metriche, filtri, aggregazione, intervallo di tempo e soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**): scegli una metrica da **Ceph Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. **OSD** e **Pool ID** la limitano a un daemon o a un pool.
+- **Avanzato** (in **Altri campi**): costruisci da solo query e formule in **Seleziona metriche**, per esempio un rapporto di capacità usata da `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Raggruppa per** `ceph_daemon` o `pool_id` per valutare ogni daemon o pool separatamente.
 
 ### Controllare i criteri
 
-Apri ogni criterio in **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta una tua soglia.
+Apri ogni criterio in **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi imposta una tua soglia.
 
 ### Creare il monitor
 
@@ -99,7 +99,7 @@ Le serie di dati dei pool hanno solo l'etichetta `pool_id`: il nome del pool esi
 
 ## Modelli di avviso predefiniti
 
-**Quick Setup** offre 24 modelli che coprono un cluster silenzioso, stato del cluster, OSD, placement group e capacità. Ognuno costruisce un monitor completo: query, filtri sulle etichette, un raggruppamento, un criterio che scatta e uno che rientra. Le soglie sono un punto di partenza modificabile.
+L'elenco di **Su cosa avvisare** offre 24 modelli che coprono un cluster silenzioso, stato del cluster, OSD, placement group e capacità. Ognuno costruisce un monitor completo: query, filtri sulle etichette, un raggruppamento, un criterio che scatta e uno che rientra. Le soglie sono un punto di partenza modificabile.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo se la condizione vale per ogni minuto della sua finestra, e un criterio a soglia rientra il 10% oltre la propria soglia, così un valore che oscilla intorno al limite non va avanti e indietro. **Gravità** è l'etichetta che mostra il selettore; l'incidente e l'avviso creati da un modello partono con la gravità di incidente e di avviso più alta del tuo progetto.
 
@@ -175,7 +175,7 @@ L'agente interroga ogni daemon mgr ogni 30 secondi e mantiene le etichette di Ce
 | `ceph_healthcheck_slow_ops` | conteggio | Operazioni lente di OSD e monitor segnalate dal check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | conteggio | Metriche di stato per daemon, identificate da `type` (per esempio `SLOW_OPS`) e `ceph_daemon`. |
 | `ceph_mon_quorum_status` | conteggio | 1 quando il monitor è nel quorum, per `ceph_daemon` (per esempio `mon.a`). |
-| `ceph_mon_metadata` | conteggio | Metadati del monitor, sempre 1. Sommali per contare i monitor. |
+| `ceph_mon_metadata` | conteggio | Metadati del monitor, sempre 1 finché il monitor comunica. Una somma addiziona ogni raccolta di un minuto, quindi non conta i monitor. |
 | `ceph_cluster_total_bytes` | byte | Capacità grezza totale. |
 | `ceph_cluster_total_used_bytes` | byte | Capacità grezza in uso. |
 
@@ -190,7 +190,7 @@ L'agente interroga ogni daemon mgr ogni 30 secondi e mantiene le etichette di Ce
 | `ceph_osd_stat_bytes` | byte | Capacità grezza del dispositivo dell'OSD. |
 | `ceph_osd_stat_bytes_used` | byte | Byte grezzi usati sull'OSD. Confrontali con il totale per individuare OSD sbilanciati o quasi pieni. |
 | `ceph_osd_numpg` | conteggio | Placement group sull'OSD. |
-| `ceph_osd_metadata` | conteggio | Metadati dell'OSD (nome host, classe del dispositivo, versione), sempre 1. Sommali per contare gli OSD. |
+| `ceph_osd_metadata` | conteggio | Metadati dell'OSD (nome host, classe del dispositivo, versione), sempre 1 finché l'OSD comunica. Una somma addiziona ogni raccolta di un minuto, quindi non conta gli OSD. |
 
 ### Metriche dei pool
 
@@ -207,7 +207,7 @@ L'agente interroga ogni daemon mgr ogni 30 secondi e mantiene le etichette di Ce
 
 ### Metriche dei placement group
 
-Ogni serie `ceph_pg_*` è per pool, con l'etichetta `pool_id`; somma sui pool per un conteggio dell'intero cluster.
+Ogni serie `ceph_pg_*` è per pool, con l'etichetta `pool_id`. Una somma addiziona ogni raccolta di un minuto e ogni pool, quindi confronta pool per pool, raggruppando per `pool_id`, come fanno i modelli dei PG.
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |

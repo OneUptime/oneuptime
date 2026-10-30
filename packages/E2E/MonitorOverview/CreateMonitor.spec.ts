@@ -1230,11 +1230,11 @@ test.describe("Create Monitor, start to finish", () => {
  * seventeen rows used to put them a screen away from the row clicked.
  */
 test.describe("Quick Setup's alert templates", () => {
-  const KUBERNETES_TEMPLATE_COUNT: number = 17;
+  const KUBERNETES_TEMPLATE_COUNT: number = 18;
   const ETCD_DESCRIPTION_START: string =
     "Requires the agent's control-plane scrape";
 
-  async function openKubernetesQuickSetup(
+  async function openKubernetesCriteria(
     page: Page,
     query: string = "",
   ): Promise<Locator> {
@@ -1246,6 +1246,24 @@ test.describe("Quick Setup's alert templates", () => {
     await nameInput(form).fill("Production cluster health");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
+    // A new monitor starts on the type's default alert, folded.
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Cluster Stopped Reporting",
+      { timeout: 60000 },
+    );
+
+    return form;
+  }
+
+  // The list of templates, opened with Change from the default alert.
+  async function openKubernetesQuickSetup(
+    page: Page,
+    query: string = "",
+  ): Promise<Locator> {
+    const form: Locator = await openKubernetesCriteria(page, query);
+
+    await page.getByTestId("alert-template-change").click();
+
     const templates: Locator = page.getByRole("radiogroup", {
       name: "Alert templates",
     });
@@ -1253,6 +1271,55 @@ test.describe("Quick Setup's alert templates", () => {
 
     return form;
   }
+
+  test("a new monitor starts on Stopped Reporting under What to alert on, its criteria in, and More fields folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    await openKubernetesCriteria(page);
+
+    const setup: Locator = page.getByTestId("infrastructure-monitor-setup");
+    await expect(
+      setup
+        .getByTestId("infrastructure-monitor-alert-section")
+        .getByText("What to alert on"),
+    ).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-summary")).toHaveText(
+      "The cluster's agent sends no data for 10 minutes.",
+    );
+
+    // The criteria the default made: the cluster is offline while silent.
+    await expect(
+      page.getByTestId("monitor-criteria-header").first(),
+    ).toContainText("Cluster Stopped Reporting");
+
+    // A metric of your own, or a query, waits under More fields.
+    const moreFields: Locator = setup.getByTestId("folded-section").filter({
+      has: page.getByTestId("infrastructure-monitor-more-fields"),
+    });
+    await expect(moreFields).toHaveAttribute("data-collapsed", "true");
+    await expect(
+      page.getByTestId("infrastructure-monitor-more-fields"),
+    ).toBeHidden();
+
+    await moreFields.getByTestId("folded-section-header").click();
+    await expect(moreFields).toHaveAttribute("data-collapsed", "false");
+    await expect(
+      page
+        .getByTestId("infrastructure-monitor-more-fields")
+        .getByText("Custom Metric", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("infrastructure-monitor-more-fields")
+        .getByText("Advanced", { exact: true }),
+    ).toBeVisible();
+
+    await screenshot(page, "create-monitor-infrastructure-default-alert");
+  });
 
   test("one row per template, two to a line, and no long description on the list", async ({
     page,
@@ -1272,6 +1339,7 @@ test.describe("Quick Setup's alert templates", () => {
     await expect(
       page.getByTestId("alert-template-picker").getByRole("heading"),
     ).toHaveText([
+      "Availability",
       "Workload",
       "Node",
       "Control Plane",
@@ -1280,10 +1348,13 @@ test.describe("Quick Setup's alert templates", () => {
     ]);
 
     // Two to a line: the first two Workload templates share a top.
+    const workloadRows: Locator = page
+      .getByTestId("alert-template-group-Workload")
+      .getByRole("radio");
     const first: { x: number; y: number; width: number; height: number } =
-      await boxOf(rows.nth(0));
+      await boxOf(workloadRows.nth(0));
     const second: { x: number; y: number; width: number; height: number } =
-      await boxOf(rows.nth(1));
+      await boxOf(workloadRows.nth(1));
     expect(Math.abs(first.y - second.y)).toBeLessThan(2);
     expect(second.x).toBeGreaterThan(first.x + first.width - 2);
 
@@ -1303,11 +1374,17 @@ test.describe("Quick Setup's alert templates", () => {
       page.getByText("k8s.node.cpu.usage", { exact: false }),
     ).toHaveCount(0);
 
-    // Nothing is picked yet, and the list is one tab stop.
-    for (const row of await rows.all()) {
-      await expect(row).toHaveAttribute("aria-checked", "false");
-    }
-    await expect(rows.nth(0)).toHaveAttribute("tabindex", "0");
+    // The default is the one picked, and the list's one tab stop.
+    const stoppedReporting: Locator = page.getByTestId(
+      "alert-template-k8s-cluster-stopped-reporting",
+    );
+    await expect(stoppedReporting).toHaveAttribute("aria-checked", "true");
+    await expect(stoppedReporting).toHaveAttribute("tabindex", "0");
+    await expect(
+      page
+        .getByRole("radiogroup", { name: "Alert templates" })
+        .locator('[role="radio"][aria-checked="true"]'),
+    ).toHaveCount(1);
     await expect(rows.nth(1)).toHaveAttribute("tabindex", "-1");
 
     await screenshot(page, "create-monitor-alert-templates");
@@ -1332,7 +1409,7 @@ test.describe("Quick Setup's alert templates", () => {
       })
       .click();
 
-    // A row from the middle of the list: eight rows are under it.
+    // A row well down the list.
     await page.getByTestId("alert-template-k8s-etcd-no-leader").click();
 
     // The list folded into the template.
@@ -1469,10 +1546,14 @@ test.describe("Quick Setup's alert templates", () => {
     const rows: Locator = page
       .getByRole("radiogroup", { name: "Alert templates" })
       .getByRole("radio");
+    // One a line: the second Workload template sits under the first.
+    const workloadRows: Locator = page
+      .getByTestId("alert-template-group-Workload")
+      .getByRole("radio");
     const first: { x: number; y: number; width: number } = await boxOf(
-      rows.nth(0),
+      workloadRows.nth(0),
     );
-    const second: { x: number; y: number } = await boxOf(rows.nth(1));
+    const second: { x: number; y: number } = await boxOf(workloadRows.nth(1));
     expect(second.y).toBeGreaterThan(first.y);
 
     for (const row of await rows.all()) {

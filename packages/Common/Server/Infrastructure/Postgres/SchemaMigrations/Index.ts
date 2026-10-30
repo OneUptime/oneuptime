@@ -230,6 +230,7 @@ import { AddOnCallPageMessage1808510000000 } from "./1808510000000-AddOnCallPage
 import { AddUpdateCheckSecurityAdvisoryColumns1808540000000 } from "./1808540000000-AddUpdateCheckSecurityAdvisoryColumns";
 import { AddTelemetryExceptionRegression1808560000000 } from "./1808560000000-AddTelemetryExceptionRegression";
 import { AddTelemetryExceptionAiExplanation1808580000000 } from "./1808580000000-AddTelemetryExceptionAiExplanation";
+import { AddDetectionRuleRealTime1808600000000 } from "./1808600000000-AddDetectionRuleRealTime";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1662,4 +1663,5 @@ export default [
   AddUpdateCheckSecurityAdvisoryColumns1808540000000,
   AddTelemetryExceptionRegression1808560000000,
   AddTelemetryExceptionAiExplanation1808580000000,
+  AddDetectionRuleRealTime1808600000000,
 ];
