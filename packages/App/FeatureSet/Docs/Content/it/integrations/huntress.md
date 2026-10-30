@@ -51,11 +51,11 @@ L'incidente conserva il numero del report nei suoi campi personalizzati, come `h
 :::steps
 ### Creare il workflow
 
-Apri **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli la categoria **Huntress**, scegli **Open an incident for each Huntress incident report**, fai clic su **Usa questo modello** e crea il workflow. Si apre nel **Costruttore**, disattivato.
+Apri **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli la categoria **Huntress**, scegli **Open an incident for each Huntress incident report** e fai clic su **Usa questo modello**.
 
 ### Scegliere chi avvisare
 
-Fai clic sul passaggio **Page an On-Call Policy**, scegli le **Policy di reperibilità** da avvisare e salva il passaggio.
+La finestra chiede poi chi avvisare: in **Who to page for high and critical reports**, scegli le policy di reperibilità da avvisare, o nessuna per non avvisare nessuno, e fai clic su **Crea flusso di lavoro**. Il workflow si apre nel **Costruttore**, disattivato. Per cambiare in seguito chi avvisa, fai clic sul suo passaggio **Page an On-Call Policy** e cambia le sue **Policy di reperibilità**.
 
 ### Aggiungere un endpoint webhook in Huntress
 
@@ -79,7 +79,7 @@ Attiva **Abilitato** in alto nel **Costruttore**. In Huntress, apri il menu dell
 
 ## Cosa fa il workflow
 
-Il modello prende un percorso per ogni **Event**, con uno **Switch / Case** dopo il trigger:
+Dopo il trigger, **Incident From Another Tool** fa ciò che chiede ogni **Event**, tramite il numero del report:
 
 | Event | Cosa fa il workflow |
 | --- | --- |
@@ -87,7 +87,7 @@ Il modello prende un percorso per ogni **Event**, con uno **Switch / Case** dopo
 | `comment-added` | Trova l'incidente del report e vi aggiunge il commento come nota privata. |
 | `closed` | Trova l'incidente del report e lo risolve, a meno che non sia già risolto. Il motivo è nella sua cronologia: Huntress ha chiuso il report. |
 
-È un workflow come gli altri, quindi puoi cambiare cosa fa: avvisare solo per i report critici cambiando cosa confronta l'**If / Else** dopo **Create One Incident**, pubblicare ogni report in un canale di chat con un passaggio Slack o Microsoft Teams, oppure mandare ogni organizzazione alla propria policy di reperibilità con uno **Switch / Case** su **Organization**. Ogni esecuzione compare tra le esecuzioni del workflow, con cosa ha fatto ogni passaggio.
+È un workflow come gli altri, quindi puoi cambiare cosa fa: avvisare solo per i report critici cambiando cosa confronta l'**If / Else** dopo **Incident From Another Tool**, pubblicare ogni report in un canale di chat con un passaggio Slack o Microsoft Teams, oppure mandare ogni organizzazione alla propria policy di reperibilità con uno **Switch / Case** su **Organization**. Ogni esecuzione compare tra le esecuzioni del workflow, con cosa ha fatto ogni passaggio.
 
 ### Gravità
 
@@ -174,7 +174,7 @@ Il workflow è stato eliminato o archiviato, il suo trigger non è più **Huntre
 :::
 
 :::details Nessun incidente è stato aperto
-Apri le esecuzioni del workflow e l'esecuzione del report. Se **Create One Incident** è fallito perché la gravità dell'incidente è vuota, il progetto non ha gravità di incidente: aggiungine una in **Incidenti → Impostazioni → Gravità incidente**.
+Apri le esecuzioni del workflow e l'esecuzione del report. Se **Incident From Another Tool** è fallito con `This project has no incident severities to put the incident at.`, aggiungine una in **Incidenti → Impostazioni → Gravità incidente**.
 :::
 
 :::details Nessuno è stato avvisato

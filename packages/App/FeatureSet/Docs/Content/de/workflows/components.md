@@ -22,10 +22,13 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Text zusammenzufassen, einzuordnen oder zu entwerfen     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Je nach Wert den einen oder anderen Weg zu nehmen        | [Bedingungen](#conditions)                                        |
 | Je nach Wert einen von mehreren Wegen zu nehmen          | [Switch / Case](#switch-case)                                     |
+| Nur weiterzumachen, wenn ein paar Zeilen JavaScript es sagen | [Check With JavaScript](#check-with-javascript) |
 | Daten zwischen zwei Bausteinen umzuformen                | [JSON](#json) oder [Benutzerdefinierter Code](#custom-code)       |
 | Vor dem nächsten Baustein zu warten                      | [Sleep](#sleep)                                                   |
 | Einen anderen Workflow zu starten                        | [Execute Workflow](#execute-workflow)                             |
 | Vorfälle, Monitore und andere Datensätze zu lesen oder zu ändern | [OneUptime-Datenkomponenten](#oneuptime-datenkomponenten) |
+| Vorfälle oder Warnungen zu den Problemen eines anderen Tools zu öffnen, zu bestätigen und zu lösen | [Vorfälle und Warnungen aus anderen Tools](#vorfälle-und-warnungen-aus-anderen-tools) |
+| Ein Zabbix-Problem zu bestätigen oder zu schließen | [Zabbix](#zabbix) |
 
 Ein spezieller Baustein schlägt einen allgemeinen: Der Slack-Baustein kennt die Grenzen von Slack, und ein Datensatz-Baustein kennt die Felder des Datensatzes, sodass Sie klarere Fehler und Protokolle bekommen als von einem **API**-Baustein, der dieselbe Aufgabe erledigt.
 
@@ -44,7 +47,7 @@ flowchart TB
 - **Ausgaben** sind die Punkte am unteren Rand. Die meisten Bausteine haben **Success** und **Error**; [Bedingungen](#conditions) hat **Yes** und **No**, und [Switch / Case](#switch-case) hat eine für jeden seiner Fälle und dazu **Default**.
 - **Rückkehren** sind die Werte, die ein Baustein an spätere Bausteine weitergibt, etwa den **Response Body** einer API. Ein späterer Baustein liest einen mit `{{local.components.<block ID>.returnValues.<value ID>}}`; die Schaltfläche **{ }** in einer Einstellung fügt ihn für Sie ein. Siehe [Variablen](/docs/workflows/variables#komponentenausgaben-daten-aus-früheren-bausteinen).
 
-Ein Baustein, der **Error** nimmt, lässt die Ausführung nicht fehlschlagen: Die Ausführung folgt dem Pfad **Error** oder endet dort, wenn nichts damit verbunden ist. Eine leer gelassene Pflichteinstellung oder eine Einstellung, die nie funktionieren kann, stoppt die Ausführung dagegen mit einem Fehler.
+Ein Baustein, der **Error** nimmt, übergibt den Fehler an die Bausteine, die mit **Error** verbunden sind, und die Ausführung geht dort weiter. Ist mit **Error** nichts verbunden, schlägt die Ausführung fehl: Was sie sonst noch tat, läuft weiter, dann endet sie mit dem Status **Fehler**, und der Eintrag des Bausteins unter **Schritte** der Ausführung sagt, warum. Eine leer gelassene Pflichteinstellung oder eine Einstellung, die nie funktionieren kann, stoppt die Ausführung dagegen mit einem Fehler.
 
 ## API
 
@@ -64,6 +67,8 @@ Eine HTTP-Anfrage an jede URL senden. Es gibt einen Baustein pro Methode: **API 
 So oder so gibt der Baustein **Response Status**, **Response Headers** und **Response Body** zurück, dazu **Error** mit dem Grund, wenn er fehlgeschlagen ist. Lesen Sie ein Feld einer JSON-Antwort, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Weiterleitungen werden nicht verfolgt, richten Sie den Baustein also auf die Adresse, die antwortet. Anfragen gehen von OneUptime aus: Eine URL, die zu einer privaten Netzwerkadresse auflöst, wird abgelehnt, sofern ein Administrator einer selbst gehosteten Installation sie nicht erlaubt, und die Ausführung stoppt mit dem Grund. Siehe [Ausgehender Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).
+
+**API Get By ID (JSON)** liest ein Element über eine ID, die von anderswo kam, etwa den Vorgangsschlüssel, den ein Webhook gesendet hat. Setzen Sie `{id}` in seine **URL**, wo die ID hingehört, wie in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, und die ID in **ID**. Der Baustein setzt die ID nur ein, wenn sie eine schlichte ID ist, höchstens 200 Buchstaben, Ziffern, Bindestriche und Unterstriche, und kodiert sie trotzdem mit Prozentzeichen: Alles andere, etwa `x/../users`, nimmt **Error**, bevor eine Anfrage gesendet wird, sodass Text von außen die Anfrage nicht woandershin lenken kann. Ansonsten arbeitet er wie **API Get (JSON)** und gibt dieselben Werte zurück.
 
 ## AI
 
@@ -219,10 +224,9 @@ Um nur zu alarmieren, wenn etwas zutrifft, setzen Sie [If / Else](#conditions) v
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-Wenn Sie einen Workflow anlegen, halten die Vorlagen unter **Bereitschaft** diesen bereit, und einen, der mit **Switch / Case** nach Schweregrad alarmiert. Wer alarmiert wird, überlässt eine Vorlage Ihnen: Der Workflow öffnet sich im Editor, wo jeder Baustein zum Alarmieren **Click to set up** anzeigt.
+Wenn Sie einen Workflow anlegen, halten die Vorlagen unter **Bereitschaft** diesen bereit, und einen, der mit **Switch / Case** nach Schweregrad alarmiert. Der Dialog **Arbeitsablauf erstellen** fragt für jeden Baustein zum Alarmieren einer Vorlage, wen er alarmiert, sodass sich der Workflow mit diesen Angaben öffnet. Ein Baustein zum Alarmieren, den Sie im Editor hinzufügen, zeigt **Click to set up**, bis Sie wählen, wen er alarmiert.
 
 | Einstellung | Was sie tut |
 | ----------- | ----------- |
@@ -270,6 +274,27 @@ Ein späterer Baustein liest den kurzen Titel als `{{local.components.javascript
 Der Code läuft in einer Sandbox mit `args`, `console.log` (ins Protokoll der Ausführung geschrieben), `axios` für HTTP-Anfragen, `crypto` und `sleep`. Er hat kein Dateisystem und keinen Prozess, und seine Anfragen unterliegen denselben Adressregeln wie der API-Baustein. Er hat standardmäßig 5 Sekunden; eine selbst gehostete Installation ändert das mit `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Success** löst mit dem zurückgegebenen **Value** aus, und **Error**, wenn der Code eine Ausnahme wirft oder die Zeit überschreitet, mit der Meldung in **Error**. Für umfangreichere Skripte verwenden Sie stattdessen ein [Runbook](/docs/runbooks/index).
+
+## Check With JavaScript
+
+Ein paar Zeilen JavaScript ausführen und dann je nach Rückgabe **Yes** oder **No** nehmen: ein Baustein [Benutzerdefinierter Code](#custom-code) und danach ein [If / Else](#conditions), in einem Baustein. Verwenden Sie ihn, wenn ein einzelner Vergleich für die Entscheidung nicht reicht, etwa um zu lesen, was ein anderes Tool gesendet hat, und zu überspringen, was der Workflow in Ruhe lassen soll.
+
+| Einstellung         | Was sie tut |
+| ------------------- | ----------- |
+| **JavaScript Code** | Ihr Code. `return true` nimmt **Yes**. Um auch Werte weiterzugeben, geben Sie ein Objekt mit `proceed: true`, den Werten und einem `reason` zurück. |
+| **Arguments**       | Ein JSON-Objekt mit Werten für den Code, der sie als `args` liest, wie bei **Run Custom JavaScript**. |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+Nur `true` oder ein Objekt, dessen `proceed` `true` ist, nimmt **Yes**: Alles andere nimmt **No**, selbst eine Zahl oder ein Text. Der Baustein gibt **Value** zurück, was der Code zurückgegeben hat, das ein späterer Baustein als `{{local.components.javascript-check-1.returnValues.returnValue.title}}` liest, und **Reason**, den `reason` des Codes oder in einem Satz, was er zurückgegeben hat, den der Reiter **Schritte** der Ausführung neben dem genommenen Ausgang zeigt.
+
+Der Code läuft so, wie **Run Custom JavaScript** ihn ausführt: in derselben Sandbox, mit denselben `args`, `console.log` und `axios` und mit demselben Zeitlimit. Wirft er eine Ausnahme oder überschreitet er die Zeit, nimmt der Baustein **Error**.
 
 ## JSON
 
@@ -358,6 +383,50 @@ Einen anderen Workflow desselben Projekts starten. Ihr Workflow läuft weiter, o
 **Out** löst aus, sobald der andere Workflow eingereiht ist. **Error** löst aus, wenn das nicht geht: Er wird nicht gefunden, ist ausgeschaltet oder archiviert, oder ihn zu starten würde eine Schleife bilden.
 
 Verwenden Sie ihn, um gemeinsame Logik zu teilen: Bauen Sie einen Workflow "im Vorfallkanal posten" einmal und starten Sie ihn aus jedem Workflow, der ihn braucht. Eine Kette von Workflows, die einander starten, kann nicht auf sich selbst zurückführen und ist höchstens 10 tief. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration#grenze-beim-aufrufen-anderer-workflows).
+
+## Vorfälle und Warnungen aus anderen Tools
+
+Führen Sie einen Vorfall oder eine Warnung für jedes Problem, von dem Ihnen ein anderes Tool berichtet, zugeordnet über die eigene ID dieses Tools dafür. **Incident From Another Tool** und **Alert From Another Tool** sind die Grundlage der Vorlagen für Zabbix, Huntress, Jira und Dynamics 365, und sie funktionieren für jedes Tool, das den [Webhook-Trigger](/docs/workflows/triggers#webhook) eines Workflows aufrufen kann. Im Bereich **Komponente hinzufügen** stehen sie unter **From Other Tools**.
+
+Jede Ausführung übergibt dem Baustein ein Ereignis: **What Happened** und **Outside ID**, die ID des Tools für das Problem. Der Baustein sucht den Datensatz, der diese ID führt, und tut, was **What Happened** sagt:
+
+| What Happened | Was der Baustein tut |
+| ------------- | -------------------- |
+| `open`, `problem`, `firing`, `triggered` oder `created` | Öffnet einen Vorfall oder erstellt eine Warnung aus **Title**, **Description** und **Severity**, es sei denn, ein Datensatz führt die ID bereits. |
+| `acknowledge` oder `acknowledged` | Setzt den Datensatz auf Ihren ersten bestätigten Zustand, mit **Note** als Grund in seinem Verlauf. |
+| `resolve`, `resolved`, `recovery`, `ok` oder `closed` | Setzt den Datensatz auf Ihren ersten gelösten Zustand, mit **Note** als Grund in seinem Verlauf. |
+| `note`, `update` oder `comment` | Fügt dem Datensatz **Note** als private Notiz hinzu. |
+| Der Name eines Ihrer Zustände | Setzt den Datensatz auf diesen Zustand. Schreiben Sie `state:` vor einen Namen, der eines dieser Wörter ist, etwa `state: Open`. |
+
+| Ausgang | Wann |
+| ------- | ---- |
+| **Opened**, beim Baustein für Warnungen **Created** | Er hat einen neuen Datensatz geöffnet. Verbinden Sie hier einen Baustein zum Alarmieren, damit nur ein neues Problem alarmiert. |
+| **Updated** | Er hat den Datensatz in einen anderen Zustand gesetzt oder die Notiz hinzugefügt. |
+| **Unchanged** | Es gab nichts zu tun: Kein Datensatz führt die ID, der Datensatz steht bereits in diesem Zustand oder darüber hinaus, oder **What Happened** ist leer. |
+| **Error** | Er konnte den Datensatz nicht lesen oder ändern. Ist hier nichts verbunden, schlägt die Ausführung fehl. |
+
+Ein Datensatz bewegt sich nur vorwärts und ein gelöster gar nicht mehr, sodass keines der beiden Tools rückgängig macht, was das andere geändert hat. Er führt die ID in einem benutzerdefinierten Feld, `externalId`, sofern **Outside ID Field** kein anderes nennt, und nur dieses Feld wird geschrieben, sodass die anderen benutzerdefinierten Felder des Datensatzes ihre Werte behalten. Für eine ID, die ein Datensatz führt, wird nie wieder einer geöffnet, auch wenn dieser Datensatz gelöst ist: Verwenden Sie eine ID, die für jedes Problem neu ist, wie es eine Zabbix-Ereignis-ID oder eine Huntress-Berichtsnummer ist. Um stattdessen über die eigene ID eines Datensatzes zu handeln, wie es die Jira-Vorlagen mit der ID tun, die die Labels eines Vorgangs tragen, setzen Sie sie in **Incident ID** oder **Alert ID**.
+
+**Severity** nennt einen Ihrer Schweregrade über seinen Namen oder seine ID, ohne Rücksicht auf Groß- und Kleinschreibung, oder über seine Stellung unter ihnen: `most severe`, `middle` oder `least severe`. So werden die eigenen Stufen eines Tools auf die Schweregrade verteilt, die Sie selbst benannt haben. Bleibt die Einstellung leer oder nennt sie keinen davon, ist es Ihr höchster Schweregrad, und das Protokoll der Ausführung sagt es. Ein neuer Vorfall wird von Ihren Statusseiten ferngehalten, und deren Abonnenten erfahren nichts davon, weil der Text eines anderen Tools für dessen Nutzer geschrieben ist: Schalten Sie **Show On Status Pages** ein, um ihn zu zeigen.
+
+Unter **Weitere Felder** ist **Reason** der Grund im Verlauf des Datensatzes, wenn er sich bewegt, und **Note** wird dann daneben als private Notiz hinzugefügt, für ein Tool, das beim Bestätigen oder Lösen etwas mitteilt. **Custom Fields** gibt einem neuen Datensatz weitere benutzerdefinierte Felder, als JSON-Objekt, **Labels** die IDs seiner Beschriftungen, durch Kommas getrennt, und **Betroffene Ressourcen** die Ressourcen, um die es geht, wie bei **Create One Incident**. **Note Instead Of Resolving** fügt die Notiz hinzu und überlässt das Lösen des Datensatzes Ihren Leuten. Der Baustein gibt **Summary** zurück, was er getan hat, in einem Satz, und den Datensatz, sodass ein späterer Baustein seine ID als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}` liest.
+
+## Zabbix
+
+Ein Problem in Zabbix über die API von Zabbix bestätigen oder schließen oder ihm eine Nachricht hinzufügen. Der Baustein heißt **Update Zabbix Problem**, und die [Zabbix-Vorlagen](/docs/integrations/zabbix) senden damit, was in OneUptime geschieht, an Zabbix zurück.
+
+| Einstellung | Was sie tut |
+| ----------- | ----------- |
+| **Zabbix URL** | Die Adresse, unter der Sie Zabbix öffnen, etwa `https://zabbix.example.com`. Anfragen gehen an sein `api_jsonrpc.php`. |
+| **API Token** | Ein API-Token eines Zabbix-Benutzers, der Probleme bestätigen, kommentieren und schließen darf. Bewahren Sie es in einer geheimen Variablen auf. |
+| **Event ID** | Die Ereignis-ID des Problems, meist die, die ein Vorfall oder eine Warnung in den benutzerdefinierten Feldern führt. |
+| **What To Do** | `acknowledge`, `close` oder `message`. Bleibt es leer, wird Zabbix nicht aktualisiert. |
+| **Message** | Was Zabbix beim Problem festhält, höchstens 2.048 Zeichen: Eine längere Nachricht wird gekürzt. |
+| **Zabbix 6.0** | Unter **Weitere Felder**. Zabbix 6.0 liest das Token aus dem Body der Anfrage, nicht aus ihrem `Authorization`-Header: Schalten Sie dies dafür ein und nach dem Upgrade wieder aus, denn Zabbix 7.2 und neuer lehnen ein Token im Body ab. |
+
+Zum Bestätigen oder Schließen liest der Baustein zuerst das Problem. Ein Problem, das Zabbix bereits gelöst hat, oder bereits bestätigt, wenn Sie nur das verlangen, bleibt, wie es ist, und der Baustein nimmt **Unchanged**, wie bei einem Problem, das Zabbix nicht hat oder das der Benutzer des Tokens nicht sehen kann. Ein Problem, dessen Trigger das manuelle Schließen nicht erlaubt, wird stattdessen bestätigt, und seine Nachricht sagt, dass es offen bleibt, bis Zabbix seine Erholung sieht.
+
+**Updated** löst aus, wenn Zabbix die Aktualisierung angenommen hat, und **Error**, wenn Zabbix nicht erreichbar war oder sie abgelehnt hat, mit dem Grund von Zabbix: Zabbix beantwortet eine abgelehnte Anfrage mit einem Erfolgsstatus, darum liest der Baustein, was Zabbix geantwortet hat, statt des Status. Er gibt **Summary** zurück, was er getan hat, in einem Satz.
 
 ## OneUptime-Datenkomponenten
 

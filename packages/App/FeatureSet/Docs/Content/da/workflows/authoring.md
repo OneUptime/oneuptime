@@ -2,7 +2,7 @@
 
 Du bygger et workflow i dets **Bygger**: et lærred, hvor du tilføjer blokke, forbinder dem og udfylder deres indstillinger. Denne side viser, hvordan du opretter et workflow, [tilføjer blokke](#tilføj-blokke), [forbinder](#forbind-blokke) og [konfigurerer](#konfigurer-en-blok) dem, [sender værdier mellem dem](#brug-værdier-fra-tidligere-blokke) og [slår workflowet til](#slå-det-til).
 
-For at oprette et workflow åbner du **Arbejdsgange** og klikker på **Opret arbejdsgang**. Dialogen **Opret en arbejdsgang** spørger først, hvordan du vil starte, og derefter om et navn. En skabelon, der har brug for sine egne indstillinger, som en Slack-webhook-URL, beder om dem i et ekstra trin og gemmer dem som workflowvariabler, så du kan ændre dem senere uden at redigere workflowet.
+For at oprette et workflow åbner du **Arbejdsgange** og klikker på **Opret arbejdsgang**. Dialogen **Opret en arbejdsgang** spørger først, hvordan du vil starte, og derefter om et navn. En skabelon, der har brug for sine egne indstillinger, som en Slack-webhook-URL, beder om dem i et ekstra trin og gemmer dem som workflowvariabler, så du kan ændre dem senere uden at redigere workflowet. En skabelon, der tilkalder folk, spørger i samme trin, hvem der skal tilkaldes, valgt blandt projektets brugere, teams, vagtplaner eller vagtpolitikker.
 
 Vælg, hvordan du vil begynde:
 

@@ -40,6 +40,7 @@ import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
 } from "../../../Types/Workflow/WorkflowVariableOAuth";
+import { isTemplateScriptStep } from "./JiraTemplateFixtures";
 
 /* ------------------------------- The graph ------------------------------- */
 
@@ -133,6 +134,7 @@ const jsonArgOf: JsonArgOfFunction = (
 
 const API_COMPONENTS: Array<string> = [
   ComponentID.ApiGet,
+  ComponentID.ApiGetById,
   ComponentID.ApiPost,
   ComponentID.ApiPatch,
   ComponentID.ApiPut,
@@ -153,7 +155,7 @@ type ScriptsOfFunction = (templateId: string) => Array<NodeSpec>;
 
 const scriptsOf: ScriptsOfFunction = (templateId: string): Array<NodeSpec> => {
   return specOf(templateId).nodes.filter((node: NodeSpec) => {
-    return node.metadataId === ComponentID.JavaScriptCode;
+    return isTemplateScriptStep(node.metadataId);
   });
 };
 
@@ -198,8 +200,6 @@ interface DynamicsKind {
   stateIdColumn: string;
   stateRelation: string;
   severityRelation: string;
-  severityIdColumn: string;
-  timelineStateColumn: string;
   create: string;
   /** In the order the picker lists them. */
   templateIds: Array<string>;
@@ -210,8 +210,6 @@ interface DynamicsKind {
   createRecord: string;
   statusToState: string;
   caseNoteToNote: string;
-  /** Written beside the essentials when a record is created from a case. */
-  quietCreateFields: JSONObject;
 }
 
 const INCIDENT: DynamicsKind = {
@@ -225,8 +223,6 @@ const INCIDENT: DynamicsKind = {
   stateIdColumn: "currentIncidentStateId",
   stateRelation: "currentIncidentState",
   severityRelation: "incidentSeverity",
-  severityIdColumn: "incidentSeverityId",
-  timelineStateColumn: "incidentStateId",
   create: "declare",
   templateIds: [
     "dynamics-create-case-for-incident",
@@ -244,10 +240,6 @@ const INCIDENT: DynamicsKind = {
   createRecord: "dynamics-declare-incident-from-case",
   statusToState: "dynamics-case-status-to-incident-state",
   caseNoteToNote: "dynamics-case-note-to-incident-private-note",
-  quietCreateFields: {
-    isVisibleOnStatusPage: false,
-    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
-  },
 };
 
 const ALERT: DynamicsKind = {
@@ -261,8 +253,6 @@ const ALERT: DynamicsKind = {
   stateIdColumn: "currentAlertStateId",
   stateRelation: "currentAlertState",
   severityRelation: "alertSeverity",
-  severityIdColumn: "alertSeverityId",
-  timelineStateColumn: "alertStateId",
   create: "create",
   templateIds: [
     "dynamics-create-case-for-alert",
@@ -279,7 +269,6 @@ const ALERT: DynamicsKind = {
   createRecord: "dynamics-create-alert-from-case",
   statusToState: "dynamics-case-status-to-alert-state",
   caseNoteToNote: "dynamics-case-note-to-alert-private-note",
-  quietCreateFields: {},
 };
 
 const KINDS: Array<[string, DynamicsKind]> = [
@@ -678,7 +667,10 @@ describe.each(ALL_IDS)("Dynamics 365 template %s", (templateId: string) => {
 
   test("every read asks for the display text beside each value", () => {
     for (const node of apiStepsOf(templateId)) {
-      if (node.metadataId !== ComponentID.ApiGet) {
+      if (
+        node.metadataId !== ComponentID.ApiGet &&
+        node.metadataId !== ComponentID.ApiGetById
+      ) {
         continue;
       }
 
@@ -902,10 +894,13 @@ describe.each(KINDS)(
         );
       });
 
-      test("logs the new case's number, which Dataverse sends back", () => {
-        expect(String(argOf(templateId, "log-created", "value"))).toContain(
-          "{{local.components.create-case-1.returnValues.response-body.ticketnumber}}",
-        );
+      // Dataverse sends the new case back: the POST's Steps entry shows its number.
+      test("ends at the POST, which a run's Steps entry shows the new case under", () => {
+        expect(
+          specOf(templateId).edges.filter((edge: EdgeSpec): boolean => {
+            return edge.fromComponentId === "create-case-1";
+          }),
+        ).toEqual([]);
       });
     });
 
@@ -949,51 +944,36 @@ describe.each(KINDS)(
         );
       });
 
-      test("moves it to another status with a PATCH of the case itself", () => {
-        const step: NodeSpec = nodeOf(templateId, "set-status-1");
-
-        expect(step.metadataId).toBe(ComponentID.ApiPatch);
-        expect(step.args?.["url"]).toBe(
-          `${WEB_API}/incidents({{local.components.plan-case-1.returnValues.returnValue.caseId}})`,
+      /*
+       * One way: the plan closes the case, or says by No why it did not.
+       * A path that moved the case to an active status for a state named
+       * in STATE_TO_CASE_STATUS was dropped with the template's Logs.
+       */
+      test("closing is the one way on from the plan", () => {
+        expect(
+          specOf(templateId).edges.filter((edge: EdgeSpec): boolean => {
+            return edge.fromComponentId === "plan-case-1";
+          }),
+        ).toEqual([
+          {
+            fromComponentId: "plan-case-1",
+            toComponentId: "close-case-1",
+            fromPort: "yes",
+          },
+        ]);
+        expect(nodeOf(templateId, "plan-case-1").metadataId).toBe(
+          ComponentID.JavaScriptCheck,
         );
-        expect(step.args?.["request-body"]).toBe(
-          "{{local.components.plan-case-1.returnValues.returnValue.statusBody}}",
-        );
-      });
-
-      test("chooses between them by the action the script returns", () => {
-        expect(argOf(templateId, "if-close-1", "input-1")).toBe(
-          "{{local.components.plan-case-1.returnValues.returnValue.action}}",
-        );
-        expect(argOf(templateId, "if-close-1", "input-2")).toBe("close");
-        expect(argOf(templateId, "if-status-1", "input-2")).toBe("status");
-
-        const edges: Array<EdgeSpec> = specOf(templateId).edges;
-
-        expect(edges).toEqual(
-          expect.arrayContaining([
-            {
-              fromComponentId: "if-close-1",
-              toComponentId: "close-case-1",
-              fromPort: "yes",
-            },
-            {
-              fromComponentId: "if-close-1",
-              toComponentId: "if-status-1",
-              fromPort: "no",
-            },
-            {
-              fromComponentId: "if-status-1",
-              toComponentId: "set-status-1",
-              fromPort: "yes",
-            },
-            {
-              fromComponentId: "if-status-1",
-              toComponentId: "log-skipped",
-              fromPort: "no",
-            },
-          ]),
-        );
+        expect(
+          specOf(templateId).nodes.map((node: NodeSpec): string => {
+            return node.componentId;
+          }),
+        ).toEqual([
+          `${kind.noun}-on-update-1`,
+          "find-case-1",
+          "plan-case-1",
+          "close-case-1",
+        ]);
       });
     });
 
@@ -1048,46 +1028,67 @@ describe.each(KINDS)(
       const templateId: string = kind.createRecord;
       const prepare: string = `prepare-${kind.noun}-1`;
 
-      test("reads the event from the request body, whole", () => {
-        expect(argOf(templateId, "read-event-1", "arguments")).toBe(
-          "{{local.components.webhook-1.returnValues.request-body}}",
+      /*
+       * By the id a Dataverse webhook names the case by, PrimaryEntityId:
+       * API Get By ID takes a plain id only, so nothing else the request
+       * holds can reach the URL. A Power Automate flow posts it too.
+       */
+      test("reads the case back from Dynamics 365 by the id the request names, link column and all", () => {
+        const step: NodeSpec = nodeOf(templateId, "get-case-1");
+
+        expect(step.metadataId).toBe(ComponentID.ApiGetById);
+        expect(step.args?.["id"]).toBe(
+          "{{local.components.webhook-1.returnValues.request-body.PrimaryEntityId}}",
+        );
+        expect(step.args?.["url"]).toBe(
+          `${WEB_API}/incidents({id})?$select=incidentid,ticketnumber,title,description,prioritycode,statecode,_customerid_value,{{local.variables.dynamicsLinkColumn}}`,
         );
       });
 
-      test("reads the case back from Dynamics 365, link column and all", () => {
-        expect(argOf(templateId, "get-case-1", "url")).toBe(
-          `${WEB_API}/incidents({{local.components.read-event-1.returnValues.returnValue.caseId}})?$select=incidentid,ticketnumber,title,description,prioritycode,statecode,_customerid_value,{{local.variables.dynamicsLinkColumn}}`,
-        );
-      });
-
-      test("hands the prepare step the case last, after everything OneUptime wrote", () => {
+      test("hands the prepare step the request, then the case, last, after everything OneUptime wrote", () => {
         const args: JSONObject = jsonArgOf(templateId, prepare, "arguments");
 
         expect(Object.keys(args)).toEqual([
-          "severities",
           "dynamicsUrl",
           "linkColumn",
+          "payload",
           "case",
         ]);
+        expect(args["payload"]).toBe(
+          "{{local.components.webhook-1.returnValues.request-body}}",
+        );
         expect(args["case"]).toBe(
           "{{local.components.get-case-1.returnValues.response-body}}",
         );
       });
 
-      test(`writes the ${kind.noun} with the case's id where the create-case template looks for it`, () => {
-        expect(jsonArgOf(templateId, `create-${kind.noun}-1`, "json")).toEqual({
-          [kind.severityIdColumn]: `{{local.components.${prepare}.returnValues.returnValue.${kind.severityIdColumn}}}`,
-          customFields: {
-            dynamicsCaseId: `{{local.components.${prepare}.returnValues.returnValue.caseId}}`,
+      /*
+       * Incident or Alert From Another Tool opens the record, keeps the
+       * case's id in the custom field the create-case template looks for,
+       * and keeps an incident off status pages, as every record from
+       * another tool (FromAnotherTool.test.ts).
+       */
+      test(`opens the ${kind.noun} with the case's id where the create-case template looks for it`, () => {
+        const step: NodeSpec = nodeOf(
+          templateId,
+          `${kind.noun}-from-another-tool-1`,
+        );
+
+        expect(step.metadataId).toBe(`${kind.noun}-from-another-tool`);
+        expect(step.args).toEqual({
+          "what-happened": "open",
+          "outside-id": `{{local.components.${prepare}.returnValues.returnValue.caseId}}`,
+          "outside-id-field": "dynamicsCaseId",
+          "custom-fields": {
             dynamicsCaseNumber: `{{local.components.${prepare}.returnValues.returnValue.caseNumber}}`,
           },
-          ...kind.quietCreateFields,
           title: `{{local.components.${prepare}.returnValues.returnValue.title}}`,
           description: `{{local.components.${prepare}.returnValues.returnValue.description}}`,
+          severity: `{{local.components.${prepare}.returnValues.returnValue.severity}}`,
         });
       });
 
-      test("then links the case to it, under the link column's own name", () => {
+      test("then links the case to it, under the link column's own name, only once it is opened", () => {
         const step: NodeSpec = nodeOf(templateId, "link-case-1");
 
         expect(step.metadataId).toBe(ComponentID.ApiPatch);
@@ -1095,13 +1096,24 @@ describe.each(KINDS)(
           `${WEB_API}/incidents({{local.components.${prepare}.returnValues.returnValue.caseId}})`,
         );
         expect(jsonArgOf(templateId, "link-case-1", "request-body")).toEqual({
-          "{{local.variables.dynamicsLinkColumn}}": `${kind.linkPrefix}{{local.components.create-${kind.noun}-1.returnValues.model._id}}`,
+          "{{local.variables.dynamicsLinkColumn}}": `${kind.linkPrefix}{{local.components.${kind.noun}-from-another-tool-1.returnValues.record._id}}`,
         });
+        expect(
+          specOf(templateId).edges.filter((edge: EdgeSpec): boolean => {
+            return edge.toComponentId === "link-case-1";
+          }),
+        ).toEqual([
+          {
+            fromComponentId: `${kind.noun}-from-another-tool-1`,
+            toComponentId: "link-case-1",
+            fromPort: "opened",
+          },
+        ]);
       });
 
-      test("only for a new case: the event script takes Create alone", () => {
-        expect(String(argOf(templateId, "read-event-1", "code"))).toContain(
-          'const MESSAGES = ["Create"];',
+      test("only for a new case: the prepare script takes Create alone", () => {
+        expect(String(argOf(templateId, prepare, "code"))).toContain(
+          "const MESSAGES = ['Create'];",
         );
       });
     });
@@ -1110,8 +1122,11 @@ describe.each(KINDS)(
       const templateId: string = kind.statusToState;
 
       test("reads the case's state, its status and who changed it, with the link column", () => {
+        expect(argOf(templateId, "get-case-1", "id")).toBe(
+          "{{local.components.read-event-1.returnValues.returnValue.caseId}}",
+        );
         expect(argOf(templateId, "get-case-1", "url")).toBe(
-          `${WEB_API}/incidents({{local.components.read-event-1.returnValues.returnValue.caseId}})?$select=incidentid,ticketnumber,statecode,statuscode,_modifiedby_value,{{local.variables.dynamicsLinkColumn}}`,
+          `${WEB_API}/incidents({id})?$select=incidentid,ticketnumber,statecode,statuscode,_modifiedby_value,{{local.variables.dynamicsLinkColumn}}`,
         );
       });
 
@@ -1121,37 +1136,30 @@ describe.each(KINDS)(
         );
       });
 
-      test(`looks the ${kind.noun} up by the id on the case, with its state's order`, () => {
-        const step: NodeSpec = nodeOf(templateId, `find-${kind.noun}-1`);
+      /*
+       * Incident or Alert From Another Tool moves the record the case's
+       * link names, only ever forward - which settles the echo of the
+       * create-case template closing the case - saying why on its timeline.
+       */
+      test(`moves the ${kind.noun} the case's link names, as the decision says, saying why`, () => {
+        const step: NodeSpec = nodeOf(
+          templateId,
+          `${kind.noun}-from-another-tool-1`,
+        );
 
-        expect(step.metadataId).toBe(`${kind.noun}-find-one`);
-        expect(step.args?.["query"]).toEqual({
-          _id: `{{local.components.find-link-1.returnValues.returnValue.${kind.noun}Id}}`,
-        });
-        expect(step.args?.["select"]).toEqual({
-          _id: true,
-          [kind.numberField]: true,
-          [kind.stateRelation]: { _id: true, name: true, order: true },
-        });
-      });
-
-      test("writes a timeline row, which is what refuses to move a record backwards", () => {
-        const step: NodeSpec = nodeOf(templateId, "change-state-1");
-
-        expect(step.metadataId).toBe(`${kind.noun}-state-timeline-create-one`);
-        expect(jsonArgOf(templateId, "change-state-1", "json")).toEqual({
-          [kind.idColumn]: `{{local.components.decide-state-1.returnValues.returnValue.${kind.noun}Id}}`,
-          [kind.timelineStateColumn]:
-            "{{local.components.decide-state-1.returnValues.returnValue.stateId}}",
-          rootCause:
-            "{{local.components.decide-state-1.returnValues.returnValue.rootCause}}",
+        expect(step.metadataId).toBe(`${kind.noun}-from-another-tool`);
+        expect(step.args).toEqual({
+          "what-happened":
+            "{{local.components.decide-state-1.returnValues.returnValue.whatHappened}}",
+          "record-id": `{{local.components.decide-state-1.returnValues.returnValue.${kind.noun}Id}}`,
+          note: "{{local.components.decide-state-1.returnValues.returnValue.reason}}",
         });
       });
 
-      test("hands the decision the case's link last", () => {
+      test("hands the decision the link column, then the case", () => {
         expect(
           Object.keys(jsonArgOf(templateId, "decide-state-1", "arguments")),
-        ).toEqual([kind.noun, "states", "link"]);
+        ).toEqual(["linkColumn", "case"]);
       });
     });
 
@@ -1159,26 +1167,28 @@ describe.each(KINDS)(
       const templateId: string = kind.caseNoteToNote;
 
       test("reads the note and, in the same call, the case it is on", () => {
+        expect(argOf(templateId, "get-note-1", "id")).toBe(
+          "{{local.components.read-event-1.returnValues.returnValue.noteId}}",
+        );
         expect(argOf(templateId, "get-note-1", "url")).toBe(
-          `${WEB_API}/annotations({{local.components.read-event-1.returnValues.returnValue.noteId}})?$select=annotationid,subject,notetext,isdocument,filename,objecttypecode,_createdby_value&$expand=objectid_incident($select=incidentid,ticketnumber,{{local.variables.dynamicsLinkColumn}})`,
+          `${WEB_API}/annotations({id})?$select=annotationid,subject,notetext,isdocument,filename,objecttypecode,_createdby_value&$expand=objectid_incident($select=incidentid,ticketnumber,{{local.variables.dynamicsLinkColumn}})`,
         );
       });
 
-      test("writes only to a record this project has", () => {
-        expect(argOf(templateId, "if-found-1", "input-1")).toBe(
-          `{{local.components.find-${kind.noun}-1.returnValues.model._id}}`,
+      /*
+       * Incident or Alert From Another Tool adds a private note, never a
+       * public one, to a record of this project's only.
+       */
+      test("adds a private note to the record the case's link names", () => {
+        const step: NodeSpec = nodeOf(
+          templateId,
+          `${kind.noun}-from-another-tool-1`,
         );
-        expect(argOf(templateId, "if-found-1", "input-2")).toBe(
-          `{{local.components.read-note-1.returnValues.returnValue.${kind.noun}Id}}`,
-        );
-      });
 
-      test("adds a private note, never a public one", () => {
-        expect(nodeOf(templateId, "create-note-1").metadataId).toBe(
-          `${kind.noun}-internal-note-create-one`,
-        );
-        expect(jsonArgOf(templateId, "create-note-1", "json")).toEqual({
-          [kind.idColumn]: `{{local.components.find-${kind.noun}-1.returnValues.model._id}}`,
+        expect(step.metadataId).toBe(`${kind.noun}-from-another-tool`);
+        expect(step.args).toEqual({
+          "what-happened": "note",
+          "record-id": `{{local.components.read-note-1.returnValues.returnValue.${kind.noun}Id}}`,
           note: "{{local.components.read-note-1.returnValues.returnValue.note}}",
         });
       });
@@ -1218,15 +1228,16 @@ describe("the alert templates beside the incident ones", () => {
     }
   });
 
-  test("an alert created from a case writes no status page settings", () => {
-    const json: JSONObject = jsonArgOf(
-      ALERT.createRecord,
-      "create-alert-1",
-      "json",
-    );
-
-    expect(Object.keys(json).sort()).toEqual(
-      ["alertSeverityId", "customFields", "description", "title"].sort(),
+  test("an alert created from a case is given what an incident is: the record step keeps status pages to incidents", () => {
+    expect(
+      Object.keys(
+        nodeOf(ALERT.createRecord, "alert-from-another-tool-1").args || {},
+      ),
+    ).toEqual(
+      Object.keys(
+        nodeOf(INCIDENT.createRecord, "incident-from-another-tool-1").args ||
+          {},
+      ),
     );
   });
 });

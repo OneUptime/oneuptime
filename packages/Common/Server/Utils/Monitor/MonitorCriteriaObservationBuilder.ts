@@ -219,8 +219,14 @@ export default class MonitorCriteriaObservationBuilder {
           input,
         );
       case CheckOn.ExceptionCount:
+      case CheckOn.NewExceptionCount:
+      case CheckOn.RegressedExceptionCount:
+      case CheckOn.ExceptionCountIncreasePercent:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
-          input,
+          {
+            dataToProcess: input.dataToProcess,
+            checkOn: criteriaFilter.checkOn,
+          },
         );
       case CheckOn.ProfileCount:
       case CheckOn.ProfileFunctionShare:
@@ -1579,8 +1585,9 @@ export default class MonitorCriteriaObservationBuilder {
     return `${JSON.stringify(reading.functionName)} was ${reading.sharePercent}% of the window (${reading.windowSampleCount} samples).`;
   }
 
-  private static describeExceptionCountObservation(input: {
+  public static describeExceptionCountObservation(input: {
     dataToProcess: DataToProcess;
+    checkOn?: CheckOn | undefined;
   }): string | null {
     const exceptionResponse: ExceptionMonitorResponse | null =
       MonitorCriteriaDataExtractor.getExceptionMonitorResponse(
@@ -1591,7 +1598,34 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    return `Exception count was ${exceptionResponse.exceptionCount}.`;
+    const plural: (count: number, one: string, other: string) => string = (
+      count: number,
+      one: string,
+      other: string,
+    ): string => {
+      return `${count} ${count === 1 ? one : other}`;
+    };
+
+    switch (input.checkOn) {
+      case CheckOn.NewExceptionCount:
+        return `${plural(
+          exceptionResponse.newExceptionCount || 0,
+          "exception was",
+          "exceptions were",
+        )} seen for the first time in the window.`;
+      case CheckOn.RegressedExceptionCount:
+        return `${plural(
+          exceptionResponse.regressedExceptionCount || 0,
+          "resolved exception",
+          "resolved exceptions",
+        )} came back in the window.`;
+      case CheckOn.ExceptionCountIncreasePercent:
+        return `Exception count was ${exceptionResponse.exceptionCount}, ${
+          exceptionResponse.exceptionCountIncreasePercent || 0
+        }% above the usual ${exceptionResponse.exceptionCountBaseline || 0} per window over the day before.`;
+      default:
+        return `Exception count was ${exceptionResponse.exceptionCount}.`;
+    }
   }
 
   private static describeMetricValueObservation(input: {

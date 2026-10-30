@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> Mallen **Forward new incidents to another system** bygger samma arbetsflöde åt dig. Du hittar den under **Incidenter** när du skapar ett arbetsflöde.
+> Mallen **Forward new incidents to another system** bygger det här arbetsflödet åt dig, utan Log-blocket: utan något på **Error** får en förfrågan som misslyckas körningen att misslyckas, och körningens **Steg** säger varför. Du hittar den under **Incidenter** när du skapar ett arbetsflöde.
 
 :::steps
 ### Skapa arbetsflödet

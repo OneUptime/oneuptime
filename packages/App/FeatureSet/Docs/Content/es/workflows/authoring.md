@@ -2,7 +2,7 @@
 
 Un flujo de trabajo se construye en su **Constructor**: un lienzo donde añades bloques, los conectas y rellenas sus ajustes. Esta página recorre la creación de un flujo de trabajo, cómo [añadir bloques](#añadir-bloques), [conectarlos](#conectar-bloques) y [configurarlos](#configurar-un-bloque), [pasar valores entre ellos](#usar-valores-de-bloques-anteriores) y [activar el flujo de trabajo](#activarlo).
 
-Para crear un flujo de trabajo, abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. El diálogo **Crear un flujo de trabajo** te pregunta primero cómo quieres empezar y, después, un nombre. Una plantilla que necesita ajustes propios, como una URL de webhook de Slack, te los pide en un paso más y los guarda como variables del flujo de trabajo, para que puedas cambiarlos más adelante sin editar el flujo de trabajo.
+Para crear un flujo de trabajo, abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. El diálogo **Crear un flujo de trabajo** te pregunta primero cómo quieres empezar y, después, un nombre. Una plantilla que necesita ajustes propios, como una URL de webhook de Slack, te los pide en un paso más y los guarda como variables del flujo de trabajo, para que puedas cambiarlos más adelante sin editar el flujo de trabajo. Una plantilla que avisa a personas pregunta en ese paso a quién avisar, eligiendo entre los usuarios, equipos, programaciones de guardia o políticas de guardia de tu proyecto.
 
 Elige cómo empezar:
 

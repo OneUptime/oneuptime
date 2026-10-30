@@ -51,11 +51,11 @@ Hendelsen lagrer rapportens nummer i de egendefinerte feltene sine, som `huntres
 :::steps
 ### Opprett arbeidsflyten
 
-Åpne **Arbeidsflyter** og klikk **Opprett arbeidsflyt**. Under **Eller start fra en mal** velger du kategorien **Huntress**, velger **Open an incident for each Huntress incident report**, klikker **Bruk denne malen** og oppretter arbeidsflyten. Den åpnes i **Bygger**, slått av.
+Åpne **Arbeidsflyter** og klikk **Opprett arbeidsflyt**. Under **Eller start fra en mal** velger du kategorien **Huntress**, velger **Open an incident for each Huntress incident report** og klikker **Bruk denne malen**.
 
 ### Velg hvem som varsles
 
-Klikk trinnet **Page an On-Call Policy**, velg **Vaktretningslinjer** som skal varsles, og lagre trinnet.
+Dialogen spør deretter hvem som skal varsles: under **Who to page for high and critical reports** velger du vaktretningslinjene som skal varsles, eller ingen for ikke å varsle noen, og klikker **Opprett arbeidsflyt**. Arbeidsflyten åpnes i **Bygger**, slått av. For å endre senere hvem den varsler, klikker du trinnet **Page an On-Call Policy** og endrer **Vaktretningslinjer**.
 
 ### Legg til et webhook-endepunkt i Huntress
 
@@ -79,7 +79,7 @@ Slå på **Aktivert** øverst i **Bygger**. Åpne endepunktets meny (⋯) i Hunt
 
 ## Hva arbeidsflyten gjør
 
-Malen følger én vei for hver **Event**, med en **Switch / Case** etter triggeren:
+Etter triggeren gjør **Incident From Another Tool** det hver **Event** ber om, ut fra rapportens nummer:
 
 | Event | Hva arbeidsflyten gjør |
 | --- | --- |
@@ -87,7 +87,7 @@ Malen følger én vei for hver **Event**, med en **Switch / Case** etter trigger
 | `comment-added` | Finner rapportens hendelse og legger til kommentaren som et privat notat på den. |
 | `closed` | Finner rapportens hendelse og løser den, med mindre den allerede er løst. Årsaken står på tidslinjen: Huntress lukket rapporten. |
 
-Det er en arbeidsflyt som alle andre, så du kan endre hva den gjør: varsle bare for kritiske rapporter ved å endre hva **If / Else** etter **Create One Incident** sammenligner, poste hver rapport i en chattekanal med et Slack- eller Microsoft Teams-trinn, eller sende hver organisasjon til sin egen vaktretningslinje med en **Switch / Case** på **Organization**. Hver kjøring står blant arbeidsflytens kjøringer, med hva hvert trinn gjorde.
+Det er en arbeidsflyt som alle andre, så du kan endre hva den gjør: varsle bare for kritiske rapporter ved å endre hva **If / Else** etter **Incident From Another Tool** sammenligner, poste hver rapport i en chattekanal med et Slack- eller Microsoft Teams-trinn, eller sende hver organisasjon til sin egen vaktretningslinje med en **Switch / Case** på **Organization**. Hver kjøring står blant arbeidsflytens kjøringer, med hva hvert trinn gjorde.
 
 ### Alvorlighetsgrader
 
@@ -174,7 +174,7 @@ Arbeidsflyten er slettet eller arkivert, triggeren er ikke lenger **Huntress Inc
 :::
 
 :::details Ingen hendelse ble åpnet
-Åpne arbeidsflytens kjøringer og kjøringen for rapporten. Hvis **Create One Incident** mislyktes fordi hendelsesalvorlighetsgraden er tom, har prosjektet ingen hendelsesalvorlighetsgrader: Legg til en under **Hendelser → Innstillinger → Hendelsesalvor**.
+Åpne arbeidsflytens kjøringer og kjøringen for rapporten. Hvis **Incident From Another Tool** mislyktes med `This project has no incident severities to put the incident at.`, legger du til en under **Hendelser → Innstillinger → Hendelsesalvor**.
 :::
 
 :::details Ingen ble varslet

@@ -18,6 +18,7 @@ import {
 import * as React from "react";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import { MonitorStepHostMonitorUtil } from "../../../Types/Monitor/MonitorStepHostMonitor";
 import { MonitorStepDockerMonitorUtil } from "../../../Types/Monitor/MonitorStepDockerMonitor";
 import { MonitorStepPodmanMonitorUtil } from "../../../Types/Monitor/MonitorStepPodmanMonitor";
@@ -542,7 +543,7 @@ describe("a template and a custom metric each replace the other's pick", () => {
       ]![0] as MonitorCriteria;
       const names: Array<string> = (
         criteria.data?.monitorCriteriaInstanceArray || []
-      ).map((instance: { data?: { name?: string } }): string => {
+      ).map((instance: MonitorCriteriaInstance): string => {
         return instance.data?.name || "";
       });
 

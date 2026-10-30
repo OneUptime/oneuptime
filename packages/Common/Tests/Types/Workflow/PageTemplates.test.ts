@@ -12,13 +12,19 @@
  *   - "Page someone when another tool calls a webhook": a page about
  *     something new, with no incident behind it.
  *
- * Each leaves exactly one thing for whoever creates the workflow: who to
- * page - a person, a team, a schedule or a policy of their own project,
- * picked by name in the builder. The first half of this file holds the
- * templates to that. The second runs them through the template simulator:
- * the graph the create wizard builds, with who to page filled in the way
- * the builder stores it, the real If / Else, Switch / Case, Log and Page
- * steps, and the paging itself (OnCallPageService.page) stood in for.
+ * Each asks one thing of whoever creates the workflow: who to page - a
+ * person, a team, a schedule or a policy of their own project, picked in
+ * the create wizard with the people picker the Builder draws for the step
+ * (whoToPage). The workflow is created with who was picked, so it opens in
+ * the Builder with no error on the step. The first half of this file holds
+ * the templates to that. The second runs them through the template
+ * simulator: the graph the create wizard builds, with who to page filled
+ * in the way the builder stores it, the real If / Else, Switch / Case and
+ * Page steps, and the paging itself (OnCallPageService.page) stood in for.
+ *
+ * Each is three or four steps: a page that went out says so in its own
+ * Steps entry, and one that did not fails the run (UnhandledStepFailure),
+ * where a Log after each output used to say the same.
  */
 
 import OnCallPageService, {
@@ -51,8 +57,11 @@ import {
 import { getNewPageStepArguments } from "../../../Types/Workflow/Components/OnCallPageNewStep";
 import {
   HUNTRESS_INCIDENT_TEMPLATE_ID,
+  WhoToPagePicks,
   WorkflowTemplate,
   WorkflowTemplateCategory,
+  WorkflowTemplateWhoToPage,
+  applyWhoToPage,
   getRecommendedWorkflowTemplates,
   getTemplateGraphSpec,
   getWorkflowTemplate,
@@ -119,6 +128,31 @@ function specOf(templateId: string): TemplateGraphSpec {
   return getTemplateGraphSpec(templateId) as TemplateGraphSpec;
 }
 
+// Somebody of the right kind for each Page step, as the wizard is told.
+const PICKED_FOR: Record<PageTargetKind, string> = {
+  [PageTargetKind.User]: "10000000-0000-4000-8000-000000000001",
+  [PageTargetKind.Team]: "7eae0000-0000-4000-8000-000000000001",
+  [PageTargetKind.OnCallSchedule]: "5c4e0000-0000-4000-8000-000000000001",
+  [PageTargetKind.OnCallPolicy]: "dddddddd-0000-4000-8000-000000000001",
+};
+
+// The graph as the create wizard builds it, with somebody picked for each Page step.
+function asTheWizardBuildsIt(templateId: string): TemplateGraphSpec {
+  const picks: WhoToPagePicks = {};
+
+  for (const node of pageStepsOf(templateId)) {
+    picks[node.componentId] = [
+      PICKED_FOR[getPageStepTarget(node.metadataId)!.kind],
+    ];
+  }
+
+  return applyWhoToPage({
+    spec: specOf(templateId),
+    whoToPage: getWorkflowTemplate(templateId)!.whoToPage || [],
+    picks: picks,
+  }) as TemplateGraphSpec;
+}
+
 function nodeOf(templateId: string, componentId: string): TemplateNodeSpec {
   const found: TemplateNodeSpec | undefined = specOf(templateId).nodes.find(
     (node: TemplateNodeSpec): boolean => {
@@ -155,33 +189,37 @@ function leadsTo(
 }
 
 // The template as the builder loads it, for its checks.
-function asBuilderLoadsIt(templateId: string): Array<LintGraphNode> {
-  return specOf(templateId).nodes.map(
-    (node: TemplateNodeSpec): LintGraphNode => {
-      const metadata: ComponentMetadata = metadataOf(node.metadataId);
+function asBuilderLoadsIt(
+  templateId: string,
+  spec: TemplateGraphSpec = specOf(templateId),
+): Array<LintGraphNode> {
+  return spec.nodes.map((node: TemplateNodeSpec): LintGraphNode => {
+    const metadata: ComponentMetadata = metadataOf(node.metadataId);
 
-      return {
-        id: `canvas-${node.componentId}`,
-        data: {
-          id: node.componentId,
-          internalId: `runner-${node.componentId}`,
-          nodeType: NodeType.Node,
-          componentType: metadata.componentType,
-          metadataId: metadata.id,
-          metadata: metadata,
-          error: "",
-          arguments: (node.args || {}) as JSONObject,
-          returnValues: {},
-        },
-      };
-    },
-  );
+    return {
+      id: `canvas-${node.componentId}`,
+      data: {
+        id: node.componentId,
+        internalId: `runner-${node.componentId}`,
+        nodeType: NodeType.Node,
+        componentType: metadata.componentType,
+        metadataId: metadata.id,
+        metadata: metadata,
+        error: "",
+        arguments: (node.args || {}) as JSONObject,
+        returnValues: {},
+      },
+    };
+  });
 }
 
-function lintIssuesOf(templateId: string): Array<WorkflowLintIssue> {
+function lintIssuesOf(
+  templateId: string,
+  spec: TemplateGraphSpec = specOf(templateId),
+): Array<WorkflowLintIssue> {
   return lintWorkflowGraph({
-    nodes: asBuilderLoadsIt(templateId),
-    edges: specOf(templateId).edges.map((edge: TemplateEdgeSpec) => {
+    nodes: asBuilderLoadsIt(templateId, spec),
+    edges: spec.edges.map((edge: TemplateEdgeSpec) => {
       return {
         source: `canvas-${edge.fromComponentId}`,
         target: `canvas-${edge.toComponentId}`,
@@ -272,7 +310,7 @@ describe("the paging templates", () => {
     );
   });
 
-  test("none is among the recommended ones: each needs somebody picked before it does anything", () => {
+  test("none is among the recommended ones: each asks who to page before it is created", () => {
     const recommended: Array<string> = getRecommendedWorkflowTemplates().map(
       (template: WorkflowTemplate): string => {
         return template.id;
@@ -285,157 +323,164 @@ describe("the paging templates", () => {
   });
 });
 
-describe.each(PAGE_TEMPLATE_IDS)(
-  "%s: what it leaves for its user",
-  (templateId: string) => {
-    test("the wizard asks for nothing: who to page is not something to type", () => {
-      expect(getWorkflowTemplate(templateId)!.variables).toEqual([]);
-    });
+describe.each(PAGE_TEMPLATE_IDS)("%s: who it pages", (templateId: string) => {
+  test("the wizard asks for no settings: who to page is not something to type", () => {
+    expect(getWorkflowTemplate(templateId)!.variables).toEqual([]);
+  });
 
-    test("who each Page step pages is left empty, and nothing else it needs is", () => {
-      for (const node of pageStepsOf(templateId)) {
-        const metadata: ComponentMetadata = metadataOf(node.metadataId);
-        const who: string = getPageStepTarget(node.metadataId)!.argumentId;
+  test("as the template is written, who each Page step pages is left empty, and nothing else it needs is", () => {
+    for (const node of pageStepsOf(templateId)) {
+      const metadata: ComponentMetadata = metadataOf(node.metadataId);
+      const who: string = getPageStepTarget(node.metadataId)!.argumentId;
 
-        expect(Object.keys(node.args || {})).not.toContain(who);
+      expect(Object.keys(node.args || {})).not.toContain(who);
 
-        // Every setting it holds is one of the step's.
-        for (const argumentId of Object.keys(node.args || {})) {
-          expect(
-            metadata.arguments.map((argument: Argument): string => {
-              return argument.id;
-            }),
-          ).toContain(argumentId);
+      // Every setting it holds is one of the step's.
+      for (const argumentId of Object.keys(node.args || {})) {
+        expect(
+          metadata.arguments.map((argument: Argument): string => {
+            return argument.id;
+          }),
+        ).toContain(argumentId);
+      }
+    }
+  });
+
+  test("the wizard asks who each Page step pages, in the order they are on the canvas, and needs an answer", () => {
+    expect(
+      (getWorkflowTemplate(templateId)!.whoToPage || []).map(
+        (ask: WorkflowTemplateWhoToPage): [string, boolean] => {
+          return [ask.componentId, ask.required];
+        },
+      ),
+    ).toEqual(
+      pageStepsOf(templateId).map(
+        (node: TemplateNodeSpec): [string, boolean] => {
+          return [node.componentId, true];
+        },
+      ),
+    );
+  });
+
+  test("each question says what kind of record its step pages", () => {
+    for (const ask of getWorkflowTemplate(templateId)!.whoToPage || []) {
+      const kind: PageTargetKind = getPageStepTarget(
+        nodeOf(templateId, ask.componentId).metadataId,
+      )!.kind;
+
+      expect(ask.description.toLowerCase()).toContain(WHAT_A_STEP_PICKS[kind]);
+
+      for (const other of Object.values(PageTargetKind)) {
+        if (other !== kind) {
+          expect(ask.description.toLowerCase()).not.toContain(
+            WHAT_A_STEP_PICKS[other],
+          );
         }
       }
-    });
+    }
+  });
 
-    test("the builder's checks ask for who to page, once for each Page step, and for nothing else", () => {
-      const issues: Array<WorkflowLintIssue> = lintIssuesOf(templateId);
+  /*
+   * The wizard fills that in. Created with somebody picked, the workflow
+   * opens in the Builder with nothing for its checks to say - where it
+   * used to open with an error on each Page step.
+   */
+  test("as the wizard builds it, the builder's checks find nothing", () => {
+    expect(
+      lintIssuesOf(templateId, asTheWizardBuildsIt(templateId)).map(
+        (issue: WorkflowLintIssue): string => {
+          return issue.message;
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("as the template is written, the builder's checks ask for who to page, once for each Page step, and for nothing else", () => {
+    const issues: Array<WorkflowLintIssue> = lintIssuesOf(templateId);
+
+    expect(
+      issues.map(
+        (
+          issue: WorkflowLintIssue,
+        ): [string | null, WorkflowLintRule, string | null] => {
+          return [issue.componentId, issue.rule, issue.argumentId];
+        },
+      ),
+    ).toEqual(
+      pageStepsOf(templateId).map(
+        (node: TemplateNodeSpec): [string, WorkflowLintRule, string] => {
+          return [
+            node.componentId,
+            WorkflowLintRule.MissingRequiredArgument,
+            getPageStepTarget(node.metadataId)!.argumentId,
+          ];
+        },
+      ),
+    );
+
+    // The one setting asked for is a list picked from the project, each time.
+    for (const issue of issues) {
+      const metadata: ComponentMetadata = metadataOf(
+        nodeOf(templateId, issue.componentId!).metadataId,
+      );
 
       expect(
-        issues.map(
-          (
-            issue: WorkflowLintIssue,
-          ): [string | null, WorkflowLintRule, string | null] => {
-            return [issue.componentId, issue.rule, issue.argumentId];
-          },
-        ),
-      ).toEqual(
-        pageStepsOf(templateId).map(
-          (node: TemplateNodeSpec): [string, WorkflowLintRule, string] => {
-            return [
-              node.componentId,
-              WorkflowLintRule.MissingRequiredArgument,
-              getPageStepTarget(node.metadataId)!.argumentId,
-            ];
-          },
-        ),
-      );
-
-      // The one setting asked for is a list picked from the project, each time.
-      for (const issue of issues) {
-        const metadata: ComponentMetadata = metadataOf(
-          nodeOf(templateId, issue.componentId!).metadataId,
-        );
-
-        expect(
-          isRecordListInputType(
-            metadata.arguments.find((argument: Argument): boolean => {
-              return argument.id === issue.argumentId;
-            })!.type,
-          ),
-        ).toBe(true);
-      }
-    });
-
-    test("on the canvas each Page step has no line of its own yet: it says Click to set up", () => {
-      for (const node of pageStepsOf(templateId)) {
-        expect(
-          summarizePageStep(node.metadataId, (node.args || {}) as JSONObject),
-        ).toBeNull();
-      }
-    });
-
-    test("it says so before the workflow is created: what to open, and what to pick", () => {
-      const template: WorkflowTemplate = getWorkflowTemplate(templateId)!;
-
-      // Shown under the template's name in the wizard.
-      expect(template.teaches).toMatch(OPEN_AND_PICK);
-      // And its card says somebody is picked, not typed.
-      expect(template.description).toMatch(YOU_PICK);
-    });
-
-    /*
-     * And where the picker lists what a template will need, it does not say
-     * "Nothing to fill in.": it names what the template's own Page steps
-     * pick - a schedule, a policy and a team, people - and where.
-     */
-    test("what it will need names each kind of record its Page steps pick, in the order they are on the canvas, and no other", () => {
-      const needs: string =
-        getWorkflowTemplate(templateId)!.setUpInBuilder || "";
-      const said: string = needs.toLowerCase();
-      const kinds: Array<PageTargetKind> = pageStepsOf(templateId).map(
-        (node: TemplateNodeSpec): PageTargetKind => {
-          return getPageStepTarget(node.metadataId)!.kind;
-        },
-      );
-      const positions: Array<number> = kinds.map(
-        (kind: PageTargetKind): number => {
-          return said.indexOf(WHAT_A_STEP_PICKS[kind]);
-        },
-      );
-
-      expect({
-        templateId: templateId,
-        needs: needs,
-        positions: positions,
-      }).toEqual({
-        templateId: templateId,
-        needs: needs,
-        // Each is named, the first step's first.
-        positions: [...positions].sort((a: number, b: number): number => {
-          return a - b;
-        }),
-      });
-      expect(Math.min(...positions)).toBeGreaterThanOrEqual(0);
-
-      for (const kind of Object.values(PageTargetKind)) {
-        if (!kinds.includes(kind)) {
-          expect(said).not.toContain(WHAT_A_STEP_PICKS[kind]);
-        }
-      }
-
-      // One schedule is "it"; people, or two kinds of record, are "them".
-      const isOneRecord: boolean =
-        kinds.length === 1 && kinds[0] !== PageTargetKind.User;
-
-      expect(
-        needs.endsWith(
-          isOneRecord
-            ? " to page. You pick it in the Builder."
-            : " to page. You pick them in the Builder.",
+        isRecordListInputType(
+          metadata.arguments.find((argument: Argument): boolean => {
+            return argument.id === issue.argumentId;
+          })!.type,
         ),
       ).toBe(true);
-    });
+    }
+  });
 
-    test("every Page step's Error output leads somewhere: a page nobody got is never silent", () => {
-      for (const node of pageStepsOf(templateId)) {
-        expect(leadsTo(templateId, node.componentId, "error")).toHaveLength(1);
-      }
-    });
-  },
-);
+  test("on the canvas each Page step says who it pages once the wizard fills it in", () => {
+    const built: TemplateGraphSpec = asTheWizardBuildsIt(templateId);
 
-const OPEN_AND_PICK: RegExp = /Open (the|each) Page step and pick /;
+    for (const node of pageStepsOf(templateId)) {
+      // As the template is written: Click to set up.
+      expect(
+        summarizePageStep(node.metadataId, (node.args || {}) as JSONObject),
+      ).toBeNull();
+
+      const filled: TemplateNodeSpec = built.nodes.find(
+        (candidate: TemplateNodeSpec): boolean => {
+          return candidate.componentId === node.componentId;
+        },
+      )!;
+
+      expect(
+        summarizePageStep(filled.metadataId, filled.args as JSONObject),
+      ).not.toBeNull();
+    }
+  });
+
+  test("its card says somebody is picked, not typed", () => {
+    expect(getWorkflowTemplate(templateId)!.description).toMatch(YOU_PICK);
+    // Nothing is left for the Builder: the wizard asks.
+    expect(getWorkflowTemplate(templateId)!.setUpInBuilder).toBeUndefined();
+  });
+
+  /*
+   * A page nobody got fails the run, and the Page step's Steps entry says
+   * why (UnhandledStepFailure): nothing is connected to its Error output.
+   */
+  test("a page nobody got is never silent: it fails the run", () => {
+    for (const node of pageStepsOf(templateId)) {
+      expect(leadsTo(templateId, node.componentId, "error")).toEqual([]);
+      expect(leadsTo(templateId, node.componentId, "success")).toEqual([]);
+    }
+  });
+});
+
 const YOU_PICK: RegExp = /you pick/;
 
-// What each kind of Page step picks, as a template's "what you'll need" names it.
+// What each kind of Page step pages, as a who-to-page question names it.
 const WHAT_A_STEP_PICKS: Record<PageTargetKind, string> = {
   [PageTargetKind.User]: "people",
-  [PageTargetKind.Team]: "team",
-  [PageTargetKind.OnCallSchedule]: "on-call schedule",
-  [PageTargetKind.OnCallPolicy]: "on-call policy",
+  [PageTargetKind.Team]: "teams",
+  [PageTargetKind.OnCallSchedule]: "on-call schedules",
+  [PageTargetKind.OnCallPolicy]: "on-call policies",
 };
 
 describe("what each page is about", () => {
@@ -492,7 +537,7 @@ describe("what each page is about", () => {
 });
 
 describe("how the paging is made conditional", () => {
-  test("an If / Else on the severity stands in front of the Page step: Yes pages, No only logs", () => {
+  test("an If / Else on the severity stands in front of the Page step: Yes pages, No ends the run", () => {
     expect(nodeOf(CRITICAL_PAGE, "if-else-1").metadataId).toBe(
       ComponentID.IfElse,
     );
@@ -504,12 +549,10 @@ describe("how the paging is made conditional", () => {
     expect(leadsTo(CRITICAL_PAGE, "if-else-1", "yes")).toEqual([
       "page-on-call-1",
     ]);
-    expect(leadsTo(CRITICAL_PAGE, "if-else-1", "no")).toEqual([
-      "log-not-critical",
-    ]);
+    expect(leadsTo(CRITICAL_PAGE, "if-else-1", "no")).toEqual([]);
   });
 
-  test("a Switch / Case on the severity has a different Page step on each case, and Default only logs", () => {
+  test("a Switch / Case on the severity has a different Page step on each case, and Default ends the run", () => {
     expect(nodeOf(SEVERITY_PAGE, "switch-1").metadataId).toBe(
       ComponentID.Switch,
     );
@@ -519,9 +562,7 @@ describe("how the paging is made conditional", () => {
     expect(leadsTo(SEVERITY_PAGE, "switch-1", "case-2")).toEqual([
       "page-team-1",
     ]);
-    expect(leadsTo(SEVERITY_PAGE, "switch-1", "default")).toEqual([
-      "log-other-severity",
-    ]);
+    expect(leadsTo(SEVERITY_PAGE, "switch-1", "default")).toEqual([]);
     // Critical escalates through a policy; major pages a team at once.
     expect(nodeOf(SEVERITY_PAGE, "page-on-call-policy-1").metadataId).toBe(
       ComponentID.PageOnCallPolicy,
@@ -669,7 +710,6 @@ describe("Page whoever is on call when a critical incident is created", () => {
       "incident-on-create-1",
       "if-else-1",
       "page-on-call-1",
-      "log-paged",
     ]);
     expect(pagesAsked).toHaveLength(1);
     expect(idsOf(pagesAsked[0]!.targets.onCallScheduleIds)).toEqual([
@@ -682,9 +722,11 @@ describe("Page whoever is on call when a critical incident is created", () => {
     expect(pagesAsked[0]!.about.incidentId?.toString()).toBe(INCIDENT_ID);
     expect(pagesAsked[0]!.about.newAlert).toBeUndefined();
     expect(trace.ports["page-on-call-1"]).toBe("success");
-    expect(trace.logs).toEqual([
-      "📟 Paged Jane Doe (on call in Primary) about INC-42.",
-    ]);
+    // Who was paged, said by the step itself.
+    expect(
+      trace.storage.local.components["page-on-call-1"]!.returnValues["summary"],
+    ).toBe("Paged Jane Doe (on call in Primary) about INC-42.");
+    expect(trace.failedSteps).toEqual([]);
   });
 
   test("it pages in the workflow's project, as the workflow: never as OneUptime itself", async () => {
@@ -706,23 +748,18 @@ describe("Page whoever is on call when a critical incident is created", () => {
   });
 
   test.each(["Major Incident", "Minor Incident", "critical incident", ""])(
-    "an incident that is '%s' pages nobody, and says so in the run log",
+    "an incident that is '%s' pages nobody: the run ends at the check, and succeeds",
     async (severity: string) => {
       const trace: SimulationTrace = await run(severity);
 
-      expect(trace.executed).toEqual([
-        "incident-on-create-1",
-        "if-else-1",
-        "log-not-critical",
-      ]);
+      expect(trace.executed).toEqual(["incident-on-create-1", "if-else-1"]);
+      expect(trace.ports["if-else-1"]).toBe("no");
       expect(pagesAsked).toEqual([]);
-      expect(trace.logs).toEqual([
-        `ℹ️ Incident INC-42 is ${severity}, so nobody was paged.`,
-      ]);
+      expect(trace.failedSteps).toEqual([]);
     },
   );
 
-  test("when nobody could be paged, the Error output says why", async () => {
+  test("when nobody could be paged, the run fails at the Page step, which says why", async () => {
     pagingAnswers = (): never => {
       throw new BadDataException(
         "Nobody was paged. Nobody is on call in Primary right now.",
@@ -735,15 +772,16 @@ describe("Page whoever is on call when a critical incident is created", () => {
       "incident-on-create-1",
       "if-else-1",
       "page-on-call-1",
-      "log-nobody-paged",
     ]);
     expect(trace.ports["page-on-call-1"]).toBe("error");
-    expect(trace.logs).toEqual([
-      "❌ Nobody was paged for incident INC-42: Nobody was paged. Nobody is on call in Primary right now.",
-    ]);
+    expect(trace.failedSteps).toEqual(["page-on-call-1"]);
+    expect(
+      trace.storage.local.components["page-on-call-1"]!.returnValues["error"],
+    ).toBe("Nobody was paged. Nobody is on call in Primary right now.");
   });
 
-  test("run as it is created, before a schedule is picked, it stops at the Page step and says what to do", async () => {
+  // As it would be had the wizard not asked: a workflow made through the API, say.
+  test("run with nobody picked, it stops at the Page step and says what to do", async () => {
     await expect(run("Critical Incident", {})).rejects.toThrow(
       "On-Call Schedules is empty, so this step has nobody to page. Open the step and choose who to page.",
     );
@@ -753,11 +791,7 @@ describe("Page whoever is on call when a critical incident is created", () => {
   test("and an incident that is not critical still runs clean then: the Page step is never reached", async () => {
     const trace: SimulationTrace = await run("Minor Incident", {});
 
-    expect(trace.executed).toEqual([
-      "incident-on-create-1",
-      "if-else-1",
-      "log-not-critical",
-    ]);
+    expect(trace.executed).toEqual(["incident-on-create-1", "if-else-1"]);
   });
 
   test("a value from the trigger beside the schedule picked is handed on with it", async () => {
@@ -854,24 +888,18 @@ describe("Page different people for each incident severity", () => {
   });
 
   test.each(["Minor Incident", "Low", ""])(
-    "an incident that is '%s' takes Default: logged, and nobody paged",
+    "an incident that is '%s' takes Default: nobody paged, and the run succeeds",
     async (severity: string) => {
       const trace: SimulationTrace = await run(severity);
 
-      expect(trace.executed).toEqual([
-        "incident-on-create-1",
-        "switch-1",
-        "log-other-severity",
-      ]);
+      expect(trace.executed).toEqual(["incident-on-create-1", "switch-1"]);
       expect(trace.ports["switch-1"]).toBe("default");
       expect(pagesAsked).toEqual([]);
-      expect(trace.logs).toEqual([
-        `ℹ️ Incident INC-42 is ${severity}, so nobody was paged.`,
-      ]);
+      expect(trace.failedSteps).toEqual([]);
     },
   );
 
-  test("a policy that could not be started is logged on its own path", async () => {
+  test("a policy that could not be started fails the run at its step, which says why", async () => {
     pagingAnswers = (): never => {
       throw new BadDataException(
         "Nobody was paged. No on-call policy has the ID dddddddd-0000-4000-8000-000000000001.",
@@ -884,14 +912,18 @@ describe("Page different people for each incident severity", () => {
       "incident-on-create-1",
       "switch-1",
       "page-on-call-policy-1",
-      "log-policy-not-started",
     ]);
-    expect(trace.logs).toEqual([
-      "❌ No on-call policy was started for the critical incident: Nobody was paged. No on-call policy has the ID dddddddd-0000-4000-8000-000000000001.",
-    ]);
+    expect(trace.failedSteps).toEqual(["page-on-call-policy-1"]);
+    expect(
+      trace.storage.local.components["page-on-call-policy-1"]!.returnValues[
+        "error"
+      ],
+    ).toBe(
+      "Nobody was paged. No on-call policy has the ID dddddddd-0000-4000-8000-000000000001.",
+    );
   });
 
-  test("a team nobody could be paged in is logged on its own path", async () => {
+  test("a team nobody could be paged in fails the run at its step, which says why", async () => {
     pagingAnswers = (): never => {
       throw new BadDataException("Nobody was paged. Platform has no members.");
     };
@@ -902,11 +934,11 @@ describe("Page different people for each incident severity", () => {
       "incident-on-create-1",
       "switch-1",
       "page-team-1",
-      "log-team-not-paged",
     ]);
-    expect(trace.logs).toEqual([
-      "❌ Nobody was paged for the major incident: Nobody was paged. Platform has no members.",
-    ]);
+    expect(trace.failedSteps).toEqual(["page-team-1"]);
+    expect(
+      trace.storage.local.components["page-team-1"]!.returnValues["error"],
+    ).toBe("Nobody was paged. Platform has no members.");
   });
 });
 
@@ -942,7 +974,7 @@ describe("Page someone when another tool calls a webhook", () => {
       message: "Queries are queueing on db-primary.",
     });
 
-    expect(trace.executed).toEqual(["webhook-1", "page-users-1", "log-paged"]);
+    expect(trace.executed).toEqual(["webhook-1", "page-users-1"]);
     expect(pagesAsked).toHaveLength(1);
     expect(idsOf(pagesAsked[0]!.targets.userIds)).toEqual([JANE_ID]);
     expect(pagesAsked[0]!.about.incidentId).toBeUndefined();
@@ -951,9 +983,9 @@ describe("Page someone when another tool calls a webhook", () => {
       title: "Database CPU is above 90%",
       description: "Queries are queueing on db-primary.",
     });
-    expect(trace.logs).toEqual([
-      "📟 Paged Jane Doe about a new alert, Database CPU is above 90%.",
-    ]);
+    expect(
+      trace.storage.local.components["page-users-1"]!.returnValues["summary"],
+    ).toBe("Paged Jane Doe about a new alert, Database CPU is above 90%.");
 
     // The alert it made is handed on, for a step after this one.
     expect(
@@ -987,20 +1019,20 @@ describe("Page someone when another tool calls a webhook", () => {
     });
   });
 
-  test("a POST with no title pages nobody, and the Error output says a title is needed", async () => {
+  test("a POST with no title pages nobody, and fails the run at the Page step, which says a title is needed", async () => {
     const trace: SimulationTrace = await run({
       message: "Queries are queueing on db-primary.",
     });
 
     expect(pagesAsked).toEqual([]);
-    expect(trace.executed).toEqual([
-      "webhook-1",
-      "page-users-1",
-      "log-nobody-paged",
-    ]);
+    expect(trace.executed).toEqual(["webhook-1", "page-users-1"]);
     expect(trace.ports["page-users-1"]).toBe("error");
-    expect(trace.logs).toHaveLength(1);
-    expect(trace.logs[0]).toMatch(NOBODY_PAGED_FOR_WANT_OF_A_TITLE);
+    expect(trace.failedSteps).toEqual(["page-users-1"]);
+    expect(
+      String(
+        trace.storage.local.components["page-users-1"]!.returnValues["error"],
+      ),
+    ).toMatch(NOBODY_PAGED_FOR_WANT_OF_A_TITLE);
   });
 
   test("a message is optional: a title alone is enough to page", async () => {
@@ -1020,5 +1052,4 @@ describe("Page someone when another tool calls a webhook", () => {
   });
 });
 
-const NOBODY_PAGED_FOR_WANT_OF_A_TITLE: RegExp =
-  /^❌ Nobody was paged: .*Title/;
+const NOBODY_PAGED_FOR_WANT_OF_A_TITLE: RegExp = /Title/;

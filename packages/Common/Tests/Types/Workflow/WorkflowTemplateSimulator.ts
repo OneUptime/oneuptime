@@ -27,6 +27,14 @@
  *     component and the Slack component send through; the database, per
  *     step, by component id; and one DNS lookup (stubDnsLookups), so the
  *     SSRF check the API components run stays offline.
+ *   - With a world (Scenario.world, TemplateWorld): one project held in
+ *     memory instead of answers per step. The database steps then run for
+ *     real against its tables - Find One, Find Many, Create One, as the
+ *     registry builds them - and so do Incident and Alert From Another Tool.
+ *     That is how a template and the one it replaced are run against the
+ *     same project (the *TemplateEquivalence suites).
+ *   - Real as well: Check With JavaScript, API Get By ID and Update Zabbix
+ *     Problem, the steps the simple templates are built from.
  *
  * The Jira suite keeps a copy of its own, written before this one. Not a test
  * file itself (jest only collects *.test.ts).
@@ -36,6 +44,7 @@ import {
   getWorkflowTemplate,
   buildGraphForTemplate,
 } from "../../../Types/Workflow/Templates";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ComponentMetadata, {
   Argument,
   ComponentInputType,
@@ -66,6 +75,24 @@ import ApiPatch from "../../../Server/Types/Workflow/Components/API/Patch";
 import ApiDelete from "../../../Server/Types/Workflow/Components/API/Delete";
 import SlackSendMessageToChannel from "../../../Server/Types/Workflow/Components/Slack/SendMessageToChannel";
 import Page from "../../../Server/Types/Workflow/Components/OnCall/Page";
+import JavaScriptCheck from "../../../Server/Types/Workflow/Components/JavaScriptCheck";
+import ApiGetById from "../../../Server/Types/Workflow/Components/API/GetById";
+import ZabbixUpdateProblem from "../../../Server/Types/Workflow/Components/Zabbix/UpdateProblem";
+import RecordFromAnotherTool, {
+  ALERT_RECORD_MODEL,
+  INCIDENT_RECORD_MODEL,
+} from "../../../Server/Types/Workflow/Components/FromAnotherTool/RecordFromAnotherTool";
+import FindOneBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/FindOneBaseModel";
+import FindManyBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/FindManyBaseModel";
+import CreateOneBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/CreateOneBaseModel";
+import DatabaseService from "../../../Server/Services/DatabaseService";
+import {
+  ALERT_FROM_ANOTHER_TOOL,
+  INCIDENT_FROM_ANOTHER_TOOL,
+} from "../../../Types/Workflow/Components/FromAnotherTool";
+import TemplateWorld from "./TemplateWorld";
+import { isUnhandledStepFailure } from "../../../Types/Workflow/UnhandledStepFailure";
+import { FakeTable } from "../../Server/Types/Workflow/Components/FromAnotherToolFakes";
 import { jest } from "@jest/globals";
 import dns from "dns";
 
@@ -322,6 +349,12 @@ export interface Scenario {
    * settings): run in place of the template's. templateId still names it.
    */
   graph?: JSONObject | undefined;
+  /*
+   * One project held in memory: the database steps run for real against
+   * it, and so do Incident and Alert From Another Tool, instead of the
+   * answers in `database`.
+   */
+  world?: TemplateWorld | undefined;
 }
 
 export interface SimulationTrace {
@@ -336,6 +369,13 @@ export interface SimulationTrace {
   logs: Array<string>;
   /** What the components themselves wrote to the run log. */
   runLog: Array<string>;
+  /*
+   * The steps that failed with nothing connected to their Error output,
+   * which fail the run (UnhandledStepFailure), in the order they ran.
+   */
+  failedSteps: Array<string>;
+  // Why each of them failed, as its Steps entry says it: by component id.
+  portReasons: Dictionary<string>;
   storage: StorageMap;
 }
 
@@ -390,6 +430,67 @@ const COMPONENT_CODE: Dictionary<ComponentCode> = {
   [ComponentID.PageTeam]: new Page(ComponentID.PageTeam),
   [ComponentID.PageOnCall]: new Page(ComponentID.PageOnCall),
   [ComponentID.PageOnCallPolicy]: new Page(ComponentID.PageOnCallPolicy),
+  [ComponentID.JavaScriptCheck]: new JavaScriptCheck(),
+  [ComponentID.ApiGetById]: new ApiGetById(),
+  [ComponentID.ZabbixUpdateProblem]: new ZabbixUpdateProblem(),
+};
+
+type WorldStepFunction = (
+  metadataId: string,
+  world: TemplateWorld,
+) => ComponentCode | null;
+
+/*
+ * A step that works with the world's records, built as the registry builds
+ * it (Server/Types/Workflow/Components/Index.ts) but on the world's tables:
+ * a database step of one of its tables, or a From Another Tool step.
+ */
+const worldStep: WorldStepFunction = (
+  metadataId: string,
+  world: TemplateWorld,
+): ComponentCode | null => {
+  if (metadataId === ComponentID.IncidentFromAnotherTool) {
+    return new RecordFromAnotherTool({
+      kind: INCIDENT_FROM_ANOTHER_TOOL,
+      services: world.servicesFor(metadataId),
+      model: INCIDENT_RECORD_MODEL,
+    });
+  }
+
+  if (metadataId === ComponentID.AlertFromAnotherTool) {
+    return new RecordFromAnotherTool({
+      kind: ALERT_FROM_ANOTHER_TOOL,
+      services: world.servicesFor(metadataId),
+      model: ALERT_RECORD_MODEL,
+    });
+  }
+
+  const operation: RegExpExecArray | null = DATABASE_OPERATION.exec(metadataId);
+
+  if (!operation) {
+    return null;
+  }
+
+  const table: FakeTable | null = world.tableFor(
+    metadataId.slice(0, operation.index),
+  );
+
+  if (!table) {
+    throw new Error(`The world has no table for ${metadataId}.`);
+  }
+
+  const service: DatabaseService<BaseModel> =
+    table as unknown as DatabaseService<BaseModel>;
+
+  if (operation[1] === "find-one") {
+    return new FindOneBaseModel(service);
+  }
+
+  if (operation[1] === "find-many") {
+    return new FindManyBaseModel(service);
+  }
+
+  return new CreateOneBaseModel(service);
 };
 
 const DATABASE_OPERATION: RegExp = /-(find-one|find-many|create-one)$/;
@@ -478,6 +579,7 @@ const answerFetch: AnswerFetchFunction = (
 interface StepResult {
   returnValues: JSONObject;
   port: string | null;
+  reason?: string | undefined;
 }
 
 type ExecuteStepFunction = (data: {
@@ -511,7 +613,11 @@ const executeStep: ExecuteStepFunction = async (data: {
     };
   }
 
-  if (DATABASE_OPERATION.test(node.metadataId)) {
+  const inWorld: ComponentCode | null = data.scenario.world
+    ? worldStep(node.metadataId, data.scenario.world)
+    : null;
+
+  if (DATABASE_OPERATION.test(node.metadataId) && !inWorld) {
     const call: DatabaseCall = {
       componentId: node.componentId,
       metadataId: node.metadataId,
@@ -536,7 +642,16 @@ const executeStep: ExecuteStepFunction = async (data: {
     return { returnValues: reply.returnValues, port: reply.port };
   }
 
-  const code: ComponentCode | undefined = COMPONENT_CODE[node.metadataId];
+  if (inWorld && DATABASE_OPERATION.test(node.metadataId)) {
+    data.trace.databaseCalls.push({
+      componentId: node.componentId,
+      metadataId: node.metadataId,
+      args: data.args,
+    });
+  }
+
+  const code: ComponentCode | undefined =
+    inWorld || COMPONENT_CODE[node.metadataId];
 
   if (!code) {
     throw new Error(`The simulation cannot run ${node.metadataId}.`);
@@ -582,6 +697,7 @@ const executeStep: ExecuteStepFunction = async (data: {
   return {
     returnValues: result.returnValues,
     port: result.executePort?.id || null,
+    reason: result.executePortReason,
   };
 };
 
@@ -653,6 +769,8 @@ export const runTemplate: RunTemplateFunction = async (
     databaseCalls: [],
     logs: [],
     runLog: [],
+    failedSteps: [],
+    portReasons: {},
     storage: {
       local: { variables: { ...scenario.variables }, components: {} },
       global: { variables: {} },
@@ -695,6 +813,10 @@ export const runTemplate: RunTemplateFunction = async (
       };
       trace.ports[componentId] = result.port;
 
+      if (result.reason) {
+        trace.portReasons[componentId] = result.reason;
+      }
+
       if (!result.port) {
         break;
       }
@@ -703,6 +825,15 @@ export const runTemplate: RunTemplateFunction = async (
         (graph.outPorts[componentId] as Dictionary<Array<string>>)[
           result.port
         ] || [];
+
+      if (
+        isUnhandledStepFailure({
+          portId: result.port,
+          connectedComponentIds: next,
+        })
+      ) {
+        trace.failedSteps.push(componentId);
+      }
 
       for (const nextComponentId of next) {
         if (!pending.includes(nextComponentId)) {

@@ -22,10 +22,13 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |
 | Afhankelijk van een waarde het ene of het andere pad te nemen | [Conditions](#conditions)                                         |
 | Afhankelijk van een waarde een van meerdere paden te nemen    | [Switch / Case](#switch-case)                                     |
+| Alleen door te gaan als een paar regels JavaScript dat zeggen | [Check With JavaScript](#check-with-javascript) |
 | Gegevens tussen twee blokken om te vormen                     | [JSON](#json) of [Custom Code](#custom-code)                      |
 | Te wachten vóór het volgende blok                             | [Sleep](#sleep)                                                   |
 | Een andere workflow te starten                                | [Execute Workflow](#execute-workflow)                             |
 | Incidenten, monitoren en andere records te lezen of te wijzigen | [OneUptime-datacomponenten](#oneuptime-datacomponenten)         |
+| Incidenten of waarschuwingen voor de problemen van een ander hulpmiddel te openen, te bevestigen en op te lossen | [Incidenten en waarschuwingen uit andere hulpmiddelen](#incidenten-en-waarschuwingen-uit-andere-hulpmiddelen) |
+| Een Zabbix-probleem te bevestigen of te sluiten | [Zabbix](#zabbix) |
 
 Een specifiek blok is beter dan een algemeen: het Slack-blok kent de limieten van Slack, en een recordblok kent de velden van het record, dus je krijgt duidelijkere fouten en logboeken dan van een **API**-blok dat hetzelfde werk doet.
 
@@ -44,7 +47,7 @@ flowchart TB
 - **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Success** en **Error**; [Conditions](#conditions) heeft **Yes** en **No**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Default**.
 - **Returns** zijn de waarden die een blok aan latere blokken doorgeeft, zoals de **Response Body** van een API. Een later blok leest er een met `{{local.components.<block ID>.returnValues.<value ID>}}`; de knop **{ }** in een instelling voegt hem voor je in. Zie [Variabelen](/docs/workflows/variables#componentuitvoer-data-uit-eerdere-blokken).
 
-Een blok dat **Error** neemt, laat de uitvoering niet mislukken: de uitvoering volgt het pad **Error**, of eindigt daar als er niets op is aangesloten. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
+Een blok dat **Error** neemt, geeft de fout door aan de blokken die op **Error** zijn aangesloten, en de uitvoering gaat daar verder. Is er niets op **Error** aangesloten, dan mislukt de uitvoering: wat ze verder nog deed, loopt door, daarna eindigt ze met de status **Fout**, en de vermelding van het blok in **Stappen** van de uitvoering zegt waarom. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
 
 ## API
 
@@ -64,6 +67,8 @@ Doe een HTTP-verzoek naar elke URL. Er is één blok per methode: **API Get (JSO
 Hoe dan ook geeft het blok **Response Status**, **Response Headers** en **Response Body** terug, plus **Error** met de reden als het mislukte. Lees één veld van een JSON-antwoord door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Omleidingen worden niet gevolgd, dus richt het blok op het adres dat antwoordt. Verzoeken gaan vanuit OneUptime de deur uit: een URL die naar een privénetwerkadres verwijst, wordt geweigerd tenzij een beheerder van een zelf gehoste installatie die toestaat, en de uitvoering stopt met de reden. Zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
+
+**API Get By ID (JSON)** leest één item op een ID dat ergens anders vandaan kwam, zoals de issuesleutel die een webhook stuurde. Zet `{id}` in de **URL** waar het ID hoort, zoals in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, en het ID in **ID**. Het blok zet het ID er alleen in als het een eenvoudig ID is, hooguit 200 letters, cijfers, streepjes en underscores, en codeert het toch met procenttekens: al het andere, zoals `x/../users`, neemt **Error** voordat er een verzoek wordt verstuurd, zodat tekst van buiten het verzoek niet ergens anders heen kan sturen. Verder werkt het zoals **API Get (JSON)** en geeft het dezelfde waarden terug.
 
 ## AI
 
@@ -219,10 +224,9 @@ Om alleen op te roepen wanneer iets waar is, zet je [If / Else](#conditions) vó
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze klaarstaan, en een die met **Switch / Case** op ernst oproept. Een sjabloon laat aan jou over wie wordt opgeroepen: de workflow opent in de Bouwer, waar elk oproepblok **Click to set up** zegt.
+Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze klaarstaan, en een die met **Switch / Case** op ernst oproept. Het dialoogvenster **Een workflow maken** vraagt voor elk oproepblok van een sjabloon wie het oproept, zodat de workflow opent met die keuzes al gemaakt. Een oproepblok dat je in de Bouwer toevoegt, zegt **Click to set up** tot je kiest wie het oproept.
 
 | Instelling | Wat het doet |
 | ---------- | ------------ |
@@ -270,6 +274,27 @@ Een later blok leest de korte titel als `{{local.components.javascript-1.returnV
 De code draait in een sandbox met `args`, `console.log` (geschreven naar het logboek van de uitvoering), `axios` voor HTTP-verzoeken, `crypto` en `sleep`. Ze heeft geen bestandssysteem en geen proces, en haar verzoeken vallen onder dezelfde adresregels als het API-blok. Ze heeft standaard 5 seconden; een zelf gehoste installatie wijzigt dat met `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Success** gaat af met de teruggegeven **Value**, en **Error** als de code een fout gooit of door haar tijd heen is, met de melding in **Error**. Gebruik voor zwaardere scripts een [Runbook](/docs/runbooks/index).
+
+## Check With JavaScript
+
+Voer een paar regels JavaScript uit en neem dan **Yes** of **No**, afhankelijk van wat ze teruggeven: een [Custom Code](#custom-code)-blok met een [If / Else](#conditions) erna, in één blok. Gebruik het als één vergelijking niet genoeg is om te beslissen, bijvoorbeeld om te lezen wat een ander hulpmiddel stuurde en over te slaan waar de workflow af moet blijven.
+
+| Instelling          | Wat het doet |
+| ------------------- | ------------ |
+| **JavaScript Code** | Je code. `return true` neemt **Yes**. Om ook waarden door te geven, geef je een object terug met `proceed: true`, de waarden en een `reason`. |
+| **Arguments**       | Een JSON-object met waarden voor de code, die ze leest als `args`, zoals bij **Run Custom JavaScript**. |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+Alleen `true`, of een object waarvan `proceed` `true` is, neemt **Yes**: al het andere neemt **No**, zelfs een getal of een tekst. Het blok geeft **Value** terug, wat de code teruggaf, dat een later blok leest als `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, en **Reason**, de `reason` van de code of wat ze teruggaf, in één zin, die het tabblad **Stappen** van de uitvoering naast de genomen uitgang toont.
+
+De code draait zoals **Run Custom JavaScript** haar draait: in dezelfde sandbox, met dezelfde `args`, `console.log` en `axios`, en met dezelfde tijdslimiet. Als ze een fout gooit of door haar tijd heen is, neemt het blok **Error**.
 
 ## JSON
 
@@ -358,6 +383,50 @@ Start een andere workflow van hetzelfde project. Je workflow gaat door zonder te
 **Out** gaat af zodra de andere workflow in de wachtrij staat. **Error** gaat af als dat niet lukt: hij wordt niet gevonden, staat uit of is gearchiveerd, of hem starten zou een lus maken.
 
 Gebruik het om gemeenschappelijke logica te delen: bouw één keer een workflow «posten in het incidentkanaal» en start die vanuit elke workflow die hem nodig heeft. Een keten van workflows die elkaar starten, kan niet bij zichzelf terugkomen en is hooguit 10 diep. Zie [Configuratie en veiligheid](/docs/workflows/configuration#limiet-op-het-aanroepen-van-andere-workflows).
+
+## Incidenten en waarschuwingen uit andere hulpmiddelen
+
+Houd één incident, of één waarschuwing, bij voor elk probleem dat een ander hulpmiddel je meldt, gekoppeld via het eigen ID dat dat hulpmiddel ervoor heeft. **Incident From Another Tool** en **Alert From Another Tool** vormen de basis van de sjablonen voor Zabbix, Huntress, Jira en Dynamics 365, en ze werken voor elk hulpmiddel dat de [Webhook-trigger](/docs/workflows/triggers#webhook) van een workflow kan aanroepen. In het paneel **Component toevoegen** staan ze onder **From Other Tools**.
+
+Elke uitvoering geeft het blok één gebeurtenis: **What Happened**, en **Outside ID**, het ID van het probleem in het hulpmiddel. Het blok zoekt het record dat dat ID bewaart, en doet wat **What Happened** zegt:
+
+| What Happened | Wat het blok doet |
+| ------------- | ----------------- |
+| `open`, `problem`, `firing`, `triggered` of `created` | Opent een incident, of maakt een waarschuwing, uit **Title**, **Description** en **Severity**, tenzij een record het ID al bewaart. |
+| `acknowledge` of `acknowledged` | Zet het record op je eerste bevestigde toestand, met **Note** als reden in de geschiedenis ervan. |
+| `resolve`, `resolved`, `recovery`, `ok` of `closed` | Zet het record op je eerste opgeloste toestand, met **Note** als reden in de geschiedenis ervan. |
+| `note`, `update` of `comment` | Voegt **Note** als privénotitie aan het record toe. |
+| De naam van een van je toestanden | Zet het record op die toestand. Schrijf `state:` voor een naam die een van deze woorden is, zoals `state: Open`. |
+
+| Uitgang | Wanneer |
+| ------- | ------- |
+| **Opened**, of **Created** op het blok voor waarschuwingen | Het opende een nieuw record. Sluit hier een oproepblok aan, zodat alleen een nieuw probleem iemand oproept. |
+| **Updated** | Het zette het record op een andere toestand, of voegde de notitie toe. |
+| **Unchanged** | Er was niets te doen: geen record bewaart het ID, het record staat al op die toestand of verder, of **What Happened** is leeg. |
+| **Error** | Het kon het record niet lezen of wijzigen. Is hier niets aangesloten, dan mislukt de uitvoering. |
+
+Een record gaat alleen maar vooruit, en een opgelost record helemaal niet meer, zodat geen van beide hulpmiddelen ongedaan maakt wat het andere deed. Het bewaart het ID in een aangepast veld, `externalId`, tenzij **Outside ID Field** een ander noemt, en alleen dat veld wordt geschreven, zodat de andere aangepaste velden van het record hun waarde houden. Voor een ID dat een record bewaart, wordt nooit opnieuw iets geopend, ook niet als dat record is opgelost: gebruik een ID dat voor elk probleem nieuw is, zoals een Zabbix-gebeurtenis-ID of een Huntress-rapportnummer. Om in plaats daarvan op een record te handelen via zijn eigen ID, zoals de Jira-sjablonen doen met het ID dat de labels van een issue dragen, zet je het in **Incident ID** of **Alert ID**.
+
+**Severity** noemt een van je ernstniveaus bij naam of ID, ongeacht hoofdletters, of bij de plaats die het tussen de andere inneemt: `most severe`, `middle` of `least severe`. Zo worden de eigen niveaus van een hulpmiddel verdeeld over de ernstniveaus die je zelf hebt benoemd. Leeg gelaten, of als het er geen noemt, is het je ernstigste, en het logboek van de uitvoering zegt dat. Een nieuw incident blijft van je statuspagina's af, en hun abonnees horen er niets over, omdat de tekst van een ander hulpmiddel voor de gebruikers van dat hulpmiddel is geschreven: zet **Show On Status Pages** aan om het te tonen.
+
+Onder **Meer velden** is **Reason** de reden in de geschiedenis van het record als het van toestand verandert, en wordt **Note** dan ernaast toegevoegd als privénotitie, voor een hulpmiddel dat iets zegt als het bevestigt of oplost. **Custom Fields** geeft een nieuw record meer aangepaste velden, als JSON-object, **Labels** de ID's van zijn labels, gescheiden door komma's, en **Getroffen resources** de resources waar het over gaat, zoals bij **Create One Incident**. **Note Instead Of Resolving** voegt de notitie toe en laat het oplossen van het record aan je team over. Het blok geeft **Summary** terug, wat het deed in één zin, en het record, zodat een later blok zijn ID leest als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+
+## Zabbix
+
+Bevestig of sluit een probleem in Zabbix, of voeg er een bericht aan toe, via de API van Zabbix. Het blok heet **Update Zabbix Problem**, en de [Zabbix-sjablonen](/docs/integrations/zabbix) sturen er wat er in OneUptime gebeurt mee terug naar Zabbix.
+
+| Instelling | Wat het doet |
+| ---------- | ------------ |
+| **Zabbix URL** | Het adres waarop je Zabbix opent, zoals `https://zabbix.example.com`. Verzoeken gaan naar zijn `api_jsonrpc.php`. |
+| **API Token** | Een API-token van een Zabbix-gebruiker die problemen mag bevestigen, becommentariëren en sluiten. Bewaar het in een geheime variabele. |
+| **Event ID** | Het gebeurtenis-ID van het probleem, meestal het ID dat een incident of een waarschuwing in zijn aangepaste velden bewaart. |
+| **What To Do** | `acknowledge`, `close` of `message`. Leeg gelaten wordt Zabbix niet bijgewerkt. |
+| **Message** | Wat Zabbix bij het probleem bewaart, hooguit 2.048 tekens: een langer bericht wordt ingekort. |
+| **Zabbix 6.0** | Onder **Meer velden**. Zabbix 6.0 leest het token uit de body van het verzoek, niet uit de header `Authorization`: zet dit ervoor aan, en weer uit als je upgradet, want Zabbix 7.2 en later weigeren een token in de body. |
+
+Om te bevestigen of te sluiten, leest het blok eerst het probleem. Een probleem dat Zabbix al heeft opgelost, of al heeft bevestigd als dat alles is wat je vraagt, blijft zoals het is, en het blok neemt **Unchanged**, net als bij een probleem dat Zabbix niet heeft of dat de gebruiker van het token niet kan zien. Een probleem waarvan de trigger niet toestaat dat problemen met de hand worden gesloten, wordt in plaats daarvan bevestigd, en het bericht ervan zegt dat het open blijft tot Zabbix het ziet herstellen.
+
+**Updated** gaat af als Zabbix de update heeft aangenomen, en **Error** als Zabbix niet bereikbaar was of de update weigerde, met de reden van Zabbix: Zabbix beantwoordt een geweigerd verzoek met een successtatus, dus leest het blok wat Zabbix antwoordde in plaats van de status. Het geeft **Summary** terug, wat het deed in één zin.
 
 ## OneUptime-datacomponenten
 
