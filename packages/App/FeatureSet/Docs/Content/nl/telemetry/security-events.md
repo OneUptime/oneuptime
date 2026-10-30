@@ -313,7 +313,7 @@ Hunts hebben dezelfde REST API als de rest van OneUptime, onder `/security-hunt`
 
 ## Detectieregels
 
-Een detectieregel is een [Sigma](https://sigmahq.io/)-regel, een open YAML-formaat om verdachte activiteit te beschrijven, die OneUptime volgens een schema op je gebeurtenissen loslaat. Als hij matcht, opent hij een [zaak](/docs/telemetry/security-cases) of vult hij een open zaak aan, opent hij een waarschuwing, eventueel een incident, en schrijft hij een Detection Finding terug in de gebeurtenissen. De **Regelbibliotheek** heeft kant-en-klare regels om mee te beginnen.
+Een detectieregel is een [Sigma](https://sigmahq.io/)-regel, een open YAML-formaat om verdachte activiteit te beschrijven, die OneUptime volgens een schema op je gebeurtenissen loslaat, of op elke gebeurtenis zodra die binnenkomt. Als hij matcht, opent hij een [zaak](/docs/telemetry/security-cases) of vult hij een open zaak aan, opent hij een waarschuwing, eventueel een incident, en schrijft hij een Detection Finding terug in de gebeurtenissen. De **Regelbibliotheek** heeft kant-en-klare regels om mee te beginnen.
 
 ```mermaid title="Hoe een detectieregel afgaat"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
 4. Laat in **Bij overeenkomst** de optie **Zaak openen bij overeenkomst** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
 5. Kies onder **Waarschuwingen en incidenten** wat een match verder oplevert: **Een waarschuwing maken** (standaard), **Een incident melden**, **Beide** of **Geen van beide**, met een optionele **Ernst van waarschuwing** of **Ernst van incident**.
-6. **Meer velden** bevat de **Beschrijving**, **Detection Finding schrijven bij overeenkomst** (aan) en hoe matches worden geteld; zie [Evaluatie-instellingen](#evaluatie-instellingen).
+6. **Meer velden** bevat de **Beschrijving**, **Detection Finding schrijven bij overeenkomst** (aan), **In realtime uitvoeren** (uit) en hoe matches worden geteld; zie [Evaluatie-instellingen](#evaluatie-instellingen).
 :::
 
 Een eerste regel, die matcht op mislukte aanmeldingen van buiten `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Veld | Wat het doet |
 | --- | --- |
 | **Evaluatie-interval (minuten)** | Hoe vaak de regel draait: hele minuten, 1 tot 1440. Het formulier van een nieuwe regel begint op 5. |
+| **In realtime uitvoeren** | Uit bij een nieuwe regel. Staat het aan, dan controleert de regel elke gebeurtenis zodra die binnenkomt in plaats van elk interval; zie [Realtimeregels](#realtimeregels). |
 | **Groeperingsveld** | Optioneel. Matches die de waarde van dit veld delen, zoals `principalHost`, worden samen geteld, gemeld en ontdubbeld: één waarschuwing per host in plaats van honderden. |
 | **Veld voor unieke telling** | Optioneel. Tel de verschillende waarden van dit veld in plaats van de matchende gebeurtenissen. Lege waarden tellen niet mee. |
 | **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt: 1 tot 1000000, en 1 gaat af bij elke match. |
@@ -450,6 +451,16 @@ OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval s
 - Na een onderbreking, zoals een storing van een worker of een regel die weer is aangezet, dekt de volgende uitvoering de hele onderbreking, tot hoogstens de laatste 24 uur.
 - Een gebeurtenis die meer dan twee minuten te laat binnenkomt, nadat een uitvoering haar tijd al heeft gedekt, wordt opgeslagen en is doorzoekbaar, maar die regel leest haar nooit.
 - Elke groep die de drempel haalt, wordt een Detection Finding, tot 10.000 per uitvoering. Waarschuwingen, incidenten en zaken openen voor de 100 met de hoogste tellingen; de rest deelt één zaak over de regel, en de **Laatste fout** van de regel zegt hoeveel groepen matchten.
+
+### Realtimeregels
+
+Een regel die op één gebeurtenis afgaat, kan in realtime draaien in plaats van op zijn interval: zet **In realtime uitvoeren** aan, onder **Meer velden** in de stap **Bij overeenkomst**. Elke gebeurtenis die OneUptime ontvangt, uit welke bron ook, wordt dan bij aankomst tegen de regel gecontroleerd, en een match opent binnen seconden zijn zaak, waarschuwing en finding.
+
+- Dit past bij een regel met een **Drempel voor aantal treffers** van 1, zonder **Veld voor unieke telling** en zonder de modifier `re`. Een correlatie telt gebeurtenissen samen en draait dus op haar interval. Het formulier zegt wat je moet veranderen als een regel niet past.
+- Een project draait hoogstens 50 regels in realtime, omdat elke gebeurtenis tegen elke regel wordt gecontroleerd.
+- In **Detectieregels** toont de **Status** van een realtimeregel **Realtime**, en ook de kolom met het interval. Een controle die mislukt, verschijnt in **Laatste fout**, zoals bij een run.
+- Ingeschakeld leest de regel eerst wat er sinds zijn laatste run is binnengekomen, zodat er niets tussen schema en realtime valt. Uitgeschakeld gaat hij terug naar zijn interval, vanaf twee minuten ervoor.
+- Uitzonderingen en volglijsten gelden voor hem zoals voor elke regel, en **Uitvoeren op eerdere gebeurtenissen** leest hem zoals elke andere.
 
 ### Ernst
 
@@ -573,6 +584,10 @@ Controleer de sleutel in `x-oneuptime-token` en het pad, `/security-events/v1/in
 
 :::details Een regel matcht nooit
 Controleer de **Status**: bij **Uitgeschakeld** wordt de regel niet uitgevoerd, en bij **Uitvoering mislukt** toont **Fout bekijken** in zijn rij waarom. Open een gebeurtenis waarvan je een match verwachtte en vergelijk die veld voor veld met de regel: een gewone waarde moet gelijk zijn aan het hele veld, dus gebruik `contains` of `*` voor een deel ervan. Een attribuut wordt genoemd zoals in de gebeurtenis (`threat.matched`, niet `attributes.threat.matched`). Met een drempel boven 1 moeten de matches in één uitvoering vallen.
+:::
+
+:::details In realtime uitvoeren gaat niet aan
+De regel telt matches, telt unieke waarden, leest een reguliere expressie of is een correlatie, en het formulier zegt welke: zet **Drempel voor aantal treffers** op 1, maak **Veld voor unieke telling** leeg, of gebruik `contains`, `startswith` of `endswith` in plaats van `re`. Een project draait hoogstens 50 regels in realtime: zet het eerst bij een andere regel uit.
 :::
 
 :::details Een regel matchte, maar er ging geen waarschuwing open

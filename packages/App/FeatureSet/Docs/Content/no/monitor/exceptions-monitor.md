@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Unntak**
 
 ### Velg hva monitoren skal fortelle deg om
 
-Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv.
+Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv. **Et nytt unntak**, **Et løst unntak kommer tilbake** og **Unntakene topper seg** varsler ved et unntak som ses for første gang, ved et som kom tilbake etter at du løste det, og ved en økning langt over det vanlige.
 
 ### Velg unntakene som skal telles
 
@@ -53,7 +53,7 @@ I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper
 
 ### Si når det skal varsles
 
-I **Når det skal varsles** velger du en **Betingelse**, **Antall unntak** og et **Tidsvindu**. Setningen under dem gjentar regelen med vanlige ord. Diagrammet under den teller de samsvarende unntakene i hvert vindu de siste timene, tegner regelens tall som en linje og forteller hvor ofte regelen ville ha varslet. Knappen der foreslår et tall som regelen ikke ville ha passert i den perioden.
+I **Når det skal varsles** velger du en **Betingelse**, **Antall unntak** og et **Tidsvindu**. Setningen under dem gjentar regelen med vanlige ord. Diagrammet under den teller de samsvarende unntakene i hvert vindu de siste timene, tegner regelens tall som en linje og forteller hvor ofte regelen ville ha varslet. Knappen der foreslår et tall som regelen ikke ville ha passert i den perioden. **Varsle ved** velger hva regelen sammenligner: **Unntak**, **Nye unntak**, **Unntak som kom tilbake** eller **En økning over det vanlige**. Diagrammet tegnes bare for **Unntak**.
 
 ### Velg hva som skjer
 
@@ -116,7 +116,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en unntaksmonitor har én **Filtertype**: **Exception Count**, antallet unntak som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst** eller **Nøyaktig**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
+Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Exception Count**, antallet unntak som samsvarte i vinduet, og **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst** eller **Nøyaktig**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet unntak er… |
 | --- | --- |
@@ -135,6 +135,9 @@ En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for de
 | --- | --- | --- |
 | **Hvilket som helst unntak** | **Mer enn** `0` i **Siste 5 minutter** | Oppretter et varsel, som løser seg selv |
 | **For mange unntak** | **Mer enn** `20` i **Siste 5 minutter** | Oppretter et varsel, som løser seg selv |
+| **Et nytt unntak** | **Nye unntak**: **Mer enn** `0` i **Siste 10 minutter** | Oppretter et varsel, som løser seg selv |
+| **Et løst unntak kommer tilbake** | **Unntak som kom tilbake**: **Mer enn** `0` i **Siste 10 minutter** | Oppretter et varsel, som løser seg selv |
+| **Unntakene topper seg** | **En økning over det vanlige**: **Mer enn** `200` i **Siste 15 minutter** | Oppretter et varsel, som løser seg selv |
 
 En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, starter med disse kriteriene:
 
@@ -142,6 +145,18 @@ En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, st
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
 | Check if … has no exceptions | **Exception Count** **Lik** `0` | Setter monitoren som tilkoblet |
+
+## Nye, tilbakevendte og stigende unntak
+
+I tillegg til hvor mange unntak som skjedde, kan en unntaksmonitor varsle ved det en feilsporer begynner med. Hvert leses bare når et kriterium sjekker det.
+
+| Filtertype | Hva den teller i vinduet |
+| --- | --- |
+| **New Exceptions** | Samsvarende unntak som ses for første gang og verken er løst eller arkivert. |
+| **Regressed Exceptions** | Samsvarende unntak du har løst, som kom tilbake og fortsatt er åpne. |
+| **Exception Increase (in %)** | Hvor langt antallet samsvarende unntak ligger over det vanlige: dagen før vinduet, per vindu av samme lengde, minst ett. Ti unntak etter en rolig dag gir 900 %. |
+
+Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og melding; filteret etter infrastrukturenhet gjelder bare de to andre.
 
 ## Gjennomgått eksempel: bare produksjonsunntak
 

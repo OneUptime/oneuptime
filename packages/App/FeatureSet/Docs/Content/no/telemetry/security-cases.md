@@ -104,8 +104,8 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Deteksjoner**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).
-- **Bevis**: filene, lenkene og sikkerhetshendelsene som oppbevares på saken, hver med hvem som la den til og når. Med **Legg til fil** laster du opp en fil på opptil 10 MB, og SHA-256 for det som ble lastet opp, registreres, så den som laster den ned senere kan kontrollere at det er det som ble oppbevart; med **Legg til lenke** viser du til bevis som oppbevares et annet sted. Bare en Security Admin kan fjerne bevis, og sakens **Tidslinje** viser hva som ble lagt til og fjernet. En sikkerhetshendelse oppbevares her slik den var, med **Legg til i sak** under **Hendelser** eller på siden til en [hunt](/docs/telemetry/security-events#hunts), og **Vis hendelse** åpner den.
-- **Oppgaver**: hva som må gjøres i saken, hvem som gjør det, og om det er gjort. Legg til en oppgave som én linje, gi den til noen, og kryss den av når den er utført. Den som får oppgaven, får beskjed, med mindre vedkommende tok den selv, og menyen viser ved siden av **Oppgaver** hvor mange oppgaver som er åpne.
+- **Bevis**: filene, lenkene og sikkerhetshendelsene som oppbevares på saken, hver med hvem som la den til og når. Med **Legg til fil** laster du opp en fil på opptil 10 MB, og SHA-256 for det som ble lastet opp, registreres, så den som laster den ned senere kan kontrollere at det er det som ble oppbevart; med **Legg til lenke** viser du til bevis som oppbevares et annet sted. Bare en Security Admin kan fjerne bevis, og sakens **Tidslinje** viser hva som ble lagt til og fjernet. En sikkerhetshendelse oppbevares her slik den var, med **Legg til i sak** under **Hendelser** eller på siden til en [hunt](/docs/telemetry/security-events#hunts), og **Vis hendelse** åpner den. Steget **Preserve the evidence** i et playbook oppbevarer også her hendelsene bak sakens deteksjoner.
+- **Oppgaver**: hva som må gjøres i saken, hvem som gjør det, og om det er gjort. Legg til en oppgave som én linje, gi den til noen, og kryss den av når den er utført. Den som får oppgaven, får beskjed, med mindre vedkommende tok den selv, og menyen viser ved siden av **Oppgaver** hvor mange oppgaver som er åpne. Steget **Legg til oppgaver** i et playbook legger også til oppgaver og hopper over dem saken allerede har.
 - **Playbooks**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbooks**.
 - **Private notater**: hva teamet skrev om saken.
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
@@ -262,11 +262,12 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Case | Assign the case | Gir saken til en person, et team eller begge |
 | Case | Set the priority | Hever eller senker prioriteten til saken |
 | Case | Set the status | Flytter saken til en annen av prosjektets statuser, med konklusjonen du velger når den statusen lukker den |
-| Case | Add a note | Skriver et notat på saken, for eksempel en sjekkliste for analytikeren |
+| Case | Add a note | Skriver et notat på saken, for eksempel kontekst for analytikeren |
 | Case | Add labels | Merker saken med etiketter |
+| Case | Add tasks | Legger til oppgaver i sakens sjekkliste, for en person eller for den som jobber med saken |
 | Investigate | Check entities against threat intel | Slår opp hver entitet i trusseletterretningen din, og kan heve prioriteten ved et treff |
 | Investigate | Look up entity activity | Teller sikkerhetshendelsene til hver entitet over et nylig tidsvindu, og noterer det på saken |
-| Investigate | Preserve the evidence | Tar vare på øktopptakene av forespørslene bak saken, og noterer sporene og unntakene deres på saken |
+| Investigate | Preserve the evidence | Tar vare på hendelsene bak sakens deteksjoner og øktopptakene av forespørslene dens, og noterer sporene og unntakene deres på saken |
 | Notify | Email people | Sender brukere og team en oppsummering av saken på e-post, med en lenke til den |
 | Notify | Notify data store owners | Sender eierne av hvert datalager saken gjelder en e-post, med en lenke til saken |
 | Notify | Post to Slack | Legger ut en oppsummering av saken i en Slack-kanal |
@@ -278,9 +279,15 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Contain | End the user's Okta sessions | Logger brukeren saken gjelder, ut av Okta og tilbakekaller tokenene deres |
 | Contain | Contain the host in CrowdStrike | Isolerer verten saken gjelder, fra nettverket med CrowdStrike Falcon |
 | Contain | Isolate the device in Microsoft Defender | Isolerer verten saken gjelder, med Microsoft Defender for Endpoint |
+| Contain | Disable the user in Microsoft Entra ID | Deaktiverer i Microsoft Entra ID kontoen til brukeren saken gjelder |
+| Contain | Sign the user out of Microsoft Entra ID | Logger brukeren saken gjelder ut av Microsoft Entra ID overalt og tilbakekaller oppdateringstokenene |
+| Contain | Suspend the user in Google Workspace | Suspenderer i Google Workspace brukeren saken gjelder |
+| Contain | Sign the user out of Google Workspace | Logger brukeren saken gjelder ut av Google Workspace i alle nettlesere og på alle enheter |
 | Contain | Unsuspend the user in Okta | Opphever suspenderingen av brukeren saken gjelder, i Okta |
 | Contain | Lift containment in CrowdStrike | Opphever nettverksisoleringen i CrowdStrike Falcon for verten saken gjelder |
 | Contain | Release the device in Microsoft Defender | Frigir verten saken gjelder, fra isoleringen i Microsoft Defender for Endpoint |
+| Contain | Enable the user in Microsoft Entra ID | Aktiverer igjen i Microsoft Entra ID kontoen til brukeren saken gjelder |
+| Contain | Unsuspend the user in Google Workspace | Opphever i Google Workspace suspensjonen av brukeren saken gjelder |
 | Contain | Blokker offentlig tilgang til datalagre | Blokkerer offentlig tilgang til hver bucket eller lagringskonto saken gjelder, gjennom skytilkoblingen |
 | Contain | Tilbakekall deling av datalager | Stopper delingen utenfor kontoene dine av øyeblikksbildene til hver database saken gjelder, gjennom skytilkoblingen |
 | Automate | Send a webhook | Sender saken som JSON til en URL |
@@ -290,16 +297,28 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook**, **Post a status page announcement** og de to stegene for datalagre starter med godkjenning slått på, fordi de kjører kommandoer på systemene deres, snakker til kundene deres eller endrer innstillingene i en sky; den som legger til steget, kan slå det av.
-- **Bare ved treff i trusselsinformasjon**: hoppe over steget med mindre et tidligere steg **Sjekk entiteter mot trusselsinformasjon** i kjøringen fant en kjent indikator.
-- **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
+- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De åtte stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook**, **Post a status page announcement** og de to stegene for datalagre starter med godkjenning slått på, fordi de kjører kommandoer på systemene deres, snakker til kundene deres eller endrer innstillingene i en sky; den som legger til steget, kan slå det av.
+- **Kjør dette trinnet**: **Alltid**, eller bare etter et resultat av et steg før det, for eksempel at **Sjekk entiteter mot trusselsinformasjon** finner en kjent ondsinnet entitet; se [Forgrein etter resultatet av et steg](#forgrein-etter-resultatet-av-et-steg).
+- **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen. Den ligger under **Flere felt**, sammen med **Kjør dette trinnet**.
+
+### Forgrein etter resultatet av et steg
+
+**Kjør dette trinnet** lar et steg vente på hvordan et steg før det endte. Hvert steg før det tilbyr resultatene sine:
+
+| Et steg før det | Resultatene |
+| --- | --- |
+| Sjekk entiteter mot trusselsinformasjon | Fant en kjent ondsinnet entitet, eller fant ikke noe kjent ondsinnet |
+| Slå opp entitetsaktivitet | Fant aktivitet, eller fant ingen aktivitet |
+| Ethvert annet steg | Lyktes, og mislyktes når det har **Fortsett hvis det mislykkes** slått på |
+
+To steg som venter på motsatte resultater av det samme steget, er et hvis og et ellers: suspender en bruker bare når trusselsinformasjonen kjenner vedkommende, og legg ellers til en oppgave om å bekrefte påloggingen med vedkommende. Når steget det ventes på, ender på en annen måte, hoppes det ventende steget over, og kjøringen sier under det hvorfor; det samme gjelder et steg som venter på et steg som ble hoppet over. Kortet til et steg viser hva det venter på, og et steg som et annet venter på, kan ikke flyttes under det eller slettes før det andre kjører på en annen måte. Malen **Eskaler kjente ondsinnede indikatorer** hever prioriteten og statusen til en sak bare ved treff i trusselsinformasjon, og et steg som ble lagret med den gamle bryteren for trusselsinformasjon, beholder den som **Bare hvis en tidligere sjekk mot trusselsinformasjon fant en kjent ondsinnet entitet**.
 
 ### Svar gjennom OneUptime
 
 Fire steg handler gjennom resten av OneUptime i stedet for gjennom et tilkoblet produkt:
 
 - **Run a runbook** starter en av [runbookene](/docs/runbooks/index) dine med saken som input, som et Bash-steg leser som miljøvariabler (se [Kall webhooken](/docs/runbooks/triggers#kall-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er adressen, brukeren og verten saken handler om, valgt etter samme regel som for et Contain-steg, og tomme når den ikke handler om noen. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` og `ONEUPTIME_INPUT_HOSTS` lister som JSON alle saken nevner, og `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` og `ONEUPTIME_INPUT_CASE_URL` sier hvilken sak det er. En beskyttet bruker eller vert er aldri blant dem. Kjøringen av runbooken viser at den ble startet av **Security playbook** for saken.
-- **Preserve the evidence** tar vare på øktopptakene av forespørslene bak saken utover oppbevaringstiden og skriver et notat på saken som lenker til sporet for hver forespørsel, hvert opptak og hvert unntak. Logger og spor kan ikke oppbevares lenger enn prosjektet oppbevarer telemetri, så eksporter det du trenger før det.
+- **Preserve the evidence** oppbevarer den nyeste hendelsen for hver av sakens deteksjoner, opptil 100, slik den er nå, på sakens side **Bevis**, tar vare på øktopptakene av forespørslene bak saken utover oppbevaringstiden og skriver et notat på saken som lenker til sporet for hver forespørsel, hvert opptak og hvert unntak. Logger og spor kan ikke oppbevares lenger enn prosjektet oppbevarer telemetri, så eksporter det du trenger før det.
 - **Post a status page announcement** legger ut det du skrev, slik du skrev det, på statussidene du velger. Ingenting fra saken legges til. Abonnentene deres varsles bare når **Varsle abonnenter** er slått på.
 - **Fix the code with AI** ber OneUptime AI om en pull request som retter hvert unntak sakens forespørsler utløste, opptil tre. Steget krever at OneUptime AI er slått på, et repository med koden koblet til via GitHub-appen og en runner. Uten dem hoppes steget over og sier hva som mangler.
 
@@ -312,6 +331,8 @@ Contain-stegene handler gjennom en tilkobling som trenger mer enn lesetilgang: e
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token som har lov til å administrere brukere |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivetilgang til scopet Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tillatelsen Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | En app med programtillatelsene User.Read.All, User.EnableDisableAccount.All og User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domeneomfattende delegering med omfangene admin.directory.user og admin.directory.user.security, for en administrator som administrerer brukeren |
 | Blokker offentlig tilgang til datalagre, Tilbakekall deling av datalager | Skytilkoblingen til datalageret | **Datasikkerhetsrespons** slått på, og oppsettkommandoen kjørt på nytt |
 
 Et steg for brukere eller verter handler bare på brukerne eller vertene saken gjelder, aldri på alle som den nevner:
@@ -319,7 +340,7 @@ Et steg for brukere eller verter handler bare på brukerne eller vertene saken g
 - Verdien en deteksjon i saken er gruppert etter, for eksempel kontoen en regel for umulige reiser grupperer etter, eller verten som et varsel fra et tilkoblet produkt nevner.
 - En bruker eller vert i saken som trusseletterretningen din kjenner som en indikator.
 
-En sak som er gruppert etter en adresse, for eksempel et brute force-angrep mot VPN-en din, gjelder ingen av delene: Contain-stegene i den hoppes over, og den forsøkte kontoen og den rammede gatewayen får være i fred. Et steg handler på høyst 10 brukere eller verter. Det finner hver av dem i produktet etter navn, og skriver på kjøringen hva det gjorde med hver enkelt: utført, allerede utført, ikke funnet, avvist eller beskyttet.
+En sak som er gruppert etter en adresse, for eksempel et brute force-angrep mot VPN-en din, gjelder ingen av delene: Contain-stegene i den hoppes over, og den forsøkte kontoen og den rammede gatewayen får være i fred. Et steg handler på høyst 10 brukere eller verter. Det finner hver av dem i produktet etter navn, og skriver på kjøringen hva det gjorde med hver enkelt: utført, allerede utført, ikke funnet, avvist eller beskyttet. Microsoft Entra ID finner en bruker etter påloggingsnavn eller e-postadresse, og endrer en administrators konto bare for en app som også har rollen Privileged Authentication Administrator; Google Workspace finner brukeren etter primæradresse eller alias.
 
 De to stegene for datalagre handler på datalagrene saken gjelder, høyst 10: datalagrene til datasikkerhetsproblemene den tok inn, og alle som en deteksjon grupperte den etter. De lar et datalager merket **Offentlig med vilje** være i fred, endrer hvordan et datalager deles, men aldri dataene i det, og skriver på kjøringen hva de gjorde med hvert datalager (se [Lukk en eksponering](/docs/data-security/integrations#lukk-en-eksponering)).
 
@@ -329,11 +350,11 @@ De to stegene for datalagre handler på datalagrene saken gjelder, høyst 10: da
 
 #### Godkjenning
 
-De fire stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Krever godkjenning** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Handle på** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
+De åtte stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Krever godkjenning** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Handle på** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
 
 #### Angre
 
-Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Opphev suspensjon**, **Opphev begrensning** eller **Frigi**. En avsluttet Okta-økt kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet.
+Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Opphev suspensjon**, **Opphev begrensning**, **Frigi** eller **Aktiver**. En utlogging kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet.
 
 ### Meldinger
 
@@ -417,6 +438,10 @@ Sjekk at den er aktivert, at innstillingen **Utløser** passer (Case Opened kjø
 
 :::details Et Contain-steg ble hoppet over
 Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle brukerne eller vertene den gjelder, er beskyttet. Åpne kjøringen på saken: steget forteller hvilken av de to det er.
+:::
+
+:::details Et steg som bare kjører etter et annet, ble hoppet over
+Steget det venter på, endte på en annen måte eller ble selv hoppet over: Det fant for eksempel ikke noe kjent ondsinnet der steget venter på en kjent ondsinnet entitet. Åpne kjøringen på saken: Steget som ble hoppet over, forteller hvilket steg det ventet på, og hvilket resultat. For å endre det redigerer du steget og åpner **Flere felt**.
 :::
 
 :::details En status eller prioritet kan ikke slettes eller arkiveres

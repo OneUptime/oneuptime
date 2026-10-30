@@ -16,10 +16,10 @@ flowchart TB
     fired["Alerta disparada"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["Mensaje en<br/>tu chat"]
-    step -->|"Error"| log["Log: por qué<br/>no se entregó"]
+    step -->|"Error"| failed["La ejecución falla<br/>y dice por qué"]
 ```
 
-El paso envía el **Message Text** al chat, como tu bot, a través de la Bot API de Telegram. Toma su salida **Success** cuando Telegram acepta el mensaje, y su salida **Error**, con el motivo de Telegram, cuando Telegram lo rechaza. La plantilla conecta un paso **Log** a **Error**, para que una ejecución que no pudo enviar diga por qué.
+El paso envía el **Message Text** al chat, como tu bot, a través de la Bot API de Telegram. Toma su salida **Success** cuando Telegram acepta el mensaje, y su salida **Error**, con el motivo de Telegram, cuando Telegram lo rechaza. Sin nada conectado a **Error**, como en la plantilla, una ejecución que no pudo enviar falla, y sus **Pasos** dicen por qué.
 
 ## Antes de empezar
 
@@ -53,7 +53,7 @@ Empieza desde la plantilla, que crea todo el flujo de trabajo para las alertas, 
 3. Deja el nombre **Notify Telegram on new alert** o cámbialo, y haz clic en **Siguiente**.
 4. Pega el token en **Telegram Bot Token** y el ID en **Telegram Chat ID**, y haz clic en **Crear flujo de trabajo**.
 
-El flujo de trabajo se abre en el **Constructor** con tres pasos: **On Create Alert**; **Send Message to Telegram**, que envía el número, el título, la gravedad y el estado de la alerta; y un paso **Log** en su salida **Error**. El token se guarda como la variable secreta `telegramBotToken` del flujo de trabajo, y el ID como `telegramChatId`.
+El flujo de trabajo se abre en el **Constructor** con dos pasos: **On Create Alert** y **Send Message to Telegram**, que envía el número, el título, la gravedad y el estado de la alerta. El token se guarda como la variable secreta `telegramBotToken` del flujo de trabajo, y el ID como `telegramChatId`.
 @tab Desde cero
 1. Guarda el token como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `TELEGRAM_BOT_TOKEN` y haz clic en **Siguiente**. Pega el token en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Activa el interruptor **Habilitado** en la parte superior del **Constructor**. A partir de ahí, cada alerta nueva se envía al chat.
 
-Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo** y elige una alerta que ya tengas en **Alerta**: se muestran las más recientes, y al escribir su número o parte de su título encuentras otra. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el chat. Si el paso toma **Error** en su lugar, la línea del paso **Log** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
+Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo** y elige una alerta que ya tengas en **Alerta**: se muestran las más recientes, y al escribir su número o parte de su título encuentras otra. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el chat. Si el paso toma **Error** en su lugar, la ejecución falla, y la entrada del paso en **Pasos** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
 :::
 
 ## Consejos
@@ -85,7 +85,7 @@ Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo**
 
 ## Solución de problemas
 
-Cuando el paso toma **Error**, la ejecución dice por qué: el paso **Log** de la plantilla escribe `❌ Telegram could not deliver the alert notification:`, el motivo de Telegram y un recordatorio de que el bot tiene que estar en el chat.
+Cuando el paso toma **Error**, la ejecución falla, y la entrada del paso en los **Pasos** de la ejecución da el motivo de Telegram. El bot tiene que estar en el chat, así que comprueba eso primero.
 
 :::details Telegram responde "Bad Request: chat not found"
 El **Chat ID** es incorrecto, o el bot no puede ver el chat: añade el bot al grupo, hazlo administrador del canal, o pide a la persona que empiece un chat con el bot. El ID de un grupo empieza por `-`.

@@ -129,7 +129,7 @@ Förklaringen sparas på undantaget, så nästa person som öppnar det läser de
 
 ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
-Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt. Svaret sparas till nästa förekomst.
 
 ## Rätta det med AI
 
@@ -185,7 +185,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 Fliken **Insikter** räknar dina undantag under **Olöst**, **Löst** och **Arkiverad** och din lösningsgrad, och visar de vanligaste undantagen, tjänsterna de påverkar och de som setts senast.
 
-**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas inte, använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas till nästa förekomst, så att fråga igen kostar inget; den använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
 
 ## Felsökning
 

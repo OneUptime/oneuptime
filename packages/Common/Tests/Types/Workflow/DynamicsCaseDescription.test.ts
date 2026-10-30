@@ -109,7 +109,8 @@ const CASE_URL: string = `${DYNAMICS_URL}/main.aspx?pagetype=entityrecord&etn=in
 
 // Where the scripts' sections start.
 const READING_SECTION: string = "// ---- Reading rich text ----";
-const CASE_STEP_SECTION: string = "// ---- Reading the case ----";
+// The create-from-case step reads the event, then the case, after the walk.
+const CASE_STEP_SECTION: string = "// ---- Reading the event ----";
 const NOTE_STEP_SECTION: string = "// ---- Reading the note ----";
 
 // A "<" that starts something: what no placed text may hold.

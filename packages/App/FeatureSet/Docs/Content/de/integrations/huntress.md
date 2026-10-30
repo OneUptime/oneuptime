@@ -51,11 +51,11 @@ Der Vorfall bewahrt die Nummer der Meldung in seinen benutzerdefinierten Feldern
 :::steps
 ### Den Workflow erstellen
 
-Öffnen Sie **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**. Wählen Sie unter **Oder mit einer Vorlage beginnen** die Kategorie **Huntress**, wählen Sie **Open an incident for each Huntress incident report**, klicken Sie auf **Diese Vorlage verwenden** und erstellen Sie den Workflow. Er öffnet sich im **Editor**, ausgeschaltet.
+Öffnen Sie **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**. Wählen Sie unter **Oder mit einer Vorlage beginnen** die Kategorie **Huntress**, wählen Sie **Open an incident for each Huntress incident report** und klicken Sie auf **Diese Vorlage verwenden**.
 
 ### Wählen, wer alarmiert wird
 
-Klicken Sie auf den Schritt **Page an On-Call Policy**, wählen Sie die **Bereitschaftsrichtlinien**, die alarmiert werden sollen, und speichern Sie den Schritt.
+Der Dialog fragt dann, wen er alarmieren soll: Wählen Sie unter **Who to page for high and critical reports** die zu alarmierenden Bereitschaftsrichtlinien, oder keine, um niemanden zu alarmieren, und klicken Sie auf **Arbeitsablauf erstellen**. Der Workflow öffnet sich im **Editor**, ausgeschaltet. Um später zu ändern, wen er alarmiert, klicken Sie auf seinen Schritt **Page an On-Call Policy** und ändern Sie seine **Bereitschaftsrichtlinien**.
 
 ### Einen Webhook-Endpunkt in Huntress anlegen
 
@@ -79,7 +79,7 @@ Schalten Sie **Aktiviert** oben im **Editor** ein. Öffnen Sie in Huntress das M
 
 ## Was der Workflow tut
 
-Die Vorlage nimmt für jedes **Event** einen eigenen Weg, mit einem **Switch / Case** nach dem Trigger:
+Nach dem Trigger tut **Incident From Another Tool**, was jedes **Event** verlangt, über die Nummer der Meldung:
 
 | Event | Was der Workflow tut |
 | --- | --- |
@@ -87,7 +87,7 @@ Die Vorlage nimmt für jedes **Event** einen eigenen Weg, mit einem **Switch / C
 | `comment-added` | Findet den Vorfall der Meldung und fügt den Kommentar als private Notiz hinzu. |
 | `closed` | Findet den Vorfall der Meldung und behebt ihn, sofern er nicht schon behoben ist. Der Grund steht in seiner Zeitleiste: Huntress hat die Meldung geschlossen. |
 
-Es ist ein Workflow wie jeder andere, Sie können also ändern, was er tut: nur bei kritischen Meldungen alarmieren, indem Sie ändern, womit das **If / Else** nach **Create One Incident** vergleicht, jede Meldung mit einem Slack- oder Microsoft-Teams-Schritt in einen Chatkanal senden oder jede Organisation mit einem **Switch / Case** auf **Organization** zu ihrer eigenen Bereitschaftsrichtlinie leiten. Jeder Durchlauf steht in den Durchläufen des Workflows, mit dem, was jeder Schritt getan hat.
+Es ist ein Workflow wie jeder andere, Sie können also ändern, was er tut: nur bei kritischen Meldungen alarmieren, indem Sie ändern, womit das **If / Else** nach **Incident From Another Tool** vergleicht, jede Meldung mit einem Slack- oder Microsoft-Teams-Schritt in einen Chatkanal senden oder jede Organisation mit einem **Switch / Case** auf **Organization** zu ihrer eigenen Bereitschaftsrichtlinie leiten. Jeder Durchlauf steht in den Durchläufen des Workflows, mit dem, was jeder Schritt getan hat.
 
 ### Schweregrade
 
@@ -174,7 +174,7 @@ Der Workflow wurde gelöscht oder archiviert, sein Trigger ist nicht mehr **Hunt
 :::
 
 :::details Es wurde kein Vorfall geöffnet
-Öffnen Sie die Durchläufe des Workflows und den Durchlauf der Meldung. Ist **Create One Incident** fehlgeschlagen, weil der Vorfallsschweregrad leer ist, hat das Projekt keine Vorfallsschweregrade: Legen Sie einen unter **Vorfälle → Einstellungen → Vorfallsschweregrad** an.
+Öffnen Sie die Durchläufe des Workflows und den Durchlauf der Meldung. Ist **Incident From Another Tool** mit `This project has no incident severities to put the incident at.` fehlgeschlagen, legen Sie einen unter **Vorfälle → Einstellungen → Vorfallsschweregrad** an.
 :::
 
 :::details Niemand wurde alarmiert

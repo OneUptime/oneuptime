@@ -2,7 +2,7 @@
 
 Vous construisez un workflow dans son **Constructeur** : un canevas sur lequel vous ajoutez des blocs, les reliez et remplissez leurs paramètres. Cette page décrit la création d'un workflow, l'[ajout de blocs](#ajouter-des-blocs), leur [liaison](#relier-les-blocs) et leur [configuration](#configurer-un-bloc), le [passage de valeurs de l'un à l'autre](#utiliser-des-valeurs-des-blocs-précédents) et l'[activation du workflow](#lactiver).
 
-Pour créer un workflow, ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. La boîte de dialogue **Créer un flux de travail** vous demande d'abord comment commencer, puis un nom. Un modèle qui a besoin de paramètres propres, comme une URL de webhook Slack, vous les demande dans une étape de plus et les enregistre comme variables de workflow, pour que vous puissiez les changer plus tard sans modifier le workflow.
+Pour créer un workflow, ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. La boîte de dialogue **Créer un flux de travail** vous demande d'abord comment commencer, puis un nom. Un modèle qui a besoin de paramètres propres, comme une URL de webhook Slack, vous les demande dans une étape de plus et les enregistre comme variables de workflow, pour que vous puissiez les changer plus tard sans modifier le workflow. Un modèle qui alerte des personnes demande aussi, dans cette étape, qui alerter, parmi les utilisateurs, les équipes, les plannings d'astreinte ou les politiques d'astreinte de votre projet.
 
 Choisissez comment commencer :
 

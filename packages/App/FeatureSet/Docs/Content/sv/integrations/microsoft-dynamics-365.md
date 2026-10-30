@@ -133,7 +133,7 @@ Varje arbetsflöde har sin egen kopia. När du byter ut klienthemligheten öppna
 4. Klicka på **Skapa arbetsflöde**. Varje arbetsflöde skapas avstängt: slå på **Aktiverad** högst upp i dess **Byggare**.
 :::
 
-Börja med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** för larm: alla andra mallar OneUptime → Dynamics 365 av samma slag hittar ärendet via kopplingen som den här skriver. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningens sista steg ska visa `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+Börja med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** för larm: alla andra mallar OneUptime → Dynamics 365 av samma slag hittar ärendet via kopplingen som den här skriver. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Response Body** i dess sista steg, `create-case-1`, innehåller det nya ärendets `ticketnumber`, till exempel `CAS-01001-X1Y2Z3`.
 
 ### Anslut mallarna Dynamics 365 → OneUptime
 
@@ -156,11 +156,11 @@ Skapa i [Power Automate](https://make.powerautomate.com) ett **Automated cloud f
 
 | Mall | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| Deklarera en incident / skapa ett larm när ett ärende skapas | Added | Cases | | `{"incidentid": "<Case>"}` |
-| Lös incidenten / larmet när dess ärende löses | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| Lägg till ärendeanteckningar i incidenten / larmet som privata anteckningar | Added | Notes | | `{"annotationid": "<Note>"}` |
+| Deklarera en incident / skapa ett larm när ett ärende skapas | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| Lös incidenten / larmet när dess ärende löses | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| Lägg till ärendeanteckningar i incidenten / larmet som privata anteckningar | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-För att bara skicka vissa ärenden använder du utlösarens **Filter rows**, t.ex. `prioritycode eq 1` för ärenden med hög prioritet. Du kan också skicka hela utlösarens utdata: mallarna läser radens ID och dess `SdkMessage` från dem på samma sätt.
+För att bara skicka vissa ärenden använder du utlösarens **Filter rows**, t.ex. `prioritycode eq 1` för ärenden med hög prioritet. Brödtexten anger raden som `PrimaryEntityId`, som en Dataverse-webhook gör: mallarna läser själva raden tillbaka från Dynamics 365.
 @tab Dataverse webhook
 Registrera URL:en med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-autentisering och en egen rubrik; själva URL:en är hemligheten. Registrera sedan ett steg på den för varje händelse nedan, med **Event Pipeline Stage of Execution** inställt på **PostOperation** och **Execution Mode** på **Asynchronous**.
 
@@ -181,12 +181,12 @@ Innan du förlitar dig på någon av dem:
 
 ### Kontrollera att det fungerar
 
-Varje mall slutar med ett **Log**-steg som säger vad som hände, så det sista steget i en körning i **Loggar → Körningar** är platsen att titta på:
+Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Loggar → Körningar** och se hur den slutade:
 
-- `✅` — den gjorde sitt jobb och nämner ärendet, incidenten eller larmet.
-- `ℹ️` — den hoppade över händelsen med flit och säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från den andra sidan, posten är privat, eller den nya statusen har ingen ärendestatus kopplad till sig.
-- `❌` — ett anrop misslyckades. Vid ett Dynamics 365-anrop innehåller raden svaret från Dynamics 365.
-- `⚠️` — en mall som skapar en post från ett ärende skapade den, men Dynamics 365 tog inte emot kopplingen, så de andra mallarna kan inte hitta den än. Skriv in kopplingen i ärendets kolumn för hand.
+- **Utförd**: den gjorde sitt jobb, och dess sista steg nämner ärendet, incidenten eller larmet.
+- **Utförd**, med steget **Check With JavaScript** på **No**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från den andra sidan, posten är privat, eller den nya statusen stänger inte ärendet.
+- **Fel**: ett steg misslyckades, och dess post under **Steg** säger varför. Vid ett Dynamics 365-anrop ingår svaret från Dynamics 365.
+- **Fel** vid `link-case-1`: en mall som skapar en post från ett ärende skapade den, men Dynamics 365 tog inte emot kopplingen, så de andra mallarna kan inte hitta den än. Skriv in kopplingen i ärendets kolumn för hand.
 
 Om en körning stannar vid det första Dynamics 365-steget med `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}` är inloggningsinställningarna fel, och meddelandet citerar svaret från Microsoft Entra ID. Se [Vad mallarna frågar efter](#vad-mallarna-frågar-efter).
 
@@ -221,7 +221,7 @@ Behåll markörerna när du redigerar mallarna. De är konstanterna `FROM_ONEUPT
 
 ### Ändra vad en mall gör
 
-Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Run Custom JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm har samma konstanter i samma block.
+Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm har samma konstanter i samma block.
 
 | Konstant | Mall och block | Vad den styr |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ Behåll markörerna när du redigerar mallarna. De är konstanterna `FROM_ONEUPT
 | `CASE_ORIGIN`, `CASE_TYPE` | Skapa ett Dynamics 365-ärende — `prepare-case-1` | Det nya ärendets `caseorigincode` (`3`, Web) och `casetypecode` (`2`, Problem). För att ställa in någon annan kolumn lägger du till den i `CASE` i samma skript, under dess logiska namn. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Skapa ett Dynamics 365-ärende — `prepare-case-1` | Tabellen Cases egna gränser, 200 och 2000 tecken. Beskrivningen behåller länken tillbaka till OneUptime hur mycket som än kortas. Höj dem om din tabell Case tillåter mer. |
 | `RESOLVED_CASE_STATUS` | Lös Dynamics 365-ärendet — `plan-case-1` | Statusen som en löst post stänger sitt ärende med: `5` är Problem Solved, `1000` Information Provided. |
-| `STATE_TO_CASE_STATUS` | Lös Dynamics 365-ärendet — `plan-case-1` | Flyttar ärendet när posten når en annan status, efter statusens namn: `{ Acknowledged: 4 }` flyttar det till Researching när incidenten kvitteras. De aktiva statusarna i Dynamics 365 är `1` In Progress, `2` On Hold, `3` Waiting for Details och `4` Researching. En löst status som står här stänger ärendet med den status den anger. |
+| `STATE_TO_CASE_STATUS` | Lös Dynamics 365-ärendet — `plan-case-1` | Stänger ärendet med en annan löst status vid en egen löst status, efter statusens namn: `{ Closed: 1000 }` stänger det som Information Provided. Bara när posten löses ändras dess ärende: en aktiv status som Researching sätts aldrig. |
 | `PRIORITY_RANK` | Skapa från ett Dynamics 365-ärende — `prepare-incident-1`, `prepare-alert-1` | Kopplar en ärendeprioritet (`1` High, `2` Normal, `3` Low) till `0` (din högsta allvarlighetsgrad), `1` eller `2` (den lägsta). Prioriteter som inte står här hamnar i mitten. Med de två allvarlighetsgrader för larm som ett nytt projekt har blir Normal till Low om du inte ändrar `2: 1` till `2: 0`. |
 | `ONLY_PRIORITIES` | Skapa från ett Dynamics 365-ärende — `prepare-incident-1`, `prepare-alert-1` | Tom tar den alla ärenden som flödet eller webhooken skickar. `[1]` skapar bara poster för ärenden med hög prioritet. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Lös när Dynamics 365-ärendet är löst — `decide-state-1` | En ärendestatus, efter namn, till en OneUptime-status, t.ex. `{ Researching: 'Acknowledged' }`. Annars avgör ärendets tillstånd: Resolved löser posten. Lägg till `2: 'isResolvedState'` för att också lösa den när dess ärende avbryts. |
-| `MESSAGES` | Varje mall Dynamics 365 → OneUptime — `read-event-1` | Händelserna som mallen agerar på. Lägg till `'Update'` i anteckningsmallens lista för att också kopiera redigerade anteckningar: varje redigering blir en ny anteckning. |
+| `MESSAGES` | Varje mall Dynamics 365 → OneUptime — `read-event-1`, eller `prepare-incident-1` och `prepare-alert-1` | Händelserna som mallen agerar på. Lägg till `'Update'` i anteckningsmallens lista för att också kopiera redigerade anteckningar: varje redigering blir en ny anteckning. |
 | `MAX_NOTE_LENGTH` | Anteckningsmallarna — `build-note-1`, `read-note-1` | Den längsta anteckning som var och en skriver: 100 000 tecken till Dynamics 365, vilket är en antecknings egen gräns, och 30 000 till OneUptime. |
 
 Status- och statusnamn som används som nycklar måste stavas exakt som de heter, versaler inräknade. Håll `{{` borta från koden: ett skript fylls i som vilken annan inställning som helst innan det körs, så två öppnande klammerparenteser i rad skulle läsas som en referens.
@@ -242,7 +242,7 @@ Status- och statusnamn som används som nycklar måste stavas exakt som de heter
 ### Begränsningar
 
 - **Microsofts kommersiella moln.** Token-URL:en är `login.microsoftonline.com`. För molnen US Government (GCC High, DoD) eller Kina öppnar du `dynamicsAccessToken`, använder **Redigera inställningar** och ändrar token-URL:en till inloggningsvärden för ditt moln, t.ex. `login.microsoftonline.us`.
-- **Dynamics 365 kan vägra att lösa ett ärende.** Dina Customer Service-inställningar kan hindra att ett ärende löses medan det har öppna aktiviteter eller öppna underordnade ärenden, och en affärsregel eller ett plugin-program kan också neka det. Körningen slutar med `❌ Dynamics 365 did not resolve the case`, med orsaken från Dynamics 365, och ärendet förblir som det var.
+- **Dynamics 365 kan vägra att lösa ett ärende.** Dina Customer Service-inställningar kan hindra att ett ärende löses medan det har öppna aktiviteter eller öppna underordnade ärenden, och en affärsregel eller ett plugin-program kan också neka det. Körningen misslyckas vid `close-case-1`, med orsaken från Dynamics 365, och ärendet förblir som det var.
 - **Poster och ärenden går aldrig bakåt.** Att öppna ett ärende igen ändrar ingenting i OneUptime, och en löst post öppnas aldrig igen. Ett ärende som redan är löst eller avbrutet öppnas aldrig igen för att stängas på nytt.
 - **Anteckningar och beskrivningar är oformaterad text.** En anteckning som skrivits i Dynamics 365s redigerare för formaterad text kommer in i OneUptime som texten den visar, och det gör även en ärendebeskrivning som skrivits i redigeraren eller hämtats från ett e-postmeddelande: stycken och radbrytningar behålls, medan formatering, bilder och e-postmeddelandets egna format försvinner. En OneUptime-anteckning kommer fram i Dynamics 365 som sina råa tecken, Markdown och allt. Text från Dynamics 365 — ett ärendes titel och beskrivning, en anteckning, namnen på statusar, prioriteter, kunder och personer — läses exakt som den skrevs: en bild, en länk, HTML, ett diagram eller ett chattomnämnande som `<!channel>` som skrivits i den visas som sina tecken och gör ingenting, eftersom en osynlig word joiner placeras efter tecknet som skulle starta det. En kopia av texten behåller word joinern. Ett arbetsflöde behåller skripten det skapades med, så ett arbetsflöde som skapats från en äldre version av en mall skriver text som den versionen gjorde: skapa det igen från mallen för att få detta. Bilagor stannar i Dynamics 365; anteckningen i OneUptime nämner filen.
 - **Redigerade anteckningar kopieras inte**, bara nya, om du inte lägger till `'Update'` i `MESSAGES`.

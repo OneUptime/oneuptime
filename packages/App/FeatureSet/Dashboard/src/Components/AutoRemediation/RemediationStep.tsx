@@ -986,8 +986,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
    */
   const [tryAgainAnswerCount, setTryAgainAnswerCount] = useState<number>(0);
   const tryAgainButtonId: string = useId();
-  const stepHeadingRef: React.RefObject<HTMLHeadingElement | null> =
-    useRef<HTMLHeadingElement | null>(null);
+  const stepHeadingRef: React.RefObject<HTMLHeadingElement> =
+    useRef<HTMLHeadingElement>(null);
   // The fix in the code the investigation recommends, once read.
   const [codeFixSuggestion, setCodeFixSuggestion] =
     useState<InvestigationCodeFixSuggestion | null>(null);

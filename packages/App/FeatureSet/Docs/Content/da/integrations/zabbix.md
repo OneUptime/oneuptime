@@ -61,23 +61,22 @@ Start med **Declare an incident for each Zabbix problem**, eller **Create an ale
 ### Hvad skabelonerne beder om
 
 - **Zabbix URL**: den adresse, du åbner Zabbix på, f.eks. `https://zabbix.example.com`, eller `https://example.com/zabbix`, når Zabbix kører under en sti. Links til et problem går dertil, og skabelonerne, der kalder Zabbix, sender deres anmodninger til dets `api_jsonrpc.php`. Feltet afviser adressen på en side i Zabbix.
-- **Zabbix API Token**: et API-token for den Zabbix-bruger, workflowet handler som. [Opret API-tokenet](#opret-api-tokenet) viser hvordan. Det gemmes som en hemmelig variabel og sendes kun i headeren `Authorization`.
+- **Zabbix API Token**: et API-token for den Zabbix-bruger, workflowet handler som. [Opret API-tokenet](#opret-api-tokenet) viser hvordan. Det gemmes som en hemmelig variabel og sendes kun til Zabbix: i headeren `Authorization`, eller i anmodningens brødtekst på Zabbix 6.0.
 
 ### Modtag problemer med skabelonen
 
 :::steps
 1. Gå til **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du **Zabbix** i kategorilisten, klikker på **Declare an incident for each Zabbix problem** og klikker på **Brug denne skabelon**.
-2. Udfyld **Zabbix URL**, og klik på **Opret arbejdsgang**. Workflowet åbner i **Bygger**, slået fra.
-3. Klik på trinnet **Page an On-Call Policy**, vælg de **Vagtpolitikker**, der skal kaldes op, og gem det.
-4. Klik på triggeren **Webhook**, derefter på **Kopiér URL**, og gem URL'en til Zabbix.
-5. Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Zabbix med `400`.
+2. Udfyld **Zabbix URL**. Under **Who to page for High and Disaster problems** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Workflowet åbner i **Bygger**, slået fra.
+3. Klik på triggeren **Webhook**, derefter på **Kopiér URL**, og gem URL'en til Zabbix.
+4. Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Zabbix med `400`.
 :::
 
 Derefter [konfigurerer du Zabbix](#konfigurer-zabbix) til at sende sine problemer til den URL.
 
 ### Hvad workflowet gør
 
-Efter triggeren **Webhook** tager en blok **Switch / Case** en vej for hver `event`, medietypen sender:
+Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event-1` den `event`, medietypen sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i advarselsskabelonen, gør det, den betyder, ud fra problemets hændelses-ID:
 
 | Event | Hvad workflowet gør |
 | --- | --- |
@@ -85,7 +84,7 @@ Efter triggeren **Webhook** tager en blok **Switch / Case** en vej for hver `eve
 | `recovery` | Løser problemets hændelse, medmindre den allerede er løst. Hvorfor står på dens tidslinje. |
 | `update` | Tilføjer det, der blev gjort i Zabbix, til hændelsen som en privat note: hvem der gjorde det, hvad de gjorde, og hvad de skrev. Når opdateringen bekræftede problemet, bekræfter den også hændelsen, så vagten holder op med at eskalere den. |
 
-Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være, og kørslens sidste trin siger hvorfor. Hver kørsel ender i et trin **Log**, der siger, hvad der skete: `✅` den gjorde sit arbejde, `ℹ️` den sprang beskeden over med vilje, `❌` et trin fejlede, og kørselsloggen siger hvorfor.
+Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **No**, og kørslens **Trin** siger hvorfor. Et trin, der fejler, får kørslen til at mislykkes, og dets post under **Trin** siger hvorfor.
 
 ### Alvorligheder
 
@@ -127,7 +126,7 @@ Tilstandsskabelonen spørger først Zabbix om problemet, så et problem, som Zab
 
 ### På Zabbix 6.0
 
-Zabbix 6.0 læser API-tokenet fra anmodningens brødtekst, ikke fra headeren `Authorization`. I hvert API-trin i skabelonerne, der kalder Zabbix, tilføjer du `"auth": "{{local.variables.zabbixApiToken}}",` til **Request Body** efter `"jsonrpc": "2.0",` og fjerner headeren. Zabbix 7.2 og nyere afviser `auth`, så fjern det igen, når du opgraderer.
+Zabbix 6.0 læser API-tokenet fra anmodningens brødtekst, ikke fra headeren `Authorization`. I trinnet **Update Zabbix Problem** i hver skabelon, der kalder Zabbix, slår du **Zabbix 6.0** til under **Flere felter**. Zabbix 7.2 og nyere afviser et token i brødteksten, så slå det fra igen, når du opgraderer.
 
 ## Modtag problemer med en monitor
 
@@ -346,7 +345,7 @@ Handlingen har sandsynligvis to operationer, der sender til den samme bruger, f.
 
 - **Behandl URL'en som en adgangskode.** Alle, der har den, kan oprette hændelser. Hvis den slipper ud, så nulstil den: **Nulstil URL** i workflowets **Webhook**-trigger, eller **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**. Opdater derefter **Send to** i Zabbix-brugerens medie.
 - **Links går til dit Zabbix.** Skabelonen linker et problem på det websted, som dens **Zabbix URL** navngiver, uanset hvad en anmodning siger, og skriver det, Zabbix sendte, som tekst.
-- **Begræns API-tokenet til det, workflowet gør.** Det er en hemmelig variabel, skjult i kørselslogge og kun sendt i headeren `Authorization`. Giv dens bruger en rolle med intet ud over handlingerne ovenfor, og slet tokenet i **Users → API tokens**, hvis det slipper ud.
+- **Begræns API-tokenet til det, workflowet gør.** Det er en hemmelig variabel, skjult i kørselslogge og kun sendt til Zabbix, i headeren `Authorization`, medmindre **Zabbix 6.0** er slået til. Giv dens bruger en rolle med intet ud over handlingerne ovenfor, og slet tokenet i **Users → API tokens**, hvis det slipper ud.
 - **Send kun det, der kræver en hændelse.** Brug handlingens betingelser, eller alvorlighederne i brugerens medie, til at holde problemer med lav alvorlighed i Zabbix.
 - **Selvhostet?** Lad din Zabbix-server nå din OneUptime via HTTPS gennem din firewall. For at kalde et Zabbix på et privat netværk skal workflowet have [udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 

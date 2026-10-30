@@ -751,16 +751,26 @@ describe("examples are built from this step and this workflow", () => {
   });
 
   /*
-   * Two examples are about a step that is not in this workflow, and say so:
-   * If / Else's, when the workflow has nothing to compare yet, reads "an API
-   * step called api-get-1"; Execute Workflow's is about the other workflow's
-   * Manual trigger. Every other reference is to this step or a real one.
+   * A few examples are about a step that is not in this workflow, and say
+   * so: If / Else's, when the workflow has nothing to compare yet, reads "an
+   * API step called api-get-1"; Execute Workflow's is about the other
+   * workflow's Manual trigger. Every other reference is to this step or a
+   * real one.
    */
   const HYPOTHETICAL_STEPS: Record<string, Array<string>> = {
     [ComponentID.IfElse]: ["api-get-1"],
     // The same, for Switch / Case: "an API step called api-get-1".
     [ComponentID.Switch]: ["api-get-1"],
     [ComponentID.WorkflowRun]: ["manual-1"],
+    /*
+     * Steps that read what another tool sent: "a Webhook trigger called
+     * webhook-1 that Jira calls", and Update Zabbix Problem's "an On Update
+     * Incident trigger called incident-on-update-1".
+     */
+    [ComponentID.ApiGetById]: ["webhook-1"],
+    [ComponentID.IncidentFromAnotherTool]: ["webhook-1"],
+    [ComponentID.AlertFromAnotherTool]: ["webhook-1"],
+    [ComponentID.ZabbixUpdateProblem]: ["incident-on-update-1"],
   };
 
   test("every other step an example reads from is in the workflow", () => {
@@ -788,6 +798,31 @@ describe("examples are built from this step and this workflow", () => {
     }
 
     expect(invented).toEqual([]);
+  });
+
+  test("an example about a step the workflow lacks names that step, as the step it assumes", () => {
+    const silent: Array<string> = [];
+
+    for (const metadataId of [
+      ComponentID.ApiGetById,
+      ComponentID.IncidentFromAnotherTool,
+      ComponentID.AlertFromAnotherTool,
+      ComponentID.ZabbixUpdateProblem,
+    ]) {
+      const metadata: ComponentMetadata = findStep(
+        [...BUILT_IN, ...INCIDENT_STEPS],
+        metadataId,
+      );
+      const text: string = allText(docsOf(metadata, [])).join("\n");
+
+      for (const stepId of HYPOTHETICAL_STEPS[metadataId] || []) {
+        if (!text.includes(`called ${stepId}`)) {
+          silent.push(`${metadataId}: ${stepId}`);
+        }
+      }
+    }
+
+    expect(silent).toEqual([]);
   });
 
   test("renaming the step renames it in every example", () => {

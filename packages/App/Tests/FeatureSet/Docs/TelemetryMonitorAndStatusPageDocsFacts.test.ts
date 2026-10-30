@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { EXCEPTION_MEASURES } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import { hasPage, readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
@@ -883,6 +884,19 @@ describe("the window a count looks back over", () => {
         expect(row[1]).toContain(
           `**${comparison}** \`${recipe.threshold}\` in **${window}**`,
         );
+
+        // A pick on another measure says which, first.
+        if (recipe.measure) {
+          const measureLabel: string | undefined = {
+            [CheckOn.NewExceptionCount]: TelemetryRuleCopy.exceptionMeasureNew,
+            [CheckOn.RegressedExceptionCount]:
+              TelemetryRuleCopy.exceptionMeasureRegressed,
+            [CheckOn.ExceptionCountIncreasePercent]:
+              TelemetryRuleCopy.exceptionMeasureIncrease,
+          }[recipe.measure as string];
+
+          expect(row[1]?.startsWith(`**${measureLabel}**: `)).toBe(true);
+        }
         expect(row[2]).toBe(
           recipe.action === TelemetryAlertRuleAction.Incident
             ? "Declares an incident, which resolves itself"
@@ -1212,10 +1226,15 @@ const PROFILE_CRITERIA: Array<{
   },
 ];
 
+/*
+ * The conditions the form offers, by the names it shows them under: the
+ * comparisons and the anomaly conditions show their own values, and a
+ * metric's Is Empty and Is Not Empty show as Has No Data and Has Data.
+ */
 function offeredConditions(checkOn: CheckOn): Array<string> {
   return CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn).map(
-    (option: { value: unknown }): string => {
-      return String(option.value);
+    (option: { label: unknown }): string => {
+      return String(option.label);
     },
   );
 }
@@ -1228,16 +1247,29 @@ const ANOMALY_CONDITIONS: Array<FilterType> = [
 
 describe("criteria", () => {
   it.each(COUNT_PAGES)(
-    "$name: the criteria compare one number, $checkOn, which the page names",
+    "$name: the criteria compare what the page names, $checkOn first",
     (entry: CountPage) => {
+      /*
+       * An Exceptions monitor also compares new exceptions, regressed ones
+       * and the rise over the usual (ExceptionMonitorEvaluation); every
+       * other count page has its one number.
+       */
+      const expected: Array<CheckOn> =
+        entry.monitorType === MonitorType.Exceptions
+          ? [...EXCEPTION_MEASURES]
+          : [entry.checkOn];
+
       expect(
         CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
           entry.monitorType,
         ).map((option: { value: unknown }): unknown => {
           return option.value;
         }),
-      ).toEqual([entry.checkOn]);
-      expect(entry.markdown).toContain(`**${entry.checkOn}**`);
+      ).toEqual(expected);
+
+      for (const checkOn of expected) {
+        expect(entry.markdown).toContain(`**${checkOn}**`);
+      }
     },
   );
 
@@ -2026,7 +2058,23 @@ describe("the Exceptions monitor", () => {
     );
     const conflict: string = upsert.slice(upsert.indexOf("DO UPDATE SET"));
 
-    expect(conflict).toContain('"isResolved" = false,');
+    /*
+     * A resolved row stays resolved only while STAYS_RESOLVED_SQL holds, so
+     * an occurrence after it was resolved reopens it. Since #5416 a late copy
+     * of an older occurrence does not, nor, for an exception resolved in the
+     * next release, one from the release it was resolved after.
+     */
+    expect(conflict).toContain('"isResolved" = ${STAYS_RESOLVED_SQL},');
+    expect(upsert).toContain(
+      'export const STAYS_RESOLVED_SQL: string = `("TelemetryException"."isResolved" AND NOT ${REOPENS_RESOLVED_EXCEPTION_SQL})`;',
+    );
+    expect(upsert).toContain(
+      'OR EXCLUDED."lastSeenAt" > "TelemetryException"."markedAsResolvedAt"',
+    );
+    // And stamps when it came back: the Regressed Exceptions a monitor alerts on.
+    expect(conflict).toContain(
+      '"regressedAt" = CASE WHEN "TelemetryException"."isResolved" AND NOT ${STAYS_RESOLVED_SQL} THEN now()',
+    );
     expect(conflict).not.toContain('"isArchived" = false');
     expect(EXCEPTIONS).toContain(
       "When a resolved exception occurs again, it is un-resolved automatically and counted again.",

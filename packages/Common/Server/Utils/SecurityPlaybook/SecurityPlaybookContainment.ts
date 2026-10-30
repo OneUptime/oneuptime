@@ -27,9 +27,17 @@ import {
   readSettingString,
 } from "../SecurityEvent/Connectors/Types";
 import CrowdStrikeFalconResponseClient from "../SecurityEvent/Response/CrowdStrikeFalconResponseClient";
+import GoogleWorkspaceResponseClient, {
+  GoogleWorkspaceContainmentOutcome,
+  GoogleWorkspaceUser,
+} from "../SecurityEvent/Response/GoogleWorkspaceResponseClient";
 import MicrosoftDefenderEndpointClient, {
   DefenderMachine,
 } from "../SecurityEvent/Response/MicrosoftDefenderEndpointClient";
+import MicrosoftEntraIdResponseClient, {
+  EntraIdContainmentOutcome,
+  EntraIdUser,
+} from "../SecurityEvent/Response/MicrosoftEntraIdResponseClient";
 import OktaResponseClient, {
   OktaContainmentOutcome,
   OktaUser,
@@ -81,9 +89,11 @@ export function describeTarget(target: SecurityPlaybookTarget): string {
 
 /*
  * The containment steps and their undos: suspending and unsuspending
- * accounts and ending their sessions in Okta, network-containing hosts and
- * lifting it in CrowdStrike Falcon, isolating devices and releasing them in
- * Microsoft Defender. Each acts through one of the project's security event
+ * accounts and ending their sessions in Okta, disabling and enabling them
+ * and signing them out in Microsoft Entra ID, suspending and unsuspending
+ * them and signing them out in Google Workspace, network-containing hosts
+ * and lifting it in CrowdStrike Falcon, isolating devices and releasing them
+ * in Microsoft Defender. Each acts through one of the project's security event
  * connections - the credential its settings hold - on the targets the step
  * picked (SecurityPlaybookTargets) that are still to act on, and says what
  * it did with each: done, already done, not found in the product, or failed
@@ -325,9 +335,163 @@ export default class SecurityPlaybookContainment {
         return await this.actInCrowdStrike(data);
       case SecurityEventConnectorProvider.MicrosoftDefenderXdr:
         return await this.actInDefender(data);
+      case SecurityEventConnectorProvider.MicrosoftEntraId:
+        return await this.actInEntraId(data);
+      case SecurityEventConnectorProvider.GoogleWorkspace:
+        return await this.actInGoogleWorkspace(data);
       default:
         throw new Error("This product cannot contain anything yet.");
     }
+  }
+
+  /*
+   * A user's account in Microsoft Entra ID, found by its sign-in name or
+   * mail address: disabled or enabled (accountEnabled), or signed out of
+   * every session (revokeSignInSessions).
+   */
+  private static async actInEntraId(data: {
+    definition: SecurityPlaybookActionDefinition;
+    settings: SecurityConnectorSettings;
+    values: Array<string>;
+    transport: ConnectorTransport;
+  }): Promise<Map<string, ContainmentTargetOutcome>> {
+    const client: MicrosoftEntraIdResponseClient =
+      new MicrosoftEntraIdResponseClient({
+        tenantId: readSettingString(data.settings.config, "tenantId"),
+        clientId: readSettingString(data.settings.config, "clientId"),
+        clientSecret: readSettingString(data.settings.secrets, "clientSecret"),
+        cloud: readSettingString(data.settings.config, "cloud") || "public",
+        transport: data.transport,
+      });
+
+    const outcomes: Map<string, ContainmentTargetOutcome> = new Map();
+
+    for (const value of data.values) {
+      try {
+        const user: EntraIdUser | null = await client.findUser(value);
+
+        if (!user) {
+          outcomes.set(value, {
+            state: SecurityPlaybookTargetState.NotFound,
+            detail: "not found in Microsoft Entra ID",
+          });
+          continue;
+        }
+
+        let outcome: EntraIdContainmentOutcome;
+        let done: string;
+        let already: string;
+
+        switch (data.definition.type) {
+          case SecurityPlaybookActionType.DisableEntraIdUser:
+            outcome = await client.disableUser(user);
+            done = "disabled";
+            already = "already disabled";
+            break;
+          case SecurityPlaybookActionType.EnableEntraIdUser:
+            outcome = await client.enableUser(user);
+            done = "enabled";
+            already = "not disabled";
+            break;
+          default:
+            outcome = await client.signOut(user);
+            done = "signed out everywhere";
+            already = done;
+        }
+
+        outcomes.set(
+          value,
+          outcome === EntraIdContainmentOutcome.AlreadyDone
+            ? {
+                state: SecurityPlaybookTargetState.AlreadyDone,
+                detail: already,
+              }
+            : { state: SecurityPlaybookTargetState.Done, detail: done },
+        );
+      } catch (error) {
+        outcomes.set(value, {
+          state: SecurityPlaybookTargetState.Failed,
+          detail: errorMessage(error),
+        });
+      }
+    }
+
+    return outcomes;
+  }
+
+  /*
+   * A user's account in Google Workspace, found by its primary email or an
+   * alias: suspended or unsuspended, or signed out of every session.
+   */
+  private static async actInGoogleWorkspace(data: {
+    definition: SecurityPlaybookActionDefinition;
+    settings: SecurityConnectorSettings;
+    values: Array<string>;
+    transport: ConnectorTransport;
+  }): Promise<Map<string, ContainmentTargetOutcome>> {
+    // A key that no longer reads fails each target with the reason, on its first request.
+    const client: GoogleWorkspaceResponseClient =
+      new GoogleWorkspaceResponseClient({
+        serviceAccountJson: readSettingString(
+          data.settings.secrets,
+          "serviceAccountJson",
+        ),
+        adminEmail: readSettingString(data.settings.config, "adminEmail"),
+        transport: data.transport,
+      });
+    const outcomes: Map<string, ContainmentTargetOutcome> = new Map();
+
+    for (const value of data.values) {
+      try {
+        const user: GoogleWorkspaceUser | null = await client.findUser(value);
+
+        if (!user) {
+          outcomes.set(value, {
+            state: SecurityPlaybookTargetState.NotFound,
+            detail: "not found in Google Workspace",
+          });
+          continue;
+        }
+
+        let outcome: GoogleWorkspaceContainmentOutcome;
+        let done: string;
+        let already: string;
+
+        switch (data.definition.type) {
+          case SecurityPlaybookActionType.SuspendGoogleWorkspaceUser:
+            outcome = await client.suspendUser(user);
+            done = "suspended";
+            already = "already suspended";
+            break;
+          case SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser:
+            outcome = await client.unsuspendUser(user);
+            done = "unsuspended";
+            already = "not suspended";
+            break;
+          default:
+            outcome = await client.signOut(user);
+            done = "signed out everywhere";
+            already = done;
+        }
+
+        outcomes.set(
+          value,
+          outcome === GoogleWorkspaceContainmentOutcome.AlreadyDone
+            ? {
+                state: SecurityPlaybookTargetState.AlreadyDone,
+                detail: already,
+              }
+            : { state: SecurityPlaybookTargetState.Done, detail: done },
+        );
+      } catch (error) {
+        outcomes.set(value, {
+          state: SecurityPlaybookTargetState.Failed,
+          detail: errorMessage(error),
+        });
+      }
+    }
+
+    return outcomes;
   }
 
   private static async actInOkta(data: {

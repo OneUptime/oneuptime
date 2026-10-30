@@ -53,8 +53,18 @@ const ARGS: ServiceAlertTemplateArgs = {
   monitorName: "payments-api",
 };
 
-// The counts are canaries. Update them deliberately when adding a template.
-const AGNOSTIC_COUNT: number = 8;
+/*
+ * The counts are canaries. Update them deliberately when adding a template.
+ * The RED signals, plus new, regressed and spiking exceptions.
+ * The exception templates that alert on another measure than the count.
+ */
+const EXCEPTION_CHECK_ON_BY_TEMPLATE: Record<string, CheckOn> = {
+  "service-new-exception": CheckOn.NewExceptionCount,
+  "service-regressed-exception": CheckOn.RegressedExceptionCount,
+  "service-exception-spike": CheckOn.ExceptionCountIncreasePercent,
+};
+
+const AGNOSTIC_COUNT: number = 11;
 
 const TEMPLATE_COUNT_BY_LANGUAGE: Partial<Record<ServiceLanguage, number>> = {
   java: 6,
@@ -455,6 +465,7 @@ describe("ServiceAlertTemplates", () => {
     it("uses the one checkOn its monitor type implements", () => {
       for (const template of ALL_TEMPLATES) {
         const expected: CheckOn | undefined =
+          EXCEPTION_CHECK_ON_BY_TEMPLATE[template.id] ||
           CHECK_ON_BY_MONITOR_TYPE[template.monitorType];
 
         expect(expected).toBeDefined();
@@ -468,6 +479,50 @@ describe("ServiceAlertTemplates", () => {
         }
       }
     });
+
+    /*
+     * New, regressed and spiking exceptions: an Exceptions monitor on the
+     * service, over the window each needs, alerting above the number.
+     */
+    it.each([
+      ["service-new-exception", CheckOn.NewExceptionCount, 600, 0],
+      ["service-regressed-exception", CheckOn.RegressedExceptionCount, 600, 0],
+      [
+        "service-exception-spike",
+        CheckOn.ExceptionCountIncreasePercent,
+        900,
+        200,
+      ],
+    ])(
+      "%s watches the service's own exceptions",
+      (
+        id: string,
+        checkOn: CheckOn,
+        windowInSeconds: number,
+        threshold: number,
+      ) => {
+        const template: ServiceAlertTemplate = getServiceAlertTemplateById(id)!;
+
+        expect(template.monitorType).toBe(MonitorType.Exceptions);
+        expect(template.category).toBe("Errors");
+
+        const step: MonitorStep = buildStep(template);
+
+        expect(step.data?.exceptionMonitor?.lastXSecondsOfExceptions).toBe(
+          windowInSeconds,
+        );
+        expect(step.data?.exceptionMonitor?.includeResolved).toBe(false);
+        expect(step.data?.exceptionMonitor?.telemetryServiceIds).toHaveLength(
+          1,
+        );
+
+        const unhealthy: CriteriaFilter = getFilters(step)[0]!;
+
+        expect(unhealthy.checkOn).toBe(checkOn);
+        expect(unhealthy.filterType).toBe(FilterType.GreaterThan);
+        expect(unhealthy.value).toBe(threshold);
+      },
+    );
 
     it("uses only comparators the numeric evaluator implements", () => {
       for (const template of ALL_TEMPLATES) {

@@ -313,7 +313,7 @@ Bedrohungssuchen haben dieselbe REST-API wie der Rest von OneUptime, unter `/sec
 
 ## Erkennungsregeln
 
-Eine Erkennungsregel ist eine [Sigma](https://sigmahq.io/)-Regel, ein offenes YAML-Format zur Beschreibung verdächtiger Aktivität, die OneUptime nach Zeitplan gegen Ihre Ereignisse laufen lässt. Passt sie, eröffnet sie einen [Fall](/docs/telemetry/security-cases) oder ergänzt einen offenen, öffnet eine Warnung, wahlweise einen Vorfall, und schreibt einen Detection Finding zurück in die Ereignisse. Die **Regelbibliothek** bietet fertige Regeln als Ausgangspunkt.
+Eine Erkennungsregel ist eine [Sigma](https://sigmahq.io/)-Regel, ein offenes YAML-Format zur Beschreibung verdächtiger Aktivität, die OneUptime nach Zeitplan gegen Ihre Ereignisse laufen lässt oder auf jedes Ereignis, sobald es eintrifft. Passt sie, eröffnet sie einen [Fall](/docs/telemetry/security-cases) oder ergänzt einen offenen, öffnet eine Warnung, wahlweise einen Vorfall, und schreibt einen Detection Finding zurück in die Ereignisse. Die **Regelbibliothek** bietet fertige Regeln als Ausgangspunkt.
 
 ```mermaid title="Wie eine Erkennungsregel auslöst"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. Der **Name** füllt sich aus dem `title` der Regel: Überschreiben Sie ihn, um die Regel anders zu nennen. Eine neue Regel läuft; **Aktiviert** steht in ihrem Bearbeitungsformular.
 4. Lassen Sie unter **Bei Treffer** die Option **Bei Treffer einen Fall eröffnen** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
 5. Wählen Sie unter **Warnungen und Vorfälle**, was ein Treffer sonst noch auslöst: **Warnung erstellen** (Standard), **Vorfall melden**, **Beide** oder **Keines von beiden**, mit optionalem **Warnungsschweregrad** oder **Vorfallsschweregrad**.
-6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an) und wie Treffer gezählt werden; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
+6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an), **In Echtzeit ausführen** (aus) und wie Treffer gezählt werden; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
 :::
 
 Eine erste Regel, die auf fehlgeschlagene Anmeldungen von außerhalb von `10.x.x.x` passt:
@@ -428,6 +428,7 @@ detection:
 | Feld | Was es tut |
 | --- | --- |
 | **Auswertungsintervall (Minuten)** | Wie oft die Regel läuft: ganze Minuten, 1 bis 1440. Das Formular einer neuen Regel beginnt bei 5. |
+| **In Echtzeit ausführen** | Bei einer neuen Regel aus. Ist es an, prüft die Regel jedes Ereignis beim Eintreffen statt in jedem Intervall; siehe [Echtzeitregeln](#echtzeitregeln). |
 | **Nach Feld gruppieren** | Optional. Treffer, die den Wert dieses Felds teilen, etwa `principalHost`, werden gemeinsam gezählt, gemeldet und dedupliziert: eine Warnung pro Host statt Hunderten. |
 | **Feld für eindeutige Zählung** | Optional. Die verschiedenen Werte dieses Felds zählen statt der passenden Ereignisse. Leere Werte zählen nicht. |
 | **Schwellenwert der Trefferanzahl** | Eine Gruppe löst nur aus, wenn ihre Zählung diese Zahl innerhalb eines Laufs erreicht: 1 bis 1000000, und 1 löst bei jedem Treffer aus. |
@@ -450,6 +451,16 @@ OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
 - Ein Ereignis, das mehr als zwei Minuten zu spät ankommt, nachdem ein Lauf seine Zeit schon abgedeckt hat, wird gespeichert und ist durchsuchbar, aber diese Regel liest es nie.
 - Jede Gruppe, die den Schwellenwert erreicht, wird zu einem Detection Finding, bis zu 10.000 pro Lauf. Warnungen, Vorfälle und Fälle öffnen sich für die 100 mit den höchsten Zählungen; die übrigen teilen sich einen Fall zur Regel, und **Letzter Fehler** der Regel nennt, wie viele Gruppen passten.
+
+### Echtzeitregeln
+
+Eine Regel, die bei einem einzelnen Ereignis auslöst, kann in Echtzeit statt nach ihrem Intervall laufen: Schalten Sie **In Echtzeit ausführen** ein, unter **Weitere Felder** im Schritt **Bei Treffer**. Jedes Ereignis, das OneUptime aus irgendeiner Quelle erhält, wird dann beim Eintreffen gegen die Regel geprüft, und ein Treffer öffnet seinen Fall, seine Warnung und seinen Befund innerhalb von Sekunden.
+
+- Das passt zu einer Regel mit einem **Schwellenwert der Trefferanzahl** von 1, ohne **Feld für eindeutige Zählung** und ohne den Modifikator `re`. Eine Korrelation zählt Ereignisse gemeinsam und läuft deshalb nach ihrem Intervall. Das Formular sagt, was zu ändern ist, wenn eine Regel nicht passt.
+- Ein Projekt führt höchstens 50 Regeln in Echtzeit aus, da jedes Ereignis gegen jede geprüft wird.
+- In **Erkennungsregeln** zeigt der **Status** einer Echtzeitregel **Echtzeit**, ebenso ihre Intervallspalte. Eine fehlgeschlagene Prüfung erscheint unter **Letzter Fehler**, wie bei einem Lauf.
+- Eingeschaltet liest die Regel zuerst, was seit ihrem letzten Lauf eingetroffen ist, sodass zwischen Zeitplan und Echtzeit nichts verloren geht. Ausgeschaltet kehrt sie zu ihrem Intervall zurück, ab zwei Minuten davor.
+- Ausnahmen und Beobachtungslisten gelten für sie wie für jede Regel, und **Auf vergangene Ereignisse anwenden** liest sie wie jede andere.
 
 ### Schweregrad
 
@@ -573,6 +584,10 @@ Prüfen Sie den Schlüssel in `x-oneuptime-token` und den Pfad, `/security-event
 
 :::details Eine Regel passt nie
 Prüfen Sie ihren **Status**: Steht dort **Deaktiviert**, läuft die Regel nicht, und steht dort **Ausführung fehlgeschlagen**, zeigt **Fehler anzeigen** in ihrer Zeile den Grund. Öffnen Sie ein Ereignis, auf das sie hätte passen sollen, und vergleichen Sie es Feld für Feld mit der Regel: Ein einfacher Wert muss dem ganzen Feld gleichen, also nutzen Sie `contains` oder `*` für einen Teil. Ein Attribut wird so benannt wie im Ereignis (`threat.matched`, nicht `attributes.threat.matched`). Bei einem Schwellenwert über 1 müssen die Treffer in einen Lauf fallen.
+:::
+
+:::details In Echtzeit ausführen lässt sich nicht einschalten
+Die Regel zählt Treffer, zählt eindeutige Werte, liest einen regulären Ausdruck oder ist eine Korrelation, und das Formular sagt, was davon zutrifft: Setzen Sie **Schwellenwert der Trefferanzahl** auf 1, leeren Sie **Feld für eindeutige Zählung**, oder verwenden Sie `contains`, `startswith` oder `endswith` statt `re`. Ein Projekt führt höchstens 50 Regeln in Echtzeit aus: Schalten Sie es zuerst bei einer anderen Regel aus.
 :::
 
 :::details Eine Regel hat gepasst, aber keine Warnung geöffnet

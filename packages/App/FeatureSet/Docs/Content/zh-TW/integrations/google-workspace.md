@@ -43,7 +43,8 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 ### 允許全網域委派
 
 1. 在 [Google 管理控制台](https://admin.google.com) 中，以超級管理員身分開啟 **Security → Access and data control → API controls → Manage domain-wide delegation**，然後選擇 **Add new**。
-2. 把服務帳戶的 **Unique ID** 填為 **Client ID**，把 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 填為唯一的 **OAuth scope**。選擇 **Authorize**。Google 可能需要幾分鐘才能生效。
+2. 把服務帳戶的 **Unique ID** 填為 **Client ID**，把 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 填為 **OAuth scope**。選擇 **Authorize**。Google 可能需要幾分鐘才能生效。
+3. 若要讓劇本停用、解除停用和登出使用者（請參閱 [圍堵](/docs/telemetry/security-cases#圍堵)），請把 `https://www.googleapis.com/auth/admin.directory.user` 和 `https://www.googleapis.com/auth/admin.directory.user.security` 新增到同一用戶端的範圍中，以逗號分隔。此時，連線所代表的管理員必須是管理這些使用者的管理員。
 
 ### 在 OneUptime 中新增連線
 

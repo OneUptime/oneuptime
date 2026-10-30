@@ -257,6 +257,10 @@ import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import {
+  SecurityPlaybookStepOutcome,
+  evaluateSecurityPlaybookStepCondition,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { computeSecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
@@ -297,6 +301,19 @@ const role = params.get("role") === "viewer" ? "viewer" : "owner";
  * Free Lists card has nothing left to offer.
  */
 const hasEveryFreeList = !isEmpty && params.get("lists") === "all";
+/*
+ * ?realtime=1: one of the team's own rules checks each event as it arrives
+ * (Run in Real Time), on no interval.
+ */
+const hasRealTimeRule = !isEmpty && params.get("realtime") === "1";
+/*
+ * ?branching=1: Contain Risky Sign-ins, a playbook that branches on what
+ * threat intel found, and its two runs on CASE-139 - one that found nothing,
+ * so its containment steps were skipped (saying why) and tasks were added,
+ * and one that disabled the user in Microsoft Entra ID and suspended them in
+ * Google Workspace, each with its undo on the run card.
+ */
+const hasBranchingRuns = hasHistory && params.get("branching") === "1";
 /*
  * ?ai=off: the project's Enable AI is off. Every AI part of Security reads
  * it (useAiOffered) and draws nothing; the AI settings page says AI is off.
@@ -1940,6 +1957,231 @@ if (hasHistory) {
 
 /*
  * ---------------------------------------------------------------------------
+ * A playbook that branches (?branching=1): Contain Risky Sign-ins disables
+ * and suspends the user only when threat intel knows them, and otherwise
+ * leaves the analyst tasks. It ran twice on CASE-139.
+ * ---------------------------------------------------------------------------
+ */
+const BRANCH_STEPS = [
+  {
+    id: "step-branch-intel",
+    action: SecurityPlaybookActionType.CheckThreatIntel,
+    config: {},
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+  },
+  {
+    id: "step-branch-disable",
+    action: SecurityPlaybookActionType.DisableEntraIdUser,
+    config: { connectionId: ID.connection(2) },
+    requiresApproval: true,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    runIf: {
+      stepId: "step-branch-intel",
+      outcome: SecurityPlaybookStepOutcome.Found,
+    },
+  },
+  {
+    id: "step-branch-suspend",
+    action: SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+    config: { connectionId: ID.connection(3) },
+    requiresApproval: true,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    runIf: {
+      stepId: "step-branch-intel",
+      outcome: SecurityPlaybookStepOutcome.Found,
+    },
+  },
+  {
+    id: "step-branch-tasks",
+    action: SecurityPlaybookActionType.AddCaseTasks,
+    config: {
+      tasks: [
+        "Confirm the sign-in with the user",
+        "Check the device the sign-in came from",
+      ],
+    },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    runIf: {
+      stepId: "step-branch-intel",
+      outcome: SecurityPlaybookStepOutcome.FoundNothing,
+    },
+  },
+];
+
+if (hasBranchingRuns) {
+  insert(SecurityEventConnection, {
+    _id: ID.connection(2),
+    name: "Contoso Entra ID",
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+  });
+  insert(SecurityEventConnection, {
+    _id: ID.connection(3),
+    name: "Acme Google Workspace",
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+  });
+
+  insert(SecurityPlaybook, {
+    _id: ID.playbook(5),
+    name: "Contain Risky Sign-ins",
+    description:
+      "Disables and suspends a user threat intel knows, after an analyst approves; otherwise leaves the analyst tasks to check the sign-in.",
+    isEnabled: true,
+    trigger: SecurityPlaybookTrigger.CaseOpened,
+    steps: BRANCH_STEPS,
+    runCount: 2,
+    lastRunAt: ago(1 * HOUR),
+    createdAt: ago(9 * DAY),
+  });
+
+  const travelCase = make(SecurityCase, {
+    _id: ID.case(139),
+    caseNumberWithPrefix: formatSecurityCaseNumber(139),
+    title: "Impossible travel for k.morgan@acme-commerce.example",
+  });
+  const KMORGAN = "k.morgan@acme-commerce.example";
+
+  /*
+   * What a step of the branch did, with the reason a skipped one gives -
+   * worked out as the engine works it out, from the results before it.
+   */
+  const branchResults = (outcomes, minutesAgo) => {
+    const results = [];
+
+    BRANCH_STEPS.forEach((step, index) => {
+      const condition = evaluateSecurityPlaybookStepCondition({
+        condition: step.runIf,
+        index,
+        steps: BRANCH_STEPS,
+        results,
+      });
+      const at = (minutesAgo - index * 0.5) * MINUTE;
+
+      results.push({
+        stepId: step.id,
+        action: step.action,
+        startedAt: ago(at).toISOString(),
+        completedAt: ago(at - 0.2 * MINUTE).toISOString(),
+        ...(condition.holds
+          ? outcomes[index]
+          : {
+              status: SecurityPlaybookStepStatus.Skipped,
+              message: condition.reason,
+            }),
+      });
+    });
+
+    return results;
+  };
+
+  // Threat intel knew nothing of the user: no containment, two tasks.
+  insert(SecurityPlaybookRun, {
+    _id: ID.run(6),
+    securityCaseId: new ObjectID(ID.case(139)),
+    securityCase: travelCase,
+    securityPlaybookId: new ObjectID(ID.playbook(5)),
+    playbookName: "Contain Risky Sign-ins",
+    trigger: SecurityPlaybookTrigger.CaseOpened,
+    status: SecurityPlaybookRunStatus.Succeeded,
+    steps: BRANCH_STEPS,
+    stepResults: branchResults(
+      [
+        {
+          status: SecurityPlaybookStepStatus.Succeeded,
+          found: false,
+          message: "No entity matched an indicator.",
+        },
+        undefined,
+        undefined,
+        {
+          status: SecurityPlaybookStepStatus.Succeeded,
+          message: "Added 2 tasks.",
+        },
+      ],
+      7 * 60,
+    ),
+    currentStepIndex: BRANCH_STEPS.length,
+    threatIntelMatched: false,
+    startedAt: ago(7 * HOUR),
+    completedAt: ago(7 * HOUR - 2 * MINUTE),
+    createdAt: ago(7 * HOUR),
+  });
+
+  // Run again by hand once a feed listed the address: contained, with undo.
+  insert(SecurityPlaybookRun, {
+    _id: ID.run(7),
+    securityCaseId: new ObjectID(ID.case(139)),
+    securityCase: travelCase,
+    securityPlaybookId: new ObjectID(ID.playbook(5)),
+    playbookName: "Contain Risky Sign-ins",
+    trigger: SecurityPlaybookTrigger.Manual,
+    triggeredByUser: people.priya,
+    triggeredByUserId: new ObjectID(people.priya._id),
+    status: SecurityPlaybookRunStatus.Succeeded,
+    steps: BRANCH_STEPS,
+    stepResults: branchResults(
+      [
+        {
+          status: SecurityPlaybookStepStatus.Succeeded,
+          found: true,
+          message: "192.0.2.180 matched 1 indicator.",
+        },
+        {
+          status: SecurityPlaybookStepStatus.Succeeded,
+          message: `Disable the user in Microsoft Entra ID: done for \`${KMORGAN}\`.`,
+          targets: [
+            {
+              type: SecurityEntityType.User,
+              value: KMORGAN,
+              reason: "Grouped On",
+              state: "Done",
+              detail: "disabled",
+            },
+          ],
+          approval: {
+            decision: "Approved",
+            decidedByUserId: people.diego._id,
+            decidedAt: ago(58 * MINUTE).toISOString(),
+            comment: "The address is on a feed now.",
+          },
+        },
+        {
+          status: SecurityPlaybookStepStatus.Succeeded,
+          message: `Suspend the user in Google Workspace: done for \`${KMORGAN}\`.`,
+          targets: [
+            {
+              type: SecurityEntityType.User,
+              value: KMORGAN,
+              reason: "Grouped On",
+              state: "Done",
+              detail: "suspended",
+            },
+          ],
+          approval: {
+            decision: "Approved",
+            decidedByUserId: people.diego._id,
+            decidedAt: ago(57 * MINUTE).toISOString(),
+          },
+        },
+        undefined,
+      ],
+      60,
+    ),
+    currentStepIndex: BRANCH_STEPS.length,
+    threatIntelMatched: true,
+    startedAt: ago(1 * HOUR),
+    completedAt: ago(55 * MINUTE),
+    createdAt: ago(1 * HOUR),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Detection rules: six from the library, on, and one of the team's own, off
  * ---------------------------------------------------------------------------
  */
@@ -2063,6 +2305,40 @@ if (!isEmpty) {
     shouldCreateCase: true,
     lastEvaluatedAt: ago(9 * MINUTE),
     createdAt: ago(5 * DAY),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A rule of the team's own that runs in real time (?realtime=1): it fires on
+ * one event, so it checks each as it arrives, and its Status and Interval say
+ * Real time.
+ * ---------------------------------------------------------------------------
+ */
+const REAL_TIME_RULE_YAML = `title: Break-glass account signed in
+level: critical
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+    principalUser|startswith: breakglass
+  condition: selection
+`;
+
+if (hasRealTimeRule) {
+  insert(DetectionRule, {
+    _id: ID.rule(32),
+    name: "Break-glass account signed in",
+    description:
+      "A break-glass account signed in: checked as each event arrives.",
+    sigmaRuleYaml: REAL_TIME_RULE_YAML,
+    isEnabled: true,
+    isRealTime: true,
+    evaluationIntervalInMinutes: 5,
+    matchCountThreshold: 1,
+    shouldCreateCase: true,
+    lastMatchAt: hasHistory ? ago(2 * DAY) : undefined,
+    createdAt: ago(2 * DAY),
   });
 }
 

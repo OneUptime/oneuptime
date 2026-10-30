@@ -15,7 +15,7 @@ import { ConnectorTransport } from "../Connectors/Types";
  */
 
 export interface ResponseHttpRequest {
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   url: string;
   headers?: Dictionary<string> | undefined;
   body?: string | Dictionary<string> | undefined;

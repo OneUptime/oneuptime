@@ -2296,7 +2296,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception.",
     );
     expect(page).toContain(
-      "It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.",
+      "It is written when you ask and kept until a new occurrence arrives, so asking again spends nothing; it uses the project's AI credits, and is not offered while **Enable AI** is off.",
     );
   });
 
@@ -2328,6 +2328,15 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       expect(card).toContain(label);
     }
     expect(MAX_SIMILAR_EXCEPTIONS).toBe(5);
+    // Kept by what it was written from, occurrence counts included.
+    const checker: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts",
+    );
+    expect(checker).toContain("AiAnswerCache.key([");
+    expect(checker).toContain("String(exception.occuranceCount || 0),");
+    expect(page).toContain(
+      "Its answer is kept until a new occurrence arrives.",
+    );
     expect(page).toContain(
       "Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words.",
     );

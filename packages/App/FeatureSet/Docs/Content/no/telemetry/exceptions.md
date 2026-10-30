@@ -129,7 +129,7 @@ Forklaringen lagres på unntaket, så den neste som åpner det leser den med en 
 
 ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
-Under kortene viser **Lignende unntak** opptil fem andre unntak som ligner på dette: med **Samme melding** når verdiene er tatt ut, med **Samme sted i koden** i koden din, eller med **Lignende melding** med de fleste av de samme ordene. Én årsak kan havne i flere unntak, så **Sjekk med OneUptime AI** sier om hvert om det er **Sannsynligvis den samme feilen**, **En relatert feil** eller **En annen feil**, og hvorfor. Sjekken bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
+Under kortene viser **Lignende unntak** opptil fem andre unntak som ligner på dette: med **Samme melding** når verdiene er tatt ut, med **Samme sted i koden** i koden din, eller med **Lignende melding** med de fleste av de samme ordene. Én årsak kan havne i flere unntak, så **Sjekk med OneUptime AI** sier om hvert om det er **Sannsynligvis den samme feilen**, **En relatert feil** eller **En annen feil**, og hvorfor. Sjekken bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Svaret lagres til neste forekomst.
 
 ## Rett det med AI
 
@@ -185,7 +185,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 Fanen **Innsikt** teller unntakene dine under **Uløst**, **Løst** og **Arkivert** og løsningsraten din, og viser de vanligste unntakene, tjenestene de rammer og de som sist ble sett.
 
-**Hva er nytt** øverst i fanen ber OneUptime AI med **Oppsummer med OneUptime AI** om å oppsummere unntakene som først ble sett de siste 24 timene, og de som kom tilbake etter at de var løst: noen setninger om alle, deretter hvert på én linje, det mest presserende først, med en lenke til unntaket. Oppsummeringen skrives når du ber om den, og lagres ikke, bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
+**Hva er nytt** øverst i fanen ber OneUptime AI med **Oppsummer med OneUptime AI** om å oppsummere unntakene som først ble sett de siste 24 timene, og de som kom tilbake etter at de var løst: noen setninger om alle, deretter hvert på én linje, det mest presserende først, med en lenke til unntaket. Oppsummeringen skrives når du ber om den, og lagres til neste forekomst, så det koster ingenting å spørre igjen; den bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
 
 ## Feilsøking
 

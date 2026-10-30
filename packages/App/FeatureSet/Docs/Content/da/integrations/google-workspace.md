@@ -43,7 +43,8 @@ Forbindelsen logger på med en tjenestekontos nøgle og [domænedækkende delege
 ### Tillad domænedækkende delegering
 
 1. I [Google Administrationskonsol](https://admin.google.com) åbner du som superadministrator **Security → Access and data control → API controls → Manage domain-wide delegation** og vælger **Add new**.
-2. Angiv tjenestekontoens **Unique ID** som **Client ID**, og `https://www.googleapis.com/auth/admin.reports.audit.readonly` som det eneste **OAuth scope**. Vælg **Authorize**. Google kan bruge et par minutter på at anvende det.
+2. Angiv tjenestekontoens **Unique ID** som **Client ID**, og `https://www.googleapis.com/auth/admin.reports.audit.readonly` som **OAuth scope**. Vælg **Authorize**. Google kan bruge et par minutter på at anvende det.
+3. For at lade playbooks suspendere, ophæve suspendering af og logge brugere ud (se [Inddæmning](/docs/telemetry/security-cases#inddæmning)) tilføjer du `https://www.googleapis.com/auth/admin.directory.user` og `https://www.googleapis.com/auth/admin.directory.user.security` til den samme klients scopes, adskilt af kommaer. Den administrator, forbindelsen handler som, skal så være en, der administrerer de brugere.
 
 ### Tilføj forbindelsen i OneUptime
 

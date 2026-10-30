@@ -2,7 +2,7 @@
 
 Einen Workflow bauen Sie in seinem **Editor**: einer Arbeitsfläche, auf der Sie Bausteine hinzufügen, verbinden und ihre Einstellungen ausfüllen. Diese Seite führt durch das Anlegen eines Workflows, das [Hinzufügen von Bausteinen](#bausteine-hinzufügen), ihr [Verbinden](#bausteine-verbinden) und [Einrichten](#einen-baustein-einrichten), das [Weitergeben von Werten zwischen ihnen](#werte-aus-früheren-bausteinen-verwenden) und das [Einschalten des Workflows](#einschalten).
 
-Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Arbeitsablauf erstellen**. Der Dialog **Arbeitsablauf erstellen** fragt zuerst, wie Sie beginnen möchten, dann nach einem Namen. Eine Vorlage, die eigene Einstellungen braucht, etwa eine Slack-Webhook-URL, fragt in einem weiteren Schritt danach und speichert sie als Workflow-Variablen, sodass Sie sie später ändern können, ohne den Workflow zu bearbeiten.
+Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Arbeitsablauf erstellen**. Der Dialog **Arbeitsablauf erstellen** fragt zuerst, wie Sie beginnen möchten, dann nach einem Namen. Eine Vorlage, die eigene Einstellungen braucht, etwa eine Slack-Webhook-URL, fragt in einem weiteren Schritt danach und speichert sie als Workflow-Variablen, sodass Sie sie später ändern können, ohne den Workflow zu bearbeiten. Eine Vorlage, die Personen alarmiert, fragt in diesem Schritt auch, wen sie alarmieren soll, ausgewählt aus den Benutzern, Teams, Bereitschaftsplänen oder Bereitschaftsrichtlinien Ihres Projekts.
 
 Wählen Sie, wie Sie beginnen:
 
