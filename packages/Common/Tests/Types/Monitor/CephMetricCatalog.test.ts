@@ -103,7 +103,6 @@ describe("CephMetricCatalog", () => {
   });
 });
 
-
 /*
  * The agent scrapes every 30 seconds and a metric monitor reads one-minute
  * buckets, so a Sum adds two or three scrapes of every series: with 12 OSDs
@@ -113,9 +112,10 @@ describe("CephMetricCatalog", () => {
 describe("CephMetricCatalog - defaults that do not add scrapes together (regression)", () => {
   test("no metric defaults to Sum", () => {
     for (const metric of getAllCephMetrics()) {
-      expect({ id: metric.id, sum: metric.defaultAggregation === "Sum" }).toEqual(
-        { id: metric.id, sum: false },
-      );
+      expect({
+        id: metric.id,
+        sum: metric.defaultAggregation === "Sum",
+      }).toEqual({ id: metric.id, sum: false });
     }
   });
 
@@ -123,7 +123,7 @@ describe("CephMetricCatalog - defaults that do not add scrapes together (regress
     for (const metric of getAllCephMetrics()) {
       expect({
         id: metric.id,
-        says: /sum (it )?to count|sum across|sum to count/i.test(
+        says: (/sum (it )?to count|sum across|sum to count/i).test(
           metric.description,
         ),
       }).toEqual({ id: metric.id, says: false });

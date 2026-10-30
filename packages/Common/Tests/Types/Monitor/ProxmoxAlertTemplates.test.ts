@@ -370,8 +370,8 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   },
   {
     /*
-     * V3 WI-24: cluster-level backup-info gauge — one series, no `id`
-     * label ⇒ NO groupBy (one incident per cluster; per-guest naming
+     * V3 WI-24: cluster-level backup-info gauge — one series (its `id` is
+     * the cluster's, `cluster/<name>`) ⇒ NO groupBy (one incident per cluster; per-guest naming
      * belongs to pve_not_backed_up_info in the breakdown, not the alert).
      */
     id: "pve-guest-not-backed-up",

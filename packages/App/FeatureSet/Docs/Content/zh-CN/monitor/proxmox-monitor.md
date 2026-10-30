@@ -95,7 +95,7 @@ flowchart TB
 | `lxc/<vmid>` | LXC 容器，例如 `lxc/101`。 |
 | `storage/<node>/<storage>` | 节点上的存储卷，例如 `storage/pve1/local`。 |
 
-有两个例外：复制序列（`pve_replication_*`）在 `id` 中携带复制**作业**的 ID（例如 `100-0`），而集群级的 `pve_not_backed_up_total` 根本没有 `id`。
+有一个例外：复制序列（`pve_replication_*`）在 `id` 中携带复制**作业**的 ID（例如 `100-0`）。集群自身的序列，例如仲裁（`pve_up`）和 `pve_not_backed_up_total`，携带 `cluster/<name>`。
 
 过滤器按相等匹配，而不是按前缀匹配，所以代理还会把 `id` 拆成三个可供过滤的属性。模板依赖这些属性：
 
@@ -132,8 +132,8 @@ flowchart TB
 
 - **Cluster Stopped Reporting** 模板会在集群 10 分钟内没有任何数据到达时触发：Proxmox 代理或它的 pve-exporter 已停止、失去了通往 OneUptime 的路由或令牌被撤销，Proxmox API 不再响应它，或者原生推送的每个节点都停止了报告。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **停机类模板使用最小值**，所以只要有一次抓取时资源处于停机状态就会触发，而不会被资源正常运行的那些抓取掩盖。
-- **Guest Down** 模板只关注设置为开机启动的来宾，所以你特意停止的来宾永远不会呼叫任何人。
-- **Cluster Quorum at Risk** 模板是一种近似：pve-exporter 没有 corosync 指标，所以它统计在线的节点。
+- **Guest Down** 模板只关注设置为开机启动的来宾：特意停止这样的来宾仍会呼叫，所以请先关闭它的开机启动。
+- **Cluster Quorum at Risk** 模板统计在线的节点。pve-exporter 也会以 `cluster/<name>` 的 `pve_up` 直接报告仲裁：集群具备仲裁期间为 1。
 - **High Guest CPU Usage** 模板比节点模板阈值更高、反应更慢：来宾本来就应该用满它的 vCPU，所以只有一直降不下来的来宾才会呼叫人。
 - **比率公式** 对两边都取 **总和**。两边来自同一次抓取，所以结果是真实的百分比。
 - **Container Root Disk Near Full** 模板不包括 QEMU 虚拟机：没有 QEMU 来宾代理时，它们的磁盘使用量读数为 0。
@@ -154,7 +154,7 @@ Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器�
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `pve_up` | — | 节点或来宾处于启动或运行状态时为 1，否则为 0。 |
+| `pve_up` | — | 节点、来宾或存储处于启动状态时为 1，否则为 0。对于 `cluster/<name>`，集群具备仲裁期间为 1。 |
 | `pve_uptime_seconds` | 秒 | 节点或来宾的运行时间。 |
 | `pve_version_info` | 计数 | 标签中的 Proxmox VE 版本。始终为 1。 |
 
@@ -201,7 +201,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | 计数 | 不在任何备份作业中的来宾。整个集群一个序列，没有 `id`。 |
+| `pve_not_backed_up_total` | 计数 | 不在任何备份作业中的来宾。整个集群一个序列，`id` 为 `cluster/<name>`，为 0 时也会报告。 |
 | `pve_not_backed_up_info` | 计数 | 每个未被覆盖的来宾一个序列，始终为 1，带有来宾的 `id` 标签。来宾加入备份作业后它就会消失。 |
 
 ### 复制

@@ -167,7 +167,7 @@ Collector は、クラスターとノードの両方のコレクターを有効�
 | ゲスト (VM または LXC) | `pve_guest_info` と、`qemu/*` と `lxc/*` の ID での CPU、メモリ、ネットワークの系列 (`pve_network_receive_bytes`、`pve_network_transmit_bytes`) |
 | ストレージ | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| バックアップの対象範囲 | `pve_not_backed_up_total` (どのバックアップジョブの対象にもなっていないゲスト。クラスターレベルの単一の系列で、`id` ラベルなし) と `pve_not_backed_up_info` (対象外のゲストごとの系列で、その `id` 付き)。対象範囲内とは、少なくともいずれかのジョブがゲストを選択していることを意味します。バックアップが最近実行されたか、成功したかは、エクスポーターでは公開されません。 |
+| バックアップの対象範囲 | `pve_not_backed_up_total` (どのバックアップジョブの対象にもなっていないゲスト。クラスターレベルの単一の系列で、`id` は `cluster/<name>`) と `pve_not_backed_up_info` (対象外のゲストごとの系列で、その `id` 付き)。対象範囲内とは、少なくともいずれかのジョブがゲストを選択していることを意味します。バックアップが最近実行されたか、成功したかは、エクスポーターでは公開されません。 |
 | レプリケーション | ストレージのレプリケーションジョブごとの `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。その `id` ラベルはリソースではなくジョブ ID (`100-0` など) です。 |
 
 モニターの条件と属性フィルターは、プレフィックスではなく完全一致で照合するため、Collector の `transform/pve-identity` プロセッサーは `id` を 3 つの属性にも分割します。組み込みの Proxmox アラートテンプレートはこれらで絞り込むため、設定をカスタマイズする場合もこのプロセッサーは残してください:

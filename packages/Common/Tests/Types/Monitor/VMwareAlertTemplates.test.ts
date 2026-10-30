@@ -1735,9 +1735,9 @@ describe("VMwareAlertTemplates - Datacenter Hosts Not Responding (regression)", 
 
   test("is Critical, like the other host outages", () => {
     expect(template.severity).toBe("Critical");
-    expect(getVMwareAlertTemplateById("vmware-datacenter-hosts-powered-off")).toBe(
-      undefined,
-    );
+    expect(
+      getVMwareAlertTemplateById("vmware-datacenter-hosts-powered-off"),
+    ).toBe(undefined);
   });
 });
 

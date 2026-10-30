@@ -95,7 +95,7 @@ Every series carries an `id` datapoint label naming the Proxmox resource it belo
 | `lxc/<vmid>` | An LXC container, for example `lxc/101`. |
 | `storage/<node>/<storage>` | A storage volume on a node, for example `storage/pve1/local`. |
 
-Two exceptions: replication series (`pve_replication_*`) carry the replication **job** id in `id` (for example `100-0`), and the cluster-wide `pve_not_backed_up_total` has no `id` at all.
+One exception: replication series (`pve_replication_*`) carry the replication **job** id in `id` (for example `100-0`). The cluster's own series, such as quorum (`pve_up`) and `pve_not_backed_up_total`, carry `cluster/<name>`.
 
 Filters match on equality, not on a prefix, so the agent also splits `id` into three attributes you can filter on. The templates rely on them:
 
@@ -132,8 +132,8 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 
 - **Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the Proxmox Agent or its pve-exporter stopped, lost its route to OneUptime or had its token revoked, the Proxmox API stopped answering it, or every node of a native push went quiet. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Down templates use Minimum**, so one down scrape trips them instead of being hidden by scrapes where the resource was up.
-- **Guest Down** only looks at guests set to start on boot, so a guest you stopped on purpose never pages.
-- **Cluster Quorum at Risk** is a proxy: pve-exporter has no corosync metric, so it counts nodes online.
+- **Guest Down** only looks at guests set to start on boot: one of them stopped on purpose still pages, so turn its start on boot off first.
+- **Cluster Quorum at Risk** counts the nodes online. pve-exporter also reports quorum itself, as `pve_up` for `cluster/<name>`: 1 while the cluster is quorate.
 - **High Guest CPU Usage** is higher and slower than the node template: a guest is meant to use its vCPUs, so only one that never comes down pages.
 - **Ratio formulas** take the **Sum** of both sides. Both come from the same scrape, so the result is a true percentage.
 - **Container Root Disk Near Full** leaves out QEMU VMs: their disk usage reads 0 without the QEMU guest agent.
@@ -154,7 +154,7 @@ The agent scrapes prometheus-pve-exporter every 30 seconds with both the cluster
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `pve_up` | — | 1 when the node or guest is up or running, 0 otherwise. |
+| `pve_up` | — | 1 when the node, guest or storage is up, 0 otherwise. For `cluster/<name>`, 1 while the cluster is quorate. |
 | `pve_uptime_seconds` | seconds | Uptime of the node or guest. |
 | `pve_version_info` | count | The Proxmox VE release, in its labels. Always 1. |
 
@@ -201,7 +201,7 @@ From the exporter's cluster-level `backup-info` collector. They report backup-**
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Guests in no backup job. One cluster-wide series with no `id`. |
+| `pve_not_backed_up_total` | count | Guests in no backup job. One cluster-wide series, `id` `cluster/<name>`, reported at 0 too. |
 | `pve_not_backed_up_info` | count | One series per uncovered guest, always 1, labeled with the guest's `id`. It disappears once the guest joins a backup job. |
 
 ### Replication

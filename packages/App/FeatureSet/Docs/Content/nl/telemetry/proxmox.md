@@ -167,7 +167,7 @@ De collector scrapet de exporter elke 30 seconden met zowel zijn cluster- als zi
 | Gast (VM of LXC) | `pve_guest_info`, en CPU-, geheugen- en netwerkseries op de ID's `qemu/*` en `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Opslag | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Back-updekking | `pve_not_backed_up_total` (de gasten die geen back-upjob dekt; één serie op clusterniveau, zonder label `id`) en `pve_not_backed_up_info` (één serie per niet-gedekte gast, met zijn `id`). Gedekt betekent dat minstens één job de gast selecteert: of back-ups onlangs zijn gedraaid of zijn gelukt, stelt de exporter niet beschikbaar. |
+| Back-updekking | `pve_not_backed_up_total` (de gasten die geen back-upjob dekt; één serie op clusterniveau, `id` `cluster/<name>`) en `pve_not_backed_up_info` (één serie per niet-gedekte gast, met zijn `id`). Gedekt betekent dat minstens één job de gast selecteert: of back-ups onlangs zijn gedraaid of zijn gelukt, stelt de exporter niet beschikbaar. |
 | Replicatie | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, per opslagreplicatiejob. Hun label `id` is de job-ID (zoals `100-0`), geen resource. |
 
 Monitorcriteria en attribuutfilters matchen op gelijkheid, niet op een voorvoegsel, dus de processor `transform/pve-identity` van de collector splitst `id` ook op in drie attributen. De ingebouwde Proxmox-waarschuwingssjablonen filteren daarop, dus houd de processor als je de configuratie aanpast:

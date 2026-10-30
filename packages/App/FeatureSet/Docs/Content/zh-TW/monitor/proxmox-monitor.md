@@ -95,7 +95,7 @@ flowchart TB
 | `lxc/<vmid>` | LXC 容器，例如 `lxc/101`。 |
 | `storage/<node>/<storage>` | 節點上的儲存磁碟區，例如 `storage/pve1/local`。 |
 
-有兩個例外：複寫序列（`pve_replication_*`）在 `id` 中攜帶複寫**工作**的 ID（例如 `100-0`），而叢集層級的 `pve_not_backed_up_total` 完全沒有 `id`。
+有一個例外：複寫序列（`pve_replication_*`）在 `id` 中攜帶複寫**工作**的 ID（例如 `100-0`）。叢集本身的序列，例如仲裁（`pve_up`）和 `pve_not_backed_up_total`，攜帶 `cluster/<name>`。
 
 篩選器依相等比對，而不是依前綴比對，所以代理程式也會把 `id` 拆成三個可供篩選的屬性。範本依賴這些屬性：
 
@@ -132,8 +132,8 @@ flowchart TB
 
 - **Cluster Stopped Reporting** 範本會在叢集 10 分鐘內沒有任何資料送達時觸發：Proxmox 代理程式或它的 pve-exporter 已停止、失去通往 OneUptime 的路由或權杖被撤銷，Proxmox API 不再回應它，或者原生推送的每個節點都停止了回報。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 - **停機類範本使用最小值**，所以只要有一次擷取時資源處於停機狀態就會觸發，而不會被資源正常執行的擷取掩蓋。
-- **Guest Down** 範本只關注設為開機時啟動的客體，所以你刻意停止的客體永遠不會呼叫任何人。
-- **Cluster Quorum at Risk** 範本是一種近似：pve-exporter 沒有 corosync 指標，所以它計算上線的節點。
+- **Guest Down** 範本只關注設為開機時啟動的客體：刻意停止這樣的客體仍會呼叫，所以請先關閉它的開機時啟動。
+- **Cluster Quorum at Risk** 範本計算上線的節點。pve-exporter 也會以 `cluster/<name>` 的 `pve_up` 直接回報仲裁：叢集具備仲裁期間為 1。
 - **High Guest CPU Usage** 範本的閾值比節點範本更高、反應更慢：客體本來就應該用滿它的 vCPU，所以只有一直降不下來的客體才會呼叫人。
 - **比率公式** 對兩邊都取 **總和**。兩邊來自同一次擷取，所以結果是真正的百分比。
 - **Container Root Disk Near Full** 範本不包括 QEMU 虛擬機器：沒有 QEMU 客體代理程式時，它們的磁碟使用量讀數為 0。
@@ -154,7 +154,7 @@ Proxmox VE 9 以上版本可以透過內建的 OpenTelemetry 指標伺服器推�
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
-| `pve_up` | — | 節點或客體已啟動或正在執行時為 1，否則為 0。 |
+| `pve_up` | — | 節點、客體或儲存空間已啟動時為 1，否則為 0。對於 `cluster/<name>`，叢集具備仲裁期間為 1。 |
 | `pve_uptime_seconds` | 秒 | 節點或客體的運行時間。 |
 | `pve_version_info` | 計數 | 標籤中的 Proxmox VE 版本。一律為 1。 |
 
@@ -201,7 +201,7 @@ CPU 和記憶體序列也會針對每個客體回報，使用 `qemu/*` 和 `lxc/
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | 計數 | 不在任何備份工作中的客體。整個叢集一個序列，沒有 `id`。 |
+| `pve_not_backed_up_total` | 計數 | 不在任何備份工作中的客體。整個叢集一個序列，`id` 為 `cluster/<name>`，為 0 時也會回報。 |
 | `pve_not_backed_up_info` | 計數 | 每個未被涵蓋的客體一個序列，一律為 1，帶有客體的 `id` 標籤。客體加入備份工作後它就會消失。 |
 
 ### 複寫

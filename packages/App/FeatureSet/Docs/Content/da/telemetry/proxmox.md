@@ -167,7 +167,7 @@ Collectoren scraper exporteren hvert 30. sekund med både dens klynge- og node-c
 | Gæst (VM eller LXC) | `pve_guest_info` og CPU-, hukommelses- og netværksserier på `qemu/*`- og `lxc/*`-id'er (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Lager | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Backupdækning | `pve_not_backed_up_total` (de gæster, intet backupjob dækker; én serie på klyngeniveau, ingen `id`-etiket) og `pve_not_backed_up_info` (én serie pr. udækket gæst, med dens `id`). Dækket betyder, at mindst ét job vælger gæsten: om backups kørte for nylig eller lykkedes, eksponeres ikke af exporteren. |
+| Backupdækning | `pve_not_backed_up_total` (de gæster, intet backupjob dækker; én serie på klyngeniveau, `id` `cluster/<name>`) og `pve_not_backed_up_info` (én serie pr. udækket gæst, med dens `id`). Dækket betyder, at mindst ét job vælger gæsten: om backups kørte for nylig eller lykkedes, eksponeres ikke af exporteren. |
 | Replikering | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, pr. lagerreplikeringsjob. Deres `id`-etiket er jobbets id (såsom `100-0`), ikke en ressource. |
 
 Monitorkriterier og attributfiltre matcher på lighed, ikke på et præfiks, så collectorens processor `transform/pve-identity` deler også `id` op i tre attributter. De indbyggede Proxmox-advarselsskabeloner filtrerer på dem, så behold processoren, hvis du tilpasser konfigurationen:

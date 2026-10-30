@@ -167,7 +167,7 @@ Collector는 클러스터와 노드 수집기를 모두 켜고 30초마다 익�
 | 게스트(VM 또는 LXC) | `pve_guest_info`, 그리고 `qemu/*`와 `lxc/*` ID의 CPU, 메모리, 네트워크 시계열(`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | 스토리지 | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| 백업 적용 범위 | `pve_not_backed_up_total`(어떤 백업 작업도 다루지 않는 게스트. 클러스터 수준 시계열 하나, `id` 레이블 없음)과 `pve_not_backed_up_info`(다뤄지지 않는 게스트마다 시계열 하나, `id` 포함). 다뤄진다는 것은 적어도 한 작업이 그 게스트를 선택한다는 뜻이며, 백업이 최근에 실행되었는지나 성공했는지는 익스포터가 노출하지 않습니다. |
+| 백업 적용 범위 | `pve_not_backed_up_total`(어떤 백업 작업도 다루지 않는 게스트. 클러스터 수준 시계열 하나, `id`는 `cluster/<name>`)과 `pve_not_backed_up_info`(다뤄지지 않는 게스트마다 시계열 하나, `id` 포함). 다뤄진다는 것은 적어도 한 작업이 그 게스트를 선택한다는 뜻이며, 백업이 최근에 실행되었는지나 성공했는지는 익스포터가 노출하지 않습니다. |
 | 복제 | 스토리지 복제 작업별 `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`. 이 시계열의 `id` 레이블은 리소스가 아니라 작업 ID(예: `100-0`)입니다. |
 
 모니터 조건과 속성 필터는 접두사가 아니라 일치 여부로 비교하므로, Collector의 `transform/pve-identity` 프로세서는 `id`를 세 가지 속성으로도 나눕니다. 기본 제공 Proxmox 알림 템플릿은 이 속성으로 필터링하므로, 구성을 사용자 지정하더라도 이 프로세서는 유지하세요:

@@ -95,7 +95,7 @@ Elke reeks draagt een datapuntlabel `id` dat de Proxmox-resource noemt waartoe z
 | `lxc/<vmid>` | Een LXC-container, bijvoorbeeld `lxc/101`. |
 | `storage/<node>/<storage>` | Een opslagvolume op een node, bijvoorbeeld `storage/pve1/local`. |
 
-Twee uitzonderingen: replicatiereeksen (`pve_replication_*`) dragen de id van de replicatie-**taak** in `id` (bijvoorbeeld `100-0`), en de clusterbrede `pve_not_backed_up_total` heeft helemaal geen `id`.
+Eén uitzondering: replicatiereeksen (`pve_replication_*`) dragen de id van de replicatie-**taak** in `id` (bijvoorbeeld `100-0`). De eigen reeksen van het cluster, zoals het quorum (`pve_up`) en `pve_not_backed_up_total`, dragen `cluster/<name>`.
 
 Filters vergelijken op gelijkheid, niet op een voorvoegsel, dus de agent splitst `id` ook in drie attributen waarop u kunt filteren. De sjablonen steunen erop:
 
@@ -132,8 +132,8 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 
 - **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de Proxmox-agent of zijn pve-exporter is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, de Proxmox-API antwoordt hem niet meer, of elke node van een native push is stilgevallen. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **De sjablonen voor uitval gebruiken Minimum**, zodat één uitlezing waarin de resource uit lag ze laat afgaan, in plaats van verborgen te worden door uitlezingen waarin hij draaide.
-- **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten, dus een gast die u bewust hebt gestopt, roept nooit iemand op.
-- **Cluster Quorum at Risk** is een benadering: pve-exporter heeft geen corosync-metriek, dus het sjabloon telt de nodes die online zijn.
+- **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten: stopt u er bewust een, dan roept die toch iemand op, dus zet eerst het starten bij het opstarten uit.
+- **Cluster Quorum at Risk** telt de nodes die online zijn. pve-exporter meldt het quorum ook zelf, als `pve_up` voor `cluster/<name>`: 1 zolang het cluster quorum heeft.
 - **High Guest CPU Usage** ligt hoger en reageert trager dan het nodesjabloon: een gast hoort zijn vCPU's te gebruiken, dus alleen een gast die nooit terugzakt, roept iemand op.
 - **Verhoudingsformules** nemen aan beide kanten de **Som**. Beide komen uit dezelfde uitlezing, dus het resultaat is een echt percentage.
 - **Container Root Disk Near Full** laat QEMU-VM's buiten beschouwing: hun schijfgebruik staat zonder de QEMU-gastagent op 0.
@@ -154,7 +154,7 @@ De agent leest prometheus-pve-exporter elke 30 seconden uit met zowel de cluster
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_up` | — | 1 als de node of gast actief is of draait, anders 0. |
+| `pve_up` | — | 1 als de node, gast of opslag actief is, anders 0. Voor `cluster/<name>` 1 zolang het cluster quorum heeft. |
 | `pve_uptime_seconds` | seconden | Uptime van de node of gast. |
 | `pve_version_info` | aantal | De Proxmox VE-release, in zijn labels. Altijd 1. |
 
@@ -201,7 +201,7 @@ Uit de collector `backup-info` van de exporter, op clusterniveau. Ze rapporteren
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | aantal | Gasten in geen enkele back-uptaak. Eén clusterbrede reeks zonder `id`. |
+| `pve_not_backed_up_total` | aantal | Gasten in geen enkele back-uptaak. Eén clusterbrede reeks, `id` `cluster/<name>`, die ook bij 0 wordt gemeld. |
 | `pve_not_backed_up_info` | aantal | Eén reeks per niet-gedekte gast, altijd 1, gelabeld met de `id` van de gast. Ze verdwijnt zodra de gast aan een back-uptaak wordt toegevoegd. |
 
 ### Replicatie

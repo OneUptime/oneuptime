@@ -95,7 +95,7 @@ Chaque série porte une étiquette de point de données `id` qui nomme la ressou
 | `lxc/<vmid>` | Un conteneur LXC, par exemple `lxc/101`. |
 | `storage/<node>/<storage>` | Un volume de stockage sur un nœud, par exemple `storage/pve1/local`. |
 
-Deux exceptions : les séries de réplication (`pve_replication_*`) portent l'identifiant de la **tâche** de réplication dans `id` (par exemple `100-0`), et `pve_not_backed_up_total`, à l'échelle du cluster, n'a pas d'`id` du tout.
+Une exception : les séries de réplication (`pve_replication_*`) portent l'identifiant de la **tâche** de réplication dans `id` (par exemple `100-0`). Les séries propres au cluster, comme le quorum (`pve_up`) et `pve_not_backed_up_total`, portent `cluster/<name>`.
 
 Les filtres comparent par égalité, et non par préfixe ; l'agent découpe donc aussi `id` en trois attributs sur lesquels vous pouvez filtrer. Les modèles s'appuient dessus :
 
@@ -132,8 +132,8 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le 
 
 - **Cluster Stopped Reporting** se déclenche quand rien n'arrive du cluster pendant dix minutes : l'agent Proxmox ou son pve-exporter s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, l'API de Proxmox ne lui répond plus, ou tous les nœuds d'un envoi natif se sont tus. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **Les modèles de panne utilisent Minimum**, si bien qu'une seule collecte où la ressource était en panne les déclenche au lieu d'être masquée par les collectes où elle fonctionnait.
-- **Guest Down** ne regarde que les invités configurés pour démarrer au boot, si bien qu'un invité que vous avez arrêté volontairement n'alerte jamais personne.
-- **Cluster Quorum at Risk** est une approximation : pve-exporter n'a pas de métrique corosync, le modèle compte donc les nœuds en ligne.
+- **Guest Down** ne regarde que les invités configurés pour démarrer au boot : si vous en arrêtez un volontairement, il alerte quand même, désactivez donc d'abord son démarrage au boot.
+- **Cluster Quorum at Risk** compte les nœuds en ligne. pve-exporter remonte aussi le quorum lui-même, sous la forme de `pve_up` pour `cluster/<name>` : 1 tant que le cluster a le quorum.
 - **High Guest CPU Usage** est plus élevé et plus lent que le modèle des nœuds : un invité est censé utiliser ses vCPU, donc seul un invité qui ne redescend jamais déclenche une alerte.
 - **Les formules de ratio** prennent la **Somme** des deux côtés. Les deux proviennent de la même collecte, le résultat est donc un vrai pourcentage.
 - **Container Root Disk Near Full** exclut les VM QEMU : leur utilisation de disque vaut 0 sans l'agent invité QEMU.
@@ -154,7 +154,7 @@ L'agent interroge prometheus-pve-exporter toutes les 30 secondes avec les collec
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `pve_up` | — | 1 quand le nœud ou l'invité est actif ou en cours d'exécution, 0 sinon. |
+| `pve_up` | — | 1 quand le nœud, l'invité ou le stockage est actif, 0 sinon. Pour `cluster/<name>`, 1 tant que le cluster a le quorum. |
 | `pve_uptime_seconds` | secondes | Durée de fonctionnement du nœud ou de l'invité. |
 | `pve_version_info` | count | La version de Proxmox VE, dans ses étiquettes. Toujours 1. |
 
@@ -201,7 +201,7 @@ Proviennent du collecteur `backup-info` de l'exportateur, au niveau du cluster. 
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Invités ne figurant dans aucune tâche de sauvegarde. Une seule série pour le cluster, sans `id`. |
+| `pve_not_backed_up_total` | count | Invités ne figurant dans aucune tâche de sauvegarde. Une seule série pour le cluster, `id` `cluster/<name>`, remontée aussi à 0. |
 | `pve_not_backed_up_info` | count | Une série par invité non couvert, toujours 1, étiquetée avec l'`id` de l'invité. Elle disparaît dès que l'invité rejoint une tâche de sauvegarde. |
 
 ### Réplication

@@ -106,7 +106,6 @@ describe("ProxmoxMetricCatalog", () => {
   });
 });
 
-
 /*
  * The agent scrapes every 30 seconds and a metric monitor reads one-minute
  * buckets, so a Sum adds two or three scrapes of every series: the info
@@ -116,9 +115,10 @@ describe("ProxmoxMetricCatalog", () => {
 describe("ProxmoxMetricCatalog - defaults that do not add scrapes together (regression)", () => {
   test("no metric defaults to Sum", () => {
     for (const metric of getAllProxmoxMetrics()) {
-      expect({ id: metric.id, sum: metric.defaultAggregation === "Sum" }).toEqual(
-        { id: metric.id, sum: false },
-      );
+      expect({
+        id: metric.id,
+        sum: metric.defaultAggregation === "Sum",
+      }).toEqual({ id: metric.id, sum: false });
     }
   });
 
@@ -126,7 +126,7 @@ describe("ProxmoxMetricCatalog - defaults that do not add scrapes together (regr
     for (const metric of getAllProxmoxMetrics()) {
       expect({
         id: metric.id,
-        says: /sum (it )?to count|sum across/i.test(metric.description),
+        says: (/sum (it )?to count|sum across/i).test(metric.description),
       }).toEqual({ id: metric.id, says: false });
     }
   });

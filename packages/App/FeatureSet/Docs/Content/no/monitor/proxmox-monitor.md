@@ -95,7 +95,7 @@ Hver serie bærer en datapunktetikett `id` som navngir Proxmox-ressursen den til
 | `lxc/<vmid>` | En LXC-container, for eksempel `lxc/101`. |
 | `storage/<node>/<storage>` | Et lagringsvolum på en node, for eksempel `storage/pve1/local`. |
 
-To unntak: replikeringsserier (`pve_replication_*`) bærer replikerings-**jobbens** id i `id` (for eksempel `100-0`), og den klyngeomfattende `pve_not_backed_up_total` har ingen `id` i det hele tatt.
+Ett unntak: replikeringsserier (`pve_replication_*`) bærer replikerings-**jobbens** id i `id` (for eksempel `100-0`). Klyngens egne serier, som quorum (`pve_up`) og `pve_not_backed_up_total`, bærer `cluster/<name>`.
 
 Filtre samsvarer på likhet, ikke på et prefiks, så agenten deler også `id` i tre attributter du kan filtrere på. Malene bygger på dem:
 
@@ -132,8 +132,8 @@ Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteri
 
 - **Cluster Stopped Reporting** utløses når ingenting kommer fra klyngen på ti minutter: Proxmox-agenten eller pve-exporteren dens har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, Proxmox-API-et sluttet å svare den, eller hver node i et innebygd push ble stille. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Nedemalene bruker Minimum**, så én innsamling der ressursen var nede, utløser dem i stedet for å skjules av innsamlinger der den kjørte.
-- **Guest Down** ser bare på gjester som er satt til å starte ved oppstart, så en gjest du har stoppet med vilje, varsler aldri noen.
-- **Cluster Quorum at Risk** er en tilnærming: pve-exporter har ingen corosync-metrikk, så malen teller nodene som er tilkoblet.
+- **Guest Down** ser bare på gjester som er satt til å starte ved oppstart: stopper du en av dem med vilje, varsler den likevel, så slå av start ved oppstart først.
+- **Cluster Quorum at Risk** teller nodene som er tilkoblet. pve-exporter rapporterer også selve quorum, som `pve_up` for `cluster/<name>`: 1 mens klyngen har quorum.
 - **High Guest CPU Usage** ligger høyere og reagerer tregere enn nodemalen: en gjest er ment å bruke vCPU-ene sine, så bare en som aldri går ned igjen, varsler noen.
 - **Forholdsformler** tar **Sum** av begge sider. Begge kommer fra samme innsamling, så resultatet er en ekte prosent.
 - **Container Root Disk Near Full** utelater QEMU-VM-er: diskbruken deres viser 0 uten QEMU-gjesteagenten.
@@ -154,7 +154,7 @@ Agenten henter data fra prometheus-pve-exporter hvert 30. sekund med både klyng
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `pve_up` | — | 1 når noden eller gjesten er oppe eller kjører, ellers 0. |
+| `pve_up` | — | 1 når noden, gjesten eller lagringen er oppe, ellers 0. For `cluster/<name>` 1 mens klyngen har quorum. |
 | `pve_uptime_seconds` | sekunder | Oppetid for noden eller gjesten. |
 | `pve_version_info` | antall | Proxmox VE-utgivelsen, i etikettene. Alltid 1. |
 
@@ -201,7 +201,7 @@ Fra exporterens innsamler `backup-info` på klyngenivå. De rapporterer bare dek
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | antall | Gjester som ikke er med i noen sikkerhetskopijobb. Én klyngeomfattende serie uten `id`. |
+| `pve_not_backed_up_total` | antall | Gjester som ikke er med i noen sikkerhetskopijobb. Én klyngeomfattende serie, `id` `cluster/<name>`, som også rapporteres ved 0. |
 | `pve_not_backed_up_info` | antall | Én serie per udekket gjest, alltid 1, merket med gjestens `id`. Den forsvinner så snart gjesten blir med i en sikkerhetskopijobb. |
 
 ### Replikering

@@ -167,7 +167,7 @@ Collector 會每 30 秒抓取一次匯出器，同時開啟其叢集和節點收
 | 客體（VM 或 LXC） | `pve_guest_info`，以及 `qemu/*` 和 `lxc/*` ID 上的 CPU、記憶體和網路序列（`pve_network_receive_bytes`、`pve_network_transmit_bytes`） |
 | 儲存空間 | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| 備份涵蓋範圍 | `pve_not_backed_up_total`（沒有任何備份工作涵蓋的客體；單一叢集層級序列，沒有 `id` 標籤）和 `pve_not_backed_up_info`（每個未被涵蓋的客體一個序列，帶有其 `id`）。被涵蓋是指至少有一個工作選擇了該客體：備份最近是否執行過或是否成功，匯出器並不提供。 |
+| 備份涵蓋範圍 | `pve_not_backed_up_total`（沒有任何備份工作涵蓋的客體；單一叢集層級序列，`id` 為 `cluster/<name>`）和 `pve_not_backed_up_info`（每個未被涵蓋的客體一個序列，帶有其 `id`）。被涵蓋是指至少有一個工作選擇了該客體：備份最近是否執行過或是否成功，匯出器並不提供。 |
 | 複寫 | 每個儲存空間複寫工作的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它們的 `id` 標籤是工作 ID（例如 `100-0`），而不是資源。 |
 
 監控器條件和屬性篩選器是依相等而不是依前置詞比對，因此 Collector 的 `transform/pve-identity` 處理器也會將 `id` 拆分為三個屬性。內建的 Proxmox 警示範本會依這些屬性篩選，所以如果你自訂設定，請保留這個處理器：

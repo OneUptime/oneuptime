@@ -25,10 +25,12 @@ export interface ProxmoxMetricDefinition {
  * Metric names follow the prometheus-pve-exporter naming scheme. Each series
  * carries an `id` datapoint label identifying the Proxmox resource it belongs
  * to: `node/<name>` for nodes, `qemu/<vmid>` for VMs, `lxc/<vmid>` for
- * containers, and `storage/<storage>` for storage volumes. The agent's OTTL
- * transform additionally stamps `pve.scope` (node | guest | storage |
- * cluster), `pve.type` (node | qemu | lxc | storage) and `pve.id` (the part
- * after the slash) as datapoint attributes — `defaultResourceScope` is the
+ * containers, `storage/<node>/<storage>` for storage volumes, and
+ * `cluster/<name>` for the cluster's own series (quorum, as `pve_up`, and the
+ * backup total). The agent's OTTL transform additionally stamps `pve.scope`
+ * (node | guest | storage | cluster), `pve.type` (node | qemu | lxc |
+ * storage) and `pve.id` (the part after the first slash: `pve1/local` for a
+ * storage) as datapoint attributes — `defaultResourceScope` is the
  * `pve.scope` value the metric is usually filtered to (Cluster = spans
  * multiple scopes; don't pre-filter).
  */
@@ -38,7 +40,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     id: "pve-up",
     friendlyName: "Resource Up",
     description:
-      "Whether a Proxmox resource is up (1) or down/stopped (0). Reported for nodes and guests — filter on pve.scope (node/guest) or the id label to scope.",
+      "Whether a Proxmox resource is up (1) or down/stopped (0). Reported for nodes, guests and storage, and for the cluster itself (id cluster/<name>, 1 while it is quorate) — filter on pve.scope or the id label to scope.",
     metricName: "pve_up",
     category: "Availability",
     defaultAggregation: MetricsAggregationType.Min,
@@ -248,7 +250,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     id: "pve-not-backed-up-total",
     friendlyName: "Guests Without Backup",
     description:
-      "Count of guests (VMs and containers) not covered by ANY backup job. A single cluster-level series with no id label. Covers backup-job membership only — not whether backups ran recently or succeeded.",
+      "Count of guests (VMs and containers) not covered by ANY backup job. A single cluster-level series, id cluster/<name>, reported at 0 too. Covers backup-job membership only — not whether backups ran recently or succeeded.",
     metricName: "pve_not_backed_up_total",
     category: "Backup",
     defaultAggregation: MetricsAggregationType.Max,
