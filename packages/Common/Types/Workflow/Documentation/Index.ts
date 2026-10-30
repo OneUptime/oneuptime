@@ -20,6 +20,7 @@ import {
 } from "./APIDocumentation";
 import ComponentDocumentation from "./ComponentDocumentation";
 import { getDatabaseDocumentation } from "./DatabaseDocumentation";
+import { getZabbixUpdateProblemDocumentation } from "./ZabbixDocumentation";
 import {
   getAlertFromAnotherToolDocumentation,
   getIncidentFromAnotherToolDocumentation,
@@ -100,6 +101,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.IncidentFromAnotherTool]:
     getIncidentFromAnotherToolDocumentation,
   [ComponentID.AlertFromAnotherTool]: getAlertFromAnotherToolDocumentation,
+  [ComponentID.ZabbixUpdateProblem]: getZabbixUpdateProblemDocumentation,
   [ComponentID.PageUsers]: getPageUsersDocumentation,
   [ComponentID.PageTeam]: getPageTeamDocumentation,
   [ComponentID.PageOnCall]: getPageOnCallDocumentation,

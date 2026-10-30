@@ -31,6 +31,9 @@ import SwitchComponents from "./Components/Switch";
 import TelegramComponents from "./Components/Telegram";
 import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
+import ZabbixComponents, {
+  ZABBIX_COMPONENT_CATEGORY,
+} from "./Components/Zabbix";
 
 const components: Array<ComponentMetadata> = [
   ...OnCallComponents,
@@ -53,6 +56,7 @@ const components: Array<ComponentMetadata> = [
   ...WebhookComponents,
   ...IncomingEmailComponents,
   ...HuntressComponents,
+  ...ZabbixComponents,
   ...WorkflowComponents,
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
@@ -164,6 +168,12 @@ export const Categories: Array<ComponentCategory> = [
     description:
       "Start a workflow from Huntress incident reports: new ones, comments and closes.",
     icon: IconProp.ShieldCheck,
+  },
+  {
+    name: ZABBIX_COMPONENT_CATEGORY,
+    description:
+      "Acknowledge, close and add messages to problems in Zabbix, through its API.",
+    icon: IconProp.ServerStack,
   },
   {
     name: "Utils",

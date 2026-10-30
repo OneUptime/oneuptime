@@ -239,6 +239,16 @@ export const COMPONENT_KEYWORDS: Readonly<
    */
   [ComponentID.IncidentFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
   [ComponentID.AlertFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
+  [ComponentID.ZabbixUpdateProblem]: [
+    "acknowledge",
+    "close",
+    "resolve",
+    "message",
+    "comment",
+    "problem",
+    "event",
+    "monitoring",
+  ],
   [ComponentID.IfElse]: [
     "condition",
     "conditional",

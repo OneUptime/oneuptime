@@ -53,6 +53,7 @@ import Sleep from "./Sleep";
 import TelegramSendMessageToChat from "./Telegram/SendMessageToChat";
 import WebhookTrigger from "./Webhook";
 import ExecuteWorkflow from "./Workflow";
+import ZabbixUpdateProblem from "./Zabbix/UpdateProblem";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../../Types/Dictionary";
 import Text from "../../../../Types/Text";
@@ -98,6 +99,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.IfElse]: new IfElse(),
   [ComponentID.Switch]: new Switch(),
   [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
+  [ComponentID.ZabbixUpdateProblem]: new ZabbixUpdateProblem(),
   [ComponentID.Sleep]: new Sleep(),
   // One runtime for both, told which records it works with.
   [ComponentID.IncidentFromAnotherTool]: new RecordFromAnotherTool({

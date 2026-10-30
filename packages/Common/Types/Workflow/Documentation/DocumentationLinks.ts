@@ -76,6 +76,7 @@ export const WorkflowDocsPaths: {
   readonly customCode: string;
   readonly javascriptCheck: string;
   readonly fromOtherTools: string;
+  readonly zabbix: string;
   readonly json: string;
   readonly conditions: string;
   readonly switchCase: string;
@@ -112,6 +113,7 @@ export const WorkflowDocsPaths: {
   customCode: "/workflows/components#custom-code",
   javascriptCheck: "/workflows/components#check-with-javascript",
   fromOtherTools: "/workflows/components#incidents-and-alerts-from-other-tools",
+  zabbix: "/workflows/components#zabbix",
   json: "/workflows/components#json",
   conditions: "/workflows/components#conditions",
   switchCase: "/workflows/components#switch-case",

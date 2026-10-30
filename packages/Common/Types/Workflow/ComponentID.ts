@@ -37,6 +37,8 @@ enum ComponentID {
    */
   IncidentFromAnotherTool = "incident-from-another-tool",
   AlertFromAnotherTool = "alert-from-another-tool",
+  // Acknowledge, close or message a Zabbix problem (Components/Zabbix).
+  ZabbixUpdateProblem = "zabbix-update-problem",
   // The Page steps (Components/OnCall).
   PageUsers = "page-users",
   PageTeam = "page-team",
