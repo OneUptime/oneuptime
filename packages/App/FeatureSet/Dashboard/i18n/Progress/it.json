@@ -80,6 +80,7 @@
     "Max",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Min",
     "Mobile",
     "Monitor",
     "Namespace",

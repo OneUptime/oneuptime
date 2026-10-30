@@ -4,7 +4,7 @@ Un moniteur VMware surveille un vCenter - ses datacenters, clusters, hôtes ESXi
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-vmware): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prédéfinis): Vingt-trois alertes prêtes à l'emploi, un incident par hôte, VM ou datastore.
+- [Modèles](#modèles-dalerte-prédéfinis): Vingt-quatre alertes prêtes à l'emploi, un incident par hôte, VM ou datastore.
 - [Attributs d'identité](#attributs-didentité): Comment cibler un hôte, une VM ou un datastore.
 - [Métriques](#métriques-collectées): Chaque série `vcenter.*` sur laquelle le moniteur peut alerter.
 :::
@@ -106,12 +106,13 @@ Dans les filtres du moniteur et les clés de regroupement, les attributs de ress
 
 ## Modèles d'alerte prédéfinis
 
-OneUptime fournit 23 modèles pour les problèmes VMware courants, et **Quick Setup** les propose tous. Chacun construit un moniteur complet : la requête de métrique, ses filtres d'attributs, un regroupement sur le propre attribut d'identité de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+OneUptime fournit 24 modèles pour les problèmes VMware courants, et **Quick Setup** les propose tous. Chacun construit un moniteur complet : la requête de métrique, ses filtres d'attributs, un regroupement sur le propre attribut d'identité de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Les modèles lisent les 5 dernières minutes, sauf indication contraire du tableau. Un critère ne déclenche que lorsque la condition est vraie pour chaque minute de sa fenêtre, et un critère de seuil se rétablit 10 % au-delà de son seuil, donc une valeur qui oscille autour de la ligne ne bascule pas sans cesse.
 
 | Modèle | Catégorie | Gravité | Surveille | Déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- | --- |
+| vCenter Stopped Reporting | Disponibilité | Critique | `vcenter.datacenter.cpu.limit`, Count sur l'ensemble du vCenter, **10 dernières minutes** | Aucune donnée pendant toute la fenêtre : l'agent ou la sonde ne fonctionne plus, ou vCenter ne lui répond plus | Des données arrivent de nouveau |
 | Host CPU Saturation | Hôte | Warning | `vcenter.host.cpu.utilization`, Avg par `resource.vcenter.host.name` | Au-dessus de 90 % : chaque VM de l'hôte se dispute les cœurs, et affiche du temps CPU ready | À 81 % ou moins |
 | Host Memory Saturation | Hôte | Warning | `vcenter.host.memory.utilization`, Avg par hôte | Au-dessus de 90 % : l'hôte commence à reprendre de la mémoire par ballooning, compression et swap | À 81 % ou moins |
 | Host Disk Latency High | Hôte | Warning | `vcenter.host.disk.latency.max`, Max par hôte | Au-dessus de 50 ms : chaque VM dont les disques passent par ce chemin attend le stockage. Nécessite le niveau de compteurs de performance 3 | À 45 ms ou moins |
@@ -141,7 +142,7 @@ La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte
 - **Les modèles d'utilisation utilisent Avg :** le récepteur signale un vrai pourcentage de 0 à 100 pour chaque objet, donc la moyenne sur une minute est l'utilisation soutenue.
 - **Les modèles de latence utilisent Max :** la métrique est déjà la pire latence sur les disques de l'objet, donc son échantillon le plus élevé est le plus honnête.
 - **Les modèles de comptage et d'état utilisent Max**, donc une seule collecte qui montre la condition les déclenche : erreurs de paquets, ballooning, swap, statuts rouge et jaune, hôtes non effectifs, congestion.
-- **Chaque modèle regroupe sur le propre attribut d'identité de l'objet**, donc un incident se déclenche par objet concerné, et l'incident le nomme.
+- **Chaque modèle regroupe sur le propre attribut d'identité de l'objet**, donc un incident se déclenche par objet concerné, et l'incident le nomme. L'exception est **vCenter Stopped Reporting**, qui surveille l'ensemble du vCenter : quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **Les seuils sont fixés dans leur unité** (`%`, `ms`, `us`), donc ils gardent leur sens quelle que soit l'unité qu'affiche un graphique.
 
 ## Métriques collectées

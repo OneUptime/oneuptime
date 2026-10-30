@@ -4,7 +4,7 @@ En Docker-monitor overvåger containerne på én Docker-vært og giver dig beske
 
 :::cards
 - [Opret monitoren](#opret-en-docker-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Seks færdige advarsler, én hændelse pr. container.
+- [Skabeloner](#færdige-advarselsskabeloner): Syv færdige advarsler, én hændelse pr. container.
 - [Metrikker](#indsamlede-metrikker): Hvad agenten indsamler, og hvad hver metrik betyder.
 - [Logs](#indsamlede-logs): Containerlogs og den logdriver, de kræver.
 :::
@@ -84,20 +84,24 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel grupperet efter `resource.container.name`, et kriterium, der udløses, og et, der genopretter. Hver container bedømmes for sig, så én travl container ikke skjuler en anden, og hver container over tærsklen får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder syv skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Host Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver container bedømmes for sig, én travl container ikke skjuler en anden, og hver container over tærsklen får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
 
 Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på værten, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
 | Container Restart Loop | Kritisk | Vækst i `container.restarts` pr. container, seneste 15 minutter | Mere end 3 genstarter i vinduet (Sum) | 2,7 eller færre |
 | Container CPU Throttling | Warning | Vækst i `container.cpu.throttling_data.throttled_time` i ms pr. container, seneste 5 minutter | Mere end 1000 ms i vinduet (Sum) | 900 ms eller mindre |
 | High Container Process Count | Warning | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
-| Container Down (Low Uptime) | Kritisk | `container.uptime`, Min pr. container, seneste 1 minut | Lig med 0 | Over 0 |
+| Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min pr. container, seneste 1 minut | Under 120 sekunder | Mindst 132 sekunder |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
+
+> [!NOTE]
+> **Host Stopped Reporting** udløses, når der ikke kommer noget fra værten i ti minutter: værten er nede, eller agenten er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked. En vært uden andre containere rapporterer stadig, fordi agenten selv kører som en container og rapporterer sine egne data.
 
 > [!NOTE]
 > `container.cpu.utilization` er det tal, `docker stats` udskriver, i gennemsnit over agentens interval på 30 sekunder: 100 % er én hel CPU-kerne, ikke hele værten, så en container, der bruger to kerner, viser 200. På en vært med flere kerner er tærsklen på 80 et CPU-budget, ikke en andel af maskinen.
@@ -106,10 +110,10 @@ Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gæl
 > `container.memory.percent` dividerer med containerens hukommelsesgrænse, når der er sat en, og ellers med **værtens** samlede hukommelse. Kontrollér, om containeren blev startet med `--memory`, før du behandler en overskridelse som et nært forestående drab på grund af hukommelsesmangel.
 
 > [!WARNING]
-> `container.restarts` og `container.cpu.throttling_data.throttled_time` vokser kun, så de to skabeloner advarer på, hvor meget de voksede i vinduet: en Maksimum- og en Minimum-forespørgsel pr. minut, trukket fra hinanden af en formel og summeret. Ved agentens indsamling hvert 30. sekund ser det omkring halvdelen af den reelle aktivitet, og tærsklerne tager allerede højde for det. Hvis du hæver agentens `collection_interval` til 60 sekunder eller mere, indeholder hvert minut én måling, og begge skabeloner holder op med at advare.
+> `container.restarts` og `container.cpu.throttling_data.throttled_time` vokser kun, så de to skabeloner advarer på, hvor meget de voksede i vinduet: en Maksimum- og en Minimum-forespørgsel pr. minut, trukket fra hinanden af en formel og summeret. Ved agentens indsamling hvert 30. sekund ser det omkring halvdelen af den reelle aktivitet, og tærsklerne tager allerede højde for det. Hvis du hæver agentens `collection_interval` til 60 sekunder eller mere, indeholder hvert minut én måling, og begge skabeloner holder op med at advare. Agenten måler desuden kun kørende containere, så en container, der stopper i samme øjeblik, den starter, bliver sjældent målt: **Container Restarted (Low Uptime)** udløses ved hver genstart, agenten ser.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** kan ikke fange en container, der stopper og forbliver stoppet. Agenten rapporterer kun kørende containere, så en stoppet container sender slet ingen data, og dens oppetid viser aldrig 0. For en tjeneste, der skal blive kørende, skal du også overvåge det, den leverer – f.eks. med en [API-monitor](/docs/monitor/api-monitor).
+> `container.uptime` findes kun for kørende containere. En container, der stopper og forbliver stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger genstarter og nye udrulninger, ikke en permanent nedlukning. En container, der er beregnet til at køre i under to minutter, forbliver i advarselstilstand hele sin levetid. med en [API-monitor](/docs/monitor/api-monitor).
 
 ## Indsamlede metrikker
 
@@ -143,8 +147,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats` mod Docker-socketten hver
 
 | Metrik | Beskrivelse |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes læst fra blokenheder. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes skrevet til blokenheder. |
+| `container.blockio.io_service_bytes_recursive` | Bytes læst og skrevet på hver blokenhed, siden containeren startede, opdelt efter `operation` (`read`, `write`). En tæller over hele levetiden. Listen tilbyder den filtreret til læsninger og til skrivninger. |
 
 ### Container
 
@@ -154,7 +157,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats` mod Docker-socketten hver
 | `container.restarts` | Antal gange, containeren er genstartet, siden den blev oprettet. En tæller over hele levetiden. |
 | `container.pids.count` | Opgaver i containeren. Cgroup'ens pids-controller tæller tråde lige så vel som processer. |
 
-Listen **Docker-måling** tilbyder også `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` og tællerne for netværkspakker. Den medfølgende agentkonfiguration slår dem ikke til, så kontrollér værtens side **Metrikker**, før du bygger på dem. `container.cpu.throttling_data.throttled_periods` er ikke på listen; forespørg den fra **Avanceret**.
+`container.cpu.throttling_data.throttled_periods` er ikke på listen; forespørg den fra **Avanceret**.
 
 ## Overvågningskriterier
 

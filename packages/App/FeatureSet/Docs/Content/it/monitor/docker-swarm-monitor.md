@@ -4,7 +4,7 @@ Un monitor Docker Swarm sorveglia i container dietro i task di servizio di un cl
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-docker-swarm): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-pronti): Quattro avvisi pronti, un incidente per task.
+- [Modelli](#modelli-di-avviso-pronti): Cinque avvisi pronti, un incidente per task.
 - [Metriche](#metriche-raccolte): Le metriche dei container su cui potete avvisare.
 - [Filtri](#impostazioni-del-monitor): Restringere un monitor a un servizio, un task o un'immagine.
 :::
@@ -92,18 +92,22 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre quattro modelli. Ognuno costruisce un monitor completo: una query raggruppata per `resource.container.name`, un criterio che scatta e uno che ripristina. Ogni task viene giudicato separatamente e riceve il proprio incidente e il proprio avviso, la cui causa principale elenca i task interessati e i loro valori. Le soglie sono punti di partenza modificabili.
+**Quick Setup** offre cinque modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Cluster Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni task viene giudicato separatamente e riceve il proprio incidente e il proprio avviso, la cui causa principale elenca i task interessati e i loro valori. Le soglie sono punti di partenza modificabili.
 
 Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container del cluster, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | Task Down (Low Uptime) | Critico | `container.uptime`, Min per task, ultimo 1 minuto | Un valore qualsiasi è sotto i 60 secondi | Ogni valore è a 66 secondi o più |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
-| High Task Process Count | Warning | `container.pids.count`, Max per task, ultimi 5 minuti | Sopra 500 | A 450 o meno |
+| High Task Process Count | Warning | `container.pids.count`, Max per task, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** scatta quando dal cluster non arriva nulla per dieci minuti: i nodi che eseguono l'agente sono giù, oppure l'agente si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala. Un nodo senza task continua comunque a inviare dati, perché l'agente gira come container e invia i propri.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** scatta su un singolo campione recente perché un riavvio è un evento, non un livello. Swarm assegna a un task sostitutivo un nuovo container, e quindi una nuova serie, ed è per questo che il modello cerca un uptime inferiore a un minuto invece di uno 0. Anche un deploy o uno scale-up lo fanno scattare, e si risolve quando i nuovi task superano un minuto di uptime. Un task che muore e non viene sostituito non invia nulla, quindi non viene rilevato.
@@ -136,7 +140,7 @@ Il collector dell'agente usa il receiver OpenTelemetry `docker_stats`, quindi le
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
-| `container.pids.count` | count | Processi all'interno del container di un task. Un aumento improvviso può indicare una fork bomb o un leak. |
+| `container.pids.count` | count | Task nel container di un task: il controller pids del cgroup conta i thread oltre ai processi. Un aumento improvviso può indicare una fork bomb o una perdita di thread. |
 | `container.uptime` | secondi | Da quanto tempo è in esecuzione il container di un task. Un task ripianificato o riavviato avvia un nuovo container da 0. |
 
 Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (quando l'agente conosce il nome del nodo) e `resource.docker.swarm.cluster.name`.

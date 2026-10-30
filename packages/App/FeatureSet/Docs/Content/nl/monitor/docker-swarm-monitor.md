@@ -4,7 +4,7 @@ Een Docker Swarm-monitor bewaakt de containers achter de servicetaken van een Sw
 
 :::cards
 - [De monitor maken](#een-docker-swarm-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vier kant-en-klare waarschuwingen, één incident per taak.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vijf kant-en-klare waarschuwingen, één incident per taak.
 - [Metrieken](#verzamelde-metrieken): De containermetrieken waarop u kunt waarschuwen.
 - [Filters](#monitorinstellingen): Een monitor beperken tot een service, een taak of een image.
 :::
@@ -92,18 +92,22 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt vier sjablonen. Elk bouwt een complete monitor: een query gegroepeerd op `resource.container.name`, een criterium dat afgaat en een dat herstelt. Elke taak wordt afzonderlijk beoordeeld en krijgt een eigen incident en een eigen waarschuwing, waarvan de hoofdoorzaak de getroffen taken en hun waarden opsomt. De drempels zijn uitgangspunten die u kunt aanpassen.
+**Quick Setup** biedt vijf sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Cluster Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke taak afzonderlijk wordt beoordeeld en een eigen incident en een eigen waarschuwing krijgt, waarvan de hoofdoorzaak de getroffen taken en hun waarden opsomt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers in het cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | Task Down (Low Uptime) | Kritiek | `container.uptime`, Min per taak, laatste 1 minuut | Een willekeurige waarde ligt onder 60 seconden | Elke waarde ligt op of boven 66 seconden |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per taak, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per taak, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 500 | Op of onder 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de nodes waarop de agent draait zijn uitgevallen, of de agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten. Een node zonder taken blijft rapporteren, omdat de agent zelf als container draait en zijn eigen gegevens rapporteert.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** gaat af op één jonge meting, omdat een herstart een gebeurtenis is en geen niveau. Swarm geeft een vervangende taak een nieuwe container, en dus een nieuwe reeks; daarom zoekt het sjabloon naar een uptime onder een minuut in plaats van naar een 0. Een uitrol of een opschaling laat het ook afgaan, en het herstelt zodra de nieuwe taken een minuut uptime voorbij zijn. Een taak die sterft en niet wordt vervangen, stuurt niets en wordt dus niet opgemerkt.
@@ -136,7 +140,7 @@ De collector van de agent gebruikt de OpenTelemetry-receiver `docker_stats`, dus
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `container.pids.count` | aantal | Processen in de container van een taak. Een plotselinge stijging kan op een forkbom of een lek wijzen. |
+| `container.pids.count` | aantal | Taken in de container van een taak: de cgroup-pids-controller telt threads net zo goed als processen. Een plotselinge stijging kan wijzen op een fork bomb of een threadlek. |
 | `container.uptime` | seconden | Hoe lang de container van een taak al draait. Een opnieuw ingeplande of herstarte taak begint een nieuwe container op 0. |
 
 Elke reeks draagt de identiteit van de container als resourceattributen: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (als de agent de naam van de node kent) en `resource.docker.swarm.cluster.name`.

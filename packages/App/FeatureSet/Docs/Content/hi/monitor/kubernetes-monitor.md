@@ -5,7 +5,7 @@ Kubernetes मॉनिटर उन मेट्रिक्स पर अल�
 :::cards
 - [एजेंट इंस्टॉल करें](/docs/monitor/kubernetes-agent): एक Helm कमांड क्लस्टर को OneUptime में ले आता है।
 - [मॉनिटर बनाएं](#kubernetes-मॉनिटर-बनाएं): क्लस्टर चुनें, फिर कोई टेम्पलेट, मेट्रिक या क्वेरी।
-- [अलर्ट टेम्पलेट](#तैयार-अलर्ट-टेम्पलेट): सत्रह तैयार अलर्ट, CrashLoopBackOff से लेकर etcd तक।
+- [अलर्ट टेम्पलेट](#तैयार-अलर्ट-टेम्पलेट): अठारह तैयार अलर्ट, खामोश क्लस्टर से लेकर etcd तक।
 - [मानदंड](#मॉनिटरिंग-मानदंड): स्थिर थ्रेशोल्ड और विसंगति पहचान।
 :::
 
@@ -84,14 +84,14 @@ flowchart TB
 | श्रेणी | मेट्रिक्स |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| नोड | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| नोड | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | कंटेनर | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | वर्कलोड | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | कंट्रोल प्लेन | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं: `0.18` का मतलब एक कोर का 0.18 है। **Pod Phase (Code)** एक कोड है (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – इसे अधिकतम या न्यूनतम से एकत्र करें, योग से कभी नहीं। कंट्रोल प्लेन मेट्रिक्स तभी आते हैं जब एजेंट का कंट्रोल प्लेन स्क्रेप चालू हो।
+> **Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं: `0.18` का मतलब एक कोर का 0.18 है। **Pod Phase (Code)** एक कोड है (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – इसे अधिकतम या न्यूनतम से एकत्र करें, योग से कभी नहीं। कंट्रोल प्लेन मेट्रिक्स तभी आते हैं जब एजेंट का कंट्रोल प्लेन स्क्रेप चालू हो। **Node Ready Condition** Ready होने पर 1, NotReady पर 0 और Unknown पर -1 होता है, और बंद हो चुका नोड Unknown ही रिपोर्ट करता है: 1 से कम पर अलर्ट करें।
 
 ## मॉनिटरिंग मानदंड
 
@@ -132,13 +132,14 @@ flowchart TB
 
 | टेम्पलेट | श्रेणी | कब ट्रिगर होता है | गंभीरता |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | वर्कलोड | किसी कंटेनर के पॉड बनने के बाद से वह 5 से अधिक बार रीस्टार्ट हुआ है | गंभीर |
+| Cluster Stopped Reporting | उपलब्धता | क्लस्टर के एजेंट से 10 मिनट तक कोई डेटा नहीं आता | गंभीर |
+| CrashLoopBackOff Detection | वर्कलोड | कोई कंटेनर 15 मिनट के भीतर रीस्टार्ट हुआ और उसमें से आधे से कम समय तैयार रहा | गंभीर |
 | Pod Stuck in Pending | अनुसूचन | 15 मिनट की विंडो के हर नमूने में कोई पॉड Pending चरण में है | Warning |
-| Node Not Ready | नोड | कोई नोड NotReady रिपोर्ट करता है | गंभीर |
+| Node Not Ready | नोड | कोई नोड NotReady रिपोर्ट करता है या अपनी स्थिति बताना बंद कर देता है (Unknown) | गंभीर |
 | High Node CPU Utilization | नोड | किसी नोड का औसत CPU उपयोग उसके आवंटन-योग्य CPU के 90% से ऊपर है | Warning |
-| High Node Memory Utilization | नोड | किसी नोड का औसत मेमोरी उपयोग उसकी आवंटन-योग्य मेमोरी के 85% से ऊपर है | Warning |
+| High Node Memory Utilization | नोड | किसी नोड का औसत मेमोरी वर्किंग सेट उसकी आवंटन-योग्य मेमोरी के 85% से ऊपर है | Warning |
 | Deployment Replica Mismatch | वर्कलोड | किसी deployment में 15 मिनट तक वांछित से कम उपलब्ध रेप्लिका हैं | Warning |
-| Job Failures | वर्कलोड | किसी job में विफल पॉड हैं | Warning |
+| Job Failures | वर्कलोड | किसी job का कोई पॉड 15 मिनट के भीतर विफल हुआ | Warning |
 | etcd No Leader | कंट्रोल प्लेन | etcd का कोई चुना हुआ लीडर नहीं है | गंभीर |
 | API Server Request Saturation | कंट्रोल प्लेन | API सर्वर पूरी विंडो के दौरान 200 या अधिक चल रहे अनुरोध रखता है | गंभीर |
 | Scheduler Backlog | अनुसूचन | शेड्यूलर की लंबित पॉड कतार 5 मिनट तक खाली नहीं होती | Warning |
@@ -146,14 +147,16 @@ flowchart TB
 | DaemonSet Misscheduled Nodes | वर्कलोड | कोई DaemonSet ऐसे नोड पर पॉड चलाता है जो अब उसके नोड सेलेक्टर, एफ़िनिटी या टॉलरेशन से मेल नहीं खाते | Warning |
 | High Node CPU Request Commitment | नोड | किसी नोड के कंटेनरों के CPU अनुरोधों का योग उसके आवंटन-योग्य CPU के 90% से अधिक है | Warning |
 | High Node Memory Request Commitment | नोड | किसी नोड के कंटेनरों के मेमोरी अनुरोधों का योग उसकी आवंटन-योग्य मेमोरी के 90% से अधिक है | Warning |
-| HPA Saturated at Max Replicas | वर्कलोड | कोई HPA अपने `maxReplicas` के 90% या उससे अधिक पर चल रहा है | गंभीर |
+| HPA Saturated at Max Replicas | वर्कलोड | अपने `minReplicas` से ऊपर स्केल हुआ कोई HPA अपने `maxReplicas` के 90% या उससे अधिक पर चल रहा है | गंभीर |
 | Pod Memory Saturating Container Limit | वर्कलोड | कोई पॉड अपनी कंटेनर मेमोरी सीमा का 90% से अधिक उपयोग करता है | गंभीर |
 | Pod CPU Saturating Container Limit | वर्कलोड | कोई पॉड अपनी कंटेनर CPU सीमा का 90% से अधिक उपयोग करता है | Warning |
 
 प्रति-ऑब्जेक्ट मेट्रिक्स पर बने टेम्पलेट हर नोड, पॉड, deployment, job, DaemonSet या HPA का अलग-अलग मूल्यांकन करते हैं, इसलिए कई अस्वस्थ पॉड वाले क्लस्टर को पूरे क्लस्टर के लिए एक के बजाय हर पॉड के लिए एक घटना मिलती है।
 
+**Cluster Stopped Reporting** तब ट्रिगर होता है जब दस मिनट तक क्लस्टर के एजेंट से कुछ भी नहीं आता: एजेंट अनइंस्टॉल कर दिया गया या बार-बार क्रैश हो रहा है, उसकी API कुंजी रद्द कर दी गई, उसने OneUptime तक का अपना रास्ता खो दिया, या क्लस्टर के API सर्वर ने उसे जवाब देना बंद कर दिया। डेटा लौटने पर यह ठीक हो जाता है। जब डेटा रुक जाता है, तो बाकी टेम्पलेट के पास तुलना करने के लिए कुछ नहीं होता और वे अपनी आखिरी स्थिति बनाए रखते हैं, इसलिए यही टेम्पलेट आपको बताता है।
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** कंटेनर के मौजूदा पॉड के लिए उसकी कुल रीस्टार्ट संख्या पढ़ता है, कोई दर नहीं। जो कंटेनर क्रैश-लूप में फँसकर फिर ठीक हो गया, वह अपने पॉड के बदले जाने तक अलर्ट को खुला रखता है।
+> **CrashLoopBackOff Detection** और **Job Failures** यह गिनते हैं कि विंडो में रीस्टार्ट या विफल-पॉड गिनती कितनी बढ़ी, स्वयं गिनती नहीं, इसलिए रीस्टार्ट या विफलताएँ रुकते ही वे अपने आप साफ़ हो जाते हैं। बढ़ोतरी केवल एक ही मिनट के दो नमूनों के बीच दिखती है: एजेंट के 30 सेकंड के अंतराल पर यह लगभग आधी होती है। क्रैश लूप बार-बार रीस्टार्ट होता है और पकड़ा जाता है; एक अकेला रीस्टार्ट छूट सकता है।
 
 ### सिर्फ़ लक्षण नहीं, कारण पकड़ें
 
@@ -181,8 +184,8 @@ flowchart TB
 **Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं, इसलिए `80` के थ्रेशोल्ड का मतलब 80 कोर है। थ्रेशोल्ड कोर में सेट करें, या **High Node CPU Utilization** या **Pod CPU Saturating Container Limit** से शुरू करें, जो प्रतिशत की तुलना करते हैं।
 :::
 
-:::details पॉड ठीक होने के बाद भी CrashLoopBackOff Detection खुला रहता है
-टेम्पलेट कंटेनर के मौजूदा पॉड के लिए उसकी कुल रीस्टार्ट संख्या पढ़ता है, इसलिए 5 पार करने के बाद यह संख्या वापस नहीं घटती। अलर्ट तब सुलझता है जब पॉड बदला जाता है, उदाहरण के लिए नए डिप्लॉय, निष्कासन या नोड ड्रेन से।
+:::details CrashLoopBackOff Detection एक रीस्टार्ट पर ट्रिगर नहीं हुआ
+टेम्पलेट तब ट्रिगर होता है जब किसी कंटेनर की रीस्टार्ट गिनती 15 मिनट के भीतर बढ़ती है और कंटेनर उसमें से आधे से कम समय तैयार रहा हो, इसलिए जो कंटेनर एक बार रीस्टार्ट होकर तुरंत लौट आया वह अलर्ट नहीं भेजता। बढ़ोतरी केवल एक ही मिनट के दो नमूनों के बीच दिखती है, इसलिए एक अकेला रीस्टार्ट छूट सकता है; क्रैश लूप हर कुछ मिनट में रीस्टार्ट होता है और पकड़ा जाता है।
 :::
 
 ## अगले चरण

@@ -4,7 +4,7 @@ Een Docker-monitor bewaakt de containers op één Docker-host en laat u weten wa
 
 :::cards
 - [De monitor maken](#een-docker-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Zes kant-en-klare waarschuwingen, één incident per container.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Zeven kant-en-klare waarschuwingen, één incident per container.
 - [Metrieken](#verzamelde-metrieken): Wat de agent verzamelt, en wat elke metriek betekent.
 - [Logboeken](#verzamelde-logboeken): Containerlogboeken, en het logstuurprogramma dat ze nodig hebben.
 :::
@@ -84,20 +84,24 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt zes sjablonen. Elk bouwt een complete monitor: een query gegroepeerd op `resource.container.name`, een criterium dat afgaat en een dat herstelt. Elke container wordt afzonderlijk beoordeeld, zodat een drukke container geen andere verbergt, en elke container over de drempel krijgt een eigen incident en een eigen waarschuwing. De drempels zijn uitgangspunten die u kunt aanpassen.
+**Quick Setup** biedt zeven sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Host Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke container afzonderlijk wordt beoordeeld, een drukke container geen andere verbergt, en elke container over de drempel een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers op de host, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
 | Container Restart Loop | Kritiek | Groei van `container.restarts` per container, laatste 15 minuten | Meer dan 3 herstarts in het venster (Som) | 2,7 of minder |
 | Container CPU Throttling | Warning | Groei van `container.cpu.throttling_data.throttled_time` in ms per container, laatste 5 minuten | Meer dan 1000 ms in het venster (Som) | 900 ms of minder |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
-| Container Down (Low Uptime) | Kritiek | `container.uptime`, Min per container, laatste 1 minuut | Gelijk aan 0 | Boven 0 |
+| Container Restarted (Low Uptime) | Kritiek | `container.uptime`, Min per container, laatste 1 minuut | Minder dan 120 seconden | 132 seconden of meer |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
+
+> [!NOTE]
+> **Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de host is uitgevallen, of de agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten. Een host zonder andere containers blijft rapporteren, omdat de agent zelf als container draait en zijn eigen gegevens rapporteert.
 
 > [!NOTE]
 > `container.cpu.utilization` is het getal dat `docker stats` toont, gemiddeld over het interval van 30 seconden van de agent: 100% is één volledige CPU-kern, niet de hele host, dus een container die twee kernen gebruikt, staat op 200. Op een host met meerdere kernen is de drempel van 80 een CPU-budget, geen aandeel van de machine.
@@ -106,10 +110,10 @@ Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde
 > `container.memory.percent` deelt door de geheugenlimiet van de container als die is ingesteld, en anders door het totale geheugen **van de host**. Controleer of de container met `--memory` is gestart voordat u een overschrijding behandelt als een dreigende beëindiging door geheugentekort.
 
 > [!WARNING]
-> `container.restarts` en `container.cpu.throttling_data.throttled_time` groeien alleen, dus die twee sjablonen waarschuwen op hoeveel ze in het venster zijn gegroeid: een Maximum- en een Minimum-query per minuut, door een formule van elkaar afgetrokken en opgeteld. Bij het uitlezen elke 30 seconden door de agent ziet dat ongeveer de helft van de echte activiteit, en de drempels houden daar al rekening mee. Als u het `collection_interval` van de agent op 60 seconden of meer zet, bevat elke minuut één meting en waarschuwen beide sjablonen niet meer.
+> `container.restarts` en `container.cpu.throttling_data.throttled_time` groeien alleen, dus die twee sjablonen waarschuwen op hoeveel ze in het venster zijn gegroeid: een Maximum- en een Minimum-query per minuut, door een formule van elkaar afgetrokken en opgeteld. Bij het uitlezen elke 30 seconden door de agent ziet dat ongeveer de helft van de echte activiteit, en de drempels houden daar al rekening mee. Als u het `collection_interval` van de agent op 60 seconden of meer zet, bevat elke minuut één meting en waarschuwen beide sjablonen niet meer. De agent bemonstert bovendien alleen draaiende containers, dus een container die meteen na het starten stopt, wordt zelden bemonsterd: **Container Restarted (Low Uptime)** gaat af bij elke herstart die de agent wel ziet.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** kan een container die stopt en gestopt blijft niet vangen. De agent rapporteert alleen draaiende containers, dus een gestopte container stuurt helemaal geen gegevens en zijn uptime staat nooit op 0. Bewaak voor een service die moet blijven draaien ook wat hij levert – bijvoorbeeld met een [API-monitor](/docs/monitor/api-monitor).
+> `container.uptime` bestaat alleen voor draaiende containers. Een container die stopt en gestopt blijft, stuurt geen gegevens, dus **Container Restarted (Low Uptime)** vangt herstarts en nieuwe uitrols, geen blijvende uitschakeling. Een container die bedoeld is om minder dan twee minuten te draaien, blijft zijn hele leven in de waarschuwingsstatus. Bewaak voor een service die moet blijven draaien ook wat hij levert – bijvoorbeeld met een [API-monitor](/docs/monitor/api-monitor).
 
 ## Verzamelde metrieken
 
@@ -143,8 +147,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats` tegen de Docker-socke
 
 | Metriek | Beschrijving |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Van blokapparaten gelezen bytes. |
-| `container.blockio.io_service_bytes_recursive.write` | Naar blokapparaten geschreven bytes. |
+| `container.blockio.io_service_bytes_recursive` | Bytes gelezen en geschreven op elk blokapparaat sinds de container startte, uitgesplitst naar `operation` (`read`, `write`). Een teller over de hele levensduur. De lijst biedt hem gefilterd op lezen en op schrijven. |
 
 ### Container
 
@@ -154,7 +157,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats` tegen de Docker-socke
 | `container.restarts` | Hoe vaak de container is herstart sinds hij is gemaakt. Een teller over de hele levensduur. |
 | `container.pids.count` | Taken in de container. De pids-controller van de cgroup telt threads net zo goed als processen. |
 
-De lijst **Docker-metriek** biedt ook `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` en de netwerkpakkettellers. De meegeleverde agentconfiguratie zet deze niet aan; controleer daarom de pagina **Metrieken** van de host voordat u erop bouwt. `container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
+`container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
 
 ## Bewakingscriteria
 

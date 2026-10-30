@@ -4,7 +4,7 @@ Docker 監測器監控一台 Docker 主機上的容器，在容器負載過高�
 
 :::cards
 - [建立監測器](#建立-docker-監測器): 在儀表板中完成六個步驟。
-- [範本](#現成的警示範本): 六個現成的警示，每個容器一個事件。
+- [範本](#現成的警示範本): 七個現成的警示，每個容器一個事件。
 - [指標](#收集的指標): 代理程式收集的內容，以及每個指標的意義。
 - [日誌](#收集的日誌): 容器日誌，以及它們需要的日誌驅動程式。
 :::
@@ -84,20 +84,24 @@ flowchart TB
 
 ## 現成的警示範本
 
-**Quick Setup** 提供六個範本。每個範本都會建立一個完整的監測器：一個依 `resource.container.name` 分組的查詢、一個觸發的條件和一個恢復的條件。每個容器都個別評判，因此一個忙碌的容器不會掩蓋另一個，每個超過閾值的容器都有自己的事件和警示。閾值只是起點，你可以編輯。
+**Quick Setup** 提供七個範本。每個範本都會建立一個完整的監測器：一個查詢、一個觸發的條件和一個恢復的條件。除了 **Host Stopped Reporting** 之外，每個範本都依 `resource.container.name` 將查詢分組，因此每個容器都個別評判，一個忙碌的容器不會掩蓋另一個，每個超過閾值的容器都有自己的事件和警示。閾值只是起點，你可以編輯。
 
 除非表格另有說明，條件只有在其視窗的每一分鐘都成立時才會觸發，並在越過閾值 10% 處恢復，這樣在邊界附近徘徊的值就不會來回跳動。
 
 | 範本 | 嚴重程度 | 監控內容 | 觸發時機 | 恢復時機 |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | 嚴重 | `container.memory.percent`，對主機上所有容器取 Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`，依容器取 Max，最近 5 分鐘 | 高於 80（單一核心的 %） | 不高於 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`，依容器取 Max，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
 | Container Restart Loop | 嚴重 | 每個容器 `container.restarts` 的成長，最近 15 分鐘 | 視窗內重新啟動超過 3 次（總和） | 2.7 或更少 |
 | Container CPU Throttling | Warning | 每個容器 `container.cpu.throttling_data.throttled_time` 的成長（ms），最近 5 分鐘 | 視窗內超過 1000 ms（總和） | 900 ms 或更少 |
 | High Container Process Count | Warning | `container.pids.count`，依容器取 Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
-| Container Down (Low Uptime) | 嚴重 | `container.uptime`，依容器取 Min，最近 1 分鐘 | 等於 0 | 高於 0 |
+| Container Restarted (Low Uptime) | 嚴重 | `container.uptime`，依容器取 Min，最近 1 分鐘 | 低於 120 秒 | 不低於 132 秒 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
+
+> [!NOTE]
+> **Host Stopped Reporting** 會在主機 10 分鐘內沒有任何資料送達時觸發：主機當機，或者代理程式已停止、失去通往 OneUptime 的路由或權杖被撤銷。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。沒有其他容器的主機仍會回報資料，因為代理程式本身就以容器執行，並會回報它自己的容器。
 
 > [!NOTE]
 > `container.cpu.utilization` 就是 `docker stats` 輸出的數字在代理程式每個 30 秒間隔內的平均值：100% 是一個完整的 CPU 核心，而不是整台主機，所以使用兩個核心的容器讀數為 200。在多核心主機上，80 這個閾值是 CPU 預算，而不是機器的占比。
@@ -106,10 +110,10 @@ flowchart TB
 > `container.memory.percent` 在容器設有記憶體限制時除以該限制，否則除以**主機**的總記憶體。在把超限視為即將發生的記憶體不足終止之前，請先檢查容器是否以 `--memory` 啟動。
 
 > [!WARNING]
-> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只會成長，所以這兩個範本會依它們在視窗內成長了多少發出警示：每分鐘一個 Maximum 查詢和一個 Minimum 查詢，由公式相減後加總。依代理程式每 30 秒一次的擷取，這只能看到大約一半的實際活動，閾值已經考量到這一點。如果把代理程式的 `collection_interval` 調到 60 秒以上，每分鐘只會有一個樣本，兩個範本都會停止發出警示。
+> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只會成長，所以這兩個範本會依它們在視窗內成長了多少發出警示：每分鐘一個 Maximum 查詢和一個 Minimum 查詢，由公式相減後加總。依代理程式每 30 秒一次的擷取，這只能看到大約一半的實際活動，閾值已經考量到這一點。如果把代理程式的 `collection_interval` 調到 60 秒以上，每分鐘只會有一個樣本，兩個範本都會停止發出警示。代理程式也只對正在執行的容器取樣，因此一啟動就結束的容器很少被取樣到：**Container Restarted (Low Uptime)** 會在代理程式看到的每次重新啟動時觸發。
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** 範本無法捕捉停止後一直保持停止的容器。代理程式只回報正在執行的容器，所以停止的容器完全不會傳送資料，其運行時間也永遠不會讀數為 0。對於必須持續運作的服務，也要監控它提供的功能，例如使用 [API 監控](/docs/monitor/api-monitor)。
+> `container.uptime` 只存在於正在執行的容器。停止後一直保持停止的容器不會傳送任何資料，所以 **Container Restarted (Low Uptime)** 範本捕捉的是重新啟動和重新部署，而不是永久關閉。設計為執行不到兩分鐘的容器，在整個生命週期內都會處於警示狀態。對於必須持續運作的服務，也要監控它提供的功能，例如使用 [API 監控](/docs/monitor/api-monitor)。
 
 ## 收集的指標
 
@@ -143,8 +147,7 @@ flowchart TB
 
 | 指標 | 說明 |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | 從區塊裝置讀取的位元組數。 |
-| `container.blockio.io_service_bytes_recursive.write` | 寫入區塊裝置的位元組數。 |
+| `container.blockio.io_service_bytes_recursive` | 容器啟動以來在每個區塊裝置上讀取與寫入的位元組數，依 `operation`（`read`、`write`）區分。是整個生命週期的累計計數器。清單分別提供只看讀取與只看寫入的版本。 |
 
 ### 容器
 
@@ -154,7 +157,7 @@ flowchart TB
 | `container.restarts` | 容器自建立以來重新啟動的次數。生命週期計數器。 |
 | `container.pids.count` | 容器中的工作數。cgroup 的 pids 控制器同時計算處理程序和執行緒。 |
 
-**Docker 指標** 清單也提供 `container.cpu.usage.percpu`、`container.memory.rss`、`container.memory.cache` 和網路封包計數器。隨附的代理程式設定不會開啟它們，所以在使用之前請先查看主機的 **指標** 頁面。`container.cpu.throttling_data.throttled_periods` 不在清單中；請從 **進階** 查詢它。
+`container.cpu.throttling_data.throttled_periods` 不在清單中；請從 **進階** 查詢它。
 
 ## 監控條件
 

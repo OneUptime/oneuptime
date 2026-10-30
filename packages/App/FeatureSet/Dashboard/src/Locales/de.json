@@ -12572,7 +12572,7 @@
   "Mayotte": "Mayotte",
   "Mbps": "Mbit/s",
   "Mean (state)": "Mittelwert (Status)",
-  "Measure": "Messen",
+  "Measure": "Messung",
   "Measurements": "Messungen",
   "Median (P50)": "Median (P50)",
   "Median (state)": "Median (Status)",
@@ -38837,5 +38837,8 @@
   "This can take up to a minute.": "Das kann bis zu einer Minute dauern.",
   "Where to look": "Wo nachsehen",
   "Written by OneUptime AI {{time}}.": "Von OneUptime AI {{time}} verfasst.",
-  "Written by OneUptime AI.": "Von OneUptime AI verfasst."
+  "Written by OneUptime AI.": "Von OneUptime AI verfasst.",
+  "Split by": "Aufteilen nach",
+  "Top": "Top",
+  "then by": "dann nach"
 }
