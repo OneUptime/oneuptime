@@ -118,6 +118,12 @@ import {
   parseReadinessSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ReadinessTypes";
 import OnCallReadinessPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Readiness";
+import {
+  STAT_TILE_BODY_CLASS_NAME,
+  STAT_TILE_CONTAINER_CLASS_NAME,
+  STAT_TILE_STACKED_BELOW_WIDTH_IN_REM,
+  STAT_TILE_TEXT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/StatTile";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -3876,6 +3882,41 @@ describe("no unmasked identifier reaches the DOM", () => {
  * the table is one short line; the tiles' names wrap rather than being cut,
  * four a row only where the card has room for four.
  */
+// A class that goes by the window's width rather than the tile's.
+const WINDOW_BREAKPOINT_VARIANT: RegExp = /^(?:max-)?(?:sm|md|lg|xl|2xl):/;
+
+// "[@container(max-width:10.49rem)]:flex-col": the width it stops at, in rem.
+const CONTAINER_MAX_WIDTH_VARIANT: RegExp =
+  /^\[@container\(max-width:([\d.]+)rem\)\]:(.+)$/;
+
+/*
+ * The direction a tile's body takes at a width of room, in pixels, read from
+ * its classes as the browser reads them: a flex box is a row unless a class
+ * that applies at that width makes it a column.
+ */
+function getStatTileDirection(widthInPx: number): "row" | "column" {
+  let direction: "row" | "column" = "row";
+
+  for (const token of STAT_TILE_BODY_CLASS_NAME.split(" ")) {
+    const match: RegExpMatchArray | null = token.match(
+      CONTAINER_MAX_WIDTH_VARIANT,
+    );
+
+    if (!match) {
+      if (token === "flex-col") {
+        direction = "column";
+      }
+      continue;
+    }
+
+    if (widthInPx <= Number(match[1]) * 16 && match[2] === "flex-col") {
+      direction = "column";
+    }
+  }
+
+  return direction;
+}
+
 describe("the readiness table, with less to read", () => {
   afterEach(() => {
     cleanup();
@@ -4016,6 +4057,87 @@ describe("the readiness table, with less to read", () => {
 
     expect(label.className).not.toContain("truncate");
     expect(label.className).toContain("break-words");
+  });
+
+  /*
+   * Beside its icon, a tile two to a row on a phone left its name some 65
+   * pixels, and a word wider than that broke inside itself ("Responder / s",
+   * "Unreachabl / e"). A tile reads its own width now: narrow, its icon is
+   * over its number and its name has the tile's whole width. jsdom applies
+   * no styles, so the classes are read here as the browser reads them.
+   */
+  test("each tile is a container of its own, holding its icon, its number and its name", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const bodies: Array<HTMLElement> = within(
+      screen.getByTestId("stat-tile-grid"),
+    ).getAllByTestId("stat-tile-body");
+
+    expect(bodies).toHaveLength(4);
+
+    for (const body of bodies) {
+      expect(body.className).toBe(STAT_TILE_BODY_CLASS_NAME);
+      expect(body.parentElement!.className).toBe(
+        STAT_TILE_CONTAINER_CLASS_NAME,
+      );
+      // The number and the name, after the icon.
+      expect(body.children).toHaveLength(2);
+      expect(body.children[1]!.className).toBe(STAT_TILE_TEXT_CLASS_NAME);
+    }
+
+    expect(STAT_TILE_CONTAINER_CLASS_NAME).toContain(
+      "[container-type:inline-size]",
+    );
+  });
+
+  test("under 10.5rem of room the icon sits over the number; from 10.5rem it is beside it", () => {
+    expect(STAT_TILE_STACKED_BELOW_WIDTH_IN_REM).toBe(10.5);
+
+    // A phone's tile (two a row in 390 pixels) has some 119 pixels of room.
+    expect(getStatTileDirection(119)).toBe("column");
+    expect(getStatTileDirection(167)).toBe("column");
+    // Two a row beside the side menu at 768: some 150 pixels, over too.
+    expect(getStatTileDirection(150)).toBe("column");
+    // Four a row at 1280 beside the side menu: 179 pixels, beside.
+    expect(getStatTileDirection(168)).toBe("row");
+    expect(getStatTileDirection(179)).toBe("row");
+    // Two a row beside the side menu at 1024: 277 pixels.
+    expect(getStatTileDirection(277)).toBe("row");
+  });
+
+  test("only the direction changes with the width, and nothing else sets it: no rule depends on the stylesheet's order", () => {
+    const tokens: Array<string> = STAT_TILE_BODY_CLASS_NAME.split(" ");
+    const containerTokens: Array<string> = tokens.filter(
+      (token: string): boolean => {
+        return token.startsWith("[@container");
+      },
+    );
+
+    expect(containerTokens).toEqual([
+      "[@container(max-width:10.49rem)]:flex-col",
+    ]);
+    // No plain class sets a direction for the width's class to win over.
+    expect(tokens).not.toContain("flex-row");
+    expect(tokens).not.toContain("flex-col");
+    // Beside, the gap is gap-x; over, gap-y: each applies to one direction only.
+    expect(tokens).toEqual(
+      expect.arrayContaining(["flex", "items-start", "gap-x-3", "gap-y-2"]),
+    );
+    expect(tokens).not.toContain("gap-3");
+    expect(tokens).not.toContain("items-center");
+    // Nothing goes by the window's width.
+    for (const token of tokens) {
+      expect(token).not.toMatch(WINDOW_BREAKPOINT_VARIANT);
+    }
+  });
+
+  test("the number and the name take the room beside the icon, or the tile's whole width under it", () => {
+    const tokens: Array<string> = STAT_TILE_TEXT_CLASS_NAME.split(" ");
+
+    expect(tokens).toEqual(expect.arrayContaining(["w-full", "min-w-0"]));
   });
 
   /*
