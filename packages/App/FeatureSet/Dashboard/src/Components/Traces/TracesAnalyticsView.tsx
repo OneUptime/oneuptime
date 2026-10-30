@@ -648,8 +648,8 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         </span>
         {/*
          * What the choices mean, as the sidebar's (i) beside the same
-         * choice says it there: below the control, so it never covers the
-         * choices it explains.
+         * choice says it there. It opens below the control, over the chart
+         * rather than over the controls beside it.
          */}
         {help ? (
           <FacetHelpButton

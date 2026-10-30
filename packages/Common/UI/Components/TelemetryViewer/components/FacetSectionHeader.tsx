@@ -109,7 +109,11 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
           help={props.help}
           className="relative z-10"
         />
-        <span className="ml-auto flex flex-none items-center pl-2 pr-1.5">
+        {/*
+         * The turned chevron is painted above the cover (a transform puts
+         * it there), so it lets the pointer through to the cover below.
+         */}
+        <span className="pointer-events-none ml-auto flex flex-none items-center pl-2 pr-1.5">
           {chevron}
         </span>
       </div>

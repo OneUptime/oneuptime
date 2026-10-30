@@ -40,7 +40,7 @@ export const FacetHelpContent: FunctionComponent<FacetHelpContentProps> = (
 
   return (
     <div
-      className="w-64 max-w-full space-y-2 p-1 text-left text-xs leading-snug"
+      className="w-72 max-w-full space-y-2 p-1 text-left text-xs leading-snug"
       data-testid={FACET_HELP_TOOLTIP_TEST_ID}
     >
       {props.help.description ? (
@@ -79,9 +79,9 @@ export interface FacetHelpButtonProps {
   help: FacetHelp;
   className?: string | undefined;
   /*
-   * Which side the help opens on: beside a sidebar's title ("right", the
-   * default) it never covers the values it explains; above a chart, below
-   * the control it explains ("bottom").
+   * Which side the help opens on: to the right of a sidebar's title (the
+   * default), so the values' names stay in view beside it; below a
+   * toolbar's control ("bottom"), so it covers the chart, not the control.
    */
   placement?: Placement | undefined;
 }
@@ -101,11 +101,11 @@ export interface FacetHelpButtonProps {
  *     tooltip is showing; Tippy adds no description of its own, so it is
  *     read once.
  *
- * The tooltip opens beside the sidebar, so it never covers the values it
- * explains, and is mounted on the page rather than in the sidebar, whose
- * scrolling would clip it. Its box is the light-bordered one, which the
- * dark theme re-colours (Theme.css). A press does nothing else: it never
- * folds the section it heads.
+ * The tooltip opens to the right of the title, so the names of the values it
+ * explains stay in view beside it, and is mounted on the page rather than
+ * in the sidebar, whose scrolling would clip it. Its box is the
+ * light-bordered one, which the dark theme re-colours (Theme.css). A press
+ * does nothing else: it never folds the section it heads.
  */
 const FacetHelpButton: FunctionComponent<FacetHelpButtonProps> = (
   props: FacetHelpButtonProps,
@@ -122,8 +122,12 @@ const FacetHelpButton: FunctionComponent<FacetHelpButtonProps> = (
         isShownOnPress={true}
         isTriggerAlreadyDescribed={true}
         placement={placement}
+        /*
+         * Where the right has no room - a phone, where the sidebar is the
+         * screen's width - above the title rather than over the values.
+         */
         fallbackPlacements={
-          placement === "right" ? ["bottom", "top"] : ["top", "right"]
+          placement === "right" ? ["top", "bottom"] : ["top", "right"]
         }
       >
         <button
