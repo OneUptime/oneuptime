@@ -5,7 +5,6 @@ import MonitorType, {
 import ObjectID from "Common/Types/ObjectID";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -130,6 +129,7 @@ import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
 import {
+  GROUPED_READ_ROW_LIMIT,
   getCutReadCompleteFrom,
   processTelemetryMonitorEvaluationFromQueue,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
@@ -318,8 +318,9 @@ function seriesRows(input: {
 /*
  * What the store holds over a window:
  *   - "steady-and-fresh": "steady" all of it, "fresh" its last minute;
- *   - "cut": those, plus enough of a third series over the last five
- *     minutes that the read stops at its limit;
+ *   - "cut": those, plus enough filler series over the last five
+ *     minutes - a minute each of them - that the grouped read, a row per
+ *     series and minute, stops at its limit;
  *   - "slow-fleet": series that report less often than the window is
  *     long, one row each - "slow-inside" seven minutes before its end,
  *     "slow-new" at its very end, "slow-leaving" ten seconds after its
@@ -387,16 +388,16 @@ function storedRows(input: {
 
   if (input.shape === "cut") {
     /*
-     * A row limit's worth, spread evenly across the newest five minutes:
-     * with steady's and fresh's rows there, a read stops just short of
-     * five minutes back.
+     * A grouped read's row limit of series-minutes, over the newest five
+     * minutes: FILLER_SERIES series, each in one of those minutes. With
+     * steady's and fresh's minutes there too, a read stops a few minutes
+     * back.
      */
-    for (let index: number = 0; index < LIMIT_PER_PROJECT; index++) {
+    for (let index: number = 0; index < GROUPED_READ_ROW_LIMIT; index++) {
       rows.push({
         timeMs:
-          input.window.endMs -
-          Math.floor((index * 5 * MINUTE) / LIMIT_PER_PROJECT),
-        name: `filler-${index % 2000}`,
+          input.window.endMs - Math.floor(index / FILLER_SERIES) * MINUTE,
+        name: `filler-${index % FILLER_SERIES}`,
       });
     }
   }
@@ -406,6 +407,9 @@ function storedRows(input: {
   });
 }
 
+// Filler series of the "cut" shape: each holds one minute of the five.
+const FILLER_SERIES: number = GROUPED_READ_ROW_LIMIT / 5;
+
 let storeShape: StoreShape = "steady-and-fresh";
 // The time of the oldest row a cut read returned.
 let oldestReturnedMs: number | null = null;
@@ -414,7 +418,10 @@ function givenStore(shape: StoreShape): void {
   storeShape = shape;
   oldestReturnedMs = null;
 
-  // The grouped raw read (and the affected-resources scan, limit 100).
+  /*
+   * The affected resources' scan (limit 100): raw rows. No grouped read
+   * reads raw rows any more.
+   */
   metricFindBy.mockImplementation(async (args: unknown) => {
     const findBy: {
       query: { time: { startValue: unknown; endValue: unknown } };
@@ -428,10 +435,6 @@ function givenStore(shape: StoreShape): void {
       shape: storeShape,
     }).slice(0, findBy.limit);
 
-    if (findBy.limit === LIMIT_PER_PROJECT && rows.length === findBy.limit) {
-      oldestReturnedMs = rows[rows.length - 1]!.timeMs;
-    }
-
     return rows.map((row: { timeMs: number; name: string }) => {
       return {
         time: new Date(row.timeMs),
@@ -441,7 +444,10 @@ function givenStore(shape: StoreShape): void {
     });
   });
 
-  // The Metrics monitor's grouped SQL read: one row per minute and series.
+  /*
+   * Every monitor type's grouped SQL read: one row per minute and series,
+   * newest first, up to the read's limit.
+   */
   metricAggregateBy.mockImplementation(
     async (args: unknown): Promise<AggregatedResult> => {
       const aggregate: {

@@ -27,7 +27,6 @@ import MonitorCriteriaEvaluator from "Common/Server/Utils/Monitor/MonitorCriteri
 import CriteriaInEffect, {
   OpenCriteriaRecord,
 } from "Common/Server/Utils/Monitor/CriteriaInEffect";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   PROXMOX_INFERRED_ATTRIBUTE,
   PROXMOX_INFERRED_NOT_REPORTING,
@@ -48,7 +47,10 @@ import {
 } from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
 import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
-import { monitorProxmox } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import {
+  GROUPED_READ_ROW_LIMIT,
+  monitorProxmox,
+} from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import {
   NativePushKind,
   NodeStatusPushRecord,
@@ -95,8 +97,8 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
  *     isProxmoxSilentNodeDetectionEnabled, TelemetryUtil's attribute
  *     flattening;
  *   - the worker: monitorProxmox — Node Offline through the grouped
- *     raw-row path (findBy LIMIT 10000 time DESC →
- *     aggregatePerSeriesFromRawMetrics Min per id per minute →
+ *     SQL read (MetricService.aggregateBy GROUP BY the id's attribute,
+ *     Min per id per minute, newest first →
  *     buildSeriesBreakdown), Quorum through MetricService.aggregateBy
  *     (Sum per minute) → appendFormulaResults / MetricFormulaEvaluator;
  *     the affected-resource scans; unit handling;
@@ -1399,26 +1401,41 @@ function nextOracleState(data: {
 }
 
 /*
- * Where the grouped raw read of pve_up becomes complete: it returns the
- * newest rows first, at most 10000 of them, so once the window holds more
- * it is complete only from the oldest row it returned (null otherwise).
+ * Where the grouped read of pve_up becomes complete. It is grouped in SQL
+ * (#5281): a row per id and minute, the newest minutes first, at most
+ * GROUPED_READ_ROW_LIMIT of them, so once the window holds more such
+ * buckets it is complete only from the oldest minute it returned (null
+ * otherwise).
  */
 function groupedReadCompleteFromMs(
   run: ScenarioRun,
   atMs: number,
 ): number | null {
-  const times: Array<number> = nodeScopeRows(run, "pve_up")
-    .map((row: SimulatedMetricRow) => {
-      return row.time.getTime();
-    })
-    .filter((rowMs: number) => {
-      return rowMs >= atMs - WINDOW_MS && rowMs <= atMs;
-    })
-    .sort((a: number, b: number) => {
-      return b - a;
-    });
-  return times.length >= LIMIT_PER_PROJECT
-    ? times[LIMIT_PER_PROJECT - 1]!
+  const buckets: Set<string> = new Set<string>();
+  const bucketMinutes: Array<number> = [];
+
+  for (const row of nodeScopeRows(run, "pve_up")) {
+    const rowMs: number = row.time.getTime();
+
+    if (rowMs < atMs - WINDOW_MS || rowMs > atMs) {
+      continue;
+    }
+
+    const bucketMs: number = minuteOf(rowMs);
+    const bucket: string = `${String(row.attributes["id"])}|${bucketMs}`;
+
+    if (!buckets.has(bucket)) {
+      buckets.add(bucket);
+      bucketMinutes.push(bucketMs);
+    }
+  }
+
+  bucketMinutes.sort((a: number, b: number) => {
+    return b - a;
+  });
+
+  return bucketMinutes.length >= GROUPED_READ_ROW_LIMIT
+    ? bucketMinutes[GROUPED_READ_ROW_LIMIT - 1]!
     : null;
 }
 
@@ -2112,35 +2129,48 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
       lastOwnPush = lastOwnPushBefore(run, "pve3", NEVER_MS);
     });
 
-    test("the worker takes the production paths: grouped raw rows for Node Offline, Sum buckets for Quorum", () => {
+    test("the worker takes the production paths: grouped SQL buckets for Node Offline, Sum buckets for Quorum", () => {
       const scope: Dictionary<string> = {
         "pve.scope": "node",
         "resource.proxmox.cluster.name": run.clusterName,
       };
 
-      // Node Offline: pve_up raw rows, newest first, LIMIT_PER_PROJECT.
-      const groupedReads: Array<SimulatedFindByArgs> = run.findByCalls.filter(
-        (call: SimulatedFindByArgs) => {
-          return call.limit === 10000;
-        },
-      );
+      /*
+       * Node Offline: Min of pve_up per id and minute, grouped in SQL by
+       * the id's attribute, up to the grouped read's limit - never raw
+       * rows (#5281: the raw read was cut at 10,000 rows).
+       */
+      const groupedReads: Array<SimulatedAggregateByArgs> =
+        run.aggregateByCalls.filter((call: SimulatedAggregateByArgs) => {
+          return Boolean(
+            call.groupByAttributeKeys && call.groupByAttributeKeys.length > 0,
+          );
+        });
       expect(groupedReads.length).toBe(run.ticks.length);
       for (const call of groupedReads) {
         expect(call.query["name"]).toBe("pve_up");
         expect(call.query["attributes"]).toEqual(scope);
-        expect(call.sort).toEqual({ time: "DESC" });
+        expect(call.aggregationType).toBe(MetricsAggregationType.Min);
+        expect(call.limit).toBe(GROUPED_READ_ROW_LIMIT);
+        expect(
+          call.endTimestamp.getTime() - call.startTimestamp.getTime(),
+        ).toBe(WINDOW_MS);
       }
 
-      // The rest of findBy is the limit-100 affected-resource scan.
+      // findBy is only the limit-100 affected-resource scan.
       expect(
         run.findByCalls.every((call: SimulatedFindByArgs) => {
-          return call.limit === 10000 || call.limit === 100;
+          return call.limit === 100;
         }),
       ).toBe(true);
 
       // Quorum: Σpve_up and Σpve_node_info per minute, ungrouped.
-      expect(run.aggregateByCalls.length).toBe(2 * run.ticks.length);
-      for (const call of run.aggregateByCalls) {
+      const quorumReads: Array<SimulatedAggregateByArgs> =
+        run.aggregateByCalls.filter((call: SimulatedAggregateByArgs) => {
+          return !call.groupByAttributeKeys?.length;
+        });
+      expect(quorumReads.length).toBe(2 * run.ticks.length);
+      for (const call of quorumReads) {
         expect(call.aggregationType).toBe(MetricsAggregationType.Sum);
         expect(["pve_up", "pve_node_info"]).toContain(call.query["name"]);
         expect(call.query["attributes"]).toEqual(scope);
@@ -3512,12 +3542,13 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
   /*
    * Every survivor reports every dead node on every push, so reports grow
    * as L × D. At corosync scale with half the cluster down, the window's
-   * node pve_up rows outgrow the grouped read's LIMIT 10000 (newest
-   * first) — the oldest minute drops out of the read, and the verdict
-   * must not change. Node pushes only, and only the two series the
-   * templates read, to keep the run small.
+   * node pve_up rows outgrow 10,000: a raw read of them, newest first,
+   * once dropped the window's oldest minute. The grouped read is a row
+   * per id and minute, grouped in SQL (#5281), so it reads them whole -
+   * and the verdict is the same either way. Node pushes only, and only
+   * the two series the templates read, to keep the run small.
    */
-  describe("36 nodes, pve19–pve36 die (L = D = 18): the raw read hits LIMIT 10000", () => {
+  describe("36 nodes, pve19–pve36 die (L = D = 18): more rows than a raw read of 10,000 held, read whole", () => {
     const deadNodes: Array<string> = nodeNamesOf(36).slice(18);
     const deadIds: Array<string> = deadNodes
       .map((name: string) => {
@@ -3542,15 +3573,42 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
       });
     }, 120_000);
 
-    test("the steady window holds more node pve_up rows than the grouped read returns", () => {
+    test("the steady window holds more node pve_up rows than a raw read of 10,000 did, and the grouped read returns every id's every minute", () => {
       const last: Tick = run.ticks[run.ticks.length - 1]!;
-      const inWindow: number = nodeScopeRows(run, "pve_up").filter(
-        (row: SimulatedMetricRow) => {
-          const rowMs: number = row.time.getTime();
-          return rowMs >= last.atMs - WINDOW_MS && rowMs <= last.atMs;
-        },
-      ).length;
-      expect(inWindow).toBeGreaterThan(10000);
+      const inWindow: Array<SimulatedMetricRow> = nodeScopeRows(
+        run,
+        "pve_up",
+      ).filter((row: SimulatedMetricRow) => {
+        const rowMs: number = row.time.getTime();
+        return rowMs >= last.atMs - WINDOW_MS && rowMs <= last.atMs;
+      });
+      expect(inWindow.length).toBeGreaterThan(10000);
+
+      // The last evaluation's grouped read, read again on the same table.
+      const groupedReads: Array<SimulatedAggregateByArgs> =
+        run.aggregateByCalls.filter((call: SimulatedAggregateByArgs) => {
+          return Boolean(call.groupByAttributeKeys?.length);
+        });
+      const lastRead: SimulatedAggregateByArgs =
+        groupedReads[groupedReads.length - 1]!;
+      const buckets: Array<AggregatedModel> =
+        run.table.aggregateBy(lastRead).data;
+
+      // A row per id and minute: far fewer than the rows they fold.
+      expect(buckets.length).toBeLessThan(lastRead.limit);
+      expect(buckets.length).toBeLessThan(inWindow.length / 10);
+
+      const minutes: Set<number> = new Set(
+        inWindow.map((row: SimulatedMetricRow) => {
+          return Math.floor(row.time.getTime() / MINUTE_MS) * MINUTE_MS;
+        }),
+      );
+      const oldestBucketMs: number = Math.min(
+        ...buckets.map((bucket: AggregatedModel) => {
+          return new Date(bucket.timestamp).getTime();
+        }),
+      );
+      expect(oldestBucketMs).toBe(Math.min(...Array.from(minutes)));
     });
 
     test("Node Offline names exactly the 18 dead nodes, 5 minutes on, and never a live one", () => {

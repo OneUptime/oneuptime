@@ -116,9 +116,11 @@ import {
  *     BETWEEN (inclusive) / `attributes['k'] = 'v'` (a missing key reads
  *     ''), ORDER BY time, LIMIT / OFFSET, and for aggregateBy the
  *     per-minute bucket the window picks (AggregationIntervalUtil) with
- *     Sum / Avg / Min / Max / Count. Sum adds a bucket's values in a
- *     shuffled order, since ClickHouse promises none. Any query shape it
- *     does not emulate throws instead of being silently ignored.
+ *     Sum / Avg / Min / Max / Count - per series when grouped by attribute
+ *     keys, as MetricService GROUPs BY `attributes['k']` and returns a map
+ *     of exactly those keys. Sum adds a bucket's values in a shuffled
+ *     order, since ClickHouse promises none. Any query shape it does not
+ *     emulate throws instead of being silently ignored.
  *
  * Only pve_* rows are stored — the Proxmox templates read nothing else,
  * and the original proxmox_* series would only cost memory. A big
@@ -593,9 +595,11 @@ export class SimulatedMetricTable {
   }
 
   /*
-   * MetricService.aggregateBy with no group-by: one row per time bucket.
-   * The monitor never passes groupBy on this path (a grouped monitor
-   * reads raw rows instead), so the stand-in refuses one.
+   * MetricService.aggregateBy: one row per time bucket - and, grouped by
+   * attribute keys, per series too, with an `attributes` map of exactly
+   * those keys, each '' where a row lacks it (a Map(String, String) lookup).
+   * A model-column groupBy is not what a monitor sends, so the stand-in
+   * refuses one.
    */
   public aggregateBy(args: SimulatedAggregateByArgs): AggregatedResult {
     if (
@@ -606,14 +610,13 @@ export class SimulatedMetricTable {
         `SimulatedMetricTable does not emulate aggregating ${args.aggregateColumnName} over ${args.aggregationTimestampColumnName}`,
       );
     }
-    if (
-      (args.groupBy && Object.keys(args.groupBy).length > 0) ||
-      (args.groupByAttributeKeys && args.groupByAttributeKeys.length > 0)
-    ) {
+    if (args.groupBy && Object.keys(args.groupBy).length > 0) {
       throw new Error(
-        "SimulatedMetricTable does not emulate a grouped aggregateBy",
+        "SimulatedMetricTable does not emulate a model-column groupBy",
       );
     }
+
+    const attributeKeys: Array<string> = args.groupByAttributeKeys || [];
 
     const interval: AggregationInterval =
       AggregationIntervalUtil.getAggregationIntervalForWindow({
@@ -627,23 +630,41 @@ export class SimulatedMetricTable {
       );
     }
 
-    const buckets: Map<number, Array<number>> = new Map();
+    const buckets: Map<
+      string,
+      { bucketMs: number; labels: JSONObject; values: Array<number> }
+    > = new Map();
     for (const row of this.selectRows(args.query)) {
       const bucketMs: number =
         Math.floor(row.time.getTime() / MINUTE_MS) * MINUTE_MS;
-      let values: Array<number> | undefined = buckets.get(bucketMs);
-      if (!values) {
-        values = [];
-        buckets.set(bucketMs, values);
+      const labels: JSONObject = {};
+      for (const key of attributeKeys) {
+        const stored: AttributeType | Array<AttributeType> | undefined =
+          row.attributes[key];
+        labels[key] =
+          stored === undefined || stored === null ? "" : String(stored);
       }
-      values.push(row.value);
+      const bucketKey: string = `${bucketMs}|${JSON.stringify(
+        attributeKeys.map((key: string) => {
+          return labels[key];
+        }),
+      )}`;
+      let bucket:
+        | { bucketMs: number; labels: JSONObject; values: Array<number> }
+        | undefined = buckets.get(bucketKey);
+      if (!bucket) {
+        bucket = { bucketMs: bucketMs, labels: labels, values: [] };
+        buckets.set(bucketKey, bucket);
+      }
+      bucket.values.push(row.value);
     }
 
     const data: Array<AggregatedModel> = [];
-    for (const [bucketMs, values] of buckets) {
+    for (const bucket of buckets.values()) {
       data.push({
-        timestamp: new Date(bucketMs),
-        value: this.aggregate(args.aggregationType, values),
+        timestamp: new Date(bucket.bucketMs),
+        value: this.aggregate(args.aggregationType, bucket.values),
+        ...(attributeKeys.length > 0 ? { attributes: bucket.labels } : {}),
       });
     }
 

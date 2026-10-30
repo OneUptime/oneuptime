@@ -171,12 +171,23 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       projectId,
     });
 
-    expect(metricAggregateBy).not.toHaveBeenCalled();
-    expect(queriedAttributes(metricFindBy)).toEqual({
+    /*
+     * Grouped in SQL by the device (#5281): one aggregate, never a read of
+     * raw rows, with every filter on it.
+     */
+    expect(metricFindBy).not.toHaveBeenCalled();
+    expect(queriedAttributes(metricAggregateBy)).toEqual({
       "resource.iot.fleet.name": "warehouse-sensors",
       "device.id": "sensor-001",
       "iot.scope": "device",
     });
+    expect(
+      (
+        metricAggregateBy.mock.calls[0]![0] as {
+          groupByAttributeKeys?: Array<string>;
+        }
+      ).groupByAttributeKeys,
+    ).toEqual(["device.id"]);
   });
 
   test("each filter on its own narrows the query by itself", async () => {
