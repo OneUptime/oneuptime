@@ -395,8 +395,7 @@ function storedRows(input: {
      */
     for (let index: number = 0; index < GROUPED_READ_ROW_LIMIT; index++) {
       rows.push({
-        timeMs:
-          input.window.endMs - Math.floor(index / FILLER_SERIES) * MINUTE,
+        timeMs: input.window.endMs - Math.floor(index / FILLER_SERIES) * MINUTE,
         name: `filler-${index % FILLER_SERIES}`,
       });
     }

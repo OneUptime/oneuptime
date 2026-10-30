@@ -430,7 +430,9 @@ describe("a device's web UI", () => {
     expect(code).toContain(
       'DeviceWebUiUtil.getUrl( data.device?.hostname || "", )',
     );
-    expect(code).toContain("monitorType: MonitorType.Website, monitorDestination: webUiUrl, allowSelfSignedCertificates: true,");
+    expect(code).toContain(
+      "monitorType: MonitorType.Website, monitorDestination: webUiUrl, allowSelfSignedCertificates: true,",
+    );
     expect(code).toContain("setSeedStep(");
     expect(code).toContain("monitorType: MonitorType.Website, });");
   });
@@ -438,7 +440,9 @@ describe("a device's web UI", () => {
   test("it is named after the device, in the reader's language", () => {
     const code: string = webUiPreSeed();
 
-    expect(code).toContain('translator.translateTemplate("{{deviceName}} web UI"');
+    expect(code).toContain(
+      'translator.translateTemplate("{{deviceName}} web UI"',
+    );
     expect(code).toContain(
       'translator.translateTemplate( "Checks that the web UI of the {{deviceName}} network device answers."',
     );
@@ -456,7 +460,13 @@ describe("a device's web UI", () => {
 
   test("the form seeds the step's criteria and puts the address in it, for that type only", () => {
     const steps: string = readCode(
-      path.join(DASHBOARD_SRC, "Components", "Form", "Monitor", "MonitorSteps.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "Form",
+        "Monitor",
+        "MonitorSteps.tsx",
+      ),
     );
 
     expect(steps).toContain(

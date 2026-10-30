@@ -77,9 +77,7 @@ describe("the Monitor Summary probe picker", () => {
   test("it never offers to clear the probe: the card always shows one", () => {
     renderPicker({});
 
-    expect(
-      document.querySelector(".ou-select__clear-indicator"),
-    ).toBeNull();
+    expect(document.querySelector(".ou-select__clear-indicator")).toBeNull();
   });
 
   test("the label goes over the list where the two do not fit side by side, the list the whole line", () => {
@@ -135,7 +133,9 @@ describe("the Monitor Summary probe picker", () => {
     );
 
     expect(
-      screen.getByRole("option", { name: "N. Virginia (us-east-1) (disabled)" }),
+      screen.getByRole("option", {
+        name: "N. Virginia (us-east-1) (disabled)",
+      }),
     ).toBeInTheDocument();
   });
 });

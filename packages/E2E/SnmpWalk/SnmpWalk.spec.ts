@@ -1011,9 +1011,7 @@ test.describe("saving a walk", () => {
     expect(lines).toHaveLength(1200);
     // In walk order: the continued page after the first.
     expect(lines[999]).toBe(".1.3.6.1.2.1.2.2.1.10.1000 = Counter32: 1000007");
-    expect(lines[1199]).toBe(
-      ".1.3.6.1.2.1.2.2.1.10.1200 = Counter32: 1200007",
-    );
+    expect(lines[1199]).toBe(".1.3.6.1.2.1.2.2.1.10.1200 = Counter32: 1200007");
   });
 
   test("a reader who may not walk the device still saves its last walk", async ({

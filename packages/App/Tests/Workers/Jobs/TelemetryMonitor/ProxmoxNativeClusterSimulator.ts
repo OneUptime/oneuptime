@@ -700,8 +700,7 @@ export class SimulatedMetricTable {
         );
         if (!sample) {
           sample = {
-            ...(newestBySeries.get(bucket.seriesKey)!
-              .attributes as JSONObject),
+            ...(newestBySeries.get(bucket.seriesKey)!.attributes as JSONObject),
             ...bucket.labels,
           };
           sampleBySeries.set(bucket.seriesKey, sample);

@@ -111,7 +111,9 @@ function darkTextColorOf(shade: string): string {
   const at: number = THEME_CSS.indexOf(selector);
 
   if (at === -1) {
-    throw new Error(`Theme.css repaints no .text-gray-${shade} in the dark theme`);
+    throw new Error(
+      `Theme.css repaints no .text-gray-${shade} in the dark theme`,
+    );
   }
 
   const open: number = THEME_CSS.indexOf("{", at);
@@ -151,9 +153,9 @@ describe("SECONDARY_LINK reads as a working link: WCAG AA in both themes", () =>
   test.each(LIGHT_SURFACES)(
     "its words are at least 4.5:1 on %s, and so under the pointer",
     (_name: string, surface: string) => {
-      expect(getContrastRatio(rgb(textGray), rgb(surface))).toBeGreaterThanOrEqual(
-        WCAG_AA_TEXT,
-      );
+      expect(
+        getContrastRatio(rgb(textGray), rgb(surface)),
+      ).toBeGreaterThanOrEqual(WCAG_AA_TEXT);
       expect(
         getContrastRatio(rgb(hoverGray), rgb(surface)),
       ).toBeGreaterThanOrEqual(WCAG_AA_TEXT);
@@ -177,8 +179,8 @@ describe("SECONDARY_LINK reads as a working link: WCAG AA in both themes", () =>
   test.each(DARK_SURFACES)(
     "in the dark theme its words are at least 4.5:1 on %s",
     (_name: string, surface: string) => {
-      const shade: string = SECONDARY_LINK_TEXT_CLASS_NAME.split("text-gray-")[1]!
-        .split(" ")[0]!;
+      const shade: string =
+        SECONDARY_LINK_TEXT_CLASS_NAME.split("text-gray-")[1]!.split(" ")[0]!;
       const darkText: string = darkTextColorOf(shade);
 
       expect(
@@ -188,7 +190,9 @@ describe("SECONDARY_LINK reads as a working link: WCAG AA in both themes", () =>
   );
 
   test("in the dark theme the pointer lights it in the primary text colour", () => {
-    expect(THEME_CSS).toContain(`[class~="${SECONDARY_LINK_HOVER_CLASS_NAME}"]`);
+    expect(THEME_CSS).toContain(
+      `[class~="${SECONDARY_LINK_HOVER_CLASS_NAME}"]`,
+    );
   });
 });
 

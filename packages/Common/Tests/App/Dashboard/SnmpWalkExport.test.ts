@@ -42,7 +42,11 @@ const ROWS: Array<SnmpWalkRow> = [
     SnmpDataType.OctetString,
     'Cisco IOS Software [Cupertino], "C9300"\r\nTechnical Support: http://www.cisco.com\\techsupport',
   ),
-  row("1.3.6.1.2.1.1.2.0", SnmpDataType.ObjectIdentifier, "1.3.6.1.4.1.9.1.2494"),
+  row(
+    "1.3.6.1.2.1.1.2.0",
+    SnmpDataType.ObjectIdentifier,
+    "1.3.6.1.4.1.9.1.2494",
+  ),
   row("1.3.6.1.2.1.1.3.0", SnmpDataType.TimeTicks, 104524500),
   row("1.3.6.1.2.1.1.5.0", SnmpDataType.OctetString, "edge-sw-01"),
   row("1.3.6.1.2.1.1.7.0", SnmpDataType.Integer, 6),
@@ -51,7 +55,11 @@ const ROWS: Array<SnmpWalkRow> = [
   }),
   row("1.3.6.1.2.1.2.2.1.10.1", SnmpDataType.Counter32, 1007),
   row("1.3.6.1.2.1.2.2.1.5.1", SnmpDataType.Gauge32, 1000000000),
-  row("1.3.6.1.2.1.31.1.1.1.6.1", SnmpDataType.Counter64, "18446744073709551615"),
+  row(
+    "1.3.6.1.2.1.31.1.1.1.6.1",
+    SnmpDataType.Counter64,
+    "18446744073709551615",
+  ),
   row("1.3.6.1.2.1.4.20.1.1.10.20.0.1", SnmpDataType.IpAddress, "10.20.0.1"),
   row("1.3.6.1.2.1.1.9.1.4.1", SnmpDataType.Null, null),
 ];
@@ -99,7 +107,13 @@ describe("as snmpwalk prints it", () => {
     expect(toNumericOid(" 1.3.6.1 ")).toBe(".1.3.6.1");
     expect(toNumericOid("")).toBe("");
     expect(
-      toSnmpwalkLine(row(".1.3.6.1.2.1.1.2.0", SnmpDataType.ObjectIdentifier, ".1.3.6.1.4.1.9")),
+      toSnmpwalkLine(
+        row(
+          ".1.3.6.1.2.1.1.2.0",
+          SnmpDataType.ObjectIdentifier,
+          ".1.3.6.1.4.1.9",
+        ),
+      ),
     ).toBe(".1.3.6.1.2.1.1.2.0 = OID: .1.3.6.1.4.1.9");
   });
 
@@ -110,9 +124,12 @@ describe("as snmpwalk prints it", () => {
     [8640000, "(8640000) 1 day, 0:00:00.00"],
     [104524500, "(104524500) 12 days, 2:20:45.00"],
     [4294967295, "(4294967295) 497 days, 2:27:52.95"],
-  ])("timeticks %p read %p, as snmpwalk prints them", (ticks: number, text: string) => {
-    expect(formatSnmpwalkTimeticks(ticks)).toBe(text);
-  });
+  ])(
+    "timeticks %p read %p, as snmpwalk prints them",
+    (ticks: number, text: string) => {
+      expect(formatSnmpwalkTimeticks(ticks)).toBe(text);
+    },
+  );
 
   test("timeticks that are not a count are written as read", () => {
     expect(
@@ -154,12 +171,17 @@ describe("as snmpwalk prints it", () => {
 
 describe("as CSV", () => {
   test("its columns, then a row an OID: the OID, its MIB name and module, its type and its value", () => {
-    expect(SNMP_WALK_CSV_COLUMNS).toEqual(["OID", "Name", "MIB", "Type", "Value"]);
+    expect(SNMP_WALK_CSV_COLUMNS).toEqual([
+      "OID",
+      "Name",
+      "MIB",
+      "Type",
+      "Value",
+    ]);
 
     // Every row but the multi-line sysDescr, whose own line breaks are its.
     const singleLineRows: Array<SnmpWalkRow> = ROWS.slice(1);
-    const lines: Array<string> =
-      buildSnmpWalkCsv(singleLineRows).split("\r\n");
+    const lines: Array<string> = buildSnmpWalkCsv(singleLineRows).split("\r\n");
 
     expect(lines[0]).toBe("OID,Name,MIB,Type,Value");
     expect(lines[1]).toBe(
@@ -202,7 +224,7 @@ describe("as CSV", () => {
 
   test("a value a spreadsheet would run as a formula is written as text", () => {
     const text: string = buildSnmpWalkCsv([
-      row("1.3.6.1.2.1.1.4.0", SnmpDataType.OctetString, "=HYPERLINK(\"x\")"),
+      row("1.3.6.1.2.1.1.4.0", SnmpDataType.OctetString, '=HYPERLINK("x")'),
       row("1.3.6.1.2.1.1.6.0", SnmpDataType.OctetString, "@SUM(A1)"),
       row("1.3.6.1.2.1.1.5.0", SnmpDataType.OctetString, "+1-555"),
       // A negative number is a number.
@@ -235,7 +257,9 @@ describe("the file the card saves", () => {
     });
 
     expect(file.content).toBe(buildSnmpwalkText(ROWS));
-    expect(file.filename).toBe("edge-sw-01-snmp-walk-1.3.6.1-2026-09-21-12-00-00.txt");
+    expect(file.filename).toBe(
+      "edge-sw-01-snmp-walk-1.3.6.1-2026-09-21-12-00-00.txt",
+    );
     expect(file.mimeType).toBe("text/plain;charset=utf-8;");
   });
 

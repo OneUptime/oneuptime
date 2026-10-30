@@ -307,7 +307,10 @@ describe("MetricService aggregate statement generation", () => {
     });
 
     it("is off unless asked: a chart's grouped read keeps the grouped keys alone", () => {
-      for (const aggregationType of [AggregationType.Avg, AggregationType.P90]) {
+      for (const aggregationType of [
+        AggregationType.Avg,
+        AggregationType.P90,
+      ]) {
         const query: string = getQuery(
           buildAggregateBy({
             aggregationType: aggregationType,

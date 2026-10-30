@@ -1662,7 +1662,8 @@ describe("saving what a walk read", () => {
     await renderCard();
 
     const actions: HTMLElement = screen.getByTestId("snmp-walk-result-actions");
-    const continueButton: HTMLElement = screen.getByTestId("snmp-walk-continue");
+    const continueButton: HTMLElement =
+      screen.getByTestId("snmp-walk-continue");
     const trigger: HTMLElement = within(actions).getByRole("button", {
       name: "Download this walk",
     });

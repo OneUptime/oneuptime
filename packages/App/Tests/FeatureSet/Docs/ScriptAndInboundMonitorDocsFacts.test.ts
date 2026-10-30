@@ -2210,14 +2210,12 @@ describe("External Status Page Monitor", () => {
       );
       // The paragraph on the overall status: the one that says how it reads.
       const sentence: string =
-        translated
-          .split("\n")
-          .find((line: string): boolean => {
-            return (
-              line.includes("`under_maintenance`") &&
-              line.includes("`degraded_performance`")
-            );
-          }) || "";
+        translated.split("\n").find((line: string): boolean => {
+          return (
+            line.includes("`under_maintenance`") &&
+            line.includes("`degraded_performance`")
+          );
+        }) || "";
 
       expect({ language, named: sentence.includes(`**${drawn}**`) }).toEqual({
         language,

@@ -380,7 +380,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
       ).toEqual(["Evaluate", "For the last (in minutes)", "If No Data"]);
     });
 
-    test("offer no clear control, where the filter's other dropdowns do", () => {
+    test("offer no clear control, as no list a filter cannot be without does", () => {
       const { container }: { container: HTMLElement } = render(
         <CriteriaFilterElement
           monitorType={MonitorType.Website}
@@ -396,10 +396,13 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
         options.querySelectorAll(".ou-select__clear-indicator").length,
       ).toBe(0);
 
-      // Filter Type and Filter Condition still have theirs.
+      /*
+       * Nor do Filter Type and Filter Condition (#5281): a filter cannot be
+       * without them, and on a phone their × took a sixth of the list.
+       */
       expect(
         container.querySelectorAll(".ou-select__clear-indicator").length,
-      ).toBe(2);
+      ).toBe(0);
     });
 
     test("never send a window without minutes from the form", async () => {

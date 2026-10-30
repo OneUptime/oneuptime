@@ -73,15 +73,15 @@ describe("DeviceWebUiUtil.getUrl: https on the device's own address", () => {
 
 describe("DeviceWebUiUtil.getUrlHost and isOnAddress", () => {
   test("a URL's host, lower-cased, without brackets or port", () => {
-    expect(DeviceWebUiUtil.getUrlHost("https://Core-SW-01.example.net:8443/x")).toBe(
-      "core-sw-01.example.net",
-    );
+    expect(
+      DeviceWebUiUtil.getUrlHost("https://Core-SW-01.example.net:8443/x"),
+    ).toBe("core-sw-01.example.net");
     expect(DeviceWebUiUtil.getUrlHost("http://[2001:DB8::1]:8080/")).toBe(
       "2001:db8::1",
     );
-    expect(DeviceWebUiUtil.getUrlHost(URL.fromString("https://10.20.0.1/"))).toBe(
-      "10.20.0.1",
-    );
+    expect(
+      DeviceWebUiUtil.getUrlHost(URL.fromString("https://10.20.0.1/")),
+    ).toBe("10.20.0.1");
     expect(DeviceWebUiUtil.getUrlHost("not a url")).toBe("");
     expect(DeviceWebUiUtil.getUrlHost("")).toBe("");
     expect(DeviceWebUiUtil.getUrlHost(null)).toBe("");
@@ -103,14 +103,11 @@ describe("DeviceWebUiUtil.getUrlHost and isOnAddress", () => {
     // Nothing to compare.
     ["", "10.20.0.1", false],
     ["https://10.20.0.1/", "", false],
-  ])(
-    "%p is on %p: %p",
-    (url: string, address: string, expected: boolean) => {
-      expect(
-        DeviceWebUiUtil.isOnAddress({ url: url, address: address }),
-      ).toBe(expected);
-    },
-  );
+  ])("%p is on %p: %p", (url: string, address: string, expected: boolean) => {
+    expect(DeviceWebUiUtil.isOnAddress({ url: url, address: address })).toBe(
+      expected,
+    );
+  });
 });
 
 describe("DeviceWebUiUtil.isWebUiMonitorOf: the monitor the device's Monitors card lists", () => {
@@ -144,7 +141,11 @@ describe("DeviceWebUiUtil.isWebUiMonitorOf: the monitor the device's Monitors ca
       DeviceWebUiUtil.isWebUiMonitorOf({
         ...device,
         monitorName: "core-sw-01 web UI",
-        destinations: [undefined, "https://shop.example.net/", "http://10.20.0.1:8080/"],
+        destinations: [
+          undefined,
+          "https://shop.example.net/",
+          "http://10.20.0.1:8080/",
+        ],
       }),
     ).toBe(true);
   });

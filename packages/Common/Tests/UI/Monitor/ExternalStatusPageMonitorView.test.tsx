@@ -398,7 +398,9 @@ describe("the facts", () => {
       "aria-label",
       "Status: Degraded Performance",
     );
-    expect(within(overall).getByTestId("status-bubble-dot")).toBeInTheDocument();
+    expect(
+      within(overall).getByTestId("status-bubble-dot"),
+    ).toBeInTheDocument();
   });
 
   test("the overall status and a component with the same status read alike", () => {

@@ -794,18 +794,21 @@ describe("DeviceMonitorLookupUtil - the device's web UI monitor", () => {
   test("it reads the Website monitors whose name holds the device's, with their steps, a handful at most", async () => {
     await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
 
-    const webUiRead: { query: Record<string, unknown>; limit: number; select: Record<string, unknown> } =
-      getListMock.mock.calls
-        .map((call: Array<unknown>) => {
-          return call[0] as {
-            query: Record<string, unknown>;
-            limit: number;
-            select: Record<string, unknown>;
-          };
-        })
-        .find((request: { query: Record<string, unknown> }): boolean => {
-          return isWebUiQuery(request);
-        })!;
+    const webUiRead: {
+      query: Record<string, unknown>;
+      limit: number;
+      select: Record<string, unknown>;
+    } = getListMock.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          query: Record<string, unknown>;
+          limit: number;
+          select: Record<string, unknown>;
+        };
+      })
+      .find((request: { query: Record<string, unknown> }): boolean => {
+        return isWebUiQuery(request);
+      })!;
 
     expect(webUiRead.query["monitorType"]).toBe(MonitorType.Website);
     expect(webUiRead.query["name"]).toBeInstanceOf(Search);

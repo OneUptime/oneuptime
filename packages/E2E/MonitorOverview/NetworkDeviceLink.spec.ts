@@ -352,7 +352,9 @@ test.describe("the device's alert pack on a phone", () => {
 
             shown.push({
               text: `${label}: ${value?.textContent || ""}`,
-              clipped: value ? value.scrollWidth > value.clientWidth + 1 : false,
+              clipped: value
+                ? value.scrollWidth > value.clientWidth + 1
+                : false,
               clears: Boolean(
                 control?.querySelector(".ou-select__clear-indicator"),
               ),

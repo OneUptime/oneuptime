@@ -314,9 +314,7 @@ test.describe("the Monitor Summary card's probe picker", () => {
   }) => {
     await openOverview(page, { width: 390 });
 
-    await page
-      .getByRole("combobox", { name: "Showing results from:" })
-      .click();
+    await page.getByRole("combobox", { name: "Showing results from:" }).click();
     await page
       .getByRole("option", { name: "Singapore (ap-southeast-1)", exact: true })
       .click();

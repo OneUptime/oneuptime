@@ -793,7 +793,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(SQL`${{ value: key, type: TableColumnType.Text }}`);
       statement.append(`, __attr_grp_${index}`);
     });
-    statement.append(withSampleAttributes ? `)) AS attributes` : `) AS attributes`);
+    statement.append(
+      withSampleAttributes ? `)) AS attributes` : `) AS attributes`,
+    );
   }
 
   /**

@@ -91,9 +91,9 @@ describe("the English section on Monitor web UI", () => {
     expect(preSeed).toContain(
       "const webUiUrl: URL | null = DeviceWebUiUtil.getUrl(",
     );
-    expect(
-      (DeviceWebUiUtil.getUrl("10.20.0.1") as URL).toString(),
-    ).toBe("https://10.20.0.1/");
+    expect((DeviceWebUiUtil.getUrl("10.20.0.1") as URL).toString()).toBe(
+      "https://10.20.0.1/",
+    );
     expect(
       (DeviceWebUiUtil.getUrl("core-sw-01.example.net") as URL).toString(),
     ).toBe("https://core-sw-01.example.net/");

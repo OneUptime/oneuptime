@@ -242,9 +242,7 @@ describe("Monitor web UI", () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.queryByRole("button", { name: "Monitor web UI" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Monitor web UI" })).toBeNull();
   });
 
   test("the device's web UI monitor is listed with the others", () => {

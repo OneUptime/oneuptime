@@ -118,7 +118,8 @@ const MINUTE: number = 60 * SECOND;
  * A 15-minute window ending on a minute a few minutes ago: every row is
  * well within retention, and the window holds exactly 15 whole minutes.
  */
-const WINDOW_END_MS: number = Math.floor(Date.now() / MINUTE) * MINUTE - 3 * MINUTE;
+const WINDOW_END_MS: number =
+  Math.floor(Date.now() / MINUTE) * MINUTE - 3 * MINUTE;
 const WINDOW_START_MS: number = WINDOW_END_MS - 15 * MINUTE;
 const WINDOW_MINUTES: number = 15;
 
@@ -769,9 +770,7 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
 
       for (const row of rows) {
         const minuteMs: number = new Date(row.timestamp).getTime();
-        const pod: string = String(
-          (row["attributes"] as JSONObject)[POD_KEY],
-        );
+        const pod: string = String((row["attributes"] as JSONObject)[POD_KEY]);
 
         expect(row["attributes"]).toEqual(newestAttributes(CPU, pod));
         expect(minuteMs % MINUTE).toBe(0);
@@ -796,8 +795,7 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
     ) => Record<string, { value: number; attributes: JSONObject }> = (
       rows: Array<AggregatedModel>,
     ): Record<string, { value: number; attributes: JSONObject }> => {
-      const out: Record<string, { value: number; attributes: JSONObject }> =
-        {};
+      const out: Record<string, { value: number; attributes: JSONObject }> = {};
       for (const row of rows) {
         out[bucketKey(row)] = {
           value: Number(row.value),
