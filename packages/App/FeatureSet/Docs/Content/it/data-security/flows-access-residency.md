@@ -48,7 +48,7 @@ La lettura della configurazione trasforma le impostazioni di accesso proprie di 
 | **Livello di accesso** | Lettura, Scrittura o Amministratore. |
 | **Concesso tramite** | Cosa lo concede: una policy del bucket, un'ACL, un'assegnazione di ruolo, un binding IAM o una condivisione di snapshot. |
 | **Esterno** | Il principal è esterno agli account, alle sottoscrizioni e ai progetti collegati a OneUptime. |
-| **Public** | Il principal è chiunque su Internet. |
+| **Pubblico** | Il principal è chiunque su Internet. |
 
 L'elenco viene riletto a ogni lettura della configurazione, e una concessione che il cloud non riporta più viene rimossa. [Più di 25 identità possono leggere dati di livello Ristretto](/docs/data-security/checks-and-issues#accesso) conta i lettori presenti nell'elenco. I servizi che usano un archivio sono i suoi flussi **Usa**.
 
@@ -56,7 +56,7 @@ In base a ciò che legge, ogni archivio riceve un'esposizione:
 
 | Esposizione | Cosa significa |
 | --- | --- |
-| **Public** | Chiunque su Internet può leggerlo. |
+| **Pubblico** | Chiunque su Internet può leggerlo. |
 | **Altri account** | Account esterni a quelli collegati possono raggiungerlo. |
 | **Raggiungibile da Internet** | Il suo endpoint di rete accetta connessioni da Internet. |
 | **Privato** | Solo i tuoi account e le tue reti lo raggiungono. |

@@ -66,7 +66,7 @@ Un campo il cui nome dice che contiene una password - `password`, `passwordHash`
 | **Ristretto** | Se trapela, ne derivano danni: segreti, numeri di carta, cartelle cliniche, documenti d'identità governativi. |
 | **Confidenziale** | Dati personali, e documenti contrassegnati come confidenziali. |
 | **Interno** | I dati propri dell'azienda, non destinati all'esterno. |
-| **Public** | Non è stato trovato nulla di sensibile. |
+| **Pubblico** | Non è stato trovato nulla di sensibile. |
 
 Un archivio è sensibile quanto il tipo di dati più sensibile trovato al suo interno con una confidenza di livello almeno Medio. I valori di test e i risultati contrassegnati come non sensibili non contano nulla, e un archivio in cui non è stato trovato nulla è Pubblico. Per trattare un archivio come più o meno sensibile di quanto dicono i suoi risultati, imposta tu la sua sensibilità nelle **Impostazioni** dell'archivio: i controlli useranno quella.
 

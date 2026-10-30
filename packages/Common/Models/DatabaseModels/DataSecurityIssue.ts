@@ -124,7 +124,8 @@ const peopleEditableColumnAccess: {
   tableName: "DataSecurityIssue",
   singularName: "Data Security Issue",
   pluralName: "Data Security Issues",
-  icon: IconProp.Alert,
+  // The Issues menu entry's icon: the triangle is an incident's.
+  icon: IconProp.ShieldExclamation,
   tableDescription:
     "Everything wrong with a store that a check found, ranked by risk: what is wrong, why it matters, how to fix it, and who owns it.",
 })

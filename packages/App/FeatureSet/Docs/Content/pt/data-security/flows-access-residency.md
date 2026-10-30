@@ -48,7 +48,7 @@ A leitura da configuração transforma as próprias configurações de acesso de
 | **Nível de acesso** | Leitura, Gravação ou Administrador. |
 | **Concedido via** | O que concede o acesso: uma política de bucket, uma ACL, uma atribuição de função, um vínculo do IAM ou um compartilhamento de snapshot. |
 | **Externo** | A entidade principal está fora das contas, assinaturas e projetos conectados ao OneUptime. |
-| **Public** | A entidade principal é qualquer pessoa na internet. |
+| **Público** | A entidade principal é qualquer pessoa na internet. |
 
 A lista é lida de novo a cada leitura da configuração, e uma concessão que a nuvem não informa mais é removida. [Mais de 25 identidades podem ler dados Restritos](/docs/data-security/checks-and-issues#acesso) conta os leitores nela. Os serviços que usam um repositório são os fluxos **Usa** dele.
 
@@ -56,7 +56,7 @@ A partir do que ela lê, todo repositório recebe uma exposição:
 
 | Exposição | O que significa |
 | --- | --- |
-| **Public** | Qualquer pessoa na internet pode lê-lo. |
+| **Público** | Qualquer pessoa na internet pode lê-lo. |
 | **Outras contas** | Contas fora das que você conectou podem acessá-lo. |
 | **Acessível pela internet** | O endpoint de rede dele aceita conexões da internet. |
 | **Privado** | Só as suas próprias contas e redes o acessam. |

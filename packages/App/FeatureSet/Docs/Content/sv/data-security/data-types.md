@@ -66,7 +66,7 @@ Ett fält vars namn säger att det innehåller ett lösenord - `password`, `pass
 | **Begränsad** | Skada följer om det läcker: hemligheter, kortnummer, journaler, myndighets-ID:n. |
 | **Konfidentiell** | Personuppgifter, och dokument som är märkta som konfidentiella. |
 | **Intern** | Verksamhetens egna data, som inte är avsedda för utomstående. |
-| **Public** | Inget känsligt hittades. |
+| **Offentlig** | Inget känsligt hittades. |
 
 Ett datalager är lika känsligt som den känsligaste datatypen som har hittats i det med minst konfidens Medel. Testvärden och fynd som markerats som inte känsliga räknas inte alls, och ett datalager där inget hittades får känsligheten Offentlig. För att behandla ett datalager som mer eller mindre känsligt än dess fynd säger anger du själv dess känslighet i datalagrets **Inställningar**: kontrollerna använder då den.
 

@@ -48,7 +48,7 @@ Het uitlezen van de configuratie maakt van de eigen toegangsinstellingen van elk
 | **Toegangsniveau** | Lezen, Schrijven of Beheerder. |
 | **Verleend via** | Wat de toegang verleent: een bucketbeleid, een ACL, een roltoewijzing, een IAM-binding of een gedeelde snapshot. |
 | **Extern** | De principal staat buiten de accounts, abonnementen en projecten die aan OneUptime zijn gekoppeld. |
-| **Public** | De principal is iedereen op het internet. |
+| **Openbaar** | De principal is iedereen op het internet. |
 
 De lijst wordt bij elke uitlezing van de configuratie opnieuw gelezen, en een toekenning die de cloud niet meer meldt, wordt verwijderd. [Meer dan 25 identiteiten kunnen Beperkte gegevens lezen](/docs/data-security/checks-and-issues#toegang) telt de lezers erop. De services die een opslag gebruiken, zijn de stromen **Gebruikt** van die opslag.
 
@@ -56,7 +56,7 @@ Op basis van wat het leest, krijgt elke opslag een blootstelling:
 
 | Blootstelling | Wat het betekent |
 | --- | --- |
-| **Public** | Iedereen op het internet kan de opslag lezen. |
+| **Openbaar** | Iedereen op het internet kan de opslag lezen. |
 | **Andere accounts** | Accounts buiten je gekoppelde accounts kunnen erbij. |
 | **Bereikbaar via internet** | Het netwerkendpoint ervan accepteert verbindingen vanaf het internet. |
 | **Privé** | Alleen je eigen accounts en netwerken kunnen erbij. |

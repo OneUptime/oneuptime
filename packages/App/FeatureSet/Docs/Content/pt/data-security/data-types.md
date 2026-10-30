@@ -66,7 +66,7 @@ Um campo cujo nome diz que contém uma senha - `password`, `passwordHash`, `pwd`
 | **Restrito** | Há dano se vazar: segredos, números de cartão, registros de saúde, documentos governamentais. |
 | **Confidencial** | Dados pessoais, e documentos marcados como confidenciais. |
 | **Interno** | Os dados da própria empresa, não destinados a pessoas de fora. |
-| **Public** | Nada sensível foi encontrado. |
+| **Público** | Nada sensível foi encontrado. |
 
 Um repositório é tão sensível quanto o tipo de dados mais sensível encontrado nele com confiança de pelo menos Médio. Valores de teste e descobertas marcadas como não sensíveis não contam nada, e um repositório em que nada foi encontrado é Público. Para tratar um repositório como mais ou menos sensível do que as descobertas dele dizem, defina você mesmo a sensibilidade dele nas **Configurações** do repositório: as verificações passam a usar essa sensibilidade.
 

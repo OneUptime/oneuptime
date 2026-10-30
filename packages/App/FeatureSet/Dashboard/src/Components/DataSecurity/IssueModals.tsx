@@ -49,8 +49,12 @@ import React, {
  * it hands what was picked to the run, whose progress dialog reports each.
  */
 
+/*
+ * An issue's title is a sentence of its own ("Anyone on the internet can
+ * read it"), so a sentence that names it quotes it.
+ */
 const ACCEPT_ONE_DESCRIPTION: string = translationKey(
-  "Accept the risk of {{issue}} until a date. It opens again then if its check still fails.",
+  'Accept the risk of "{{issue}}" until a date. It opens again then if its check still fails.',
 );
 
 const ACCEPT_SELECTED_DESCRIPTION: PluralTemplate = {
@@ -60,7 +64,7 @@ const ACCEPT_SELECTED_DESCRIPTION: PluralTemplate = {
 };
 
 const ASSIGN_ONE_DESCRIPTION: string = translationKey(
-  "Pick the person or team who fixes {{issue}}.",
+  'Pick the person or team who fixes "{{issue}}".',
 );
 
 const REASON_KEY: string = "acceptedReason";

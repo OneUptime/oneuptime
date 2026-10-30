@@ -191,6 +191,8 @@ const DataSecurityDataStores: FunctionComponent<
           {
             field: { kind: true },
             title: "Kind",
+            // The model's own words name buckets and logs, which nobody adds here.
+            description: "The database engine it runs.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: SELF_MANAGED_STORE_KIND_OPTIONS,
             required: true,

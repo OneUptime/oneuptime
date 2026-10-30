@@ -66,7 +66,7 @@ Een veld waarvan de naam zegt dat het een wachtwoord bevat - `password`, `passwo
 | **Beperkt** | Er volgt schade als het uitlekt: geheimen, kaartnummers, medische dossiers, overheids-ID's. |
 | **Vertrouwelijk** | Persoonsgegevens, en documenten die als vertrouwelijk zijn gemarkeerd. |
 | **Intern** | De eigen gegevens van het bedrijf, niet bedoeld voor buitenstaanders. |
-| **Public** | Er is niets gevoeligs gevonden. |
+| **Openbaar** | Er is niets gevoeligs gevonden. |
 
 Een opslag is zo gevoelig als het gevoeligste gegevenstype dat erin is gevonden met minstens de betrouwbaarheid Gemiddeld. Testwaarden en bevindingen die als niet gevoelig zijn gemarkeerd, tellen niet mee, en een opslag waarin niets is gevonden, is Openbaar. Om een opslag als gevoeliger of minder gevoelig te behandelen dan zijn bevindingen zeggen, stel je zijn gevoeligheid zelf in bij de **Instellingen** van de opslag: de controles gebruiken die dan.
 

@@ -627,8 +627,12 @@ const SeverityPicker: FunctionComponent<{
         descriptionId={descriptionId}
         hideOptionalLabel={true}
       />
+      {/*
+       * 24rem: "Der höchste Schweregrad des Projekts" broke over two lines in
+       * a 20rem picker.
+       */}
       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="w-full sm:max-w-xs">
+        <div className="w-full sm:max-w-sm">
           <Dropdown
             options={options}
             value={options.find((option: DropdownOption): boolean => {

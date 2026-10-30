@@ -138,7 +138,8 @@ const restrictedColumnAccess: {
   tableName: "DataStoreFinding",
   singularName: "Data Store Finding",
   pluralName: "Data Store Findings",
-  icon: IconProp.Search,
+  // What's Inside's and Sensitive Data's icon, so its empty lists look like them.
+  icon: IconProp.Fingerprint,
   tableDescription:
     "What Data Security found in a store: one data type at one location, with its confidence, counts and masked samples.",
 })

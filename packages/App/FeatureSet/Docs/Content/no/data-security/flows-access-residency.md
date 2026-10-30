@@ -48,7 +48,7 @@ Konfigurasjonslesingen gjør hver skys egne tilgangsinnstillinger – bucket-pol
 | **Tilgangsnivå** | Lesing, Skriving eller Administrator. |
 | **Gitt via** | Hva som gir tilgangen: en bucket-policy, en ACL, en rolletildeling, en IAM-binding eller en deling av et øyeblikksbilde. |
 | **Ekstern** | Prinsipalen er utenfor kontoene, abonnementene og prosjektene som er koblet til OneUptime. |
-| **Public** | Prinsipalen er hvem som helst på internett. |
+| **Offentlig** | Prinsipalen er hvem som helst på internett. |
 
 Listen leses på nytt ved hver konfigurasjonslesing, og en tilgang skyen ikke lenger rapporterer, fjernes. [Mer enn 25 identiteter kan lese begrensede data](/docs/data-security/checks-and-issues#tilgang) teller leserne på den. Tjenestene som bruker et datalager, er dataflytene av typen **Bruker**.
 
@@ -56,7 +56,7 @@ Ut fra det den leser, får hvert datalager en eksponering:
 
 | Eksponering | Hva det betyr |
 | --- | --- |
-| **Public** | Hvem som helst på internett kan lese det. |
+| **Offentlig** | Hvem som helst på internett kan lese det. |
 | **Andre kontoer** | Kontoer utenfor de tilkoblede kontoene dine kan nå det. |
 | **Tilgjengelig fra internett** | Nettverksendepunktet godtar tilkoblinger fra internett. |
 | **Privat** | Bare dine egne kontoer og nettverk når det. |

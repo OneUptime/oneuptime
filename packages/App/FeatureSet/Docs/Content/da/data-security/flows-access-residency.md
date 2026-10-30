@@ -48,7 +48,7 @@ Konfigurationslæsningen gør hver clouds egne adgangsindstillinger - bucket-pol
 | **Adgangsniveau** | Læsning, Skrivning eller Administrator. |
 | **Tildelt via** | Hvad der giver adgangen: en bucket-politik, en ACL, en rolletildeling, en IAM-binding eller en snapshot-deling. |
 | **Ekstern** | Principalen er uden for de konti, abonnementer og projekter, der er forbundet til OneUptime. |
-| **Public** | Principalen er hvem som helst på internettet. |
+| **Offentlig** | Principalen er hvem som helst på internettet. |
 
 Listen læses igen ved hver konfigurationslæsning, og en tildeling, som cloud'en ikke længere rapporterer, fjernes. [Mere end 25 identiteter kan læse Begrænsede data](/docs/data-security/checks-and-issues#adgang) tæller læserne på den. De tjenester, der bruger et datalager, er dets datastrømme af typen **Bruger**.
 
@@ -56,7 +56,7 @@ Ud fra det, den læser, får hvert datalager en eksponering:
 
 | Eksponering | Hvad den betyder |
 | --- | --- |
-| **Public** | Hvem som helst på internettet kan læse det. |
+| **Offentlig** | Hvem som helst på internettet kan læse det. |
 | **Andre konti** | Konti uden for dem, du har forbundet, kan nå det. |
 | **Kan nås fra internettet** | Dets netværksendpoint accepterer forbindelser fra internettet. |
 | **Privat** | Kun dine egne konti og netværk når det. |

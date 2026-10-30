@@ -76,6 +76,7 @@ import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam"
 import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
@@ -669,6 +670,15 @@ table(DataSecurityScan).push(
     objectsRead: 24,
     bytesRead: 6 * 1024 * 1024,
     findingsFound: 2,
+    // What it read, by name, and what it could not: folded under its row.
+    readLog: [
+      "exports/orders-2026-10-26.csv",
+      "exports/orders-2026-10-25.csv",
+      "exports/refunds-2026-10.csv",
+    ],
+    warnings: [
+      "exports/archive-2025.zip is larger than the 50 MB a sample reads, so it was skipped.",
+    ],
   },
   {
     _id: ID.scan(2),
@@ -732,6 +742,8 @@ table(TeamMember).push(
   }),
 );
 table(DataSecurityCheckSetting);
+// Add Data Store's Scan From Probe picker: the project has no probe of its own.
+table(Probe);
 table(DataSecurityCustomDataType);
 table(DataSecurityResidencyRule);
 table(CodeRepository);

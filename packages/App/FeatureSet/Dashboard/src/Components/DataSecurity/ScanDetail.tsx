@@ -168,7 +168,7 @@ const ERROR_LABEL: string = translationKey("Why it failed");
 // The names a scan read that its detail lists before "And 40 more."
 const READ_LOG_SHOWN: number = 200;
 
-// What a scan read, in one line: "12 objects · 3,400 rows · 4.2 MB".
+// What a scan read, a figure a line: "12 objects", "3,400 rows", "4.2 MB".
 export const ScanReadSummary: FunctionComponent<{
   scan: DataSecurityScan;
 }> = (props: { scan: DataSecurityScan }): ReactElement => {
@@ -197,20 +197,17 @@ export const ScanReadSummary: FunctionComponent<{
     return <span className="text-sm text-gray-400">-</span>;
   }
 
+  /*
+   * One figure a line: in a column a few words wide, figures wrapped onto
+   * one line started the second with its separator ("· 6.3 MB").
+   */
   return (
-    <span className="flex flex-wrap items-center gap-x-1.5 text-sm tabular-nums text-gray-700">
+    <span className="flex flex-col text-sm tabular-nums text-gray-700">
       {parts.map((part: string, index: number): ReactElement => {
         return (
-          <React.Fragment key={index}>
-            {index > 0 ? (
-              <span aria-hidden="true" className="text-gray-400">
-                ·
-              </span>
-            ) : (
-              <></>
-            )}
-            <span className="whitespace-nowrap">{part}</span>
-          </React.Fragment>
+          <span key={index} className="whitespace-nowrap">
+            {part}
+          </span>
         );
       })}
     </span>

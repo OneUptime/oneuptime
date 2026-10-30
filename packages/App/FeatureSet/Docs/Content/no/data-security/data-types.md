@@ -66,7 +66,7 @@ Et felt med et navn som sier at det inneholder et passord – `password`, `passw
 | **Begrenset** | Det fører til skade hvis det lekker: hemmeligheter, kortnumre, helsejournaler, offentlig utstedte ID-er. |
 | **Konfidensiell** | Personopplysninger, og dokumenter merket konfidensielle. |
 | **Intern** | Virksomhetens egne data, ikke ment for utenforstående. |
-| **Public** | Ingenting sensitivt ble funnet. |
+| **Offentlig** | Ingenting sensitivt ble funnet. |
 
 Et datalager er like sensitivt som den mest sensitive datatypen som er funnet i det med minst Middels konfidens. Testverdier og funn merket som ikke sensitive teller ingenting, og et datalager der ingenting er funnet, er Offentlig. For å behandle et datalager som mer eller mindre sensitivt enn funnene sier, setter du sensitiviteten selv i datalagerets **Innstillinger**: kontrollene bruker da den.
 

@@ -48,7 +48,7 @@ Konfigurationsläsningen gör om varje molns egna åtkomstinställningar – buc
 | **Åtkomstnivå** | Läsning, Skrivning eller Administratör. |
 | **Beviljad via** | Det som ger åtkomsten: en bucket-policy, en ACL, en rolltilldelning, en IAM-bindning eller en delning av en ögonblicksbild. |
 | **Extern** | Huvudkontot finns utanför de konton, prenumerationer och projekt som är anslutna till OneUptime. |
-| **Public** | Huvudkontot är vem som helst på internet. |
+| **Offentlig** | Huvudkontot är vem som helst på internet. |
 
 Listan läses på nytt vid varje konfigurationsläsning, och en behörighet som molnet inte längre rapporterar tas bort. [Fler än 25 identiteter kan läsa data med känsligheten Begränsad](/docs/data-security/checks-and-issues#åtkomst) räknar läsarna i den. Tjänsterna som använder ett datalager är dess flöden av typen **Använder**.
 
@@ -56,7 +56,7 @@ Utifrån det som läses får varje datalager en exponering:
 
 | Exponering | Vad den betyder |
 | --- | --- |
-| **Public** | Vem som helst på internet kan läsa det. |
+| **Offentlig** | Vem som helst på internet kan läsa det. |
 | **Andra konton** | Konton utanför dina anslutna konton kan nå det. |
 | **Nåbar från internet** | Dess nätverksslutpunkt tar emot anslutningar från internet. |
 | **Privat** | Bara dina egna konton och nätverk når det. |

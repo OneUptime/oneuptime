@@ -66,7 +66,7 @@ Et felt, hvis navn siger, at det indeholder en adgangskode - `password`, `passwo
 | **Begrænset** | Der følger skade, hvis det lækker: hemmeligheder, kortnumre, patientjournaler, ID-numre udstedt af myndigheder. |
 | **Fortrolig** | Personoplysninger og dokumenter, der er mærket fortrolige. |
 | **Intern** | Virksomhedens egne data, ikke beregnet til udenforstående. |
-| **Public** | Der blev ikke fundet noget følsomt. |
+| **Offentlig** | Der blev ikke fundet noget følsomt. |
 
 Et datalager er lige så følsomt som den mest følsomme datatype, der er fundet i det med mindst Middel konfidens. Testværdier og fund, der er markeret som ikke følsomme, tæller ikke, og et datalager, hvor intet blev fundet, har følsomheden Offentlig. For at behandle et datalager som mere eller mindre følsomt, end dets fund siger, sætter du selv dets følsomhed i datalagerets **Indstillinger**: kontrollerne bruger så den.
 

@@ -90,7 +90,8 @@ const createOnlyColumnAccess: {
   tableName: "DataSecurityFlow",
   singularName: "Data Flow",
   pluralName: "Data Flows",
-  icon: IconProp.Graph,
+  // The Data Flows menu entry's icon, so its empty lists look like it.
+  icon: IconProp.Share,
   tableDescription:
     "Where sensitive data goes: the services that read each store, where those services send data, and copies of a store's data found in another store.",
 })
