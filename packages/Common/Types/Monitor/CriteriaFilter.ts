@@ -66,6 +66,14 @@ export enum CheckOn {
 
   // Exception monitors.
   ExceptionCount = "Exception Count",
+  /*
+   * Exception groups first seen in the window; groups that came back after
+   * they were resolved, in it; and how far the window's count is above the
+   * usual one - the day before, per window (ExceptionMonitorCriteria).
+   */
+  NewExceptionCount = "New Exceptions",
+  RegressedExceptionCount = "Regressed Exceptions",
+  ExceptionCountIncreasePercent = "Exception Increase (in %)",
 
   // Profile monitors.
   ProfileCount = "Profile Count",

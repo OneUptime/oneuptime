@@ -461,6 +461,79 @@ describe("When to alert, for a Logs monitor", () => {
     expect(screen.getAllByText("At least").length).toBeGreaterThan(0);
     expect(screen.getByText("Number of exceptions")).toBeInTheDocument();
   });
+
+  /*
+   * What an Exceptions rule alerts on: how many, new ones, ones that came
+   * back, or a rise over the usual. Each is written to the criteria, said
+   * back, and the count chart steps aside for the other three.
+   */
+  test("an Exceptions rule can alert on new exceptions instead of how many", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.AnyException),
+    });
+
+    expect(screen.getByTestId("telemetry-rule-measure")).toHaveTextContent(
+      "Exceptions",
+    );
+    expect(screen.getByTestId("preview-stub")).toBeInTheDocument();
+
+    pick(comboboxOf("Alert on"), "New exceptions");
+
+    expect(storedFilter(recorder).checkOn).toBe(CheckOn.NewExceptionCount);
+    expect(sentence()).toBe(
+      "Alerts when a matching exception happens for the first time in 5 minutes.",
+    );
+    expect(screen.getByText("Number of new exceptions")).toBeInTheDocument();
+    expect(screen.queryByTestId("preview-stub")).not.toBeInTheDocument();
+    expect(screen.getByTestId("telemetry-rule-no-preview")).toBeInTheDocument();
+    // Another kind of rule: its title follows.
+    expect(storedRule(recorder, MonitorType.Exceptions).alert?.title).not.toBe(
+      "Checkout: an exception happened",
+    );
+  });
+
+  test("a rise over the usual is said in percent", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    expect(storedFilter(recorder).checkOn).toBe(
+      CheckOn.ExceptionCountIncreasePercent,
+    );
+    expect(sentence()).toBe(
+      "Alerts when matching exceptions in 15 minutes rise above the usual for the day before by more than 200%.",
+    );
+    expect(screen.getByText("Rise over the usual (in %)")).toBeInTheDocument();
+
+    pick(comboboxOf("Alert on"), "Exceptions");
+
+    expect(storedFilter(recorder).checkOn).toBe(CheckOn.ExceptionCount);
+    expect(screen.getByTestId("preview-stub")).toBeInTheDocument();
+  });
+
+  test("a resolved exception coming back reads as itself", () => {
+    renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.RegressedException),
+    });
+
+    expect(sentence()).toBe(
+      "Alerts when a matching exception you resolved comes back in 10 minutes.",
+    );
+  });
+
+  test("only an Exceptions rule offers the choice", () => {
+    renderEditor({
+      monitorType: MonitorType.Logs,
+      initial: recipeStep(TelemetryRuleRecipeKey.ErrorLogs),
+    });
+
+    expect(
+      screen.queryByTestId("telemetry-rule-measure"),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("What happens", () => {

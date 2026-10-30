@@ -41,7 +41,7 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Ecc
 
 ### Scegliere di cosa vi informa il monitor
 
-In **Di cosa deve informarti questo monitor?**, scegliete **Qualsiasi eccezione** o **Troppe eccezioni**. Ogni scelta compila la regola, che potete modificare più in basso. Scegliete **Qualcos'altro** per impostarla voi.
+In **Di cosa deve informarti questo monitor?**, scegliete **Qualsiasi eccezione** o **Troppe eccezioni**. Ogni scelta compila la regola, che potete modificare più in basso. Scegliete **Qualcos'altro** per impostarla voi. **Una nuova eccezione**, **Torna un'eccezione risolta** e **Picco di eccezioni** avvisano su un'eccezione vista per la prima volta, su una tornata dopo che l'avete risolta e su un aumento molto sopra il solito.
 
 ### Scegliere le eccezioni da contare
 
@@ -53,7 +53,7 @@ Aprite **Altri campi** per filtrare per servizio di telemetria o entità dell'in
 
 ### Dire quando avvisare
 
-In **Quando avvisare**, scegliete una **Condizione**, il **Numero di eccezioni** e una **Finestra temporale**. La frase sotto di essi ripete la regola con parole semplici. Il grafico sotto la frase conta le eccezioni corrispondenti in ogni finestra nelle ultime ore, disegna il numero della regola come una linea e dice quante volte la regola avrebbe avvisato. Il suo pulsante propone un numero che la regola non avrebbe superato in quel periodo.
+In **Quando avvisare**, scegliete una **Condizione**, il **Numero di eccezioni** e una **Finestra temporale**. La frase sotto di essi ripete la regola con parole semplici. Il grafico sotto la frase conta le eccezioni corrispondenti in ogni finestra nelle ultime ore, disegna il numero della regola come una linea e dice quante volte la regola avrebbe avvisato. Il suo pulsante propone un numero che la regola non avrebbe superato in quel periodo. **Avvisa su** sceglie cosa confronta la regola: **Eccezioni**, **Nuove eccezioni**, **Eccezioni tornate** o **Un aumento rispetto al solito**. Il grafico viene disegnato solo per **Eccezioni**.
 
 ### Scegliere cosa succede
 
@@ -116,7 +116,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor eccezioni hanno un solo **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo** o **Esattamente**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
+I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra, e **New Exceptions**, **Regressed Exceptions** e **Exception Increase (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo** o **Esattamente**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio delle eccezioni è… |
 | --- | --- |
@@ -135,6 +135,9 @@ Un monitor eccezioni creato in Crea monitor parte con la regola di ciò che avet
 | --- | --- | --- |
 | **Qualsiasi eccezione** | **Più di** `0` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
 | **Troppe eccezioni** | **Più di** `20` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
+| **Una nuova eccezione** | **Nuove eccezioni**: **Più di** `0` in **Ultimi 10 minuti** | Crea un avviso, che si risolve da solo |
+| **Torna un'eccezione risolta** | **Eccezioni tornate**: **Più di** `0` in **Ultimi 10 minuti** | Crea un avviso, che si risolve da solo |
+| **Picco di eccezioni** | **Un aumento rispetto al solito**: **Più di** `200` in **Ultimi 15 minuti** | Crea un avviso, che si risolve da solo |
 
 Un monitor eccezioni creato tramite l'API o Terraform senza criteri parte con questi criteri:
 
@@ -142,6 +145,18 @@ Un monitor eccezioni creato tramite l'API o Terraform senza criteri parte con qu
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Maggiore di** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
 | Check if … has no exceptions | **Exception Count** **Uguale a** `0` | Mette il monitor online |
+
+## Eccezioni nuove, tornate e in aumento
+
+Oltre al numero di eccezioni, un monitor eccezioni può avvisare su ciò che un sistema di tracciamento errori mette al primo posto. Ognuno viene letto solo quando un criterio lo controlla.
+
+| Tipo di filtro | Cosa conta nella finestra |
+| --- | --- |
+| **New Exceptions** | Le eccezioni corrispondenti viste per la prima volta, né risolte né archiviate. |
+| **Regressed Exceptions** | Le eccezioni corrispondenti che avete risolto, tornate e ancora aperte. |
+| **Exception Increase (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
+
+Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambiente e messaggio; il filtro per entità di infrastruttura vale solo per gli altri due.
 
 ## Esempio pratico: solo le eccezioni di produzione
 

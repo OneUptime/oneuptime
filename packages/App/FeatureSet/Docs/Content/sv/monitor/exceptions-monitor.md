@@ -41,7 +41,7 @@ Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Undantag
 
 ### Välj vad monitorn ska berätta om
 
-Under **Vad ska den här övervakningen berätta om?** väljer du **Alla undantag** eller **För många undantag**. Varje val fyller i regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in den själv.
+Under **Vad ska den här övervakningen berätta om?** väljer du **Alla undantag** eller **För många undantag**. Varje val fyller i regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in den själv. **Ett nytt undantag**, **Ett löst undantag kommer tillbaka** och **Undantagen toppar** larmar vid ett undantag som ses för första gången, vid ett som kom tillbaka efter att du löste det, och vid en ökning långt över det vanliga.
 
 ### Välj vilka undantag som ska räknas
 
@@ -53,7 +53,7 @@ I **Undantag att bevaka** anger du **Meddelandet innehåller**, **Undantagstyper
 
 ### Säg när det ska larmas
 
-I **När det ska larmas** väljer du ett **Villkor**, **Antal undantag** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande undantagen i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden.
+I **När det ska larmas** väljer du ett **Villkor**, **Antal undantag** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande undantagen i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden. **Larma vid** väljer vad regeln jämför: **Undantag**, **Nya undantag**, **Undantag som kom tillbaka** eller **En ökning över det vanliga**. Diagrammet ritas bara för **Undantag**.
 
 ### Välj vad som händer
 
@@ -116,7 +116,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En undantagsmonitors kriterier har en enda **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst** eller **Exakt**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
+En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret, samt **New Exceptions**, **Regressed Exceptions** och **Exception Increase (in %)**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst** eller **Exakt**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
@@ -135,6 +135,9 @@ En undantagsmonitor som skapats i Skapa monitor börjar med regeln för det du v
 | --- | --- | --- |
 | **Alla undantag** | **Fler än** `0` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
 | **För många undantag** | **Fler än** `20` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+| **Ett nytt undantag** | **Nya undantag**: **Fler än** `0` under **Senaste 10 minuterna** | Skapar ett larm, som löser sig själv |
+| **Ett löst undantag kommer tillbaka** | **Undantag som kom tillbaka**: **Fler än** `0` under **Senaste 10 minuterna** | Skapar ett larm, som löser sig själv |
+| **Undantagen toppar** | **En ökning över det vanliga**: **Fler än** `200` under **Senaste 15 minuterna** | Skapar ett larm, som löser sig själv |
 
 En undantagsmonitor som skapats via API:et eller Terraform utan kriterier börjar med dessa kriterier:
 
@@ -142,6 +145,18 @@ En undantagsmonitor som skapats via API:et eller Terraform utan kriterier börja
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Större än** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
 | Check if … has no exceptions | **Exception Count** **Lika med** `0` | Markerar monitorn som online |
+
+## Nya, återkomna och stigande undantag
+
+Utöver hur många undantag som inträffade kan en undantagsmonitor larma om det en felspårare börjar med. Vart och ett läses bara när ett kriterium kontrollerar det.
+
+| Filtertyp | Vad den räknar i fönstret |
+| --- | --- |
+| **New Exceptions** | Matchande undantag som ses för första gången och varken är lösta eller arkiverade. |
+| **Regressed Exceptions** | Matchande undantag som du har löst, som kom tillbaka och fortfarande är öppna. |
+| **Exception Increase (in %)** | Hur långt antalet matchande undantag ligger över det vanliga: dagen före fönstret, per fönster av samma längd, minst ett. Tio undantag efter en lugn dag ger 900 %. |
+
+Nya och återkomna undantag filtreras på tjänst, undantagstyp, miljö och meddelande; filtret på infrastrukturentitet gäller bara de två andra.
 
 ## Genomgånget exempel: bara produktionsundantag
 

@@ -112,6 +112,9 @@ import MonitorStepExceptionMonitor, {
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import ExceptionMonitorMeasureReader, {
+  ExceptionMonitorMeasures,
+} from "Common/Server/Utils/Monitor/ExceptionMonitorMeasures";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
@@ -1837,6 +1840,21 @@ export const monitorException: MonitorExceptionFunction = async (data: {
   );
 
   /*
+   * New, regressed and above-the-usual: read only when a criteria checks
+   * them (ExceptionMonitorMeasureReader), so a plain count costs nothing
+   * more.
+   */
+  const measures: ExceptionMonitorMeasures =
+    await ExceptionMonitorMeasureReader.read({
+      projectId: data.projectId,
+      monitorStep: data.monitorStep,
+      config: exceptionMonitorConfig,
+      countQuery,
+      exceptionCount: exceptionCount.toNumber(),
+      evaluateUntil: data.evaluateUntil,
+    });
+
+  /*
    * exceptionQuery intentionally stays the base query (no fingerprint
    * exclusion list) — it is persisted with the status timeline for the
    * "view exceptions" link, and a NOT IN list of thousands of hashes
@@ -1849,6 +1867,7 @@ export const monitorException: MonitorExceptionFunction = async (data: {
       analyticsQuery,
     ) as Query<ExceptionInstance>,
     monitorId: data.monitorId,
+    ...measures,
   };
 };
 

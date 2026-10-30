@@ -113,7 +113,9 @@ describe("MonitorStep.getValidationError: an infrastructure monitor needs someth
 
 describe("MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey", () => {
   function filters(
-    resourceFilters: MonitorStepKubernetesMonitor["resourceFilters"],
+    resourceFilters:
+      | MonitorStepKubernetesMonitor["resourceFilters"]
+      | undefined,
   ): string | null {
     return MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
       resourceFilters,

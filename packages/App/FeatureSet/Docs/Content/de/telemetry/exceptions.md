@@ -129,7 +129,7 @@ Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die
 
 IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesendet wird, und von den Attributen eines Spans werden nur wenige gesendet, etwa seine Route und sein Statuscode. Die Erklärung nutzt den LLM-Anbieter und die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Jeder, der die Ausnahme lesen kann, kann eine anfordern.
 
-Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
+Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Ihre Antwort wird bis zum nächsten Auftreten gespeichert.
 
 ## Mit KI beheben
 
@@ -185,7 +185,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 Der Tab **Einblicke** zählt Ihre Ausnahmen unter **Nicht behoben**, **Behoben** und **Archiviert** sowie Ihre Behebungsquote und listet die häufigsten Ausnahmen, die Dienste, die sie betreffen, und die zuletzt gesehenen.
 
-**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und nicht gespeichert, nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
+**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und bis zum nächsten Auftreten gespeichert, sodass erneutes Fragen nichts kostet; sie nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
 
 ## Fehlerbehebung
 

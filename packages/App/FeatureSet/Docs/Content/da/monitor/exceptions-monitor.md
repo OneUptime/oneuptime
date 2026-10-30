@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Undtage
 
 ### Vælg, hvad monitoren skal fortælle dig om
 
-Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op.
+Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op. **En ny undtagelse**, **En løst undtagelse kommer tilbage** og **Undtagelser topper** advarer ved en undtagelse, der ses for første gang, ved en, der kom tilbage, efter du løste den, og ved en stigning langt over det sædvanlige.
 
 ### Vælg de undtagelser, der skal tælles
 
@@ -53,7 +53,7 @@ I **Undtagelser at holde øje med** angiver du **Beskeden indeholder**, **Undtag
 
 ### Sig, hvornår der skal advares
 
-I **Hvornår der advares** vælger du en **Betingelse**, **Antal undtagelser** og et **Tidsvindue**. Sætningen under dem gentager reglen med almindelige ord. Diagrammet under den tæller de matchende undtagelser i hvert vindue over de seneste timer, tegner reglens tal som en linje og fortæller, hvor ofte reglen ville have advaret. Dens knap foreslår et tal, som reglen ikke ville have overskredet i den periode.
+I **Hvornår der advares** vælger du en **Betingelse**, **Antal undtagelser** og et **Tidsvindue**. Sætningen under dem gentager reglen med almindelige ord. Diagrammet under den tæller de matchende undtagelser i hvert vindue over de seneste timer, tegner reglens tal som en linje og fortæller, hvor ofte reglen ville have advaret. Dens knap foreslår et tal, som reglen ikke ville have overskredet i den periode. **Advar ved** vælger, hvad reglen sammenligner: **Undtagelser**, **Nye undtagelser**, **Undtagelser, der kom tilbage** eller **En stigning over det sædvanlige**. Diagrammet tegnes kun for **Undtagelser**.
 
 ### Vælg, hvad der sker
 
@@ -116,7 +116,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har én **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst** eller **Præcis**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet, samt **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst** eller **Præcis**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -135,6 +135,9 @@ En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for d
 | --- | --- | --- |
 | **Enhver undtagelse** | **Mere end** `0` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
 | **For mange undtagelser** | **Mere end** `20` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
+| **En ny undtagelse** | **Nye undtagelser**: **Mere end** `0` i **Seneste 10 minutter** | Opretter en advarsel, som løser sig selv |
+| **En løst undtagelse kommer tilbage** | **Undtagelser, der kom tilbage**: **Mere end** `0` i **Seneste 10 minutter** | Opretter en advarsel, som løser sig selv |
+| **Undtagelser topper** | **En stigning over det sædvanlige**: **Mere end** `200` i **Seneste 15 minutter** | Opretter en advarsel, som løser sig selv |
 
 En undtagelse-monitor, der er oprettet via API'et eller Terraform uden kriterier, starter med disse kriterier:
 
@@ -142,6 +145,18 @@ En undtagelse-monitor, der er oprettet via API'et eller Terraform uden kriterier
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Større end** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
 | Check if … has no exceptions | **Exception Count** **Lig med** `0` | Sætter monitoren online |
+
+## Nye, tilbagevendte og stigende undtagelser
+
+Ud over hvor mange undtagelser der skete, kan en undtagelse-monitor advare ved det, en fejlsporer starter med. Hver læses kun, når et kriterium tjekker den.
+
+| Filtertype | Hvad den tæller i vinduet |
+| --- | --- |
+| **New Exceptions** | Matchende undtagelser, der ses for første gang og hverken er løst eller arkiveret. |
+| **Regressed Exceptions** | Matchende undtagelser, du har løst, som kom tilbage og stadig er åbne. |
+| **Exception Increase (in %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
+
+Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse; filteret efter infrastrukturentitet gælder kun de to andre.
 
 ## Gennemgået eksempel: kun produktionsundtagelser
 
