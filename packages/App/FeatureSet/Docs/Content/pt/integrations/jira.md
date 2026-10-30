@@ -129,7 +129,7 @@ Uma **conta de serviço** da Atlassian também funciona. Um administrador da org
 4. Clique em **Criar fluxo de trabalho**. Todo workflow é criado desativado: ative **Habilitado** no topo do **Construtor** dele.
 :::
 
-Comece com **Create a Jira issue when an incident is declared**, ou com **Create a Jira issue when an alert is created** para os alertas: todo outro modelo OneUptime → Jira do mesmo tipo encontra o item pela etiqueta que este adiciona. Ative-o, declare um incidente de teste ou crie um alerta de teste, e abra **Registros → Execuções** do workflow. A última etapa da execução deve dizer `✅ Created Jira issue` e citar o novo item.
+Comece com **Create a Jira issue when an incident is declared**, ou com **Create a Jira issue when an alert is created** para os alertas: todo outro modelo OneUptime → Jira do mesmo tipo encontra o item pela etiqueta que este adiciona. Ative-o, declare um incidente de teste ou crie um alerta de teste, e abra **Registros → Execuções** do workflow. A execução deve terminar como **Executado**, e o **Response Body** da sua última etapa, `create-issue-1`, cita o novo item.
 
 Cada workflow guarda a sua própria cópia desses valores. Quando você trocar o token, atualize `jiraBasicAuthToken` em **Variáveis do fluxo** em cada workflow do Jira que o pediu. Se o Jira mudar de endereço, atualize `jiraSiteUrl` e `jiraBaseUrl` da mesma forma.
 
@@ -180,14 +180,14 @@ Antes de confiar nisso:
 
 ### Verificar que funciona
 
-Todo modelo termina com uma etapa **Log** que diz o que aconteceu, então a última etapa de uma execução em **Registros → Execuções** é o lugar para olhar:
+As **Etapas** de cada execução dizem o que o modelo fez, então abra a execução em **Registros → Execuções** e veja como ela terminou:
 
-- `✅` — ele fez o trabalho e cita o item, o incidente ou o alerta.
-- `ℹ️` — ele ignorou o evento de propósito e diz por quê: o item não está ligado a um registro desse tipo, a nota veio do Jira, o registro é privado ou não há status do Jira mapeado para o novo estado.
-- `❌` — uma chamada falhou. Para uma chamada ao Jira, a linha inclui a resposta do Jira.
-- `⚠️` — um modelo que cria um registro a partir de um item do Jira o criou, mas o Jira não aceitou as etiquetas de ligação, então os outros modelos ainda não conseguem encontrá-lo. Adicione as etiquetas à mão.
+- **Executado**: ele fez o seu trabalho, e a última etapa cita o item, o incidente ou o alerta.
+- **Executado**, com a etapa **Check With JavaScript** em **No**: ele ignorou o evento de propósito, e a etapa diz por quê: o item não está ligado a um registro desse tipo, a nota veio do Jira, o registro é privado ou não há status do Jira mapeado para o novo estado.
+- **Erro**: uma etapa falhou, e a entrada dela em **Etapas** diz por quê. Para uma chamada ao Jira, inclui a resposta do Jira.
+- **Erro** em `link-issue-1`: um modelo que cria um registro a partir de um item do Jira o criou, mas o Jira não aceitou as etiquetas de vínculo, então os outros modelos ainda não conseguem encontrá-lo. Adicione as etiquetas à mão.
 
-Uma execução ignorada ainda termina como **Executado**. Os eventos ignorados são normais: a maioria dos eventos do Jira não é dos que um modelo específico trata. Veja [Execuções de workflow](/docs/workflows/runs-and-logs).
+Os eventos ignorados são normais: a maioria dos eventos do Jira não é dos que um modelo específico trata. Veja [Execuções de workflow](/docs/workflows/runs-and-logs).
 
 ## Como os modelos funcionam
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Mudar o que um modelo faz
 
-Abra o **Construtor** do workflow e clique no bloco que você quer mudar. As configurações que você mais provavelmente vai querer mexer são constantes perto do topo de um script, o **JavaScript Code** de um bloco **Run Custom JavaScript**, logo abaixo do bloco auxiliar comum. As versões para incidentes e para alertas de um modelo mantêm as mesmas constantes nos mesmos blocos:
+Abra o **Construtor** do workflow e clique no bloco que você quer mudar. As configurações que você mais provavelmente vai querer mexer são constantes perto do topo de um script, o **JavaScript Code** de um bloco **Check With JavaScript**, logo abaixo do bloco auxiliar comum. As versões para incidentes e para alertas de um modelo mantêm as mesmas constantes nos mesmos blocos:
 
 | Constante | Modelo e bloco | O que controla |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ Abra o **Construtor** do workflow e clique no bloco que você quer mudar. As con
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | Os nomes de status que o modelo prefere quando segue pelo significado, e os que ele nunca escolhe, a menos que `STATE_TO_JIRA_STATUS` os cite. Os dois são expressões regulares comparadas com o nome do status, sem diferenciar maiúsculas. |
 | `SYNC_PRIVATE_INCIDENTS` | Cada modelo de incidentes OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` ou `build-comment-1` | `false` mantém fora do Jira os incidentes marcados como **Incidente privado**: nenhum item é aberto para eles, o item deles não é movido, e nem as notas nem as edições deles são publicadas. Defina como `true` para enviá-los mesmo assim. Cada modelo tem a sua própria cópia, então defina-a em cada modelo que deve enviá-los. |
 | `SYNC_PRIVATE_ALERTS` | Cada modelo de alertas OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` ou `build-comment-1` | O mesmo para os alertas marcados como **Alerta privado**: `false` os mantém fora do Jira das mesmas formas, e `true` os envia mesmo assim. Defina-a em cada modelo de alertas que deve enviá-los. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Mapeia um nome de status do Jira para um nome de estado do OneUptime, como `{ 'In Review': 'Monitoring' }`. Os status não listados seguem pela categoria de status do Jira: In Progress reconhece o incidente ou o alerta, Done o resolve, e To Do não corresponde a nada. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Mapeia um nome de status do Jira para um nome de estado do OneUptime, como `{ 'In Review': 'Monitoring' }`. Os status não listados seguem pela categoria de status do Jira: In Progress reconhece o incidente ou o alerta, Done o resolve, e To Do não corresponde a nada. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Mapeia uma prioridade do Jira, escrita em minúsculas, para `0` (a sua gravidade mais grave), `1` ou `2` (a menos grave), com as intermediárias distribuídas pela faixa. As prioridades não listadas ficam no meio. Com as duas gravidades de alerta que um projeto novo tem, `0` é High e tanto `1` quanto `2` são Low, então Medium vira Low, a menos que você o mude para `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | Os eventos de comentário que viram notas. Adicione `'comment_updated'` para copiar também as edições — cada edição vira uma nota nova — e marque também **Comment updated** no webhook do Jira. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | Os campos do Jira, em minúsculas, cujas mudanças não merecem uma nota. Uma mudança fica de fora quando o ID ou o nome do campo dela está na lista, e é assim que `'rank'` pega Rank, um campo personalizado que chega com um ID como `customfield_10019`. O status está na lista porque o modelo de status cuida dele. |
@@ -271,7 +271,7 @@ As notas privadas e os comentários de edição são marcados como internos pela
 ### Limitações
 
 - **Só o Jira Cloud.** Os modelos chamam a REST API v3 do Jira Cloud com autenticação Basic. O Data Center não tem v3 e aceita um token de acesso pessoal como `Bearer`, então cada bloco de API precisa das mudanças de [Jira Data Center](#jira-data-center): caminhos `/rest/api/2/...`, strings simples em vez de corpos em Atlassian Document Format, e o cabeçalho. Os blocos `find-issue-1` são os que mais mudam: o Data Center não tem `/search/jql`, então eles precisam fazer um `POST` para `/rest/api/2/search` no lugar.
-- **Os incidentes declarados a partir do Jira são discretos.** Eles são criados ocultos das suas páginas de status, sem avisar os assinantes das páginas de status, porque o texto de um item não foi escrito para clientes. Para mostrar um, ative **Visível na página de status** na página **Configurações** do incidente (veja [Manter um incidente fora da página de status](/docs/incidents/states-and-severities#manter-um-incidente-fora-da-página-de-status)), ou mude `isVisibleOnStatusPage` e `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` no bloco `create-incident-1` do modelo.
+- **Os incidentes declarados a partir do Jira são discretos.** Eles são criados ocultos das suas páginas de status, sem avisar os assinantes das páginas de status, porque o texto de um item não foi escrito para clientes. Para mostrar um, ative **Visível na página de status** na página **Configurações** do incidente (veja [Manter um incidente fora da página de status](/docs/incidents/states-and-severities#manter-um-incidente-fora-da-página-de-status)), ou ative **Show On Status Pages**, em **Mais campos**, no bloco `incident-from-another-tool-1` do modelo.
 - **Os incidentes e alertas privados ficam no OneUptime.** Os modelos OneUptime → Jira os ignoram, e cada item ignorado é registrado em **Registros → Execuções**. Para enviá-los mesmo assim, defina `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` como `true`. Tornar um registro privado depois interrompe a sincronização a partir daí, mas não retira o que o Jira já tem. Os modelos Jira → OneUptime não verificam isso, então comentários, edições e mudanças de status em um item ligado ainda chegam a um registro privado.
 - **Nada volta para trás.** Reabrir um item do Jira não muda nada no OneUptime, e um status da categoria To Do não corresponde a nenhum estado. Veja [A ordem é uma restrição real](/docs/incidents/states-and-severities#a-ordem-é-uma-restrição-real-não-uma-preferência-de-exibição). Os modelos de transição também nunca movem um item para uma categoria de status anterior.
 - **Cada alerta ganha um item.** Exceto os alertas privados, o modelo de alertas que cria itens abre um para cada alerta, inclusive cada um que um monitor gera. [O que muda para os alertas](#o-que-muda-para-os-alertas) mostra como adicionar uma condição.
@@ -286,7 +286,7 @@ As notas privadas e os comentários de edição são marcados como internos pela
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **O mesmo evento pode chegar duas vezes.** O Jira tenta de novo uma entrega que falhou com um erro de servidor ou que excedeu o tempo. Se o OneUptime já tinha iniciado a execução, os modelos de comentários e de mudanças de item adicionam uma segunda nota. Os modelos que criam um registro não criam um segundo: eles perguntam primeiro ao Jira as etiquetas do item, e quando uma nova tentativa chega, a primeira execução já etiquetou o item. Isso não ajuda quando a primeira execução criou o registro, mas o Jira recusou as etiquetas: a execução termina com uma linha `⚠️`, e você deve adicionar as etiquetas à mão.
+- **O mesmo evento pode chegar duas vezes.** O Jira tenta de novo uma entrega que falhou com um erro de servidor ou que excedeu o tempo. Se o OneUptime já tinha iniciado a execução, os modelos de comentários e de mudanças de item adicionam uma segunda nota. Os modelos que criam um registro não criam um segundo: eles perguntam primeiro ao Jira as etiquetas do item, e quando uma nova tentativa chega, a primeira execução já etiquetou o item. Isso não ajuda quando a primeira execução criou o registro, mas o Jira recusou as etiquetas: a execução falha em `link-issue-1`, e você deve adicionar as etiquetas à mão.
 
 ## Montar você mesmo
 

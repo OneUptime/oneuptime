@@ -1846,11 +1846,28 @@ describe("Jira", () => {
     }
   });
 
-  it("quotes the lines the templates' runs log as the scripts write them", () => {
+  /*
+   * The templates have no Log step any more: a skip is a Check With
+   * JavaScript step's reason, which the run's Steps show, and a run that
+   * did its job ends Executed on the Jira call - create-issue-1, whose
+   * Response Body names the new issue.
+   */
+  it("quotes the reasons the templates' checks give as the scripts write them, and where a run's new issue shows", () => {
     const scripts: string = JIRA_TEMPLATES.map(argumentsText).join("\n");
+    const create: WorkflowTemplate = templateNamed(
+      JIRA_TEMPLATES,
+      "Create a Jira issue when an incident is declared",
+    );
+    const last: TemplateNode = nodesOf(create)[
+      nodesOf(create).length - 1
+    ] as TemplateNode;
 
-    expect(scripts).toContain("✅ Created Jira issue");
-    expect(page).toContain("`✅ Created Jira issue`");
+    expect(last.componentId).toBe("create-issue-1");
+    expect(last.metadataId).toBe(ComponentID.ApiPost);
+    expect(page).toContain(
+      `The run should end ${bold("Executed")}, and the ${bold("Response Body")} of its last step, \`create-issue-1\`, names the new issue.`,
+    );
+    expect(page).not.toContain("✅");
 
     for (const fragment of [
       "More than one Jira issue is labelled ",
@@ -2006,7 +2023,7 @@ describe("Jira", () => {
         }),
       },
       JIRA_STATUS_TO_STATE: {
-        blocks: ["decide-state-1"],
+        blocks: ["read-event-1"],
         templates: [
           "Acknowledge or resolve the incident when its Jira issue moves",
           "Acknowledge or resolve the alert when its Jira issue moves",
@@ -2093,24 +2110,30 @@ describe("Jira", () => {
     ).toContain("sd.public.comment");
     expect(page).toContain("`sd.public.comment`");
 
+    /*
+     * Incident From Another Tool keeps a new incident off status pages, and
+     * their subscribers untold, unless Show On Status Pages is on - which
+     * the template leaves off.
+     */
     const declare: TemplateNode = nodeOf(
       templateNamed(
         JIRA_TEMPLATES,
         "Declare an incident when a Jira issue is created",
       ),
-      "create-incident-1",
+      "incident-from-another-tool-1",
     );
 
-    const written: JSONObject = JSON.parse(
-      String(declare.args?.["json"]),
-    ) as JSONObject;
-
-    expect(written["isVisibleOnStatusPage"]).toBe(false);
+    expect(declare.metadataId).toBe(ComponentID.IncidentFromAnotherTool);
+    expect(declare.args?.["show-on-status-pages"]).toBeUndefined();
     expect(
-      written["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"],
-    ).toBe(false);
+      readRepoFile(
+        "Common/Server/Types/Workflow/Components/FromAnotherTool/RecordFromAnotherTool.ts",
+      ),
+    ).toContain(
+      'statusPageColumns: [\n    "isVisibleOnStatusPage",\n    "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",\n  ],',
+    );
     expect(page).toContain(
-      "change `isVisibleOnStatusPage` and `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` in the template's `create-incident-1` block",
+      `or turn on ${bold("Show On Status Pages")}, under ${bold("More fields")}, in the template's \`incident-from-another-tool-1\` block.`,
     );
   });
 
