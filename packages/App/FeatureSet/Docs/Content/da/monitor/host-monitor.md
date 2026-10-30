@@ -61,19 +61,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Vært** under 
 
 ### Vælg værten
 
-Vælg maskinen i **Vært** under **Host Monitor Configuration**. Hver vært, der har sendt data, er på listen.
+Vælg maskinen i **Vært** under **Host Monitor Configuration**. Hver vært, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj vært** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Host Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -95,7 +95,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
@@ -119,7 +119,7 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 
 ## Indsamlede metrikker
 
-Listen **Host Metric** tilbyder disse metrikker. Hver bærer `resource.host.name`, som er den måde, monitoren afgrænser sine forespørgsler til én vært.
+Listen **Host Metric** tilbyder disse metrikker. Hver bærer `resource.host.name`, som er den måde, monitoren afgrænser sine forespørgsler til én vært. Valgt dér tæller CPU tilstanden `user`, hukommelses- og filsystemforbrug tilstanden `used`, og filsystemer og processer giver én serie pr. monteringspunkt og status.
 
 > [!IMPORTANT]
 > Udnyttelsesmetrikkerne er et forhold fra 0 til 1, ikke en procent: brug `0.8` for 80 % i en tærskel på den rå metrik. Skabelonerne omregner til procent med en formel, så deres tærskler lyder 80, 85 og 90.

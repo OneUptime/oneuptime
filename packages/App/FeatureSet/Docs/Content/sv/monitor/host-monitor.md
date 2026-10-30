@@ -61,19 +61,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Värd** under 
 
 ### Välj värden
 
-Välj maskinen i **Värd** under **Host Monitor Configuration**. Varje värd som har skickat data finns i listan.
+Välj maskinen i **Värd** under **Host Monitor Configuration**. Varje värd som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till värd** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
+- **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -95,7 +95,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
@@ -119,7 +119,7 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 
 ## Insamlade mätvärden
 
-Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd.
+Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd. Valt där räknar CPU tillståndet `user`, minnes- och filsystemsanvändning tillståndet `used`, och filsystem och processer ger en serie per monteringspunkt och status.
 
 > [!IMPORTANT]
 > Utnyttjandemåtten är en kvot från 0 till 1, inte en procentsats: använd `0.8` för 80 % i en tröskel på det råa mätvärdet. Mallarna räknar om till procent med en formel, så deras trösklar är 80, 85 och 90.

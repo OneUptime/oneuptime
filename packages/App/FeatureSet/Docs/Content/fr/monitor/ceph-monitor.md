@@ -57,19 +57,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir le cluster
 
-Sous **Configuration du moniteur Ceph**, choisissez le cluster dans **Cluster Ceph**. Tout cluster ayant envoyé des données figure dans la liste.
+Sous **Configuration du moniteur Ceph**, choisissez le cluster dans **Cluster Ceph**. Tout cluster ayant envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un cluster Ceph** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** — cliquez sur un [modèle](#modèles-dalerte-prédéfinis). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez encore modifier la **Plage temporelle**.
-- **Custom Metric** — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool.
-- **Avancé** — construisez vous-même requêtes et formules sous **Sélectionner les métriques**, par exemple un ratio de capacité utilisée à partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Utilisez **Regrouper par** `ceph_daemon` ou `pool_id` pour juger chaque démon ou pool séparément.
+- **Modifier** — choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez encore modifier la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool.
+- **Avancé** (sous **Plus de champs**) — construisez vous-même requêtes et formules sous **Sélectionner les métriques**, par exemple un ratio de capacité utilisée à partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Utilisez **Regrouper par** `ceph_daemon` ou `pool_id` pour juger chaque démon ou pool séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui tombe à zéro : définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données : définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -99,7 +99,7 @@ Les séries de données des pools ne portent que le label `pool_id` : le nom du 
 
 ## Modèles d'alerte prédéfinis
 
-**Quick Setup** propose 24 modèles couvrant un cluster devenu silencieux, la santé du cluster, les OSD, les placement groups et la capacité. Chacun construit un moniteur complet — requêtes, filtres de labels, un regroupement, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ modifiables.
+La liste de **Sur quoi alerter** propose 24 modèles couvrant un cluster devenu silencieux, la santé du cluster, les OSD, les placement groups et la capacité. Chacun construit un moniteur complet — requêtes, filtres de labels, un regroupement, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ modifiables.
 
 Les modèles lisent les 5 dernières minutes sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est vraie pendant chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil, pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse. **Gravité** est le libellé affiché par le sélecteur ; l'incident et l'alerte créés par un modèle démarrent avec la gravité d'incident et d'alerte la plus élevée de votre projet.
 
@@ -175,7 +175,7 @@ L'agent interroge chaque démon mgr toutes les 30 secondes et conserve les label
 | `ceph_healthcheck_slow_ops` | nombre | Opérations lentes des OSD et des moniteurs signalées par le check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | nombre | Métriques de santé par démon, identifiées par `type` (par exemple `SLOW_OPS`) et `ceph_daemon`. |
 | `ceph_mon_quorum_status` | nombre | 1 quand le moniteur est dans le quorum, par `ceph_daemon` (par exemple `mon.a`). |
-| `ceph_mon_metadata` | nombre | Métadonnées du moniteur, toujours 1. Additionnez-les pour compter les moniteurs. |
+| `ceph_mon_metadata` | nombre | Métadonnées du moniteur, toujours 1 tant que le moniteur remonte des données. Une somme additionne chaque collecte d'une minute : elle ne compte pas les moniteurs. |
 | `ceph_cluster_total_bytes` | octets | Capacité brute totale. |
 | `ceph_cluster_total_used_bytes` | octets | Capacité brute utilisée. |
 
@@ -190,7 +190,7 @@ L'agent interroge chaque démon mgr toutes les 30 secondes et conserve les label
 | `ceph_osd_stat_bytes` | octets | Capacité brute du périphérique de l'OSD. |
 | `ceph_osd_stat_bytes_used` | octets | Octets bruts utilisés sur l'OSD. Comparez au total pour repérer des OSD inégalement remplis ou presque pleins. |
 | `ceph_osd_numpg` | nombre | Placement groups sur l'OSD. |
-| `ceph_osd_metadata` | nombre | Métadonnées de l'OSD (nom d'hôte, classe de périphérique, version), toujours 1. Additionnez-les pour compter les OSD. |
+| `ceph_osd_metadata` | nombre | Métadonnées de l'OSD (nom d'hôte, classe de périphérique, version), toujours 1 tant que l'OSD remonte des données. Une somme additionne chaque collecte d'une minute : elle ne compte pas les OSD. |
 
 ### Métriques des pools
 
@@ -207,7 +207,7 @@ L'agent interroge chaque démon mgr toutes les 30 secondes et conserve les label
 
 ### Métriques des placement groups
 
-Chaque série `ceph_pg_*` est par pool, avec le label `pool_id` ; additionnez sur les pools pour un total à l'échelle du cluster.
+Chaque série `ceph_pg_*` est par pool, avec le label `pool_id`. Une somme additionne chaque collecte d'une minute et chaque pool : comparez donc pool par pool, regroupé par `pool_id`, comme le font les modèles de PG.
 
 | Métrique | Unité | Description |
 | --- | --- | --- |

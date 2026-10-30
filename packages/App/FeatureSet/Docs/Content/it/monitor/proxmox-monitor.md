@@ -48,19 +48,19 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Pro
 
 ### Scegliere il cluster
 
-In **Proxmox Monitor Configuration**, scegliete il cluster da **Cluster Proxmox**. Ogni cluster che ha inviato dati è nell'elenco.
+In **Proxmox Monitor Configuration**, scegliete il cluster da **Cluster Proxmox**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Proxmox** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Scegliete una delle tre schede:
+Un nuovo monitor parte da **Cluster Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup** – fate clic su un [modello](#modelli-di-avviso-pronti). Imposta le metriche, i filtri, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** – scegliete una metrica da **Proxmox Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un tipo di risorsa o a una singola risorsa.
-- **Avanzato** – costruite voi query e formule in **Seleziona metriche**, per esempio una percentuale di memoria da `pve_memory_usage_bytes / pve_memory_size_bytes`. Usate **Raggruppa per** `id` per giudicare ogni risorsa separatamente.
+- **Cambia** – scegliete un altro [modello](#modelli-di-avviso-pronti). Imposta le metriche, i filtri, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**) – scegliete una metrica da **Proxmox Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un tipo di risorsa o a una singola risorsa.
+- **Avanzato** (in **Altri campi**) – costruite voi query e formule in **Seleziona metriche**, per esempio una percentuale di memoria da `pve_memory_usage_bytes / pve_memory_size_bytes`. Usate **Raggruppa per** `id` per giudicare ogni risorsa separatamente.
 
 ### Rivedere i criteri
 
-Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
+Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi impostate la vostra soglia.
 
 ### Creare il monitor
 
@@ -95,7 +95,7 @@ Ogni serie porta un'etichetta di punto dati `id` che indica la risorsa Proxmox a
 | `lxc/<vmid>` | Un container LXC, per esempio `lxc/101`. |
 | `storage/<node>/<storage>` | Un volume di storage su un nodo, per esempio `storage/pve1/local`. |
 
-Due eccezioni: le serie di replica (`pve_replication_*`) portano l'id del **job** di replica in `id` (per esempio `100-0`), e `pve_not_backed_up_total`, a livello di cluster, non ha alcun `id`.
+Un'eccezione: le serie di replica (`pve_replication_*`) portano l'id del **job** di replica in `id` (per esempio `100-0`). Le serie proprie del cluster, come il quorum (`pve_up`) e `pve_not_backed_up_total`, portano `cluster/<name>`.
 
 I filtri confrontano per uguaglianza, non per prefisso, quindi l'agente divide anche `id` in tre attributi su cui potete filtrare. I modelli si basano su di essi:
 
@@ -109,7 +109,7 @@ Filtrate su `pve.scope` o `pve.type` per un tipo di risorsa, su `pve.id` o `id` 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre 12 modelli. Ognuno costruisce un monitor completo: query, filtri di attributi, un raggruppamento, un criterio che scatta e uno che ripristina. La maggior parte raggruppa per `id`, così ogni nodo, guest, volume o job riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+L'elenco di **Su cosa avvisare** offre 12 modelli. Ognuno costruisce un monitor completo: query, filtri di attributi, un raggruppamento, un criterio che scatta e uno che ripristina. La maggior parte raggruppa per `id`, così ogni nodo, guest, volume o job riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e un criterio a soglia si ripristina il 10% oltre la sua soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
@@ -132,8 +132,8 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 
 - **Cluster Stopped Reporting** scatta quando dal cluster non arriva nulla per dieci minuti: l'agente Proxmox o il suo pve-exporter si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token, l'API di Proxmox ha smesso di rispondergli, oppure tutti i nodi di un invio nativo sono rimasti in silenzio. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 - **I modelli di guasto usano Minimo**, così una sola raccolta in cui la risorsa era giù li fa scattare invece di essere nascosta dalle raccolte in cui era attiva.
-- **Guest Down** considera solo i guest impostati per avviarsi al boot, quindi un guest che avete fermato di proposito non avvisa mai nessuno.
-- **Cluster Quorum at Risk** è un'approssimazione: pve-exporter non ha una metrica di corosync, quindi conta i nodi online.
+- **Guest Down** considera solo i guest impostati per avviarsi al boot: se ne fermate uno di proposito avvisa comunque, quindi disattivatene prima l'avvio al boot.
+- **Cluster Quorum at Risk** conta i nodi online. pve-exporter riporta anche il quorum stesso, come `pve_up` per `cluster/<name>`: 1 finché il cluster ha il quorum.
 - **High Guest CPU Usage** è più alto e più lento del modello dei nodi: un guest deve usare le sue vCPU, quindi avvisa solo uno che non scende mai.
 - **Le formule di rapporto** prendono la **Somma** di entrambi i lati. Entrambi provengono dalla stessa raccolta, quindi il risultato è una vera percentuale.
 - **Container Root Disk Near Full** esclude le VM QEMU: il loro utilizzo del disco vale 0 senza il guest agent di QEMU.
@@ -154,7 +154,7 @@ L'agente interroga prometheus-pve-exporter ogni 30 secondi: i suoi collector di 
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
-| `pve_up` | — | 1 quando il nodo o il guest è attivo o in esecuzione, altrimenti 0. |
+| `pve_up` | — | 1 quando il nodo, il guest o lo storage è attivo, altrimenti 0. Per `cluster/<name>`, 1 finché il cluster ha il quorum. |
 | `pve_uptime_seconds` | secondi | Uptime del nodo o del guest. |
 | `pve_version_info` | count | La release di Proxmox VE, nelle sue etichette. Sempre 1. |
 
@@ -162,7 +162,7 @@ L'agente interroga prometheus-pve-exporter ogni 30 secondi: i suoi collector di 
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadati del nodo, sempre 1. Sommatela per contare i nodi che comunicano. |
+| `pve_node_info` | count | Metadati del nodo, sempre 1 finché il nodo comunica. Una somma addiziona ogni raccolta di un minuto, quindi non conta i nodi. |
 | `pve_cpu_usage_ratio` | ratio | CPU in uso come rapporto da 0 a 1 rispetto alla CPU disponibile. |
 | `pve_cpu_usage_limit` | cores | CPU disponibile, in core. Per un guest, le sue vCPU. |
 | `pve_memory_usage_bytes` | bytes | Memoria in uso. |
@@ -187,7 +187,7 @@ Le serie di CPU e memoria vengono comunicate anche per ogni guest, sugli id `qem
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Byte usati sul disco o sullo storage. Per un guest QEMU vale 0 a meno che non sia installato il guest agent di QEMU. |
 | `pve_disk_size_bytes` | bytes | Dimensione totale del disco o dello storage. |
-| `pve_storage_info` | count | Metadati dello storage, sempre 1. Sommatela per contare i volumi di storage. |
+| `pve_storage_info` | count | Metadati dello storage, sempre 1 finché esiste. Una somma addiziona ogni raccolta di un minuto, quindi non conta i volumi. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Provengono dal collector `backup-info` dell'exporter, a livello di cluster. Ripo
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Guest che non fanno parte di alcun job di backup. Un'unica serie per il cluster, senza `id`. |
+| `pve_not_backed_up_total` | count | Guest che non fanno parte di alcun job di backup. Un'unica serie per il cluster, `id` `cluster/<name>`, riportata anche a 0. |
 | `pve_not_backed_up_info` | count | Una serie per ogni guest non coperto, sempre 1, etichettata con l'`id` del guest. Scompare appena il guest entra in un job di backup. |
 
 ### Replica

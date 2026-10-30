@@ -169,7 +169,7 @@ Everything is ready. Begin running and processing data.
 | Гость (ВМ или LXC) | `pve_guest_info`, а также ряды CPU, памяти и сети с идентификаторами `qemu/*` и `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Хранилище | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Покрытие резервным копированием | `pve_not_backed_up_total` (гости, которых не охватывает ни одно задание резервного копирования; один ряд уровня кластера, без метки `id`) и `pve_not_backed_up_info` (один ряд на каждого непокрытого гостя, с его `id`). Покрытие означает, что хотя бы одно задание выбирает гостя: выполнялось ли резервное копирование недавно и было ли успешным, экспортёр не сообщает. |
+| Покрытие резервным копированием | `pve_not_backed_up_total` (гости, которых не охватывает ни одно задание резервного копирования; один ряд уровня кластера, `id` `cluster/<name>`) и `pve_not_backed_up_info` (один ряд на каждого непокрытого гостя, с его `id`). Покрытие означает, что хотя бы одно задание выбирает гостя: выполнялось ли резервное копирование недавно и было ли успешным, экспортёр не сообщает. |
 | Запуск при загрузке | `pve_onboot_status`, по одному ряду на гостя: 1, когда гость настроен на запуск при загрузке. **Guest Down** оповещает только об этих гостях. |
 | Репликация | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info` для каждого задания репликации хранилища. Их метка `id` — это идентификатор задания (например, `100-0`), а не ресурс. |
 

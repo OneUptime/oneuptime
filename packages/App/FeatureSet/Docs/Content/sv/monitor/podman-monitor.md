@@ -48,19 +48,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Podman Contain
 
 ### Välj värden
 
-Välj värden i **Podman-värd** under **Podman Monitor Configuration**. Varje värd som har skickat data finns i listan.
+Välj värden i **Podman-värd** under **Podman Monitor Configuration**. Varje värd som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till Podman-värd** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** – välj ett mätvärde i **Podman Metric** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
+- **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Podman Metric** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -84,7 +84,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Host Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje container bedöms för sig och får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Host Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje container bedöms för sig och får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 

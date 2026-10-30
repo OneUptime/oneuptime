@@ -50,19 +50,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **IoT-enhed** un
 
 ### Vælg flåden
 
-Vælg under **IoT Monitor Configuration** flåden i **IoT Fleet**. Hver flåde, der har sendt data, står på listen.
+Vælg under **IoT Monitor Configuration** flåden i **IoT Fleet**. Hver flåde, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj IoT-flåde** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Device Offline** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** - klik på en [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** - vælg én metrik i **IoT Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til én enhed eller én enhedstype. En brugerdefineret metrik grupperes ikke: den bedømmer flåden som helhed.
-- **Avanceret** - byg selv forespørgsler og formler under **Vælg målinger**, også over dine egne metriknavne, for eksempel hukommelse i brug i procent af en enheds hukommelsesstørrelse. Brug **Gruppér efter** `device.id` for at bedømme hver enhed for sig.
+- **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) - vælg én metrik i **IoT Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til én enhed eller én enhedstype. En brugerdefineret metrik grupperes ikke: den bedømmer flåden som helhed.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, også over dine egne metriknavne, for eksempel hukommelse i brug i procent af en enheds hukommelsesstørrelse. Brug **Gruppér efter** `device.id` for at bedømme hver enhed for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Select Metric Variable**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Select Metric Variable**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -88,7 +88,7 @@ Filtrene virker sammen: med et **Device ID** og en **Device Type** matcher en en
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder 5 skabeloner. Hver bygger en komplet monitor: metrikforespørgslen, en gruppering på `device.id`, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 5 skabeloner. Hver bygger en komplet monitor: metrikforespørgslen, en gruppering på `device.id`, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindue - undtagen **Device Offline**, som udløser ved den første måling under 1. Et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svinger omkring linjen, ikke skifter frem og tilbage.
 

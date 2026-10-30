@@ -169,7 +169,7 @@ Everything is ready. Begin running and processing data.
 | مهمان (ماشین مجازی یا LXC) | `pve_guest_info`، و سری‌های CPU، حافظه و شبکه روی شناسه‌های `qemu/*` و `lxc/*` (`pve_network_receive_bytes`، `pve_network_transmit_bytes`) |
 | ذخیره‌سازی | `pve_disk_usage_bytes`، `pve_disk_size_bytes`، `pve_storage_info` |
 | HA | `pve_ha_state` |
-| پوشش پشتیبان‌گیری | `pve_not_backed_up_total` (مهمان‌هایی که هیچ کار پشتیبان‌گیری‌ای پوششان نمی‌دهد؛ یک سری در سطح خوشه، بدون برچسب `id`) و `pve_not_backed_up_info` (یک سری برای هر مهمان بی‌پوشش، با `id` آن). پوشش‌یافته یعنی دست‌کم یک کار آن مهمان را برمی‌گزیند: اینکه پشتیبان‌گیری‌ها به‌تازگی اجرا شده یا موفق بوده‌اند را صادرکننده در دسترس نمی‌گذارد. |
+| پوشش پشتیبان‌گیری | `pve_not_backed_up_total` (مهمان‌هایی که هیچ کار پشتیبان‌گیری‌ای پوششان نمی‌دهد؛ یک سری در سطح خوشه، `id` `cluster/<name>`) و `pve_not_backed_up_info` (یک سری برای هر مهمان بی‌پوشش، با `id` آن). پوشش‌یافته یعنی دست‌کم یک کار آن مهمان را برمی‌گزیند: اینکه پشتیبان‌گیری‌ها به‌تازگی اجرا شده یا موفق بوده‌اند را صادرکننده در دسترس نمی‌گذارد. |
 | راه‌اندازی هنگام بوت | `pve_onboot_status`، یک سری برای هر مهمان: ۱ وقتی مهمان برای راه‌اندازی هنگام بوت تنظیم شده باشد. **Guest Down** فقط برای این مهمان‌ها هشدار می‌دهد. |
 | همتاسازی | `pve_replication_failed_syncs`، `pve_replication_duration_seconds`، `pve_replication_last_sync_timestamp_seconds`، `pve_replication_last_try_timestamp_seconds`، `pve_replication_next_sync_timestamp_seconds`، `pve_replication_info`، برای هر کار همتاسازی ذخیره‌سازی. برچسب `id` آن‌ها شناسه کار است (مانند `100-0`)، نه یک منبع. |
 

@@ -34,15 +34,15 @@ Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Kubernetes** under
 
 ### Vælg klyngen
 
-Vælg den i **Kubernetes-klynge**. Listen indeholder hver klynge, agenten har rapporteret fra.
+Vælg den i **Kubernetes-klynge**. Listen indeholder hver klynge, agenten har rapporteret fra. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Kubernetes-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Brug en af de tre faner:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**; **Skift** vælger en anden skabelon. **Custom Metric** og **Avanceret** ligger under **Flere felter**:
 
-| Fane | Hvad du vælger |
+| Hvor | Hvad du vælger |
 | --- | --- |
-| **Quick Setup** | En [færdig advarselsskabelon](#færdige-advarselsskabeloner). Den udfylder metrikken, omfanget, tidsintervallet og kriterierne; du kan stadig ændre **Tidsinterval**. |
+| **Hvad der skal advares om** | En [færdig advarselsskabelon](#færdige-advarselsskabeloner). Den udfylder metrikken, omfanget, tidsintervallet og kriterierne; du kan stadig ændre **Tidsinterval**. |
 | **Custom Metric** | Én metrik fra [metrikkataloget](#metrikkatalog), derefter dens **Ressourceomfang**, filtre, **Aggregering** (Gennemsnit, Maksimum, Minimum, Sum eller Antal) og **Tidsinterval**. |
 | **Avanceret** | **Ressourceomfang**, filtre og **Tidsinterval** samt dine egne metrikforespørgsler og formler under **Vælg målinger**, med et livediagram over resultatet. |
 
@@ -128,7 +128,7 @@ Hver måling sammenlignes med en baseline for samme time på ugen, bygget ud fra
 
 ## Færdige advarselsskabeloner
 
-Fanen **Quick Setup** viser disse skabeloner, grupperet efter kategori. Hver udfylder to kriterier: et, der markerer monitoren som offline og åbner en hændelse og en advarsel, mens betingelsen gælder, og et, der bringer den online igen, når betingelsen ophører.
+Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efter kategori. Hver udfylder to kriterier: et, der markerer monitoren som offline og åbner en hændelse og en advarsel, mens betingelsen gælder, og et, der bringer den online igen, når betingelsen ophører.
 
 | Skabelon | Kategori | Udløses, når | Alvorlighed |
 | --- | --- | --- | --- |

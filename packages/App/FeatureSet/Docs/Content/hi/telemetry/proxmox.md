@@ -169,7 +169,7 @@ Everything is ready. Begin running and processing data.
 | गेस्ट (VM या LXC) | `pve_guest_info`, और `qemu/*` और `lxc/*` ID पर CPU, मेमोरी और नेटवर्क सीरीज़ (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | स्टोरेज | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| बैकअप कवरेज | `pve_not_backed_up_total` (वे गेस्ट जिन्हें कोई बैकअप जॉब कवर नहीं करता; क्लस्टर स्तर की एक सीरीज़, बिना `id` लेबल के) और `pve_not_backed_up_info` (हर बिना कवर वाले गेस्ट की एक सीरीज़, उसके `id` के साथ)। कवर का अर्थ है कि कम से कम एक जॉब गेस्ट को चुनता है: बैकअप हाल में चले या सफल हुए या नहीं, यह एक्सपोर्टर उजागर नहीं करता। |
+| बैकअप कवरेज | `pve_not_backed_up_total` (वे गेस्ट जिन्हें कोई बैकअप जॉब कवर नहीं करता; क्लस्टर स्तर की एक सीरीज़, `id` `cluster/<name>`) और `pve_not_backed_up_info` (हर बिना कवर वाले गेस्ट की एक सीरीज़, उसके `id` के साथ)। कवर का अर्थ है कि कम से कम एक जॉब गेस्ट को चुनता है: बैकअप हाल में चले या सफल हुए या नहीं, यह एक्सपोर्टर उजागर नहीं करता। |
 | बूट पर शुरू होना | `pve_onboot_status`, हर गेस्ट के लिए एक सीरीज़: 1 जब गेस्ट बूट पर शुरू होने के लिए सेट हो। **Guest Down** सिर्फ़ इन्हीं गेस्ट के लिए अलर्ट करता है। |
 | रेप्लिकेशन | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, हर स्टोरेज रेप्लिकेशन जॉब के लिए। इनका `id` लेबल जॉब ID है (जैसे `100-0`), कोई संसाधन नहीं। |
 

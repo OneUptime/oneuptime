@@ -629,11 +629,14 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
 
   /*
    * Pick a Quick Setup template so the monitor step is fully configured.
-   * Templates are radio rows in the "Alert templates" group since #4979
-   * (AlertTemplatePicker), not buttons; the monitor type cards are radios
-   * too, so the pick is held to that group. Once picked, the list folds
-   * into the chosen template.
+   * A new monitor starts on its type's default alert (Stopped Reporting,
+   * or Device Offline for IoT), folded under "What to alert on"; Change
+   * opens the list. Templates are radio rows in the "Alert templates"
+   * group since #4979 (AlertTemplatePicker), not buttons; the monitor type
+   * cards are radios too, so the pick is held to that group. Once picked,
+   * the list folds into the chosen template.
    */
+  await page.getByTestId("alert-template-change").click();
   await page
     .getByRole("radiogroup", { name: "Alert templates" })
     .getByRole("radio", { name: data.recipe.templateName })

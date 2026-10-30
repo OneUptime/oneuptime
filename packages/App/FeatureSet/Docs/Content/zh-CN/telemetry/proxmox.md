@@ -169,7 +169,7 @@ Collector 每 30 秒抓取一次导出器：其集群收集器在 `PVE_HOST` 上
 | 客户机（VM 或 LXC） | `pve_guest_info`，以及 `qemu/*` 和 `lxc/*` ID 上的 CPU、内存和网络序列（`pve_network_receive_bytes`、`pve_network_transmit_bytes`） |
 | 存储 | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| 备份覆盖情况 | `pve_not_backed_up_total`（没有任何备份任务覆盖的客户机；单个集群级序列，没有 `id` 标签）和 `pve_not_backed_up_info`（每个未被覆盖的客户机一个序列，带有其 `id`）。被覆盖是指至少有一个任务选择了该客户机：备份最近是否运行过或是否成功，导出器并不提供。 |
+| 备份覆盖情况 | `pve_not_backed_up_total`（没有任何备份任务覆盖的客户机；单个集群级序列，`id` 为 `cluster/<name>`）和 `pve_not_backed_up_info`（每个未被覆盖的客户机一个序列，带有其 `id`）。被覆盖是指至少有一个任务选择了该客户机：备份最近是否运行过或是否成功，导出器并不提供。 |
 | 开机自启 | `pve_onboot_status`，每个客户机一个序列：客户机设置为开机自启时为 1。**Guest Down** 只针对这些客户机告警。 |
 | 复制 | 每个存储复制任务的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它们的 `id` 标签是任务 ID（例如 `100-0`），而不是资源。 |
 

@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **VMware** under
 
 ### Velg vCenteret
 
-Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCenter som har sendt data, eller som du har koblet til uten en agent, står i listen.
+Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCenter som har sendt data, eller som du har koblet til uten en agent, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til vCenter** åpner siden med vCentere, der du kobler til et.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **vCenter Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -106,7 +106,7 @@ I monitorfiltre og grupperingsnøkler begynner ressursattributter med `resource.
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 24 maler for vanlige VMware-problemer, og **Quick Setup** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 24 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 
@@ -130,11 +130,11 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 | Cluster Host Not Effective | Klynge | Kritisk | `vcenter.cluster.host.count` filtrert til `effective = false`, Max per `resource.vcenter.cluster.name` | Over 0: en vert er i vedlikeholdsmodus, frakoblet eller svarer ikke, så klyngen kjører med mindre kapasitet enn den er dimensjonert for | Ved 0 |
 | Datacenter Hosts Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `status = red`, Max per `resource.vcenter.datacenter.name` | Over 0: en vert har en kritisk alarm, som en maskinvaresensor, en tapt lagringssti eller en feil i HA-agenten | Ved 0 |
 | Datacenter Hosts Degraded | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `status = yellow`, Max per datasenter | Over 0: en vert har en advarselsalarm | Ved 0 |
-| Datacenter Hosts Powered Off | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `power_state = off`, Max per datasenter | Over 0: en vert er slått av - den krasjet, mistet strømmen eller ble satt i standby av DPM | Ved 0 |
+| Datacenter Hosts Not Responding | Datasenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `power_state = unknown`, Max per datasenter | Over 0: vCenter har mistet kontakten med en vert - den krasjet, mistet strømmen eller administrasjonsnettverket, eller ble koblet fra. En vert som er slått av med vilje eller satt i standby av DPM, teller ikke | Ved 0 |
 | Datacenter VMs Unhealthy | Datasenter | Warning | `vcenter.datacenter.vm.count` filtrert til `status = red`, Max per datasenter | Over 0: en VM har en kritisk alarm, som en mislykket HA-omstart, en tapt datastore eller et tapt Tools-heartbeat | Ved 0 |
 | Datacenter Clusters Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.cluster.count` filtrert til `status = red`, Max per datasenter | Over 0: en klynge har en kritisk alarm, som for få HA-failoverressurser, et mislykket HA-valg eller en kritisk vSAN-helsesjekk | Ved 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per klynge | Over 20 000 µs (20 ms): lagringen blir tregere for hver VM på vSAN-datastoren. Stille på klynger uten vSAN | Ved 18 000 µs eller mindre |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per klynge | Over 0: en diskgruppe klarer ikke å holde tritt, og vSAN bremser I/O-en til klientene sine | Ved 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per klynge, **siste 15 minutter** | Over 20 000 µs (20 ms): lagringen blir tregere for hver VM på vSAN-datastoren. Stille på klynger uten vSAN | Ved 18 000 µs eller mindre |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per klynge, **siste 15 minutter** | Over 0: en diskgruppe klarer ikke å holde tritt, og vSAN bremser I/O-en til klientene sine | Ved 0 |
 | Resource Pool Memory Swapped | Klynge | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Over 0: poolens VM-er tar minne fra vertens swap, som regel fordi poolens minnegrense eller -andeler er for lave | Ved 0 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.

@@ -48,19 +48,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir le vCenter
 
-Sous **VMware Monitor Configuration**, choisissez le vCenter dans **vCenter**. Chaque vCenter qui a envoyé des données, ou que vous avez connecté sans agent, figure dans la liste.
+Sous **VMware Monitor Configuration**, choisissez le vCenter dans **vCenter**. Chaque vCenter qui a envoyé des données, ou que vous avez connecté sans agent, figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un vCenter** ouvre la page des vCenters, où vous en connectez un.
 
 ### Choisir ce qui est surveillé
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **vCenter Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** - cliquez sur un [modèle](#modèles-dalerte-prédéfinis). Il définit la métrique, les filtres d'attributs, l'agrégation, la plage temporelle, le regroupement et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez toujours modifier la **Plage temporelle**.
-- **Custom Metric** - choisissez une métrique dans **VMware Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. Le formulaire la regroupe par l'objet qu'elle décrit, de sorte que chaque hôte, VM ou datastore est jugé séparément, et les [filtres](#paramètres-du-moniteur) la restreignent à un datacenter, un cluster, un hôte, une VM, un datastore ou un pool de ressources.
-- **Avancé** - construisez vous-même requêtes et formules sous **Sélectionner les métriques**, avec des filtres sur des attributs comme `disk_state`, `power_state` ou `status`. Utilisez **Regrouper par** avec un [attribut d'identité](#attributs-didentité) pour juger chaque objet séparément.
+- **Modifier** - choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit la métrique, les filtres d'attributs, l'agrégation, la plage temporelle, le regroupement et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez toujours modifier la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) - choisissez une métrique dans **VMware Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. Le formulaire la regroupe par l'objet qu'elle décrit, de sorte que chaque hôte, VM ou datastore est jugé séparément, et les [filtres](#paramètres-du-moniteur) la restreignent à un datacenter, un cluster, un hôte, une VM, un datastore ou un pool de ressources.
+- **Avancé** (sous **Plus de champs**) - construisez vous-même requêtes et formules sous **Sélectionner les métriques**, avec des filtres sur des attributs comme `disk_state`, `power_state` ou `status`. Utilisez **Regrouper par** avec un [attribut d'identité](#attributs-didentité) pour juger chaque objet séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro, donc définissez votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données, donc définissez votre propre seuil.
 
 ### Créer le moniteur
 
@@ -106,7 +106,7 @@ Dans les filtres du moniteur et les clés de regroupement, les attributs de ress
 
 ## Modèles d'alerte prédéfinis
 
-OneUptime fournit 24 modèles pour les problèmes VMware courants, et **Quick Setup** les propose tous. Chacun construit un moniteur complet : la requête de métrique, ses filtres d'attributs, un regroupement sur le propre attribut d'identité de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+OneUptime fournit 24 modèles pour les problèmes VMware courants, et la liste de **Sur quoi alerter** les propose tous. Chacun construit un moniteur complet : la requête de métrique, ses filtres d'attributs, un regroupement sur le propre attribut d'identité de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Les modèles lisent les 5 dernières minutes, sauf indication contraire du tableau. Un critère ne déclenche que lorsque la condition est vraie pour chaque minute de sa fenêtre, et un critère de seuil se rétablit 10 % au-delà de son seuil, donc une valeur qui oscille autour de la ligne ne bascule pas sans cesse.
 
@@ -130,11 +130,11 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire du table
 | Cluster Host Not Effective | Cluster | Critique | `vcenter.cluster.host.count` filtrée sur `effective = false`, Max par `resource.vcenter.cluster.name` | Au-dessus de 0 : un hôte est en mode maintenance, déconnecté ou ne répond pas, donc le cluster tourne avec moins de capacité que prévu | À 0 |
 | Datacenter Hosts Unhealthy | Datacenter | Critique | `vcenter.datacenter.host.count` filtrée sur `status = red`, Max par `resource.vcenter.datacenter.name` | Au-dessus de 0 : un hôte a une alarme critique, comme un capteur matériel, un chemin de stockage perdu ou une erreur de l'agent HA | À 0 |
 | Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtrée sur `status = yellow`, Max par datacenter | Au-dessus de 0 : un hôte a une alarme d'avertissement | À 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtrée sur `power_state = off`, Max par datacenter | Au-dessus de 0 : un hôte est éteint - il a planté, perdu son alimentation, ou été mis en veille par DPM | À 0 |
+| Datacenter Hosts Not Responding | Datacenter | Critique | `vcenter.datacenter.host.count` filtrée sur `power_state = unknown`, Max par datacenter | Au-dessus de 0 : vCenter a perdu le contact avec un hôte - il a planté, perdu son alimentation ou son réseau de gestion, ou a été déconnecté. Un hôte éteint volontairement ou mis en veille par DPM ne compte pas | À 0 |
 | Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtrée sur `status = red`, Max par datacenter | Au-dessus de 0 : une VM a une alarme critique, comme un redémarrage HA échoué, un datastore perdu ou un heartbeat des Tools perdu | À 0 |
 | Datacenter Clusters Unhealthy | Datacenter | Critique | `vcenter.datacenter.cluster.count` filtrée sur `status = red`, Max par datacenter | Au-dessus de 0 : un cluster a une alarme critique, comme des ressources de basculement HA insuffisantes, une élection HA échouée ou une vérification de santé vSAN critique | À 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg par cluster | Au-dessus de 20 000 µs (20 ms) : le stockage ralentit pour chaque VM du datastore vSAN. Silencieux sur les clusters sans vSAN | À 18 000 µs ou moins |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max par cluster | Au-dessus de 0 : un groupe de disques ne suit pas, et vSAN ralentit les E/S de ses clients | À 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg par cluster, **15 dernières minutes** | Au-dessus de 20 000 µs (20 ms) : le stockage ralentit pour chaque VM du datastore vSAN. Silencieux sur les clusters sans vSAN | À 18 000 µs ou moins |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max par cluster, **15 dernières minutes** | Au-dessus de 0 : un groupe de disques ne suit pas, et vSAN ralentit les E/S de ses clients | À 0 |
 | Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max par `resource.vcenter.resource_pool.inventory_path` | Au-dessus de 0 : les VM du pool prennent de la mémoire dans le swap de l'hôte, généralement parce que la limite ou les parts mémoire du pool sont trop basses | À 0 |
 
 La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent à la gravité d'incident et d'alerte la plus élevée de votre projet ; modifiez-les dans le critère.

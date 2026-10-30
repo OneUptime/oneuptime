@@ -197,7 +197,16 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
     ).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("Quick Setup")).toBeVisible();
+    /*
+     * A new monitor starts on the Stopped Reporting alert, folded under
+     * "What to alert on". No array is picked yet, so it is FlashArray's,
+     * and it leaves the platform open; Change opens the list.
+     */
+    await expect(page.getByText("What to alert on")).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Array Stopped Reporting (FlashArray)",
+    );
+    await page.getByTestId("alert-template-change").click();
 
     /*
      * No array is picked yet, so its platform is unknown and every
@@ -207,6 +216,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
      */
     const expectedTemplateNames: Array<string> = [
       // FlashArray
+      "Array Stopped Reporting (FlashArray)",
       "Critical Array Alert (FlashArray)",
       "Warning Array Alert (FlashArray)",
       "Capacity Above 80% (FlashArray)",
@@ -219,6 +229,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
       "Host Lost Redundant Paths (FlashArray)",
       "Replication Lag Above 1 Minute (FlashArray)",
       // FlashBlade
+      "Array Stopped Reporting (FlashBlade)",
       "Critical Array Alert (FlashBlade)",
       "Warning Array Alert (FlashBlade)",
       "Capacity Above 80% (FlashBlade)",

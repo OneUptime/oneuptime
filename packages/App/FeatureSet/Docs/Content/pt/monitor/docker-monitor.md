@@ -48,19 +48,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Docker C
 
 ### Escolher o host
 
-Em **Configuração do monitor Docker**, escolha o host em **Host Docker**. Todo host que enviou dados está na lista.
+Em **Configuração do monitor Docker**, escolha o host em **Host Docker**. Todo host que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar host Docker** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que monitorar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Host Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** – clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** – escolha uma métrica em **Métrica do Docker** e depois defina **Agregação** e **Intervalo de tempo**. **Nome do contêiner** e **Imagem do contêiner** a restringem a alguns contêineres.
-- **Avançado** – monte você mesmo consultas e fórmulas em **Selecionar Métricas**. Use **Agrupar por** `resource.container.name` para avaliar cada contêiner separadamente.
+- **Alterar** – escolha outro [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) – escolha uma métrica em **Métrica do Docker** e depois defina **Agregação** e **Intervalo de tempo**. **Nome do contêiner** e **Imagem do contêiner** a restringem a alguns contêineres.
+- **Avançado** (em **Mais campos**) – monte você mesmo consultas e fórmulas em **Selecionar Métricas**. Use **Agrupar por** `resource.container.name` para avaliar cada contêiner separadamente.
 
 ### Revisar os critérios
 
-Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -84,7 +84,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece sete modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Host Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada contêiner é avaliado separadamente, um contêiner ocupado não esconde outro, e cada contêiner que ultrapassa o limite recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece sete modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Host Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada contêiner é avaliado separadamente, um contêiner ocupado não esconde outro, e cada contêiner que ultrapassa o limite recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
 
 Salvo indicação contrária na tabela, um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
