@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "De mest riskfyllda öppna problemen, poängsatta från 0 till 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Det som dess taggar och skanningar inte alltid kan avgöra. Var och en ändrar vad dess kontroller hittar.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Om prover av dess innehåll läses för att hitta känsliga data, och vad skanningarna hoppar över.",
-  "{{confidence}} confidence": "Konfidens: {{confidence}}"
+  "{{confidence}} confidence": "Konfidens: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} larmar personer i det här projektet. Välj här vem det larmar, eller ändra det senare i larmsteget i Byggare.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Vem det larmar sparas i larmsteget, där du kan ändra det senare i Byggare.",
+  "Pick who to page.": "Välj vem som ska larmas."
 }

@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "پرریسک‌ترین مسائل باز، با امتیاز 0 تا 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "آنچه برچسب‌ها و اسکن‌های آن همیشه نمی‌توانند تشخیص دهند. هر کدام نتیجه بررسی‌های آن را تغییر می‌دهد.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "اینکه آیا نمونه‌هایی از محتوای آن برای یافتن داده‌های حساس خوانده می‌شود و اسکن‌ها چه چیزهایی را نادیده می‌گیرند.",
-  "{{confidence}} confidence": "اطمینان: {{confidence}}"
+  "{{confidence}} confidence": "اطمینان: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} افرادی از این پروژه را فرا می‌خواند. اینجا انتخاب کنید چه کسی را فرا بخواند، یا بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "اینکه چه کسی را فرا می‌خواند در مرحلهٔ فراخوانی آن ذخیره می‌شود و می‌توانید بعداً در سازنده تغییرش دهید.",
+  "Pick who to page.": "انتخاب کنید چه کسی فراخوانده شود."
 }

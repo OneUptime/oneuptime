@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "I problemi aperti più rischiosi, con un punteggio da 0 a 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Ciò che i suoi tag e le scansioni non sempre possono sapere. Ognuno cambia ciò che trovano i suoi controlli.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Se vengono letti campioni del suo contenuto per trovare dati sensibili, e cosa saltano le scansioni.",
-  "{{confidence}} confidence": "Confidenza: {{confidence}}"
+  "{{confidence}} confidence": "Confidenza: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} avvisa persone di questo progetto. Scegli qui chi avvisa, oppure cambialo in seguito nel suo passaggio di avviso, nel Costruttore.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Chi avvisa viene salvato nel suo passaggio di avviso, dove puoi cambiarlo in seguito nel Costruttore.",
+  "Pick who to page.": "Scegli chi avvisare."
 }

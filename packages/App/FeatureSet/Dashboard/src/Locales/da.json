@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "De mest risikable åbne problemer, scoret fra 0 til 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Hvad dets tags og scanninger ikke altid kan vise. Hver af disse ændrer, hvad dets kontroller finder.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Om der læses prøver af dets indhold for at finde følsomme data, og hvad scanningerne springer over.",
-  "{{confidence}} confidence": "Sikkerhed: {{confidence}}"
+  "{{confidence}} confidence": "Sikkerhed: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} kalder personer i dette projekt op. Vælg her, hvem den kalder op, eller ændr det senere i dens opkaldstrin i Bygger.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Hvem den kalder op, gemmes i dens opkaldstrin, hvor du senere kan ændre det i Bygger.",
+  "Pick who to page.": "Vælg, hvem der skal kaldes op."
 }

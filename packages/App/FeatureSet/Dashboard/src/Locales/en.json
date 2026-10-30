@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "The riskiest open issues, scored from 0 to 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "What its tags and scans cannot always tell. Each changes what its checks find.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Whether samples of its content are read to find sensitive data, and what the scans skip.",
-  "{{confidence}} confidence": "{{confidence}} confidence"
+  "{{confidence}} confidence": "{{confidence}} confidence",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+  "Pick who to page.": "Pick who to page."
 }

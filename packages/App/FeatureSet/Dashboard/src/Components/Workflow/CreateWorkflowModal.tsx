@@ -3,8 +3,14 @@
  *
  * Three steps: pick a starting point, name it, fill in whatever configuration
  * the template asked for. The third step only appears when the chosen template
- * declares variables, so "Start from scratch" and the zero-config templates
- * stay two clicks away.
+ * declares variables or pages people, so "Start from scratch" and the
+ * zero-config templates stay two clicks away.
+ *
+ * A template that pages people asks who, there, with the people picker the
+ * Builder draws for its Page step (getWhoToPageQuestions): picked from the
+ * project's own people, teams, schedules or policies, which no template can
+ * name. So the workflow opens in the Builder with nothing left to set up -
+ * before, its Page step waited there with an error on it.
  *
  * The first step is the template picker (WorkflowTemplatePicker): Start from
  * scratch first, then a few recommended templates with a search and a
@@ -58,18 +64,29 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
+  WhoToPagePicks,
   WorkflowTemplate,
   WorkflowTemplateVariable,
   getWorkflowTemplate,
 } from "Common/Types/Workflow/Templates";
+import PeoplePicker from "Common/UI/Components/PeoplePicker/PeoplePicker";
+import { PeoplePickerValue } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  RECORD_LIST_COPY,
+  RecordListCopy,
+} from "Common/UI/Components/Workflow/RecordList/RecordListField";
 import {
   TemplateVariableEdit,
+  WhoToPageErrors,
+  WhoToPageQuestion,
   WorkflowTemplateVariableErrors,
   WorkflowTemplateVariableValues,
   buildWorkflowFromTemplate,
   buildWorkflowVariables,
   editTemplateVariable,
+  getWhoToPageQuestions,
   validateTemplateVariableValues,
+  validateWhoToPage,
 } from "../../Utils/Workflow/WorkflowTemplateCreateUtil";
 import {
   INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
@@ -133,6 +150,9 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   const variableValues: WorkflowTemplateVariableValues = configuration.values;
   const [variableErrors, setVariableErrors] =
     useState<WorkflowTemplateVariableErrors>({});
+  // Who is picked for each Page step of the template, by its component id.
+  const [whoToPage, setWhoToPage] = useState<WhoToPagePicks>({});
+  const [whoToPageErrors, setWhoToPageErrors] = useState<WhoToPageErrors>({});
   const [pickerState, setPickerState] = useState<WorkflowTemplatePickerState>(
     INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
   );
@@ -161,7 +181,12 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   const variables: Array<WorkflowTemplateVariable> =
     selectedTemplate?.variables || [];
 
-  const showConfigureStep: boolean = variables.length > 0;
+  const whoToPageQuestions: Array<WhoToPageQuestion> = useMemo(() => {
+    return getWhoToPageQuestions(selectedTemplate);
+  }, [selectedTemplate]);
+
+  const showConfigureStep: boolean =
+    variables.length > 0 || whoToPageQuestions.length > 0;
 
   type ChooseStartFunction = (template: WorkflowTemplate | null) => void;
 
@@ -199,6 +224,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       setDescription(template ? template.workflowDescription : "");
       setConfiguration(EMPTY_CONFIGURATION);
       setVariableErrors({});
+      setWhoToPage({});
+      setWhoToPageErrors({});
     }
 
     setNameError("");
@@ -238,6 +265,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
         projectId: projectId,
         template: selectedTemplate,
         values: variableValues,
+        whoToPage: whoToPage,
       });
 
       const response: HTTPResponse<
@@ -335,10 +363,18 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
           selectedTemplate as WorkflowTemplate,
           variableValues,
         );
+      const pageErrors: WhoToPageErrors = validateWhoToPage(
+        selectedTemplate as WorkflowTemplate,
+        whoToPage,
+      );
 
       setVariableErrors(errors);
+      setWhoToPageErrors(pageErrors);
 
-      if (Object.keys(errors).length > 0) {
+      if (
+        Object.keys(errors).length > 0 ||
+        Object.keys(pageErrors).length > 0
+      ) {
         return;
       }
 
@@ -440,18 +476,84 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
 
   type RenderConfigureStepFunction = () => ReactElement;
 
+  type RenderWhoToPageFunction = (question: WhoToPageQuestion) => ReactElement;
+
+  /*
+   * One Page step's question: its title and help as the template words
+   * them, and the people picker the Builder draws for the step, listing the
+   * kind the step pages.
+   */
+  const renderWhoToPage: RenderWhoToPageFunction = (
+    question: WhoToPageQuestion,
+  ): ReactElement => {
+    const fieldId: string = `workflow-who-to-page-${question.componentId}`;
+    const copy: RecordListCopy = RECORD_LIST_COPY[question.kind];
+    const fieldError: string | undefined =
+      whoToPageErrors[question.componentId];
+
+    return (
+      <div key={question.componentId}>
+        <FieldLabelElement
+          title={question.title}
+          id={`${fieldId}-label`}
+          required={question.required}
+          description={question.description}
+          descriptionId={`${fieldId}-description`}
+        />
+        <PeoplePicker
+          kinds={[question.kind]}
+          value={{ [question.kind]: whoToPage[question.componentId] || [] }}
+          onChange={(next: PeoplePickerValue) => {
+            const picked: Array<string> = next[question.kind] || [];
+
+            setWhoToPage((current: WhoToPagePicks): WhoToPagePicks => {
+              return { ...current, [question.componentId]: picked };
+            });
+
+            // Somebody picked: the message under the field goes.
+            if (picked.length > 0) {
+              setWhoToPageErrors(
+                (current: WhoToPageErrors): WhoToPageErrors => {
+                  const remaining: WhoToPageErrors = { ...current };
+
+                  delete remaining[question.componentId];
+
+                  return remaining;
+                },
+              );
+            }
+          }}
+          addButtonText={copy.addButtonText}
+          searchPlaceholder={copy.searchPlaceholder}
+          emptyText={copy.emptyText}
+          ariaLabelledby={`${fieldId}-label`}
+          ariaDescribedby={`${fieldId}-description`}
+          // Kept in English, as its key, and looked up as it is shown.
+          error={fieldError ? translateString(fieldError) : undefined}
+          dataTestId={fieldId}
+        />
+      </div>
+    );
+  };
+
   const renderConfigureStep: RenderConfigureStepFunction = (): ReactElement => {
     return (
       <div className="space-y-5">
         {/*
          * One sentence, translated whole. The template's name goes in as it
-         * is: template names are catalog content, written in English.
+         * is: template names are catalog content, written in English. A
+         * template that only pages asks for nothing saved as a variable.
          */}
         <p className="text-sm text-gray-600">
-          {translateTemplate(
-            "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
-            { templateName: selectedTemplate?.name || "" },
-          )}
+          {variables.length > 0
+            ? translateTemplate(
+                "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+                { templateName: selectedTemplate?.name || "" },
+              )
+            : translateTemplate(
+                "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+                { templateName: selectedTemplate?.name || "" },
+              )}
         </p>
 
         {variables.map(
@@ -535,6 +637,25 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+
+        {/*
+         * Who it pages, after the settings: not a workflow variable, so not
+         * under the sentence that says the settings are.
+         */}
+        {variables.length > 0 && whoToPageQuestions.length > 0 ? (
+          <p
+            className="border-t border-gray-200 pt-5 text-sm text-gray-600"
+            data-testid="workflow-who-to-page-intro"
+          >
+            {translateString(
+              "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        {whoToPageQuestions.map(renderWhoToPage)}
       </div>
     );
   };

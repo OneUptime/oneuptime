@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "リスクが最も高いオープンな問題 (0～100 でスコア化)。",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "タグやスキャンだけでは判断できない情報です。それぞれの設定によってチェックの結果が変わります。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "機密データを見つけるためにコンテンツのサンプルを読み取るかどうかと、スキャンでスキップする対象。",
-  "{{confidence}} confidence": "信頼度: {{confidence}}"
+  "{{confidence}} confidence": "信頼度: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} はこのプロジェクトのメンバーを呼び出します。ここで呼び出す相手を選ぶか、後からビルダーの呼び出しステップで変更してください。",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "呼び出す相手は呼び出しステップに保存され、後からビルダーで変更できます。",
+  "Pick who to page.": "呼び出す相手を選んでください。"
 }

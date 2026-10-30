@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "Самые рискованные открытые проблемы, с оценкой от 0 до 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "То, что не всегда можно определить по тегам и сканированиям. Каждый параметр влияет на результаты проверок.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Читаются ли образцы содержимого для поиска конфиденциальных данных и что пропускают сканирования.",
-  "{{confidence}} confidence": "Достоверность: {{confidence}}"
+  "{{confidence}} confidence": "Достоверность: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "Шаблон «{{templateName}}» вызывает людей из этого проекта. Выберите здесь, кого он вызывает, или измените это позже в шаге вызова в Конструкторе.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Кого он вызывает, сохраняется в шаге вызова, где это можно изменить позже в Конструкторе.",
+  "Pick who to page.": "Выберите, кого вызывать."
 }

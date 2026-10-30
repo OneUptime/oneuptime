@@ -37,6 +37,8 @@ import {
   WorkflowTemplateOAuth2Variable,
   WorkflowTemplateOutline,
   WorkflowTemplateVariable,
+  WorkflowTemplateWhoToPage,
+  WhoToPagePicks,
   buildGraphForTemplate,
   fillWorkflowTemplateSetting,
   getRecommendedWorkflowTemplates,
@@ -72,7 +74,6 @@ import {
   LintGraphNode,
   WorkflowLintIssue,
   WorkflowLintResult,
-  WorkflowLintRule,
   WorkflowLintSeverity,
   lintWorkflowGraph,
 } from "../../../UI/Components/Workflow/GraphLint";
@@ -169,17 +170,22 @@ const specOf: SpecOfFunction = (templateId: string): TemplateSpec => {
  * way the builder does on load. Without the metadata the linter cannot check
  * arguments or return values.
  */
-type HydrateFunction = (templateId: string) => {
+type HydrateFunction = (
+  templateId: string,
+  picks?: WhoToPagePicks,
+) => {
   nodes: Array<LintGraphNode>;
   edges: Array<LintGraphEdge>;
 };
 
 const hydrate: HydrateFunction = (
   templateId: string,
+  picks?: WhoToPagePicks,
 ): { nodes: Array<LintGraphNode>; edges: Array<LintGraphEdge> } => {
   const graph: JSONObject = buildGraphForTemplate(
     templateId,
     generateId,
+    picks,
   ) as JSONObject;
 
   const rawNodes: Array<JSONObject> = graph["nodes"] as Array<JSONObject>;
@@ -221,58 +227,43 @@ const hydrate: HydrateFunction = (
   return { nodes: nodes, edges: edges };
 };
 
+// One of the project's on-call policies, teams, schedules or people, by id.
+const PICKED_ID: string = "8f1c2a4e-5b6d-4e7f-9a0b-1c2d3e4f5a6b";
+
 /*
- * What the builder's checks say of a template, but for the one thing a
- * paging template leaves for its user: who a Page step pages, which they
- * pick in the builder (isWhoToPage). Everything else is the template's to
- * get right.
+ * What the create wizard is told for a template that pages: somebody for
+ * each of its Page steps (WorkflowTemplate.whoToPage), as it asks.
  */
-type LintIssuesBesidesWhoToPageFunction = (
-  templateId: string,
-  result: WorkflowLintResult,
-) => Array<WorkflowLintIssue>;
+type PicksForFunction = (templateId: string) => WhoToPagePicks;
 
-const lintIssuesBesidesWhoToPage: LintIssuesBesidesWhoToPageFunction = (
-  templateId: string,
-  result: WorkflowLintResult,
-): Array<WorkflowLintIssue> => {
-  const spec: TemplateSpec = specOf(templateId);
+const picksFor: PicksForFunction = (templateId: string): WhoToPagePicks => {
+  const picks: WhoToPagePicks = {};
 
-  return result.issues.filter((issue: WorkflowLintIssue): boolean => {
-    if (issue.rule !== WorkflowLintRule.MissingRequiredArgument) {
-      return true;
-    }
+  for (const ask of getWorkflowTemplate(templateId)?.whoToPage || []) {
+    picks[ask.componentId] = [PICKED_ID];
+  }
 
-    const node: TemplateNodeSpec | undefined = spec.nodes.find(
-      (candidate: TemplateNodeSpec): boolean => {
-        return candidate.componentId === issue.componentId;
-      },
-    );
-    const argument: Argument | undefined = node
-      ? findMetadata(node.metadataId)?.arguments.find(
-          (candidate: Argument): boolean => {
-            return candidate.id === issue.argumentId;
-          },
-        )
-      : undefined;
-
-    return !(argument && isWhoToPage(argument));
-  });
+  return picks;
 };
 
-/*
- * Whether a template has a Page step: the one kind of step a template
- * leaves unfinished, for its user to say who is paged.
- */
-type LeavesWhoToPageFunction = (templateId: string) => boolean;
+// The Page steps of a template: the steps with a who-to-page setting (isWhoToPage).
+type PageStepsOfFunction = (templateId: string) => Array<TemplateNodeSpec>;
 
-const leavesWhoToPage: LeavesWhoToPageFunction = (
+const pageStepsOf: PageStepsOfFunction = (
   templateId: string,
-): boolean => {
-  return specOf(templateId).nodes.some((node: TemplateNodeSpec): boolean => {
+): Array<TemplateNodeSpec> => {
+  return specOf(templateId).nodes.filter((node: TemplateNodeSpec): boolean => {
     return (findMetadata(node.metadataId)?.arguments || []).some(isWhoToPage);
   });
 };
+
+/*
+ * The templates that leave something for the Builder the wizard does not
+ * ask for: Huntress's signing secret, kept on the trigger's panel.
+ */
+const LEAVE_SOMETHING_FOR_THE_BUILDER: Array<string> = [
+  "huntress-incident-report-to-incident",
+];
 
 /** Every string an argument holds, including strings nested inside JSON objects. */
 type CollectStringsFunction = (value: JSONValue | undefined) => Array<string>;
@@ -512,8 +503,12 @@ describe("workflow templates", () => {
           ...(template.category === WorkflowTemplateCategory.Dynamics365
             ? ["oauth2Variables"]
             : []),
-          // Only the templates that page people leave something for the Builder.
-          ...(leavesWhoToPage(template.id) ? ["setUpInBuilder"] : []),
+          // Only the templates that page people ask who to page.
+          ...(pageStepsOf(template.id).length > 0 ? ["whoToPage"] : []),
+          // Only Huntress's leaves something for the Builder.
+          ...(LEAVE_SOMETHING_FOR_THE_BUILDER.includes(template.id)
+            ? ["setUpInBuilder"]
+            : []),
         ].sort(),
       );
     }
@@ -782,14 +777,11 @@ describe("a workflow template's outline", () => {
     expect(getWorkflowTemplateOutline("does-not-exist")).toBeNull();
   });
 
-  test("a notification template: its trigger, its message, then Log", () => {
+  test("a notification template: its trigger, then its message", () => {
     expect(outlineOf("incident-created-slack")).toEqual({
       triggerComponentId: "incident-on-create",
-      stepComponentIds: [
-        ComponentID.SlackSendMessageToChannel,
-        ComponentID.Log,
-      ],
-      blockCount: 3,
+      stepComponentIds: [ComponentID.SlackSendMessageToChannel],
+      blockCount: 2,
     });
   });
 
@@ -805,11 +797,14 @@ describe("a workflow template's outline", () => {
     ]);
   });
 
-  test("a check's Yes side is listed before its No side", () => {
+  test("a check is listed before the step it leads to", () => {
     expect(outlineOf("monitor-offline-only-slack").stepComponentIds).toEqual([
       ComponentID.IfElse,
       ComponentID.SlackSendMessageToChannel,
-      ComponentID.Log,
+    ]);
+    expect(outlineOf("subscriber-added-slack").stepComponentIds).toEqual([
+      ComponentID.JavaScriptCheck,
+      ComponentID.SlackSendMessageToChannel,
     ]);
   });
 
@@ -1543,9 +1538,9 @@ describe.each(
    *
    * One setting is the template's user's to fill in, and no template's: who
    * a Page step pages - people, teams, schedules or policies of their own
-   * project, picked by name (isWhoToPage). The workflow is created switched
-   * off and opens in the builder, where the step says "Click to set up".
-   * "the paging templates" below holds those templates to exactly that.
+   * project (isWhoToPage). The create wizard asks for it (whoToPage), and
+   * the checks below build the graph as the wizard does, with somebody
+   * picked.
    */
   test("every required argument is filled in", () => {
     for (const node of specOf(templateId).nodes) {
@@ -1605,30 +1600,32 @@ describe.each(
     }
   });
 
-  test("every fallible component handles its Error port", () => {
+  /*
+   * A step that fails with nothing connected to its Error output fails the
+   * run, and its Steps entry says why (UnhandledStepFailure). So a template
+   * leaves an Error output unconnected rather than end it in a Log that
+   * says the same thing in the run log; an Error output that is connected
+   * leads to a step that does something about it - the scheduled check's
+   * Slack message.
+   */
+  test("no step's Error output leads to a Log", () => {
     const spec: TemplateSpec = specOf(templateId);
 
-    for (const node of spec.nodes) {
-      const metadata: ComponentMetadata = findMetadata(
-        node.metadataId,
-      ) as ComponentMetadata;
-      const hasErrorPort: boolean = metadata.outPorts.some((port: Port) => {
-        return port.id === "error";
-      });
-
-      if (!hasErrorPort) {
+    for (const edge of spec.edges) {
+      if (edge.fromPort !== "error") {
         continue;
       }
 
+      const target: TemplateNodeSpec | undefined = spec.nodes.find(
+        (node: TemplateNodeSpec): boolean => {
+          return node.componentId === edge.toComponentId;
+        },
+      );
+
       expect({
-        componentId: node.componentId,
-        handlesError: spec.edges.some((edge: TemplateEdgeSpec) => {
-          return (
-            edge.fromComponentId === node.componentId &&
-            edge.fromPort === "error"
-          );
-        }),
-      }).toEqual({ componentId: node.componentId, handlesError: true });
+        from: edge.fromComponentId,
+        toALog: target?.metadataId === ComponentID.Log,
+      }).toEqual({ from: edge.fromComponentId, toALog: false });
     }
   });
 
@@ -1997,24 +1994,24 @@ describe.each(
   });
 
   /*
-   * But for the one thing a paging template leaves for its user: who to
-   * page, which the builder asks for with "Click to set up" (see "every
-   * required argument is filled in").
+   * As the create wizard builds it, with somebody picked for each Page step
+   * it asks about: the workflow opens in the Builder with no error on it -
+   * a fresh "Zabbix problems to incidents" used to open with "1 error", the
+   * Page step nobody had been picked for.
    */
   test("passes the builder's own graph checks with no errors", () => {
-    const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
-
-    const errors: Array<WorkflowLintIssue> = lintIssuesBesidesWhoToPage(
-      templateId,
-      result,
-    ).filter((issue: WorkflowLintIssue) => {
-      return issue.severity === WorkflowLintSeverity.Error;
-    });
+    const result: WorkflowLintResult = lintWorkflowGraph(
+      hydrate(templateId, picksFor(templateId)),
+    );
 
     expect(
-      errors.map((issue: WorkflowLintIssue) => {
-        return issue.message;
-      }),
+      result.issues
+        .filter((issue: WorkflowLintIssue) => {
+          return issue.severity === WorkflowLintSeverity.Error;
+        })
+        .map((issue: WorkflowLintIssue) => {
+          return issue.message;
+        }),
     ).toEqual([]);
   });
 
@@ -2024,10 +2021,36 @@ describe.each(
    * notice.
    */
   test("passes the builder's own graph checks with no warnings either", () => {
-    const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
+    const result: WorkflowLintResult = lintWorkflowGraph(
+      hydrate(templateId, picksFor(templateId)),
+    );
 
     expect(
-      lintIssuesBesidesWhoToPage(templateId, result).map(
+      result.issues.map((issue: WorkflowLintIssue) => {
+        return issue.message;
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * And with nobody picked where the wizard lets nobody be: the Page step,
+   * and the check in front of it, are left out, and the rest of the
+   * workflow is whole.
+   */
+  test("passes them with nobody picked, where nobody may be", () => {
+    const whoToPage: Array<WorkflowTemplateWhoToPage> =
+      template.whoToPage || [];
+
+    if (
+      whoToPage.some((ask: WorkflowTemplateWhoToPage): boolean => {
+        return ask.required;
+      })
+    ) {
+      return;
+    }
+
+    expect(
+      lintWorkflowGraph(hydrate(templateId, {})).issues.map(
         (issue: WorkflowLintIssue) => {
           return issue.message;
         },
@@ -2036,28 +2059,52 @@ describe.each(
   });
 
   /*
-   * What the picker says a template will need. A template that leaves
-   * something for the Builder - who its Page steps page - says so
-   * (setUpInBuilder), and a template the builder's checks pass as it is
-   * created does not: "Nothing to fill in." is only said of a workflow that
-   * runs as it is created.
+   * Who a Page step pages is asked in the wizard, for each Page step, by a
+   * question of its own; the rest of a step's settings are the template's.
    */
-  test("says what is left to set up in the Builder exactly when something is", () => {
-    const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
-    const leftToSetUp: number =
-      result.issues.length -
-      lintIssuesBesidesWhoToPage(templateId, result).length;
-    const says: string = (
-      (getWorkflowTemplate(templateId) as WorkflowTemplate).setUpInBuilder || ""
-    ).trim();
+  test("asks who to page for each of its Page steps, and for nothing else", () => {
+    expect(
+      (template.whoToPage || [])
+        .map((ask: WorkflowTemplateWhoToPage): string => {
+          return ask.componentId;
+        })
+        .sort(),
+    ).toEqual(
+      pageStepsOf(templateId)
+        .map((node: TemplateNodeSpec): string => {
+          return node.componentId;
+        })
+        .sort(),
+    );
+
+    for (const ask of template.whoToPage || []) {
+      expect(ask.title.length).toBeGreaterThan(0);
+      expect(ask.title.length).toBeLessThanOrEqual(60);
+      expect(ask.title).toMatch(/^Who to page/);
+      expect(ask.description).toMatch(/\.$/);
+
+      // A question nobody may answer says what picking nobody does.
+      if (!ask.required) {
+        expect(ask.description).toContain("Pick none to page nobody.");
+      }
+    }
+  });
+
+  /*
+   * What the picker says a template will need beyond the wizard's
+   * questions: only Huntress's signing secret, kept on its trigger's panel.
+   * Every other template runs as the wizard creates it.
+   */
+  test("says what is left to set up in the Builder only when the wizard cannot ask it", () => {
+    const says: string = (template.setUpInBuilder || "").trim();
 
     expect({ templateId: templateId, says: says.length > 0 }).toEqual({
       templateId: templateId,
-      says: leftToSetUp > 0,
+      says: LEAVE_SOMETHING_FOR_THE_BUILDER.includes(templateId),
     });
 
     if (says) {
-      // Short, like the line beside it, and it ends with where it is picked.
+      // Short, like the line beside it, and it ends with where it is done.
       expect(says.endsWith("in the Builder.")).toBe(true);
       expect(says.length).toBeLessThanOrEqual(80);
     }
@@ -2445,30 +2492,19 @@ describe("the Mattermost templates", () => {
     },
   );
 
+  /*
+   * With nothing connected to the step's Error output, a message that does
+   * not get through fails the run, and the step's Steps entry says
+   * Mattermost's reason (UnhandledStepFailure).
+   */
   test.each(MATTERMOST_TEMPLATE_IDS)(
-    "%s logs Mattermost's reason when the message does not get through",
+    "%s fails the run when the message does not get through",
     (id: string) => {
-      const spec: TemplateSpec = specOf(id);
-      const errorEdges: Array<TemplateEdgeSpec> = spec.edges.filter(
-        (edge: TemplateEdgeSpec) => {
-          return (
-            edge.fromComponentId === "mattermost-1" && edge.fromPort === "error"
-          );
-        },
-      );
-
-      expect(errorEdges).toHaveLength(1);
-
-      const log: TemplateNodeSpec | undefined = spec.nodes.find(
-        (node: TemplateNodeSpec) => {
-          return node.componentId === errorEdges[0]?.toComponentId;
-        },
-      );
-
-      expect(log?.metadataId).toBe(ComponentID.Log);
-      expect(String(log?.args?.["value"])).toMatch(
-        /^❌ Mattermost could not deliver the [a-z ]+: \{\{local\.components\.mattermost-1\.returnValues\.error\}\}$/,
-      );
+      expect(
+        specOf(id).edges.filter((edge: TemplateEdgeSpec) => {
+          return edge.fromComponentId === "mattermost-1";
+        }),
+      ).toEqual([]);
     },
   );
 

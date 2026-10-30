@@ -38687,5 +38687,8 @@
   "The riskiest open issues, scored from 0 to 100.": "Die riskantesten offenen Probleme, bewertet von 0 bis 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Was seine Tags und Scans nicht immer erkennen. Jede Angabe verändert, was seine Prüfungen ergeben.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Ob Stichproben seines Inhalts gelesen werden, um sensible Daten zu finden, und was die Scans überspringen.",
-  "{{confidence}} confidence": "Konfidenz: {{confidence}}"
+  "{{confidence}} confidence": "Konfidenz: {{confidence}}",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} alarmiert Personen in diesem Projekt. Wählen Sie hier aus, wen es alarmiert, oder ändern Sie es später im Alarmierungsschritt im Editor.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Wen es alarmiert, wird im Alarmierungsschritt gespeichert. Dort können Sie es später im Editor ändern.",
+  "Pick who to page.": "Wählen Sie aus, wen es alarmieren soll."
 }

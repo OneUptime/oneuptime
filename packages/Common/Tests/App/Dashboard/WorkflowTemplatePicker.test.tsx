@@ -644,22 +644,30 @@ describe("the category select", () => {
     );
   });
 
-  test("the workflow Zabbix sends its problems to says what it needs: the Zabbix URL, and who to page, picked in the Builder", () => {
+  test("the workflow Zabbix sends its problems to says what it needs: the Zabbix URL, and who to page, which may be nobody", () => {
     renderPicker();
     showView(WorkflowTemplateCategory.Zabbix);
 
     const details: HTMLElement = within(
       pick("zabbix-declare-incident-from-problem"),
     ).getByTestId("workflow-template-details");
+    const settings: HTMLElement = within(details).getByTestId(
+      "workflow-template-details-settings",
+    );
 
     expect(
-      within(details).getByTestId("workflow-template-details-settings"),
-    ).toHaveTextContent("Zabbix URL");
+      within(settings)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement) => {
+          return item.textContent;
+        }),
+    ).toEqual([
+      "Zabbix URL",
+      "Who to page for High and Disaster problems(Optional)",
+    ]);
     expect(
-      within(details).getByTestId("workflow-template-details-in-builder"),
-    ).toHaveTextContent(
-      "An on-call policy to page. You pick it in the Builder.",
-    );
+      within(details).queryAllByTestId("workflow-template-details-in-builder"),
+    ).toHaveLength(0);
   });
 
   test("the ones that call Zabbix ask for its URL and its API token, and only the token is secret", () => {
@@ -900,7 +908,8 @@ describe("a picked template's details", () => {
     expect(within(trigger).getByText("Trigger:").className).toContain(
       "sr-only",
     );
-    expect(items).toHaveLength(3);
+    // The trigger, then the Slack message: a failed post fails the run, with no Log after it.
+    expect(items).toHaveLength(2);
   });
 
   test("what you'll need: each setting in order, the secret and the optional ones said so", () => {
@@ -1020,57 +1029,90 @@ describe("a picked template's details", () => {
   });
 
   /*
-   * A paging template asks the wizard for nothing, and still does nothing as
-   * it is created: who it pages is picked from the project's own people,
-   * teams, schedules and policies, in the Builder. "Nothing to fill in."
-   * beside it would tell somebody it was ready. It says what it needs and
-   * where that is picked instead.
+   * A paging template asks the wizard who to page, from the project's own
+   * people, teams, schedules and policies: listed under What you'll need as
+   * a setting is, one line for each Page step. "Nothing to fill in." beside
+   * it would tell somebody it was ready, and nothing is left for the
+   * Builder.
    */
-  test.each<[string, string]>([
+  test.each<[string, Array<[string, string]>]>([
     [
       "incident-critical-page-on-call",
-      "An on-call schedule to page. You pick it in the Builder.",
+      [["page-on-call-1", "Who to page for critical incidents"]],
     ],
     [
       "incident-severity-page",
-      "An on-call policy and a team to page. You pick them in the Builder.",
+      [
+        ["page-on-call-policy-1", "Who to page for critical incidents"],
+        ["page-team-1", "Who to page for major incidents"],
+      ],
     ],
-    ["webhook-page-users", "People to page. You pick them in the Builder."],
+    ["webhook-page-users", [["page-users-1", "Who to page"]]],
   ])(
-    "the paging template %s says what it still needs and where that is picked, not that there is nothing to fill in",
-    (templateId: string, sentence: string) => {
+    "the paging template %s lists who it asks to page, not that there is nothing to fill in",
+    (templateId: string, asks: Array<[string, string]>) => {
       renderPicker();
       showView(WorkflowTemplateCategory.OnCall);
 
       const details: HTMLElement = detailsOf(templateId);
-      const needs: HTMLElement = within(details).getByTestId(
-        "workflow-template-details-in-builder",
+      const settings: HTMLElement = within(details).getByTestId(
+        "workflow-template-details-settings",
       );
 
-      expect(needs.textContent).toBe(sentence);
+      expect(
+        within(settings)
+          .getAllByRole("listitem")
+          .map((item: HTMLElement) => {
+            return [item.getAttribute("data-testid"), item.textContent];
+          }),
+      ).toEqual(
+        asks.map(([componentId, title]: [string, string]) => {
+          return [
+            `workflow-template-details-who-to-page-${componentId}`,
+            title,
+          ];
+        }),
+      );
       expect(
         within(details).queryByTestId("workflow-template-details-no-settings"),
       ).not.toBeInTheDocument();
+      expect(
+        within(details).queryByTestId("workflow-template-details-in-builder"),
+      ).not.toBeInTheDocument();
       expect(details).not.toHaveTextContent("Nothing to fill in.");
       // Under What you'll need, where a setting the wizard asks for is listed.
-      expect(needs.closest("dd")?.previousElementSibling).toHaveTextContent(
+      expect(settings.closest("dd")?.previousElementSibling).toHaveTextContent(
         "What you'll need",
       );
     },
   );
 
-  test("every template's details say one thing under What you'll need: its settings, what is picked in the Builder, or that there is nothing to fill in", () => {
+  test("every template's details say what the wizard asks for, what is left for the Builder, or that there is nothing to fill in", () => {
     renderPicker();
     showView(WorkflowTemplateCollection.All);
 
     let pickedInBuilder: number = 0;
+    let asksWhoToPage: number = 0;
 
     for (const candidate of ALL_TEMPLATES) {
       const details: HTMLElement = within(pick(candidate.id)).getByTestId(
         "workflow-template-details",
       );
-      const hasSettings: boolean = candidate.variables.length > 0;
+      const whoToPage: number = (candidate.whoToPage || []).length;
+      const hasSettings: boolean =
+        candidate.variables.length > 0 || whoToPage > 0;
       const isSetUpInBuilder: boolean = Boolean(candidate.setUpInBuilder);
+
+      if (whoToPage > 0) {
+        asksWhoToPage++;
+      }
+
+      expect({
+        template: candidate.id,
+        whoToPage: within(details).queryAllByTestId(
+          /^workflow-template-details-who-to-page-/,
+        ).length,
+      }).toEqual({ template: candidate.id, whoToPage: whoToPage });
 
       if (isSetUpInBuilder) {
         pickedInBuilder++;
@@ -1095,11 +1137,13 @@ describe("a picked template's details", () => {
       });
     }
 
+    // Huntress's signing secret, added on its trigger.
+    expect(pickedInBuilder).toBe(1);
     /*
-     * The three that page people, Huntress's (its signing secret and who to
-     * page), and the two Zabbix sends its problems to (who to page).
+     * The three that page people, Huntress's, and the two Zabbix sends its
+     * problems to.
      */
-    expect(pickedInBuilder).toBe(6);
+    expect(asksWhoToPage).toBe(6);
   });
 
   test("every template's details open, with its trigger and every setting it asks for", () => {
