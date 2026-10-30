@@ -200,9 +200,10 @@ const quoteIdentifier: QuoteIdentifierFunction = (name: string): string => {
 
 type ToBytesFunction = (value: unknown) => Uint8Array;
 
+// The bytes Postgres hands back for a bytea: a Buffer, or any byte view.
 const toBytes: ToBytesFunction = (value: unknown): Uint8Array => {
-  if (value instanceof Uint8Array) {
-    return value;
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   }
 
   return new Uint8Array(0);

@@ -1405,6 +1405,29 @@ export default class WorkspaceIncidentActions {
     return `Every custom field of this incident is copied from its monitor, so there is nothing to edit here. Change them on the monitor in ${ProductBrandingText.getProductName()}.`;
   }
 
+  public static getOnlyFileCustomFieldsMessage(): string {
+    return `Every custom field of this incident you can edit holds files, which are added and downloaded in ${ProductBrandingText.getProductName()}, on the incident's Custom Fields.`;
+  }
+
+  /*
+   * Why the custom fields form has nothing to ask: the project has no
+   * incident custom fields, every one is copied from the incident's
+   * monitor, or the ones that are not hold files.
+   */
+  public static getNothingToEditCustomFieldsMessage(data: {
+    form: WorkspaceCustomFieldsForm;
+  }): string {
+    if ((data.form.fileFieldNames || []).length > 0) {
+      return WorkspaceIncidentActions.getOnlyFileCustomFieldsMessage();
+    }
+
+    if (data.form.copiedFieldNames.length > 0) {
+      return WorkspaceIncidentActions.getOnlyCopiedCustomFieldsMessage();
+    }
+
+    return WorkspaceIncidentActions.getNoCustomFieldsMessage();
+  }
+
   /*
    * What the custom fields form says under its fields, in both chats: that
    * an emptied field is cleared, and what it leaves out - fields copied from
@@ -1427,6 +1450,18 @@ export default class WorkspaceIncidentActions {
         mdText`${WorkspaceIncidentActions.joinBoldNames(
           form.copiedFieldNames,
         )} ${isOne ? "is" : "are"} copied from the incident's monitor, so ${isOne ? "it is" : "they are"} not here.`,
+      );
+    }
+
+    const fileFieldNames: Array<string> = form.fileFieldNames || [];
+
+    if (fileFieldNames.length > 0) {
+      const isOne: boolean = fileFieldNames.length === 1;
+
+      parts.push(
+        mdText`${WorkspaceIncidentActions.joinBoldNames(
+          fileFieldNames,
+        )} ${isOne ? "holds" : "hold"} files: add and download them in ${ProductBrandingText.getProductName()}.`,
       );
     }
 
