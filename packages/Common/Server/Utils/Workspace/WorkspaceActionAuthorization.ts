@@ -325,6 +325,16 @@ export default class WorkspaceActionAuthorization {
       let readableResource: DatabaseBaseModel | null = null;
       let readError: unknown = undefined;
 
+      /*
+       * Whether the record is private, read with it, when the row the
+       * action writes is a part of it: the private record rule is then
+       * asked only of a private one (assertReachesPrivateRecord).
+       */
+      const isPartOfResource: boolean = PrivateRecordWriteCheck.isPartOf(
+        modelType,
+        resource.service.modelType as DatabaseBaseModelType,
+      );
+
       try {
         readableResource = await resource.service.findOneBy({
           query: {
@@ -333,6 +343,7 @@ export default class WorkspaceActionAuthorization {
           } as Query<DatabaseBaseModel>,
           select: {
             ...(resource.select || {}),
+            ...(isPartOfResource ? { isPrivate: true } : {}),
             _id: true,
           } as Select<DatabaseBaseModel>,
           props: props,
@@ -363,6 +374,7 @@ export default class WorkspaceActionAuthorization {
         service: resource.service,
         id: resource.id,
         action: action,
+        readRecord: readableResource,
       });
 
       readableResources.push(readableResource);
@@ -389,6 +401,8 @@ export default class WorkspaceActionAuthorization {
     service: DatabaseService<DatabaseBaseModel>;
     id: ObjectID;
     action: string;
+    // The record as the member read it, isPrivate with it. See reaches.
+    readRecord?: DatabaseBaseModel | undefined;
   }): Promise<void> {
     const reaches: boolean = await PrivateRecordWriteCheck.reaches({
       modelType: data.modelType,
@@ -396,6 +410,7 @@ export default class WorkspaceActionAuthorization {
       recordService: data.service,
       recordId: data.id,
       props: data.props,
+      readRecord: data.readRecord,
     });
 
     if (reaches) {

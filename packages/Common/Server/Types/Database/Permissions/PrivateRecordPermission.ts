@@ -101,6 +101,21 @@ export interface PrivateRecordColumn {
 }
 
 /*
+ * THE PRIVATE RECORDS A PART NAMES BESIDE THE ONE IT IS READ THROUGH, by
+ * the part's table and the keys that name them: an episode's member row is
+ * read through its alert (or incident) and is as much a part of its
+ * episode; an incident's link to an alert is read through the incident and
+ * is as much a part of the alert. A write of such a row changes both, and
+ * is held to both (getPrivateRecordColumns). PrivateRecordParts.test lists
+ * every model naming two.
+ */
+export const ALSO_PART_OF: Readonly<Record<string, ReadonlyArray<string>>> = {
+  AlertEpisodeMember: ["alertEpisodeId"],
+  IncidentEpisodeMember: ["incidentEpisodeId"],
+  IncidentAlert: ["alertId"],
+};
+
+/*
  * WHAT A CALLER'S PERMISSION FOR ONE OPERATION REACHES OF THE PRIVATE
  * RECORDS: those they own themselves - every permission a person holds
  * reaches the records named on them - and, for each team that grants the
@@ -198,6 +213,82 @@ export default class PrivateRecordPermission {
     new (): BaseModel;
   }): boolean {
     return Boolean(PrivateRecordPermission.getKind(new modelType().tableName));
+  }
+
+  /*
+   * EVERY column of a model's rows that names a private record it is a part
+   * of: the one it is read through (getPrivateRecordColumn) and the others
+   * it names (ALSO_PART_OF). None for a model that is no part of one.
+   */
+  private static allColumnsByModel: Map<
+    { new (): BaseModel },
+    Array<PrivateRecordColumn>
+  > = new Map();
+
+  public static getPrivateRecordColumns(modelType: {
+    new (): BaseModel;
+  }): Array<PrivateRecordColumn> {
+    let columns: Array<PrivateRecordColumn> | undefined =
+      PrivateRecordPermission.allColumnsByModel.get(modelType);
+
+    if (columns) {
+      return columns;
+    }
+
+    columns = [];
+
+    const primary: PrivateRecordColumn | null =
+      PrivateRecordPermission.getPrivateRecordColumn(modelType);
+
+    if (primary) {
+      columns.push(primary);
+    }
+
+    const model: BaseModel = new modelType();
+
+    for (const key of ALSO_PART_OF[model.tableName || ""] || []) {
+      const relation: string | undefined = model
+        .getTableColumns()
+        .columns.find((column: string): boolean => {
+          const metadata: TableColumnMetadata | undefined =
+            model.getTableColumnMetadata(column);
+
+          return Boolean(
+            metadata &&
+              metadata.type === TableColumnType.Entity &&
+              metadata.manyToOneRelationColumn === key &&
+              metadata.modelType,
+          );
+        });
+
+      const recordModelType: { new (): BaseModel } | undefined = relation
+        ? (model.getTableColumnMetadata(relation)!.modelType as {
+            new (): BaseModel;
+          })
+        : undefined;
+
+      const kind: PrivateRecordKind | null = recordModelType
+        ? PrivateRecordPermission.getKind(new recordModelType().tableName)
+        : null;
+
+      // A key that names no private kind is a misconfigured list: refused.
+      if (!recordModelType || !kind) {
+        throw new Error(
+          `${model.singularName} names no private record by ${key}: ALSO_PART_OF is out of date.`,
+        );
+      }
+
+      columns.push({
+        kind: kind,
+        recordModelType: recordModelType,
+        column: key,
+        isRecord: false,
+      });
+    }
+
+    PrivateRecordPermission.allColumnsByModel.set(modelType, columns);
+
+    return columns;
   }
 
   // Which column of a model's rows names a private record. See the interface.
@@ -540,7 +631,7 @@ export default class PrivateRecordPermission {
       return false;
     }
 
-    if (!PrivateRecordPermission.getPrivateRecordColumn(modelType)) {
+    if (PrivateRecordPermission.getPrivateRecordColumns(modelType).length === 0) {
       return false;
     }
 
@@ -564,23 +655,86 @@ export default class PrivateRecordPermission {
       return query;
     }
 
-    const column: PrivateRecordColumn =
-      PrivateRecordPermission.getPrivateRecordColumn(modelType)!;
+    const reach: PrivateRecordReach = PrivateRecordPermission.getReach(
+      modelType,
+      props,
+      type,
+    );
 
-    const condition: FindWhereProperty<any> =
-      PrivateRecordPermission.getReachableCondition({
-        kind: column.kind,
-        reach: PrivateRecordPermission.getReach(modelType, props, type),
-        allowsNoRecord: !column.isRecord,
-      });
-
-    (query as Record<string, unknown>)[column.column] =
-      combineWithPrivacyClause(
-        (query as Record<string, unknown>)[column.column],
-        condition,
-      );
+    // The record itself, or each private record the part belongs to.
+    for (const column of PrivateRecordPermission.getPrivateRecordColumns(
+      modelType,
+    )) {
+      (query as Record<string, unknown>)[column.column] =
+        combineWithPrivacyClause(
+          (query as Record<string, unknown>)[column.column],
+          PrivateRecordPermission.getReachableCondition({
+            kind: column.kind,
+            reach: reach,
+            allowsNoRecord: !column.isRecord,
+          }),
+        );
+    }
 
     return query;
+  }
+
+  /*
+   * Whether a write under records of `recordModelType` - a part created
+   * under them, or moved under them - is held to the rule for this caller:
+   * a kind that can be private, written by anybody but OneUptime itself, a
+   * server admin and those who act on every private record of the project.
+   */
+  public static isWriteUnderRecordsNarrowed(data: {
+    recordModelType: { new (): BaseModel };
+    props: DatabaseCommonInteractionProps;
+  }): boolean {
+    return Boolean(
+      PrivateRecordPermission.getKind(new data.recordModelType().tableName) &&
+        !data.props.isRoot &&
+        !data.props.isMasterAdmin &&
+        !shouldBypassRecordPrivacy(data.props),
+    );
+  }
+
+  /*
+   * `query`, over records of `recordModelType`, kept to the ones a write of
+   * `type` on `modelType` - a part of them - reaches (getReachableCondition):
+   * every record that is not private, and the private ones the caller or a
+   * team of theirs granting the write owns. What a lookup of the parents a
+   * part goes under asks (CreatePermission.getParentLookupQuery). As it is
+   * for a caller or a kind the rule does not narrow.
+   */
+  public static addReachToRecordsQuery(data: {
+    query: Query<BaseModel>;
+    recordModelType: { new (): BaseModel };
+    modelType: { new (): BaseModel };
+    type: DatabaseRequestType;
+    props: DatabaseCommonInteractionProps;
+  }): Query<BaseModel> {
+    if (!PrivateRecordPermission.isWriteUnderRecordsNarrowed(data)) {
+      return data.query;
+    }
+
+    const kind: PrivateRecordKind = PrivateRecordPermission.getKind(
+      new data.recordModelType().tableName,
+    )!;
+
+    return {
+      ...data.query,
+      _id: combineWithPrivacyClause(
+        (data.query as Record<string, unknown>)["_id"],
+        PrivateRecordPermission.getReachableCondition({
+          kind: kind,
+          reach: PrivateRecordPermission.getReach(
+            data.modelType,
+            data.props,
+            data.type,
+          ),
+          allowsNoRecord: false,
+        }),
+      ),
+    } as Query<BaseModel>;
   }
 
   /*

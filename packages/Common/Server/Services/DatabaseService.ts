@@ -10543,62 +10543,71 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return null;
     }
 
-    const column: PrivateRecordColumn | null =
-      PrivateRecordPermission.getPrivateRecordColumn(this.modelType);
+    const columns: Array<PrivateRecordColumn> =
+      PrivateRecordPermission.getPrivateRecordColumns(this.modelType);
 
-    if (!column) {
-      return null;
+    // A part of private records: the keys naming them, read as OneUptime.
+    const part: TBaseModel | null = columns.some(
+      (column: PrivateRecordColumn): boolean => {
+        return !column.isRecord;
+      },
+    )
+      ? await this.findOneById({
+          id: data.id,
+          select: Object.fromEntries(
+            columns.map((column: PrivateRecordColumn): [string, true] => {
+              return [column.column, true];
+            }),
+          ) as Select<TBaseModel>,
+          props: { isRoot: true },
+        })
+      : null;
+
+    for (const column of columns) {
+      const key: unknown = column.isRecord
+        ? data.id
+        : part?.getValue(column.column);
+      const recordId: string | null = key ? key.toString() : null;
+
+      if (!recordId || !ObjectID.isValidUUID(recordId)) {
+        continue;
+      }
+
+      const query: Query<BaseModel> | null =
+        PrivateRecordPermission.getUnreachableRecordsQuery({
+          modelType: this.modelType,
+          recordModelType: column.recordModelType,
+          recordIds: [recordId],
+          props: data.props,
+          type: data.type,
+        });
+
+      if (!query) {
+        continue;
+      }
+
+      const unreachable: Array<string> =
+        await DatabaseService.findIdsInProject({
+          modelType: column.recordModelType,
+          ids: [recordId],
+          query: query,
+          projectId: data.props.tenantId || null,
+        });
+
+      if (unreachable.length === 0) {
+        continue;
+      }
+
+      return column.isRecord
+        ? PrivateRecordPermission.PRIVATE_WRITE_REASON
+        : PrivateRecordPermission.getPrivateParentWriteReason(
+            (
+              new column.recordModelType().singularName || "record"
+            ).toLowerCase(),
+          );
     }
 
-    let recordId: string | null = data.id.toString();
-
-    // A part of a private record: the record it belongs to, read as OneUptime.
-    if (!column.isRecord) {
-      const part: TBaseModel | null = await this.findOneById({
-        id: data.id,
-        select: { [column.column]: true } as Select<TBaseModel>,
-        props: { isRoot: true },
-      });
-
-      const key: unknown = part?.getValue(column.column);
-      recordId = key ? key.toString() : null;
-    }
-
-    if (!recordId || !ObjectID.isValidUUID(recordId)) {
-      return null;
-    }
-
-    const query: Query<BaseModel> | null =
-      PrivateRecordPermission.getUnreachableRecordsQuery({
-        modelType: this.modelType,
-        recordModelType: column.recordModelType,
-        recordIds: [recordId],
-        props: data.props,
-        type: data.type,
-      });
-
-    if (!query) {
-      return null;
-    }
-
-    const unreachable: Array<string> = await DatabaseService.findIdsInProject({
-      modelType: column.recordModelType,
-      ids: [recordId],
-      query: query,
-      projectId: data.props.tenantId || null,
-    });
-
-    if (unreachable.length === 0) {
-      return null;
-    }
-
-    return column.isRecord
-      ? PrivateRecordPermission.PRIVATE_WRITE_REASON
-      : PrivateRecordPermission.getPrivateParentWriteReason(
-          (
-            new column.recordModelType().singularName || "record"
-          ).toLowerCase(),
-        );
+    return null;
   }
 
   @CaptureSpan()

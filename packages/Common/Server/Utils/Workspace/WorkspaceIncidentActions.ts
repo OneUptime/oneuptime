@@ -385,6 +385,7 @@ export default class WorkspaceIncidentActions {
         props: data.props,
         select: {
           title: true,
+          isPrivate: true,
         },
         action: check.action,
       });
@@ -404,6 +405,7 @@ export default class WorkspaceIncidentActions {
       service: IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
       id: data.incidentId,
       action: check.action,
+      readRecord: found.record,
     });
 
     return { event: found.event, title: found.record.title || "" };

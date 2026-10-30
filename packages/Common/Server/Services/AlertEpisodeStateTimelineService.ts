@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectReferencesService from "./ProjectReferencesService";
 import AlertStateService from "./AlertStateService";
@@ -41,6 +41,9 @@ import StateMoveCheck from "../Utils/StateMoveCheck";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 
 export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline> {
   /*
@@ -68,6 +71,30 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
     this.keepRowsOnDeleteByQuery(
       StateTimelineRowsKept.forTable("AlertEpisodeStateTimeline"),
     );
+  }
+
+  /*
+   * The state timeline of a private alert episode are read only by those who see the
+   * alert episode: its owners - the people named on it and the members of the
+   * teams named on it - and the project's owners and admins
+   * (applyAlertEpisodeRelatedRecordPrivacyFilter), as every other part of one is
+   * (PrivateRecordParts.test). Changing or deleting them follows
+   * the private record rule (PrivateRecordPermission).
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<AlertEpisodeStateTimeline>,
+  ): Promise<OnFind<AlertEpisodeStateTimeline>> {
+    findBy.query = applyAlertEpisodeRelatedRecordPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<AlertEpisodeStateTimeline>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyAlertEpisodeRelatedRecordPrivacyFilter(countBy.query, countBy.props);
+    return super.countBy(countBy);
   }
 
   /*

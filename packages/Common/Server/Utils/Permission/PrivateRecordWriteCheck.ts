@@ -42,11 +42,26 @@ export default class PrivateRecordWriteCheck {
     recordService: DatabaseService<DatabaseBaseModel>;
     recordId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    /*
+     * The record as the caller's own read gave it, with isPrivate selected,
+     * when the check follows one: a record read as not private is reached
+     * without asking again. The write itself is held to the rule whatever
+     * this answers.
+     */
+    readRecord?: DatabaseBaseModel | undefined;
   }): Promise<boolean> {
     const recordModelType: DatabaseBaseModelType = data.recordService
       .modelType as DatabaseBaseModelType;
 
     if (!PrivateRecordWriteCheck.isPartOf(data.modelType, recordModelType)) {
+      return true;
+    }
+
+    if (
+      data.readRecord &&
+      (data.readRecord as unknown as { isPrivate?: unknown }).isPrivate !==
+        true
+    ) {
       return true;
     }
 
@@ -77,19 +92,89 @@ export default class PrivateRecordWriteCheck {
   }
 
   /*
+   * Of `records` - read by the caller, isPrivate with them - the ids of the
+   * private ones `type` on `modelType` does not reach (lower-cased): what a
+   * write of many records at once, made as OneUptime once its caller is
+   * checked (adding several alerts to an episode), leaves out, each with
+   * why. Asks the database only about the private ones, in one read.
+   */
+  @CaptureSpan()
+  public static async findUnreachable(data: {
+    modelType: DatabaseBaseModelType;
+    type: DatabaseRequestType;
+    recordService: DatabaseService<DatabaseBaseModel>;
+    records: Array<DatabaseBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Set<string>> {
+    const recordModelType: DatabaseBaseModelType = data.recordService
+      .modelType as DatabaseBaseModelType;
+
+    const privateIds: Array<string> = data.records
+      .filter((record: DatabaseBaseModel): boolean => {
+        return (
+          Boolean(record._id) &&
+          (record as unknown as { isPrivate?: unknown }).isPrivate === true
+        );
+      })
+      .map((record: DatabaseBaseModel): string => {
+        return record._id!.toString();
+      });
+
+    if (
+      privateIds.length === 0 ||
+      !PrivateRecordWriteCheck.isPartOf(data.modelType, recordModelType)
+    ) {
+      return new Set<string>();
+    }
+
+    const query: Query<DatabaseBaseModel> | null =
+      PrivateRecordPermission.getUnreachableRecordsQuery({
+        modelType: data.modelType,
+        recordModelType: recordModelType,
+        recordIds: privateIds,
+        props: data.props,
+        type: data.type,
+      });
+
+    if (!query) {
+      return new Set<string>();
+    }
+
+    const unreachable: Array<DatabaseBaseModel> =
+      await data.recordService.findBy({
+        query: {
+          ...query,
+          ...(data.props.tenantId ? { projectId: data.props.tenantId } : {}),
+        } as Query<DatabaseBaseModel>,
+        select: { _id: true } as Select<DatabaseBaseModel>,
+        limit: privateIds.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    return new Set<string>(
+      unreachable.map((record: DatabaseBaseModel): string => {
+        return (record._id || "").toString().toLowerCase();
+      }),
+    );
+  }
+
+  /*
    * Whether a write of `modelType` is one of `recordModelType`'s records or
-   * of their parts (PrivateRecordPermission.getPrivateRecordColumn).
+   * of their parts (PrivateRecordPermission.getPrivateRecordColumns): an
+   * incident's note, or an episode's member row of the episode as much as of
+   * its alert.
    */
   public static isPartOf(
     modelType: DatabaseBaseModelType,
     recordModelType: DatabaseBaseModelType,
   ): boolean {
-    const column: PrivateRecordColumn | null =
-      PrivateRecordPermission.getPrivateRecordColumn(modelType);
+    const recordTable: string | null = new recordModelType().tableName;
 
-    return Boolean(
-      column &&
-        column.kind.tableName === new recordModelType().tableName,
+    return PrivateRecordPermission.getPrivateRecordColumns(modelType).some(
+      (column: PrivateRecordColumn): boolean => {
+        return column.kind.tableName === recordTable;
+      },
     );
   }
 }

@@ -14,6 +14,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -136,6 +137,16 @@ let props: DatabaseCommonInteractionProps;
 let call: IncidentVideoCall | null;
 let next: jest.Mock;
 let writes: Array<JSONObject>;
+/*
+ * Whether the call's incident is private and owned by none of the caller's
+ * teams that may work on its calls - what the private record rule asks of
+ * the incident, as OneUptime, before a route writes (PrivateRecordWriteCheck).
+ */
+let isIncidentOutOfReach: boolean;
+let incidentChecks: Array<{
+  query: JSONObject;
+  props: DatabaseCommonInteractionProps;
+}>;
 const res: ExpressResponse = {} as ExpressResponse;
 
 function setPermissions(permissions: Array<Permission>): void {
@@ -213,6 +224,25 @@ beforeEach(() => {
   call = zoomCall();
   next = jest.fn();
   writes = [];
+  isIncidentOutOfReach = false;
+  incidentChecks = [];
+
+  jest
+    .spyOn(IncidentService, "findOneBy")
+    .mockImplementation((async (findOneBy: {
+      query: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    }) => {
+      incidentChecks.push({ query: findOneBy.query, props: findOneBy.props });
+
+      if (!isIncidentOutOfReach) {
+        return null;
+      }
+
+      const incident: Incident = new Incident();
+      incident._id = INCIDENT.toString();
+      return incident;
+    }) as never);
 
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -895,6 +925,165 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
       /did not suggest a root cause/,
     );
     expect(IncidentService.updateOneById).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
+  });
+});
+
+/*
+ * A CALL OF A PRIVATE INCIDENT IS WORKED ON ONLY THROUGH THE TEAMS THAT OWN
+ * THE INCIDENT. These routes write as OneUptime once the caller is checked,
+ * so they ask the private record rule themselves: a member who sees the
+ * incident through a team that may only view it, and holds Incident Member
+ * on a team that does not own it, adds, reads again, removes and dismisses
+ * nothing, and saves no root cause - each refused with why, before anything
+ * is read from a provider, started or written.
+ */
+describe("a call of a private incident none of the caller's teams that may work on calls owns", () => {
+  beforeEach(() => {
+    isIncidentOutOfReach = true;
+  });
+
+  const PRIVATE_REASON: string =
+    "The incident it belongs to is private, so it is changed only with the permissions of the teams that own that incident and of the people named as its owners, and none of them lets you do this.";
+
+  test("adding a transcript is refused with why, and nothing is written", async () => {
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT, fileName: "zoom.transcript.vtt" }),
+      res,
+      next,
+    );
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect((thrownBy() as Error).message).toBe(
+      `You do not have permission to work on this incident's calls. ${PRIVATE_REASON} Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.`,
+    );
+    expect(writes).toHaveLength(0);
+    expect(IncidentCallSummary.start).not.toHaveBeenCalled();
+  });
+
+  test("the rule is asked of the call's incident, as OneUptime, by its id", async () => {
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
+
+    expect(incidentChecks).toHaveLength(1);
+    expect(incidentChecks[0]!.props).toEqual({ isRoot: true });
+    expect(incidentChecks[0]!.query["projectId"]?.toString()).toBe(
+      PROJECT.toString(),
+    );
+  });
+
+  test("reading one from the provider is refused before the provider is asked", async () => {
+    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      VideoCallTranscriptReader,
+      "read",
+    );
+
+    await handlerOf("post", PROVIDER_ROUTE)(request({}), res, next);
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect(read).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
+  });
+
+  test("removing it is refused, and the transcript stays", async () => {
+    await handlerOf("delete", TRANSCRIPT_ROUTE)(request({}), res, next);
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect(writes).toHaveLength(0);
+  });
+
+  test("reading it again is refused, and no reading starts", async () => {
+    call!.transcript = "[00:05] Priya Shah: Checkout is timing out.";
+
+    await handlerOf("post", SUMMARY_ROUTE)(request({}), res, next);
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect(IncidentCallSummary.start).not.toHaveBeenCalled();
+  });
+
+  test("dismissing the suggestion is refused, and nothing is marked", async () => {
+    Object.assign(call!, {
+      callSummaryStatus: CallSummaryStatus.Ready,
+      callSummary: READY_SUMMARY,
+      rootCauseSuggestionStatus: RootCauseSuggestionStatus.Suggested,
+    });
+
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Dismissed" }),
+      res,
+      next,
+    );
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect(writes).toHaveLength(0);
+  });
+
+  test("accepting it saves no root cause, and nothing is marked accepted", async () => {
+    Object.assign(call!, {
+      callSummaryStatus: CallSummaryStatus.Ready,
+      callSummary: READY_SUMMARY,
+      rootCauseSuggestionStatus: RootCauseSuggestionStatus.Suggested,
+    });
+
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Accepted", rootCause: "The pool." }),
+      res,
+      next,
+    );
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect((thrownBy() as Error).message).toMatch(
+      /^You do not have permission to edit this incident's root cause\./,
+    );
+    expect(IncidentService.updateOneById).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
+  });
+
+  test("a project admin works on it: they act on every private incident, and the incident is not even asked", async () => {
+    setPermissions([Permission.ProjectAdmin]);
+
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(1);
+    expect(incidentChecks).toHaveLength(0);
+  });
+});
+
+describe("an accepted root cause the incident's edit does not reach", () => {
+  test("is refused with why, and nothing is marked accepted", async () => {
+    Object.assign(call!, {
+      callSummaryStatus: CallSummaryStatus.Ready,
+      callSummary: READY_SUMMARY,
+      rootCauseSuggestionStatus: RootCauseSuggestionStatus.Suggested,
+    });
+
+    jest.spyOn(IncidentService, "updateOneById").mockResolvedValue(0);
+    jest
+      .spyOn(IncidentService, "getUnwrittenByIdError")
+      .mockResolvedValue(
+        new NotAuthorizedException(
+          "You do not have permission to update this incident.",
+        ),
+      );
+
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Accepted", rootCause: "The pool." }),
+      res,
+      next,
+    );
+
+    expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
+    expect((thrownBy() as Error).message).toBe(
+      "You do not have permission to update this incident.",
+    );
     expect(writes).toHaveLength(0);
   });
 });

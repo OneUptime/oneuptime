@@ -1,7 +1,7 @@
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -30,10 +30,38 @@ import SavedChatMessageNote, {
 } from "../Utils/Notes/SavedChatMessageNote";
 import PrivateRecordPublicNoteRule from "../Utils/Notes/PrivateRecordPublicNoteRule";
 import { PrivateRecordKind } from "../../Types/StatusPage/PrivateRecordPublicNotes";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The public notes of a private incident episode are read only by those who see the
+   * incident episode: its owners - the people named on it and the members of the
+   * teams named on it - and the project's owners and admins
+   * (applyIncidentEpisodeRelatedRecordPrivacyFilter), as every other part of one is
+   * (PrivateRecordParts.test). Changing or deleting them follows
+   * the private record rule (PrivateRecordPermission).
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(countBy.query, countBy.props);
+    return super.countBy(countBy);
   }
 
   /*

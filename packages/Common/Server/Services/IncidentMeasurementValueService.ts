@@ -34,6 +34,11 @@ import { JSONObject } from "../../Types/JSON";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import { OnFind } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 
 /*
  * Every field the recompute writes, always fully populated.
@@ -56,6 +61,30 @@ interface ComputedValueFields {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The measurements of a private incident are read only by those who see the
+   * incident: its owners - the people named on it and the members of the
+   * teams named on it - and the project's owners and admins
+   * (applyIncidentRelatedRecordPrivacyFilter), as every other part of one is
+   * (PrivateRecordParts.test). Changing or deleting them follows
+   * the private record rule (PrivateRecordPermission).
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentRelatedRecordPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentRelatedRecordPrivacyFilter(countBy.query, countBy.props);
+    return super.countBy(countBy);
   }
 
   /*
