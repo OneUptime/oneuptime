@@ -9,6 +9,11 @@ import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import AcknowledgedStateUtil from "../../../../../Utils/AcknowledgedState";
+import ResolvedStateUtil, {
+  ResolvedStateList,
+} from "../../../../../Utils/ResolvedState";
+import { StateListType } from "../../../../../Utils/StateOrder";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
@@ -55,6 +60,8 @@ export interface FromAnotherToolRecordModel {
   severityIdColumn: string;
   severityRelation: string;
   stateRelation: string;
+  // The project's list of states the record moves along, for the state rules.
+  stateList: ResolvedStateList;
   numberWithPrefixColumn: string;
   numberColumn: string;
   // The column a state-timeline row and a note name their record by.
@@ -70,6 +77,7 @@ export const INCIDENT_RECORD_MODEL: FromAnotherToolRecordModel = {
   severityIdColumn: "incidentSeverityId",
   severityRelation: "incidentSeverity",
   stateRelation: "currentIncidentState",
+  stateList: StateListType.IncidentState,
   numberWithPrefixColumn: "incidentNumberWithPrefix",
   numberColumn: "incidentNumber",
   recordIdColumn: "incidentId",
@@ -85,6 +93,7 @@ export const ALERT_RECORD_MODEL: FromAnotherToolRecordModel = {
   severityIdColumn: "alertSeverityId",
   severityRelation: "alertSeverity",
   stateRelation: "currentAlertState",
+  stateList: StateListType.AlertState,
   numberWithPrefixColumn: "alertNumberWithPrefix",
   numberColumn: "alertNumber",
   recordIdColumn: "alertId",
@@ -92,19 +101,18 @@ export const ALERT_RECORD_MODEL: FromAnotherToolRecordModel = {
   statusPageColumns: [],
 };
 
-interface StateRow {
-  id: string;
-  name: string;
-  order: number;
-  isAcknowledgedState: boolean;
-  isResolvedState: boolean;
-}
-
 interface Outcome {
   port: string;
   summary: string;
   record: BaseModel | null;
 }
+
+// A state's name, as a summary says it and a named move finds it.
+const stateNameOf: (state: BaseModel) => string = (
+  state: BaseModel,
+): string => {
+  return String(state.getColumnValue("name") || "");
+};
 
 // An outside ID or name, as a sentence quotes it: on one line, and short.
 const quoted: (value: string) => string = (value: string): string => {
@@ -234,9 +242,7 @@ export default class RecordFromAnotherTool extends ComponentCode {
       this.model.numberWithPrefixColumn,
     );
 
-    return typeof value === "string" && value
-      ? value
-      : `the ${this.kind.noun}`;
+    return typeof value === "string" && value ? value : `the ${this.kind.noun}`;
   }
 
   // The record's number at the start of a sentence: "INC-12", or "The incident".
@@ -428,10 +434,7 @@ export default class RecordFromAnotherTool extends ComponentCode {
     return {
       returnValues: {
         [FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record]: outcome.record
-          ? BaseModel.toJSON(
-              outcome.record,
-              this.services.record.modelType,
-            )
+          ? BaseModel.toJSON(outcome.record, this.services.record.modelType)
           : null,
         [FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.summary]: outcome.summary,
       },
@@ -488,9 +491,7 @@ export default class RecordFromAnotherTool extends ComponentCode {
 
     const resolvesByNote: boolean =
       data.whatHappened.action === FromAnotherToolAction.Resolve &&
-      isOn(
-        data.args[FROM_ANOTHER_TOOL_ARGUMENT_IDS.noteInsteadOfResolving],
-      );
+      isOn(data.args[FROM_ANOTHER_TOOL_ARGUMENT_IDS.noteInsteadOfResolving]);
 
     if (
       data.whatHappened.action === FromAnotherToolAction.Note ||
@@ -607,7 +608,9 @@ export default class RecordFromAnotherTool extends ComponentCode {
       readCustomFields(data.args[ids.customFields]);
 
     if ("error" in customFields) {
-      throw new BadDataException(`${customFields.error} No ${noun} was ${opened}.`);
+      throw new BadDataException(
+        `${customFields.error} No ${noun} was ${opened}.`,
+      );
     }
 
     const json: JSONObject = {
@@ -744,11 +747,15 @@ export default class RecordFromAnotherTool extends ComponentCode {
     });
   }
 
+  /*
+   * The project's states, top to bottom, with what the state rules read:
+   * their place and their flags (ResolvedStateUtil, AcknowledgedStateUtil).
+   */
   private async readStates(data: {
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID;
-  }): Promise<Array<StateRow>> {
-    const states: Array<BaseModel> = await this.services.state.findBy({
+  }): Promise<Array<BaseModel>> {
+    return await this.services.state.findBy({
       query: { projectId: data.projectId } as never,
       select: {
         _id: true,
@@ -762,23 +769,16 @@ export default class RecordFromAnotherTool extends ComponentCode {
       skip: 0,
       props: data.props,
     });
-
-    return states.map((state: BaseModel): StateRow => {
-      return {
-        id: state.id!.toString(),
-        name: String(state.getColumnValue("name") || ""),
-        order: Number(state.getColumnValue("order")),
-        isAcknowledgedState: state.getColumnValue("isAcknowledgedState") === true,
-        isResolvedState: state.getColumnValue("isResolvedState") === true,
-      };
-    });
   }
 
   /*
    * Acknowledge, resolve or a state's name: the record moves forward to the
-   * state, by the rule every template moved records by - the first state
-   * from the top flagged acknowledged or resolved, or the one named - and a
-   * record at it or past it, or resolved, is left as it is. The reason is
+   * state, by the rule every template moved records by - the project's
+   * acknowledged or resolved state (the first from the top that carries the
+   * flag, which Acknowledge and Resolve move a record into), or the one
+   * named - and a record at it or past it, or resolved, is left as it is.
+   * Whether it is resolved is the product's one rule (ResolvedStateUtil): a
+   * state of the project's own placed after Resolved counts. The reason is
    * why, on its timeline.
    */
   private async move(data: {
@@ -789,13 +789,15 @@ export default class RecordFromAnotherTool extends ComponentCode {
     projectId: ObjectID;
   }): Promise<Outcome> {
     const noun: string = this.kind.noun;
-    const states: Array<StateRow> = await this.readStates(data);
+    const states: Array<BaseModel> = await this.readStates(data);
+    const list: ResolvedStateList = this.model.stateList;
     const action: FromAnotherToolAction = data.whatHappened.action;
-    let target: StateRow | undefined;
+    let target: BaseModel | null | undefined;
 
     if (action === FromAnotherToolAction.Acknowledge) {
-      target = states.find((state: StateRow): boolean => {
-        return state.isAcknowledgedState;
+      target = AcknowledgedStateUtil.getAcknowledgedState({
+        list: list,
+        states: states,
       });
 
       if (!target) {
@@ -804,18 +806,21 @@ export default class RecordFromAnotherTool extends ComponentCode {
         );
       }
     } else if (action === FromAnotherToolAction.Resolve) {
-      target = states.find((state: StateRow): boolean => {
-        return state.isResolvedState;
+      target = ResolvedStateUtil.getResolvedState({
+        list: list,
+        states: states,
       });
 
       if (!target) {
-        throw new BadDataException(`This project has no resolved ${noun} state.`);
+        throw new BadDataException(
+          `This project has no resolved ${noun} state.`,
+        );
       }
     } else {
       const wanted: string = data.whatHappened.given.trim().toLowerCase();
 
-      target = states.find((state: StateRow): boolean => {
-        return state.name.trim().toLowerCase() === wanted;
+      target = states.find((state: BaseModel): boolean => {
+        return stateNameOf(state).trim().toLowerCase() === wanted;
       });
 
       if (!target) {
@@ -840,20 +845,29 @@ export default class RecordFromAnotherTool extends ComponentCode {
         : Number.NaN;
     const isResolved: boolean =
       current instanceof BaseModel &&
-      current.getColumnValue("isResolvedState") === true;
+      ResolvedStateUtil.isStateResolved({
+        list: list,
+        states: states,
+        state: current,
+      });
+    const targetName: string = stateNameOf(target);
+    const targetOrder: number = Number(target.getColumnValue("order"));
 
     // A record never moves back: one at the state or past it, or resolved, stays.
-    if (isResolved || (Number.isFinite(currentOrder) && currentOrder >= target.order)) {
+    if (
+      isResolved ||
+      (Number.isFinite(currentOrder) && currentOrder >= targetOrder)
+    ) {
       return {
         port: FROM_ANOTHER_TOOL_PORT_IDS.unchanged,
-        summary: `${this.numberAtStart(data.record)} is already ${quoted(currentName || "past " + target.name)}, so it was left as it is.`,
+        summary: `${this.numberAtStart(data.record)} is already ${quoted(currentName || "past " + targetName)}, so it was left as it is.`,
         record: data.record,
       };
     }
 
     const timeline: JSONObject = {
       [this.model.recordIdColumn]: data.record.id!.toString(),
-      [this.model.timelineStateIdColumn]: target.id,
+      [this.model.timelineStateIdColumn]: target.id!.toString(),
       projectId: data.projectId.toString(),
     };
 
@@ -875,7 +889,7 @@ export default class RecordFromAnotherTool extends ComponentCode {
 
     return {
       port: FROM_ANOTHER_TOOL_PORT_IDS.updated,
-      summary: `Moved ${this.numberOf(data.record)} to ${quoted(target.name)}.`,
+      summary: `Moved ${this.numberOf(data.record)} to ${quoted(targetName)}.`,
       record: moved,
     };
   }

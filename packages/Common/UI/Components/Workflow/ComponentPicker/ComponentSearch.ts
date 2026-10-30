@@ -106,6 +106,17 @@ export enum SearchTier {
 
 const SCORE_PER_WORD: number = 100;
 const BUILT_IN_BONUS: number = 30;
+
+/*
+ * Hand-written steps named after a resource, which come after that
+ * resource's own steps rather than among them: "incident" lists Create One
+ * Incident to Delete Many Incidents, then Incident From Another Tool. They
+ * take no built-in bonus.
+ */
+export const RANKED_AFTER_RESOURCE_STEPS: ReadonlySet<string> = new Set<string>(
+  [ComponentID.IncidentFromAnotherTool, ComponentID.AlertFromAnotherTool],
+);
+
 const POPULAR_BONUS: number = 20;
 const COMMON_RESOURCE_BONUS: number = 30;
 // For each word of a resource's name the search did not mention.
@@ -190,15 +201,17 @@ const PAGE_KEYWORDS: ReadonlyArray<string> = [
   "opsgenie",
 ];
 
+/*
+ * What people bringing another tool's alerts in call it, and the tools they
+ * bring them from. Not "open", "resolve" or "acknowledge": those mean
+ * Create One and Update One, and would put these steps above them.
+ */
 const FROM_OTHER_TOOL_KEYWORDS: ReadonlyArray<string> = [
   "external",
   "outside",
   "integration",
   "inbound",
   "sync",
-  "open",
-  "resolve",
-  "acknowledge",
   "recovery",
   "firing",
   "zabbix",
@@ -233,10 +246,6 @@ export const COMPONENT_KEYWORDS: Readonly<
     "duty",
   ],
   [ComponentID.Log]: ["print", "console", "debug", "output", "write"],
-  /*
-   * What people bringing another tool's alerts in call it, and the tools
-   * they bring them from.
-   */
   [ComponentID.IncidentFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
   [ComponentID.AlertFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
   [ComponentID.ZabbixUpdateProblem]: [
@@ -622,6 +631,8 @@ interface IndexedComponent {
   // For a database step, the words that name each word of its resource.
   resourceWords: Array<Array<CoveringWord>> | null;
   isBuiltIn: boolean;
+  // A hand-written step outside RANKED_AFTER_RESOURCE_STEPS.
+  takesBuiltInBonus: boolean;
   popularRank: number;
   commonRank: number;
   // Position in A to Z order: resource, then operation, then title.
@@ -897,6 +908,8 @@ export const buildComponentSearchIndex: BuildComponentSearchIndexFunction = (
         titleKey: titleWords.join(" "),
         resourceWords: resourceWords,
         isBuiltIn: isBuiltIn,
+        takesBuiltInBonus:
+          isBuiltIn && !RANKED_AFTER_RESOURCE_STEPS.has(componentMetadata.id),
         popularRank:
           popularRank === undefined ? Number.POSITIVE_INFINITY : popularRank,
         commonRank:
@@ -1113,7 +1126,7 @@ export const searchComponents: SearchComponentsFunction = (
       }
     }
 
-    if (entry.isBuiltIn) {
+    if (entry.takesBuiltInBonus) {
       score += BUILT_IN_BONUS;
     }
 

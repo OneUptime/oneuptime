@@ -1104,6 +1104,46 @@ describe("Incident From Another Tool", () => {
       expect(project.stateOf(existing)).toBe("Resolved");
     });
 
+    /*
+     * Whether a record is resolved is the product's one rule
+     * (ResolvedStateUtil): a state the project placed after Resolved counts,
+     * flagged or not. An incident in "Closed" is resolved, so a state named
+     * after it moves nothing either.
+     */
+    test("an incident in a state placed after Resolved is resolved, and never moves", async () => {
+      project = makeFakeProject({
+        spec: INCIDENT_SPEC,
+        states: [
+          { name: "Identified", order: 1 },
+          { name: "Resolved", order: 2, isResolvedState: true },
+          { name: "Closed", order: 3 },
+          { name: "Archived", order: 4 },
+        ],
+      });
+      step = new RecordFromAnotherTool({
+        kind: INCIDENT_FROM_ANOTHER_TOOL,
+        services: project.services,
+        model: project.model,
+      });
+      const existing: BaseModel = addRecord({
+        project,
+        spec: INCIDENT_SPEC,
+        customFields: { externalId: "7" },
+        stateName: "Closed",
+      });
+
+      const { result } = await run({
+        "what-happened": "Archived",
+        "outside-id": "7",
+      });
+
+      expect(result.executePort?.id).toBe("unchanged");
+      expect(result.executePortReason).toBe(
+        "INC-1 is already Closed, so it was left as it is.",
+      );
+      expect(project.stateOf(existing)).toBe("Closed");
+    });
+
     test("Note Instead Of Resolving adds the note and leaves the incident as it is", async () => {
       const existing: BaseModel = addRecord({
         project,

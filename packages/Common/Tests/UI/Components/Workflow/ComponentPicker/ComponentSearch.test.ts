@@ -608,6 +608,124 @@ describe("hand-written steps and resources together", () => {
   });
 });
 
+/*
+ * The steps the simpler templates are built from: found by what they are
+ * called and what they do, and never above the steps a word means.
+ */
+describe("the steps the templates are built from", () => {
+  test("'incident' lists Incident's own steps, then Incident From Another Tool, then Incident State's", () => {
+    const results: Array<ComponentSearchResult> = search(ACTIONS, "incident");
+    const ordered: Array<string> = results.map(
+      (result: ComponentSearchResult): string => {
+        return result.component.title;
+      },
+    );
+
+    expect(ordered.slice(0, 8)).toEqual(INCIDENT_ACTIONS);
+    expect(ordered[8]).toBe("Incident From Another Tool");
+    expect(resultFor(results, "Incident From Another Tool").tier).toBe(
+      SearchTier.Named,
+    );
+    expect(ordered.indexOf("Create One Incident State")).toBeGreaterThan(8);
+  });
+
+  test("'alert' lists Alert's own steps, then Alert From Another Tool", () => {
+    const ordered: Array<string> = titles(ACTIONS, "alert");
+
+    expect(ordered.slice(0, 8).sort()).toEqual(
+      [
+        "Create One Alert",
+        "Create Many Alerts",
+        "Find One Alert",
+        "Find Many Alerts",
+        "Update One Alert",
+        "Update Many Alerts",
+        "Delete One Alert",
+        "Delete Many Alerts",
+      ].sort(),
+    );
+    expect(ordered[8]).toBe("Alert From Another Tool");
+  });
+
+  test("the words for another tool's problems find the From Another Tool steps", () => {
+    expect(titles(ACTIONS, "another tool").slice(0, 2).sort()).toEqual([
+      "Alert From Another Tool",
+      "Incident From Another Tool",
+    ]);
+    expect(titles(ACTIONS, "external incident")[0]).toBe(
+      "Incident From Another Tool",
+    );
+    expect(titles(ACTIONS, "alert from alertmanager")[0]).toBe(
+      "Alert From Another Tool",
+    );
+
+    for (const tool of ["grafana", "prometheus", "huntress", "datadog"]) {
+      expect(titles(ACTIONS, tool)).toEqual(
+        expect.arrayContaining([
+          "Alert From Another Tool",
+          "Incident From Another Tool",
+        ]),
+      );
+    }
+
+    // Updating Zabbix's own problem is its own step, first for "zabbix".
+    expect(titles(ACTIONS, "zabbix")[0]).toBe("Update Zabbix Problem");
+    expect(titles(ACTIONS, "acknowledge zabbix problem")[0]).toBe(
+      "Update Zabbix Problem",
+    );
+  });
+
+  test("their words never put them above the step a word means", () => {
+    /*
+     * Opening, acknowledging and resolving are what Create One and Update
+     * One are found by: for the From Another Tool steps they are only in
+     * what the description says the step does.
+     */
+    for (const word of ["open", "acknowledge", "resolve"]) {
+      for (const title of [
+        "Incident From Another Tool",
+        "Alert From Another Tool",
+      ]) {
+        const found: ComponentSearchResult | undefined = search(
+          ACTIONS,
+          word,
+        ).find((result: ComponentSearchResult): boolean => {
+          return result.component.title === title;
+        });
+
+        expect(found === undefined || found.tier === SearchTier.Mentioned).toBe(
+          true,
+        );
+      }
+    }
+
+    expect(titles(ACTIONS, "resolve incident")[0]).toBe("Update One Incident");
+    expect(titles(ACTIONS, "open an incident")[0]).toBe("Create One Incident");
+    expect(titles(ACTIONS, "acknowledge alert")[0]).not.toBe(
+      "Alert From Another Tool",
+    );
+    expect(titles(ACTIONS, "javascript")[0]).toBe("Run Custom JavaScript");
+    expect(titles(ACTIONS, "api get")[0]).toBe("API Get (JSON)");
+  });
+
+  test("Check With JavaScript and API Get By ID are found by what they do", () => {
+    expect(titles(ACTIONS, "check")[0]).toBe("Check With JavaScript");
+    expect(titles(ACTIONS, "javascript check")[0]).toBe(
+      "Check With JavaScript",
+    );
+    expect(titles(ACTIONS, "javascript").slice(0, 2)).toEqual([
+      "Run Custom JavaScript",
+      "Check With JavaScript",
+    ]);
+    expect(titles(ACTIONS, "get by id")[0]).toBe("API Get By ID (JSON)");
+    expect(titles(ACTIONS, "api get").slice(0, 2)).toEqual([
+      "API Get (JSON)",
+      "API Get By ID (JSON)",
+    ]);
+    expect(titles(ACTIONS, "lookup record")[0]).toBe("API Get By ID (JSON)");
+  });
+});
+
 describe("typos", () => {
   test("a misspelt word is read as the word it nearly is", () => {
     const outcome: ComponentSearchOutcome = searchComponents(
