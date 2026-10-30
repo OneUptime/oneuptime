@@ -1,0 +1,71 @@
+{{> Start this}}
+
+{{!--
+  A security advisory OneUptime published on GitHub affects the version this
+  installation runs (Workers/Jobs/InstanceUpdate, built by
+  Common/Server/Utils/UpdateCheck/SecurityAdvisoryEmail.ts). Sent once per
+  advisory to the installation's master admins and its admin notification
+  email. Every value is plain text written with a double stash, and the one
+  link is the installation's own upgrade guide.
+--}}
+{{> Logo this}}
+
+{{> EmailTitle title=subject }}
+
+{{> StatusBadge badgeType=badgeType badgeText=badgeText }}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{#if oneuptimeHost}}
+{{> DetailBoxField title=(concat (brandName) " Host: ") plainText=oneuptimeHost }}
+{{/if}}
+{{> DetailBoxField title="Running Version: " plainText=currentVersion }}
+{{#if recommendedVersion}}
+{{> DetailBoxField title="Upgrade To: " plainText=recommendedVersion }}
+{{/if}}
+{{> DetailBoxEnd this }}
+
+{{#ifCond hasAdvisories "true"}}
+{{> InfoBlock info="Security advisories:"}}
+
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="padding: 0;"></td>
+      <td style="padding: 0 0 24px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; border: 1px solid #e2e8f0; border-radius: 12px; border-collapse: separate; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+          <tbody>
+            {{#each advisories}}
+            <tr>
+              <td style="padding: 14px 20px;{{#unless @first}} border-top: 1px solid #e2e8f0;{{/unless}} overflow-wrap: anywhere; word-break: break-word;">
+                <p style="margin: 0; font-size: 15px; line-height: 24px; font-weight: 600; color: #0f172a;">{{this.title}}</p>
+                <p style="margin: 2px 0 0; font-size: 13px; line-height: 21px; color: #64748b;">{{this.details}}</p>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="padding: 0;"></td>
+    </tr>
+  </tbody>
+</table>
+
+{{#if moreAdvisoriesSentence}}
+{{> InfoBlock plainInfo=moreAdvisoriesSentence }}
+{{/if}}
+{{/ifCond}}
+
+{{#if upgradeGuideLink}}
+{{> ButtonBlock buttonUrl=upgradeGuideLink buttonText="How to Upgrade" }}
+
+{{> LinkBlock linkUrl=upgradeGuideLink linkLabel="You can also copy and paste this link:"}}
+{{/if}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> Footer this}}
+
+{{> End this}}

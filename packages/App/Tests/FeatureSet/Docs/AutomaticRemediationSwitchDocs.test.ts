@@ -129,9 +129,9 @@ describe("the AI SRE page", () => {
     expect(rules).toContain(
       "- With rules, OneUptime AI investigates only the incidents that match at least one enabled rule, and fixes only those a rule that fixes matches",
     );
-    // An incident only rules that don't fix matched says so on its card.
+    // An incident only rules that don't fix matched says so in its card's step.
     expect(rules).toContain(
-      "and one only rules that don't fix matched on its **Remediation** card",
+      "and one only rules that don't fix matched in its **Remediation** step",
     );
     // Rules that cannot be read never stop an investigation.
     expect(rules).toContain(

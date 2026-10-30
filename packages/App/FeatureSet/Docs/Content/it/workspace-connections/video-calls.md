@@ -113,7 +113,7 @@ Nella scheda **Video Call** dell'incidente, **Ottieni da Zoom**, **Ottieni da Go
 
 ### OneUptime AI la legge
 
-Entro un paio di minuti, la scheda **AI Investigation** dell'incidente mostra la **Causa principale suggerita**, contrassegnata come **Non confermata**, con le righe della trascrizione su cui si basa, citate con ora e interlocutore. Sotto, chiuso, c'è il resto di ciò che ha detto la chiamata: le scoperte, divise tra **Confermato durante la chiamata** e **Ipotesi**, poi cosa è stato provato, le decisioni, le azioni successive e le domande aperte. Ciò che OneUptime AI ha letto viene pubblicato anche nel feed dell'incidente, e da lì nei canali Slack e Microsoft Teams dell'incidente.
+Entro un paio di minuti, la scheda **OneUptime AI** dell'incidente mostra la **Causa principale suggerita**, contrassegnata come **Non confermata**, con le righe della trascrizione su cui si basa, citate con ora e interlocutore. Sotto, chiuso, c'è il resto di ciò che ha detto la chiamata: le scoperte, divise tra **Confermato durante la chiamata** e **Ipotesi**, poi cosa è stato provato, le decisioni, le azioni successive e le domande aperte. Ciò che OneUptime AI ha letto viene pubblicato anche nel feed dell'incidente, e da lì nei canali Slack e Microsoft Teams dell'incidente.
 
 ### Usala o scartala
 

@@ -37,7 +37,7 @@ No modo **Somente leitura** as ações nunca são oferecidas ao modelo, então a
 
 O Pergunte à IA abre no meio da tela, sobre a página em que você estava, e em um celular ocupa a tela inteira. Pressione `Esc`, ou clique ao lado, para voltar à página. A conversa fica onde você parou: abra o Pergunte à IA de novo para continuar. Se você o fechar enquanto ele ainda responde, um lembrete no canto avisa quando a resposta está pronta, e a abre.
 
-Em um incidente ou alerta, o cartão **AI Investigation** tem uma conversa própria, **Ask OneUptime AI**, compartilhada com todos que podem ver aquele incidente ou alerta: veja [Conversar com o OneUptime AI sobre o incidente](/docs/ai/ai-sre#converse-com-a-oneuptime-ai-sobre-o-incidente).
+Em um incidente ou alerta, o cartão **OneUptime AI** tem uma conversa própria, **Ask OneUptime AI**, compartilhada com todos que podem ver aquele incidente ou alerta: veja [Conversar com o OneUptime AI sobre o incidente](/docs/ai/ai-sre#converse-com-a-oneuptime-ai-sobre-o-incidente).
 
 ## O que ele vê
 

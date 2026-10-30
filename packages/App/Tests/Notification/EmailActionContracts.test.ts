@@ -57,6 +57,7 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "forgotPasswordUrl",
   "capacityPageLink",
   "healthPageLink",
+  "upgradeGuideLink",
 ];
 type DestinationKey = (typeof DESTINATION_KEYS)[number];
 
@@ -428,6 +429,12 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "healthPageLink",
     "Inspect database health & capacity",
     null,
+  ],
+  [
+    "SecurityAdvisoryAffectsInstallation",
+    "upgradeGuideLink",
+    "How to Upgrade",
+    "upgradeGuideLink",
   ],
   [
     "ScheduledMaintenanceOwnerAdded",
@@ -834,6 +841,7 @@ describe("optional administrator actions do not become dead controls", () => {
     ["ClickhouseCapacityWarning", "capacityPageLink"],
     ["PostgresHealthWarning", "healthPageLink"],
     ["RedisHealthWarning", "healthPageLink"],
+    ["SecurityAdvisoryAffectsInstallation", "upgradeGuideLink"],
   ] as Array<[string, DestinationKey]>)(
     "%s omits its action when the destination is absent",
     (template: string, key: DestinationKey) => {
