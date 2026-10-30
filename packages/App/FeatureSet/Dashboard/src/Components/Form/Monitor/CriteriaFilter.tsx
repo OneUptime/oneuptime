@@ -49,6 +49,7 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/Fo
 import { getNoDataPolicyMoreFieldsItems } from "./MonitorMoreFields";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
+  ComponentProps as DropdownProps,
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
@@ -125,6 +126,19 @@ export const NetworkDeviceCriteriaCatalogueContext: React.Context<NetworkDeviceC
   React.createContext<NetworkDeviceCriteriaCatalogue>(
     EMPTY_NETWORK_DEVICE_CRITERIA_CATALOGUE,
   );
+
+/*
+ * Every list of a filter sits in the criteria editor's narrowest box - on a
+ * phone, a form three cards deep leaves it about 200px - so each one shows
+ * its pick whole, on a second line if it must. Cut to an ellipsis, a filter
+ * read "SNMP Walk..." for SNMP Walk Is Succeeding at 390px, and its OID,
+ * table and metric picks the same.
+ */
+export const FilterDropdown: FunctionComponent<DropdownProps> = (
+  props: DropdownProps,
+): ReactElement => {
+  return <Dropdown {...props} wrapsPickedValue={true} />;
+};
 
 export interface ComponentProps {
   value: CriteriaFilter | undefined;
@@ -355,12 +369,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {!isMetricOnly && (
           <div className="">
             <FieldLabelElement title="Filter Type" />
-            <Dropdown
+            {/*
+             * Never cleared: a filter checks something. A cleared Filter
+             * Type left a filter that checked nothing, and its × took a
+             * sixth of a phone's list.
+             */}
+            <FilterDropdown
               value={checkOnOptions.find((i: DropdownOption) => {
                 return i.value === criteriaFilter?.checkOn;
               })}
               options={checkOnOptions}
               ariaLabel="Filter Type"
+              isClearable={false}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
@@ -534,7 +554,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     )}
                   </p>
                 ) : (
-                  <Dropdown
+                  <FilterDropdown
                     value={selectedOidOption}
                     options={oidOptions}
                     onChange={(
@@ -590,7 +610,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   title="Transceiver Reading"
                   description="Which reading of the optic to compare: power (dBm), temperature (°C), voltage (V) or bias current (mA). Every lane is compared."
                 />
-                <Dropdown
+                <FilterDropdown
                   value={selectedReadingOption}
                   options={readingOptions}
                   placeholder="Choose a reading"
@@ -681,7 +701,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   title="Interface (Optional)"
                   description="One interface, by name or alias (e.g. Gi0/1). Leave empty for one combined alert, or pick * for a separate alert per interface."
                 />
-                <Dropdown
+                <FilterDropdown
                   value={selectedInterfaceOption}
                   options={interfaceOptions}
                   placeholder="Every monitored interface (combined)"
@@ -843,7 +863,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       )}
                     </p>
                   ) : (
-                    <Dropdown
+                    <FilterDropdown
                       value={selectedTableOption}
                       options={tableOptions}
                       onChange={(
@@ -865,7 +885,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       title="Column"
                       description="The column to compare, row by row. Numbers compare as numbers; text compares against both the raw value and its label."
                     />
-                    <Dropdown
+                    <FilterDropdown
                       value={selectedColumnOption}
                       options={columnOptions}
                       placeholder="Choose a column"
@@ -887,7 +907,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     title="Row (Optional)"
                     description="Leave empty to evaluate every row as one combined alert, pick * to raise a separate alert for each row, or name one row."
                   />
-                  <Dropdown
+                  <FilterDropdown
                     value={selectedRowOption}
                     options={rowOptions}
                     placeholder="Every row (combined)"
@@ -1029,7 +1049,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   title="Metric"
                   description="Which of the health metrics the probe collects should this criteria compare against?"
                 />
-                <Dropdown
+                <FilterDropdown
                   value={selectedMetricOption}
                   options={metricOptions}
                   onChange={(
@@ -1075,7 +1095,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     : undefined
                 }
               />
-              <Dropdown
+              <FilterDropdown
                 value={selectedMetricVariableOption}
                 options={metricVariableOptions}
                 onChange={(
@@ -1110,7 +1130,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     : undefined
                 }
               />
-              <Dropdown
+              <FilterDropdown
                 value={metricAggregationValue}
                 options={metricAggregationOptions}
                 onChange={(
@@ -1138,10 +1158,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   isMetricOnly ? "When should this alert trigger?" : undefined
                 }
               />
-              <Dropdown
+              {/*
+               * Never cleared either: a filter with no condition never
+               * matches anything.
+               */}
+              <FilterDropdown
                 value={filterConditionValue}
                 options={filterTypeOptions}
                 ariaLabel={isMetricOnly ? "Condition" : "Filter Condition"}
+                isClearable={false}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -1195,7 +1220,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       />
                     </div>
                     <div className="w-56">
-                      <Dropdown
+                      <FilterDropdown
                         value={selectedThresholdUnitOption}
                         options={thresholdUnitOptions.map((o: UnitOption) => {
                           return { value: o.value, label: o.label };
@@ -1243,7 +1268,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             }) && (
               <div className="mt-1">
                 <FieldLabelElement title="Value" />
-                <Dropdown
+                <FilterDropdown
                   ariaLabel="Value"
                   options={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn({
                     checkOn: criteriaFilter?.checkOn,
@@ -1312,7 +1337,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         props.monitorType,
                       )}
                     />
-                    <Dropdown
+                    <FilterDropdown
                       value={evaluateOverTimeTypeValue}
                       options={evalOverTimeDropdownOptions}
                       ariaLabel="Evaluate"
@@ -1338,7 +1363,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       title="For the last (in minutes)"
                       description="Make it longer than the monitoring interval, so the window holds several checks."
                     />
-                    <Dropdown
+                    <FilterDropdown
                       value={evaluateOverTimeMinutesValue}
                       options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
                       ariaLabel="For the last (in minutes)"
@@ -1366,7 +1391,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         "What happens while the window does not have enough data yet, such as just after the monitor starts."
                       }
                     />
-                    <Dropdown
+                    <FilterDropdown
                       value={{
                         value: overTimeNoDataPolicy,
                         label: overTimeNoDataPolicy,
@@ -1421,7 +1446,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 title="Sensitivity"
                 description="Lower sensitivity means a wider expected range and fewer alerts."
               />
-              <Dropdown
+              <FilterDropdown
                 value={(() => {
                   const v: AnomalyDetectionSensitivity =
                     (criteriaFilter?.metricMonitorOptions?.anomalyDetection
@@ -1474,7 +1499,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   title="Baseline Window"
                   description="How many days of history to compare against. Longer windows catch monthly cycles; shorter ones adapt faster."
                 />
-                <Dropdown
+                <FilterDropdown
                   value={(() => {
                     const days: number =
                       criteriaFilter?.metricMonitorOptions?.anomalyDetection
@@ -1551,7 +1576,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     title="If No Data"
                     description="What should happen when the query returns no data points in the evaluation window?"
                   />
-                  <Dropdown
+                  <FilterDropdown
                     value={(() => {
                       const v: NoDataPolicy =
                         criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||

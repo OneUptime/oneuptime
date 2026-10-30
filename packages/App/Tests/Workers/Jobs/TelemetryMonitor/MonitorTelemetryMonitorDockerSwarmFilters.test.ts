@@ -351,14 +351,22 @@ describe("monitorDockerSwarm: every filter is on the resource attribute the task
       projectId,
     });
 
-    expect(metricAggregateBy).not.toHaveBeenCalled();
+    /*
+     * The per-series read, grouped in SQL by the task (#5281), then the
+     * breakdown's scan of raw rows: the same filters on both.
+     */
+    expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+    expect(metricFindBy).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        metricAggregateBy.mock.calls[0]![0] as {
+          groupByAttributeKeys?: Array<string>;
+        }
+      ).groupByAttributeKeys,
+    ).toEqual(["resource.container.name"]);
 
-    // The per-series read, then the breakdown's scan: the same filters.
-    for (const call of [0, 1]) {
-      const attributes: Record<string, unknown> = queriedAttributes(
-        metricFindBy,
-        call,
-      )!;
+    for (const mock of [metricAggregateBy, metricFindBy]) {
+      const attributes: Record<string, unknown> = queriedAttributes(mock)!;
 
       expect(attributes["resource.docker.swarm.service.name"]).toBe("shop_web");
       expect(attributes["resource.docker.swarm.node.name"]).toBe("worker-1");

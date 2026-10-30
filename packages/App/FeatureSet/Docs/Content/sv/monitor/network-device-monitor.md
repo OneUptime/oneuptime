@@ -394,6 +394,8 @@ Varje rad säger var dess OID är känd: ett värde som en leverantörs hälsoma
 - **Skapa larm** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium på OID:n. En räknare börjar på **SNMP OID Rate (per second)** och en mätare på **SNMP OID Value**, båda över ett tröskelvärde du själv anger; en drifttid varnar under tio minuter (enheten startade om), allt annat när det ändras från det lästa värdet.
 - **Kopiera OID**, i radens meny, kopierar OID:n.
 
+**Ladda ner**, bredvid walkens sammanfattning, sparar det walken läste som en fil: **snmpwalk-text (.txt)**, en OID per rad så som `snmpwalk -On` skriver ut den, som alla SNMP-verktyg och all leverantörssupport kan läsa, eller **CSV-kalkylblad (.csv)** med varje OID:s namn, MIB, typ och värde. Filen innehåller varje OID som walken läste, fortsatta walkar inräknade, oavsett vad filtret visar, och har namn efter enheten, underträdet och tiden då den sparades. Alla som kan läsa enhetens senaste walk kan ladda ner den.
+
 En walk som misslyckas säger varför, och vad du ska kontrollera: en enhet som inte svarar (SNMP avstängt, UDP 161 blockerad eller, för v1 och v2c, en felaktig community-sträng, som en agent ignorerar utan ett ord), en SNMPv3-användare, ett lösenord eller ett protokoll som enheten avvisade, eller en del av trädet som autentiseringsuppgifternas SNMP-vy utelämnar. En walk som stannar halvvägs behåller det den har läst. En walk kräver behörigheten **Create Network Device Diagnostic** och en sond som är ny nog för SNMP-walk: med en äldre ber sidan dig att uppdatera den.
 
 ### SNMP-tabeller
@@ -752,6 +754,8 @@ Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en 
 ### En enhet i taget
 
 Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
+
+De flesta switchar, routrar, brandväggar och skrivare har också ett webbgränssnitt på sin egen adress. **Övervaka webbgränssnitt**, på samma kort, öppnar en **Webbplats**-monitor för det: `https://` på enhetens adress, med **Tillåt självsignerade certifikat** påslaget, eftersom en enhets webbgränssnitt nästan alltid har ett, kontrollerad från enhetens egen probe och med namn efter enheten. Ändra URL:en om gränssnittet svarar på `http`, på en annan port eller under en sökväg, och spara sedan. Kortet visar monitorn så länge dess namn innehåller enhetens namn och dess URL ligger på enhetens adress; den ändrar inte enhetens status.
 
 För att i stället skapa en från **Monitorer**:
 

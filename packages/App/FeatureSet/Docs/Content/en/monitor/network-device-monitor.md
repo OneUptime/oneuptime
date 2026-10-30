@@ -394,6 +394,8 @@ Each row says where its OID is known: a value a vendor health template collects,
 - **Alert on it**, once the OID is collected, opens a new Network Device monitor for the device with one criteria on the OID. A counter starts on **SNMP OID Rate (per second)** and a gauge on **SNMP OID Value**, each above a threshold you set; an uptime alerts below ten minutes (the device restarted), and anything else when it changes from the walked value.
 - **Copy OID**, in the row's menu, copies the OID.
 
+**Download**, beside the walk's summary, saves what the walk read as a file: **snmpwalk text (.txt)**, one OID a line as `snmpwalk -On` prints it, which every SNMP tool and vendor support desk reads, or **CSV spreadsheet (.csv)**, with each OID's name, MIB, type and value. The file holds every OID the walk read, continued walks included, whatever the filter shows, and is named after the device, the subtree and the time it was saved. Anyone who can read the device's last walk can download it.
+
 A walk that fails says why, and what to check: a device that does not answer (SNMP off, UDP 161 blocked or, on v1 and v2c, a wrong community string, which an agent ignores without a word), an SNMPv3 user, password or protocol the device refused, or a part of the tree the credentials' SNMP view leaves out. A walk that stops part of the way keeps what it read. Walking needs the **Create Network Device Diagnostic** permission and a probe recent enough to walk SNMP: with an older probe, the page asks you to update it.
 
 ### SNMP Tables
@@ -752,6 +754,8 @@ With no policies yet, the page offers **Create the recommended policy**: a **Net
 ### One device at a time
 
 Open the device's page and click **Create Monitor** on the **Monitors alerting on this device** card. The monitor form opens with the Network Device type and the device picked, and the [recommended alert pack](#recommended-alert-pack) filled in: review it, set severities and on-call policies, and save.
+
+Most switches, routers, firewalls and printers also serve a web UI on their own address. **Monitor web UI**, on the same card, opens a **Website** monitor of it: `https://` on the device's address, with **Allow self-signed certificates** on, as a device's web UI almost always has one, checked from the device's own probe and named after the device. Change the URL if the UI answers on `http`, on another port or under a path, then save. The card lists the monitor as long as its name has the device's name in it and its URL is on the device's address; it does not change the device's status.
 
 To create one from **Monitors** instead:
 

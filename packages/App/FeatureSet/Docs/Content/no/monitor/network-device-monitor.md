@@ -394,6 +394,8 @@ Hver rad sier hvor OID-en er kjent: en verdi som en leverandørs helsemal samler
 - **Opprett varsel** vises når OID-en samles inn, og åpner en ny nettverksenhetsmonitor for enheten med ett kriterium på OID-en. En teller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en terskel du setter selv; en oppetid varsler under ti minutter (enheten startet på nytt), alt annet når det endrer seg fra verdien som ble lest.
 - **Kopier OID**, i radens meny, kopierer OID-en.
 
+**Last ned**, ved siden av sammendraget av walken, lagrer det walken leste, som en fil: **snmpwalk-tekst (.txt)**, én OID per linje slik `snmpwalk -On` skriver den, som alle SNMP-verktøy og all leverandørstøtte kan lese, eller **CSV-regneark (.csv)** med navnet, MIB-en, typen og verdien til hver OID. Filen inneholder hver OID walken leste, også fortsatte walker, uansett hva filteret viser, og har navn etter enheten, undertreet og tidspunktet den ble lagret. Alle som kan lese enhetens siste walk, kan laste den ned.
+
 En walk som feiler, sier hvorfor, og hva du bør kontrollere: en enhet som ikke svarer (SNMP slått av, UDP 161 blokkert eller, på v1 og v2c, en feil community-streng, som en agent ignorerer uten et ord), en SNMPv3-bruker, et passord eller en protokoll som enheten avviste, eller en del av treet som SNMP-visningen til påloggingsinformasjonen utelater. En walk som stopper underveis, beholder det den har lest. En walk krever tillatelsen **Create Network Device Diagnostic** og en sonde som er ny nok til SNMP-walk: med en eldre ber siden deg oppdatere den.
 
 ### SNMP-tabeller
@@ -752,6 +754,8 @@ Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended 
 ### Én enhet om gangen
 
 Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Network Device og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
+
+De fleste svitsjer, rutere, brannmurer og skrivere har også et nettgrensesnitt på sin egen adresse. **Overvåk nettgrensesnitt**, på det samme kortet, åpner en **Nettsted**-monitor for det: `https://` på enhetens adresse, med **Tillat selvsignerte sertifikater** slått på, siden en enhets nettgrensesnitt nesten alltid har et, kontrollert fra enhetens egen probe og med navn etter enheten. Endre URL-en hvis grensesnittet svarer på `http`, på en annen port eller under en sti, og lagre deretter. Kortet viser monitoren så lenge navnet inneholder enhetens navn og URL-en er på enhetens adresse; den endrer ikke enhetens status.
 
 For å opprette en fra **Monitorer** i stedet:
 

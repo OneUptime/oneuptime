@@ -394,6 +394,8 @@ Cada fila indica dónde se conoce su OID: un valor que recopila una plantilla de
 - **Crear una alerta**, que aparece cuando el OID ya se recopila, abre un nuevo monitor de dispositivo de red para el dispositivo con un criterio sobre el OID. Un contador empieza con **SNMP OID Rate (per second)** y un indicador con **SNMP OID Value**, ambos por encima de un umbral que fijas tú; un tiempo de actividad alerta por debajo de diez minutos (el dispositivo se reinició) y cualquier otro valor cuando cambia respecto al leído.
 - **Copiar OID**, en el menú de la fila, copia el OID.
 
+**Descargar**, junto al resumen del recorrido, guarda lo que leyó el recorrido como un archivo: **Texto de snmpwalk (.txt)**, un OID por línea tal como lo imprime `snmpwalk -On`, que lee cualquier herramienta SNMP y el soporte de cualquier fabricante, u **Hoja de cálculo CSV (.csv)**, con el nombre, la MIB, el tipo y el valor de cada OID. El archivo contiene cada OID que leyó el recorrido, incluidos los recorridos continuados, muestre lo que muestre el filtro, y lleva el nombre del dispositivo, del subárbol y de la hora en que se guardó. Quien puede leer el último recorrido del dispositivo puede descargarlo.
+
 Un recorrido que falla dice por qué y qué revisar: un dispositivo que no responde (SNMP desactivado, UDP 161 bloqueado o, en v1 y v2c, una cadena de comunidad incorrecta, que un agente ignora sin decir nada), un usuario, una contraseña o un protocolo de SNMPv3 que el dispositivo rechazó, o una parte del árbol que la vista SNMP de las credenciales deja fuera. Un recorrido que se detiene a medias conserva lo que leyó. Recorrer necesita el permiso **Create Network Device Diagnostic** y una sonda lo bastante reciente para recorrer SNMP: con una más antigua, la página te pide que la actualices.
 
 ### Tablas SNMP
@@ -752,6 +754,8 @@ Mientras no hay políticas, la página ofrece **Crear la política recomendada**
 ### Un dispositivo cada vez
 
 Abre la página del dispositivo y haz clic en **Crear monitor** en la tarjeta **Monitores que alertan sobre este dispositivo**. El formulario del monitor se abre con el tipo Dispositivo de red y el dispositivo elegidos, y el [paquete de alertas recomendado](#paquete-de-alertas-recomendado) relleno: revísalo, define las gravedades y las políticas de guardia, y guarda.
+
+La mayoría de los switches, routers, firewalls e impresoras también sirven una interfaz web en su propia dirección. **Monitorear la interfaz web**, en la misma tarjeta, abre un monitor de **Sitio web** para ella: `https://` en la dirección del dispositivo, con **Permitir certificados autofirmados** activado, ya que la interfaz web de un dispositivo casi siempre usa uno, comprobado desde la propia sonda del dispositivo y con el nombre del dispositivo. Cambia la URL si la interfaz responde por `http`, en otro puerto o bajo una ruta, y guarda. La tarjeta muestra el monitor mientras su nombre contenga el nombre del dispositivo y su URL esté en la dirección del dispositivo; no cambia el estado del dispositivo.
 
 Para crear uno desde **Monitores**:
 

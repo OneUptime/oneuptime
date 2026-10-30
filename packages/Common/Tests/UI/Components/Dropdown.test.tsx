@@ -4,6 +4,7 @@ import Dropdown, {
   DropdownValue,
   MULTI_SELECT_CHIP_LABEL_CLASS_NAME,
   SINGLE_SELECT_VALUE_LABEL_CLASS_NAME,
+  SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME,
 } from "../../../UI/Components/Dropdown/Dropdown";
 import "@testing-library/jest-dom";
 import {
@@ -445,6 +446,78 @@ describe("Dropdown picked value", () => {
 
     expect(window.getComputedStyle(chipLabel).whiteSpace).toBe("normal");
     expect(window.getComputedStyle(chipLabel).textOverflow).toBe("clip");
+  });
+
+  /*
+   * A field whose pick must be read whole - a monitor criteria's Filter
+   * Type, in a phone's narrow form - shows it on a second line if it must
+   * (#5281: "SNMP Walk Is Succeeding" read "SNMP Walk..." at 390px). Only
+   * where asked: every other single pick keeps its one line.
+   */
+  test("a field that shows its pick whole wraps it instead of cutting it", () => {
+    render(
+      <Dropdown
+        onChange={() => {}}
+        wrapsPickedValue={true}
+        options={[{ value: "kds", label: LONG_NAME }]}
+        value={{ value: "kds", label: LONG_NAME }}
+      />,
+    );
+
+    const label: HTMLElement = screen.getByTestId("dropdown-value-label");
+
+    expect(label.getAttribute("class")).toBe(
+      SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME,
+    );
+    expect(label).not.toHaveClass("truncate");
+    expect(label).toHaveClass(
+      "min-w-0",
+      "whitespace-normal",
+      "[overflow-wrap:anywhere]",
+    );
+    expect(label).toHaveTextContent(LONG_NAME);
+
+    // react-select's own box lets it wrap too: no ellipsis, no one line.
+    const singleValue: HTMLElement = label.closest(
+      ".ou-select__single-value",
+    ) as HTMLElement;
+
+    expect(singleValue).not.toBeNull();
+    expect(window.getComputedStyle(singleValue).whiteSpace).toBe("normal");
+    expect(window.getComputedStyle(singleValue).textOverflow).toBe("clip");
+  });
+
+  test("without it a single pick keeps react-select's one line and ellipsis", () => {
+    render(
+      <Dropdown
+        onChange={() => {}}
+        options={[{ value: "kds", label: LONG_NAME }]}
+        value={{ value: "kds", label: LONG_NAME }}
+      />,
+    );
+
+    const singleValue: HTMLElement = screen
+      .getByTestId("dropdown-value-label")
+      .closest(".ou-select__single-value") as HTMLElement;
+
+    expect(window.getComputedStyle(singleValue).whiteSpace).toBe("nowrap");
+    expect(window.getComputedStyle(singleValue).textOverflow).toBe("ellipsis");
+  });
+
+  test("a multi select's chips are what they were, whether or not it is asked", () => {
+    render(
+      <Dropdown
+        onChange={() => {}}
+        isMultiSelect={true}
+        wrapsPickedValue={true}
+        options={[{ value: "kds", label: LONG_NAME }]}
+        value={[{ value: "kds", label: LONG_NAME }]}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("dropdown-value-label").getAttribute("class"),
+    ).toBe(MULTI_SELECT_CHIP_LABEL_CLASS_NAME);
   });
 
   test("a single pick still ends in an ellipsis when it does not fit", () => {

@@ -9,13 +9,28 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { DEVICE_ADDRESS_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import DeviceWebUiUtil from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
+import Search from "Common/Types/BaseDatabase/Search";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /** What a device's own row says about who reports its health. */
 export interface DeviceBinding {
   boundMonitor: Monitor | null;
   isMonitorBacked: boolean;
+  /*
+   * The device's name and the address its probe polls: what its web UI
+   * monitor is found by (DeviceWebUiUtil.isWebUiMonitorOf). Empty when the
+   * device could not be read.
+   */
+  deviceName: string;
+  deviceAddress: string;
 }
+
+/*
+ * The most Website monitors named after a device read to find its web UI
+ * monitor among them: a device has one or two.
+ */
+export const WEB_UI_MONITOR_CANDIDATES_LIMIT: number = 50;
 
 /** Everything the device's monitor surfaces render from. */
 export interface DeviceMonitorContext {
@@ -26,9 +41,10 @@ export interface DeviceMonitorContext {
 /*
  * Finds the monitors that report on a given network device.
  *
- * There are THREE ways a monitor relates to a device, and this util has to
+ * There are FOUR ways a monitor relates to a device, and this util has to
  * return all of them or the device's own pages contradict its status pill,
- * or the import that just gave it a monitor.
+ * or the import - or the "Monitor web UI" action - that just gave it a
+ * monitor. The fourth, its web UI monitor, is listWebUiMonitors'.
  *
  * 1. A Network Device monitor WATCHES the device: the reference lives inside
  *    the monitor's monitorSteps JSON column
@@ -109,10 +125,17 @@ export default class DeviceMonitorLookupUtil {
             name: true,
             monitorType: true,
           },
+          name: true,
+          hostname: true,
         },
       });
     } catch {
-      return { boundMonitor: null, isMonitorBacked: false };
+      return {
+        boundMonitor: null,
+        isMonitorBacked: false,
+        deviceName: "",
+        deviceAddress: "",
+      };
     }
 
     return {
@@ -124,6 +147,8 @@ export default class DeviceMonitorLookupUtil {
       isMonitorBacked: NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
         device?.monitoringMethod,
       ),
+      deviceName: device?.name?.toString() || "",
+      deviceAddress: device?.hostname?.toString() || "",
     };
   }
 
@@ -140,7 +165,7 @@ export default class DeviceMonitorLookupUtil {
     return {
       monitors: await DeviceMonitorLookupUtil.listMonitorsForDevice({
         networkDeviceId,
-        boundMonitor: binding.boundMonitor,
+        binding: binding,
       }),
       isMonitorBacked: binding.isMonitorBacked,
     };
@@ -154,16 +179,71 @@ export default class DeviceMonitorLookupUtil {
 
     return DeviceMonitorLookupUtil.listMonitorsForDevice({
       networkDeviceId,
-      boundMonitor: binding.boundMonitor,
+      binding: binding,
+    });
+  }
+
+  /*
+   * 4. The device's WEB UI monitor: a Website monitor of its management
+   *    page, as "Monitor web UI" on its Monitors card makes one
+   *    (DeviceWebUiUtil). Nothing on a Website monitor names a device, so
+   *    it is found by what it is: named after the device, with a step on
+   *    the device's address. Only Website monitors whose name holds the
+   *    device's are read - a handful - never the project's every one.
+   *    Best effort, like the binding: a read that fails leaves the other
+   *    monitors listed.
+   */
+  public static async listWebUiMonitors(data: {
+    binding: DeviceBinding;
+    select: Select<Monitor>;
+  }): Promise<Array<Monitor>> {
+    const deviceName: string = data.binding.deviceName.trim();
+
+    if (!deviceName || !data.binding.deviceAddress.trim()) {
+      return [];
+    }
+
+    let candidates: ListResult<Monitor>;
+
+    try {
+      candidates = await ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          monitorType: MonitorType.Website,
+          name: new Search(deviceName),
+        },
+        limit: WEB_UI_MONITOR_CANDIDATES_LIMIT,
+        skip: 0,
+        select: { ...data.select, monitorSteps: true },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
+    } catch {
+      return [];
+    }
+
+    return candidates.data.filter((monitor: Monitor): boolean => {
+      const steps: Array<MonitorStep> =
+        monitor.monitorSteps?.data?.monitorStepsInstanceArray || [];
+
+      return DeviceWebUiUtil.isWebUiMonitorOf({
+        monitorName: monitor.name,
+        destinations: steps.map((step: MonitorStep) => {
+          return step.data?.monitorDestination?.toString();
+        }),
+        deviceName: deviceName,
+        deviceAddress: data.binding.deviceAddress,
+      });
     });
   }
 
   private static async listMonitorsForDevice(data: {
     networkDeviceId: ObjectID;
-    boundMonitor: Monitor | null;
+    binding: DeviceBinding;
   }): Promise<Array<Monitor>> {
     const networkDeviceId: ObjectID = data.networkDeviceId;
-    const boundMonitor: Monitor | null = data.boundMonitor;
+    const boundMonitor: Monitor | null = data.binding.boundMonitor;
 
     const select: Select<Monitor> = {
       _id: true,
@@ -185,9 +265,10 @@ export default class DeviceMonitorLookupUtil {
       },
     };
 
-    const [networkDeviceMonitors, madeForDevice]: [
+    const [networkDeviceMonitors, madeForDevice, webUiMonitors]: [
       ListResult<Monitor>,
       ListResult<Monitor>,
+      Array<Monitor>,
     ] = await Promise.all([
       ModelAPI.getList<Monitor>({
         modelType: Monitor,
@@ -221,6 +302,11 @@ export default class DeviceMonitorLookupUtil {
           name: SortOrder.Ascending,
         },
       }),
+      // 4. Its web UI monitor (listWebUiMonitors).
+      DeviceMonitorLookupUtil.listWebUiMonitors({
+        binding: data.binding,
+        select: select,
+      }),
     ]);
 
     const watching: Array<Monitor> = networkDeviceMonitors.data.filter(
@@ -245,6 +331,7 @@ export default class DeviceMonitorLookupUtil {
       ...(boundMonitor ? [boundMonitor] : []),
       ...watching,
       ...madeForDevice.data,
+      ...webUiMonitors,
     ]) {
       const monitorId: string = monitor._id?.toString() || "";
 

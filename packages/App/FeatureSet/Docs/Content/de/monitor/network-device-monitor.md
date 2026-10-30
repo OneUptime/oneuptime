@@ -394,6 +394,8 @@ Jede Zeile sagt, wo ihre OID bekannt ist: als Wert, den eine Hersteller-Integrit
 - **Warnung einrichten** erscheint, sobald die OID erfasst wird, und öffnet einen neuen Netzwerkgerät-Monitor für das Gerät mit einem Kriterium für die OID. Ein Zähler beginnt mit **SNMP OID Rate (per second)** und ein Messwert mit **SNMP OID Value**, jeweils oberhalb eines Schwellenwerts, den Sie festlegen; eine Betriebszeit warnt unter zehn Minuten (das Gerät wurde neu gestartet), alles andere, wenn es sich gegenüber dem gelesenen Wert ändert.
 - **OID kopieren**, im Menü der Zeile, kopiert die OID.
 
+**Herunterladen**, neben der Zusammenfassung des Walks, speichert, was der Walk gelesen hat, als Datei: **snmpwalk-Text (.txt)**, eine OID pro Zeile, so wie `snmpwalk -On` sie ausgibt, was jedes SNMP-Werkzeug und jeder Hersteller-Support liest, oder **CSV-Tabelle (.csv)** mit Name, MIB, Typ und Wert jeder OID. Die Datei enthält jede OID, die der Walk gelesen hat, fortgesetzte Walks eingeschlossen, unabhängig davon, was der Filter zeigt, und ist nach dem Gerät, dem Teilbaum und dem Zeitpunkt des Speicherns benannt. Wer den letzten Walk des Geräts lesen kann, kann ihn herunterladen.
+
 Ein fehlgeschlagener Walk sagt, warum, und was zu prüfen ist: ein Gerät, das nicht antwortet (SNMP aus, UDP 161 blockiert oder, bei v1 und v2c, eine falsche Community-Zeichenfolge, die ein Agent kommentarlos ignoriert), ein SNMPv3-Benutzer, -Passwort oder -Protokoll, das das Gerät abgelehnt hat, oder ein Teil des Baums, den die SNMP-Ansicht der Anmeldedaten auslässt. Ein Walk, der unterwegs stoppt, behält, was er gelesen hat. Für einen Walk braucht es die Berechtigung **Create Network Device Diagnostic** und eine Sonde, die neu genug für SNMP-Walks ist: Bei einer älteren bittet die Seite Sie, sie zu aktualisieren.
 
 ### SNMP-Tabellen
@@ -752,6 +754,8 @@ Solange es keine Richtlinien gibt, bietet die Seite **Empfohlene Richtlinie erst
 ### Ein Gerät nach dem anderen
 
 Öffnen Sie die Seite des Geräts und klicken Sie auf **Monitor erstellen** in der Karte **Monitore, die für dieses Gerät warnen**. Das Monitorformular öffnet sich mit dem Typ Netzwerkgerät und dem gewählten Gerät, und das [empfohlene Warnungspaket](#empfohlenes-warnungspaket) ist ausgefüllt: Prüfen Sie es, legen Sie Schweregrade und Bereitschaftsrichtlinien fest und speichern Sie.
+
+Die meisten Switches, Router, Firewalls und Drucker bieten auf ihrer eigenen Adresse auch eine Weboberfläche. **Weboberfläche überwachen** in derselben Karte öffnet dafür einen **Website**-Monitor: `https://` auf der Adresse des Geräts, mit eingeschaltetem **Selbstsignierte Zertifikate zulassen**, da die Weboberfläche eines Geräts fast immer ein solches hat, geprüft von der eigenen Probe des Geräts und nach dem Gerät benannt. Ändern Sie die URL, wenn die Oberfläche über `http`, auf einem anderen Port oder unter einem Pfad antwortet, und speichern Sie dann. Die Karte führt den Monitor, solange sein Name den Namen des Geräts enthält und seine URL auf der Adresse des Geräts liegt; am Status des Geräts ändert er nichts.
 
 Um einen stattdessen unter **Monitore** anzulegen:
 

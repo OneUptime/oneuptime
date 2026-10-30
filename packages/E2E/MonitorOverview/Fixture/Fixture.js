@@ -170,6 +170,8 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import TableView from "Common/Models/DatabaseModels/TableView";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Probe, {
@@ -777,6 +779,41 @@ for (const definition of PROBE_DEFINITIONS) {
     _id: ID.probe(definition.number),
     name: definition.name,
     connectionStatus: ProbeConnectionStatus.Connected,
+  });
+}
+
+/*
+ * The network device the Network Device monitor below watches, as Create
+ * Monitor's device link reads it (?networkDeviceId=<ID.networkDevice(1)>):
+ * a switch its Frankfurt probe polls at 10.20.0.1. With &check=web-ui the
+ * link opens a Website monitor of its web UI (#5281); without, the
+ * Network Device monitor and its alert pack, whose criteria step a phone
+ * draws three cards deep.
+ */
+insert(NetworkDevice, {
+  _id: ID.networkDevice(1),
+  name: "sw-core-01",
+  hostname: "10.20.0.1",
+  monitoringMethod: "Probe",
+  probeId: new ObjectID(ID.probe(1)),
+  snmpTables: [],
+});
+
+/*
+ * Its monitored ports, which the Network Device monitor's criteria offer a
+ * filter's Interface list (MonitorStep reads the monitored ones, by name
+ * and alias).
+ */
+for (const [interfaceIndex, name, alias] of [
+  [1, "Gi1/0/1", "Uplink to dist-01"],
+  [2, "Gi1/0/2", "Storage array"],
+]) {
+  insert(NetworkInterface, {
+    networkDeviceId: new ObjectID(ID.networkDevice(1)),
+    interfaceIndex,
+    name,
+    alias,
+    isMonitored: true,
   });
 }
 
