@@ -257,7 +257,7 @@ const LoadedSecurityAdvisoryNotice: FunctionComponent<{
           target="_blank"
           rel="noopener noreferrer"
           data-testid="security-advisory-notice-upgrade"
-          className="ml-12 inline-flex flex-none items-center gap-1.5 self-start rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 sm:ml-0"
+          className="inline-flex flex-none items-center gap-1.5 self-end rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 sm:self-auto"
         >
           {translator.translateText(SECURITY_ADVISORY_NOTICE_COPY.howToUpgrade)}
           <Icon
