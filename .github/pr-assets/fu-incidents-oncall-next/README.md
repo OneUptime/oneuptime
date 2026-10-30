@@ -44,3 +44,28 @@ Tailwind runtime and the Inter font. Every record is made up.
   the notice as the card draws every other notice, with no box of its own; a Viewer
   sees Page now locked, saying why. The after shots are the AI Investigation card of
   the EventOverview fixture's incident #1042 (`?state=created&hold=1`, `&role=viewer`).
+
+## UI review
+
+`review-*-before` is the builder's branch, `review-*-after` the reviewed one, each at 2x:
+the same harnesses (the SharedUi fixture and the on-call route groups with Inter), with
+the six reviewed files swapped for the builder's for the before shots.
+
+- `review-help-ring-1280-*`: Tab onto a locked switch's help button. Before, the ring
+  ran into "page"; after, it is drawn inside the button.
+- `review-help-wrap-390-*`: a phone. Before, the question mark sat alone under "When
+  filters match, create an alert"; after, "alert" goes down with it.
+- `review-readiness-tiles-1280-de-*`: German at 1280. Before, the tiles that filter (buttons)
+  centred their icon and number in a row made taller by "Einrichtung erforderlich"; after,
+  every tile starts at the top.
+- `review-user-readiness-tiles-1280-*`: a person's own Readiness tiles. Before, "Verified
+  methods (1 / unverified)"; after, "Verified methods / (1 unverified)".
+- `review-layer-card-1280-*`: the Layers page's layer card. Before, "ORDER", "UPCOMING
+  SHIFTS", "ON CALL NOW", a framed box a turn and "6d 23h"; after, the Final schedule's
+  sentence-case labels, one ruled list and "7d".
+- `review-overrides-card-1280-*`: the overrides card in the Final schedule. Before, "1 USER
+  OVERRIDE ON THIS SCHEDULE", "AWAY", "COVERING" and "6d 23h"; after, sentence case and "7d".
+- `review-final-schedule-768-*`: 768 beside the side menu. Before, a week in 430 pixels
+  ("Nin / a / Pat / el") and "View / as" beside a four-line note; after, a day, and the
+  note under the control.
+- `review-view-as-1024-*`: 1024. Before, "View / as"; after, whole, the note under it.
