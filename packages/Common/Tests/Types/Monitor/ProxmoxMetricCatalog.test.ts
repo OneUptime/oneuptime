@@ -126,7 +126,7 @@ describe("ProxmoxMetricCatalog - defaults that do not add scrapes together (regr
     for (const metric of getAllProxmoxMetrics()) {
       expect({
         id: metric.id,
-        says: (/sum (it )?to count|sum across/i).test(metric.description),
+        says: /sum (it )?to count|sum across/i.test(metric.description),
       }).toEqual({ id: metric.id, says: false });
     }
   });

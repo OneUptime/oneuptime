@@ -123,7 +123,7 @@ describe("CephMetricCatalog - defaults that do not add scrapes together (regress
     for (const metric of getAllCephMetrics()) {
       expect({
         id: metric.id,
-        says: (/sum (it )?to count|sum across|sum to count/i).test(
+        says: /sum (it )?to count|sum across|sum to count/i.test(
           metric.description,
         ),
       }).toEqual({ id: metric.id, says: false });
