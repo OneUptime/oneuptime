@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Pick one person or one team. Pick nobody to unassign them.",
   "Pick someone": "Pick someone",
   "Search people and teams": "Search people and teams",
-  "Sort: {{order}}": "Sort: {{order}}"
+  "Sort: {{order}}": "Sort: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI tasks work in this exception's repository, so starting one takes permission to edit it.",
+  "Checking for tasks that are already running.": "Checking for tasks that are already running.",
+  "Finish the setup checklist above to start AI tasks.": "Finish the setup checklist above to start AI tasks.",
+  "Reopen and unarchive this exception to start AI tasks.": "Reopen and unarchive this exception to start AI tasks."
 }

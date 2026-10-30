@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "یک نفر یا یک تیم را انتخاب کنید. برای لغو واگذاری، کسی را انتخاب نکنید.",
   "Pick someone": "انتخاب یک نفر",
   "Search people and teams": "جست‌وجوی افراد و تیم‌ها",
-  "Sort: {{order}}": "مرتب‌سازی: {{order}}"
+  "Sort: {{order}}": "مرتب‌سازی: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "وظایف هوش مصنوعی در مخزن این استثنا کار می‌کنند، پس شروع یک وظیفه به اجازهٔ ویرایش آن نیاز دارد.",
+  "Checking for tasks that are already running.": "در حال بررسی وظایفی که از قبل در حال اجرا هستند.",
+  "Finish the setup checklist above to start AI tasks.": "برای شروع وظایف هوش مصنوعی، فهرست راه‌اندازی بالا را کامل کنید.",
+  "Reopen and unarchive this exception to start AI tasks.": "برای شروع وظایف هوش مصنوعی، این استثنا را دوباره باز کنید و از بایگانی خارج کنید."
 }

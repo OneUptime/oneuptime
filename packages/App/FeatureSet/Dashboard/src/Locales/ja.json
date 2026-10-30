@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "1 人または 1 つのチームを選んでください。誰も選ばないと割り当てを解除します。",
   "Pick someone": "担当者を選ぶ",
   "Search people and teams": "人とチームを検索",
-  "Sort: {{order}}": "並べ替え: {{order}}"
+  "Sort: {{order}}": "並べ替え: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI タスクはこの例外のリポジトリで作業するため、開始するにはそのリポジトリを編集する権限が必要です。",
+  "Checking for tasks that are already running.": "すでに実行中のタスクを確認しています。",
+  "Finish the setup checklist above to start AI tasks.": "AI タスクを開始するには、上のセットアップチェックリストを完了してください。",
+  "Reopen and unarchive this exception to start AI tasks.": "AI タスクを開始するには、この例外を再オープンし、アーカイブを解除してください。"
 }

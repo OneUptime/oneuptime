@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "请选择一个人或一个团队。不选择任何人则取消分配。",
   "Pick someone": "选择人员",
   "Search people and teams": "搜索人员和团队",
-  "Sort: {{order}}": "排序：{{order}}"
+  "Sort: {{order}}": "排序：{{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI 任务在此异常的仓库中工作，因此启动任务需要编辑该仓库的权限。",
+  "Checking for tasks that are already running.": "正在检查是否已有任务在运行。",
+  "Finish the setup checklist above to start AI tasks.": "完成上方的设置清单，即可启动 AI 任务。",
+  "Reopen and unarchive this exception to start AI tasks.": "重新打开并取消归档此异常，即可启动 AI 任务。"
 }

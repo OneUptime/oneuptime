@@ -2256,6 +2256,21 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(page).toContain(
       "The tasks pause while the exception is resolved or archived.",
     );
+
+    /*
+     * Who may start one: the server asks what asking AI to work in the
+     * repository asks (assertMayAskForFix), and the card locks its buttons
+     * for anyone who may not edit repositories.
+     */
+    expect(
+      readCommonSource("Server/Services/TelemetryExceptionService.ts"),
+    ).toContain("mayAsk = await CodeTaskAccess.canAskInRepository({");
+    expect(
+      readDashboardSource("Components/Exceptions/ExceptionAIAssistance.tsx"),
+    ).toContain("new CodeRepository(),");
+    expect(page).toContain(
+      "Starting a task takes permission to edit the repository it works in: someone who can only read the exception sees its tasks but cannot start one.",
+    );
   });
 
   it("names the Insights cards and lists", () => {

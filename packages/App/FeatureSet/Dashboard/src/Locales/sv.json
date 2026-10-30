@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Välj en person eller ett team. Välj ingen för att ta bort tilldelningen.",
   "Pick someone": "Välj någon",
   "Search people and teams": "Sök efter personer och team",
-  "Sort: {{order}}": "Sortering: {{order}}"
+  "Sort: {{order}}": "Sortering: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI-uppgifter arbetar i det här undantagets förråd, så att starta en kräver behörighet att redigera det.",
+  "Checking for tasks that are already running.": "Kontrollerar om några uppgifter redan körs.",
+  "Finish the setup checklist above to start AI tasks.": "Slutför konfigurationschecklistan ovan för att starta AI-uppgifter.",
+  "Reopen and unarchive this exception to start AI tasks.": "Öppna undantaget igen och avarkivera det för att starta AI-uppgifter."
 }

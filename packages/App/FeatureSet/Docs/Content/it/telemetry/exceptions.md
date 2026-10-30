@@ -139,7 +139,7 @@ La pagina **AI Assistance** offre tre attività. Ognuna viene eseguita come atti
 | **Generate Regression Test** | Aggiunge un test che fallisce finché il bug non viene corretto. |
 | **Migliora la gestione degli errori** | Per gli errori previsti: convalida prima l'input, tiene i dati degli utenti fuori dai messaggi e segna l'errore come gestito. |
 
-Prima l'IA ha bisogno di tre cose: un provider LLM, un repository collegato (su GitHub, GitLab, Forgejo o Gitea, o su qualsiasi server Git) e un agente IA online che esegua l'attività. La pagina controlla ciascuna e rimanda a ciò che manca. Le attività sono in pausa finché l'eccezione è risolta o archiviata. Vedere [Codice](/docs/ai/ai-agent).
+Prima l'IA ha bisogno di tre cose: un provider LLM, un repository collegato (su GitHub, GitLab, Forgejo o Gitea, o su qualsiasi server Git) e un agente IA online che esegua l'attività. La pagina controlla ciascuna e rimanda a ciò che manca. Le attività sono in pausa finché l'eccezione è risolta o archiviata. Vedere [Codice](/docs/ai/ai-agent). Avviare un'attività richiede il permesso di modificare il repository in cui lavora: chi può solo leggere l'eccezione ne vede le attività, ma non può avviarne.
 
 ## Trovare e correggere le eccezioni nuove e in aumento con l'IA
 

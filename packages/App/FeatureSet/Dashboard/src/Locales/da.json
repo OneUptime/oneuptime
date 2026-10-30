@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Vælg én person eller ét team. Vælg ingen for at fjerne tildelingen.",
   "Pick someone": "Vælg en person",
   "Search people and teams": "Søg efter personer og teams",
-  "Sort: {{order}}": "Sortering: {{order}}"
+  "Sort: {{order}}": "Sortering: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI-opgaver arbejder i denne undtagelses lager, så at starte en kræver tilladelse til at redigere det.",
+  "Checking for tasks that are already running.": "Tjekker for opgaver, der allerede kører.",
+  "Finish the setup checklist above to start AI tasks.": "Gør opsætningstjeklisten ovenfor færdig for at starte AI-opgaver.",
+  "Reopen and unarchive this exception to start AI tasks.": "Genåbn og fjern arkiveringen af denne undtagelse for at starte AI-opgaver."
 }

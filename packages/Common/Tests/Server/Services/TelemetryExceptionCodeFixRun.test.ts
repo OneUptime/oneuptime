@@ -1,4 +1,10 @@
-import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import TelemetryExceptionService, {
+  EXCEPTION_FIX_NOT_ALLOWED_MESSAGE,
+} from "../../../Server/Services/TelemetryExceptionService";
+import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import Permission from "../../../Types/Permission";
 import AIService, {
   AI_DISABLED_MESSAGE,
 } from "../../../Server/Services/AIService";
@@ -385,6 +391,154 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
         data: expect.objectContaining({ userId }),
       }),
     );
+  });
+
+  /*
+   * Who may ask: reading the exception is not enough. A fix run is AI
+   * working in the exception's repository, so a person needs what asking AI
+   * to work in it takes (CodeTaskAccess.canAskInRepository) - a Viewer used
+   * to queue one with read access alone.
+   */
+  describe("who may ask for a fix", () => {
+    function personProps(
+      permissions: Array<Permission>,
+    ): DatabaseCommonInteractionProps {
+      return {
+        userId: ObjectID.generate(),
+        tenantId: projectId,
+        userTenantAccessPermission: {
+          [projectId.toString()]: {
+            projectId: projectId,
+            permissions: permissions.map((permission: Permission) => {
+              return {
+                permission: permission,
+                labelIds: [],
+                isBlockPermission: false,
+                _type: "UserPermission" as const,
+              };
+            }),
+            _type: "UserTenantAccessPermission",
+          },
+        },
+      };
+    }
+
+    test("a person who may only read is refused before any run is created", async () => {
+      mockReadinessOk();
+      jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+      const mayAsk: jest.SpyInstance = jest
+        .spyOn(CodeTaskAccess, "canAskInRepository")
+        .mockResolvedValue(false);
+      const props: DatabaseCommonInteractionProps = personProps([
+        Permission.Viewer,
+      ]);
+
+      await expect(
+        TelemetryExceptionService.createCodeFixRunForException({
+          telemetryExceptionId: exceptionId,
+          props,
+        }),
+      ).rejects.toThrow(EXCEPTION_FIX_NOT_ALLOWED_MESSAGE);
+
+      // Asked about the repository the fix would be queued on.
+      expect(mayAsk).toHaveBeenCalledWith({
+        props,
+        projectId,
+        repositoryId: resolvedRepositoryId,
+      });
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("the refusal is a NotAuthorizedException", async () => {
+      mockReadinessOk();
+      jest.spyOn(CodeTaskAccess, "canAskInRepository").mockResolvedValue(false);
+
+      await expect(
+        TelemetryExceptionService.createCodeFixRunForException({
+          telemetryExceptionId: exceptionId,
+          props: personProps([Permission.Viewer]),
+        }),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    });
+
+    test("a person who may edit the repository gets the run, attributed to them", async () => {
+      mockReadinessOk();
+      jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+      jest.spyOn(CodeTaskAccess, "canAskInRepository").mockResolvedValue(true);
+      const create: jest.SpyInstance = jest
+        .spyOn(AIRunService, "create")
+        .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+      const props: DatabaseCommonInteractionProps = personProps([
+        Permission.ProjectMember,
+      ]);
+
+      await TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props,
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: props.userId,
+            codeRepositoryId: resolvedRepositoryId,
+          }),
+        }),
+      );
+    });
+
+    test("the automatic lanes run as root and are not asked", async () => {
+      mockReadinessOk();
+      jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+      const mayAsk: jest.SpyInstance = jest.spyOn(
+        CodeTaskAccess,
+        "canAskInRepository",
+      );
+      jest
+        .spyOn(AIRunService, "create")
+        .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+      await TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+      expect(mayAsk).not.toHaveBeenCalled();
+    });
+
+    test("with no repository to ask about, the project's repositories decide: a Viewer is refused, a member is not", async () => {
+      mockReadinessOk();
+      jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+      jest
+        .spyOn(
+          TelemetryExceptionService as unknown as {
+            getAIFixReadinessAndRepository: () => Promise<unknown>;
+          },
+          "getAIFixReadinessAndRepository",
+        )
+        .mockResolvedValue({
+          readiness: { ready: true, checks: [] },
+          codeRepositoryId: null,
+        });
+      const create: jest.SpyInstance = jest
+        .spyOn(AIRunService, "create")
+        .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+      await expect(
+        TelemetryExceptionService.createCodeFixRunForException({
+          telemetryExceptionId: exceptionId,
+          props: personProps([Permission.Viewer]),
+        }),
+      ).rejects.toThrow(EXCEPTION_FIX_NOT_ALLOWED_MESSAGE);
+      expect(create).not.toHaveBeenCalled();
+
+      await TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: personProps([Permission.ProjectMember]),
+      });
+      expect(create).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("rejects resolved and archived exceptions server-side", async () => {

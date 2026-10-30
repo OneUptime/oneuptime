@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "एक व्यक्ति या एक टीम चुनें। असाइनमेंट हटाने के लिए किसी को न चुनें।",
   "Pick someone": "किसी को चुनें",
   "Search people and teams": "लोग और टीमें खोजें",
-  "Sort: {{order}}": "क्रम: {{order}}"
+  "Sort: {{order}}": "क्रम: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI कार्य इस अपवाद की रिपॉज़िटरी में काम करते हैं, इसलिए कार्य शुरू करने के लिए उसे संपादित करने की अनुमति चाहिए।",
+  "Checking for tasks that are already running.": "पहले से चल रहे कार्यों की जाँच हो रही है।",
+  "Finish the setup checklist above to start AI tasks.": "AI कार्य शुरू करने के लिए ऊपर की सेटअप चेकलिस्ट पूरी करें।",
+  "Reopen and unarchive this exception to start AI tasks.": "AI कार्य शुरू करने के लिए इस अपवाद को फिर से खोलें और संग्रह से हटाएँ।"
 }

@@ -139,7 +139,7 @@ De pagina **AI Assistance** biedt drie taken. Elke taak loopt als AI-taak die ee
 | **Generate Regression Test** | Voegt een test toe die faalt totdat de bug is verholpen. |
 | **Foutafhandeling verbeteren** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
 
-AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (op GitHub, GitLab, Forgejo of Gitea, of op elke Git-server), en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent).
+AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (op GitHub, GitLab, Forgejo of Gitea, of op elke Git-server), en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent). Een taak starten vraagt toestemming om de repository te bewerken waarin ze werkt: wie de uitzondering alleen mag lezen, ziet haar taken maar kan er geen starten.
 
 ## Nieuwe en stijgende uitzonderingen vinden en oplossen met AI
 
