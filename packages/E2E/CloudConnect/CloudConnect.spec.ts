@@ -1344,8 +1344,24 @@ function isDesktop(): boolean {
   return test.info().project.name === "desktop";
 }
 
-// A box's place on the page, once laid out.
+/*
+ * A box's place on the page, once laid out and settled. Tailwind's runtime
+ * writes a utility's rule after the element that uses it mounts, so a
+ * transition-all tile grows its padding in over 150ms: measured mid-way,
+ * two tiles of one row were 1.5px apart on CI. Every finite animation and
+ * transition ends before a box is read.
+ */
 async function boxOf(locator: Locator): Promise<Box> {
+  await locator.page().waitForFunction((): boolean => {
+    return document.getAnimations().every((animation: Animation): boolean => {
+      const timing: ComputedEffectTiming | undefined =
+        animation.effect?.getComputedTiming();
+
+      return (
+        animation.playState !== "running" || timing?.iterations === Infinity
+      );
+    });
+  });
   const box: Box | null = await locator.boundingBox();
   expect(box, "the element is laid out").not.toBeNull();
   return box!;
