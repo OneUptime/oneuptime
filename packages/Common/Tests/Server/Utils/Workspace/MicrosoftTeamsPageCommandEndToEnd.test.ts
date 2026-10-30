@@ -78,6 +78,7 @@ import WorkspacePageAbout, {
 import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import Alert from "../../../../Models/DatabaseModels/Alert";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import {
@@ -332,6 +333,8 @@ let valueAbout: WorkspacePageSubject | Error;
 let aboutReads: Array<{ kind: string; at: unknown }>;
 let outcome: () => Promise<WorkspacePageOutcome>;
 let mayPage: boolean;
+// Whether the sender may create alerts: what a page about something new is.
+let mayCreateAlert: boolean;
 // The Microsoft Entra ids connected to OneUptime accounts in the project.
 let connected: Record<string, ObjectID>;
 // The project's Microsoft Teams tags that follow on-call schedules.
@@ -534,6 +537,7 @@ beforeEach(() => {
   valueAbout = WORKSPACE_PAGE_NEW_ALERT_SUBJECT;
   aboutReads = [];
   mayPage = true;
+  mayCreateAlert = true;
   connected = { [String(NAWAZ_IN_TEAMS["aadObjectId"])]: NAWAZ };
   outcome = async (): Promise<WorkspacePageOutcome> => {
     return {
@@ -599,6 +603,12 @@ beforeEach(() => {
         if (!mayPage && data.modelType === OnCallDutyPolicyExecutionLog) {
           throw new NotAuthorizedException(
             `You do not have permission to ${data.action}. You need one of these permissions: Project Member.`,
+          );
+        }
+
+        if (!mayCreateAlert && data.modelType === Alert) {
+          throw new NotAuthorizedException(
+            `You do not have permission to ${data.action}. You need one of these permissions: Alert Member.`,
           );
         }
       },
@@ -1608,6 +1618,70 @@ describe("in an incident's own channel: the page is about the incident", () => {
     expect(pages).toEqual([]);
     expect(answerOf(sent(delivery)[0])).toBe(
       "You do not have permission to page someone about this incident: this incident is private, so only its owners and the people its private team names can see it.",
+    );
+  });
+
+  test("a sender who may not create alerts pages about the incident all the same: nothing is created, so no alert is asked for", async () => {
+    mayCreateAlert = false;
+    channelAbout = incidentAbout();
+
+    await deliver(
+      message(
+        "page <at>Nawaz Dhandala</at> Can you check the database?",
+        "channel",
+        [NAWAZ_IN_TEAMS],
+      ),
+    );
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.about).toEqual(incidentAbout());
+  });
+
+  test("and the card they submit pages about the incident it carries", async () => {
+    mayCreateAlert = false;
+    valueAbout = incidentAbout();
+
+    await deliver(
+      submission(
+        {
+          pageTargets: `user:${NAWAZ.toString()}`,
+          pageAbout: `incident:${INCIDENT_ID.toString()}`,
+        },
+        "channel",
+      ),
+    );
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.about).toEqual(incidentAbout());
+  });
+
+  test("in any other channel that sender is told a page needs the alert it creates, and nobody is paged", async () => {
+    mayCreateAlert = false;
+
+    const delivery: Delivery = await deliver(
+      message("page <at>Nawaz Dhandala</at> db down", "channel", [
+        NAWAZ_IN_TEAMS,
+      ]),
+    );
+
+    expect(pages).toEqual([]);
+    expect(answerOf(sent(delivery)[0])).toBe(
+      "You do not have permission to page people. You need one of these permissions: Alert Member.",
+    );
+  });
+
+  test("a sender who may not start an on-call run is told so first: the channel's incident is never read", async () => {
+    mayPage = false;
+    channelAbout = incidentAbout();
+
+    const delivery: Delivery = await deliver(
+      message("page <at>Nawaz Dhandala</at>", "channel", [NAWAZ_IN_TEAMS]),
+    );
+
+    expect(aboutReads).toEqual([]);
+    expect(pages).toEqual([]);
+    expect(answerOf(sent(delivery)[0])).toBe(
+      "You do not have permission to page people. You need one of these permissions: Project Member.",
     );
   });
 

@@ -150,8 +150,8 @@ export default class SlackPageActions {
      * What the page is about: in an incident's or an alert's own channel,
      * that record; anywhere else, something new (WorkspacePageAbout).
      */
-    const about: WorkspacePageSubject | null =
-      await SlackPageActions.readAbout({
+    const about: WorkspacePageSubject | null = await SlackPageActions.readAbout(
+      {
         slackRequest: slackRequest,
         props: props,
         read: (): Promise<WorkspacePageSubject> => {
@@ -161,9 +161,21 @@ export default class SlackPageActions {
             props: props,
           });
         },
-      });
+      },
+    );
 
     if (!about) {
+      return;
+    }
+
+    // ... and do all a page about it asks of them.
+    if (
+      !(await SlackPageActions.mayPage({
+        slackRequest: slackRequest,
+        props: props,
+        about: about,
+      }))
+    ) {
       return;
     }
 
@@ -339,8 +351,8 @@ export default class SlackPageActions {
       return;
     }
 
-    const about: WorkspacePageSubject | null =
-      await SlackPageActions.readAbout({
+    const about: WorkspacePageSubject | null = await SlackPageActions.readAbout(
+      {
         slackRequest: slackRequest,
         props: props,
         read: (): Promise<WorkspacePageSubject> => {
@@ -349,7 +361,8 @@ export default class SlackPageActions {
             props: props,
           });
         },
-      });
+      },
+    );
 
     if (!about) {
       return;
@@ -364,6 +377,16 @@ export default class SlackPageActions {
         requester: slackRequest,
         message: WorkspacePage.getResolvedSinceMessage(about),
       });
+    }
+
+    if (
+      !(await SlackPageActions.mayPage({
+        slackRequest: slackRequest,
+        props: props,
+        about: about,
+      }))
+    ) {
+      return;
     }
 
     await SlackPageActions.pageAndAnswer({
@@ -423,34 +446,38 @@ export default class SlackPageActions {
     slackRequest: SlackRequest,
   ): Promise<DatabaseCommonInteractionProps | null> {
     // A member of the project, who may start an on-call run...
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
-        requester: slackRequest,
-        modelType: OnCallDutyPolicyExecutionLog,
-        action: WORKSPACE_PAGE_ACTION,
-      });
+    return await SlackActionAuthorization.authorize({
+      requester: slackRequest,
+      modelType: OnCallDutyPolicyExecutionLog,
+      action: WORKSPACE_PAGE_ACTION,
+    });
+  }
 
-    if (!props) {
-      return null;
-    }
-
-    // ... and do all a page asks of them.
+  /*
+   * ... who may do all a page about `about` asks of them
+   * (WorkspacePage.assertMayPage): one about something new creates an
+   * alert. Told why not, where they asked, when they may not.
+   */
+  private static async mayPage(data: {
+    slackRequest: SlackRequest;
+    props: DatabaseCommonInteractionProps;
+    about: WorkspacePageSubject;
+  }): Promise<boolean> {
     try {
-      await WorkspacePage.assertMayPage(props);
+      await WorkspacePage.assertMayPage(data.props, data.about);
+      return true;
     } catch (err) {
       if (!(err instanceof NotAuthorizedException)) {
         throw err;
       }
 
       await SlackActionAuthorization.sendRefusal({
-        requester: slackRequest,
+        requester: data.slackRequest,
         message: err.message,
       });
 
-      return null;
+      return false;
     }
-
-    return props;
   }
 
   /*
@@ -659,7 +686,9 @@ export default class SlackPageActions {
         ? {
             initialValue: data.prefill.message.substring(
               0,
-              record ? ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH : MAX_MESSAGE_LENGTH,
+              record
+                ? ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH
+                : MAX_MESSAGE_LENGTH,
             ),
           }
         : {}),

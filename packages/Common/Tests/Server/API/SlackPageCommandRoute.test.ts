@@ -1676,6 +1676,69 @@ describe("POST /slack/command: /oneuptime page", () => {
       );
     });
 
+    test("a member who may not create alerts pages about the incident all the same: nothing is created, so no alert is asked for", async () => {
+      mayCreateAlert = false;
+      channelAbout = incidentAbout();
+
+      await post("page <@U0NAWAZ|nawaz> Can you check the database?");
+      await pagesAfter(1);
+
+      expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
+        "📟 Paging *Nawaz Dhandala* about Incident INC-42…\n",
+      );
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.about).toEqual(incidentAbout());
+    });
+
+    test("their form, submitted, pages about the incident it carries too", async () => {
+      mayCreateAlert = false;
+      valueAbout = incidentAbout();
+
+      const answer: RouteAnswer = await submit({
+        picks: [`user:${NAWAZ.toString()}`],
+        message: "",
+        value: `incident:${INCIDENT_ID.toString()}`,
+      });
+
+      expect(answer.body).toEqual({ response_action: "clear" });
+
+      await pagesAfter(1);
+
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.about).toEqual(incidentAbout());
+    });
+
+    test("in a resolved incident's channel the page is about something new: a member who may not create alerts is told so, and nobody is paged", async () => {
+      mayCreateAlert = false;
+      channelAbout = {
+        record: null,
+        resolvedRecord: { label: "Incident INC-42", link: INCIDENT_URL },
+      };
+
+      await post("page <@U0NAWAZ|nawaz> db down");
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+      await slackCallsAfter(2, 30);
+
+      expect(textOf(calls[0]!.data["blocks"])).toBe(
+        "You do not have permission to page people. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
+      );
+      expect(pages).toEqual([]);
+    });
+
+    test("somebody who may not start an on-call run is refused in the incident's channel too, before its incident is read", async () => {
+      mayPage = false;
+      channelAbout = incidentAbout();
+
+      await post("page <@U0NAWAZ|nawaz>");
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+
+      expect(textOf(calls[0]!.data["blocks"])).toBe(
+        "You do not have permission to page people. You do not have permissions to create On-Call Duty Policy Execution Log. You need one of these permissions: Project Owner, Project Admin, Project Member.\n",
+      );
+      expect(aboutReads).toEqual([]);
+      expect(pages).toEqual([]);
+    });
+
     test("the channel of a resolved incident: a page about something new, and the form says why its message becomes a new alert's title", async () => {
       channelAbout = {
         record: null,
@@ -1692,9 +1755,7 @@ describe("POST /slack/command: /oneuptime page", () => {
         text: "Incident INC-42 is resolved, so the people you page get this as the title of a new alert.",
       });
       expect(
-        (JSON.parse(view["private_metadata"] as string) as JSONObject)[
-          "value"
-        ],
+        (JSON.parse(view["private_metadata"] as string) as JSONObject)["value"],
       ).toBe("");
       expect(pages).toEqual([]);
     });

@@ -1950,9 +1950,9 @@ describe("WorkspacePage: what a page needs, and what its form says, by what it i
 
   test("a message is needed only for something new: it is its alert's title", () => {
     expect(WorkspacePage.isMessageRequired(undefined)).toBe(true);
-    expect(WorkspacePage.isMessageRequired(WORKSPACE_PAGE_NEW_ALERT_SUBJECT)).toBe(
-      true,
-    );
+    expect(
+      WorkspacePage.isMessageRequired(WORKSPACE_PAGE_NEW_ALERT_SUBJECT),
+    ).toBe(true);
     expect(WorkspacePage.isMessageRequired(resolved)).toBe(true);
     expect(WorkspacePage.isMessageRequired(incident)).toBe(false);
   });
@@ -1967,7 +1967,11 @@ describe("WorkspacePage: what a page needs, and what its form says, by what it i
       }),
     ).toBe(true);
 
-    for (const about of [undefined, WORKSPACE_PAGE_NEW_ALERT_SUBJECT, resolved]) {
+    for (const about of [
+      undefined,
+      WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+      resolved,
+    ]) {
       expect(
         WorkspacePage.isReadyToPage({
           text: textOf(""),
@@ -2037,6 +2041,64 @@ describe("WorkspacePage: what a page needs, and what its form says, by what it i
       }),
     ).toEqual({ who: WORKSPACE_PAGE_FORM_TEXT.pickWho });
   });
+
+  describe("who may page, by what the page is about", () => {
+    let asked: Array<unknown>;
+
+    beforeEach(() => {
+      asked = [];
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockImplementation(
+          async (data: { modelType: unknown; action: string }) => {
+            asked.push(data.modelType);
+
+            // A member who may page, but not create alerts.
+            if (data.modelType === Alert) {
+              throw new NotAuthorizedException(
+                "You do not have permission to page people. You need one of these permissions: Alert Member.",
+              );
+            }
+          },
+        );
+    });
+
+    test("about the incident of its own channel: an on-call run is all it asks - it creates no alert", async () => {
+      await expect(
+        WorkspacePage.assertMayPage(PROPS, incident),
+      ).resolves.toBeUndefined();
+      expect(asked).toEqual([OnCallDutyPolicyExecutionLog]);
+    });
+
+    test("about something new - in another channel, or a resolved incident's: the alert it creates, too", async () => {
+      for (const about of [
+        undefined,
+        WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+        resolved,
+      ]) {
+        asked = [];
+
+        await expect(WorkspacePage.assertMayPage(PROPS, about)).rejects.toThrow(
+          "You need one of these permissions: Alert Member.",
+        );
+        expect(asked).toEqual([OnCallDutyPolicyExecutionLog, Alert]);
+      }
+    });
+
+    test("somebody who may not start an on-call run may page about nothing, the incident of its channel included", async () => {
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockImplementation(async () => {
+          throw new NotAuthorizedException(
+            "You do not have permission to page people. You need one of these permissions: Project Member.",
+          );
+        });
+
+      await expect(
+        WorkspacePage.assertMayPage(PROPS, incident),
+      ).rejects.toThrow("You need one of these permissions: Project Member.");
+    });
+  });
 });
 
 describe("WorkspacePage.getPagedWho and getPagedAnswer: a paged team by its name first, then its people", () => {
@@ -2105,7 +2167,10 @@ describe("WorkspacePage.getPagedWho and getPagedAnswer: a paged team by its name
     const answer: { markdown: string; text: string } =
       WorkspacePage.getPagedAnswer({
         result: result({
-          paged: [person("Test User 4", "Team X"), person("Test User 3", "Team X")],
+          paged: [
+            person("Test User 4", "Team X"),
+            person("Test User 3", "Team X"),
+          ],
         }),
         message: "Paging team X.",
         isShownAtPlace: false,

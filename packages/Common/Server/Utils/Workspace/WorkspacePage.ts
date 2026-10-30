@@ -94,13 +94,15 @@ import WorkspacePageTextReader, {
  * schedule or a policy is paged: by picking it, never by a name that only
  * happened to start the message.
  *
- * Who may page: whoever may start an on-call run and create an alert in the
- * project, as the member their chat account is connected to - the
- * permissions a page asks of a workflow's caller too (assertMayPage) - and,
- * in a record's own channel, read that record. A
- * person @mentioned is paged as the OneUptime member their chat account is
- * connected to, or whose email address the chat has for them; somebody
- * OneUptime cannot tell is never guessed at - the form opens, and says so.
+ * Who may page: whoever may start an on-call run in the project, as the
+ * member their chat account is connected to, and - for a page about
+ * something new - create the alert it is about: the permissions a page asks
+ * of a workflow's caller too (assertMayPage). In a record's own channel a
+ * page creates nothing, and asks what the incident's own Page Someone asks:
+ * an on-call run, and reading that record. A person @mentioned is paged as
+ * the OneUptime member their chat account is connected to, or whose email
+ * address the chat has for them; somebody OneUptime cannot tell is never
+ * guessed at - the form opens, and says so.
  */
 
 // The kinds of thing a page names, as a form's choice spells them.
@@ -281,25 +283,48 @@ const WHITE_SPACE_RUN: RegExp = /\s+/g;
 
 export default class WorkspacePage {
   /*
-   * May the member page: start an on-call run, and create the alert a page
-   * about something new is. Throws NotAuthorizedException, worded for the
-   * chat, when they may not - before a form is shown, so nobody fills one in
-   * for nothing. A page of people, teams or schedules asks one more thing
-   * when it is made (OnCallPageService): access to every on-call policy.
+   * May the member page what `about` says the page is about
+   * (WorkspacePageAbout): start an on-call run, and - for a page about
+   * something new, which creates an alert - create that alert. A page about
+   * the open incident or alert of its own channel creates nothing, so it
+   * asks no more than the incident's own Page Someone does: the record is
+   * read as the member when `about` is read. Left out, `about` is something
+   * new. Throws NotAuthorizedException, worded for the chat, when they may
+   * not - before a form is shown, so nobody fills one in for nothing. A page
+   * of people, teams or schedules asks one more thing when it is made
+   * (OnCallPageService): access to every on-call policy.
    */
   @CaptureSpan()
   public static async assertMayPage(
+    props: DatabaseCommonInteractionProps,
+    about?: WorkspacePageSubject | undefined,
+  ): Promise<void> {
+    await WorkspacePage.assertMayStartPage(props);
+
+    if (about?.record) {
+      return;
+    }
+
+    await WorkspaceActionAuthorization.assertCanCreate({
+      props: props,
+      modelType: Alert,
+      action: WORKSPACE_PAGE_ACTION,
+    });
+  }
+
+  /*
+   * May the member start an on-call run: what every page asks, whatever it
+   * is about - asked first, before what it is about is read, so somebody
+   * who may page nothing is told that, and nothing else. Throws as
+   * assertMayPage does.
+   */
+  @CaptureSpan()
+  public static async assertMayStartPage(
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     await WorkspaceActionAuthorization.assertCanCreate({
       props: props,
       modelType: OnCallDutyPolicyExecutionLog,
-      action: WORKSPACE_PAGE_ACTION,
-    });
-
-    await WorkspaceActionAuthorization.assertCanCreate({
-      props: props,
-      modelType: Alert,
       action: WORKSPACE_PAGE_ACTION,
     });
   }
@@ -643,7 +668,9 @@ export default class WorkspacePage {
    * something new: "Incident INC-18 is resolved, so the people you page get
    * this as the title of a new alert."
    */
-  public static getMessageHint(about: WorkspacePageSubject | undefined): string {
+  public static getMessageHint(
+    about: WorkspacePageSubject | undefined,
+  ): string {
     if (about?.record) {
       return `Optional. The people you page see it with ${about.record.name.label}.`;
     }

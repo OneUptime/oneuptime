@@ -135,7 +135,12 @@ export default class MicrosoftTeamsPage {
         },
       });
 
-    if (!props || !(await MicrosoftTeamsPage.mayPage(turnContext, props))) {
+    if (
+      !props ||
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayStartPage(props);
+      }))
+    ) {
       return;
     }
 
@@ -155,7 +160,12 @@ export default class MicrosoftTeamsPage {
         },
       });
 
-    if (!about) {
+    if (
+      !about ||
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayPage(props, about);
+      }))
+    ) {
       return;
     }
 
@@ -264,7 +274,11 @@ export default class MicrosoftTeamsPage {
   }): Promise<void> {
     const { turnContext, value, projectId, databaseProps } = data;
 
-    if (!(await MicrosoftTeamsPage.mayPage(turnContext, databaseProps))) {
+    if (
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayStartPage(databaseProps);
+      }))
+    ) {
       return;
     }
 
@@ -333,6 +347,14 @@ export default class MicrosoftTeamsPage {
         turnContext,
         WorkspacePage.getResolvedSinceMessage(about),
       );
+      return;
+    }
+
+    if (
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayPage(databaseProps, about);
+      }))
+    ) {
       return;
     }
 
@@ -817,15 +839,18 @@ export default class MicrosoftTeamsPage {
   }
 
   /*
-   * Whether the member may page; told why not, in the conversation, when
-   * they may not.
+   * Whether the member may page, as `check` asks: start an on-call run
+   * (WorkspacePage.assertMayStartPage), before what the page is about is
+   * read, then all a page about it asks (WorkspacePage.assertMayPage) - one
+   * about something new creates an alert. Told why not, in the
+   * conversation, when they may not.
    */
   private static async mayPage(
     turnContext: TurnContext,
-    props: DatabaseCommonInteractionProps,
+    check: () => Promise<void>,
   ): Promise<boolean> {
     try {
-      await WorkspacePage.assertMayPage(props);
+      await check();
       return true;
     } catch (err) {
       if (!(err instanceof NotAuthorizedException)) {
