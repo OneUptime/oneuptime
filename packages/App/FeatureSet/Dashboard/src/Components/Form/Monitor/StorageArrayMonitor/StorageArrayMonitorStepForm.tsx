@@ -5,7 +5,12 @@ import MonitorStepStorageArrayMonitor, {
 } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -20,18 +25,15 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import StorageArrayTemplatePicker from "./StorageArrayTemplatePicker";
 import StorageArrayMetricPicker from "./StorageArrayMetricPicker";
 import {
   StorageArrayAlertTemplate,
   buildStorageArrayMonitorConfig,
+  getStorageArrayAlertTemplateById,
+  getStorageArrayAlertTemplatesForSystem,
+  getStorageArrayDefaultAlertTemplateId,
 } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import {
@@ -41,6 +43,20 @@ import {
 import StorageSystem, {
   StorageSystemUtil,
 } from "Common/Types/StorageArray/StorageSystem";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
+import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
+import useInfrastructureResources, {
+  InfrastructureResources,
+} from "../InfrastructureMonitorSetup/UseInfrastructureResources";
+import {
+  InfrastructureWatchWay,
+  findTemplateIdForMetricsView,
+  getInitialWatchWay,
+} from "../InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import STORAGE_ARRAY_ONBOARDING from "../../../StorageArray/StorageArrayOnboarding";
+import AddResourceModal from "../../../ResourceOnboarding/AddResourceModal";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 
 /*
@@ -187,20 +203,72 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-  const [arrayOptions, setArrayOptions] = React.useState<Array<DropdownOption>>(
-    [],
-  );
+  const resources: InfrastructureResources<StorageArray> =
+    useInfrastructureResources<StorageArray>({
+      modelType: StorageArray,
+      select: {
+          _id: true,
+          lastSeenAt: true,
+          name: true,
+          storageSystem: true,
+        },
+      toOption: (storageArray: StorageArray): DropdownOption => {
+        return {
+          label: storageArray.name || "Unknown",
+          value: storageArray.name || "",
+        };
+      },
+      getLastSeenAt: (storageArray: StorageArray): Date | undefined => {
+        return storageArray.lastSeenAt;
+      },
+    });
 
-  // StorageArray.name -> its platform, for the array picked in the dropdown.
-  const [storageSystemByArray, setStorageSystemByArray] = React.useState<
-    Record<string, string>
-  >({});
+  // What each array is (FlashArray or FlashBlade), by the name it is picked by.
+  const storageSystemByArray: Record<string, string> = {};
+  for (const storageArray of resources.records) {
+    if (storageArray.name && storageArray.storageSystem) {
+      storageSystemByArray[storageArray.name] = storageArray.storageSystem;
+    }
+  }
 
-  const [, setIsLoadingArrays] = React.useState<boolean>(true);
-
+  /*
+   * The template a saved step was made from shows picked; a new step starts
+   * on the type's default alert once drawn.
+   */
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
     string | undefined
-  >(undefined);
+  >(() => {
+    return findTemplateIdForMetricsView<StorageArrayAlertTemplate>({
+      templates: getStorageArrayAlertTemplatesForSystem(monitorStepStorageArrayMonitor.storageSystem),
+      getMetricsViewConfig: (template: StorageArrayAlertTemplate) => {
+        return MonitorStep.getMetricsViewConfig(
+          template.getMonitorStep({
+            arrayIdentifier: monitorStepStorageArrayMonitor.arrayIdentifier || "",
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+            monitorName: template.name,
+          }),
+        );
+      },
+      current: monitorStepStorageArrayMonitor.metricViewConfig,
+    });
+  });
+
+  const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
+    return getInitialWatchWay({
+      queryCount: monitorStepStorageArrayMonitor.metricViewConfig.queryConfigs.length,
+      isTemplatePicked: Boolean(selectedTemplateId),
+    });
+  });
+
+  /*
+   * A template applied before any resource was picked is applied again once
+   * one is, so its incident titles name it.
+   */
+  const templateAppliedWithoutResourceRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [selectedMetricId, setSelectedMetricId] = React.useState<
     string | undefined
@@ -218,52 +286,6 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     storageSystemByArray[monitorStepStorageArrayMonitor.arrayIdentifier] ||
     undefined;
 
-  useEffect(() => {
-    setIsLoadingArrays(true);
-    ModelAPI.getList<StorageArray>({
-      modelType: StorageArray,
-      query: {},
-      select: {
-        _id: true,
-        name: true,
-        storageSystem: true,
-      },
-      sort: {
-        name: SortOrder.Ascending,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    })
-      .then((result: ListResult<StorageArray>) => {
-        /*
-         * The dropdown VALUE is the array's `name`, not its id: `name` is
-         * the `storage.array.name` resource attribute the agent stamps on
-         * every metric, and the worker scopes the query on it.
-         */
-        const options: Array<DropdownOption> = result.data.map(
-          (storageArray: StorageArray) => {
-            return {
-              label: storageArray.name || "Unknown",
-              value: storageArray.name || "",
-            };
-          },
-        );
-        const systems: Record<string, string> = {};
-        for (const storageArray of result.data) {
-          if (storageArray.name && storageArray.storageSystem) {
-            systems[storageArray.name] = storageArray.storageSystem;
-          }
-        }
-        setArrayOptions(options);
-        setStorageSystemByArray(systems);
-      })
-      .catch(() => {
-        setArrayOptions([]);
-      })
-      .finally(() => {
-        setIsLoadingArrays(false);
-      });
-  }, []);
 
   useEffect(() => {
     if (rollingTime === monitorStepStorageArrayMonitor.rollingTime) {
@@ -287,15 +309,15 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection: (
+  const applyTemplate: (template: StorageArrayAlertTemplate, arrayIdentifier: string) => void = (
     template: StorageArrayAlertTemplate,
-  ) => void = (template: StorageArrayAlertTemplate): void => {
+    arrayIdentifier: string,
+  ): void => {
+    templateAppliedWithoutResourceRef.current = !arrayIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
 
-    const arrayIdentifier: string =
-      monitorStepStorageArrayMonitor.arrayIdentifier;
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -330,12 +352,51 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const handleTemplateSelection: (template: StorageArrayAlertTemplate) => void = (
+    template: StorageArrayAlertTemplate,
+  ): void => {
+    applyTemplate(template, monitorStepStorageArrayMonitor.arrayIdentifier);
+  };
+
+  // A new monitor starts on the alert most people want first.
+  useEffect(() => {
+    if (monitorStepStorageArrayMonitor.metricViewConfig.queryConfigs.length > 0) {
+      return;
+    }
+
+    const template: StorageArrayAlertTemplate | undefined = getStorageArrayAlertTemplateById(
+      getStorageArrayDefaultAlertTemplateId(storageSystem),
+    );
+
+    if (template) {
+      applyTemplate(template, monitorStepStorageArrayMonitor.arrayIdentifier);
+    }
+  }, []);
+
+  const changeResource: (arrayIdentifier: string) => void = (arrayIdentifier: string): void => {
+    const template: StorageArrayAlertTemplate | undefined = selectedTemplateId
+      ? getStorageArrayAlertTemplateById(selectedTemplateId)
+      : undefined;
+
+    if (template && templateAppliedWithoutResourceRef.current && arrayIdentifier) {
+      applyTemplate(template, arrayIdentifier);
+      return;
+    }
+
+    props.onChange({
+      ...monitorStepStorageArrayMonitor,
+      arrayIdentifier: arrayIdentifier,
+      storageSystem: storageSystemByArray[arrayIdentifier] || undefined,
+    });
+  };
+
   const handleCustomMetricSelection: (
     metric: StorageArrayMetricDefinition,
   ) => void = (metric: StorageArrayMetricDefinition): void => {
     setSelectedMetricId(metric.id);
     // The metric replaces the one Quick Setup's template set.
     setSelectedTemplateId(undefined);
+    templateAppliedWithoutResourceRef.current = false;
     setCustomAggregation(metric.defaultAggregation);
 
     const arrayIdentifier: string =
@@ -378,36 +439,72 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     };
 
     props.onChange(config);
+    /*
+     * The template's criteria compared the template's own metric; kept, they
+     * judged this one by another threshold and named another incident. A
+     * metric of your own starts on the out-of-the-box criteria: offline
+     * while it sends nothing, online while it does.
+     */
+    if (props.onMonitorCriteriaChange) {
+      props.onMonitorCriteriaChange(
+        MonitorCriteria.getDefaultMonitorCriteria({
+          monitorType: MonitorType.StorageArray,
+          monitorName: props.monitorName || metric.friendlyName,
+          onlineMonitorStatusId:
+            props.onlineMonitorStatusId || ObjectID.generate(),
+          offlineMonitorStatusId:
+            props.offlineMonitorStatusId || ObjectID.generate(),
+          defaultIncidentSeverityId:
+            props.defaultIncidentSeverityId || ObjectID.generate(),
+          defaultAlertSeverityId:
+            props.defaultAlertSeverityId || ObjectID.generate(),
+        }),
+      );
+    }
   };
 
   const renderArrayDropdown: () => ReactElement = (): ReactElement => {
     return (
-      <div className="mb-4">
-        <FieldLabelElement
-          title="Storage Array"
-          description={
-            "Its platform decides which metrics and templates are offered."
-          }
-          required={true}
-        />
-        <Dropdown
-          options={arrayOptions}
-          value={arrayOptions.find((option: DropdownOption) => {
+      <InfrastructureResourceField
+        title="Storage Array"
+        placeholder="Select a storage array..."
+        options={resources.options}
+        value={monitorStepStorageArrayMonitor.arrayIdentifier}
+        onChange={changeResource}
+        isLoading={resources.isLoading}
+        lastSeenAtByValue={resources.lastSeenAtByValue}
+        addResource={{
+          title: STORAGE_ARRAY_ONBOARDING.addTitle,
+          renderModal: (input: {
+            onClose: () => void;
+            onConnected: (value: string) => void;
+          }): ReactElement => {
             return (
-              option.value === monitorStepStorageArrayMonitor.arrayIdentifier
+              <AddResourceModal
+                onboarding={STORAGE_ARRAY_ONBOARDING}
+                onClose={input.onClose}
+                onConnected={(record: BaseModel) => {
+                  input.onConnected(
+                    String(
+                      (record as StorageArray).name || "",
+                    ),
+                  );
+                }}
+              />
             );
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            const arrayIdentifier: string = (value as string) || "";
-            props.onChange({
-              ...monitorStepStorageArrayMonitor,
-              arrayIdentifier: arrayIdentifier,
-              storageSystem: storageSystemByArray[arrayIdentifier] || undefined,
+          },
+        }}
+        onResourceAdded={(arrayIdentifier: string) => {
+          resources
+            .reload()
+            .then(() => {
+              changeResource(arrayIdentifier);
+            })
+            .catch(() => {
+              // The list keeps what it had; the new one can be picked from it.
             });
-          }}
-          placeholder="Select a storage array..."
-        />
-      </div>
+        }}
+      />
     );
   };
 
@@ -635,27 +732,15 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const tabs: Array<Tab> = [
-    {
-      name: "Quick Setup",
-      children: renderQuickSetup(),
-    },
-    {
-      name: "Custom Metric",
-      children: renderCustomMetric(),
-    },
-    {
-      name: "Advanced",
-      children: renderAdvanced(),
-    },
-  ];
 
   return (
-    <div>
-      {renderArrayDropdown()}
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </div>
+    <InfrastructureMonitorSetup
+      resourceField={renderArrayDropdown()}
+      alertTemplates={renderQuickSetup()}
+      customMetric={renderCustomMetric()}
+      queryBuilder={renderAdvanced()}
+      initialWay={initialWay}
+    />
   );
 };
 

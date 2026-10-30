@@ -16,11 +16,21 @@ export interface HostMetricDefinition {
   category: HostMetricCategory;
   defaultAggregation: MetricsAggregationType;
   unit?: string;
+  /*
+   * What makes the metric mean something on its own, as Custom Metric
+   * builds its query. The hostmetrics receiver splits most of these by
+   * `state` (CPU by user/system/idle..., memory by used/free/cached...), so
+   * a query over every state reads 1/N of the total and never crosses a
+   * useful threshold: memory and filesystem usage count the `used` state,
+   * CPU utilization gives one series per state, filesystems one per mount.
+   */
+  attributes?: Record<string, string> | undefined;
+  groupByAttributeKeys?: Array<string> | undefined;
 }
 
 /*
- * These are the real OpenTelemetry host metrics emitted by the OneUptime
- * Infrastructure Agent's hostmetrics receiver (the Hosts product). The
+ * These are the real OpenTelemetry host metrics an OpenTelemetry Collector's
+ * hostmetrics receiver sends from a host (the Hosts product). The
  * utilization metrics (system.cpu.utilization, system.memory.utilization,
  * system.filesystem.utilization) are reported as a [0, 1] ratio by the OTel
  * host receiver, so the friendly unit is "ratio" — the dashboard auto-scales
@@ -32,21 +42,23 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
     id: "system-cpu-utilization",
     friendlyName: "CPU Utilization",
     description:
-      "Host CPU utilization as a ratio (0 to 1). 1.0 = all cores fully busy.",
+      "Share of CPU time in each state (user, system, iowait, idle...), as a ratio (0 to 1), one series per state: 0.8 fires when any one state passes 80%.",
     metricName: "system.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "ratio",
+    groupByAttributeKeys: ["state"],
   },
   {
     id: "process-cpu-utilization",
     friendlyName: "Process CPU Utilization",
     description:
-      "Per-process CPU utilization as a ratio (0 to 1) for processes running on the host.",
+      "CPU utilization of each process on the host, as a ratio (0 to 1), one series per executable.",
     metricName: "process.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Max,
     unit: "ratio",
+    groupByAttributeKeys: ["resource.process.executable.name"],
   },
 
   // Memory Metrics
@@ -54,20 +66,23 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
     id: "system-memory-utilization",
     friendlyName: "Memory Utilization",
     description:
-      "Host memory utilization as a ratio (0 to 1) of total physical memory in use.",
+      "Share of physical memory in use, as a ratio (0 to 1). Page cache and buffers are left out.",
     metricName: "system.memory.utilization",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "ratio",
+    attributes: { state: "used" },
   },
   {
     id: "system-memory-usage",
     friendlyName: "Memory Usage",
-    description: "Host memory usage in bytes.",
+    description:
+      "Memory in use, in bytes. Page cache and buffers are left out.",
     metricName: "system.memory.usage",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "bytes",
+    attributes: { state: "used" },
   },
 
   // Disk / Filesystem Metrics
@@ -75,20 +90,24 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
     id: "system-filesystem-utilization",
     friendlyName: "Filesystem Utilization",
     description:
-      "Filesystem utilization as a ratio (0 to 1) of total disk capacity in use.",
+      "Share of each filesystem in use, as a ratio (0 to 1), one series per mount point.",
     metricName: "system.filesystem.utilization",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,
     unit: "ratio",
+    groupByAttributeKeys: ["mountpoint"],
   },
   {
     id: "system-filesystem-usage",
     friendlyName: "Filesystem Usage",
-    description: "Filesystem usage in bytes.",
+    description:
+      "Bytes in use on each filesystem, one series per mount point.",
     metricName: "system.filesystem.usage",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,
     unit: "bytes",
+    attributes: { state: "used" },
+    groupByAttributeKeys: ["mountpoint"],
   },
 
   // Network Metrics
@@ -96,11 +115,12 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
     id: "system-network-io",
     friendlyName: "Network I/O",
     description:
-      "Cumulative network bytes transferred (received + transmitted) by the host.",
+      "Bytes received and sent since the host started, one series per direction. A lifetime counter: it only grows.",
     metricName: "system.network.io",
     category: "Network",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     unit: "bytes",
+    groupByAttributeKeys: ["direction"],
   },
 
   // Load Average Metrics

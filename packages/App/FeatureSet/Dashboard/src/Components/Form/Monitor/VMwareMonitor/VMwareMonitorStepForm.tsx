@@ -5,7 +5,12 @@ import MonitorStepVMwareMonitor, {
 } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -20,12 +25,6 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import VMwareTemplatePicker from "./VMwareTemplatePicker";
 import VMwareMetricPicker from "./VMwareMetricPicker";
@@ -33,10 +32,29 @@ import {
   VMwareAlertTemplate,
   VMwareGroupByKey,
   buildVMwareMonitorConfig,
+  getVMwareAlertTemplateById,
+  getAllVMwareAlertTemplates,
+  getVMwareDefaultAlertTemplateId,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { VMwareMetricDefinition } from "Common/Types/Monitor/VMwareMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
+import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
+import useInfrastructureResources, {
+  InfrastructureResources,
+} from "../InfrastructureMonitorSetup/UseInfrastructureResources";
+import {
+  InfrastructureWatchWay,
+  findTemplateIdForMetricsView,
+  getInitialWatchWay,
+  INFRASTRUCTURE_ADD_VCENTER,
+} from "../InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import Navigation from "Common/UI/Utils/Navigation";
+import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
+import PageMap from "../../../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
 
 /*
  * Window used when a step arrives without one (a legacy step, or a config
@@ -160,15 +178,45 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-  const [vcenterOptions, setVCenterOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
 
-  const [, setIsLoadingVCenters] = React.useState<boolean>(true);
-
+  /*
+   * The template a saved step was made from shows picked; a new step starts
+   * on the type's default alert once drawn.
+   */
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
     string | undefined
-  >(undefined);
+  >(() => {
+    return findTemplateIdForMetricsView<VMwareAlertTemplate>({
+      templates: getAllVMwareAlertTemplates(),
+      getMetricsViewConfig: (template: VMwareAlertTemplate) => {
+        return MonitorStep.getMetricsViewConfig(
+          template.getMonitorStep({
+            vcenterIdentifier: monitorStepVMwareMonitor.vcenterIdentifier || "",
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+            monitorName: template.name,
+          }),
+        );
+      },
+      current: monitorStepVMwareMonitor.metricViewConfig,
+    });
+  });
+
+  const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
+    return getInitialWatchWay({
+      queryCount: monitorStepVMwareMonitor.metricViewConfig.queryConfigs.length,
+      isTemplatePicked: Boolean(selectedTemplateId),
+    });
+  });
+
+  /*
+   * A template applied before any resource was picked is applied again once
+   * one is, so its incident titles name it.
+   */
+  const templateAppliedWithoutResourceRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [selectedMetricId, setSelectedMetricId] = React.useState<
     string | undefined
@@ -176,44 +224,24 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [customAggregation, setCustomAggregation] =
     React.useState<MetricsAggregationType>(MetricsAggregationType.Avg);
 
-  useEffect(() => {
-    setIsLoadingVCenters(true);
-    ModelAPI.getList<VMwareVCenter>({
+  const resources: InfrastructureResources<VMwareVCenter> =
+    useInfrastructureResources<VMwareVCenter>({
       modelType: VMwareVCenter,
-      query: {},
       select: {
-        _id: true,
-        name: true,
+          _id: true,
+          lastSeenAt: true,
+          name: true,
+        },
+      toOption: (vcenter: VMwareVCenter): DropdownOption => {
+        return {
+          label: vcenter.name || "Unknown",
+          value: vcenter.name || "",
+        };
       },
-      sort: {
-        name: SortOrder.Ascending,
+      getLastSeenAt: (vcenter: VMwareVCenter): Date | undefined => {
+        return vcenter.lastSeenAt;
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    })
-      .then((result: ListResult<VMwareVCenter>) => {
-        /*
-         * The dropdown VALUE is the vCenter's `name`, not its id: `name`
-         * is the `vmware.vcenter.name` resource attribute the agent stamps
-         * on every metric, and the worker scopes the query on it.
-         */
-        const options: Array<DropdownOption> = result.data.map(
-          (vcenter: VMwareVCenter) => {
-            return {
-              label: vcenter.name || "Unknown",
-              value: vcenter.name || "",
-            };
-          },
-        );
-        setVCenterOptions(options);
-      })
-      .catch(() => {
-        setVCenterOptions([]);
-      })
-      .finally(() => {
-        setIsLoadingVCenters(false);
-      });
-  }, []);
+    });
 
   useEffect(() => {
     if (rollingTime === monitorStepVMwareMonitor.rollingTime) {
@@ -237,15 +265,15 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection: (template: VMwareAlertTemplate) => void = (
+  const applyTemplate: (template: VMwareAlertTemplate, vcenterIdentifier: string) => void = (
     template: VMwareAlertTemplate,
+    vcenterIdentifier: string,
   ): void => {
+    templateAppliedWithoutResourceRef.current = !vcenterIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
 
-    const vcenterIdentifier: string =
-      monitorStepVMwareMonitor.vcenterIdentifier;
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -278,12 +306,50 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const handleTemplateSelection: (template: VMwareAlertTemplate) => void = (
+    template: VMwareAlertTemplate,
+  ): void => {
+    applyTemplate(template, monitorStepVMwareMonitor.vcenterIdentifier);
+  };
+
+  // A new monitor starts on the alert most people want first.
+  useEffect(() => {
+    if (monitorStepVMwareMonitor.metricViewConfig.queryConfigs.length > 0) {
+      return;
+    }
+
+    const template: VMwareAlertTemplate | undefined = getVMwareAlertTemplateById(
+      getVMwareDefaultAlertTemplateId(),
+    );
+
+    if (template) {
+      applyTemplate(template, monitorStepVMwareMonitor.vcenterIdentifier);
+    }
+  }, []);
+
+  const changeResource: (vcenterIdentifier: string) => void = (vcenterIdentifier: string): void => {
+    const template: VMwareAlertTemplate | undefined = selectedTemplateId
+      ? getVMwareAlertTemplateById(selectedTemplateId)
+      : undefined;
+
+    if (template && templateAppliedWithoutResourceRef.current && vcenterIdentifier) {
+      applyTemplate(template, vcenterIdentifier);
+      return;
+    }
+
+    props.onChange({
+      ...monitorStepVMwareMonitor,
+      vcenterIdentifier: vcenterIdentifier,
+    });
+  };
+
   const handleCustomMetricSelection: (
     metric: VMwareMetricDefinition,
   ) => void = (metric: VMwareMetricDefinition): void => {
     setSelectedMetricId(metric.id);
     // The metric replaces the one Quick Setup's template set.
     setSelectedTemplateId(undefined);
+    templateAppliedWithoutResourceRef.current = false;
     setCustomAggregation(metric.defaultAggregation);
 
     const vcenterIdentifier: string =
@@ -315,32 +381,61 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     };
 
     props.onChange(config);
+    /*
+     * The template's criteria compared the template's own metric; kept, they
+     * judged this one by another threshold and named another incident. A
+     * metric of your own starts on the out-of-the-box criteria: offline
+     * while it sends nothing, online while it does.
+     */
+    if (props.onMonitorCriteriaChange) {
+      props.onMonitorCriteriaChange(
+        MonitorCriteria.getDefaultMonitorCriteria({
+          monitorType: MonitorType.VMware,
+          monitorName: props.monitorName || metric.friendlyName,
+          onlineMonitorStatusId:
+            props.onlineMonitorStatusId || ObjectID.generate(),
+          offlineMonitorStatusId:
+            props.offlineMonitorStatusId || ObjectID.generate(),
+          defaultIncidentSeverityId:
+            props.defaultIncidentSeverityId || ObjectID.generate(),
+          defaultAlertSeverityId:
+            props.defaultAlertSeverityId || ObjectID.generate(),
+        }),
+      );
+    }
   };
 
   const renderVCenterDropdown: () => ReactElement = (): ReactElement => {
     return (
-      <div className="mb-4">
-        <FieldLabelElement
-          title="vCenter"
-          description={
-            "Select the vCenter Server (or standalone ESXi host) to monitor."
-          }
-          required={true}
-        />
-        <Dropdown
-          options={vcenterOptions}
-          value={vcenterOptions.find((option: DropdownOption) => {
-            return option.value === monitorStepVMwareMonitor.vcenterIdentifier;
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            props.onChange({
-              ...monitorStepVMwareMonitor,
-              vcenterIdentifier: (value as string) || "",
+      <InfrastructureResourceField
+        title="vCenter"
+        placeholder="Select a vCenter..."
+        options={resources.options}
+        value={monitorStepVMwareMonitor.vcenterIdentifier}
+        onChange={changeResource}
+        isLoading={resources.isLoading}
+        lastSeenAtByValue={resources.lastSeenAtByValue}
+        addResource={{
+          title: INFRASTRUCTURE_ADD_VCENTER,
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.VMWARE_VCENTERS] as Route,
+              ),
+            );
+          },
+        }}
+        onResourceAdded={(vcenterIdentifier: string) => {
+          resources
+            .reload()
+            .then(() => {
+              changeResource(vcenterIdentifier);
+            })
+            .catch(() => {
+              // The list keeps what it had; the new one can be picked from it.
             });
-          }}
-          placeholder="Select a vCenter..."
-        />
-      </div>
+        }}
+      />
     );
   };
 
@@ -563,27 +658,15 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const tabs: Array<Tab> = [
-    {
-      name: "Quick Setup",
-      children: renderQuickSetup(),
-    },
-    {
-      name: "Custom Metric",
-      children: renderCustomMetric(),
-    },
-    {
-      name: "Advanced",
-      children: renderAdvanced(),
-    },
-  ];
 
   return (
-    <div>
-      {renderVCenterDropdown()}
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </div>
+    <InfrastructureMonitorSetup
+      resourceField={renderVCenterDropdown()}
+      alertTemplates={renderQuickSetup()}
+      customMetric={renderCustomMetric()}
+      queryBuilder={renderAdvanced()}
+      initialWay={initialWay}
+    />
   );
 };
 

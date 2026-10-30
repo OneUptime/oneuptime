@@ -2,8 +2,14 @@ import MonitorStepHostMonitor, {
   MonitorStepHostMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepHostMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -17,22 +23,30 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Host from "Common/Models/DatabaseModels/Host";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import HostTemplatePicker from "./HostTemplatePicker";
 import HostMetricPicker from "./HostMetricPicker";
 import {
   HostAlertTemplate,
   buildHostMonitorConfig,
+  getAllHostAlertTemplates,
+  getHostAlertTemplateById,
+  getHostDefaultAlertTemplateId,
 } from "Common/Types/Monitor/HostAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { HostMetricDefinition } from "Common/Types/Monitor/HostMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import AddHostModal from "../../../HostCollector/AddHostModal";
+import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
+import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
+import useInfrastructureResources, {
+  InfrastructureResources,
+} from "../InfrastructureMonitorSetup/UseInfrastructureResources";
+import {
+  InfrastructureWatchWay,
+  findTemplateIdForMetricsView,
+  getInitialWatchWay,
+} from "../InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
 
 export interface ComponentProps {
   monitorStepHostMonitor: MonitorStepHostMonitor;
@@ -66,54 +80,71 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-  const [hostOptions, setHostOptions] = React.useState<Array<DropdownOption>>(
-    [],
+  const hosts: InfrastructureResources<Host> = useInfrastructureResources<Host>(
+    {
+      modelType: Host,
+      select: {
+        _id: true,
+        name: true,
+        hostIdentifier: true,
+        lastSeenAt: true,
+      },
+      toOption: (host: Host): DropdownOption => {
+        return {
+          label: host.name || host.hostIdentifier || "Unknown",
+          value: host.hostIdentifier || "",
+        };
+      },
+      getLastSeenAt: (host: Host): Date | undefined => {
+        return host.lastSeenAt;
+      },
+    },
   );
 
-  const [, setIsLoadingHosts] = React.useState<boolean>(true);
-
+  /*
+   * The template a saved step was made from shows picked; a new step starts
+   * on the type's default (Host Stopped Reporting) once drawn.
+   */
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
     string | undefined
-  >(undefined);
+  >(() => {
+    return findTemplateIdForMetricsView<HostAlertTemplate>({
+      templates: getAllHostAlertTemplates(),
+      getMetricsViewConfig: (template: HostAlertTemplate) => {
+        return MonitorStep.getMetricsViewConfig(
+          template.getMonitorStep({
+            hostIdentifier: monitorStepHostMonitor.hostIdentifier || "",
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+            monitorName: template.name,
+          }),
+        );
+      },
+      current: monitorStepHostMonitor.metricViewConfig,
+    });
+  });
+
+  const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
+    return getInitialWatchWay({
+      queryCount: monitorStepHostMonitor.metricViewConfig.queryConfigs.length,
+      isTemplatePicked: Boolean(selectedTemplateId),
+    });
+  });
+
+  /*
+   * A template applied before any host was picked is applied again once one
+   * is, so its incident titles name the host.
+   */
+  const templateAppliedWithoutHostRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [selectedMetricId, setSelectedMetricId] = React.useState<
     string | undefined
   >(undefined);
   const [customAggregation, setCustomAggregation] =
     React.useState<MetricsAggregationType>(MetricsAggregationType.Avg);
-
-  useEffect(() => {
-    setIsLoadingHosts(true);
-    ModelAPI.getList<Host>({
-      modelType: Host,
-      query: {},
-      select: {
-        _id: true,
-        name: true,
-        hostIdentifier: true,
-      },
-      sort: {
-        name: SortOrder.Ascending,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    })
-      .then((result: ListResult<Host>) => {
-        const options: Array<DropdownOption> = result.data.map((host: Host) => {
-          return {
-            label: host.name || host.hostIdentifier || "Unknown",
-            value: host.hostIdentifier || "",
-          };
-        });
-        setHostOptions(options);
-      })
-      .catch(() => {
-        setHostOptions([]);
-      })
-      .finally(() => {
-        setIsLoadingHosts(false);
-      });
-  }, []);
 
   useEffect(() => {
     if (rollingTime === monitorStepHostMonitor.rollingTime) {
@@ -137,32 +168,25 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection: (template: HostAlertTemplate) => void = (
+  const applyTemplate: (
     template: HostAlertTemplate,
-  ): void => {
+    hostIdentifier: string,
+  ) => void = (template: HostAlertTemplate, hostIdentifier: string): void => {
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
-    const hostIdentifier: string = monitorStepHostMonitor.hostIdentifier;
-
-    const onlineMonitorStatusId: ObjectID =
-      props.onlineMonitorStatusId || ObjectID.generate();
-    const offlineMonitorStatusId: ObjectID =
-      props.offlineMonitorStatusId || ObjectID.generate();
-    const defaultIncidentSeverityId: ObjectID =
-      props.defaultIncidentSeverityId || ObjectID.generate();
-    const defaultAlertSeverityId: ObjectID =
-      props.defaultAlertSeverityId || ObjectID.generate();
-    const monitorName: string = props.monitorName || template.name;
+    templateAppliedWithoutHostRef.current = !hostIdentifier;
 
     const templateStep: MonitorStep = template.getMonitorStep({
       hostIdentifier: hostIdentifier || "",
-      onlineMonitorStatusId,
-      offlineMonitorStatusId,
-      defaultIncidentSeverityId,
-      defaultAlertSeverityId,
-      monitorName,
+      onlineMonitorStatusId: props.onlineMonitorStatusId || ObjectID.generate(),
+      offlineMonitorStatusId:
+        props.offlineMonitorStatusId || ObjectID.generate(),
+      defaultIncidentSeverityId:
+        props.defaultIncidentSeverityId || ObjectID.generate(),
+      defaultAlertSeverityId:
+        props.defaultAlertSeverityId || ObjectID.generate(),
+      monitorName: props.monitorName || template.name,
     });
 
     if (templateStep.data?.hostMonitor) {
@@ -177,69 +201,143 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // A new monitor starts on the alert most people want first.
+  useEffect(() => {
+    if (monitorStepHostMonitor.metricViewConfig.queryConfigs.length > 0) {
+      return;
+    }
+
+    const template: HostAlertTemplate | undefined = getHostAlertTemplateById(
+      getHostDefaultAlertTemplateId(),
+    );
+
+    if (template) {
+      applyTemplate(template, monitorStepHostMonitor.hostIdentifier);
+    }
+  }, []);
+
+  const changeHost: (hostIdentifier: string) => void = (
+    hostIdentifier: string,
+  ): void => {
+    const template: HostAlertTemplate | undefined = selectedTemplateId
+      ? getHostAlertTemplateById(selectedTemplateId)
+      : undefined;
+
+    if (template && templateAppliedWithoutHostRef.current && hostIdentifier) {
+      applyTemplate(template, hostIdentifier);
+      return;
+    }
+
+    props.onChange({
+      ...monitorStepHostMonitor,
+      hostIdentifier: hostIdentifier,
+    });
+  };
+
   const handleCustomMetricSelection: (metric: HostMetricDefinition) => void = (
     metric: HostMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
     // The metric replaces the one Quick Setup's template set.
     setSelectedTemplateId(undefined);
+    templateAppliedWithoutHostRef.current = false;
     setCustomAggregation(metric.defaultAggregation);
 
-    const hostIdentifier: string = monitorStepHostMonitor.hostIdentifier;
-
     const config: MonitorStepHostMonitor = buildHostMonitorConfig({
-      hostIdentifier: hostIdentifier || "",
+      hostIdentifier: monitorStepHostMonitor.hostIdentifier || "",
       metricName: metric.metricName,
       metricAlias: metric.id.replace(/-/g, "_"),
       rollingTime:
         monitorStepHostMonitor.rollingTime || RollingTime.Past5Minutes,
       aggregationType: metric.defaultAggregation,
+      ...(metric.attributes ? { attributes: metric.attributes } : {}),
+      groupByAttributeKeys: metric.groupByAttributeKeys,
     });
 
     props.onChange(config);
+
+    /*
+     * The template's criteria compared the template's own metric; kept, they
+     * judged this one by another threshold and named another incident. A
+     * metric of your own starts on the out-of-the-box criteria: offline
+     * while it sends nothing, online while it does.
+     */
+    if (props.onMonitorCriteriaChange) {
+      props.onMonitorCriteriaChange(
+        MonitorCriteria.getDefaultMonitorCriteria({
+          monitorType: MonitorType.Host,
+          monitorName: props.monitorName || metric.friendlyName,
+          onlineMonitorStatusId:
+            props.onlineMonitorStatusId || ObjectID.generate(),
+          offlineMonitorStatusId:
+            props.offlineMonitorStatusId || ObjectID.generate(),
+          defaultIncidentSeverityId:
+            props.defaultIncidentSeverityId || ObjectID.generate(),
+          defaultAlertSeverityId:
+            props.defaultAlertSeverityId || ObjectID.generate(),
+        }),
+      );
+    }
   };
 
-  const renderHostDropdown: () => ReactElement = (): ReactElement => {
+  const renderHostField: () => ReactElement = (): ReactElement => {
     return (
-      <div className="mb-4">
-        <FieldLabelElement title="Host" required={true} />
-        <Dropdown
-          options={hostOptions}
-          value={hostOptions.find((option: DropdownOption) => {
-            return option.value === monitorStepHostMonitor.hostIdentifier;
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            props.onChange({
-              ...monitorStepHostMonitor,
-              hostIdentifier: (value as string) || "",
+      <InfrastructureResourceField
+        title="Host"
+        placeholder="Select a host..."
+        options={hosts.options}
+        value={monitorStepHostMonitor.hostIdentifier}
+        onChange={changeHost}
+        isLoading={hosts.isLoading}
+        lastSeenAtByValue={hosts.lastSeenAtByValue}
+        addResource={{
+          title: "Add Host",
+          renderModal: (input: {
+            onClose: () => void;
+            onConnected: (value: string) => void;
+          }): ReactElement => {
+            return (
+              <AddHostModal
+                onClose={input.onClose}
+                onHostConnected={(host: Host) => {
+                  input.onConnected(host.hostIdentifier || "");
+                }}
+              />
+            );
+          },
+        }}
+        onResourceAdded={(hostIdentifier: string) => {
+          hosts
+            .reload()
+            .then(() => {
+              changeHost(hostIdentifier);
+            })
+            .catch(() => {
+              // The list keeps what it had; the host can be picked from it.
             });
-          }}
-          placeholder="Select a host..."
-        />
-      </div>
+        }}
+      />
     );
   };
 
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
-      <div className="mt-4">
-        <HostTemplatePicker
-          selectedTemplateId={selectedTemplateId}
-          onTemplateSelected={(template: HostAlertTemplate) => {
-            handleTemplateSelection(template);
+      <HostTemplatePicker
+        selectedTemplateId={selectedTemplateId}
+        onTemplateSelected={(template: HostAlertTemplate) => {
+          applyTemplate(template, monitorStepHostMonitor.hostIdentifier);
+        }}
+      >
+        <AlertTemplateConfiguration
+          rollingTime={monitorStepHostMonitor.rollingTime}
+          onRollingTimeChange={(value: RollingTime) => {
+            props.onChange({
+              ...monitorStepHostMonitor,
+              rollingTime: value,
+            });
           }}
-        >
-          <AlertTemplateConfiguration
-            rollingTime={monitorStepHostMonitor.rollingTime}
-            onRollingTimeChange={(value: RollingTime) => {
-              props.onChange({
-                ...monitorStepHostMonitor,
-                rollingTime: value,
-              });
-            }}
-          />
-        </HostTemplatePicker>
-      </div>
+        />
+      </HostTemplatePicker>
     );
   };
 
@@ -401,27 +499,14 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const tabs: Array<Tab> = [
-    {
-      name: "Quick Setup",
-      children: renderQuickSetup(),
-    },
-    {
-      name: "Custom Metric",
-      children: renderCustomMetric(),
-    },
-    {
-      name: "Advanced",
-      children: renderAdvanced(),
-    },
-  ];
-
   return (
-    <div>
-      {renderHostDropdown()}
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </div>
+    <InfrastructureMonitorSetup
+      resourceField={renderHostField()}
+      alertTemplates={renderQuickSetup()}
+      customMetric={renderCustomMetric()}
+      queryBuilder={renderAdvanced()}
+      initialWay={initialWay}
+    />
   );
 };
 

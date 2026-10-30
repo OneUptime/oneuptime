@@ -3,7 +3,12 @@ import MonitorStepCephMonitor, {
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -18,22 +23,33 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import CephTemplatePicker from "./CephTemplatePicker";
 import CephMetricPicker from "./CephMetricPicker";
 import {
   CephAlertTemplate,
   buildCephMonitorConfig,
+  getCephAlertTemplateById,
+  getAllCephAlertTemplates,
+  getCephDefaultAlertTemplateId,
 } from "Common/Types/Monitor/CephAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { CephMetricDefinition } from "Common/Types/Monitor/CephMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
+import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
+import useInfrastructureResources, {
+  InfrastructureResources,
+} from "../InfrastructureMonitorSetup/UseInfrastructureResources";
+import {
+  InfrastructureWatchWay,
+  findTemplateIdForMetricsView,
+  getInitialWatchWay,
+} from "../InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import CEPH_CLUSTER_ONBOARDING from "../../../Ceph/CephClusterOnboarding";
+import AddResourceModal from "../../../ResourceOnboarding/AddResourceModal";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export interface ComponentProps {
   monitorStepCephMonitor: MonitorStepCephMonitor;
@@ -67,15 +83,45 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-  const [clusterOptions, setClusterOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
 
-  const [, setIsLoadingClusters] = React.useState<boolean>(true);
-
+  /*
+   * The template a saved step was made from shows picked; a new step starts
+   * on the type's default alert once drawn.
+   */
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
     string | undefined
-  >(undefined);
+  >(() => {
+    return findTemplateIdForMetricsView<CephAlertTemplate>({
+      templates: getAllCephAlertTemplates(),
+      getMetricsViewConfig: (template: CephAlertTemplate) => {
+        return MonitorStep.getMetricsViewConfig(
+          template.getMonitorStep({
+            clusterIdentifier: monitorStepCephMonitor.clusterIdentifier || "",
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+            monitorName: template.name,
+          }),
+        );
+      },
+      current: monitorStepCephMonitor.metricViewConfig,
+    });
+  });
+
+  const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
+    return getInitialWatchWay({
+      queryCount: monitorStepCephMonitor.metricViewConfig.queryConfigs.length,
+      isTemplatePicked: Boolean(selectedTemplateId),
+    });
+  });
+
+  /*
+   * A template applied before any resource was picked is applied again once
+   * one is, so its incident titles name it.
+   */
+  const templateAppliedWithoutResourceRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [selectedMetricId, setSelectedMetricId] = React.useState<
     string | undefined
@@ -83,39 +129,24 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [customAggregation, setCustomAggregation] =
     React.useState<MetricsAggregationType>(MetricsAggregationType.Avg);
 
-  useEffect(() => {
-    setIsLoadingClusters(true);
-    ModelAPI.getList<CephCluster>({
+  const resources: InfrastructureResources<CephCluster> =
+    useInfrastructureResources<CephCluster>({
       modelType: CephCluster,
-      query: {},
       select: {
-        _id: true,
-        name: true,
+          _id: true,
+          lastSeenAt: true,
+          name: true,
+        },
+      toOption: (cluster: CephCluster): DropdownOption => {
+        return {
+          label: cluster.name || "Unknown",
+          value: cluster.name || "",
+        };
       },
-      sort: {
-        name: SortOrder.Ascending,
+      getLastSeenAt: (cluster: CephCluster): Date | undefined => {
+        return cluster.lastSeenAt;
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    })
-      .then((result: ListResult<CephCluster>) => {
-        const options: Array<DropdownOption> = result.data.map(
-          (cluster: CephCluster) => {
-            return {
-              label: cluster.name || "Unknown",
-              value: cluster.name || "",
-            };
-          },
-        );
-        setClusterOptions(options);
-      })
-      .catch(() => {
-        setClusterOptions([]);
-      })
-      .finally(() => {
-        setIsLoadingClusters(false);
-      });
-  }, []);
+    });
 
   useEffect(() => {
     if (rollingTime === monitorStepCephMonitor.rollingTime) {
@@ -139,14 +170,15 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection: (template: CephAlertTemplate) => void = (
+  const applyTemplate: (template: CephAlertTemplate, clusterIdentifier: string) => void = (
     template: CephAlertTemplate,
+    clusterIdentifier: string,
   ): void => {
+    templateAppliedWithoutResourceRef.current = !clusterIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
 
-    const clusterIdentifier: string = monitorStepCephMonitor.clusterIdentifier;
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -179,12 +211,50 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const handleTemplateSelection: (template: CephAlertTemplate) => void = (
+    template: CephAlertTemplate,
+  ): void => {
+    applyTemplate(template, monitorStepCephMonitor.clusterIdentifier);
+  };
+
+  // A new monitor starts on the alert most people want first.
+  useEffect(() => {
+    if (monitorStepCephMonitor.metricViewConfig.queryConfigs.length > 0) {
+      return;
+    }
+
+    const template: CephAlertTemplate | undefined = getCephAlertTemplateById(
+      getCephDefaultAlertTemplateId(),
+    );
+
+    if (template) {
+      applyTemplate(template, monitorStepCephMonitor.clusterIdentifier);
+    }
+  }, []);
+
+  const changeResource: (clusterIdentifier: string) => void = (clusterIdentifier: string): void => {
+    const template: CephAlertTemplate | undefined = selectedTemplateId
+      ? getCephAlertTemplateById(selectedTemplateId)
+      : undefined;
+
+    if (template && templateAppliedWithoutResourceRef.current && clusterIdentifier) {
+      applyTemplate(template, clusterIdentifier);
+      return;
+    }
+
+    props.onChange({
+      ...monitorStepCephMonitor,
+      clusterIdentifier: clusterIdentifier,
+    });
+  };
+
   const handleCustomMetricSelection: (metric: CephMetricDefinition) => void = (
     metric: CephMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
     // The metric replaces the one Quick Setup's template set.
     setSelectedTemplateId(undefined);
+    templateAppliedWithoutResourceRef.current = false;
     setCustomAggregation(metric.defaultAggregation);
 
     const clusterIdentifier: string = monitorStepCephMonitor.clusterIdentifier;
@@ -199,26 +269,72 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     });
 
     props.onChange(config);
+    /*
+     * The template's criteria compared the template's own metric; kept, they
+     * judged this one by another threshold and named another incident. A
+     * metric of your own starts on the out-of-the-box criteria: offline
+     * while it sends nothing, online while it does.
+     */
+    if (props.onMonitorCriteriaChange) {
+      props.onMonitorCriteriaChange(
+        MonitorCriteria.getDefaultMonitorCriteria({
+          monitorType: MonitorType.Ceph,
+          monitorName: props.monitorName || metric.friendlyName,
+          onlineMonitorStatusId:
+            props.onlineMonitorStatusId || ObjectID.generate(),
+          offlineMonitorStatusId:
+            props.offlineMonitorStatusId || ObjectID.generate(),
+          defaultIncidentSeverityId:
+            props.defaultIncidentSeverityId || ObjectID.generate(),
+          defaultAlertSeverityId:
+            props.defaultAlertSeverityId || ObjectID.generate(),
+        }),
+      );
+    }
   };
 
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
-      <div className="mb-4">
-        <FieldLabelElement title="Ceph Cluster" required={true} />
-        <Dropdown
-          options={clusterOptions}
-          value={clusterOptions.find((option: DropdownOption) => {
-            return option.value === monitorStepCephMonitor.clusterIdentifier;
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            props.onChange({
-              ...monitorStepCephMonitor,
-              clusterIdentifier: (value as string) || "",
+      <InfrastructureResourceField
+        title="Ceph Cluster"
+        placeholder="Select a Ceph cluster..."
+        options={resources.options}
+        value={monitorStepCephMonitor.clusterIdentifier}
+        onChange={changeResource}
+        isLoading={resources.isLoading}
+        lastSeenAtByValue={resources.lastSeenAtByValue}
+        addResource={{
+          title: CEPH_CLUSTER_ONBOARDING.addTitle,
+          renderModal: (input: {
+            onClose: () => void;
+            onConnected: (value: string) => void;
+          }): ReactElement => {
+            return (
+              <AddResourceModal
+                onboarding={CEPH_CLUSTER_ONBOARDING}
+                onClose={input.onClose}
+                onConnected={(record: BaseModel) => {
+                  input.onConnected(
+                    String(
+                      (record as CephCluster).name || "",
+                    ),
+                  );
+                }}
+              />
+            );
+          },
+        }}
+        onResourceAdded={(clusterIdentifier: string) => {
+          resources
+            .reload()
+            .then(() => {
+              changeResource(clusterIdentifier);
+            })
+            .catch(() => {
+              // The list keeps what it had; the new one can be picked from it.
             });
-          }}
-          placeholder="Select a Ceph cluster..."
-        />
-      </div>
+        }}
+      />
     );
   };
 
@@ -459,27 +575,15 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const tabs: Array<Tab> = [
-    {
-      name: "Quick Setup",
-      children: renderQuickSetup(),
-    },
-    {
-      name: "Custom Metric",
-      children: renderCustomMetric(),
-    },
-    {
-      name: "Advanced",
-      children: renderAdvanced(),
-    },
-  ];
 
   return (
-    <div>
-      {renderClusterDropdown()}
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </div>
+    <InfrastructureMonitorSetup
+      resourceField={renderClusterDropdown()}
+      alertTemplates={renderQuickSetup()}
+      customMetric={renderCustomMetric()}
+      queryBuilder={renderAdvanced()}
+      initialWay={initialWay}
+    />
   );
 };
 
