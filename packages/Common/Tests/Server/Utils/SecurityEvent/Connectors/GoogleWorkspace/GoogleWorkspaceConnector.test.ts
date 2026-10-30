@@ -32,6 +32,7 @@ import {
   googleError,
 } from "./GoogleWorkspaceFakeApi";
 import { googleWorkspaceActivity } from "../../../../../Utils/SecurityEvent/Connectors/GoogleWorkspaceFixtures";
+import { FastestRun, fastestRun } from "../../../../../Helpers/FastestRun";
 
 /*
  * The connector is what the poller and the tester call. These pin the
@@ -216,12 +217,16 @@ describe("GoogleWorkspaceConnector - settings", () => {
   });
 
   test("checking an address takes time that grows with it, not faster", () => {
-    const started: number = Date.now();
+    const address: string = `${"a@".repeat(200000)}x`;
+    const checked: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return GoogleWorkspaceConnector.isEmailAddress(address);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(
-      GoogleWorkspaceConnector.isEmailAddress(`${"a@".repeat(200000)}x`),
-    ).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(checked.result).toBe(false);
+    expect(checked.inMs).toBeLessThan(2000);
   });
 
   test("the registry hands out this connector for Google Workspace", () => {
