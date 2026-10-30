@@ -515,6 +515,12 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
           modelType={RunnerJob}
           id={descriptor.commandsTableId}
           name={descriptor.commandsCardTitle}
+          /*
+           * Its rows are commands, never "runner jobs" (the model's own
+           * name): "Showing 1-2 of 2 commands".
+           */
+          singularName="Command"
+          pluralName="Commands"
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}

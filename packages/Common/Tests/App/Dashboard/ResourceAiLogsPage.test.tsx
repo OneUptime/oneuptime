@@ -950,6 +950,9 @@ describe("the commands table", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Investigation (read-only)")).toBeInTheDocument();
     expect(screen.getByText("Connection test (read-only)")).toBeInTheDocument();
+    // Its rows are commands, never the model's "runner jobs".
+    expect(document.body.textContent || "").toMatch(/of 4 commands/);
+    expect(document.body.textContent || "").not.toMatch(/runner jobs/i);
 
     // A fix's dry run reads as one, never as the fix it checked.
     const dryRunRow: HTMLElement | null = screen

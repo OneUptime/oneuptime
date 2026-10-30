@@ -2250,6 +2250,12 @@ test.describe("OneUptime AI on a cloud account", () => {
       expect(commands[0]).toContain("cloud whoami");
       expect(commands[1]).toContain("cloud scale-out");
     }
+    // Titled in words, its rows called commands - never "runner jobs".
+    await expect(
+      page.getByRole("heading", { name: "Cloud operations", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/of 2 commands/)).toBeVisible();
+    await expect(page.getByText(/runner jobs/i)).toHaveCount(0);
 
     const logs: AiPost | undefined = (await aiPosts(page)).find(
       (post: AiPost): boolean => {
