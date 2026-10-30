@@ -38856,5 +38856,16 @@
   "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "Le attività di IA lavorano nel repository di questa eccezione, quindi avviarne una richiede il permesso di modificarlo.",
   "Checking for tasks that are already running.": "Verifica delle attività già in corso.",
   "Finish the setup checklist above to start AI tasks.": "Completate la lista di configurazione qui sopra per avviare attività di IA.",
-  "Reopen and unarchive this exception to start AI tasks.": "Riaprite e togliete dall'archivio questa eccezione per avviare attività di IA."
+  "Reopen and unarchive this exception to start AI tasks.": "Riaprite e togliete dall'archivio questa eccezione per avviare attività di IA.",
+  "High priority": "Priorità alta",
+  "Low priority": "Priorità bassa",
+  "Medium priority": "Priorità media",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "Nessuna eccezione è stata vista per la prima volta o è tornata nelle ultime {{hours}} ore.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI non ha restituito un riepilogo. Riprovate.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI riassume le eccezioni viste per la prima volta nelle ultime {{hours}} ore, e quelle tornate dopo essere state risolte, e dice quali guardare per prime.",
+  "Summarize again": "Riepiloga di nuovo",
+  "Summarize with OneUptime AI": "Riepiloga con OneUptime AI",
+  "Summarizing…": "Riepilogo in corso…",
+  "What's new": "Novità",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Scritto da OneUptime AI {{time}}, dalle eccezioni viste per la prima volta o tornate nelle ultime {{hours}} ore."
 }

@@ -38856,5 +38856,16 @@
   "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "Les tâches d'IA travaillent dans le dépôt de cette exception : en démarrer une demande l'autorisation de le modifier.",
   "Checking for tasks that are already running.": "Vérification des tâches déjà en cours.",
   "Finish the setup checklist above to start AI tasks.": "Terminez la liste de configuration ci-dessus pour démarrer des tâches d'IA.",
-  "Reopen and unarchive this exception to start AI tasks.": "Rouvrez et désarchivez cette exception pour démarrer des tâches d'IA."
+  "Reopen and unarchive this exception to start AI tasks.": "Rouvrez et désarchivez cette exception pour démarrer des tâches d'IA.",
+  "High priority": "Priorité haute",
+  "Low priority": "Priorité basse",
+  "Medium priority": "Priorité moyenne",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "Aucune exception n'a été vue pour la première fois ni n'est revenue dans les dernières {{hours}} heures.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI n'a pas renvoyé de résumé. Veuillez réessayer.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI résume les exceptions vues pour la première fois dans les dernières {{hours}} heures, et celles revenues après avoir été résolues, et indique lesquelles regarder en premier.",
+  "Summarize again": "Résumer à nouveau",
+  "Summarize with OneUptime AI": "Résumer avec OneUptime AI",
+  "Summarizing…": "Résumé en cours…",
+  "What's new": "Quoi de neuf",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Écrit par OneUptime AI {{time}}, à partir des exceptions vues pour la première fois ou revenues dans les dernières {{hours}} heures."
 }
