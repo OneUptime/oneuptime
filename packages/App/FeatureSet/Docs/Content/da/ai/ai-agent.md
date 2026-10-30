@@ -106,7 +106,7 @@ Hver kørsel holdes inden for budgetter, som serveren håndhæver: højst **40 L
 | En undtagelses side **AI Assistance** | **Ret med AI** | Retter fejlen bag undtagelsen. |
 | En undtagelses side **AI Assistance** | **Generate Regression Test** | Tilføjer en test, der genskaber undtagelsen og fejler, indtil fejlen er rettet. |
 | En undtagelses side **AI Assistance** | **Forbedr fejlhåndtering** | Til en forventet fejl, som ugyldigt input: fjerner brugerdata fra meddelelsen, validerer inputtet tidligere og markerer fejlen som håndteret uden at ændre adfærden. |
-| En hændelses eller advarsels kort **AI Investigation** | **Open Fix PR from this analysis** | Retter den grundlæggende årsag, som undersøgelsen offentliggjorde (se [Automatiske koderettelser fra undersøgelser](#automatiske-koderettelser-fra-undersøgelser)). |
+| Trinnet **Afhjælpning** på en hændelses eller advarsels kort **OneUptime AI** | **Åbn pull request med rettelse** | Retter den grundlæggende årsag, som undersøgelsen offentliggjorde (se [Automatiske koderettelser fra undersøgelser](#automatiske-koderettelser-fra-undersøgelser)). |
 | Et spor, der er værd at rette | **Ret ydeevnen med AI** | Retter det langsomme mønster, som knappen nævner, som en N+1-forespørgsel eller kald, der kunne køre parallelt. |
 | En tjenestes side **Protokoller** | **Forbedr logning** | Gør tjenestens logs strukturerede, med den rette alvorlighed og knyttet til dens spor, uden at ændre adfærden. |
 | En tjenestes side **Spor** | **Forbedr sporing** | Tilføjer spans og attributter, hvor tjenestens tracing mangler, uden at ændre adfærden. |
@@ -135,7 +135,7 @@ OneUptime har data om, hvad din kode gør i produktion, så en rettelse ikke beh
 | --- | --- |
 | **Ret med AI** på en undtagelse | Hvor ofte den kastes nu og siden hvilken release, loggene og sporet fra en forekomst. |
 | **Ret ydeevnen med AI** | Hvor belastet og hvor langsom operationen er på tværs af alle dens spor, ikke kun det analyserede. Den ændrer intet, når operationen ikke længere er langsom. |
-| **Open Fix PR from this analysis** og rettelser, der åbnes automatisk fra undersøgelser | Udrulningerne før hændelsen, dens fejl, logs og langsomme operationer, og om årsagen har slået til før. |
+| **Åbn pull request med rettelse** og rettelser, der åbnes automatisk fra undersøgelser | Udrulningerne før hændelsen, dens fejl, logs og langsomme operationer, og om årsagen har slået til før. |
 | `@oneuptime review` fra GitHub | Hvad produktionen siger om den ændrede kode (se [Gennemgange med produktionskontekst](/docs/ai/github-app#gennemgange-med-produktionskontekst)). |
 
 Pull requestens beskrivelse fortæller, hvad agenten forespurgte, og hvad det viste. Andre opgaver, såsom regressionstests og forbedringer af logning eller sporing, forespørger ikke produktionen.
@@ -305,7 +305,7 @@ Enhver måde at køre containeren på virker (Docker Compose, Kubernetes og så 
 
 ## Automatiske koderettelser fra undersøgelser
 
-Når en [AI-undersøgelse](/docs/ai/ai-sre) offentliggør en årsagsanalyse på en hændelse eller en advarsel, og dens omhyggelige klassificering anbefaler en ændring i koden, tilbyder undersøgelseskortet **Open Fix PR from this analysis**: en rettelsesopgave, hvis hele kontekst er den offentliggjorte analyse. Knappen er skjult, når afhjælpningen er driftsmæssig, kun handler om infrastruktur, er ekstern, er en forventet afvisning, en brugerfejl eller uden konklusion. Egnede rettelser sker uden klikket, så længe **Ret nye hændelser automatisk** er slået til på **Hændelser → AI → Indstillinger** (og **Ret nye advarsler automatisk** på **Advarsler → AI → Indstillinger**). Rettelse starter slået fra, også for nye projekter. Uden AI-regler åbnes hver egnet rettelse; med regler kun en for det, en regel matcher, når reglen har **Pull requests med rettelser** slået til (det har en ny regel), i de koderepositorier, den nævner.
+Når en [AI-undersøgelse](/docs/ai/ai-sre) offentliggør en årsagsanalyse på en hændelse eller en advarsel, og dens omhyggelige klassificering anbefaler en ændring i koden, tilbyder trinnet **Afhjælpning** på dens kort **OneUptime AI** knappen **Åbn pull request med rettelse**: en rettelsesopgave, hvis hele kontekst er den offentliggjorte analyse. Den tilbydes ikke, når afhjælpningen er driftsmæssig, kun handler om infrastruktur, er ekstern, er en forventet afvisning, en brugerfejl eller uden konklusion. Egnede rettelser sker uden klikket, så længe **Ret nye hændelser automatisk** er slået til på **Hændelser → AI → Indstillinger** (og **Ret nye advarsler automatisk** på **Advarsler → AI → Indstillinger**). Rettelse starter slået fra, også for nye projekter. Uden AI-regler åbnes hver egnet rettelse; med regler kun en for det, en regel matcher, når reglen har **Pull requests med rettelser** slået til (det har en ny regel), i de koderepositorier, den nævner.
 
 Mens rettelse er slået til, sætter en undersøgelse, der ender med en sikker, underbygget grundlæggende årsag, som en kodeændring kan rette, den samme rettelsesopgave i kø, som knappen opretter. Beslutningen er en afgrænset klassificering, som serveren kontrollerer, aldrig et mønster, der matches mod analysens tekst: kun en positiv dom om en koderettelse åbner en pull request. Manglende belæg, en afhjælpning uden for koden og en mislykket klassificering ender alle med, at intet sker.
 

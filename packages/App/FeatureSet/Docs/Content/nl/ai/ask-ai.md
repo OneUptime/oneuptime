@@ -37,7 +37,7 @@ In de modus **Alleen-lezen** krijgt het model nooit acties aangeboden, dus het g
 
 AI vragen opent in het midden van het scherm, boven de pagina waarop je was, en vult op een telefoon het hele scherm. Druk op `Esc`, of klik ernaast, om terug te gaan naar de pagina. Het gesprek blijft waar je het liet: open AI vragen opnieuw om verder te gaan. Sluit je hem terwijl hij nog antwoordt, dan zegt een melding in de hoek wanneer het antwoord klaar is, en opent die het.
 
-Bij een incident of waarschuwing heeft de kaart **AI Investigation** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#praat-met-oneuptime-ai-over-het-incident).
+Bij een incident of waarschuwing heeft de kaart **OneUptime AI** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#praat-met-oneuptime-ai-over-het-incident).
 
 ## Wat hij kan zien
 

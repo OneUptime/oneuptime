@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Une exception par service et par erreur.** L'empreinte est calculée à partir du service, du type d'exception, du message et de la stack trace. Les valeurs qui changent d'un appel à l'autre en sont d'abord retirées : UUID et autres identifiants, horodatages, adresses IP et e-mail, et nombres de sept chiffres ou plus. Ainsi `Order id=1042 not found` et `Order id=2077 not found` forment une seule exception.
-- **Une nouvelle occurrence rouvre une exception résolue.** Si elle se reproduit après que vous l'avez résolue, le correctif n'a pas tenu.
+- **Une nouvelle occurrence rouvre une exception résolue.** Si elle se reproduit après que vous l'avez résolue, le correctif n'a pas tenu, et l'exception est marquée **Régression**. Une occurrence antérieure à la résolution qui n'arrive dans OneUptime que plus tard ne la rouvre pas.
 - **Une exception archivée reste archivée.** Ses nouvelles occurrences sont toujours comptées, mais elles ne déclenchent plus de notification.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Ouvrez **Produits → Observabilité → Exceptions**. Le badge de l'onglet **Ex
 
 ### Choisir un statut
 
-Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps.
+Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps. Une ligne marquée **Régression** est revenue après avoir été résolue, et une ligne marquée **Nouveau** a été vue pour la première fois au cours des dernières 24 heures.
 
 ### Choisir ce qui compte comme un problème
 
@@ -86,9 +86,12 @@ Les boutons en haut de la page de l'exception, sa page **Paramètres** et le men
 | Action | Quand l'utiliser | Ce qui se passe ensuite |
 | --- | --- | --- |
 | **Résoudre** | Vous avez déployé le correctif. | Elle quitte la liste **Non résolu**. Une nouvelle occurrence la rouvre. |
+| **Résoudre dans la prochaine version** | Le correctif sort dans votre prochaine version. | Elle quitte la liste **Non résolu**. Les occurrences de la version où elle a été vue en dernier ne la rouvrent pas, et une occurrence de toute autre version la rouvre. |
 | **Rouvrir** | Le correctif n'a pas marché. | Elle est de nouveau non résolue. |
 | **Archiver** | C'est du bruit que vous ne comptez pas corriger. | Elle quitte la liste. Les nouvelles occurrences sont comptées mais ne déclenchent plus de notification. |
 | **Désarchiver** | Vous voulez de nouveau en entendre parler. | Elle revient dans la liste qui lui correspond. |
+
+**Résoudre dans la prochaine version** se trouve dans le menu à côté de **Résoudre**, dans le menu ⋯ de la ligne, sous **Actions groupées** et dans **Paramètres**, tant que les occurrences de l'exception nomment leur version : l'attribut de ressource `service.version`.
 
 **Paramètres** indique qui a résolu ou archivé l'exception en dernier, et quand. Ses boutons s'intitulent **Marquer comme résolu** ou **Marquer comme non résolu**, et **Archiver** ou **Désarchiver**.
 
@@ -173,7 +176,7 @@ L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemp
 :::
 
 :::details Une exception résolue revient sans cesse
-Une nouvelle occurrence rouvre volontairement une exception résolue : l'erreur se produit encore. Vérifiez que le correctif a atteint la version qui la signale, ou archivez l'exception si vous ne voulez plus en entendre parler.
+Une nouvelle occurrence rouvre volontairement une exception résolue : l'erreur se produit encore. Vérifiez que le correctif a atteint la version qui la signale, ou archivez l'exception si vous ne voulez plus en entendre parler. Si d'anciens pods de la version continuent de la signaler pendant un déploiement, utilisez plutôt **Résoudre dans la prochaine version**.
 :::
 
 ## Étapes suivantes

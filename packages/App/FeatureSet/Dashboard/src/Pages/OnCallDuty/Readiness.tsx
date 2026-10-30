@@ -19,7 +19,9 @@ import {
   parseReadinessPage,
   ReadinessPageWire,
 } from "../../Components/OnCallPolicy/Readiness/ReadinessTypes";
-import StatTile from "../../Components/OnCallPolicy/Readiness/StatTile";
+import StatTile, {
+  StatTileGrid,
+} from "../../Components/OnCallPolicy/Readiness/StatTile";
 import UserElement from "../../Components/User/User";
 import PageComponentProps from "../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -125,6 +127,17 @@ import {
  * nothing to fetch without one, which is why this page does not use it.)
  */
 const READINESS_PROJECT_API_PATH: string = "/on-call-readiness/project";
+
+/*
+ * Over the table while nobody is ticked: what ticking does, and why a ready
+ * responder's box cannot be ticked - in one line, where two sentences took
+ * three lines on a phone ("Tick the responders you want to remind.
+ * Responders who are already ready cannot be selected - there is nothing to
+ * remind them about.").
+ */
+export const READINESS_TICK_HINT: string = translationKey(
+  "Tick the responders to remind. Ready ones have nothing to set up.",
+);
 
 /*
  * One request per 500 responders (the endpoint's maximum page), and at most
@@ -422,6 +435,17 @@ const STATUS_SORT_RANK: Record<ReadinessStatusValue, number> = {
   PartiallyReady: 1,
   Ready: 2,
 };
+
+// One part of a responder's "Reached via": a team, or another source.
+interface ReachedViaPart {
+  key: string;
+  icon: IconProp;
+  text: string;
+  title: string;
+}
+
+export const REACHED_VIA_PART_CLASS_NAME: string =
+  "inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
 
 const RESPONDER_SOURCE_ICONS: Record<ResponderSourceValue, IconProp> = {
   Direct: IconProp.User,
@@ -1482,43 +1506,6 @@ const OnCallReadinessPage: FunctionComponent<
       },
     },
     {
-      title: "Teams",
-      key: "teamNames",
-      type: FieldType.Element,
-      getElement: (row: ResponderRow): ReactElement => {
-        if (row.readiness.teams.length === 0) {
-          /*
-           * An em dash rather than a blank cell, and rather than "None". This
-           * responder is reached without a team being involved at all - the
-           * "Reached via" column next to it says how - so "no teams" is not a
-           * gap to be fixed and should not read like one.
-           */
-          return <span className="text-sm text-gray-400">&mdash;</span>;
-        }
-
-        return (
-          <span className="flex flex-wrap items-center gap-1">
-            {row.readiness.teams.map(
-              (team: ReadinessTeamWire): ReactElement => {
-                return (
-                  <span
-                    key={`team-${row._id}-${team._id}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-                  >
-                    <Icon
-                      icon={IconProp.Team}
-                      className="h-3 w-3 text-gray-400"
-                    />
-                    {team.name}
-                  </span>
-                );
-              },
-            )}
-          </span>
-        );
-      },
-    },
-    {
       title: "Channels",
       key: "verifiedChannelCount",
       type: FieldType.Element,
@@ -1553,27 +1540,33 @@ const OnCallReadinessPage: FunctionComponent<
           : "Not reported";
       },
     },
+    /*
+     * How each responder is paged, teams by their names: "Platform",
+     * "Database reliability", "Schedule". It was two columns - Teams, then
+     * Reached via saying "Team" again - and with the Coverage column beside
+     * them the table ran past its card at 1280 pixels beside the side menu,
+     * the last of it under the stuck Coverage buttons. On a phone the card
+     * shows it too (Teams did, Reached via did not).
+     */
     {
       title: "Reached via",
       key: "reachedVia",
       type: FieldType.Element,
-      hideOnMobile: true,
       disableSort: true,
       getElement: (row: ResponderRow): ReactElement => {
         return (
           <span className="flex flex-wrap items-center gap-1">
-            {row.reachedVia.map(
-              (source: ResponderSourceValue): ReactElement => {
+            {getReachedViaParts(row).map(
+              (part: ReachedViaPart): ReactElement => {
                 return (
                   <span
-                    key={`via-${row._id}-${source}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+                    key={`via-${row._id}-${part.key}`}
+                    data-testid="reached-via-part"
+                    title={part.title}
+                    className={REACHED_VIA_PART_CLASS_NAME}
                   >
-                    <Icon
-                      icon={RESPONDER_SOURCE_ICONS[source]}
-                      className="h-3 w-3 text-gray-400"
-                    />
-                    {source}
+                    <Icon icon={part.icon} className="h-3 w-3 text-gray-400" />
+                    {part.text}
                   </span>
                 );
               },
@@ -1582,7 +1575,7 @@ const OnCallReadinessPage: FunctionComponent<
         );
       },
       getExportValue: (row: ResponderRow): string => {
-        return row.reachedVia.join(", ");
+        return getReachedViaExportText(row);
       },
     },
     {
@@ -1591,6 +1584,56 @@ const OnCallReadinessPage: FunctionComponent<
       disableCsvExport: true,
     },
   ];
+
+  /*
+   * The parts of a responder's "Reached via": a team by its name (the
+   * sources' "Team" says which ones), every other source by its word, in
+   * the reader's language.
+   */
+  const getReachedViaParts: (row: ResponderRow) => Array<ReachedViaPart> = (
+    row: ResponderRow,
+  ): Array<ReachedViaPart> => {
+    return row.reachedVia.flatMap(
+      (source: ResponderSourceValue): Array<ReachedViaPart> => {
+        if (source === "Team" && row.readiness.teams.length > 0) {
+          return row.readiness.teams.map(
+            (team: ReadinessTeamWire): ReachedViaPart => {
+              return {
+                key: `team-${team._id}`,
+                icon: IconProp.Team,
+                text: team.name,
+                title: translator.translateText("Team") || "Team",
+              };
+            },
+          );
+        }
+
+        const word: string = translator.translateText(source) || source;
+
+        return [
+          {
+            key: source,
+            icon: RESPONDER_SOURCE_ICONS[source],
+            text: word,
+            title: word,
+          },
+        ];
+      },
+    );
+  };
+
+  // The CSV's words: "Team (Platform, Database reliability), Schedule".
+  const getReachedViaExportText: (row: ResponderRow) => string = (
+    row: ResponderRow,
+  ): string => {
+    return row.reachedVia
+      .map((source: ResponderSourceValue): string => {
+        return source === "Team" && row.teamNames
+          ? `${source} (${row.teamNames})`
+          : source;
+      })
+      .join(", ");
+  };
 
   const actionButtons: Array<ActionButtonSchema<ResponderRow>> = [
     {
@@ -1618,7 +1661,7 @@ const OnCallReadinessPage: FunctionComponent<
   const getSkeleton: () => ReactElement = (): ReactElement => {
     return (
       <div>
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTileGrid>
           {[0, 1, 2, 3].map((index: number): ReactElement => {
             return (
               <div
@@ -1627,7 +1670,7 @@ const OnCallReadinessPage: FunctionComponent<
               />
             );
           })}
-        </div>
+        </StatTileGrid>
         <div className="overflow-hidden rounded-lg border border-gray-200">
           {[0, 1, 2, 3, 4].map((index: number): ReactElement => {
             return (
@@ -1676,9 +1719,7 @@ const OnCallReadinessPage: FunctionComponent<
       <div>
         {selectedRows.length === 0 && (
           <div className="mb-4 text-xs text-gray-500">
-            {translator.translateText(
-              "Tick the responders you want to remind. Responders who are already ready cannot be selected - there is nothing to remind them about.",
-            )}
+            {translator.translateText(READINESS_TICK_HINT)}
           </div>
         )}
 
@@ -1866,7 +1907,7 @@ const OnCallReadinessPage: FunctionComponent<
            * they have already stopped looking.
            */}
           {summary && (
-            <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatTileGrid>
               <StatTile
                 icon={IconProp.User}
                 label={allRows.length === 1 ? "Responder" : "Responders"}
@@ -1923,7 +1964,7 @@ const OnCallReadinessPage: FunctionComponent<
                   toggleStatusFilter(READINESS_STATUS_NOT_REACHABLE);
                 }}
               />
-            </div>
+            </StatTileGrid>
           )}
           {content}
         </div>

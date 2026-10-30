@@ -17,7 +17,13 @@ import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import Select from "../Types/Database/Select";
-import { AppVersion, DisableUpdateCheck } from "../EnvironmentConfig";
+import {
+  AppVersion,
+  DisableUpdateCheck,
+  IsBillingEnabled,
+} from "../EnvironmentConfig";
+import SecurityAdvisoryMatcher from "../../Utils/SecurityAdvisoryMatcher";
+import UpdateStatusUtil from "../../Types/UpdateCheck/UpdateStatus";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import EnterpriseMarketplaceBillingUtil, {
   EnterpriseMarketplaceBillingState,
@@ -71,6 +77,17 @@ export const LICENSE_RESPONSE_CONFIG_SELECT: Select<GlobalConfig> = {
   latestReleaseVersion: true,
   latestReleasePublishedAt: true,
   latestReleaseCheckedAt: true,
+};
+
+// Everything buildUpdateStatusResponse reads off the GlobalConfig row.
+export const UPDATE_STATUS_CONFIG_SELECT: Select<GlobalConfig> = {
+  latestReleaseVersion: true,
+  latestReleasePublishedAt: true,
+  latestReleaseCheckedAt: true,
+  securityAdvisories: true,
+  securityAdvisoriesCheckedAt: true,
+  updateCheckLastAttemptAt: true,
+  updateCheckLastFailure: true,
 };
 
 export default class GlobalConfigAPI extends BaseAPI<
@@ -137,6 +154,44 @@ export default class GlobalConfigAPI extends BaseAPI<
           });
         } catch (err) {
           return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/update-status - whether this installation should be
+     * upgraded, and why: a newer release, or a published security advisory
+     * that affects the version it runs, with the release that fixes it. The
+     * Dashboard's and the Admin Dashboard's footers and the Admin
+     * Dashboard's security notice draw it; no browser asks GitHub.
+     *
+     * Master admins only. They are the ones who can upgrade, and telling
+     * anybody else that this server runs a version with a known security
+     * issue advertises an unpatched target. On OneUptime Cloud it says
+     * nothing: Cloud is not told to upgrade itself.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/update-status`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const config: GlobalConfig | null = IsBillingEnabled
+            ? null
+            : await GlobalConfigService.findOneById({
+                id: ObjectID.getZeroObjectID(),
+                select: UPDATE_STATUS_CONFIG_SELECT,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            GlobalConfigAPI.buildUpdateStatusResponse(config),
+          );
+        } catch (err) {
+          next(err);
         }
       },
     );
@@ -361,6 +416,30 @@ export default class GlobalConfigAPI extends BaseAPI<
         snapshot ? data.seatUsage : null,
       ),
     };
+  }
+
+  /*
+   * The body of GET /global-config/update-status, from the row the daily
+   * update check wrote and the version this process runs now - so an
+   * upgrade clears a security notice the moment the new version starts.
+   */
+  public static buildUpdateStatusResponse(
+    config: GlobalConfig | null,
+  ): JSONObject {
+    return UpdateStatusUtil.toJSON(
+      SecurityAdvisoryMatcher.buildUpdateStatus({
+        currentVersion: AppVersion,
+        isUpdateCheckDisabled: DisableUpdateCheck,
+        isSelfHosted: !IsBillingEnabled,
+        latestVersion: config?.latestReleaseVersion,
+        latestVersionPublishedAt: config?.latestReleasePublishedAt,
+        latestVersionCheckedAt: config?.latestReleaseCheckedAt,
+        advisories: config?.securityAdvisories,
+        advisoriesCheckedAt: config?.securityAdvisoriesCheckedAt,
+        lastCheckAttemptedAt: config?.updateCheckLastAttemptAt,
+        lastCheckFailure: config?.updateCheckLastFailure,
+      }),
+    );
   }
 
   // The marketplace billing summary for a response, or null when there is none.

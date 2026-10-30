@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **One exception per service and error.** The fingerprint is made from the service, the exception type, the message and the stack trace. Values that change from call to call are taken out first: UUIDs and other IDs, timestamps, IP and email addresses, and numbers of seven digits or more. So `Order id=1042 not found` and `Order id=2077 not found` are one exception.
-- **A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold.
+- **A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold, and the exception is marked **Regressed**. An occurrence from before you resolved it that reaches OneUptime late does not reopen it.
 - **An archived exception stays archived.** Its new occurrences are still counted, but they stop notifying.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Go to **Products → Observability → Exceptions**. The badge on the **Exceptio
 
 ### Pick a status
 
-Switch between **Unresolved**, **Resolved**, **Archived** and **All**. The chart above the list shows how many occurrences were **Unhandled** and how many **Handled** over time.
+Switch between **Unresolved**, **Resolved**, **Archived** and **All**. The chart above the list shows how many occurrences were **Unhandled** and how many **Handled** over time. A row marked **Regressed** came back after it was resolved, and one marked **New** was first seen in the last 24 hours.
 
 ### Choose what counts as an issue
 
@@ -86,9 +86,12 @@ The buttons at the top of the exception's page, its **Settings** page and the �
 | Action | When to use it | What happens next |
 | --- | --- | --- |
 | **Resolve** | You deployed the fix. | It leaves the **Unresolved** list. A new occurrence reopens it. |
+| **Resolve in next release** | The fix ships in your next release. | It leaves the **Unresolved** list. Occurrences from the release it was last seen in do not reopen it, and one from any other release does. |
 | **Reopen** | The fix did not work. | It is unresolved again. |
 | **Archive** | It is noise you do not plan to fix. | It leaves the list. New occurrences are counted but stop notifying. |
 | **Unarchive** | You want to hear about it again. | It is back in the list it belongs to. |
+
+**Resolve in next release** is in the menu beside **Resolve**, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.
 
 **Settings** shows who last resolved or archived the exception, and when. Its buttons read **Mark as Resolved** or **Mark as Unresolved**, and **Archive** or **Unarchive**.
 
@@ -173,7 +176,7 @@ The fingerprint includes the message and the stack trace. When they differ, for 
 :::
 
 :::details A resolved exception keeps coming back
-A new occurrence reopens a resolved exception on purpose: the error still happens. Check that the fix reached the release that reports it, or archive the exception if you no longer want to hear about it.
+A new occurrence reopens a resolved exception on purpose: the error still happens. Check that the fix reached the release that reports it, or archive the exception if you no longer want to hear about it. If old pods of the release keep reporting it during a rollout, use **Resolve in next release** instead.
 :::
 
 ## Next steps

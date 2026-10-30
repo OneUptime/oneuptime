@@ -1529,6 +1529,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             isArchived: true,
             primaryEntityId: true,
             environment: true,
+            // The row's Regressed, New and Unhandled badges.
+            regressedAt: true,
+            unhandled: true,
+            // Resolve in next release, in the row's menu and Bulk Actions.
+            lastSeenInRelease: true,
           },
           sort: { lastSeenAt: SortOrder.Descending },
         });

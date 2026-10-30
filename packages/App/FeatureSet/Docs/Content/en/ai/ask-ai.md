@@ -37,7 +37,7 @@ In **Read-only** mode the actions are never offered to the model, so the convers
 
 Ask AI opens in the middle of the screen, over the page you were on, and on a phone it fills the screen. Press `Esc`, or click beside it, to go back to the page. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it.
 
-On an incident or an alert, the **AI Investigation** card has a conversation of its own, **Ask OneUptime AI**, shared with everyone who can see that incident or alert: see [Talk to OneUptime AI about the incident](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
+On an incident or an alert, the **OneUptime AI** card has a conversation of its own, **Ask OneUptime AI**, shared with everyone who can see that incident or alert: see [Talk to OneUptime AI about the incident](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
 
 ## What it can see
 

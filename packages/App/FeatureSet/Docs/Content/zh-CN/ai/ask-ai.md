@@ -37,7 +37,7 @@ flowchart TB
 
 询问 AI 会在屏幕中央、你所在的页面之上打开，在手机上则占满整个屏幕。按 `Esc` 或点击它旁边，即可回到页面。会话会停留在你离开时的样子：再次打开询问 AI 即可继续。如果你在它还在回答时关闭它，角落里的提醒会告诉你回答何时就绪，点击即可打开。
 
-在事件或警报上，**AI Investigation** 卡片有一个自己的会话 **Ask OneUptime AI**，所有能看到该事件或警报的人共享这个会话：请参阅 [就事件与 OneUptime AI 对话](/docs/ai/ai-sre#与-oneuptime-ai-讨论事件)。
+在事件或警报上，**OneUptime AI** 卡片有一个自己的会话 **Ask OneUptime AI**，所有能看到该事件或警报的人共享这个会话：请参阅 [就事件与 OneUptime AI 对话](/docs/ai/ai-sre#与-oneuptime-ai-讨论事件)。
 
 ## 它能看到什么
 
