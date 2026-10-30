@@ -255,7 +255,8 @@ function answerReads(data: {
   });
 }
 
-function renderPreview(showFieldLabel?: boolean): void {
+// The layer form's preview passes showFieldLabel; a schedule's Overview leaves it out.
+function renderPreview(showFieldLabel: boolean = false): void {
   render(
     <LayersPreview
       layers={[makeLayer()]}

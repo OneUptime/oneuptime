@@ -480,11 +480,12 @@ describe("Page now for who may not page", () => {
     jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
   }
 
-  for (const [name, permission] of [
+  test.each([
     ["a Viewer", Permission.Viewer],
     ["an On-Call Viewer", Permission.OnCallViewer],
-  ] as Array<[string, Permission]>) {
-    test(`${name} is told AI is on it, with Page now locked, saying why - and pressing it sends nothing`, async () => {
+  ] as Array<[string, Permission]>)(
+    "%s is told AI is on it, with Page now locked, saying why - and pressing it sends nothing",
+    async (_name: string, permission: Permission) => {
       signInWith([permission]);
       lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
 
@@ -513,18 +514,19 @@ describe("Page now for who may not page", () => {
       await settle();
 
       expect(posts).toHaveLength(0);
-    });
-  }
+    },
+  );
 
-  for (const [name, permission] of [
+  test.each([
     ["a Project Member", Permission.ProjectMember],
     ["an On-Call Member", Permission.OnCallMember],
     [
       "someone given Create On-Call Duty Policy Execution Log",
       Permission.CreateProjectOnCallDutyPolicyExecutionLog,
     ],
-  ] as Array<[string, Permission]>) {
-    test(`${name} may press it`, async () => {
+  ] as Array<[string, Permission]>)(
+    "%s may press it",
+    async (_name: string, permission: Permission) => {
       signInWith([permission, Permission.OnCallViewer]);
       lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
 
@@ -536,8 +538,8 @@ describe("Page now for who may not page", () => {
       expect(
         screen.queryByTestId(`${PAGE_NOW_TEST_ID}-disabled-wrapper`),
       ).toBeNull();
-    });
-  }
+    },
+  );
 
   test("while the reader's permissions are still on their way it may be pressed: the server decides", async () => {
     signInWith([]);
