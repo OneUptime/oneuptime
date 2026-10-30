@@ -750,7 +750,7 @@ table(CodeRepository);
 // The label filters of the store lists: the project has no labels.
 table(Label);
 
-// What Settings > Scanning offers under Raise alerts and Declare incidents.
+// What Settings > Scan Settings offers under Raise alerts and Declare incidents.
 table(AlertSeverity).push(
   {
     _id: uuid("e1000000", 1),

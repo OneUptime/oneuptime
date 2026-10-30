@@ -69,7 +69,7 @@ import React, {
 } from "react";
 
 /*
- * Data Security > Settings > Scanning: the project's DataSecuritySetting,
+ * Data Security > Settings > Scan Settings: the project's DataSecuritySetting,
  * the one row of switches and limits every scan reads (made with its
  * defaults when there is none yet: UseDataSecuritySetting).
  *

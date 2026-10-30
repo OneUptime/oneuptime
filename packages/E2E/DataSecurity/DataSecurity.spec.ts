@@ -383,7 +383,7 @@ test.describe("what a Critical issue started", () => {
     await screenshot(page, "issue-links-1280");
   });
 
-  test("Settings > Scanning: incidents beside alerts, each with its own severity", async ({
+  test("Settings > Scan Settings: incidents beside alerts, each with its own severity", async ({
     page,
   }: {
     page: Page;

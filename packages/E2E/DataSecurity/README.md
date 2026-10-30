@@ -16,7 +16,7 @@ An offline harness for Data Security's pages, mounted from the product's real ro
 | An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links |
 | An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                  |
 | Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                         |
-| Settings > Scanning | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                               |
+| Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                               |
 
 `Fixture/server.js` bundles `Fixture/Fixture.js` with esbuild, serves it with the same Tailwind
 build, `tailwind.config`, `Theme.css` and Inter font production uses, and listens on
@@ -56,8 +56,20 @@ count, worst severity and risk are worked out from its open issues, as the evalu
 | `?theme=`    | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                          |
 | `?role=`     | `owner` (default) or `viewer`: Security Viewer only, who reads everything and changes nothing  |
 | `?response=` | `on` (default) or `off`: the bucket's cloud connection has "Data security response" on, or off |
+| `?data=`     | `default`, `empty` (a new project: no cloud connection, nothing found) or `busy` (26 more stores with long names, an open issue or two on each) |
+| `?fail=`     | `reads`: every read fails, as when the API is down, so each page shows how it says so          |
 
 The spec pins the browser clock to `2026-10-27T12:00:00Z`.
+
+Besides the tables above, it models Compliance's scores (worked out from the stores and their open
+issues with the catalog's own `scoreComplianceFramework`, as the server does), an owner rule, the
+project's members, the probe picker, a flow's stores at both ends and a content scan's details.
+
+`DataSecurityLayout.spec.ts` holds the pages to the UI review: every list fits a laptop's card beside
+the side menu in German and Persian with the busy data set, the Overview's figures line up and its day
+chart keeps its dates inside it in the reader's language, a store names its owners, an issue says what
+is wrong on a phone, Scans sit in Advanced and the settings page is Scan Settings, Compliance says why a
+framework has no score, and a new project and failing reads read as they should.
 
 ## What the fixture records
 

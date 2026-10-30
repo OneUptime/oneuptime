@@ -66,9 +66,11 @@ export const DATA_STORES_TABLE_ID: string = "data-security-stores-table";
  * 875px wide): the store, how sensitive and how exposed it is, and its risk.
  * Its owners, data types, environment and when it was last checked are a
  * click away in Columns: drawn as well, the risk the list is sorted by ran
- * off the card's edge. A long name is cut short at 14rem.
+ * off the card's edge. A long name is cut short at 12rem: with German's
+ * longest exposure ("Aus dem Internet erreichbar") the table then fits once
+ * it cuts that pill short, which it does only when that makes it fit.
  */
-export const STORE_NAME_CELL_WIDTH_CLASS_NAME: string = "max-w-[14rem]";
+export const STORE_NAME_CELL_WIDTH_CLASS_NAME: string = "max-w-[12rem]";
 
 const OPEN_ISSUES_ON_STORE: PluralTemplate = {
   one: "{{count}} open issue",
@@ -301,7 +303,7 @@ const DataSecurityDataStores: FunctionComponent<
             field: { name: true },
             title: "Name",
             type: FieldType.Element,
-            // A long bucket name is cut short at 14rem, whole under the pointer.
+            // A long bucket name is cut short at 12rem, whole under the pointer.
             contentClassName: STORE_NAME_CELL_WIDTH_CLASS_NAME,
             getElement: (item: DataStore): ReactElement => {
               return <StoreNameCell store={item} />;

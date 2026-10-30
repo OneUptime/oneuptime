@@ -66,7 +66,7 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * Data Security > Settings > Scanning (Pages/DataSecurity/Settings/Scanning),
+ * Data Security > Settings > Scan Settings (Pages/DataSecurity/Settings/Scanning),
  * rendered for real - the page, its switch rows, the cloud accounts card,
  * More settings and the cards folded in it - with only the network and the
  * permission snapshot stubbed:
@@ -313,7 +313,7 @@ function isBefore(first: HTMLElement, second: HTMLElement): boolean {
   );
 }
 
-describe("Data Security > Settings > Scanning", () => {
+describe("Data Security > Settings > Scan Settings", () => {
   test("the switches come first, then the cloud accounts, then More settings, folded", async () => {
     storeSettings();
 
