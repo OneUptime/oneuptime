@@ -161,6 +161,23 @@ export function isHuntSearchChanged(data: {
   );
 }
 
+// The spaces between a search's terms.
+const SEARCH_TERM_SEPARATOR: RegExp = /\s+/;
+
+/*
+ * A search's terms, as the search bar reads them apart - by the spaces
+ * between them - to draw each kept whole on its line where a search wraps
+ * (HuntSearchLine).
+ */
+export function getHuntSearchTerms(search: string): Array<string> {
+  return search
+    .trim()
+    .split(SEARCH_TERM_SEPARATOR)
+    .filter((term: string): boolean => {
+      return Boolean(term);
+    });
+}
+
 // Who a scheduled hunt tells, named on its row: the first two, then how many more.
 export interface HuntRecipientsLine {
   names: Array<string>;

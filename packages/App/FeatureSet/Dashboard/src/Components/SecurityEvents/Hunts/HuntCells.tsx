@@ -16,6 +16,7 @@ import {
   HuntRunState,
   getHuntRecipientsLine,
   getHuntRunState,
+  getHuntSearchTerms,
 } from "./HuntsModel";
 import RelativeTime from "../../EpisodeView/RelativeTime";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
@@ -64,17 +65,43 @@ export function getHuntRecipientNames(hunt: SecurityHunt): Array<string> {
   ];
 }
 
+// A search on its row in the list: one line, the whole of it on hover.
+export const HUNT_SEARCH_ONE_LINE_CLASS_NAME: string =
+  "min-w-0 truncate font-mono text-xs text-gray-700";
+
 /*
- * A hunt's search on one line, as written - the mono type, never looked up
- * as words - and how many filters it keeps beside it. A hunt saved from a
- * sidebar click alone is its filters.
+ * A search that is the thing read - what Save as Hunt saves, what a changed
+ * hunt keeps - wraps, three lines at most: on a phone one line kept
+ * "processname:powershell.e…".
+ */
+export const HUNT_SEARCH_WRAPPED_CLASS_NAME: string =
+  "min-w-0 line-clamp-3 font-mono text-xs text-gray-700";
+
+/*
+ * Each of its terms kept whole on its line, the search breaking between
+ * them: a term breaks inside itself only when it alone is wider than the
+ * line. Wrapped as plain text, "-status:Failure" broke after its "-" and
+ * read as a term that is not negated. In the mono type of its own: every
+ * element is given Inter by name (index.ejs), so a term would not take the
+ * mono type from the search around it.
+ */
+export const HUNT_SEARCH_TERM_CLASS_NAME: string =
+  "inline-block max-w-full align-baseline font-mono [overflow-wrap:anywhere]";
+
+/*
+ * A hunt's search, as written - the mono type, never looked up as words -
+ * and how many filters it keeps beside it. A hunt saved from a sidebar
+ * click alone is its filters. One line in the list; wrapped where it is
+ * what the reader came to read (isWrapped).
  */
 export const HuntSearchLine: FunctionComponent<{
   searchQuery: string | undefined | null;
   filters: unknown;
+  isWrapped?: boolean | undefined;
 }> = (props: {
   searchQuery: string | undefined | null;
   filters: unknown;
+  isWrapped?: boolean | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const search: string = (props.searchQuery || "").trim();
@@ -93,11 +120,28 @@ export const HuntSearchLine: FunctionComponent<{
     >
       {search ? (
         <code
-          className="min-w-0 truncate font-mono text-xs text-gray-700"
+          className={
+            props.isWrapped
+              ? HUNT_SEARCH_WRAPPED_CLASS_NAME
+              : HUNT_SEARCH_ONE_LINE_CLASS_NAME
+          }
           dir="ltr"
           title={search}
         >
-          {search}
+          {props.isWrapped
+            ? getHuntSearchTerms(search).map(
+                (term: string, index: number): ReactElement => {
+                  return (
+                    <React.Fragment key={`${index}-${term}`}>
+                      {index > 0 ? " " : ""}
+                      <span className={HUNT_SEARCH_TERM_CLASS_NAME}>
+                        {term}
+                      </span>
+                    </React.Fragment>
+                  );
+                },
+              )
+            : search}
         </code>
       ) : (
         <></>

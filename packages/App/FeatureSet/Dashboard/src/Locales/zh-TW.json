@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "排程設定者 ID",
   "Search Events": "搜尋事件",
   "Search hunts...": "搜尋獵捕...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "在事件頁面搜尋，然後在其獵捕清單中選擇「另存為獵捕」，或在此處建立。獵捕可一鍵重新開啟其搜尋，依排程執行時會在發現內容時通知您。",
   "Search open cases by number or title": "依編號或標題搜尋未結案例",
   "Searched Up To": "已搜尋至",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "以名稱儲存的安全事件搜尋，可重新開啟，或依排程執行並在發現內容時通知相關人員。",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "沒有未結案例。若要開啟案例，請按一下某個事件並選擇「開啟案例」。",
   "{{count}} {{itemsName}} already on the case": "{{count}} 個{{itemsName}}已在案例中",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} 個{{itemName}}已在案例中",
-  "Last run failed: {{error}}": "上次執行失敗：{{error}}"
+  "Last run failed: {{error}}": "上次執行失敗：{{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "在事件頁面搜尋，然後在其獵捕清單中選擇「另存為獵捕」，或在此處建立。",
+  "Saved search:": "已儲存的搜尋："
 }

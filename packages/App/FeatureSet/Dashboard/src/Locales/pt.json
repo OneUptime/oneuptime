@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID de quem agendou",
   "Search Events": "Pesquisar eventos",
   "Search hunts...": "Pesquisar caçadas...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Pesquise em Eventos e escolha Salvar como caçada na lista Caçadas, ou crie uma aqui. Uma caçada abre sua pesquisa de novo com um clique e, agendada, avisa você quando encontra algo.",
   "Search open cases by number or title": "Pesquisar casos abertos por número ou título",
   "Searched Up To": "Pesquisado até",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Pesquisas sobre eventos de segurança salvas com um nome, para abrir de novo ou executar em um agendamento que avisa pessoas quando encontra algo.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Nenhum caso aberto. Para abrir um, clique em um evento e escolha Abrir caso.",
   "{{count}} {{itemsName}} already on the case": "{{itemsName}} já no caso: {{count}}",
   "{{count}} {{itemsName}} already on the case_one": "{{itemName}} já no caso: {{count}}",
-  "Last run failed: {{error}}": "A última execução falhou: {{error}}"
+  "Last run failed: {{error}}": "A última execução falhou: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Pesquise em Eventos e escolha Salvar como caçada na lista Caçadas, ou crie uma aqui.",
+  "Saved search:": "Pesquisa salva:"
 }

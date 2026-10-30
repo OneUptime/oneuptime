@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID des Planenden",
   "Search Events": "Ereignisse durchsuchen",
   "Search hunts...": "Bedrohungssuchen durchsuchen...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Suchen Sie auf der Seite Ereignisse und wählen Sie in deren Liste „Bedrohungssuchen“ die Option „Als Bedrohungssuche speichern“, oder erstellen Sie hier eine. Eine Bedrohungssuche öffnet ihre Suche mit einem Klick wieder und benachrichtigt Sie nach Zeitplan, wenn sie etwas findet.",
   "Search open cases by number or title": "Offene Fälle nach Nummer oder Titel durchsuchen",
   "Searched Up To": "Durchsucht bis",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Unter einem Namen gespeicherte Suchen über Sicherheitsereignisse, die sich wieder öffnen oder nach einem Zeitplan ausführen lassen, der Personen benachrichtigt, wenn er etwas findet.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Keine offenen Fälle. Um einen zu eröffnen, klicken Sie auf ein Ereignis und wählen Sie „Fall eröffnen“.",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} bereits im Fall",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} bereits im Fall",
-  "Last run failed: {{error}}": "Letzter Lauf fehlgeschlagen: {{error}}"
+  "Last run failed: {{error}}": "Letzter Lauf fehlgeschlagen: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Suchen Sie auf der Seite Ereignisse und wählen Sie in deren Liste „Bedrohungssuchen“ die Option „Als Bedrohungssuche speichern“, oder erstellen Sie hier eine.",
+  "Saved search:": "Gespeicherte Suche:"
 }

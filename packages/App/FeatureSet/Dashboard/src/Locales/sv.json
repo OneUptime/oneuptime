@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID för den som schemalade",
   "Search Events": "Sök i händelser",
   "Search hunts...": "Sök i hunts...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Sök på Händelser och välj Spara som hunt i dess lista Hunts, eller skapa en här. En hunt öppnar sin sökning igen med ett klick och meddelar dig enligt ett schema när den hittar något.",
   "Search open cases by number or title": "Sök i öppna ärenden efter nummer eller rubrik",
   "Searched Up To": "Genomsökt fram till",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Sökningar i säkerhetshändelser sparade med ett namn, för att öppna igen eller köra enligt ett schema som meddelar personer när det hittar något.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Inga öppna ärenden. Om du vill öppna ett klickar du på en händelse och väljer Öppna ärende.",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} finns redan i ärendet",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} finns redan i ärendet",
-  "Last run failed: {{error}}": "Senaste körningen misslyckades: {{error}}"
+  "Last run failed: {{error}}": "Senaste körningen misslyckades: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Sök på Händelser och välj Spara som hunt i dess lista Hunts, eller skapa en här.",
+  "Saved search:": "Sparad sökning:"
 }

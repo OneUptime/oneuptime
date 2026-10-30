@@ -27,8 +27,12 @@ export const HUNTS_TABLE_DESCRIPTION: string = translationKey(
 
 export const HUNTS_EMPTY_TITLE: string = translationKey("No hunts yet");
 
+/*
+ * How to make the first one. What a hunt is and does is the card's
+ * description, right above it: not said a second time.
+ */
 export const HUNTS_EMPTY_DESCRIPTION: string = translationKey(
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.",
 );
 
 export const SEARCH_EVENTS: string = translationKey("Search Events");
@@ -135,9 +139,15 @@ export const LAST_RUN_FAILED: string = translationKey(
   "Last run failed: {{error}}",
 );
 
+/*
+ * The page searches something other than what the hunt keeps: said over the
+ * explorer, with what the hunt keeps ("Saved search: user:svc-*") - what
+ * Save Changes replaces and Discard Changes goes back to - and both buttons.
+ */
 export const SEARCH_CHANGED: string = translationKey(
   "You changed this hunt's search.",
 );
+export const SAVED_SEARCH: string = translationKey("Saved search:");
 export const SAVE_CHANGES: string = translationKey("Save Changes");
 export const DISCARD_CHANGES: string = translationKey("Discard Changes");
 export const EDIT_HUNT: string = translationKey("Edit");
@@ -250,6 +260,7 @@ export const HUNTS_TEST_IDS: {
   lastFound: string;
   showThem: string;
   changed: string;
+  savedSearch: string;
   saveChanges: string;
   discardChanges: string;
   edit: string;
@@ -261,7 +272,8 @@ export const HUNTS_TEST_IDS: {
   addToCase: string;
   addToCaseResult: string;
   caseList: string;
-  caseRow: string;
+  casePicker: string;
+  caseOption: string;
   eventEvidenceMeta: string;
   eventEvidenceHunt: string;
 } = {
@@ -278,6 +290,7 @@ export const HUNTS_TEST_IDS: {
   lastFound: "security-hunt-last-found-line",
   showThem: "security-hunt-show-them",
   changed: "security-hunt-changed",
+  savedSearch: "security-hunt-saved-search",
   saveChanges: "security-hunt-save-changes",
   discardChanges: "security-hunt-discard-changes",
   edit: "security-hunt-edit",
@@ -289,7 +302,9 @@ export const HUNTS_TEST_IDS: {
   addToCase: "security-event-add-to-case",
   addToCaseResult: "security-event-add-to-case-result",
   caseList: "security-add-to-case-list",
-  caseRow: "security-add-to-case-row",
+  // The open cases' list (EpisodePickerList), which names each case in it `${casePicker}-option`.
+  casePicker: "security-add-to-case-picker",
+  caseOption: "security-add-to-case-picker-option",
   eventEvidenceMeta: "security-case-evidence-event-meta",
   eventEvidenceHunt: "security-case-evidence-event-hunt",
 };

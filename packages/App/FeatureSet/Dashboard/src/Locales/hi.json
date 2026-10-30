@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "शेड्यूल करने वाले की ID",
   "Search Events": "इवेंट खोजें",
   "Search hunts...": "हंट खोजें...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "इवेंट पेज पर खोजें और उसकी हंट सूची से हंट के रूप में सहेजें चुनें, या यहां एक बनाएं। हंट एक क्लिक में अपनी खोज फिर से खोलता है, और शेड्यूल पर कुछ मिलने पर आपको बताता है।",
   "Search open cases by number or title": "नंबर या शीर्षक से खुले केस खोजें",
   "Searched Up To": "यहां तक खोजा गया",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "सुरक्षा इवेंट पर नाम के साथ सहेजी गई खोजें, जिन्हें फिर से खोला जा सके या ऐसे शेड्यूल पर चलाया जा सके जो कुछ मिलने पर लोगों को बताए।",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "कोई खुला केस नहीं। केस खोलने के लिए किसी इवेंट पर क्लिक करें और केस खोलें चुनें।",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} पहले से केस में हैं",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} पहले से केस में है",
-  "Last run failed: {{error}}": "पिछला रन विफल रहा: {{error}}"
+  "Last run failed: {{error}}": "पिछला रन विफल रहा: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "इवेंट पेज पर खोजें और उसकी हंट सूची से हंट के रूप में सहेजें चुनें, या यहां एक बनाएं।",
+  "Saved search:": "सहेजी गई खोज:"
 }

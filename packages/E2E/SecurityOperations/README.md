@@ -413,12 +413,15 @@ its name, in red when its run failed; the empty list and its way to Events; the 
 Hunts list, which opens a hunt, opens on the screen beside the side menu at 768 (left to right and
 right to left, each schedule under its name), and its save locked with why while nothing is
 searched; Save as Hunt saving a scheduled hunt that tells its saver, and its page opening; a hunt's
-page on its search with Show them; a changed search saved from the header, which starts the hunt's
-schedule again, and Discard Changes opening the hunt's own search; a failed run said on its page,
-and Delete Hunt going back to the list; a hunt's page on a phone, its description in two lines with
-Show more, and in Persian, right to left, with the list's English descriptions reading their own
-way; and Add to Case from a hunt's page onto CASE-138's Evidence, the kept event naming the hunt and
-View Event opening it as it was kept. Its screenshots are named `hunts-*`.
+page on its search with Show them; a changed search saved from the notice over it, which names the
+search the hunt keeps and starts the hunt's schedule again, and Discard Changes opening the hunt's
+own search; on a phone, that notice's saved search wrapped whole and its two buttons on one row; a
+failed run said on its page, and Delete Hunt going back to the list; a hunt's page on a phone, its
+description in two lines with Show more, and in Persian, right to left, with the list's English
+descriptions reading their own way; Add to Case from a hunt's page onto CASE-138's Evidence, the
+kept event naming the hunt and View Event opening it as it was kept; and Add to Case from an
+event's panel onto CASE-141, said under the button with a check and a link to the case's Evidence.
+Its screenshots are named `hunts-*`.
 
 ## Rule exceptions and Run on Past Events
 

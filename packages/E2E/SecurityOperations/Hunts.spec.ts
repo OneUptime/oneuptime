@@ -39,6 +39,8 @@ const HUNT_PATH: string = `${HUNTS_PATH}/${ENCODED_POWERSHELL_ID}`;
 const FAILING_HUNT_PATH: string = `${HUNTS_PATH}/${SUDO_ID}`;
 const CASE_138_ID: string = "20000000-0000-4000-8000-000000000138";
 const CASE_138_EVIDENCE_PATH: string = `${PRODUCT}/cases/${CASE_138_ID}/evidence`;
+const CASE_141_ID: string = "20000000-0000-4000-8000-000000000141";
+const CASE_141_EVIDENCE_PATH: string = `${PRODUCT}/cases/${CASE_141_ID}/evidence`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -594,7 +596,7 @@ test.describe("a hunt's page", () => {
     await expect(eventRows(page)).toHaveCount(3);
   });
 
-  test("a changed search is saved from the header, and starts the hunt's schedule again", async ({
+  test("a changed search is saved from the notice over it, and starts the hunt's schedule again", async ({
     page,
   }: {
     page: Page;
@@ -604,11 +606,21 @@ test.describe("a hunt's page", () => {
       `${HUNT_PATH}?search=${encodeURIComponent("processname:powershell.exe")}`,
     );
 
-    await expect(page.getByTestId("security-hunt-changed")).toContainText(
-      "You changed this hunt's search.",
+    const notice: Locator = page.getByTestId("security-hunt-changed");
+
+    await expect(notice).toContainText("You changed this hunt's search.");
+    // What the hunt keeps, which Save Changes replaces.
+    await expect(notice.getByTestId("security-hunt-saved-search")).toHaveText(
+      /Saved search:\s*processname:powershell\.exe commandline:-enc/,
     );
+    // Its buttons are the notice's; the header keeps Edit and the ⋯ alone.
+    await expect(
+      page
+        .getByRole("group", { name: "Hunt actions" })
+        .getByTestId("security-hunt-save-changes"),
+    ).toHaveCount(0);
     await screenshot(page, "hunts-hunt-changed-1440");
-    await page.getByTestId("security-hunt-save-changes").click();
+    await notice.getByTestId("security-hunt-save-changes").click();
     await expect(page.getByTestId("security-hunt-changed")).toHaveCount(0);
 
     const [update] = (await fixture(page)).updates.filter(
@@ -636,6 +648,118 @@ test.describe("a hunt's page", () => {
     await expect(page.getByTestId("security-hunt-changed")).toHaveCount(0);
     await expect(eventRows(page)).toHaveCount(4);
     expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("on a phone, the notice over a changed search shows the saved search whole, under its label, and both buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      `${HUNT_PATH}?search=${encodeURIComponent("processname:powershell.exe")}`,
+      { width: 390, height: 900 },
+    );
+
+    const notice: Locator = page.getByTestId("security-hunt-changed");
+
+    await expect(notice).toBeVisible();
+    expect(await pageOverflow(page)).toBe(0);
+
+    /*
+     * Read in one frame, once the notice has drawn. The saved search is
+     * not cut to a line ("processname:powershell.e..."): it wraps, under
+     * its label where the two do not fit side by side, and between its
+     * words - squeezed beside the label it broke "powershel" / "l.exe".
+     * Discard Changes and Save Changes are both inside the notice, the
+     * main one after the other.
+     */
+    const read: {
+      searchCut: boolean;
+      tokenRects: number;
+      labelLeft: number;
+      searchLeft: number;
+      searchTop: number;
+      labelBottom: number;
+      noticeLeft: number;
+      noticeRight: number;
+      discard: { left: number; right: number; top: number };
+      save: { left: number; right: number; top: number };
+    } = await notice.evaluate(
+      (
+        element: Element,
+      ): {
+        searchCut: boolean;
+        tokenRects: number;
+        labelLeft: number;
+        searchLeft: number;
+        searchTop: number;
+        labelBottom: number;
+        noticeLeft: number;
+        noticeRight: number;
+        discard: { left: number; right: number; top: number };
+        save: { left: number; right: number; top: number };
+      } => {
+        const saved: HTMLElement = element.querySelector(
+          '[data-testid="security-hunt-saved-search"]',
+        ) as HTMLElement;
+        const label: DOMRect = (
+          saved.firstElementChild as HTMLElement
+        ).getBoundingClientRect();
+        const code: HTMLElement = saved.querySelector("code") as HTMLElement;
+        const term: Element = Array.from(code.querySelectorAll("span")).find(
+          (candidate: Element): boolean => {
+            return candidate.textContent === "processname:powershell.exe";
+          },
+        ) as Element;
+
+        const box: (selector: string) => {
+          left: number;
+          right: number;
+          top: number;
+        } = (
+          selector: string,
+        ): { left: number; right: number; top: number } => {
+          const rect: DOMRect = (
+            element.querySelector(selector) as HTMLElement
+          ).getBoundingClientRect();
+
+          return { left: rect.left, right: rect.right, top: rect.top };
+        };
+        const notice: DOMRect = element.getBoundingClientRect();
+
+        return {
+          searchCut: code.scrollWidth > code.clientWidth + 1,
+          tokenRects: term.getClientRects().length,
+          labelLeft: label.left,
+          searchLeft: code.getBoundingClientRect().left,
+          searchTop: code.getBoundingClientRect().top,
+          labelBottom: label.bottom,
+          noticeLeft: notice.left,
+          noticeRight: notice.right,
+          discard: box('[data-testid="security-hunt-discard-changes"]'),
+          save: box('[data-testid="security-hunt-save-changes"]'),
+        };
+      },
+    );
+
+    expect(read.searchCut).toBe(false);
+    // One box for the term: it is not broken across two lines.
+    expect(read.tokenRects).toBe(1);
+    // Under its label, from the same start, on a phone.
+    expect(Math.abs(read.searchLeft - read.labelLeft)).toBeLessThan(1);
+    expect(read.searchTop).toBeGreaterThanOrEqual(read.labelBottom - 1);
+
+    for (const button of [read.discard, read.save]) {
+      expect(button.left).toBeGreaterThanOrEqual(read.noticeLeft);
+      expect(button.right).toBeLessThanOrEqual(read.noticeRight);
+    }
+
+    // Save Changes after Discard Changes: beside it, or under it.
+    expect(
+      read.save.top > read.discard.top || read.save.left > read.discard.left,
+    ).toBe(true);
+    await screenshot(page, "hunts-hunt-changed-390");
   });
 
   test("a hunt whose last run failed says why, and Delete Hunt goes back to the list", async ({
@@ -759,10 +883,16 @@ test.describe("Add to Case from a hunt", () => {
     await page.getByRole("menuitem", { name: "Add to Case" }).click();
 
     await expect(dialog(page)).toContainText("Add to a Case");
+    // One case of the list: a click on the list itself picked its middle row.
     await dialog(page)
-      .getByTestId("security-add-to-case-row")
+      .getByTestId("security-add-to-case-picker-option")
       .filter({ hasText: "CASE-138" })
       .click();
+    await expect(
+      dialog(page)
+        .getByTestId("security-add-to-case-picker-option")
+        .filter({ hasText: "CASE-138" }),
+    ).toHaveAttribute("data-selected", "true");
     await screenshot(page, "hunts-add-to-case-1440", { window: true });
     await dialog(page).getByRole("button", { name: "Add 2 Events" }).click();
 
@@ -801,6 +931,71 @@ test.describe("Add to Case from a hunt", () => {
       "Found by the hunt Encoded PowerShell",
     );
     await screenshot(page, "hunts-case-evidence-1440");
+  });
+
+  test("from an event's panel: kept on the case picked, said under the button with a check and the way to its Evidence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_PATH);
+
+    await expect(eventRows(page)).toHaveCount(4);
+    await page
+      .getByText("Encoded PowerShell started by a web worker on web-03", {
+        exact: true,
+      })
+      .first()
+      .click();
+    await page.getByTestId("security-event-add-to-case").click();
+
+    // Over the event's panel, itself a dialog: the one that picks the case.
+    const picker: Locator = page.getByRole("dialog", { name: "Add to a Case" });
+
+    await expect(picker).toBeVisible();
+    await picker
+      .getByTestId("security-add-to-case-picker-option")
+      .filter({ hasText: "CASE-141" })
+      .click();
+    await expect(
+      picker
+        .getByTestId("security-add-to-case-picker-option")
+        .filter({ hasText: "CASE-141" }),
+    ).toHaveAttribute("data-selected", "true");
+    await picker.getByRole("button", { name: "Add 1 Event" }).click();
+    await expect(picker).toHaveCount(0);
+
+    const result: Locator = page.getByTestId(
+      "security-event-add-to-case-result",
+    );
+
+    await expect(result).toHaveText("Added to CASE-141.");
+    await expect(result).toHaveAttribute("data-outcome", "added");
+    await expect(result.locator("svg")).toHaveCount(1);
+
+    const [request] = await requestsTo(
+      page,
+      "/security-case-evidence/add-events",
+    );
+
+    expect(request).toMatchObject({
+      securityCaseId: CASE_141_ID,
+      securityHuntId: ENCODED_POWERSHELL_ID,
+    });
+    expect(
+      (request!["events"] as Array<{ eventUid: string }>).map(
+        (event: { eventUid: string }): string => {
+          return event.eventUid;
+        },
+      ),
+    ).toEqual(["evt-0001"]);
+    await screenshot(page, "hunts-event-panel-added-1440", { window: true });
+
+    await result.getByRole("link", { name: "CASE-141" }).click();
+    await expectPath(page, CASE_141_EVIDENCE_PATH);
+    await expect(
+      page.getByTestId("security-case-evidence-event-hunt"),
+    ).toContainText("Found by the hunt Encoded PowerShell");
   });
 
   test("a kept event opens as it was kept, and links back to the hunt", async ({

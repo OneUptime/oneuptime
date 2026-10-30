@@ -73,6 +73,24 @@ export const SecurityCaseEvidenceAddedLine: FunctionComponent<
 };
 
 /*
+ * A kept event's line - when it happened, its severity, kind and source -
+ * wraps rather than losing its end: on a phone one line kept "Oct 14 2026,
+ * 03:00 AM GMT · High · Process A…". Three lines hold the four parts on a
+ * phone, each whole. A file's or a link's line stays one line, as a list
+ * of files reads.
+ */
+export const SECURITY_CASE_EVENT_EVIDENCE_META_CLASS_NAME: string =
+  "mt-0.5 line-clamp-3 break-words ps-6 text-xs text-gray-500";
+
+/*
+ * Each part of that line kept whole on its line - "Process Activity", not
+ * "Process" / "Activity" - the line breaking between parts, and inside one
+ * only when it alone is wider than the line.
+ */
+export const SECURITY_CASE_EVENT_EVIDENCE_META_PART_CLASS_NAME: string =
+  "inline-block max-w-full break-words align-baseline";
+
+/*
  * A piece of evidence, as its table's one column draws it, the way a list
  * of files reads: what it is called, with a paper clip for a file or a
  * chain link for a link; a file's own name and size, or the link's
@@ -139,7 +157,11 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
       </span>
       {meta ? (
         <span
-          className="mt-0.5 truncate ps-6 text-xs text-gray-500"
+          className={
+            event
+              ? SECURITY_CASE_EVENT_EVIDENCE_META_CLASS_NAME
+              : "mt-0.5 truncate ps-6 text-xs text-gray-500"
+          }
           title={meta}
           data-testid={
             event
@@ -152,7 +174,12 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
               return (
                 <React.Fragment key={`${index}-${part}`}>
                   {index > 0 ? " · " : ""}
-                  <IsolatedText text={part} />
+                  <IsolatedText
+                    text={part}
+                    className={
+                      SECURITY_CASE_EVENT_EVIDENCE_META_PART_CLASS_NAME
+                    }
+                  />
                 </React.Fragment>
               );
             })

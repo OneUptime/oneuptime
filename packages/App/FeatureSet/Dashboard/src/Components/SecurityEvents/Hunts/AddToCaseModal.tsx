@@ -183,7 +183,7 @@ const AddToCaseModal: FunctionComponent<ComponentProps> = (
     >
       <div data-testid={HUNTS_TEST_IDS.caseList}>
         <EpisodePickerList
-          testId={HUNTS_TEST_IDS.caseRow}
+          testId={HUNTS_TEST_IDS.casePicker}
           selectionMode="single"
           sections={[{ key: "open", items }]}
           selectedIds={selectedId ? [selectedId] : []}

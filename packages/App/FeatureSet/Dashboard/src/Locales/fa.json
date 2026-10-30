@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "شناسه زمان‌بندی‌کننده",
   "Search Events": "جستجوی رویدادها",
   "Search hunts...": "جستجوی شکارها...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "در رویدادها جستجو کنید و از فهرست شکارهای آن، ذخیره به‌عنوان شکار را انتخاب کنید، یا اینجا یکی بسازید. شکار جستجوی خود را با یک کلیک دوباره باز می‌کند و طبق زمان‌بندی، وقتی چیزی پیدا کند به شما اطلاع می‌دهد.",
   "Search open cases by number or title": "جستجوی پرونده‌های باز بر اساس شماره یا عنوان",
   "Searched Up To": "جستجو شده تا",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "جستجوهایی روی رویدادهای امنیتی که با یک نام ذخیره شده‌اند، برای باز کردن دوباره یا اجرا طبق زمان‌بندی‌ای که وقتی چیزی پیدا کند به افراد اطلاع می‌دهد.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "پرونده بازی نیست. برای باز کردن پرونده، روی یک رویداد کلیک کنید و باز کردن پرونده را بزنید.",
   "{{count}} {{itemsName}} already on the case": "{{count}} مورد از قبل روی پرونده است ({{itemsName}})",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} مورد از قبل روی پرونده است ({{itemName}})",
-  "Last run failed: {{error}}": "آخرین اجرا ناموفق بود: {{error}}"
+  "Last run failed: {{error}}": "آخرین اجرا ناموفق بود: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "در رویدادها جستجو کنید و از فهرست شکارهای آن، ذخیره به‌عنوان شکار را انتخاب کنید، یا اینجا یکی بسازید.",
+  "Saved search:": "جستجوی ذخیره‌شده:"
 }

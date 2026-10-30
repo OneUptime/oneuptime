@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "スケジュール設定者の ID",
   "Search Events": "イベントを検索",
   "Search hunts...": "ハントを検索...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "イベントで検索し、その [ハント] の一覧から [ハントとして保存] を選ぶか、ここで作成してください。ハントはワンクリックで検索を開き直せ、スケジュールを設定すると何かを見つけたときに通知します。",
   "Search open cases by number or title": "番号またはタイトルでオープン中のケースを検索",
   "Searched Up To": "検索済みの範囲",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "名前を付けて保存したセキュリティイベントの検索。開き直したり、何かを見つけたときにユーザーに通知するスケジュールで実行したりできます。",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "オープン中のケースはありません。ケースを開くには、イベントをクリックして [ケースを開く] を選んでください。",
   "{{count}} {{itemsName}} already on the case": "{{count}} 件の{{itemsName}}はすでにケースにあります",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} 件の{{itemName}}はすでにケースにあります",
-  "Last run failed: {{error}}": "前回の実行に失敗しました: {{error}}"
+  "Last run failed: {{error}}": "前回の実行に失敗しました: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "イベントで検索し、その [ハント] の一覧から [ハントとして保存] を選ぶか、ここで作成してください。",
+  "Saved search:": "保存済みの検索:"
 }

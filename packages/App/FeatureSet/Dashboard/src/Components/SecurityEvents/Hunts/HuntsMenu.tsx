@@ -288,6 +288,7 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
                 <HuntSearchLine
                   searchQuery={toSave.searchQuery}
                   filters={toSave.filters}
+                  isWrapped={true}
                 />
                 <span className="whitespace-nowrap text-xs text-gray-500">
                   {translator.translateText(toSave.timeRange) ||

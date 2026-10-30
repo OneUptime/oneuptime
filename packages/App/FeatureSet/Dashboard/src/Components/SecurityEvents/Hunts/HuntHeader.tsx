@@ -10,12 +10,17 @@ import {
   MORE_ACTIONS,
   NEXT_RUN,
   RUNS_FOUND_NOTHING_YET,
+  SAVED_SEARCH,
   SAVE_CHANGES,
   SCHEDULE_LABELS,
   SEARCH_CHANGED,
   SHOW_THEM,
 } from "./HuntsCopy";
-import { HuntRecipients, getHuntRecipientNames } from "./HuntCells";
+import {
+  HuntRecipients,
+  HuntSearchLine,
+  getHuntRecipientNames,
+} from "./HuntCells";
 import {
   HuntRunState,
   getHuntLastFoundWindow,
@@ -72,6 +77,17 @@ export interface ComponentProps {
 }
 
 /*
+ * The actions over a changed search, in the notice that says so: beside
+ * its words on a wide header, at the line's end; under them where they do
+ * not fit beside, still at the end, as the header's own buttons go under
+ * its title; and on a phone a row of their own, each button growing to
+ * fill it (SECURITY_CASE_HEADER_BUTTON_CLASS_NAME), one under the other
+ * where two do not fit.
+ */
+export const HUNT_CHANGE_ACTIONS_CLASS_NAME: string =
+  "ml-auto flex w-full flex-wrap items-center justify-end gap-2 [@container(min-width:36rem)]:w-auto [@container(min-width:36rem)]:shrink-0";
+
+/*
  * The top of a hunt's page, laid out as a case's and an entity's are
  * (SecurityCaseHeaderLayout): what it is - a hunt, and how often it runs -
  * its name, and its actions; under them what it is for, who it tells and
@@ -79,10 +95,13 @@ export interface ComponentProps {
  * something, with the way to show it, or why the last one could not be
  * made. Its search is the explorer's search bar, under the header.
  *
- * Changing the search on the explorer below is a change to the hunt: the
- * header says so, with Save Changes (the main move while there is one) and
- * Discard Changes. Edit changes its name, its search, its window, its
- * schedule and who it tells; Delete Hunt waits in the ⋯.
+ * Changing the search on the explorer below is a change to the hunt: a
+ * notice at the header's foot - right over the search bar the change was
+ * made in - says so, names the search the hunt keeps (what Save Changes
+ * replaces and Discard Changes goes back to), and holds both buttons, Save
+ * Changes the main one. The header's own actions stay where they were:
+ * Edit changes its name, its search, its window, its schedule and who it
+ * tells; Delete Hunt waits in the ⋯.
  */
 const HuntHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -111,36 +130,32 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
     ModelAction.Delete,
   );
 
-  const actions: Array<HeaderAction> = [
-    ...(props.isChanged
-      ? [
-          {
-            title: SAVE_CHANGES,
-            icon: IconProp.Check,
-            isPrimary: true,
-            isDisabled: !updateGate.isAllowed || props.isSaving,
-            tooltip: updateGate.isAllowed
-              ? undefined
-              : updateGate.disabledReason,
-            dataTestId: HUNTS_TEST_IDS.saveChanges,
-            onClick: props.onSaveChanges,
-          },
-          {
-            title: DISCARD_CHANGES,
-            icon: IconProp.ArrowUturnLeft,
-            isDisabled: props.isSaving,
-            dataTestId: HUNTS_TEST_IDS.discardChanges,
-            onClick: props.onDiscardChanges,
-          },
-        ]
-      : []),
+  const editAction: HeaderAction = {
+    title: EDIT_HUNT,
+    icon: IconProp.Edit,
+    isDisabled: !updateGate.isAllowed,
+    tooltip: updateGate.isAllowed ? undefined : updateGate.disabledReason,
+    dataTestId: HUNTS_TEST_IDS.edit,
+    onClick: props.onEdit,
+  };
+
+  // In the notice over a changed search: Discard Changes, then the main move.
+  const changeActions: Array<HeaderAction> = [
     {
-      title: EDIT_HUNT,
-      icon: IconProp.Edit,
-      isDisabled: !updateGate.isAllowed,
+      title: DISCARD_CHANGES,
+      icon: IconProp.ArrowUturnLeft,
+      isDisabled: props.isSaving,
+      dataTestId: HUNTS_TEST_IDS.discardChanges,
+      onClick: props.onDiscardChanges,
+    },
+    {
+      title: SAVE_CHANGES,
+      icon: IconProp.Check,
+      isPrimary: true,
+      isDisabled: !updateGate.isAllowed || props.isSaving,
       tooltip: updateGate.isAllowed ? undefined : updateGate.disabledReason,
-      dataTestId: HUNTS_TEST_IDS.edit,
-      onClick: props.onEdit,
+      dataTestId: HUNTS_TEST_IDS.saveChanges,
+      onClick: props.onSaveChanges,
     },
   ];
 
@@ -191,11 +206,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
             className={SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME}
           >
             <div className={SECURITY_CASE_HEADER_BUTTONS_CLASS_NAME}>
-              {actions.map((action: HeaderAction): ReactElement => {
-                return (
-                  <HeaderActionButton key={action.dataTestId} action={action} />
-                );
-              })}
+              <HeaderActionButton action={editAction} />
             </div>
             <div className={SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME}>
               <MoreMenu
@@ -364,21 +375,53 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
 
         {props.isChanged ? (
           <div
-            className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-inset ring-amber-200"
+            className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-md bg-amber-50 px-3 py-2.5 ring-1 ring-inset ring-amber-200"
             data-testid={HUNTS_TEST_IDS.changed}
           >
-            <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="min-w-0 space-y-1">
-              <p>
-                {translator.translateText(SEARCH_CHANGED) || SEARCH_CHANGED}
-              </p>
-              {props.saveError ? (
-                <p className="text-red-700" role="alert">
-                  {props.saveError}
+            <div className="flex min-w-0 flex-1 basis-64 items-start gap-2">
+              <Icon
+                icon={IconProp.Info}
+                className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-sm font-medium text-amber-900">
+                  {translator.translateText(SEARCH_CHANGED) || SEARCH_CHANGED}
                 </p>
-              ) : (
-                <></>
-              )}
+                {/*
+                 * What the hunt keeps, as its row in the list says it: what
+                 * Save Changes replaces, and Discard Changes goes back to.
+                 * Beside its label where there is room for it, else under
+                 * it, wrapped between its words: squeezed beside the label
+                 * on a phone it broke "powershel" / "l.exe".
+                 */}
+                <p
+                  className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-amber-900"
+                  data-testid={HUNTS_TEST_IDS.savedSearch}
+                >
+                  <span className="shrink-0">
+                    {translator.translateText(SAVED_SEARCH) || SAVED_SEARCH}
+                  </span>
+                  <HuntSearchLine
+                    searchQuery={hunt.searchQuery}
+                    filters={hunt.filters}
+                    isWrapped={true}
+                  />
+                </p>
+                {props.saveError ? (
+                  <p className="text-sm text-red-700" role="alert">
+                    {props.saveError}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </div>
+            </div>
+            <div className={HUNT_CHANGE_ACTIONS_CLASS_NAME}>
+              {changeActions.map((action: HeaderAction): ReactElement => {
+                return (
+                  <HeaderActionButton key={action.dataTestId} action={action} />
+                );
+              })}
             </div>
           </div>
         ) : (

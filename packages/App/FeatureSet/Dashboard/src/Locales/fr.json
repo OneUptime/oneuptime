@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID de la personne qui a planifié",
   "Search Events": "Rechercher des événements",
   "Search hunts...": "Rechercher des chasses...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Faites une recherche sur Événements et choisissez Enregistrer comme chasse dans sa liste Chasses, ou créez-en une ici. Une chasse rouvre sa recherche en un clic et, planifiée, vous prévient quand elle trouve quelque chose.",
   "Search open cases by number or title": "Rechercher des dossiers ouverts par numéro ou titre",
   "Searched Up To": "Parcouru jusqu'à",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Recherches sur les événements de sécurité enregistrées sous un nom, pour les rouvrir ou les exécuter selon une planification qui prévient des personnes quand elle trouve quelque chose.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Aucun dossier ouvert. Pour en ouvrir un, cliquez sur un événement et choisissez Ouvrir un dossier.",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} déjà sur le dossier",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} déjà sur le dossier",
-  "Last run failed: {{error}}": "Échec de la dernière exécution : {{error}}"
+  "Last run failed: {{error}}": "Échec de la dernière exécution : {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Faites une recherche sur Événements et choisissez Enregistrer comme chasse dans sa liste Chasses, ou créez-en une ici.",
+  "Saved search:": "Recherche enregistrée :"
 }

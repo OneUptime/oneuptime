@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "Scheduled By User ID",
   "Search Events": "Search Events",
   "Search hunts...": "Search hunts...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.",
   "Search open cases by number or title": "Search open cases by number or title",
   "Searched Up To": "Searched Up To",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "No open cases. To start one, click an event and choose Open Case.",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} already on the case",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} already on the case",
-  "Last run failed: {{error}}": "Last run failed: {{error}}"
+  "Last run failed: {{error}}": "Last run failed: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Search on Events and choose Save as Hunt from its Hunts list, or create one here.",
+  "Saved search:": "Saved search:"
 }

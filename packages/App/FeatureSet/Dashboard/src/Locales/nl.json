@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID van wie plande",
   "Search Events": "Gebeurtenissen zoeken",
   "Search hunts...": "Hunts zoeken...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Zoek op Gebeurtenissen en kies Opslaan als hunt in de lijst Hunts, of maak er hier een. Een hunt opent zijn zoekopdracht met één klik opnieuw en waarschuwt u volgens een planning als hij iets vindt.",
   "Search open cases by number or title": "Open zaken zoeken op nummer of titel",
   "Searched Up To": "Doorzocht tot",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Zoekopdrachten over beveiligingsgebeurtenissen, opgeslagen met een naam, om opnieuw te openen of volgens een planning te laten draaien die personen waarschuwt als hij iets vindt.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Geen open zaken. Om er een te openen, klikt u op een gebeurtenis en kiest u Zaak openen.",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} al bij de zaak",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} al bij de zaak",
-  "Last run failed: {{error}}": "Laatste run mislukt: {{error}}"
+  "Last run failed: {{error}}": "Laatste run mislukt: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Zoek op Gebeurtenissen en kies Opslaan als hunt in de lijst Hunts, of maak er hier een.",
+  "Saved search:": "Opgeslagen zoekopdracht:"
 }

@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID запланировавшего",
   "Search Events": "Искать события",
   "Search hunts...": "Искать поиски угроз...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Выполните поиск на странице «События» и выберите «Сохранить как поиск угроз» в её списке «Поиск угроз» или создайте его здесь. Поиск угроз открывает свой запрос одним щелчком, а по расписанию уведомляет вас, когда что-то находит.",
   "Search open cases by number or title": "Искать открытые кейсы по номеру или названию",
   "Searched Up To": "Просмотрено до",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Запросы по событиям безопасности, сохранённые под именем, чтобы открывать их снова или запускать по расписанию, которое уведомляет людей, когда что-то находится.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Открытых кейсов нет. Чтобы открыть кейс, нажмите на событие и выберите «Открыть кейс».",
   "{{count}} {{itemsName}} already on the case": "Уже в кейсе: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} already on the case_one": "Уже в кейсе: {{count}} ({{itemName}})",
-  "Last run failed: {{error}}": "Последний запуск не удался: {{error}}"
+  "Last run failed: {{error}}": "Последний запуск не удался: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Выполните поиск на странице «События» и выберите «Сохранить как поиск угроз» в её списке «Поиск угроз» или создайте его здесь.",
+  "Saved search:": "Сохранённый запрос:"
 }

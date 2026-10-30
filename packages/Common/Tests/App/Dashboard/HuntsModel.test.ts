@@ -18,6 +18,7 @@ import {
   getHuntLastFoundWindow,
   getHuntRecipientsLine,
   getHuntRunState,
+  getHuntSearchTerms,
   getHuntTimeRange,
   getHuntTimeRangeToSave,
   getHuntValuesToSave,
@@ -91,6 +92,7 @@ import {
   testPriorityId,
   testStatusId,
 } from "../../Helpers/SecurityCaseValues";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import Navigation from "../../../UI/Utils/Navigation";
 import {
   afterEach,
@@ -287,6 +289,40 @@ describe("a hunt's page holds a change", () => {
         filters: chips([["severityName", ["High"]]]),
       }),
     ).toBe(true);
+  });
+});
+
+describe("a search, drawn wrapped", () => {
+  test("is its terms, as the search bar reads them apart: by the spaces between them", () => {
+    expect(
+      getHuntSearchTerms(
+        '  class:Authentication   user:svc-* -status:Failure\tcategory:"Identity & Access" ',
+      ),
+    ).toEqual([
+      "class:Authentication",
+      "user:svc-*",
+      // Its negation stays with it: never "-" at a line's end.
+      "-status:Failure",
+      'category:"Identity',
+      "&",
+      'Access"',
+    ]);
+    expect(getHuntSearchTerms("")).toEqual([]);
+    expect(getHuntSearchTerms("   ")).toEqual([]);
+  });
+
+  test("reads a long run of spaces and words in time that grows with it", () => {
+    // Its worst case: a space, a word and a space again, 400,000 characters.
+    const text: string = " a".repeat(200000);
+    const read: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return getHuntSearchTerms(`${text} `);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toHaveLength(200000);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 

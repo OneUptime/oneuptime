@@ -498,6 +498,20 @@ describe("Security Events > Hunts", () => {
     expect(navigated[0]!.endsWith("/security-events")).toBe(true);
   });
 
+  test("an empty list says how to make the first one, and not again what a hunt is", () => {
+    /*
+     * What a hunt is and does is the card's description, right over the
+     * empty list: the empty state says only how to make one. It once said
+     * "opens its search again in one click, and on a schedule it tells you"
+     * a second time.
+     */
+    expect(HUNTS_EMPTY_DESCRIPTION).toBe(
+      "Search on Events and choose Save as Hunt from its Hunts list, or create one here.",
+    );
+    expect(HUNTS_EMPTY_DESCRIPTION).not.toMatch(/one click|schedule/);
+    expect(HUNTS_TABLE_DESCRIPTION).toMatch(/one click/);
+  });
+
   test("Create Hunt asks what it searches for, then whether it runs on a schedule, starting not scheduled", async () => {
     await renderList();
 
@@ -705,24 +719,80 @@ describe("a hunt's page", () => {
     });
   });
 
-  test("a changed search is the hunt's to save or discard, from its header", async () => {
+  test("a changed search is the hunt's to save or discard, from the notice that says so", async () => {
     const update: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
 
     await renderHunt();
 
+    const actionsGroup: HTMLElement = screen.getByRole("group", {
+      name: "Hunt actions",
+    });
+    const actionsBefore: string = flat(actionsGroup);
+
     fireEvent.click(screen.getByTestId("viewer-change-search"));
 
-    expect(await screen.findByTestId(HUNTS_TEST_IDS.changed)).toHaveTextContent(
-      "You changed this hunt's search.",
+    const notice: HTMLElement = await screen.findByTestId(
+      HUNTS_TEST_IDS.changed,
     );
+
+    expect(notice).toHaveTextContent("You changed this hunt's search.");
+    /*
+     * It names what the hunt keeps - what Save Changes replaces and Discard
+     * Changes goes back to - wrapped, not cut to a line.
+     */
+    const saved: HTMLElement = within(notice).getByTestId(
+      HUNTS_TEST_IDS.savedSearch,
+    );
+
+    expect(within(saved).getByText("Saved search:")).toBeInTheDocument();
+    expect(flat(within(saved).getByTestId(HUNTS_TEST_IDS.searchLine))).toBe(
+      "processname:powershell.exe commandline:-enc",
+    );
+    const code: HTMLElement = saved.querySelector("code") as HTMLElement;
+
+    expect(code).toHaveClass("line-clamp-3");
+    expect(code).not.toHaveClass("truncate");
+    /*
+     * Term by term, each kept whole on its line: wrapped as plain text,
+     * "-status:Failure" broke after its "-".
+     */
     expect(
-      screen.getByTestId(HUNTS_TEST_IDS.discardChanges),
+      Array.from(code.querySelectorAll("span")).map((term: Element): string => {
+        return `${term.textContent} ${term.className}`;
+      }),
+    ).toEqual([
+      "processname:powershell.exe inline-block max-w-full align-baseline font-mono [overflow-wrap:anywhere]",
+      "commandline:-enc inline-block max-w-full align-baseline font-mono [overflow-wrap:anywhere]",
+    ]);
+    // Read, copied and hovered as one search.
+    expect(code.textContent).toBe(
+      "processname:powershell.exe commandline:-enc",
+    );
+    expect(code).toHaveAttribute(
+      "title",
+      "processname:powershell.exe commandline:-enc",
+    );
+
+    // Both buttons in the notice, the main move last; the header's stay as they were.
+    const buttons: Array<HTMLElement> = within(notice).getAllByRole("button");
+
+    expect(
+      buttons.map((button: HTMLElement): string | null => {
+        return button.getAttribute("data-testid");
+      }),
+    ).toEqual([HUNTS_TEST_IDS.discardChanges, HUNTS_TEST_IDS.saveChanges]);
+    expect(flat(actionsGroup)).toBe(actionsBefore);
+    expect(
+      within(actionsGroup).queryByTestId(HUNTS_TEST_IDS.saveChanges),
+    ).toBeNull();
+    expect(
+      within(actionsGroup).getByTestId(HUNTS_TEST_IDS.edit),
     ).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId(HUNTS_TEST_IDS.saveChanges));
+      fireEvent.click(within(notice).getByTestId(HUNTS_TEST_IDS.saveChanges));
     });
 
     expect(update).toHaveBeenCalledWith({
@@ -730,6 +800,49 @@ describe("a hunt's page", () => {
       id: new ObjectID(HUNT_ID),
       data: { searchQuery: "processname:pwsh.exe", filters: {} },
     });
+  });
+
+  test("a hunt that keeps a chip alone names it in the notice by its count", async () => {
+    stored = hunt({
+      searchQuery: "",
+      filters: { "attributes.threat.matched": ["true"] },
+    });
+
+    await renderHunt();
+
+    fireEvent.click(screen.getByTestId("viewer-change-search"));
+
+    const saved: HTMLElement = await screen.findByTestId(
+      HUNTS_TEST_IDS.savedSearch,
+    );
+
+    expect(within(saved).getByText("Saved search:")).toBeInTheDocument();
+    expect(flat(within(saved).getByTestId(HUNTS_TEST_IDS.searchLine))).toBe(
+      "1 filter",
+    );
+  });
+
+  test("a save the server refuses says why in the notice, which stays", async () => {
+    jest.spyOn(ModelAPI, "updateById").mockImplementation((async () => {
+      throw new Error("A hunt's search is at most 2,000 characters.");
+    }) as never);
+
+    await renderHunt();
+
+    fireEvent.click(screen.getByTestId("viewer-change-search"));
+
+    await act(async () => {
+      fireEvent.click(await screen.findByTestId(HUNTS_TEST_IDS.saveChanges));
+    });
+
+    const notice: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.changed);
+
+    expect(within(notice).getByRole("alert")).toHaveTextContent(
+      "A hunt's search is at most 2,000 characters.",
+    );
+    expect(
+      within(notice).getByTestId(HUNTS_TEST_IDS.saveChanges),
+    ).not.toBeDisabled();
   });
 
   test("Discard Changes starts the explorer again from the hunt as it is kept", async () => {
@@ -1514,6 +1627,17 @@ describe("a kept event on a case's Evidence page", () => {
     expect(within(meta).getByText("Process Activity")).toHaveAttribute(
       "dir",
       "ltr",
+    );
+    /*
+     * The line wraps - three lines at most - rather than losing its end on
+     * a phone ("… High · Process A…"), and breaks between its parts, each
+     * kept whole: "Process Activity", never "Process" / "Activity".
+     */
+    expect(meta).toHaveClass("line-clamp-3");
+    expect(meta).not.toHaveClass("truncate");
+    expect(within(meta).getByText("Process Activity")).toHaveClass(
+      "inline-block",
+      "max-w-full",
     );
 
     const found: HTMLElement = within(container).getByTestId(

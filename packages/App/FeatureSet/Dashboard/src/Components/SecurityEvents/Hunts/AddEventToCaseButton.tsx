@@ -19,6 +19,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
@@ -121,19 +122,35 @@ const AddEventToCaseButton: FunctionComponent<ComponentProps> = (
       {outcome &&
       (outcome.kind === "added" || outcome.kind === "already") &&
       outcome.securityCase ? (
-        <p
-          className="text-xs text-gray-600"
+        /*
+         * Kept now: a green check before it, as a step done reads. Kept
+         * already: the same line, plain - nothing changed.
+         */
+        <div
+          className="flex items-center gap-1 text-xs text-gray-600"
+          role="status"
           data-testid={HUNTS_TEST_IDS.addToCaseResult}
+          data-outcome={outcome.kind}
         >
-          <TranslatedSentence
-            template={
-              outcome.kind === "added"
-                ? ADDED_TO_CASE_NUMBER
-                : ALREADY_ON_CASE_NUMBER
-            }
-            slots={{ case: caseLink(outcome.securityCase) }}
-          />
-        </p>
+          {outcome.kind === "added" ? (
+            <Icon
+              icon={IconProp.CheckCircle}
+              className="h-3.5 w-3.5 shrink-0 text-green-600"
+            />
+          ) : (
+            <></>
+          )}
+          <span>
+            <TranslatedSentence
+              template={
+                outcome.kind === "added"
+                  ? ADDED_TO_CASE_NUMBER
+                  : ALREADY_ON_CASE_NUMBER
+              }
+              slots={{ case: caseLink(outcome.securityCase) }}
+            />
+          </span>
+        </div>
       ) : (
         <></>
       )}

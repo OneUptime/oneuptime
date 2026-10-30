@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "计划设置人 ID",
   "Search Events": "搜索事件",
   "Search hunts...": "搜索狩猎...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "在事件页面搜索，然后在其狩猎列表中选择“另存为狩猎”，或在此处创建。狩猎可一键重新打开其搜索，按计划运行时会在发现内容时通知您。",
   "Search open cases by number or title": "按编号或标题搜索未结案例",
   "Searched Up To": "已搜索至",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "以名称保存的安全事件搜索，可重新打开，或按计划运行并在发现内容时通知相关人员。",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "没有未结案例。要打开案例，请点击某个事件并选择“打开案例”。",
   "{{count}} {{itemsName}} already on the case": "{{count}} 个{{itemsName}}已在案例中",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} 个{{itemName}}已在案例中",
-  "Last run failed: {{error}}": "上次运行失败：{{error}}"
+  "Last run failed: {{error}}": "上次运行失败：{{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "在事件页面搜索，然后在其狩猎列表中选择“另存为狩猎”，或在此处创建。",
+  "Saved search:": "已保存的搜索："
 }

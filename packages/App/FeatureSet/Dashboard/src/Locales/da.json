@@ -37122,7 +37122,6 @@
   "Scheduled By User ID": "ID for den, der planlagde",
   "Search Events": "Søg i begivenheder",
   "Search hunts...": "Søg i hunts...",
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.": "Søg på Begivenheder, og vælg Gem som hunt i dens liste Hunts, eller opret en her. En hunt åbner sin søgning igen med ét klik og giver dig efter en tidsplan besked, når den finder noget.",
   "Search open cases by number or title": "Søg i åbne sager efter nummer eller titel",
   "Searched Up To": "Gennemsøgt til",
   "Searches over security events saved with a name, to open again or to run on a schedule that tells people when it finds something.": "Søgninger i sikkerhedsbegivenheder, gemt med et navn, til at åbne igen eller køre efter en tidsplan, der giver personer besked, når den finder noget.",
@@ -37149,5 +37148,7 @@
   "No open cases. To start one, click an event and choose Open Case.": "Ingen åbne sager. Klik på en begivenhed, og vælg Åbn sag for at åbne en.",
   "{{count}} {{itemsName}} already on the case": "{{count}} {{itemsName}} allerede på sagen",
   "{{count}} {{itemsName}} already on the case_one": "{{count}} {{itemName}} allerede på sagen",
-  "Last run failed: {{error}}": "Seneste kørsel mislykkedes: {{error}}"
+  "Last run failed: {{error}}": "Seneste kørsel mislykkedes: {{error}}",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.": "Søg på Begivenheder, og vælg Gem som hunt i dens liste Hunts, eller opret en her.",
+  "Saved search:": "Gemt søgning:"
 }
