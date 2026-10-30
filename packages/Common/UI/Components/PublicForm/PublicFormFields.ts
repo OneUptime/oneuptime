@@ -24,12 +24,8 @@ import {
   FORM_SUBMISSION_MAX_FILES,
   FormFileAnswer,
 } from "../../../Types/Form/FormFileAnswer";
-import MimeType from "../../../Types/File/MimeType";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
-import {
-  CUSTOM_FIELD_FILE_HINT,
-  CUSTOM_FIELD_FILES_HINT,
-} from "../CustomFields/CustomFieldFormFields";
+import { setCustomFieldFilePicker } from "../CustomFields/CustomFieldFormFields";
 
 /*
  * A form's questions as inputs: what the public page anyone with a form's
@@ -195,17 +191,15 @@ export const buildPublicFormFields: BuildPublicFormFieldsFunction = (
        */
       if (isPublicFormFileField(question)) {
         field.keepFilesInBrowser = true;
-        field.fileTypes = (question.fileTypes || []) as Array<MimeType>;
+
+        setCustomFieldFilePicker({
+          field: field,
+          isMultiple: question.type === PublicFormFieldType.MultipleFiles,
+          maxFiles: question.maxFiles,
+        });
 
         if (question.maxFileSizeInBytes) {
           field.maxFileSizeInBytes = question.maxFileSizeInBytes;
-        }
-
-        if (question.type === PublicFormFieldType.MultipleFiles) {
-          field.maxFiles = question.maxFiles;
-          field.fileHint = CUSTOM_FIELD_FILES_HINT;
-        } else {
-          field.fileHint = CUSTOM_FIELD_FILE_HINT;
         }
       }
 

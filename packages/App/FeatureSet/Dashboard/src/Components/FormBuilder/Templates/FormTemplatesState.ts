@@ -1,6 +1,7 @@
 import {
   BuiltPublicForm,
   getFormTemplateAnswers,
+  isPublicFormFileField,
   PublicFormField,
 } from "Common/Types/Form/FormPublic";
 import {
@@ -119,6 +120,19 @@ const fieldsOf: FieldsOfFunction = (
   );
 };
 
+/**
+ * The questions a template can answer: every one but a file question,
+ * whose files whoever fills the form in chooses - a template asks a file
+ * question its own way (Required, Optional, Hidden), but holds no file.
+ */
+export const getFormTemplateAnswerFields: FieldsOfFunction = (
+  questions: Array<FormTemplateEditorQuestion>,
+): Array<PublicFormField> => {
+  return fieldsOf(questions).filter((field: PublicFormField): boolean => {
+    return !isPublicFormFileField(field);
+  });
+};
+
 export type GetFormTemplateEditorSettingsFunction = (data: {
   // Stored settings, or the editor's value: anything.
   settings: unknown;
@@ -177,7 +191,9 @@ export const getFormTemplateEditorValues: GetFormTemplateEditorValuesFunction =
     template: FormTemplate | undefined;
     questions: Array<FormTemplateEditorQuestion>;
   }): JSONObject => {
-    const fields: Array<PublicFormField> = fieldsOf(data.questions);
+    const fields: Array<PublicFormField> = getFormTemplateAnswerFields(
+      data.questions,
+    );
 
     return {
       ...getPublicFormValuesFromAnswers({
@@ -227,7 +243,7 @@ export const readFormTemplateFromEditor: ReadFormTemplateFromEditorFunction =
       answers: packPublicFormAnswers({
         form: {
           name: "",
-          fields: fieldsOf(data.questions),
+          fields: getFormTemplateAnswerFields(data.questions),
           isCaptchaRequired: false,
         },
         values: data.values,

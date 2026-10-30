@@ -193,8 +193,45 @@ export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunctio
 export const CUSTOM_FIELD_FILE_HINT: string =
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.";
 
+// What a File field's picker offers to do.
+export const CUSTOM_FIELD_FILE_PLACEHOLDER: string = "Upload a file";
+
 export const CUSTOM_FIELD_FILES_HINT: string =
   "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
+
+export type SetCustomFieldFilePickerFunction = (data: {
+  field: Field<JSONObject>;
+  isMultiple: boolean;
+  // The most files, for a picker of several: CUSTOM_FIELD_MAX_FILES unless said.
+  maxFiles?: number | undefined;
+}) => void;
+
+/**
+ * A file picker that takes what a file custom field takes - the kinds of
+ * file, at most 10 MB each, and for several files no more than a Multiple
+ * files field holds - and says so in a sentence rather than a list of 25
+ * types. One file: "Upload a file", and no drop zone once it holds one
+ * (Replace stays). The custom fields' forms and a public form's file
+ * questions set their pickers here, so the two always agree, as the server
+ * holds both to the same (CustomFieldFiles, FormFileAnswer).
+ */
+export const setCustomFieldFilePicker: SetCustomFieldFilePickerFunction =
+  (data: {
+    field: Field<JSONObject>;
+    isMultiple: boolean;
+    maxFiles?: number | undefined;
+  }): void => {
+    data.field.fileTypes = [...CUSTOM_FIELD_FILE_TYPES];
+
+    if (data.isMultiple) {
+      data.field.maxFiles = data.maxFiles || CUSTOM_FIELD_MAX_FILES;
+      data.field.fileHint = CUSTOM_FIELD_FILES_HINT;
+      return;
+    }
+
+    data.field.fileHint = CUSTOM_FIELD_FILE_HINT;
+    data.field.placeholder = CUSTOM_FIELD_FILE_PLACEHOLDER;
+  };
 
 export type ToCustomFieldFileFormValueFunction = (data: {
   customFieldType?: CustomFieldType | null | undefined;
@@ -458,14 +495,11 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
          * holds every write to the same (CustomFieldFiles).
          */
         if (isCustomFieldFileType(definition.customFieldType)) {
-          field.fileTypes = [...CUSTOM_FIELD_FILE_TYPES];
-
-          if (definition.customFieldType === CustomFieldType.MultipleFiles) {
-            field.maxFiles = CUSTOM_FIELD_MAX_FILES;
-            field.fileHint = CUSTOM_FIELD_FILES_HINT;
-          } else {
-            field.fileHint = CUSTOM_FIELD_FILE_HINT;
-          }
+          setCustomFieldFilePicker({
+            field: field,
+            isMultiple:
+              definition.customFieldType === CustomFieldType.MultipleFiles,
+          });
         }
 
         /*

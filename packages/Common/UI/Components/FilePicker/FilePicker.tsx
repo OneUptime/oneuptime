@@ -689,7 +689,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                   <p className="text-gray-500">
                     {translator.translateText(
                       isDragActive
-                        ? "Release to start uploading."
+                        ? props.keepFilesInBrowser
+                          ? "Release to add them."
+                          : "Release to start uploading."
                         : filesModel.length === 0
                           ? "Click to choose files or drag & drop."
                           : "Click to add more or drag & drop.",
@@ -799,7 +801,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       {filesModel.length > 0 && (
         <div className="space-y-2 w-full">
           <p className="text-sm font-medium text-gray-700 text-left">
-            {translator.translateText("Uploaded files")}
+            {translator.translateText(
+              // Kept in the browser, they are sent with the form.
+              props.keepFilesInBrowser ? "Chosen files" : "Uploaded files",
+            )}
           </p>
           <div className="flex flex-wrap gap-4">{getThumbs()}</div>
         </div>
