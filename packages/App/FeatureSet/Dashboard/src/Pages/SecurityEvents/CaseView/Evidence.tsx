@@ -6,9 +6,9 @@ import SecurityCaseViewContext, {
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A case's Evidence: the files and links kept on it, each with who added it
- * and when, and a file with the SHA-256 of what was uploaded
- * (SecurityCaseEvidenceTable).
+ * A case's Evidence: the files, links and security events kept on it, each
+ * with who added it and when - a file with the SHA-256 of what was
+ * uploaded, an event as it was when it was kept (SecurityCaseEvidenceTable).
  */
 const SecurityCaseEvidencePage: FunctionComponent<
   PageComponentProps

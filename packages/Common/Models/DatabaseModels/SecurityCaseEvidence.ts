@@ -22,6 +22,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -30,15 +31,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * Evidence kept on a security case: a file uploaded to OneUptime - a log
- * excerpt, a screenshot, a packet capture - or a link to evidence kept
- * elsewhere (SecurityCaseEvidenceKind), with what it is, who added it and
+ * excerpt, a screenshot, a packet capture - a link to evidence kept
+ * elsewhere, or a security event bookmarked onto the case from Security
+ * Events (SecurityCaseEvidenceKind), with what it is, who added it and
  * when.
  *
  * Kept as it was added: what a piece of evidence holds - its file or its
  * address - is written once, and OneUptime records the file's size, type
  * and the SHA-256 of its bytes as they were uploaded
  * (SecurityCaseEvidenceService), so whoever downloads it later can check it
- * is what was kept. Its name and description can be corrected. Adding
+ * is what was kept; an event is kept as OneUptime read it, as the person
+ * who bookmarked it (SecurityCaseEvidenceService.addEvents), so the case
+ * still shows it once the event is past its retention. Its name and
+ * description can be corrected. Adding
  * evidence is part of working a case, on the Member tier; removing it
  * breaks the chain of what was kept, so it takes the Admin tier, and the
  * case's timeline says who removed what. A file downloads through the
@@ -145,7 +150,7 @@ const serverWrittenColumnAccess: {
   pluralName: "Security Case Evidence",
   icon: IconProp.Archive,
   tableDescription:
-    "Files and links kept on a security case as evidence, each with who added it and when, and a file with the SHA-256 of what was uploaded.",
+    "Files, links and security events kept on a security case as evidence, each with who added it and when: a file with the SHA-256 of what was uploaded, an event as OneUptime read it when it was kept.",
 })
 @Index(["securityCaseId", "createdAt"])
 export default class SecurityCaseEvidence extends BaseModel {
@@ -232,7 +237,7 @@ export default class SecurityCaseEvidence extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Kind",
     description:
-      "What the evidence is: a File uploaded to OneUptime, or a Link to evidence kept somewhere else. It can't be changed.",
+      "What the evidence is: a File uploaded to OneUptime, a Link to evidence kept somewhere else, or an Event bookmarked from Security Events. It can't be changed.",
     example: "File",
   })
   @Column({
@@ -392,6 +397,57 @@ export default class SecurityCaseEvidence extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public sha256?: string = undefined;
+
+  /*
+   * An Event evidence's event, as OneUptime read it when it was kept: its id
+   * and time, to open it on Events while it is kept there, and what it said
+   * (Types/SecurityCase/SecurityCaseEventEvidence). Written by OneUptime
+   * only - an event is kept from what OneUptime reads, never from what a
+   * request says it was.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Event ID",
+    description:
+      "For Event evidence: the security event's ID, as its source gave it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public eventUid?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Event Time",
+    description: "For Event evidence: when the security event happened.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public eventTime?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    computed: true,
+    title: "Event",
+    description:
+      "For Event evidence: the security event as OneUptime read it when it was kept - its severity, class, message, who and where - and the hunt that found it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public eventSnapshot?: JSONObject = undefined;
 
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({

@@ -226,6 +226,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Security case actions: one case at a time, each as the server sees it after the one before, and the list read again after.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/useAddEventsToCase.tsx":
+    [
+      {
+        expression: "Math.max(1, props.items.length)",
+        why: "Add to Case: one request keeps every ticked event on the case, so every event waits on that one request.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageResourcePanel.tsx":
     [
       {

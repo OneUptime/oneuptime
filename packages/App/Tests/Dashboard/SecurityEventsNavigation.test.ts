@@ -169,11 +169,13 @@ describe("the Security Events menu", () => {
         ],
       ],
       /*
-       * Who is attacking, and who is riskiest from everything found about
-       * each: the one list that says so. Entities, a second "riskiest" by
-       * how many findings named a value, folded into Entity Risk.
+       * The events, and the searches over them saved and run on a schedule
+       * (Hunts) right under them. Who is attacking, and who is riskiest from
+       * everything found about each: the one list that says so. Entities, a
+       * second "riskiest" by how many findings named a value, folded into
+       * Entity Risk.
        */
-      ["Events", ["Events", "Campaigns", "Entity Risk", "Correlate"]],
+      ["Events", ["Events", "Hunts", "Campaigns", "Entity Risk", "Correlate"]],
       /*
        * What the rules skip on purpose sits right under the rules, and the
        * lists they match against (VIP users, critical hosts) after it,
@@ -229,6 +231,7 @@ describe("the Security Events menu", () => {
       ["Closed Cases", "SECURITY_CASES_CLOSED"],
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
+      ["Hunts", "SECURITY_EVENTS_HUNTS"],
       ["Campaigns", "SECURITY_EVENTS_CAMPAIGNS"],
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
@@ -252,8 +255,9 @@ describe("the Security Events menu", () => {
     ]);
   });
 
-  test("lights Entity Risk on an entity's page and Watchlists on a list's, the pages in its layout no entry names", () => {
+  test("lights Hunts on a hunt's page, Entity Risk on an entity's and Watchlists on a list's, the pages in its layout no entry names", () => {
     expect(getSecurityEventsMenuDetailPages()).toEqual([
+      "SECURITY_EVENTS_HUNT_VIEW",
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
       "SECURITY_EVENTS_WATCHLIST_VIEW",
     ]);
@@ -266,10 +270,14 @@ describe("the Security Events menu", () => {
           return [item.title, item.detailPages || []];
         }),
     ).toEqual([
+      ["Hunts", ["SECURITY_EVENTS_HUNT_VIEW"]],
       ["Entity Risk", ["SECURITY_EVENTS_ENTITY_RISK_VIEW"]],
       ["Watchlists", ["SECURITY_EVENTS_WATCHLIST_VIEW"]],
     ]);
     // Not pages that open on their own, outside the menu.
+    expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
+      "SECURITY_EVENTS_HUNT_VIEW",
+    );
     expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
     );
@@ -662,6 +670,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "Closed Cases"],
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
+      ["Security Events", "Events", "Hunts"],
       ["Security Events", "Events", "Campaigns"],
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],

@@ -596,6 +596,10 @@ import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlis
 import SecurityWatchlistItemService, {
   Service as SecurityWatchlistItemServiceType,
 } from "Common/Server/Services/SecurityWatchlistItemService";
+import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
+import SecurityHuntService, {
+  Service as SecurityHuntServiceType,
+} from "Common/Server/Services/SecurityHuntService";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import DetectionRuleExceptionService, {
   Service as DetectionRuleExceptionServiceType,
@@ -4051,6 +4055,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityWatchlistItem, SecurityWatchlistItemServiceType>(
         SecurityWatchlistItem,
         SecurityWatchlistItemService,
+      ).getRouter(),
+    );
+
+    // Searches over security events, saved and scheduled (Security Events > Hunts).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityHunt, SecurityHuntServiceType>(
+        SecurityHunt,
+        SecurityHuntService,
       ).getRouter(),
     );
 

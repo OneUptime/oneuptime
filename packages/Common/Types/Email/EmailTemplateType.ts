@@ -106,6 +106,8 @@ enum EmailTemplateType {
   SecurityPlaybookApprovalRequested = "SecurityPlaybookApprovalRequested.hbs",
   SecurityCaseTargetDue = "SecurityCaseTargetDue.hbs",
   SecurityCaseTaskAssigned = "SecurityCaseTaskAssigned.hbs",
+  // A scheduled hunt found security events (SecurityHuntNotifications).
+  SecurityHuntFound = "SecurityHuntFound.hbs",
 
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
