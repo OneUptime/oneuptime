@@ -106,6 +106,15 @@ import {
   WEBHOOK_TRIGGER_HTTP_METHODS,
   getWebhookTriggerUrl,
 } from "Common/Types/Workflow/WebhookTrigger";
+import { pickSeverityIndex } from "Common/Types/Workflow/Components/FromAnotherTool";
+import {
+  ZABBIX_CANNOT_CLOSE_SENTENCE,
+  ZABBIX_UPDATE_ARGUMENT_IDS,
+  ZabbixProblemUpdate,
+  chooseZabbixUpdate,
+  getZabbixApiUrl,
+  getZabbixRequestBody,
+} from "Common/Types/Workflow/Components/Zabbix";
 import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
@@ -890,6 +899,9 @@ describe("Zabbix", () => {
   const STATE_TEMPLATE: WorkflowTemplate = zabbixTemplate(
     "zabbix-update-problem-on-incident-state",
   );
+  const NOTE_TEMPLATE: WorkflowTemplate = zabbixTemplate(
+    "zabbix-message-from-incident-private-note",
+  );
 
   it("sends every parameter the script reads, each from a Zabbix macro", () => {
     const names: Array<string> = parameters().map((row: Array<string>) => {
@@ -1234,11 +1246,23 @@ describe("Zabbix", () => {
       ),
     ).toEqual([false, true]);
     expect(settings).toContain(
-      "It is saved as a secret variable, and only ever sent in the `Authorization` header.",
+      "It is saved as a secret variable, and sent only to Zabbix: in the `Authorization` header, or in the request's body on Zabbix 6.0.",
     );
+
+    // The templates hand it to Update Zabbix Problem, which sends it as a Bearer token, or in the body on Zabbix 6.0.
+    for (const template of [STATE_TEMPLATE, NOTE_TEMPLATE]) {
+      const update: TemplateNode = nodeOf(template, "update-problem-1");
+
+      expect(update.metadataId).toBe(ComponentID.ZabbixUpdateProblem);
+      expect(update.args?.[ZABBIX_UPDATE_ARGUMENT_IDS.apiToken]).toBe(
+        "{{local.variables.zabbixApiToken}}",
+      );
+      expect(argumentsText(template).split("zabbixApiToken")).toHaveLength(2);
+    }
+
     expect(
-      JSON.stringify(nodeOf(STATE_TEMPLATE, "update-problem-1").args),
-    ).toContain("Bearer {{local.variables.zabbixApiToken}}");
+      readRepoFile("Common/Server/Types/Workflow/Components/Zabbix/UpdateProblem.ts"),
+    ).toContain("{ Authorization: `Bearer ${data.token}` }");
   });
 
   it("the examples of a Zabbix URL are ones the wizard takes, and a page in Zabbix is one it refuses", () => {
@@ -1258,8 +1282,13 @@ describe("Zabbix", () => {
     }
 
     expect(codeIn(url)).toContain("api_jsonrpc.php");
-    expect(String(nodeOf(STATE_TEMPLATE, "get-problem-1").args?.["url"])).toBe(
-      "{{local.variables.zabbixUrl}}/api_jsonrpc.php",
+    expect(
+      nodeOf(STATE_TEMPLATE, "update-problem-1").args?.[
+        ZABBIX_UPDATE_ARGUMENT_IDS.zabbixUrl
+      ],
+    ).toBe("{{local.variables.zabbixUrl}}");
+    expect(getZabbixApiUrl("https://example.com/zabbix/")).toBe(
+      "https://example.com/zabbix/api_jsonrpc.php",
     );
     expect(
       ZABBIX_URL_PATTERN.test("https://zabbix.example.com/zabbix.php"),
@@ -1329,13 +1358,34 @@ describe("Zabbix", () => {
           templateId: kind.problemTemplateId,
           componentId: "read-event-1",
           args: {
-            severities: quoted(kind.severities),
             zabbixUrl: ZABBIX_URL,
             payload: quoted(zabbixPostedBody({ severityNumber })),
           },
         });
+        // The project's severities, most severe first, as the step reads them.
+        const severities: Array<{ id: string; name: string }> = [
+          ...kind.severities,
+        ]
+          .sort((a: JSONObject, b: JSONObject): number => {
+            return Number(a["order"]) - Number(b["order"]);
+          })
+          .map((severity: JSONObject): { id: string; name: string } => {
+            return {
+              id: String(severity["_id"]),
+              name: String(severity["name"]),
+            };
+          });
 
-        mapped.push(String(read["severityName"]));
+        mapped.push(
+          (
+            severities[
+              pickSeverityIndex({
+                given: String(read["severity"]),
+                severities: severities,
+              }).index
+            ] as { name: string }
+          ).name,
+        );
       }
 
       expect({
@@ -1353,53 +1403,96 @@ describe("Zabbix", () => {
     }
   });
 
-  it("says what each event does, by the Switch / Case's cases", () => {
+  it("says what each event does, by the events read-event-1 reads, and what Incident From Another Tool does with them", () => {
     const rows: Array<Array<string>> = tableWithHeader(
       englishSection(ZABBIX, "### What the workflow does"),
       "Event",
     );
-    const cases: Array<string> = (
-      nodeOf(PROBLEM_TEMPLATE, "switch-1").args?.["cases"] as Array<JSONObject>
-    ).map((entry: JSONObject): string => {
-      return `\`${String(entry["value"])}\``;
-    });
+    const read: TemplateNode = nodeOf(PROBLEM_TEMPLATE, "read-event-1");
 
+    expect(read.metadataId).toBe(ComponentID.JavaScriptCheck);
+    expect(codeOf(PROBLEM_TEMPLATE, "read-event-1")).toContain(
+      `const KINDS = ${JSON.stringify([
+        ZabbixEventKind.Problem,
+        ZabbixEventKind.Recovery,
+        ZabbixEventKind.Update,
+      ])};`,
+    );
     expect(
       rows.map((row: Array<string>): string => {
         return row[0] as string;
       }),
-    ).toEqual(cases);
+    ).toEqual(
+      [
+        ZabbixEventKind.Problem,
+        ZabbixEventKind.Recovery,
+        ZabbixEventKind.Update,
+      ].map((kind: string): string => {
+        return `\`${kind}\``;
+      }),
+    );
     expect(rows[0]?.[1]).toContain("titled `Zabbix: <problem> on <host>`");
+    expect(nodeOf(PROBLEM_TEMPLATE, "incident-from-another-tool-1").metadataId).toBe(
+      ComponentID.IncidentFromAnotherTool,
+    );
+    expect(page).toContain(
+      `the \`read-event-1\` ${bold("Check With JavaScript")} step reads the \`event\` the media type sends, and ${bold("Incident From Another Tool")}, or ${bold("Alert From Another Tool")} in the alert template, does what it means`,
+    );
   });
 
-  it("says why Zabbix refuses, in the words the template's log shows", () => {
-    expect(codeOf(STATE_TEMPLATE, "choose-action-1")).toContain(
-      "'Zabbix has no problem with event ID '",
+  it("says why Zabbix refuses, in the words Update Zabbix Problem's Steps entry shows", () => {
+    const choice: ReturnType<typeof chooseZabbixUpdate> = chooseZabbixUpdate({
+      wanted: ZabbixProblemUpdate.Close,
+      eventId: "40312",
+      message: "",
+      events: [],
+    });
+
+    expect(choice.send).toBe(false);
+    expect(choice.send === false && choice.reason).toContain(
+      "Zabbix has no problem with event ID 40312",
     );
     expect(page).toContain(
       "- `Zabbix has no problem with event ID`: the user cannot see the problem's host.",
     );
-    // The flags of event.acknowledge the template sends, and what Zabbix answers when a trigger refuses a close.
-    expect(codeOf(STATE_TEMPLATE, "choose-action-1")).toContain(
+    // What the step adds when a trigger refuses a close.
+    expect(ZABBIX_CANNOT_CLOSE_SENTENCE).toContain(
       "does not allow closing problems by hand",
     );
   });
 
-  it("tells Zabbix 6.0 where its token goes: after the jsonrpc member of each request body the templates send", () => {
+  it("tells Zabbix 6.0 where its token goes: the Update Zabbix Problem step's Zabbix 6.0 switch, under More fields", () => {
+    const step: ComponentMetadata = (Components as Array<ComponentMetadata>).find(
+      (component: ComponentMetadata): boolean => {
+        return component.id === ComponentID.ZabbixUpdateProblem;
+      },
+    ) as ComponentMetadata;
+    const setting: Argument | undefined = (step.arguments as Array<Argument>).find(
+      (argument: Argument): boolean => {
+        return argument.id === ZABBIX_UPDATE_ARGUMENT_IDS.zabbix60;
+      },
+    );
+
+    expect(step.title).toBe("Update Zabbix Problem");
+    expect(setting?.name).toBe("Zabbix 6.0");
+    expect(setting?.isAdvanced).toBe(true);
+    // The token goes in right after jsonrpc, as Zabbix 6.0 reads it.
+    expect(
+      Object.keys(getZabbixRequestBody("event.get", {}, "token")).slice(0, 2),
+    ).toEqual(["jsonrpc", "auth"]);
+    expect(Object.keys(getZabbixRequestBody("event.get", {}))).not.toContain(
+      "auth",
+    );
+
+    // Every template that calls Zabbix does it through that step.
     for (const template of ZABBIX_TEMPLATES) {
       for (const node of nodesOf(template)) {
-        if (node.metadataId !== ComponentID.ApiPost) {
-          continue;
-        }
-
-        expect(String(node.args?.["request-body"])).toContain(
-          '"jsonrpc": "2.0",',
-        );
+        expect(node.metadataId).not.toBe(ComponentID.ApiPost);
       }
     }
 
     expect(page).toContain(
-      'add `"auth": "{{local.variables.zabbixApiToken}}",` to **Request Body**, after `"jsonrpc": "2.0",`, and remove the header.',
+      `In the ${bold("Update Zabbix Problem")} step of each template that calls Zabbix, turn on ${bold("Zabbix 6.0")}, under ${bold("More fields")}.`,
     );
   });
 

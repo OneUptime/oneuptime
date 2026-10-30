@@ -190,13 +190,15 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Request Body",
   ],
   [ZABBIX]: [
-    "Page an On-Call Policy",
     "Webhook",
-    "Switch / Case",
-    "Log",
+    "Check With JavaScript",
+    "Incident From Another Tool",
+    "Alert From Another Tool",
+    "No",
     "Compare with",
     "If / Else",
-    "Request Body",
+    "Update Zabbix Problem",
+    "Zabbix 6.0",
   ],
   [PAGERDUTY]: [
     ...OUTBOUND_STEPS,
@@ -334,6 +336,8 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [ZABBIX]: [
     "Declare an incident for each Zabbix problem",
     "Create an alert for each Zabbix problem",
+    // What the create wizard asks who to page by.
+    "Who to page for High and Disaster problems",
     "Zabbix URL",
     "Zabbix API Token",
     "Acknowledge or close the Zabbix problem with the incident",
