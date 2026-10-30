@@ -139,7 +139,7 @@ Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe
 | **Regressionstest generieren** | Fügt einen Test hinzu, der fehlschlägt, bis der Fehler behoben ist. |
 | **Fehlerbehandlung verbessern** | Für erwartete Fehler: prüft Eingaben früher, hält Benutzerdaten aus Meldungen heraus und markiert den Fehler als behandelt. |
 
-Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository (auf GitHub, GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server) und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent).
+Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository (auf GitHub, GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server) und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent). Eine Aufgabe zu starten erfordert die Berechtigung, das Repository zu bearbeiten, in dem sie arbeitet: Wer die Ausnahme nur lesen darf, sieht ihre Aufgaben, kann aber keine starten.
 
 ## Neue und zunehmende Ausnahmen mit KI finden und beheben
 
@@ -182,6 +182,8 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ## Ausnahmen-Einblicke
 
 Der Tab **Einblicke** zählt Ihre Ausnahmen unter **Nicht behoben**, **Behoben** und **Archiviert** sowie Ihre Behebungsquote und listet die häufigsten Ausnahmen, die Dienste, die sie betreffen, und die zuletzt gesehenen.
+
+**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und nicht gespeichert, nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
 
 ## Fehlerbehebung
 

@@ -893,13 +893,25 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       return null;
     }
 
+    /*
+     * In the reader's language, each hint one whole string, as the logs
+     * Analytics view words them: a locale translates the way back with the
+     * gesture it follows, not as a half glued on.
+     */
     return (
       <span
         className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400"
         data-testid={TRACES_ANALYTICS_ZOOM_HINT_TEST_ID}
       >
-        {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
-        {zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""}
+        {translator.translateText(
+          selection.canClickToZoom
+            ? zoomHandlers.onTimeRangeReset
+              ? "Click or drag to zoom · double-click to reset"
+              : "Click or drag to zoom"
+            : zoomHandlers.onTimeRangeReset
+              ? "Drag to zoom · double-click to reset"
+              : "Drag to zoom",
+        )}
       </span>
     );
   };
@@ -1375,7 +1387,10 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           />
         </svg>
         <p className="text-sm text-gray-400">
-          {error || "No data available for the selected query"}
+          {error ||
+            translator.translateText(
+              "No data available for the selected query",
+            )}
         </p>
       </div>
     );

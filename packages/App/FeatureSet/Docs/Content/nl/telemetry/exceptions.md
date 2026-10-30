@@ -139,7 +139,7 @@ De pagina **AI Assistance** biedt drie taken. Elke taak loopt als AI-taak die ee
 | **Generate Regression Test** | Voegt een test toe die faalt totdat de bug is verholpen. |
 | **Foutafhandeling verbeteren** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
 
-AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (op GitHub, GitLab, Forgejo of Gitea, of op elke Git-server), en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent).
+AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (op GitHub, GitLab, Forgejo of Gitea, of op elke Git-server), en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent). Een taak starten vraagt toestemming om de repository te bewerken waarin ze werkt: wie de uitzondering alleen mag lezen, ziet haar taken maar kan er geen starten.
 
 ## Nieuwe en stijgende uitzonderingen vinden en oplossen met AI
 
@@ -182,6 +182,8 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ## Inzichten in uitzonderingen
 
 Het tabblad **Inzichten** telt uw uitzonderingen onder **Niet opgelost**, **Opgelost** en **Gearchiveerd** en uw oplospercentage, en toont de vaakst voorkomende uitzonderingen, de services die ze treffen en de uitzonderingen die het laatst gezien zijn.
+
+**Wat is er nieuw** bovenaan het tabblad vraagt OneUptime AI, met **Samenvatten met OneUptime AI**, de uitzonderingen samen te vatten die in de laatste 24 uur voor het eerst gezien zijn en de uitzonderingen die terugkwamen nadat ze opgelost waren: een paar zinnen over allemaal, daarna elk in één regel, de dringendste eerst, met een link naar de uitzondering. De samenvatting wordt geschreven wanneer u erom vraagt en niet bewaard, gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat.
 
 ## Problemen oplossen
 
