@@ -28,6 +28,8 @@ import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunc
 import ServerlessFunctionOwnerUserService from "../../../Services/ServerlessFunctionOwnerUserService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
+import DataStoreOwnerTeamService from "../../../Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserService";
 import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
 import RumApplicationOwnerUserService from "../../../Services/RumApplicationOwnerUserService";
 import ProxmoxClusterOwnerTeamService from "../../../Services/ProxmoxClusterOwnerTeamService";
@@ -86,6 +88,7 @@ import PodmanHostService from "../../../Services/PodmanHostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
+import DataStoreService from "../../../Services/DataStoreService";
 import RumApplicationService from "../../../Services/RumApplicationService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import CephClusterService from "../../../Services/CephClusterService";
@@ -309,6 +312,17 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "cloudResourceId",
       canOwnTelemetry: true,
       modelService: CloudResourceService,
+    },
+  ],
+  [
+    "DataStore",
+    {
+      ownerUserService: DataStoreOwnerUserService,
+      ownerTeamService: DataStoreOwnerTeamService,
+      fkColumn: "dataStoreId",
+      // A store is what scans read, not a source of telemetry of its own.
+      canOwnTelemetry: false,
+      modelService: DataStoreService,
     },
   ],
   [

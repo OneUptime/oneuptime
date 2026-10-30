@@ -32,7 +32,7 @@ En el modo **Solo lectura** las acciones nunca se ofrecen al modelo, así que la
 | --- | --- |
 | Cualquier página | Haz clic en **Preguntar a la IA** en la cabecera, o pulsa `Ctrl` + `I` (`Cmd` + `I` en un Mac). Mientras escribes en un cuadro de texto o un editor, esas teclas siguen siendo el atajo de cursiva del editor. |
 | La paleta de comandos | Pulsa `Ctrl` + `K` (`Cmd` + `K` en un Mac) y elige **Preguntar a la IA**. |
-| Un patrón de error de los logs, o los hallazgos de un gráfico | Haz clic en **Explain with AI**: Preguntar a la IA se abre con las pruebas como una pregunta que puedes editar antes de enviarla. |
+| Un patrón de error de los logs, o los hallazgos de un gráfico | Haz clic en **Explicar con IA**: Preguntar a la IA se abre con las pruebas como una pregunta que puedes editar antes de enviarla. |
 | El menú de productos | Abre **Productos → IA → Chat**. Preguntar a la IA se abre sobre la página en la que estabas. Cada conversación tiene su propia dirección, así que puedes guardarla en marcadores y volver a ella. |
 
 Preguntar a la IA se abre en el centro de la pantalla, sobre la página en la que estabas, y en un teléfono ocupa toda la pantalla. Pulsa `Esc`, o haz clic fuera de ella, para volver a la página. La conversación sigue donde la dejaste: vuelve a abrir Preguntar a la IA para continuar. Si la cierras mientras aún responde, un aviso en la esquina te dice cuándo está lista la respuesta, y la abre.

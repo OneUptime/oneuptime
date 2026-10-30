@@ -2294,6 +2294,167 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "data-security",
+    title: "Data Security",
+    productPage: PageMap.DATA_SECURITY_OVERVIEW,
+    icon: IconProp.ShieldCheck,
+    iconColor: "violet",
+    /*
+     * The menu's sections and their pages, as DataSecurityNavigation.ts
+     * lists them. A store's pages and an issue's need the record, so they
+     * are not here.
+     */
+    sections: [
+      {
+        title: "Data Security",
+        pages: [
+          {
+            page: PageMap.DATA_SECURITY_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.ChartBar,
+            keywords: [
+              "dspm",
+              "data security posture",
+              "what to fix first",
+              "scan coverage",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_STORES,
+            title: "Data Stores",
+            icon: IconProp.Database,
+            keywords: [
+              "buckets",
+              "s3 buckets",
+              "storage accounts",
+              "data inventory",
+              "add database",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_ISSUES,
+            title: "Issues",
+            icon: IconProp.ShieldExclamation,
+            keywords: [
+              "data security issues",
+              "public buckets",
+              "unencrypted",
+              "misconfigurations",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_SENSITIVE_DATA,
+            title: "Sensitive Data",
+            icon: IconProp.Fingerprint,
+            keywords: [
+              "pii",
+              "personal data",
+              "credit card numbers",
+              "data classification",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_TELEMETRY,
+            title: "In Your Telemetry",
+            icon: IconProp.Logs,
+            keywords: [
+              "pii in logs",
+              "secrets in logs",
+              "sensitive data in traces",
+              "scrub",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_FLOWS,
+            title: "Data Flows",
+            icon: IconProp.Share,
+            keywords: ["data lineage", "where data goes", "ai providers"],
+          },
+          {
+            page: PageMap.DATA_SECURITY_ACCESS,
+            title: "Access",
+            icon: IconProp.Key,
+            keywords: [
+              "who can reach",
+              "external access",
+              "public access",
+              "permissions",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_COMPLIANCE,
+            title: "Compliance",
+            icon: IconProp.ClipboardDocumentCheck,
+            keywords: [
+              "gdpr",
+              "pci dss",
+              "hipaa",
+              "soc 2",
+              "record of processing",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Settings",
+        pages: [
+          {
+            page: PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES,
+            title: "Data Types",
+            icon: IconProp.TableCells,
+            keywords: ["custom data types", "classifiers", "detectors"],
+          },
+          {
+            page: PageMap.DATA_SECURITY_SETTINGS_CHECKS,
+            title: "Checks",
+            icon: IconProp.CheckCircle,
+            keywords: ["data security checks", "turn off a check", "severity"],
+          },
+          {
+            page: PageMap.DATA_SECURITY_SETTINGS_RESIDENCY,
+            title: "Residency Rules",
+            icon: IconProp.Globe,
+            keywords: ["data residency", "allowed regions", "data location"],
+          },
+          {
+            page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
+            title: "Scan Settings",
+            icon: IconProp.Clock,
+            keywords: ["scan schedule", "scanning", "sampling"],
+          },
+        ],
+      },
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES),
+        ],
+      },
+      {
+        title: "Help",
+        pages: [documentation(PageMap.DATA_SECURITY_DOCUMENTATION)],
+      },
+      {
+        title: "Advanced",
+        pages: [
+          {
+            page: PageMap.DATA_SECURITY_SCANS,
+            title: "Scans",
+            icon: IconProp.MagnifyingGlass,
+            keywords: ["scan history", "content scans", "what was read"],
+          },
+          {
+            page: PageMap.DATA_SECURITY_STORES_ARCHIVED,
+            title: "Archived Stores",
+            icon: IconProp.Archive,
+            keywords: ["deleted stores", "gone stores"],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "ai-insights",
     title: "Insights",
     productPage: PageMap.AI_INSIGHTS,

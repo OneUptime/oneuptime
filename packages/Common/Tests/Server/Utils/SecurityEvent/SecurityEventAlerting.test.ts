@@ -8,6 +8,7 @@ jest.mock("isolated-vm", () => {
 
 import {
   AlertableMatch,
+  DedupedRecordOutcome,
   openDedupedAlerts,
   openDedupedIncidents,
   pickSeverityByPrecedence,
@@ -161,6 +162,54 @@ describe("openDedupedAlerts", () => {
     expect(alertCreateSpy).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalled();
   });
+
+  test("a source that links its records is told each match's alert: the one already open, or the one it opened", async () => {
+    const openId: ObjectID = ObjectID.generate();
+    const newId: ObjectID = ObjectID.generate();
+    const open: Alert = new Alert(openId);
+    open.seriesFingerprint = "fp-1";
+    alertFindSpy.mockResolvedValue([open] as never);
+    alertCreateSpy.mockResolvedValue(new Alert(newId) as never);
+    const outcomes: Array<DedupedRecordOutcome> = [];
+
+    await openDedupedAlerts({
+      projectId: PROJECT_ID,
+      alertSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [buildMatch("fp-1"), buildMatch("fp-2")],
+      onOutcome: (outcome: DedupedRecordOutcome): void => {
+        outcomes.push(outcome);
+      },
+    });
+
+    expect(outcomes).toEqual([
+      { fingerprint: "fp-1", recordId: openId, isNew: false },
+      { fingerprint: "fp-2", recordId: newId, isNew: true },
+    ]);
+  });
+
+  test("a create that failed tells the source nothing about its match", async () => {
+    alertCreateSpy
+      .mockRejectedValueOnce(new Error("privacy hook exploded") as never)
+      .mockResolvedValueOnce(new Alert(ObjectID.generate()) as never);
+    const outcomes: Array<DedupedRecordOutcome> = [];
+
+    await openDedupedAlerts({
+      projectId: PROJECT_ID,
+      alertSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [buildMatch("fp-1"), buildMatch("fp-2")],
+      onOutcome: (outcome: DedupedRecordOutcome): void => {
+        outcomes.push(outcome);
+      },
+    });
+
+    expect(
+      outcomes.map((outcome: DedupedRecordOutcome): string => {
+        return outcome.fingerprint;
+      }),
+    ).toEqual(["fp-2"]);
+  });
 });
 
 describe("openDedupedIncidents", () => {
@@ -191,6 +240,51 @@ describe("openDedupedIncidents", () => {
     )["data"] as Incident;
     expect(incident.seriesFingerprint).toBe("fp-2");
     expect(incident.incidentSeverityId).toBe(SEVERITY_ID);
+  });
+
+  test("a source that links its records is told each match's incident, open or declared now", async () => {
+    const openId: ObjectID = ObjectID.generate();
+    const newId: ObjectID = ObjectID.generate();
+    const open: Incident = new Incident(openId);
+    open.seriesFingerprint = "fp-1";
+    incidentFindSpy.mockResolvedValue([open] as never);
+    incidentCreateSpy.mockResolvedValue(new Incident(newId) as never);
+    const outcomes: Array<DedupedRecordOutcome> = [];
+
+    await openDedupedIncidents({
+      projectId: PROJECT_ID,
+      incidentSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [buildMatch("fp-1"), buildMatch("fp-2")],
+      onOutcome: (outcome: DedupedRecordOutcome): void => {
+        outcomes.push(outcome);
+      },
+    });
+
+    expect(outcomes).toEqual([
+      { fingerprint: "fp-1", recordId: openId, isNew: false },
+      { fingerprint: "fp-2", recordId: newId, isNew: true },
+    ]);
+  });
+
+  test("an incident that could not be declared tells the source nothing", async () => {
+    incidentCreateSpy.mockRejectedValue(
+      new Error("No incident state is created.") as never,
+    );
+    const outcomes: Array<DedupedRecordOutcome> = [];
+
+    const created: number = await openDedupedIncidents({
+      projectId: PROJECT_ID,
+      incidentSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [buildMatch("fp-1")],
+      onOutcome: (outcome: DedupedRecordOutcome): void => {
+        outcomes.push(outcome);
+      },
+    });
+
+    expect(created).toBe(0);
+    expect(outcomes).toEqual([]);
   });
 });
 

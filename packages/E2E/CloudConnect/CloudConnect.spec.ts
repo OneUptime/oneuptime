@@ -283,6 +283,9 @@ test.describe("connecting Azure", () => {
         clientId: APP,
         cloud: "public",
         readIntervalInMinutes: "5",
+        // Data Security's levels, under More fields: off until chosen.
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
       },
       secrets: { clientSecret: PASSWORD },
     });
@@ -411,6 +414,9 @@ test.describe("one paste, whatever the cloud", () => {
         readScope: "account",
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
+        // Data Security's levels, under More fields: off until chosen.
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
       },
       secrets: {},
     });

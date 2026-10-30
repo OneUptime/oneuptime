@@ -32,6 +32,14 @@ enum ProbeCapability {
    * Failed with a sentence saying to upgrade it.
    */
   SnmpWalk = "snmpWalk",
+  /*
+   * The probe scans databases for Data Security (Jobs/DataSecurity/
+   * ScanDatabases): it reads each store's connection string from the
+   * environment variable the store names, samples the database read-only
+   * and reports findings, never values. The server hands data-security
+   * work only to a probe that declares this.
+   */
+  DataSecurityScan = "dataSecurityScan",
 }
 
 // The first probe release that walks SNMP tables.

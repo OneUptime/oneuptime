@@ -3,6 +3,7 @@ import AlertLabelRule from "../Models/DatabaseModels/AlertLabelRule";
 import CephClusterLabelRule from "../Models/DatabaseModels/CephClusterLabelRule";
 import CloudResourceLabelRule from "../Models/DatabaseModels/CloudResourceLabelRule";
 import DashboardLabelRule from "../Models/DatabaseModels/DashboardLabelRule";
+import DataStoreLabelRule from "../Models/DatabaseModels/DataStoreLabelRule";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -65,6 +66,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   CephClusterLabelRule,
   CloudResourceLabelRule,
   DashboardLabelRule,
+  DataStoreLabelRule,
   DatabaseServerLabelRule,
   DockerHostLabelRule,
   DockerSwarmClusterLabelRule,
@@ -90,6 +92,19 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   StatusPageLabelRule,
   StorageArrayLabelRule,
   WorkflowLabelRule,
+];
+
+/*
+ * Rule types whose criteria have generic names - nameRegexPattern,
+ * descriptionRegexPattern, matchLabels - rather than the resource's own
+ * (monitorNamePattern), mapped to the same meaning when a rule moves
+ * between types.
+ */
+const RESOURCES_WITH_GENERIC_CRITERIA: ReadonlyArray<string> = [
+  "RumApplication",
+  "CloudResource",
+  "ServerlessFunction",
+  "DataStore",
 ];
 
 /*
@@ -717,9 +732,7 @@ export default class LabelRuleImportExport {
     }
     if (
       [`${prefix}NamePattern`, `${prefix}TitlePattern`].includes(column) ||
-      (["RumApplication", "CloudResource", "ServerlessFunction"].includes(
-        resource,
-      ) &&
+      (RESOURCES_WITH_GENERIC_CRITERIA.includes(resource) &&
         column === "nameRegexPattern") ||
       (resource === "ScheduledMaintenance" && column === "titlePattern")
     ) {
@@ -727,9 +740,7 @@ export default class LabelRuleImportExport {
     }
     if (
       column === `${prefix}DescriptionPattern` ||
-      (["RumApplication", "CloudResource", "ServerlessFunction"].includes(
-        resource,
-      ) &&
+      (RESOURCES_WITH_GENERIC_CRITERIA.includes(resource) &&
         column === "descriptionRegexPattern") ||
       (resource === "ScheduledMaintenance" && column === "descriptionPattern")
     ) {
@@ -737,9 +748,7 @@ export default class LabelRuleImportExport {
     }
     if (
       column === `${prefix}Labels` ||
-      (["RumApplication", "CloudResource", "ServerlessFunction"].includes(
-        resource,
-      ) &&
+      (RESOURCES_WITH_GENERIC_CRITERIA.includes(resource) &&
         column === "matchLabels")
     ) {
       return "$resourceLabels";

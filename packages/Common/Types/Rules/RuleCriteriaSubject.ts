@@ -45,6 +45,7 @@ export enum RuleCriteriaSubject {
   Runbooks = "Runbooks",
   Workflows = "Workflows",
   StorageArrays = "StorageArrays",
+  DataStores = "DataStores",
 }
 
 /*
@@ -85,6 +86,8 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   CloudResourceOwnerRule: RuleCriteriaSubject.CloudResources,
   DashboardLabelRule: RuleCriteriaSubject.Dashboards,
   DashboardOwnerRule: RuleCriteriaSubject.Dashboards,
+  DataStoreLabelRule: RuleCriteriaSubject.DataStores,
+  DataStoreOwnerRule: RuleCriteriaSubject.DataStores,
   DatabaseServerLabelRule: RuleCriteriaSubject.Databases,
   DatabaseServerOwnerRule: RuleCriteriaSubject.Databases,
   DockerHostLabelRule: RuleCriteriaSubject.DockerHosts,

@@ -14,6 +14,7 @@ import { getCephBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Uti
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
 import { getCodeBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CodeBreadcrumbs";
 import { getDashboardBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DashboardBreadCrumbs";
+import { getDataSecurityBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DataSecurityBreadcrumbs";
 import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
 import { getDockerBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DockerBreadcrumbs";
 import { getDockerSwarmBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DockerSwarmBreadcrumbs";
@@ -114,6 +115,7 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   AIInsightsRoutePath: getAIInsightsBreadcrumbs,
   LogsRoutePath: getLogsBreadcrumbs,
   SecurityEventsRoutePath: getSecurityEventsBreadcrumbs,
+  DataSecurityRoutePath: getDataSecurityBreadcrumbs,
   MetricsRoutePath: getMetricsBreadcrumbs,
   TracesRoutePath: getTracesBreadcrumbs,
   ProfilesRoutePath: getProfilesBreadcrumbs,

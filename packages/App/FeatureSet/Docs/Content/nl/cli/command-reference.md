@@ -195,6 +195,7 @@ Records nemen `list`, `get`, `create`, `update`, `delete` en `count`:
 | Gepland onderhoud | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Teams en dienst | `team`, `on-call-policy` |
 | Beveiliging | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Gegevensbeveiliging | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | Labels | `label` |
 
 Telemetrie neemt `list`, `create` en `count`:
