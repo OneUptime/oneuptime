@@ -19012,13 +19012,28 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
     );
     await expect(notice.getByTestId(LOGS_AI)).toHaveCount(0);
 
+    /*
+     * Something to act on: said under the folded report's summary too
+     * (block 43), and under the whole report once it is open.
+     */
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
+    await expectAbove(
+      foldedReportSummary(page),
+      notice,
+      "the summary, then the notice",
+    );
+    await showFullReport(page);
+    await expect(notice).toBeVisible();
+
     // Under the report it explains, before its working.
     const order: Array<string> = await investigationCard(page).evaluate(
       (card: Element): Array<string> => {
         const notice: Element | null = card.querySelector(
           "[data-testid='investigation-log-stall']",
         );
-        const report: Element | null = card.querySelector("h3");
+        const report: Element | null = card.querySelector(
+          "[data-testid='investigation-report-open'] h3",
+        );
         const details: Element | null = Array.from(
           card.querySelectorAll("h3"),
         ).find((heading: Element): boolean => {
@@ -19073,6 +19088,7 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
     );
 
     // The report itself says it could not tell, and offers no fix.
+    await showFullReport(page);
     await expect(investigationCard(page)).toContainText("Could not determine");
     await expect(
       investigationCard(page).getByRole("button", { name: OPEN_FIX_PR }),

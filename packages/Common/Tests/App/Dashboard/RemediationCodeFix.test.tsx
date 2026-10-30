@@ -243,7 +243,7 @@ describe("opening the pull request", () => {
         automaticBlocker: AutomaticCodeFixBlocker.FixOff,
         ...overrides,
       }),
-      investigationRunId,
+      ...(investigationRunId === undefined ? {} : { investigationRunId }),
     });
   }
 

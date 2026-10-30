@@ -519,7 +519,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
 
     test("a run, or an AI rule's wait, keeps the card whole", async () => {
       postMock.mockResolvedValue(queuedRun());
-      const queued: Rendered = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: FIXING_OFF,
       });
@@ -536,7 +536,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       cleanup();
       postMock.mockReset();
       postMock.mockResolvedValue(waiting());
-      const waited: Rendered = renderPanel({
+      renderPanel({
         subjectType,
         remediationState: FIXING_OFF,
       });

@@ -154,14 +154,20 @@ describe("the server's refusals of Try again are the step's keys", () => {
         );
       },
     ),
-  )("%s, for an %s", (refusal: RemediationTryAgainRefusal, signal) => {
-    expect(REMEDIATION_TRY_AGAIN_REFUSAL_KEYS[refusal][signal]).toBe(
-      REMEDIATION_TRY_AGAIN_REFUSALS[refusal][signal],
-    );
-    expect(REMEDIATION_TRY_AGAIN_SERVER_SENTENCES).toBe(
-      REMEDIATION_TRY_AGAIN_REFUSALS,
-    );
-  });
+  )(
+    "%s, for an %s",
+    (
+      refusal: RemediationTryAgainRefusal,
+      signal: RemediationTryAgainSignal,
+    ) => {
+      expect(REMEDIATION_TRY_AGAIN_REFUSAL_KEYS[refusal][signal]).toBe(
+        REMEDIATION_TRY_AGAIN_REFUSALS[refusal][signal],
+      );
+      expect(REMEDIATION_TRY_AGAIN_SERVER_SENTENCES).toBe(
+        REMEDIATION_TRY_AGAIN_REFUSALS,
+      );
+    },
+  );
 });
 
 describe("English holds every word under its own key", () => {

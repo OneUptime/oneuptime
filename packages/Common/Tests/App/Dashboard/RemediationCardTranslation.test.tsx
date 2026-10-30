@@ -26,8 +26,9 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationStep from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
-import { REMEDIATION_CARD_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
+import RemediationStep, {
+  REMEDIATION_CARD_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import { REMEDIATION_STEP_STATUS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
