@@ -41,7 +41,14 @@ import {
   FormFieldCollapsibleSection,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
-import MonitorSteps from "../../Components/Form/Monitor/MonitorSteps";
+import MonitorSteps, {
+  MonitorStepSeed,
+} from "../../Components/Form/Monitor/MonitorSteps";
+import URL from "Common/Types/API/URL";
+import DeviceWebUiUtil, {
+  DEVICE_MONITOR_CHECK_QUERY_PARAM,
+  DeviceMonitorCheck,
+} from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
 import {
   isTelemetryMonitorLinkType,
   readTelemetryMonitorLinkQuery,
@@ -325,6 +332,14 @@ const MonitorCreate: FunctionComponent<
   const [seedQuery, setSeedQuery] = useState<
     TelemetryMonitorLinkSeed | undefined
   >(undefined);
+
+  /*
+   * What a link fills in on the new monitor's step besides its criteria: a
+   * device's web UI address ("Monitor web UI"), for the type it is for.
+   */
+  const [seedStep, setSeedStep] = useState<MonitorStepSeed | undefined>(
+    undefined,
+  );
 
   /*
    * Probe picker state. Probes used to be chosen for you after the monitor was
@@ -771,6 +786,59 @@ const MonitorCreate: FunctionComponent<
     });
   };
 
+  /*
+   * "Monitor web UI" on a device's Monitors card (DeviceWebUiUtil): a
+   * Website monitor of the device's management page, https on the address
+   * its probe polls, with self-signed certificates allowed - a switch's or
+   * a firewall's management page almost always has one - checked from the
+   * device's own probe, which can reach it where the project's global
+   * probes usually cannot. The form opens on it for the person to read and
+   * change (http, a port, a path) before saving; the criteria are the
+   * Website monitor's usual ones, seeded by the form (seedStep).
+   *
+   * An unreadable device, or one with no address a URL can carry, still
+   * opens a Website monitor, with the URL left to fill in.
+   */
+  const preSeedWebUiMonitorForDevice: (data: {
+    device: NetworkDevice | null;
+  }) => void = (data: { device: NetworkDevice | null }): void => {
+    const deviceName: string = data.device?.name?.trim() || "";
+    const webUiUrl: URL | null = DeviceWebUiUtil.getUrl(
+      data.device?.hostname || "",
+    );
+
+    setSeedStep(
+      webUiUrl
+        ? {
+            monitorType: MonitorType.Website,
+            monitorDestination: webUiUrl,
+            allowSelfSignedCertificates: true,
+          }
+        : undefined,
+    );
+
+    setDeviceProbeIds(
+      data.device?.probeId ? [data.device.probeId.toString()] : null,
+    );
+
+    setInitialValues({
+      name: deviceName
+        ? translator.translateTemplate("{{deviceName}} web UI", {
+            deviceName: deviceName,
+          })
+        : translator.translateTemplate("Network device web UI"),
+      description: deviceName
+        ? translator.translateTemplate(
+            "Checks that the web UI of the {{deviceName}} network device answers.",
+            { deviceName: deviceName },
+          )
+        : translator.translateTemplate(
+            "Checks that a network device's web UI answers.",
+          ),
+      monitorType: MonitorType.Website,
+    });
+  };
+
   const preSeedFromNetworkDeviceLink: (
     networkDeviceId: string,
   ) => Promise<void> = async (networkDeviceId: string): Promise<void> => {
@@ -798,6 +866,18 @@ const MonitorCreate: FunctionComponent<
        * generic name, exactly as before this branched — the monitoring
        * method parses NULL as SNMP, which is what every device was.
        */
+    }
+
+    /*
+     * "Monitor web UI" on the device's Monitors card: a Website monitor of
+     * the device's management page, whatever polls the device.
+     */
+    if (
+      Navigation.getQueryStringByName(DEVICE_MONITOR_CHECK_QUERY_PARAM) ===
+      DeviceMonitorCheck.WebUi
+    ) {
+      preSeedWebUiMonitorForDevice({ device: device });
+      return;
     }
 
     if (
@@ -1753,6 +1833,7 @@ const MonitorCreate: FunctionComponent<
                          */
                         foldDefaultCriteria={true}
                         seedQuery={seedQuery}
+                        seedStep={seedStep}
                         /*
                          * Not a template's monitor: criteria nobody has
                          * worked on follow the monitor type picked, and a

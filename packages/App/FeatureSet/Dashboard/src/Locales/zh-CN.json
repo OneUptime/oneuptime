@@ -38811,5 +38811,13 @@
   "Regressed At": "回归时间",
   "Resolve in next release": "在下一版本中解决",
   "Resolved in Release After": "在此版本之后的版本中解决",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "已在下一版本中解决：来自 {{release}} 的发生不会重新打开它。"
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "已在下一版本中解决：来自 {{release}} 的发生不会重新打开它。",
+  "CSV spreadsheet (.csv)": "CSV spreadsheet (.csv)",
+  "Checks that a network device's web UI answers.": "Checks that a network device's web UI answers.",
+  "Checks that the web UI of the {{deviceName}} network device answers.": "Checks that the web UI of the {{deviceName}} network device answers.",
+  "Download this walk": "Download this walk",
+  "Monitor web UI": "Monitor web UI",
+  "Network device web UI": "Network device web UI",
+  "snmpwalk text (.txt)": "snmpwalk text (.txt)",
+  "{{deviceName}} web UI": "{{deviceName}} web UI"
 }

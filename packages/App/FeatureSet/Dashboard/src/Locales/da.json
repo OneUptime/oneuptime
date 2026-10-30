@@ -38811,5 +38811,13 @@
   "Regressed At": "Regression den",
   "Resolve in next release": "Løs i næste udgivelse",
   "Resolved in Release After": "Løst i udgivelsen efter",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Løst i næste udgivelse: forekomster fra {{release}} genåbner den ikke."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Løst i næste udgivelse: forekomster fra {{release}} genåbner den ikke.",
+  "CSV spreadsheet (.csv)": "CSV spreadsheet (.csv)",
+  "Checks that a network device's web UI answers.": "Checks that a network device's web UI answers.",
+  "Checks that the web UI of the {{deviceName}} network device answers.": "Checks that the web UI of the {{deviceName}} network device answers.",
+  "Download this walk": "Download this walk",
+  "Monitor web UI": "Monitor web UI",
+  "Network device web UI": "Network device web UI",
+  "snmpwalk text (.txt)": "snmpwalk text (.txt)",
+  "{{deviceName}} web UI": "{{deviceName}} web UI"
 }

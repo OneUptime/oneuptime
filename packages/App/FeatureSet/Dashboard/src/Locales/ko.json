@@ -38811,5 +38811,13 @@
   "Regressed At": "재발 일시",
   "Resolve in next release": "다음 릴리스에서 해결",
   "Resolved in Release After": "해결 기준 릴리스",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "다음 릴리스에서 해결됨: {{release}}의 발생으로는 다시 열리지 않습니다."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "다음 릴리스에서 해결됨: {{release}}의 발생으로는 다시 열리지 않습니다.",
+  "CSV spreadsheet (.csv)": "CSV spreadsheet (.csv)",
+  "Checks that a network device's web UI answers.": "Checks that a network device's web UI answers.",
+  "Checks that the web UI of the {{deviceName}} network device answers.": "Checks that the web UI of the {{deviceName}} network device answers.",
+  "Download this walk": "Download this walk",
+  "Monitor web UI": "Monitor web UI",
+  "Network device web UI": "Network device web UI",
+  "snmpwalk text (.txt)": "snmpwalk text (.txt)",
+  "{{deviceName}} web UI": "{{deviceName}} web UI"
 }

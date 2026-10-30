@@ -38811,5 +38811,13 @@
   "Regressed At": "زمان بازگشت",
   "Resolve in next release": "رفع در نسخهٔ بعدی",
   "Resolved in Release After": "برطرف‌شده در نسخهٔ پس از",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "در نسخهٔ بعدی برطرف شد: رخدادهای {{release}} آن را دوباره باز نمی‌کنند."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "در نسخهٔ بعدی برطرف شد: رخدادهای {{release}} آن را دوباره باز نمی‌کنند.",
+  "CSV spreadsheet (.csv)": "CSV spreadsheet (.csv)",
+  "Checks that a network device's web UI answers.": "Checks that a network device's web UI answers.",
+  "Checks that the web UI of the {{deviceName}} network device answers.": "Checks that the web UI of the {{deviceName}} network device answers.",
+  "Download this walk": "Download this walk",
+  "Monitor web UI": "Monitor web UI",
+  "Network device web UI": "Network device web UI",
+  "snmpwalk text (.txt)": "snmpwalk text (.txt)",
+  "{{deviceName}} web UI": "{{deviceName}} web UI"
 }

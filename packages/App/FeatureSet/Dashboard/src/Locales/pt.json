@@ -38811,5 +38811,13 @@
   "Regressed At": "Regressão em",
   "Resolve in next release": "Resolver na próxima versão",
   "Resolved in Release After": "Resolvida na versão após",
-  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolvida na próxima versão: ocorrências de {{release}} não a reabrem."
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolvida na próxima versão: ocorrências de {{release}} não a reabrem.",
+  "CSV spreadsheet (.csv)": "CSV spreadsheet (.csv)",
+  "Checks that a network device's web UI answers.": "Checks that a network device's web UI answers.",
+  "Checks that the web UI of the {{deviceName}} network device answers.": "Checks that the web UI of the {{deviceName}} network device answers.",
+  "Download this walk": "Download this walk",
+  "Monitor web UI": "Monitor web UI",
+  "Network device web UI": "Network device web UI",
+  "snmpwalk text (.txt)": "snmpwalk text (.txt)",
+  "{{deviceName}} web UI": "{{deviceName}} web UI"
 }
