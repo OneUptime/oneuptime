@@ -33,6 +33,7 @@ import { ResourceCommandTier } from "Common/Types/ResourceAiAgent/ResourceAiAcce
 import {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
@@ -66,6 +67,13 @@ import {
   RemediationDecisionStatus,
 } from "./RemediationDecisionLines";
 import RemediationDecisionStatusBadge from "./RemediationDecisionStatusBadge";
+import CloudDryRunNote from "./CloudDryRunNote";
+import {
+  CLOUD_DRY_RUN_COPY,
+  getCloudDryRunButtonTitle,
+} from "./CloudDryRunCopy";
+import { isCloudDryRunInFlight } from "Common/Utils/AiRemediation/CloudChangeDryRunPlan";
+import OneUptimeDate from "Common/Types/Date";
 import {
   AiCardFold,
   getRemediationFoldState,
@@ -805,9 +813,56 @@ function CommandGitOpsNote(props: {
   );
 }
 
+/*
+ * A cloud change's notes: the code that declares its resource (such a
+ * change is only ever proposed: the next apply would put the old value
+ * back), and, before it ran, its dry run (CloudDryRunNote) - or, before
+ * any, that its undo is written from the value it replaces: the agent
+ * reads that value first and reports it.
+ */
+function CloudCommandNote(props: {
+  command: AiRemediationCommand;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+  const { command } = props;
+
+  if (
+    command.stepType !== RunbookStepType.ResourceCommand ||
+    !isCloudAiResourceType(command.resourceType)
+  ) {
+    return <></>;
+  }
+
+  return (
+    <div className="mt-2 space-y-1" data-testid="remediation-command-cloud">
+      {command.managedAsCode ? (
+        <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+          {translator.translateTemplate(
+            "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.",
+            { owner: command.managedAsCode },
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+      {!command.execution && command.dryRun ? (
+        <CloudDryRunNote dryRun={command.dryRun} />
+      ) : !command.execution && !command.rollbackCommand ? (
+        <div className="text-xs text-gray-500">
+          {translator.translateText(
+            "The agent reads the value this change replaces before it makes it, and OneUptime writes the exact undo from it.",
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
-export type RemediationSuggestionAction = "approve" | "dismiss";
+export type RemediationSuggestionAction = "approve" | "dismiss" | "dry-run";
 
 // The suggestion has left "waiting": someone approved it, or it ran unattended.
 function isAlreadyStarted(
@@ -849,6 +904,9 @@ export function getActionErrorTitle(
     return translationKey(
       "Could not save your action: the fix was not approved and nothing ran",
     );
+  }
+  if (action === "dry-run") {
+    return CLOUD_DRY_RUN_COPY.dryRunActionError;
   }
   if (action === "dismiss") {
     if (isAlreadyStarted(statusAfterReload)) {
@@ -1041,6 +1099,17 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
       if (
         s.status === AutoRemediationSuggestionStatus.Planning ||
         s.verificationStatus === AutoRemediationVerificationStatus.Pending
+      ) {
+        return true;
+      }
+      // A cloud change's dry run is on its way: its answer lands on the plan.
+      if (
+        s.status === AutoRemediationSuggestionStatus.Suggested &&
+        s.suggestionType === AutoRemediationSuggestionType.CommandPlan &&
+        isCloudDryRunInFlight(
+          AiRemediationCommandPlanUtil.parse(s.commandPlan || null),
+          OneUptimeDate.getCurrentDate(),
+        )
       ) {
         return true;
       }
@@ -1331,6 +1400,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
             const isUnapprovablePlan: boolean =
               status === AutoRemediationSuggestionStatus.Suggested &&
               hasRemovedSshCommand(plan);
+            // A fix that changes a cloud account can be dry-run first.
+            const dryRunTitle: string | null = isUnapprovablePlan
+              ? null
+              : getCloudDryRunButtonTitle({ status, plan });
             const runbookTitle: string =
               suggestion.runbookNameSnapshot ||
               (translator.translateText(
@@ -1539,6 +1612,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
 
                               <CommandGitOpsNote command={command} />
 
+                              <CloudCommandNote command={command} />
+
                               {command.rollbackCommand ? (
                                 <div className="mt-1 text-xs text-gray-500">
                                   <TranslatedSentence
@@ -1697,6 +1772,31 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                       dataTestId="remediation-approve-button"
                       onClick={() => {
                         performAction(suggestion, "approve").catch(() => {
+                          // handled inside performAction
+                        });
+                      }}
+                    />
+                  ) : (
+                    <></>
+                  )}
+
+                  {dryRunTitle ? (
+                    <Button
+                      title={dryRunTitle}
+                      icon={IconProp.Search}
+                      buttonStyle={ButtonStyleType.OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      disabled={
+                        isBusy ||
+                        isCloudDryRunInFlight(
+                          plan,
+                          OneUptimeDate.getCurrentDate(),
+                        )
+                      }
+                      isLoading={isBusy && busyAction === "dry-run"}
+                      dataTestId="remediation-dry-run-button"
+                      onClick={() => {
+                        performAction(suggestion, "dry-run").catch(() => {
                           // handled inside performAction
                         });
                       }}

@@ -33,6 +33,7 @@ import {
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -464,6 +465,10 @@ function resourceRow(
     aiRemediationMode,
     aiCommandAllowlist: [],
     isArchived: false,
+    // A cloud account's live reads go through its connection.
+    ...(isCloudAiResourceType(resourceType)
+      ? { hasCloudConnection: true }
+      : {}),
   };
 }
 

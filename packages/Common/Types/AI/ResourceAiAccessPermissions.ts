@@ -51,6 +51,9 @@ const RESOURCE_SENTENCE_NAMES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.CephCluster]: "Ceph cluster",
   [AiResourceType.DatabaseServer]: "database server",
   [AiResourceType.Host]: "host",
+  [AiResourceType.AwsAccount]: "AWS account",
+  [AiResourceType.AzureSubscription]: "Azure subscription",
+  [AiResourceType.GoogleCloudProject]: "Google Cloud project",
 };
 
 export function getResourceSentenceName(resourceType: AiResourceType): string {
@@ -95,6 +98,12 @@ export const RESOURCE_AI_ALLOWLIST_EXAMPLES: Readonly<
   [AiResourceType.CephCluster]: "ceph osd out 3",
   [AiResourceType.DatabaseServer]: "db terminate-session 12345",
   [AiResourceType.Host]: "systemctl stop nginx",
+  [AiResourceType.AwsAccount]:
+    "cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2",
+  [AiResourceType.AzureSubscription]:
+    "cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web",
+  [AiResourceType.GoogleCloudProject]:
+    "cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
 };
 
 /*

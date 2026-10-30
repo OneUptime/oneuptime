@@ -1,6 +1,9 @@
 import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798000000000-TurnOnResourceAiInvestigationByDefault";
 import ObjectID from "../../../../Types/ObjectID";
-import { ALL_AI_RESOURCE_TYPES } from "../../../../Types/ResourceAiAgent/AiResourceType";
+import AiResourceType, {
+  ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
+} from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
 
@@ -27,8 +30,16 @@ const describePostgres: typeof describe.skip =
     ? describe
     : describe.skip;
 
-// The AiResourceType values are the resource tables' names.
-const RESOURCE_TABLES: Array<string> = ALL_AI_RESOURCE_TYPES.map(String);
+/*
+ * The AiResourceType values are the resource tables' names - but for the
+ * clouds', which share the CloudAccount table and got their AI columns
+ * later (AddCloudAccountAiAccess), so this migration never touched them.
+ */
+const RESOURCE_TABLES: Array<string> = ALL_AI_RESOURCE_TYPES.filter(
+  (type: AiResourceType): boolean => {
+    return !isCloudAiResourceType(type);
+  },
+).map(String);
 
 const CONFIGURED_AT: string = "2026-09-01T10:00:00.000Z";
 

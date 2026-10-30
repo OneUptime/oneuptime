@@ -7,6 +7,7 @@ Koble til en AWS-konto, et Azure-abonnement eller et Google Cloud-prosjekt fra d
 - [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
 - [Google Cloud](#google-cloud): En tjenestekonto med fire roller som bare kan lese.
 - [Hva OneUptime leser](#hva-oneuptime-leser): Ressurser, målinger, endringer og helsehendelser, hvor ofte, og hva det koster.
+- [La AI rette problemer](#la-ai-rette-problemer): Én kommando til, så kan OneUptime AI rette det den finner.
 :::
 
 ## Slik fungerer det
@@ -20,7 +21,7 @@ flowchart TB
     ou --> chg["Endringer og<br/>helsehendelser"]
 ```
 
-- **Tilgangen kan bare lese.** Kommandoen lager en tilgang som leser ressursene dine og hvordan de er satt opp, målingene deres, hva som er endret og leverandørens helsehendelser, og ingenting annet: handlingene nedenfor på AWS, rollen **Monitoring Reader** på Azure og fire leseroller på Google Cloud. Den leser aldri data eller hemmeligheter. Slett den for å stenge OneUptime ute.
+- **Tilgangen kan bare lese.** Kommandoen lager en tilgang som leser ressursene dine og hvordan de er satt opp, målingene deres, hva som er endret og leverandørens helsehendelser, og ingenting annet: handlingene nedenfor på AWS, rollen **Monitoring Reader** på Azure og fire leseroller på Google Cloud. OneUptime leser aldri data eller hemmeligheter med den, unntatt logglinjer når du lar AI lese en kontos logger. Slett den for å stenge OneUptime ute.
 - **OneUptime leser etter en tidsplan.** Hvert 5. minutt for Azure og Google Cloud, og hvert 10. minutt for AWS, med mindre du velger et annet intervall når du kobler til. Hver lesing registrerer også hva som er endret siden forrige, og hvert 30. minutt lister en lesing alle ressursene på nytt.
 - **Hver ressurs får sin egen side.** Ressurser vises under **Sky → Alle ressurser** med de viktigste målingene, eierne og etikettene sine. Siden til en listet ressurs viser også **Tilkoblede ressurser** (hva den kjører i, hva som sender trafikk til den), endepunktene, taggene og innstillingene, og **Hendelser**, **Varsler** og **Endringer**.
 - **Hver konto får sin egen side.** Kontoer vises under **Sky → Kontoer** med ressursene sine etter type og region, **Endringer** og en **Topologi** over hvordan ressursene henger sammen.
@@ -48,7 +49,7 @@ Bruk en **Tilgangsnøkkel** når en rolle ikke er mulig: Den leser bare sin egen
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -70,6 +71,9 @@ Rollen og brukeren kan gjøre dette, og ingenting annet:
 | Liste hver ressurs og hvordan den er konfigurert, gjennom Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Lese hva som er endret: kontoens administrasjonshendelser | `cloudtrail:LookupEvents` |
 | Lese AWS sine egne helsehendelser for kontoen | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Lese ressursens nåværende status og siste hendelser under en undersøkelse | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
+| Lese kontoens kvoter under en undersøkelse | `servicequotas:ListServiceQuotas` |
+| Lese logglinjer, bare når du lar AI lese en kontos logger | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | Liste organisasjonens kontoer, fra administrasjonskontoen | `organizations:ListAccounts` |
 
 `apigateway:GET` er bare tillatt på API-enes egne definisjoner, aldri på nøklene deres, og bare administrasjonskontoens rolle kan liste organisasjonens kontoer. AWS Health svarer bare kontoer med en Business-, Enterprise On-Ramp- eller Enterprise-støtteplan: Uten en spør OneUptime igjen en dag senere.
@@ -201,9 +205,25 @@ Kallene OneUptime gjør, faktureres skykontoen din, til skyens priser. Å liste 
 
 ## Det du ser i OneUptime
 
-- **Kontoens side.** Under **Sky → Kontoer** teller oversikten for en konto ressursene etter type og region, og sier når en tilkobling sist leste den. **Ressurser** lister dem, **Endringer** lister hva som er endret i den, det nyeste først, og **Topologi** tegner regionene, nettverkene i dem og hva som kjører i hvert, med de åpne hendelsene og varslene på ressursene de er koblet til.
+- **Kontoens side.** Under **Sky → Kontoer** teller oversikten for en konto ressursene etter type og region, og sier når en tilkobling sist leste den. **Ressurser** lister dem, **Endringer** lister hva som er endret i den, det nyeste først, og **Topologi** tegner regionene, nettverkene i dem og hva som kjører i hvert, med de åpne hendelsene og varslene på ressursene de er koblet til. **Feed** registrerer hvordan kontoen kom til OneUptime, når Sky-AI-agenten koblet til eller ble tilbakestilt, og hvem som endret hva OneUptime AI kan gjøre i den.
 - **En ressurs sine endringer.** En endring lagres som en endringshendelse koblet til ressursen den endret og til kontoen, og tegnes som en markør i ressursens målingsdiagrammer sammen med hendelsene og varslene. Diagrammer som ikke er filtrert til noen ressurs, utelater en skykontos aktivitetslogg, så en travel konto ikke fortrenger utrullingene dine; leverandørens helsehendelser blir værende.
 - **Hendelser og varsler.** Koble en skyressurs til en overvåking, en hendelse eller et varsel under de tilkoblede ressursene, så listes hendelsene og varslene på ressursens side. En overvåking av et nettsted, et API, SSL, ping eller en port der verten fører til et endepunkt for en ressurs, direkte eller via DNS, viser ressursen under **Foreslåtte skyressurser** på kortet **Tilkoblede ressurser**: Velg **Koble til ressurs** for å koble den til.
+
+## La AI rette problemer
+
+OneUptime AI leser alle tilkoblede kontoer mens den undersøker, med den skrivebeskyttede tilgangen ovenfor. Hvis den også skal rette problemer, for eksempel starte en tjeneste på nytt, skalere den ut eller rulle den tilbake, åpner du kontoen under **Sky → Kontoer** og velger **La AI rette problemer** på kortet **AI-agent** i **Oversikt** for kontoen.
+
+Dialogen stiller ett spørsmål, **Hvor langt kan AI gå?**: **Spør meg først**, standarden, der OneUptime AI foreslår hver rettelse og en person godkjenner den med ett klikk, eller **Rett trygge problemer på egen hånd**, der trygge endringer kjører automatisk og mer risikable fortsatt venter på godkjenning. Alt annet har en trygg standard under **Flere felt**. Deretter viser den én kommando, skrevet for denne kontoen: kjør den i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, logget på som noen som kan opprette roller i kontoen. Kommandoen oppretter en rolle som bare kan gjøre endringene som er slått på, og starter Sky-AI-agenten med den i kontoen din. Agenten kobler til av seg selv innen noen få minutter, og dialogen sier ifra: det er ingenting å lime inn tilbake.
+
+Agenten er én liten container som kjører hele måneden i kontoen din, fakturert av skyen din til listeprisene:
+
+| Sky | Hva som kjører | Omtrent |
+| --- | --- | --- |
+| AWS | Én ECS Fargate-oppgave på 0.25 vCPU og 0.5 GB, og den offentlige IPv4-adressen dens, til prisene i `us-east-1` | $13 i måneden |
+| Azure | Én Container Apps-replika på 0.25 vCPU og 0.5 GiB, etter abonnementets månedlige gratiskvote på 180 000 vCPU-sekunder og 360 000 GiB-sekunder | $14 i måneden |
+| Google Cloud | Én Cloud Run-instans på 1 vCPU og 0.5 GiB med CPU alltid tildelt, som tar en hel vCPU, etter det månedlige gratisnivået på 240 000 vCPU-sekunder og 450 000 GiB-sekunder | $45 i måneden |
+
+Hva agenten kan endre, hvordan hver endring plasseres i et nivå og angres, og hvordan du leser loggene: [AI-agenter for infrastrukturen](/docs/ai/infrastructure-ai-agents#i-en-skykonto).
 
 ## Feilsøking
 

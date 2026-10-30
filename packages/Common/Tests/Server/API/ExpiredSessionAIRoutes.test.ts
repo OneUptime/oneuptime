@@ -333,6 +333,13 @@ const AUTO_REMEDIATION_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "suggestionRead",
   },
+  {
+    uri: "/auto-remediation/dry-run",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
 ];
 
 const CODE_FIX_RUN_ROUTES: Array<HumanOnlyRoute> = [

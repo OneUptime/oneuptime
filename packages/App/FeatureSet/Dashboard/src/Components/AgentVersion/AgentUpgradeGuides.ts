@@ -50,7 +50,17 @@ import {
   doesInstallScriptStartResourceAiAgent,
   getResourceAiAgentUpgradeCommand,
 } from "../ResourceAiAgent/ResourceAiAgentInstall";
-import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
+import AiResourceType, {
+  isCloudAiResourceType,
+} from "Common/Types/ResourceAiAgent/AiResourceType";
+import {
+  AWS_CLOUD_AI_AGENT_CLUSTER_NAME,
+  AWS_CLOUD_AI_AGENT_SERVICE_NAME,
+  AZURE_CLOUD_AI_AGENT_APP_NAME,
+  AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+} from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
+import { RESOURCE_AI_AGENT_IMAGE_REPOSITORY } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -572,17 +582,64 @@ function getRunnerGuide(): AgentUpgradeGuide {
 }
 
 /*
+ * A cloud account's Cloud AI agent: its service started again on the
+ * newest image, in the cloud's own shell — a new ECS deployment, a new
+ * Container App revision, a new Cloud Run revision. Running the setup
+ * command again changes nothing when nothing in it changed.
+ */
+export function getCloudAiAgentUpgradeCommand(
+  resourceType: AiResourceType,
+): string {
+  switch (resourceType) {
+    case AiResourceType.AwsAccount:
+      return `aws ecs update-service --cluster ${AWS_CLOUD_AI_AGENT_CLUSTER_NAME} --service ${AWS_CLOUD_AI_AGENT_SERVICE_NAME} --force-new-deployment > /dev/null`;
+    case AiResourceType.AzureSubscription:
+      return `az containerapp update --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} --resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --image docker.io/${RESOURCE_AI_AGENT_IMAGE_REPOSITORY}:release --revision-suffix "upgrade-$(date +%s)" --output none`;
+    default:
+      return `gcloud run services update ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} --region "$(gcloud run services list --filter "metadata.name=${GCP_CLOUD_AI_AGENT_SERVICE_NAME}" --format "value(region)" | head -1)" --image docker.io/${RESOURCE_AI_AGENT_IMAGE_REPOSITORY}:release`;
+  }
+}
+
+const CLOUD_SHELL_NAMES: Partial<Record<AiResourceType, string>> = {
+  [AiResourceType.AwsAccount]: translationKey("AWS CloudShell"),
+  [AiResourceType.AzureSubscription]: translationKey("Azure Cloud Shell"),
+  [AiResourceType.GoogleCloudProject]: translationKey("Google Cloud Shell"),
+};
+
+/*
  * A resource's AI agent: its compose service pulled and recreated, from the
  * directory of its docker-compose.yml (ResourceAiAgentInstall, the install
  * instructions on the resource's AI agent page). On a Docker or Podman
  * host, whose collector's install script starts it as a plain container,
- * running that script again comes first.
+ * running that script again comes first. A cloud account's agent is
+ * started again in its cloud.
  */
 function getResourceAiAgentGuide(
   context: AgentUpgradeGuideContext,
 ): AgentUpgradeGuide {
   const resourceType: AiResourceType | null = context.resourceType || null;
   const methods: Array<AgentUpgradeMethod> = [];
+
+  if (resourceType && isCloudAiResourceType(resourceType)) {
+    return {
+      methods: [
+        {
+          label: CLOUD_SHELL_NAMES[resourceType] || "",
+          steps: [
+            {
+              title: translationKey(
+                "Start the agent again on its newest image",
+              ),
+              description: translationKey(
+                "Run this in the cloud's own shell, in the account the agent runs in.",
+              ),
+              code: getCloudAiAgentUpgradeCommand(resourceType),
+            },
+          ],
+        },
+      ],
+    };
+  }
 
   if (resourceType && doesInstallScriptStartResourceAiAgent(resourceType)) {
     methods.push({

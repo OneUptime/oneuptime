@@ -190,6 +190,17 @@ import RunnerAuthorization from "../../FeatureSet/Runbook/Middleware/RunnerAutho
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
 import fs from "fs";
 import path from "path";
+import AiCommandKillSwitch, {
+  AI_COMMANDS_OFF_CLAIM_MESSAGE,
+} from "Common/Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 const HEARTBEAT_ROUTE: string = "/heartbeat";
 const CLAIM_ROUTE: string = "/claim-next-job";
@@ -733,6 +744,87 @@ describe("AI command capability gating on the agent ingress", () => {
    * (nothing to leak if nothing is loaded). AI commands are handed no
    * secret at all.
    */
+  /*
+   * Enable AI, read as an AI command leaves OneUptime (AiCommandKillSwitch):
+   * an AI command enqueued before the project turned AI off is failed with
+   * the reason, never served. A runbook's own steps are people's, not AI's,
+   * and are never held by it.
+   */
+  describe("POST /claim-next-job with Enable AI turned off since the job was enqueued", () => {
+    let isAiOff: jest.SpyInstance;
+    let submitResultSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      isAiOff = jest
+        .spyOn(AiCommandKillSwitch, "isAiOff")
+        .mockResolvedValue(true);
+      submitResultSpy = jest
+        .spyOn(RunnerJobService, "submitResult")
+        .mockResolvedValue(true);
+    });
+
+    test("an AI-composed command is failed with the reason, never served", async () => {
+      claimNextJobSpy.mockResolvedValue({
+        ...buildClaimedJob({
+          origin: RunnerJobOrigin.AiRemediation,
+          stepType: RunbookStepType.Bash,
+          script: "systemctl restart nginx",
+        }),
+        autoRemediationSuggestionId: ObjectID.generate(),
+      } as unknown as RunnerJob);
+
+      const result: RouteCallResult = await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: buildAgent({ canRunAiCommands: true }),
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(submitResultSpy).toHaveBeenCalledTimes(1);
+      const call: {
+        jobId: ObjectID;
+        agentId: ObjectID;
+        success: boolean;
+        errorMessage: string;
+      } = submitResultSpy.mock.calls[0]![0] as {
+        jobId: ObjectID;
+        agentId: ObjectID;
+        success: boolean;
+        errorMessage: string;
+      };
+      expect(call.jobId.toString()).toBe(JOB_ID.toString());
+      expect(call.agentId.toString()).toBe(agentId.toString());
+      expect(call.success).toBe(false);
+      expect(call.errorMessage).toBe(AI_COMMANDS_OFF_CLAIM_MESSAGE);
+      expect(lastJsonResponse()).toEqual({ job: null });
+      // The claim's project: the Runner's.
+      expect((isAiOff.mock.calls[0]![0] as ObjectID).toString()).toBe(
+        projectId.toString(),
+      );
+    });
+
+    test("a runbook's own step is served, and Enable AI is not even read for it", async () => {
+      claimNextJobSpy.mockResolvedValue(
+        buildClaimedJob({
+          origin: RunnerJobOrigin.Runbook,
+          stepType: RunbookStepType.Bash,
+          script: "echo hello",
+        }),
+      );
+
+      const result: RouteCallResult = await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: buildAgent({ canRunRunbooks: true }),
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(isAiOff).not.toHaveBeenCalled();
+      expect(submitResultSpy).not.toHaveBeenCalled();
+      expect((lastJsonResponse()["job"] as JSONObject)["jobId"]).toBe(
+        JOB_ID.toString(),
+      );
+    });
+  });
+
   describe("POST /claim-next-job never substitutes secrets into AI-composed commands", () => {
     test.each([
       ["{{global.variables.*}}", SECRET_PLACEHOLDER_SCRIPT],

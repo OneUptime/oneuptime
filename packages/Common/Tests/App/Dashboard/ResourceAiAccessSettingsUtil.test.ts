@@ -123,6 +123,24 @@ const ENTRIES: Record<
     broad: "systemctl stop *",
     read: "systemctl status nginx",
   },
+  [AiResourceType.AwsAccount]: {
+    valid:
+      "cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2",
+    broad: "cloud scale-in * --count 2",
+    read: "cloud describe arn:aws:ecs:us-east-1:123456789012:service/prod/web",
+  },
+  [AiResourceType.AzureSubscription]: {
+    valid:
+      "cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web",
+    broad: "cloud restart-service *",
+    read: "cloud describe /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web",
+  },
+  [AiResourceType.GoogleCloudProject]: {
+    valid:
+      "cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
+    broad: "cloud reboot-instance *",
+    read: "cloud describe //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
+  },
 };
 
 function saved(

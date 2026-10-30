@@ -2,9 +2,12 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  CLOUD_AI_RESOURCE_TYPES,
   getAiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
   isDefaultIdentityPlaceholder,
+  isIdentityResolvedByAgent,
   parseAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, test } from "@jest/globals";
@@ -23,7 +26,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("AiResourceType enum", () => {
-  test("has exactly the eight resource types, each value equal to its name", () => {
+  test("has exactly the eleven resource types, each value equal to its name", () => {
     expect(Object.values(AiResourceType)).toEqual([
       "DockerHost",
       "PodmanHost",
@@ -33,6 +36,9 @@ describe("AiResourceType enum", () => {
       "CephCluster",
       "DatabaseServer",
       "Host",
+      "AwsAccount",
+      "AzureSubscription",
+      "GoogleCloudProject",
     ]);
 
     for (const [name, value] of Object.entries(AiResourceType)) {
@@ -50,6 +56,9 @@ describe("AiResourceType enum", () => {
       AiResourceType.CephCluster,
       AiResourceType.DatabaseServer,
       AiResourceType.Host,
+      AiResourceType.AwsAccount,
+      AiResourceType.AzureSubscription,
+      AiResourceType.GoogleCloudProject,
     ]);
     expect(new Set(ALL_AI_RESOURCE_TYPES).size).toBe(
       ALL_AI_RESOURCE_TYPES.length,
@@ -121,6 +130,11 @@ describe("parseAiResourceType", () => {
     ["DOCKER", AiResourceType.DockerHost],
     [" Docker-Swarm ", AiResourceType.DockerSwarmCluster],
     ["VCenter", AiResourceType.VMwareVCenter],
+    ["aws", AiResourceType.AwsAccount],
+    ["Azure", AiResourceType.AzureSubscription],
+    ["gcp", AiResourceType.GoogleCloudProject],
+    ["google-cloud", AiResourceType.GoogleCloudProject],
+    ["google_cloud", AiResourceType.GoogleCloudProject],
   ])(
     "reads the agent alias %p as %s",
     (alias: string, expected: AiResourceType) => {
@@ -190,10 +204,13 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       ["Ceph cluster", "Ceph AI agent", "ceph"],
       ["Database server", "Database AI agent", "database"],
       ["Host", "Host AI agent", "host"],
+      ["AWS account", "Cloud AI agent", "aws"],
+      ["Azure subscription", "Cloud AI agent", "azure"],
+      ["Google Cloud project", "Cloud AI agent", "gcp"],
     ]);
   });
 
-  test("aliases and agent names are unique", () => {
+  test("aliases are unique, and agent names too but the one Cloud AI agent of the three clouds", () => {
     const aliases: Array<string> = ALL_AI_RESOURCE_TYPES.map(
       (type: AiResourceType): string => {
         return AI_RESOURCE_TYPE_INFO[type].agentAlias;
@@ -206,7 +223,38 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
     );
 
     expect(new Set(aliases).size).toBe(aliases.length);
-    expect(new Set(agentNames).size).toBe(agentNames.length);
+    expect(new Set(agentNames).size).toBe(agentNames.length - 2);
+    expect(
+      CLOUD_AI_RESOURCE_TYPES.map((type: AiResourceType): string => {
+        return AI_RESOURCE_TYPE_INFO[type].agentDisplayName;
+      }),
+    ).toEqual(["Cloud AI agent", "Cloud AI agent", "Cloud AI agent"]);
+  });
+
+  test("the cloud accounts come last and are told apart from the rest", () => {
+    expect(CLOUD_AI_RESOURCE_TYPES).toEqual(ALL_AI_RESOURCE_TYPES.slice(-3));
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      expect(isCloudAiResourceType(type)).toBe(
+        CLOUD_AI_RESOURCE_TYPES.includes(type),
+      );
+    }
+
+    expect(isCloudAiResourceType("aws")).toBe(false);
+    expect(isCloudAiResourceType(undefined)).toBe(false);
+  });
+
+  test("a Host and a cloud agent find their own identity; the others are told it", () => {
+    expect(
+      ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+        return isIdentityResolvedByAgent(type);
+      }),
+    ).toEqual([
+      AiResourceType.Host,
+      AiResourceType.AwsAccount,
+      AiResourceType.AzureSubscription,
+      AiResourceType.GoogleCloudProject,
+    ]);
   });
 
   test("pins the programs each type's commands may start with", () => {
@@ -312,6 +360,9 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       CephCluster: ["ceph health", "ceph versions"],
       DatabaseServer: ["db ping", "db version"],
       Host: ["uptime", "systemctl list-units --failed --no-pager"],
+      AwsAccount: ["cloud whoami"],
+      AzureSubscription: ["cloud whoami"],
+      GoogleCloudProject: ["cloud whoami"],
     });
   });
 
@@ -349,6 +400,9 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
         "DATABASE_SERVER_PORT",
       ],
       Host: ["HOST_NAME"],
+      AwsAccount: ["AWS_ACCOUNT_ID"],
+      AzureSubscription: ["AZURE_SUBSCRIPTION_ID"],
+      GoogleCloudProject: ["GOOGLE_CLOUD_PROJECT"],
     });
   });
 
@@ -369,6 +423,9 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       CephCluster: ["ceph"],
       DatabaseServer: [],
       Host: [],
+      AwsAccount: [],
+      AzureSubscription: [],
+      GoogleCloudProject: [],
     });
   });
 });

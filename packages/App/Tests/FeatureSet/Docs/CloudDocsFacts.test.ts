@@ -11,6 +11,7 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import {
+  CLOUD_ACCOUNTS,
   CLOUD_AWS_ECS,
   CLOUD_AZURE_CONTAINER_APPS,
   CLOUD_ENVIRONMENTS,
@@ -76,6 +77,9 @@ const PLATFORM_PAGES: ReadonlyArray<string> = [ECS, CLOUD_RUN, CONTAINER_APPS];
 const DASHBOARD: string = "App/FeatureSet/Dashboard/src";
 const CLOUD_SIDE_MENU: string = `${DASHBOARD}/Pages/Cloud/SideMenu.tsx`;
 const CLOUD_VIEW_SIDE_MENU: string = `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`;
+const CLOUD_ACCOUNT_SIDE_MENU: string = `${DASHBOARD}/Pages/Cloud/Accounts/View/SideMenu.tsx`;
+const CLOUD_ACCOUNT_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/Accounts/View/Overview.tsx`;
+const CLOUD_AI_AGENT_CARD: string = `${DASHBOARD}/Components/Cloud/CloudAiAgentCard.tsx`;
 const SETTINGS_SIDE_MENU: string = `${DASHBOARD}/Pages/Settings/SideMenu.tsx`;
 const ENVIRONMENTS_PAGE: string = `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`;
 const RESOURCES_PAGE: string = `${DASHBOARD}/Pages/Cloud/MonitoredResources.tsx`;
@@ -119,6 +123,7 @@ const MENU_ITEM: RegExp = /link:\s*\{\s*title:\s*"([^"]+)"/g;
 const VIEW_MENU_ITEM: RegExp =
   /title:\s*(?:isResource \? "([^"]+)" : )?"([^"]+)"/g;
 const FENCE_INFO_TITLE: RegExp = /title="([^"]+)"/;
+const ACCOUNT_MENU_ITEM: RegExp = /title: "([^"]+)"/g;
 
 interface MenuSection {
   title: string;
@@ -152,6 +157,26 @@ function englishPage(page: string): string {
 // The text of an English page without its code samples.
 function pageProse(page: string): string {
   return prose(englishPage(page));
+}
+
+/*
+ * A cloud account's side menu, which is JSX: a <SideMenuSection title="...">
+ * per section, each item's title in its link, in order.
+ */
+function accountMenu(): Array<MenuSection> {
+  return readSource(CLOUD_ACCOUNT_SIDE_MENU)
+    .split('<SideMenuSection title="')
+    .slice(1)
+    .map((part: string): MenuSection => {
+      return {
+        title: part.slice(0, part.indexOf('"')),
+        items: Array.from(part.matchAll(ACCOUNT_MENU_ITEM)).map(
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
+        ),
+      };
+    });
 }
 
 // A side menu's sections, each with the titles of its items, in order.
@@ -459,6 +484,43 @@ describe("the menu paths", () => {
     expect(pageProse(RESOURCES)).toContain("its **Metrics** tab");
     expect(pageProse(RESOURCES)).toContain("on its **Settings** tab");
     expect(pageProse(RESOURCES)).toContain("resource's **Documentation** tab");
+  });
+});
+
+describe("a cloud account's own pages", () => {
+  it("names an account's pages, and its Overview's AI agent card and button, as the account's side menu and Overview draw them", () => {
+    const sections: Array<MenuSection> = accountMenu();
+    const accounts: string = pageProse(CLOUD_ACCOUNTS).replace(/\s+/g, " ");
+    const card: string = readSource(CLOUD_AI_AGENT_CARD);
+
+    expect(sections).toContainEqual({
+      title: "Basic",
+      items: ["Overview", "Resources", "Topology"],
+    });
+    // What AI did first, its agent last, as every resource's AI section.
+    expect(sections).toContainEqual({
+      title: "AI",
+      items: ["Logs", "AI agent"],
+    });
+    expect(sections).toContainEqual({
+      title: "Activity",
+      items: ["Changes", "Feed"],
+    });
+    expect(accounts).toContain(
+      "Its **Resources** lists them, its **Changes** lists what changed in it, newest first, and its **Topology** draws",
+    );
+    // The account's feed, under Activity: what happened to it in OneUptime.
+    expect(accounts).toContain(
+      "Its **Feed** records how the account came to OneUptime, its Cloud AI agent connecting or being reset, and who changed what OneUptime AI may do in it.",
+    );
+
+    // The Overview's AI agent card, and the one button it has until an agent connects.
+    expect(readSource(CLOUD_ACCOUNT_OVERVIEW)).toContain("<CloudAiAgentCard");
+    expect(card).toContain('title="AI agent"');
+    expect(card).toContain('title="Let AI fix problems"');
+    expect(accounts).toContain(
+      "open the account under **Cloud → Accounts** and select **Let AI fix problems** in the **AI agent** card of its **Overview**.",
+    );
   });
 });
 

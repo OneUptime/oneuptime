@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nothing to backfill: the column is nullable, and empty on every run there
  * is - no page carried a message of its own before.
  */
-export class AddOnCallPageMessage1808470000000 implements MigrationInterface {
-  public name: string = "AddOnCallPageMessage1808470000000";
+export class AddOnCallPageMessage1808490000000 implements MigrationInterface {
+  public name: string = "AddOnCallPageMessage1808490000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -104,6 +104,7 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Rule exceptions | `Rule Exception` |
 | Watchlists | `Watchlist` |
 | Watchlist values | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Security case tasks and evidence | `Security Case Task`, `Security Case Evidence` |
 | Audit log exports | `Audit Log Export` |
 

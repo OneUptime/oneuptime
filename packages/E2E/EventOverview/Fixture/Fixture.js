@@ -81,7 +81,8 @@
  *            refused), page-now (Page now on a page OneUptime AI holds is
  *            refused, as the server refuses someone who may not page
  *            on-call policies: "You need permission to page on-call
- *            policies to page now."). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            policies to page now."), dry-run (Dry run on a cloud fix,
+ *            ?cloudfix=, is refused: the account's agent is offline). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -252,6 +253,18 @@
  *            automatically" switches are on now (and Enable AI). By
  *            default they are off - and with ?ai=off-project so is Enable
  *            AI.
+ *   ?cloudfix= would-run | refused | failed | running | none: OneUptime AI
+ *            proposes a fix for Incident #1042 that changes the AWS
+ *            account "prod" - scale the checkout-api ECS service out to 8
+ *            tasks - waiting for approval, with the latest dry run of the
+ *            change (CloudChangeDryRun): it would run (the call it would
+ *            make and its undo), the agent would refuse it (the service
+ *            lacks the required tag), the dry run could not answer (the
+ *            agent did not pick it up), it is being checked, or none yet.
+ *            Dry run / Dry run again posts /auto-remediation/dry-run: the
+ *            change is being checked at once and would run a second later,
+ *            which the card reads on its next poll. ?fail=dry-run refuses
+ *            the click.
  *
  * Every read and write is recorded on window.__eventOverviewFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -590,6 +603,11 @@ const fixingMode = FIXING_MODES.includes(params.get("fixing"))
     ? DEFAULT_FIXING_MODES[aiMode]
     : "none";
 const switchesMode = params.get("switches") === "on" ? "on" : "off";
+// ?cloudfix=: a fix for Incident #1042 that changes an AWS account, and its dry run.
+const CLOUD_FIX_MODES = ["would-run", "refused", "failed", "running", "none"];
+const cloudFixMode = CLOUD_FIX_MODES.includes(params.get("cloudfix"))
+  ? params.get("cloudfix")
+  : "";
 // Enable AI is off now only for off-project while the switches stay off.
 const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
 const resourcesMode = ["many", "none"].includes(params.get("resources"))
@@ -852,6 +870,7 @@ const fixture = {
     decided: decidedMode,
     fixing: fixingMode,
     switches: switchesMode,
+    cloudfix: cloudFixMode,
     hold: isAiHoldMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
@@ -4340,6 +4359,120 @@ if (fixingMode !== "none") {
   });
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * A cloud fix and its dry run (?cloudfix=): OneUptime AI proposes, for
+ * approval, scaling the checkout-api ECS service of the AWS account "prod"
+ * out from 4 tasks to 8 - one command of a resource round's plan, as
+ * RemediationExecutionRunner settles it - and OneUptime dry-ran the change
+ * first (CloudChangeDryRun). The dry runs below say what the server keeps
+ * of the Cloud AI agent's answer (readCloudDryRunOutcome): its own words,
+ * after the verdict, the replaced-value line and the lead sentence.
+ * ---------------------------------------------------------------------------
+ */
+const CLOUD_FIX_SUGGESTION_ID = uuid("93000000", 1);
+const CLOUD_FIX_SERVICE =
+  "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout-api";
+const CLOUD_FIX_COMMAND = `cloud scale-out ${CLOUD_FIX_SERVICE} --count 8`;
+
+function cloudFixDryRun(mode, checkedAt) {
+  if (mode === "would-run") {
+    return {
+      status: "WouldRun",
+      checkedAt: checkedAt.toISOString(),
+      summary: `It would make ecs:UpdateService with desiredCount, and nothing else.\nTo undo it: cloud scale-in ${CLOUD_FIX_SERVICE} --count 4`,
+      replaced: { count: "4" },
+      runnerJobId: uuid("94000000", 1),
+    };
+  }
+  if (mode === "refused") {
+    return {
+      status: "WouldBeRefused",
+      checkedAt: checkedAt.toISOString(),
+      summary: `The agent only changes resources that carry the tag oneuptime-ai=allow (ONEUPTIME_AI_CLOUD_REQUIRED_TAG), and the ECS service ${CLOUD_FIX_SERVICE} does not. Add the tag to the resource to let OneUptime AI change it.`,
+      runnerJobId: uuid("94000000", 1),
+    };
+  }
+  if (mode === "failed") {
+    return {
+      status: "Failed",
+      checkedAt: checkedAt.toISOString(),
+      summary:
+        "The Cloud AI agent did not pick up the command in time (within 60 seconds) — it may be offline, restarting or busy with other work. Nothing was run on the account.",
+      runnerJobId: uuid("94000000", 1),
+    };
+  }
+  if (mode === "running") {
+    return { status: "Running", checkedAt: checkedAt.toISOString() };
+  }
+  return undefined;
+}
+
+function cloudFixCommandPlan(dryRun) {
+  return {
+    commands: [
+      {
+        sequence: 1,
+        stepType: "ResourceCommand",
+        runnerId: uuid("95000000", 1),
+        runnerNameSnapshot: "Cloud AI agent",
+        resourceType: "AwsAccount",
+        resourceId: uuid("96000000", 1),
+        resourceNameSnapshot: "prod",
+        resourceCommandTier: "SafeWrite",
+        command: CLOUD_FIX_COMMAND,
+        timeoutInMs: 60000,
+        rationale:
+          "checkout-api's 4 tasks have run at 100% CPU since 17:52, and checkout requests queue behind them.",
+        expectedEffect:
+          "Twice the tasks take the queue: p95 latency falls back under 500 ms within 5 minutes.",
+        policyVerdict: "RequiresApproval",
+        ...(dryRun ? { dryRun } : {}),
+      },
+    ],
+  };
+}
+
+if (cloudFixMode) {
+  insert(AutoRemediationSuggestion, {
+    _id: CLOUD_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Suggested",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for AWS account "prod"',
+    resourceType: "AwsAccount",
+    resourceId: new ObjectID(uuid("96000000", 1)),
+    commandPlan: cloudFixCommandPlan(
+      cloudFixDryRun(
+        cloudFixMode,
+        cloudFixMode === "running" ? ago(20 * 1000) : ago(2 * 60 * 1000),
+      ),
+    ),
+    createdAt: at("18:03", 12),
+  });
+}
+
+/*
+ * Dry run / Dry run again (POST /auto-remediation/dry-run): the change is
+ * being checked at once, and would run a second later. Each change hands
+ * out a new plan, so a read never shares one with an earlier read.
+ */
+function startCloudFixDryRun(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  if (!record || record.status !== "Suggested") {
+    throw fail(
+      400,
+      "This fix no longer waits for approval, so there is nothing to dry-run.",
+    );
+  }
+  record.commandPlan = cloudFixCommandPlan(cloudFixDryRun("running", NOW));
+  setTimeout(() => {
+    record.commandPlan = cloudFixCommandPlan(cloudFixDryRun("would-run", NOW));
+  }, 1000);
+}
+
 const investigations = {
   incident: defineInvestigation({
     subjectType: "incident",
@@ -7252,6 +7385,22 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && url.endsWith("/security-case/incident-security")) {
     return ok(incidentSecurity(body));
+  }
+
+  /*
+   * Dry run on a cloud fix (?cloudfix=), as AutoRemediationAPI starts one;
+   * ?fail=dry-run refuses it, as the server does when the account's agent
+   * is offline.
+   */
+  if (method === "POST" && url.endsWith("/auto-remediation/dry-run")) {
+    if (failures.has("dry-run")) {
+      throw fail(
+        400,
+        "The Cloud AI agent of this AWS account is offline, so the change cannot be dry-run. Nothing was changed.",
+      );
+    }
+    startCloudFixDryRun(body.suggestionId);
+    return ok({});
   }
 
   // An incident call's transcript routes (?calls=).

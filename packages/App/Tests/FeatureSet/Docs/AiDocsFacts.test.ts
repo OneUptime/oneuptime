@@ -2349,6 +2349,46 @@ describe("AI SRE and the infrastructure AI agents", () => {
     );
   });
 
+  /*
+   * A cloud account is investigated with no agent: OneUptime reads it live
+   * through the connection it was connected with, so a missing agent blocks
+   * only its fixes and a missing connection only its investigation. Its
+   * fixes are the Cloud AI agent's, which runs in the account.
+   */
+  it("says a cloud account is investigated with no agent and fixed by its Cloud AI agent, as the readiness and the investigation tool decide it", () => {
+    const access: string = flat(
+      readRepoFile("Common/Server/Services/ResourceAiAccessService.ts"),
+    );
+    const toolkit: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/AI/ResourceAccess/InfrastructureInvestigationToolkit.ts",
+      ),
+    );
+    const types: string = readRepoFile(
+      "Common/Types/ResourceAiAgent/AiResourceType.ts",
+    );
+    const lead: string = englishPage(INFRASTRUCTURE_AI_AGENTS).split(
+      "\n",
+    )[4] as string;
+
+    expect(access).toContain(
+      "const agentGapBlocksInvestigation: boolean = !isCloudAccount;",
+    );
+    expect(access).toContain(
+      'code: "cloud_connection_missing", title: `No cloud connection reads this ${noun}`,',
+    );
+    expect(toolkit).toContain(
+      "isCloudAiResourceType(resource.resourceType) && isCloudServerRead({ resourceType: resource.resourceType, command })",
+    );
+    // The three clouds' agent, by the name the AI agent pages give it.
+    expect(types.split('agentDisplayName: "Cloud AI agent",').length - 1).toBe(
+      3,
+    );
+    expect(lead).toBe(
+      "An AWS account, an Azure subscription or a Google Cloud project needs no agent to be investigated: OneUptime reads it live, through the read-only connection it was connected with. Only its fixes need one, the Cloud AI agent, which runs in the account itself and is set up with one command from the account's page (see [In a cloud account](#in-a-cloud-account)).",
+    );
+  });
+
   it("says the resource AI agent asks for work every 3 seconds, as its loop does", () => {
     const config: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "..", "agents/ResourceAIAgent/Config.ts"),
