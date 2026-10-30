@@ -1,0 +1,144 @@
+# The daily update check asks GitHub which OneUptime release is the latest and
+# which security advisories OneUptime published, and tells master admins when
+# one affects the version the installation runs. It is the one outbound call an
+# air-gapped or privacy-minded installation has to be able to stop, or point at
+# a mirror inside its network, so each value has to reach the containers that
+# run the check - the app, and the worker when it runs on its own - and a
+# values file written before securityAdvisoriesUrl existed has to keep
+# rendering:
+#
+#   - updateCheck.disabled                -> DISABLE_UPDATE_CHECK
+#   - updateCheck.url                     -> LATEST_RELEASE_CHECK_URL
+#   - updateCheck.securityAdvisoriesUrl   -> SECURITY_ADVISORIES_CHECK_URL
+#
+# Unset, the URLs are empty and the server uses GitHub's own addresses
+# (Common/Server/EnvironmentConfig.ts).
+suite: update check
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: checks GitHub by default, with GitHub's own addresses
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_UPDATE_CHECK
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LATEST_RELEASE_CHECK_URL
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SECURITY_ADVISORIES_CHECK_URL
+            value: ""
+
+  - it: turns the whole check off - releases and security advisories - with one value
+    templates:
+      - templates/app.yaml
+    set:
+      updateCheck.disabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_UPDATE_CHECK
+            value: "true"
+
+  - it: points the security advisory check at a mirror
+    templates:
+      - templates/app.yaml
+    set:
+      updateCheck.securityAdvisoriesUrl: https://mirror.acme.internal/github/repos/OneUptime/oneuptime/security-advisories
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SECURITY_ADVISORIES_CHECK_URL
+            value: https://mirror.acme.internal/github/repos/OneUptime/oneuptime/security-advisories
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LATEST_RELEASE_CHECK_URL
+            value: ""
+
+  - it: points the release check at a mirror, leaving the advisories at GitHub
+    templates:
+      - templates/app.yaml
+    set:
+      updateCheck.url: https://mirror.acme.internal/github/repos/OneUptime/oneuptime/releases/latest
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LATEST_RELEASE_CHECK_URL
+            value: https://mirror.acme.internal/github/repos/OneUptime/oneuptime/releases/latest
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SECURITY_ADVISORIES_CHECK_URL
+            value: ""
+
+  # A null in a values file removes the chart's default, as a values file
+  # written before the key existed leaves it out.
+  - it: renders a values file written before securityAdvisoriesUrl existed
+    templates:
+      - templates/app.yaml
+    set:
+      updateCheck.securityAdvisoriesUrl: null
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SECURITY_ADVISORIES_CHECK_URL
+            value: ""
+
+  - it: reaches the worker when it runs as a deployment of its own
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+      updateCheck.disabled: true
+      updateCheck.securityAdvisoriesUrl: https://mirror.acme.internal/advisories
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_UPDATE_CHECK
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SECURITY_ADVISORIES_CHECK_URL
+            value: https://mirror.acme.internal/advisories
+
+  - it: refuses a value the chart does not know under updateCheck
+    templates:
+      - templates/app.yaml
+    set:
+      updateCheck.securityAdvisoryUrl: https://typo.example
+    asserts:
+      - failedTemplate: {}

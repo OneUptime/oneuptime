@@ -227,6 +227,7 @@ import { AddCloudAccountAiAccess1808470000000 } from "./1808470000000-AddCloudAc
 import { AddCloudAccountFeed1808480000000 } from "./1808480000000-AddCloudAccountFeed";
 import { AddDataSecurity1808500000000 } from "./1808500000000-AddDataSecurity";
 import { AddOnCallPageMessage1808510000000 } from "./1808510000000-AddOnCallPageMessage";
+import { AddUpdateCheckSecurityAdvisoryColumns1808540000000 } from "./1808540000000-AddUpdateCheckSecurityAdvisoryColumns";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1656,4 +1657,5 @@ export default [
   AddCloudAccountFeed1808480000000,
   AddDataSecurity1808500000000,
   AddOnCallPageMessage1808510000000,
+  AddUpdateCheckSecurityAdvisoryColumns1808540000000,
 ];
