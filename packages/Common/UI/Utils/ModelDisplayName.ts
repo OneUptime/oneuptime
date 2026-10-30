@@ -9,6 +9,13 @@
  * say the same thing about the same record.
  */
 
+import {
+  RecordNumberColumns,
+  getNumberedRecordName,
+  getRecordNumber,
+  getRecordNumberColumns,
+} from "../../Utils/Project/RecordNumber";
+
 /*
  * The parts of a model this module reads. Database and analytics models both
  * have hasColumn; only database models carry the slug and the declared
@@ -200,6 +207,13 @@ export interface GetRecordDisplayNameOptions {
  * Relations are not followed. A team member row carries its user's name, but
  * "delete Jane Doe" would be a lie about a row that only takes Jane off a
  * team.
+ *
+ * A record its project numbers - an incident, an alert, a scheduled
+ * maintenance event, an episode, a security case - is named by its number
+ * first when the record carries it: "Pick the next state for INC-18
+ * Manually declared.", "Are you sure you want to delete ALT-7 CPU high?".
+ * Two of them can share a title, and the dialog is where someone has to be
+ * sure which one it is (Utils/Project/RecordNumber).
  */
 export const getRecordDisplayName: (
   record: unknown,
@@ -229,17 +243,35 @@ export const getRecordDisplayName: (
   DISPLAY_NAME_COLUMNS.forEach(addColumn);
   LAST_RESORT_COLUMNS.forEach(addColumn);
 
+  let name: string = "";
+
   for (const column of columns) {
     const text: string = readDisplayText(fields[column]);
 
     if (text) {
-      return options?.maxLength === 0
-        ? text
-        : shortenDisplayName(text, options?.maxLength);
+      name = text;
+      break;
     }
   }
 
-  return "";
+  // The model's own columns first; else the record's, when it is a model.
+  const numberColumns: RecordNumberColumns | null =
+    getRecordNumberColumns(options?.model) || getRecordNumberColumns(record);
+
+  const numberedName: string = getNumberedRecordName({
+    number: numberColumns
+      ? readDisplayText(getRecordNumber(record, numberColumns))
+      : "",
+    name: name,
+  });
+
+  if (!numberedName) {
+    return "";
+  }
+
+  return options?.maxLength === 0
+    ? numberedName
+    : shortenDisplayName(numberedName, options?.maxLength);
 };
 
 export interface NameListSummary {

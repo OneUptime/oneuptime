@@ -20,6 +20,7 @@ export interface ComponentProps {
    * holder sets [overflow-wrap:anywhere] for a part still too long.
    */
   breaksLikeAName?: boolean | undefined;
+  dataTestId?: string | undefined;
 }
 
 /*
@@ -46,6 +47,7 @@ const IsolatedText: FunctionComponent<ComponentProps> = (
       dir={direction || undefined}
       className={props.className}
       title={props.title}
+      data-testid={props.dataTestId}
     >
       {props.breaksLikeAName ? <BreakableName text={props.text} /> : props.text}
     </bdi>

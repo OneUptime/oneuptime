@@ -45,6 +45,10 @@ import {
   DetectionRetrohuntResult,
   parseDetectionRetrohuntResult,
 } from "Common/Types/SecurityEvent/DetectionRetrohunt";
+import {
+  SecurityCaseEventsAddResult,
+  readSecurityCaseEventsAddResult,
+} from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -356,6 +360,33 @@ export default class SecurityCaseApi {
     const body: JSONObject = await post("/detection-rule/retrohunt", request);
 
     return parseDetectionRetrohuntResult(body);
+  }
+
+  /*
+   * Security events kept on a case as evidence (POST
+   * /security-case-evidence/add-events), read by OneUptime as the person
+   * asking: which were kept, which the case kept already, and which were
+   * not found - each by its id. `huntId` names the hunt that found them.
+   */
+  public static async addEventsToCase(data: {
+    caseId: ObjectID;
+    events: Array<{ eventUid: string; time: Date }>;
+    huntId?: ObjectID | undefined;
+  }): Promise<SecurityCaseEventsAddResult> {
+    return readSecurityCaseEventsAddResult(
+      await post("/security-case-evidence/add-events", {
+        securityCaseId: data.caseId.toString(),
+        events: data.events.map(
+          (event: { eventUid: string; time: Date }): JSONObject => {
+            return {
+              eventUid: event.eventUid,
+              time: event.time.toISOString(),
+            };
+          },
+        ),
+        ...(data.huntId ? { securityHuntId: data.huntId.toString() } : {}),
+      }),
+    );
   }
 
   /*

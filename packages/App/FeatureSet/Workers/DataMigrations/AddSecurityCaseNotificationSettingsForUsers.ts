@@ -12,7 +12,9 @@ import logger from "Common/Server/Utils/Logger";
  * Every accepted member of every project, once each, given every security
  * case notification setting they do not have yet
  * (UserNotificationSettingService.addSecurityCaseNotificationSettings: email
- * and push on). `migrationName` names the migration in what is logged.
+ * and push on), or the settings `addSettings` writes - a later Security
+ * event's (AddSecurityHuntNotificationSettingsForUsers). `migrationName`
+ * names the migration in what is logged.
  *
  * Idempotent: addSecurityCaseNotificationSettings is a count-then-create per
  * (user, project, eventType), and a row a member already has is left as it
@@ -20,6 +22,15 @@ import logger from "Common/Server/Utils/Logger";
  */
 export async function addSecurityCaseNotificationSettingsForMembers(
   migrationName: string,
+  addSettings: (userId: ObjectID, projectId: ObjectID) => Promise<void> = (
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> => {
+    return UserNotificationSettingService.addSecurityCaseNotificationSettings(
+      userId,
+      projectId,
+    );
+  },
 ): Promise<void> {
   const projects: Array<Project> = await ProjectService.findAllBy({
     query: {},
@@ -75,10 +86,7 @@ export async function addSecurityCaseNotificationSettingsForMembers(
       seenUserIds.add(userId.toString());
 
       try {
-        await UserNotificationSettingService.addSecurityCaseNotificationSettings(
-          userId,
-          projectId,
-        );
+        await addSettings(userId, projectId);
       } catch (err) {
         logger.error(
           `${migrationName}: failed to add the security case notification settings for user ${userId.toString()} in project ${projectId.toString()}: ${err}`,

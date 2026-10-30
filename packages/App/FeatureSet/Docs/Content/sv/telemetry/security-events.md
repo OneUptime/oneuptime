@@ -5,6 +5,7 @@ OneUptime lagrar säkerhetshändelser bredvid dina loggar, spår och metriker, o
 :::cards
 - [Skicka händelser](#skicka-säkerhetshändelser): En HTTPS-POST, en Fluent Bit-utdata eller en anslutning till en säkerhetsprodukt.
 - [Sök och korrelera](#utforska-säkerhetshändelser): Händelseutforskaren och korrelationsgrafen.
+- [Hunts](#hunts): Sparade sökningar som körs enligt ett schema och aviserar personer när de hittar något.
 - [Detektionsregler](#detektionsregler): Sigma-regler som öppnar ärenden och larm.
 - [Monitorer](#monitorer-för-säkerhetshändelser): Räkningar över ett glidande fönster, med en status som återhämtar sig.
 :::
@@ -36,6 +37,7 @@ flowchart TB
 | **Stängda ärenden** | Säkerhetsärenden | Ärendena som stängts med ett utfall, de senaste först |
 | **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
+| **Hunts** | Händelser | Sökningar sparade från Händelser, öppnade igen med ett klick eller körda enligt ett schema som aviserar personer när de hittar något |
 | **Campaigns** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
 | **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
@@ -252,6 +254,45 @@ En händelse läst från en loggrad som skrevs inuti en spårad förfrågan föl
 ### Korrelera
 
 **Korrelera** ritar händelserna runt en värd, en användare eller en IP-adress: deras händelseklasser runt det du sökte efter, markerade med sin värsta allvarlighetsgrad, och de andra värdena från samma händelser på den yttre ringen. Klicka på en klass för att lista dess händelser, eller på ett värde för att korrelera på det härnäst. Varje observable i en händelses panel under **Händelser** öppnar **Korrelera** på den.
+
+## Hunts
+
+En hunt är en sökning i dina säkerhetshändelser som sparats med ett namn: sökfältets text, sidopanelens filter och hur långt bakåt den tittar. Öppna den igen med ett klick, kör den enligt ett schema som aviserar personer när den hittar något, och spara händelserna den hittar i ett ärende.
+
+### Spara en sökning som en hunt
+
+Sök och filtrera under **Händelser** tills listan visar det du letar efter, öppna sedan **Hunts** i verktygsfältet och välj **Spara som hunt**. Ge den ett namn, välj om den körs enligt ett schema, så öppnas dess sida. **Händelser → Hunts** listar projektets hunts, var och en med sin sökning, hur ofta den körs, vem den aviserar och vad dess senaste körning hittade; **Skapa Hunt** tar där sökningen som du skulle skriva den under **Händelser**. Ett projekt kan ha upp till 200 hunts.
+
+En hunts sida är dess sökning, öppnad i händelseutforskaren. Ändra sökningen eller filtren där, så erbjuder huntens rubrik **Spara ändringar** och **Kasta ändringar**. **Redigera** ändrar dess namn, dess sökning, hur långt bakåt den tittar, dess schema och vem den aviserar, och **Ta bort hunt** finns i dess meny. Från Security Member och uppåt kan man spara, ändra och ta bort hunts, och en Security Viewer kan öppna dem.
+
+### Kör en hunt enligt ett schema
+
+| Schema | Körs |
+| --- | --- |
+| **Inte schemalagd** | Bara när du öppnar den |
+| **Varje timme**, **Var 6:e timme**, **Varje dag**, **Varje vecka** | Av sig själv, så ofta |
+
+En schemalagd hunt aviserar de personer och team som du väljer under **Avisera**: minst en och högst 50 totalt. Varje körning:
+
+- läser händelserna vars tid ligger efter körningen innan, fram till för två minuter sedan, så att varje händelse söks igenom en gång. Den första körningen läser från när schemat sattes eller sökningen senast ändrades, och efter ett avbrott tar en körning igen högst en dag mer än sitt intervall.
+- räknar händelserna som dess sökning hittar där, precis som **Händelser** skulle lista dem, och läser bara det som personen den körs som får läsa.
+- aviserar, när den hittar händelser, de personer som hunten nämner, och medlemmarna i de team den nämner, som får läsa hunts och säkerhetshändelser.
+
+En körning öppnar inget ärende och utlöser inget larm: skriv det som ska öppna ärenden som en [detektionsregel](#detektionsregler). En körning vars sökning tar för lång tid, eller som inte kan läsa händelserna, säger varför på hunten och försöks igen inom en timme, från där den slutade.
+
+En schemalagd hunt körs som den person som senast satte dess schema, ändrade dess sökning eller sparade den med **Redigera**. En API-nyckel kan inte sätta ett schema. När den personen lämnar projektet eller inte längre får läsa säkerhetshändelser, säger hunten det: öppna **Redigera** och spara den för att köra den som dig.
+
+### Vem som aviseras
+
+Aviseringen **En hunt hittade säkerhetshändelser** nämner hunten och dess sökning, hur många händelser körningen hittade och vilket fönster den läste, och länkar till huntens sida för de händelserna; inga av händelsernas egna ord finns i den. Alla får den via e-post och push och väljer dess kanaler under **Användarinställningar → Aviseringsinställningar**. Liksom andra rutinmejl kan den hållas tillbaka i en [mejlsammanställning](/docs/emails/notification-rollup).
+
+### Spara händelser i ett ärende
+
+Markera händelser under **Händelser** eller på en hunts sida och välj **Massåtgärder → Lägg till i ärende**, eller öppna en händelse och välj **Lägg till i ärende**. Välj ett öppet ärende efter nummer eller titel. Upp till 100 händelser åt gången.
+
+OneUptime läser varje händelse igen som dig och sparar den som den var på ärendets sida **Bevis**, så att ärendet fortfarande visar den efter att händelsens lagringstid har gått ut. En händelse som du inte får läsa sparas inte, och en som ärendet redan sparar lämnas som den är. En händelse som hittats via en hunt nämner hunten, och **Visa händelse** öppnar den som den sparades.
+
+Hunts har samma REST-API som resten av OneUptime, under `/security-hunt`, och `POST /security-case-evidence/add-events` sparar händelser i ett ärende. Se [API-referens](/docs/api-reference/api-reference).
 
 ## Detektionsregler
 

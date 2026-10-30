@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 37063,
+    "keys": 37165,
     "untranslated": 13348
   },
   "sameAsEnglish": [
@@ -52,6 +52,8 @@
     "Gemini for Google Workspace",
     "Google SecOps",
     "Goroutines",
+    "Hunt",
+    "Hunts",
     "ICMP (ping)",
     "INP 120 ms",
     "INP 168 ms",

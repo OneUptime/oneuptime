@@ -133,6 +133,7 @@ Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impost
 
 - **Gli elenchi si aggiornano da soli.** Quando un incidente o un avviso viene creato, preso in carico o risolto ovunque, gli elenchi di incidenti, avvisi ed episodi lo mostrano in pochi secondi, senza ricaricare. Mentre sei nel mezzo di qualcosa in un elenco, ad esempio con righe selezionate o una finestra di dialogo aperta, l'elenco aspetta e si aggiorna quando hai finito.
 - **Su un telefono i chip dei filtri si richiudono** dietro **Filtro**, così l'elenco comincia più in alto. I chip che hai impostato restano in vista, con **Cancella tutto**. Premi **Filtro** per vedere tutti i chip, e di nuovo per richiuderli.
+- **Le pagine di un incidente si aprono con il suo numero.** Il titolo, il suo passo nel percorso e la scheda del browser mostrano `INC-42 Checkout is down`, e così le finestre di dialogo che lo nominano, perciò gli incidenti con lo stesso titolo si distinguono. Avvisi, eventi di manutenzione programmata ed episodi fanno lo stesso.
 
 ## Cercare una pagina, un'impostazione o un'azione
 
@@ -141,7 +142,7 @@ Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona
 - **Ogni pagina dei menu**, con il nome che il menu le dà: Chiavi API, Zona pericolosa, Pianificazioni di reperibilità, Gravità incidente, i tuoi Metodi di notifica. Ogni risultato dice dove si trova, per esempio *Impostazioni del progetto › Avanzato*, così le pagine con lo stesso nome (Campi personalizzati in Incidenti, Avvisi e Monitor) si distinguono facilmente.
 - **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Canali di notifica* trova Impostazioni notifiche. Digita il nome in inglese o nella tua lingua.
 - **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
-- **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome.
+- **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome, e incidenti e avvisi anche per numero, come `INC-42`. Ogni risultato di un incidente o di un avviso comincia con il suo numero, così due con lo stesso titolo si distinguono.
 
 La ricerca legge ciò che digiti come lo intendi:
 

@@ -104,6 +104,7 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | Regelundtagelser | `Rule Exception` |
 | Overvågningslister | `Watchlist` |
 | Overvågningslisteværdier | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Sikkerhedssagers opgaver og beviser | `Security Case Task`, `Security Case Evidence` |
 | Eksporter af auditloggen | `Audit Log Export` |
 

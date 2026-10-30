@@ -133,6 +133,7 @@ Au-dessus du titre de chaque page, un fil comme *Projet › Docker › Paramètr
 
 - **Les listes se tiennent à jour d'elles-mêmes.** Quand un incident ou une alerte est créé, pris en compte ou résolu n'importe où, les listes d'incidents, d'alertes et d'épisodes l'affichent en quelques secondes, sans actualiser. Tant que vous êtes au milieu de quelque chose sur une liste, par exemple des lignes cochées ou une boîte de dialogue ouverte, elle attend et se met à jour quand vous avez terminé.
 - **Sur un téléphone, les puces de filtre se replient** derrière **Filtre**, pour que la liste commence plus haut. Les puces que vous avez définies restent visibles, avec **Tout effacer**. Appuyez sur **Filtre** pour voir toutes les puces, et à nouveau pour les replier.
+- **Les pages d'un incident commencent par son numéro.** Son titre, son étape dans le fil et l'onglet du navigateur affichent `INC-42 Checkout is down`, de même que les boîtes de dialogue qui le nomment, si bien que les incidents qui partagent un titre se distinguent. Les alertes, les événements de maintenance planifiée et les épisodes font de même.
 
 ## Rechercher une page, un paramètre ou une action
 
@@ -141,7 +142,7 @@ Appuyez sur **Cmd+K** (Mac) ou **Ctrl+K** (Windows et Linux), ou cliquez sur l'i
 - **Chaque page des menus**, sous le nom que le menu lui donne : Clés API, Zone de danger, Plannings d'astreinte, Gravité de l'incident, vos propres Méthodes de notification. Chaque résultat indique où il se trouve, par exemple *Paramètres du projet › Avancé*, si bien que les pages qui portent le même nom (Champs personnalisés dans Incidents, Alertes et Moniteurs) se distinguent facilement.
 - **Les paramètres d'une page**, sous le nom qu'affiche leur carte ou leur interrupteur : *Exiger le SSO pour la connexion* trouve SSO, et *Canaux de notification* trouve Paramètres de notification. Tapez le nom en anglais ou dans votre langue.
 - **Actions**, d'après ce que vous voulez faire : Déclarer un incident, Créer un moniteur, ou Supprimer le projet, qui ouvre la Zone de danger. Une action qui modifie quelque chose n'est proposée qu'aux personnes autorisées à la faire.
-- **Vos moniteurs, incidents, alertes, pages de statut et politiques d'astreinte**, par leur nom.
+- **Vos moniteurs, incidents, alertes, pages de statut et politiques d'astreinte**, par leur nom, et les incidents et les alertes aussi par leur numéro, comme `INC-42`. Chaque résultat d'incident ou d'alerte commence par son numéro, si bien que deux du même titre se distinguent.
 
 La recherche lit ce que vous tapez comme vous l'entendez :
 

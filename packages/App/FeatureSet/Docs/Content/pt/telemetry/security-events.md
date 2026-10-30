@@ -5,6 +5,7 @@ O OneUptime guarda os eventos de segurança ao lado dos seus logs, traces e mét
 :::cards
 - [Enviar eventos](#enviar-eventos-de-segurança): Um POST HTTPS, uma saída do Fluent Bit ou uma conexão com um produto de segurança.
 - [Pesquisar e correlacionar](#explorar-os-eventos-de-segurança): O explorador de eventos e o grafo de correlação.
+- [Caçadas](#caçadas): Pesquisas salvas que são executadas em um agendamento e avisam pessoas quando encontram algo.
 - [Regras de detecção](#regras-de-detecção): Regras Sigma que abrem casos e alertas.
 - [Monitores](#monitores-de-eventos-de-segurança): Contagens em uma janela deslizante, com um status que se recupera.
 :::
@@ -36,6 +37,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Casos fechados** | Casos de segurança | Os casos fechados com um veredicto, os mais recentes primeiro |
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
+| **Caçadas** | Eventos | Pesquisas salvas a partir de Eventos, abertas de novo com um clique ou executadas em um agendamento que avisa pessoas quando encontram algo |
 | **Campaigns** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
@@ -252,6 +254,45 @@ Um evento lido de uma linha de log escrita dentro de uma requisição rastreada 
 ### Correlacionar
 
 **Correlacionar** desenha os eventos em torno de um host, um usuário ou um endereço IP: as classes de evento deles em torno do que você pesquisou, marcadas pela pior gravidade, e os outros valores vistos nos mesmos eventos no anel externo. Clique em uma classe para listar os eventos dela, ou em um valor para correlacionar a partir dele. Cada observable no painel de um evento em **Eventos** abre **Correlacionar** sobre ele.
+
+## Caçadas
+
+Uma caçada é uma pesquisa sobre seus eventos de segurança salva com um nome: o texto da barra de pesquisa, os filtros da barra lateral e até quando ela olha para trás. Abra-a de novo com um clique, execute-a em um agendamento que avisa pessoas quando ela encontra algo, e guarde em um caso os eventos que ela encontra.
+
+### Salvar uma pesquisa como caçada
+
+Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depois abra **Caçadas** na barra de ferramentas e escolha **Salvar como caçada**. Dê um nome a ela, escolha se ela é executada em um agendamento, e a página dela se abre. **Eventos → Caçadas** lista as caçadas do projeto, cada uma com sua pesquisa, a frequência com que é executada, quem ela avisa e o que sua última execução encontrou; **Criar: Caçada** ali recebe a pesquisa como você a digitaria em **Eventos**. Um projeto guarda até 200 caçadas.
+
+A página de uma caçada é a pesquisa dela, aberta no explorador de eventos. Mude ali a pesquisa ou os filtros, e o cabeçalho da caçada oferece **Salvar alterações** e **Descartar alterações**. **Editar** muda o nome, a pesquisa, até quando ela olha para trás, o agendamento e quem ela avisa, e **Excluir caçada** fica no menu dela. A partir de Security Member é possível salvar, alterar e excluir caçadas, e um Security Viewer pode abri-las.
+
+### Executar uma caçada em um agendamento
+
+| Agendamento | É executada |
+| --- | --- |
+| **Não agendada** | Só quando você a abre |
+| **A cada hora**, **A cada 6 horas**, **Todos os dias**, **Toda semana** | Sozinha, com essa frequência |
+
+Uma caçada agendada avisa as pessoas e equipes que você escolhe em **Notificar**: pelo menos uma, e no máximo 50 no total. Cada execução:
+
+- lê os eventos cujo horário vem depois da execução anterior, até dois minutos atrás, então cada evento é pesquisado uma vez. A primeira execução lê a partir do momento em que o agendamento foi definido ou a pesquisa foi alterada pela última vez, e depois de uma interrupção uma execução recupera no máximo um dia a mais que seu intervalo.
+- conta os eventos que sua pesquisa encontra ali, exatamente como **Eventos** os listaria, lendo só o que a pessoa com quem ela é executada pode ler.
+- quando encontra eventos, avisa as pessoas que a caçada nomeia, e os membros das equipes que ela nomeia, que podem ler caçadas e eventos de segurança.
+
+Uma execução não abre nenhum caso nem dispara nenhum alerta: escreva o que deve abrir casos como uma [regra de detecção](#regras-de-detecção). Uma execução cuja pesquisa demora demais, ou que não consegue ler os eventos, diz o porquê na caçada e é tentada de novo dentro de uma hora, a partir de onde parou.
+
+Uma caçada agendada é executada com a pessoa que por último definiu seu agendamento, alterou sua pesquisa ou a salvou com **Editar**. Uma chave de API não pode definir um agendamento. Quando essa pessoa sai do projeto ou não pode mais ler eventos de segurança, a caçada avisa: abra **Editar** e salve-a para executá-la com sua conta.
+
+### Quem é avisado
+
+A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
+
+### Guardar eventos em um caso
+
+Selecione eventos em **Eventos** ou na página de uma caçada e escolha **Ações em massa → Adicionar ao caso**, ou abra um evento e escolha **Adicionar ao caso**. Escolha um caso aberto pelo número ou pelo título. Vão até 100 eventos por vez.
+
+O OneUptime lê cada evento de novo como você e o guarda como era na página **Evidências** do caso, então o caso continua mostrando-o depois que a retenção do evento termina. Um evento que você não pode ler não é guardado, e um que o caso já guarda fica como está. Um evento encontrado a partir de uma caçada nomeia a caçada, e **Ver evento** o abre como foi guardado.
+
+As caçadas têm a mesma API REST que o resto do OneUptime, em `/security-hunt`, e `POST /security-case-evidence/add-events` guarda eventos em um caso. Veja a [referência da API](/docs/api-reference/api-reference).
 
 ## Regras de detecção
 

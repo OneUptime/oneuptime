@@ -44,6 +44,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   footer?: ReactElement | undefined;
+  /*
+   * Drawn under the description, above the fields, as wide as they are:
+   * what the form is about - the search Save as Hunt saves - as
+   * BasicFormModal's beforeFormElement draws the rows a form is about.
+   */
+  beforeFormElement?: ReactElement | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
 }
 
@@ -138,6 +144,13 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
         <OpenFormSectionsContext.Provider
           value={openFormSections.reportSectionOpen}
         >
+          {props.beforeFormElement ? (
+            <div className="mb-4" data-testid="form-modal-before-form">
+              {props.beforeFormElement}
+            </div>
+          ) : (
+            <></>
+          )}
           <ModelForm<TBaseModel>
             {...props.formProps}
             name={FormAnalyticsName.resolve(
