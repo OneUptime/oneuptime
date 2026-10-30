@@ -468,7 +468,13 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
           <h3 className="text-sm font-medium text-gray-900">
             {translator.translateText("What OneUptime recognizes")}
           </h3>
-          <div className="mt-2 space-y-4">
+          {/*
+           * Columns from the card's own width, not the window's: beside the
+           * side menu the card is about 370px wide at a 768 window, where
+           * two columns squeezed each kind's sentence to a few words a line.
+           * One column there and on a phone, two from 30rem, three from 46rem.
+           */}
+          <div className="mt-2 space-y-4 [container-type:inline-size]">
             {SECURITY_LOG_FORMAT_GROUPS.map(
               (group: SecurityLogFormatGroup): ReactElement => {
                 const headingId: string = `security-log-format-group-${group}-title`;
@@ -487,7 +493,10 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
                         SECURITY_LOG_FORMAT_GROUP_TEXTS[group],
                       )}
                     </h4>
-                    <ul className="mt-1.5 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <ul
+                      data-testid={`security-log-format-group-${group}-kinds`}
+                      className="mt-1.5 grid grid-cols-1 gap-2 sm:gap-3 [@container(min-width:30rem)]:grid-cols-2 [@container(min-width:46rem)]:grid-cols-3"
+                    >
                       {getSecurityLogFormatsInGroup(group).map(
                         (format: SecurityLogFormatDefinition): ReactElement => {
                           return (

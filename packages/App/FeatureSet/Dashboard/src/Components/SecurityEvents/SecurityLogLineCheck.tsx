@@ -225,37 +225,51 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
 
         <div className="text-xs text-gray-500">
           <span>{translator.translateText("Or try an example:")}</span>{" "}
+          {/*
+           * An example's name never breaks across lines ("Azure activity and
+           * Entra ID logs"), and its separator ends the line it is on, so no
+           * line starts with a dot.
+           */}
           {SECURITY_LOG_FORMATS.map(
             (format: SecurityLogFormatDefinition, index: number) => {
+              const isLast: boolean = index === SECURITY_LOG_FORMATS.length - 1;
+
               return (
                 <React.Fragment key={format.format}>
-                  {index > 0 ? (
-                    <span aria-hidden="true" className="text-gray-300">
-                      {" · "}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                  <button
-                    type="button"
-                    className="rounded font-medium text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-example-${format.format}`}
-                    onClick={() => {
-                      setText(format.example);
-                      setResult(checkSecurityLogLines(format.example));
-                    }}
-                  >
-                    {translator.translateText(
-                      SECURITY_LOG_FORMAT_TEXTS[format.format].title,
+                  <span className="whitespace-nowrap">
+                    <button
+                      type="button"
+                      className="rounded font-medium text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-example-${format.format}`}
+                      onClick={() => {
+                        setText(format.example);
+                        setResult(checkSecurityLogLines(format.example));
+                      }}
+                    >
+                      {translator.translateText(
+                        SECURITY_LOG_FORMAT_TEXTS[format.format].title,
+                      )}
+                    </button>
+                    {isLast ? (
+                      <></>
+                    ) : (
+                      <span aria-hidden="true" className="text-gray-300">
+                        {" ·"}
+                      </span>
                     )}
-                  </button>
+                  </span>
+                  {isLast ? "" : " "}
                 </React.Fragment>
               );
             },
           )}
         </div>
 
-        <div>
+        {/*
+         * Button carries md:ml-3, a dialog footer's spacing: cleared here so
+         * Check lines up with the text above it.
+         */}
+        <div className="[&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
           <Button
             title="Check"
             buttonStyle={ButtonStyleType.NORMAL}

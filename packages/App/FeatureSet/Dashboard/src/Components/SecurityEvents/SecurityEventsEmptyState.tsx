@@ -242,15 +242,32 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
         data-testid={`${SECURITY_EVENTS_EMPTY_STATE_ID}-log-formats`}
         className="py-1 text-xs leading-5 text-gray-500"
       >
+        {/*
+         * Ten kinds wrap to a second line on a laptop and a few more on a
+         * phone. A kind never breaks inside its name ("Azure activity and
+         * Entra ID logs"), and its separator ends the line it is on.
+         */}
         {SECURITY_LOG_FORMATS.map(
-          (format: SecurityLogFormatDefinition): string => {
+          (
+            format: SecurityLogFormatDefinition,
+            index: number,
+          ): ReactElement => {
             const title: string =
               SECURITY_LOG_FORMAT_TEXTS[format.format].title;
+            const isLast: boolean = index === SECURITY_LOG_FORMATS.length - 1;
 
-            // As its card on Connections names it, in the reader's language.
-            return translateString(title) || title;
+            return (
+              <React.Fragment key={format.format}>
+                <span className="whitespace-nowrap">
+                  {/* As its card on Connections names it, in the reader's language. */}
+                  {translateString(title) || title}
+                  {isLast ? "" : " ·"}
+                </span>
+                {isLast ? "" : " "}
+              </React.Fragment>
+            );
           },
-        ).join(" · ")}
+        )}
       </p>
     ),
     connect: (

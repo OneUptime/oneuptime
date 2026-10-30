@@ -110,6 +110,18 @@ const PROVIDERS: ReadonlyArray<Provider> = [
     docsSlug: "okta",
   },
   {
+    value: "microsoft-entra-id",
+    title: "Microsoft Entra ID",
+    category: "Identity",
+    docsSlug: "microsoft-entra-id",
+  },
+  {
+    value: "google-workspace",
+    title: "Google Workspace",
+    category: "Identity",
+    docsSlug: "google-workspace",
+  },
+  {
     value: "google-secops",
     title: "Google SecOps",
     category: "SIEM",
@@ -208,7 +220,7 @@ const WAYS_IN: ReadonlyArray<WayIn> = [
 const LOGS_OPEN_ACTION: string = "Open Your logs";
 // What Your logs reads, as its card on Connections lists it.
 const LOG_FORMATS_LINE: string =
-  "SSH sign-ins · sudo · Kubernetes audit logs · AWS CloudTrail · Web attacks";
+  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · CEF · LEEF · Kubernetes audit logs · Web attacks";
 
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
@@ -1127,6 +1139,18 @@ async function nameFits(page: Page): Promise<Array<NameFit>> {
 }
 
 // Tiles grouped into rows by their top edge, top to bottom.
+/*
+ * How many tiles each row holds when `count` tiles fill rows of `columns`:
+ * full rows, then what is left. Ten tiles in four columns: 4, 4, 2.
+ */
+function rowLengths(count: number, columns: number): Array<number> {
+  const lengths: Array<number> = [];
+  for (let left: number = count; left > 0; left -= columns) {
+    lengths.push(Math.min(left, columns));
+  }
+  return lengths;
+}
+
 function rowsOf(layouts: Array<TileLayout>): Array<Array<TileLayout>> {
   const rows: Map<number, Array<TileLayout>> = new Map();
   for (const layout of layouts) {
@@ -2005,6 +2029,75 @@ test.describe("connections: your logs and your SIEM", () => {
     await expectNoHorizontalOverflow(page);
     await screenshot(page, "connections-cards-phone");
   });
+
+  /*
+   * Your logs lists its ten kinds by where they come from, in columns the
+   * card's own width allows: beside the side menu the card is about 370px
+   * wide at a 768 window, where two columns squeezed each kind's sentence
+   * to a few words a line. A group fills its rows in order, every kind
+   * inside the card.
+   */
+  const LOG_KIND_GROUPS: ReadonlyArray<{ id: string; kinds: number }> = [
+    { id: "servers", kinds: 3 },
+    { id: "cloud", kinds: 3 },
+    { id: "security-devices", kinds: 2 },
+    { id: "applications", kinds: 2 },
+  ];
+  const LOG_KIND_LAYOUTS: ReadonlyArray<{ width: number; columns: number }> = [
+    { width: 1280, columns: 3 },
+    { width: 1024, columns: 2 },
+    { width: 768, columns: 1 },
+    { width: 390, columns: 1 },
+  ];
+
+  for (const layout of LOG_KIND_LAYOUTS) {
+    test(`${layout.width}: Your logs lists its kinds by group, ${layout.columns} a row`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConnections(page, { width: layout.width, height: 1000 });
+      await expectNoHorizontalOverflow(page);
+
+      const card: Locator = page.getByTestId("security-logs-source");
+      for (const group of LOG_KIND_GROUPS) {
+        const kinds: Locator = page
+          .getByTestId(`security-log-format-group-${group.id}-kinds`)
+          .locator(":scope > li");
+        await expect(kinds).toHaveCount(group.kinds);
+
+        const tops: Array<number> = await kinds.evaluateAll(
+          (elements: Array<Element>): Array<number> => {
+            return elements.map((element: Element): number => {
+              return Math.round(element.getBoundingClientRect().top);
+            });
+          },
+        );
+        const perRow: Array<number> = Array.from(new Set(tops)).map(
+          (top: number): number => {
+            return tops.filter((value: number): boolean => {
+              return value === top;
+            }).length;
+          },
+        );
+        expect(perRow, `${group.id} at ${layout.width}`).toEqual(
+          rowLengths(group.kinds, layout.columns),
+        );
+      }
+
+      const allKinds: Locator = card.locator(
+        "li[data-testid^='security-log-format-']",
+      );
+      await expect(allKinds).toHaveCount(10);
+      for (let index: number = 0; index < 10; index++) {
+        await expectInside(
+          allKinds.nth(index),
+          card,
+          `kind ${index} inside Your logs`,
+        );
+      }
+    });
+  }
 });
 
 test.describe("connections empty state accessibility", () => {
@@ -2228,7 +2321,7 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("the picker shows the same eight products, each with its tile's logo", async ({
+  test("the picker shows the same products as the tiles, each with its tile's logo", async ({
     page,
   }: {
     page: Page;
@@ -2417,7 +2510,7 @@ test.describe("connections empty state actions", () => {
  * or a row of unequal tiles.
  */
 test.describe("connections empty state layout", () => {
-  test("1440: four tiles a row, one size, every name on one line", async ({
+  test("1440: four tiles a row, the last row what is left, one size, every name on one line", async ({
     page,
   }: {
     page: Page;
@@ -2431,7 +2524,7 @@ test.describe("connections empty state layout", () => {
       rows.map((row: Array<TileLayout>): number => {
         return row.length;
       }),
-    ).toEqual([4, 4]);
+    ).toEqual(rowLengths(PROVIDERS.length, 4));
     // Row-major, in catalog order.
     expect(
       rows.flat().map((layout: TileLayout): string => {
@@ -2515,13 +2608,13 @@ test.describe("connections empty state layout", () => {
 
       const layouts: Array<TileLayout> = await tileLayouts(page);
       const rows: Array<Array<TileLayout>> = rowsOf(layouts);
+      // Full rows of the layout's columns, the last one what is left.
       expect(
-        rows.every((row: Array<TileLayout>): boolean => {
-          return row.length === layout.columns;
+        rows.map((row: Array<TileLayout>): number => {
+          return row.length;
         }),
         `rows of ${layout.columns}`,
-      ).toBe(true);
-      expect(rows).toHaveLength(PROVIDERS.length / layout.columns);
+      ).toEqual(rowLengths(PROVIDERS.length, layout.columns));
 
       for (const row of rows) {
         const height: number = (row[0] as TileLayout).box.height;

@@ -49,6 +49,9 @@ const SOURCE_ID: ObjectID = new ObjectID(
 );
 const NOW: Date = new Date("2026-10-19T12:00:00Z");
 
+// A column count keyed to the window's width (sm:, md:, lg:, xl:, 2xl:).
+const WINDOW_COLUMNS: RegExp = /(?:^|\s)(?:sm|md|lg|xl|2xl):grid-cols-/;
+
 function source(overrides: Partial<SecurityLogSource> = {}): SecurityLogSource {
   const value: SecurityLogSource = new SecurityLogSource();
   value.id = SOURCE_ID;
@@ -190,6 +193,40 @@ describe("Your logs", () => {
     expect(
       screen.getByRole("region", { name: "Security devices" }),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Beside the side menu the card is narrow from md (about 370px at a 768
+   * window), so a group's columns follow the card's own width, never the
+   * window's. The browser suite measures them.
+   */
+  test("a group's kinds take their columns from the card's width, not the window's", async () => {
+    await renderCard();
+
+    const servers: HTMLElement = screen.getByTestId(
+      "security-log-format-group-servers",
+    );
+    const container: HTMLElement = servers.parentElement as HTMLElement;
+    expect(container).toHaveClass("[container-type:inline-size]");
+
+    for (const group of [
+      "servers",
+      "cloud",
+      "security-devices",
+      "applications",
+    ]) {
+      const kinds: HTMLElement = screen.getByTestId(
+        `security-log-format-group-${group}-kinds`,
+      );
+      expect(kinds.tagName).toBe("UL");
+      expect(kinds).toHaveClass(
+        "grid-cols-1",
+        "[@container(min-width:30rem)]:grid-cols-2",
+        "[@container(min-width:46rem)]:grid-cols-3",
+      );
+      // No column count from the window: md and xl are the window's widths.
+      expect(kinds.className).not.toMatch(WINDOW_COLUMNS);
+    }
   });
 
   test("on: each kind says what the last check found of it, when one was last found, or that none has been", async () => {

@@ -260,4 +260,55 @@ describe("SecurityLogLineCheck", () => {
       }),
     );
   });
+
+  /*
+   * Ten examples wrap. Each name stays whole in an unbreakable span, its
+   * separator (hidden from screen readers) at the end of that span, so a
+   * line never ends inside "Azure activity and Entra ID logs" or starts
+   * with a dot.
+   */
+  test("an example's name never breaks, and its separator ends its line", async () => {
+    await renderCheck();
+
+    SECURITY_LOG_FORMATS.forEach(
+      (format: SecurityLogFormatDefinition, index: number): void => {
+        const example: HTMLElement = screen.getByTestId(
+          `${SECURITY_LOG_LINE_CHECK_ID}-example-${format.format}`,
+        );
+        const item: HTMLElement = example.parentElement as HTMLElement;
+        const isLast: boolean = index === SECURITY_LOG_FORMATS.length - 1;
+
+        expect(item.tagName).toBe("SPAN");
+        expect(item).toHaveClass("whitespace-nowrap");
+        // The example's button comes first: nothing can stand before it on a line.
+        expect(item.firstElementChild).toBe(example);
+
+        const separator: Element | null = example.nextElementSibling;
+        if (isLast) {
+          expect(separator).toBeNull();
+          return;
+        }
+        expect(separator).toHaveAttribute("aria-hidden", "true");
+        expect(separator?.textContent).toBe(" ·");
+      },
+    );
+  });
+
+  test("Check lines up with the text above it: the Button's footer margin is cleared", async () => {
+    await renderCheck();
+    await open();
+
+    const run: HTMLElement = screen.getByTestId(
+      `${SECURITY_LOG_LINE_CHECK_ID}-run`,
+    );
+    // Button draws md:ml-3, a dialog footer's spacing; its wrapper clears it.
+    expect(run).toHaveClass("md:ml-3");
+    const wrapper: HTMLElement = run.closest("div") as HTMLElement;
+    expect(wrapper).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
+  });
 });
