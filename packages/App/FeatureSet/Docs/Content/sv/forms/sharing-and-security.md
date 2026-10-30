@@ -71,6 +71,7 @@ Varje begäran passerar de här kontrollerna, i den här ordningen:
 6. Varje svar måste ligga inom storleksgränserna och passa sin fråga — se [Bygga ett formulär](/docs/forms/building#storleksgränser).
 7. Det som svaren och inställningarna bildar måste kunna skapas: en incident behöver en allvarlighetsgrad, en händelse ett slut efter sin början.
 8. En inlämning måste rymmas inom formulärets timkvot — se [Frekvensgränser](#frekvensgränser).
+9. Dess filer måste rymmas inom formulärets timkvot för filer, precis innan de sparas.
 
 Ett formulärs logotyp och favicon är en del av formuläret: de skickas inuti svaret som öppnar det, i base64, först när det har klarat de fyra första kontrollerna, och aldrig från en egen adress. Ingen kan hämta dem utan formuläret, och ingen fil kan hämtas via sitt id genom ett formulär; själva filerna förblir privata. Ett formulär visar bara bilder som har laddats upp i dess eget projekt: en fil från ett annat projekt avvisas när formuläret sparas, och skickas aldrig till dess sida.
 
@@ -109,6 +110,7 @@ Att öppna ett formulär och att lämna in det begränsas per nätverksadress, o
 - **Att öppna ett formulär** — per formulär från en adress, och per adress över alla formulär, med marginal för att ett helt kontor öppnar länken samtidigt. Över någon av dem visar sidan "För många förfrågningar. Försök igen senare." Om frekvensbegränsaren inte kan nås öppnas formulär ändå.
 - **Att lämna in, per adress** — per formulär från en adress, och per adress över alla formulär. Över någon av dem ser inlämnaren "För många inskick från ditt nätverk. Vänta några minuter och försök igen." Alla bakom samma adress — ett kontorsnätverk, en VPN-gateway — delar de här gränserna, och varje inlämning räknas, även en som sedan avvisas för ett felaktigt svar.
 - **Att lämna in, per formulär** — hur många poster ett formulär får skapa på en timme, från alla adresser tillsammans, så att även inlämningar från många adresser samtidigt bara kan larma dig ett begränsat antal gånger per timme. Bara en inlämning som har klarat alla andra kontroller räknas, precis innan dess post skapas. Över den ser alla "Det här formuläret tar emot för många inskickade svar just nu. Försök igen senare." tills fönstret är slut. **Återställ länk** startar den nya länken med en ny kvot.
+- **Filer, per formulär** — hur många megabyte filer ett formulär får ta emot på en timme, från alla adresser tillsammans. Bara filerna från en inlämning som har klarat alla andra kontroller räknas, precis innan de sparas. Därutöver avvisas en inlämning med filer med "Det här formuläret tar emot för många filer just nu. Försök igen senare." tills tidsfönstret är över; en inlämning utan filer går fortfarande igenom.
 
 Varje gräns svarar `429` med ett huvud `Retry-After`, i sekunder, och sidan talar om för inlämnaren när det går att försöka igen. Fönstren är fasta, inte glidande. Varje gräns per adress räknar också adresserna i ett IPv6-/64 tillsammans, med tio gånger sitt tal. Om frekvensbegränsaren inte kan nås avvisas inlämningar i stället för att släppas igenom oräknade: API:et svarar `503`, och inlämnaren ser "Inskickade svar kan inte tas emot just nu. Försök igen om några minuter."
 
@@ -124,6 +126,8 @@ På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-ap
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Inlämningar från en adress per fönster, över alla formulär. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | Fönstret för gränsen per formulär, i sekunder. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Poster som ett formulär får skapa per fönster, från alla adresser tillsammans. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | Tidsfönstret för filgränsen per formulär, i sekunder. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabyte filer som ett formulär får ta emot per tidsfönster, från alla adresser tillsammans. |
 
 Varje variabel läser också sitt gamla namn, med `INCIDENT_FORM_` framför i stället för `FORM_` — som `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` —, så att en installation som hade justerat incidentformulär behåller sina gränser; det nya namnet vinner när båda är angivna. Varken `config.env` eller Helm-diagrammets värden skickar dem vidare: lägg själv till dem i miljön för containern `app` — med `app.extraEnv`, eller hela diagrammets `extraEnv`, i Helm-diagrammet, eller i en `docker-compose.override.yml` för Docker Compose. `TRUSTED_PROXY_HOPS` avgör vilken adress gränserna per adress räknar.
 

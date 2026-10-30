@@ -190,7 +190,7 @@ Hvert spørgsmål har sit eget `id` (bogstaver, cifre, `-` og `_`), en `source`,
 
 | `source` | Hvad det spørger om |
 | --- | --- |
-| `Question` | Et af formularens egne spørgsmål, besvaret efter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` eller `DateTime`. En rulleliste viser sine `dropdownOptions`, én pr. linje. |
+| `Question` | Et af formularens egne spørgsmål, besvaret efter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En rulleliste viser sine `dropdownOptions`, én pr. linje. |
 | `TargetField` | Et felt i det, formularen opretter, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hændelse; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedligeholdelsesbegivenhed. Et felt, der besvares ved at vælge, viser de poster, det tilbyder, i `allowedOptionIds`. |
 | `TargetCustomField` | Et af hændelsens eller begivenhedens brugerdefinerede felter, angivet med `customFieldId`. |
 | `Submitter` | Indsenderens `Name` eller `Email`, angivet med `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+Et filspørgsmåls svar er filerne, som de blev gemt, hver med sin `fileId`, `name`, `fileType` og `size`. Selve filerne ligger på det, indsendelsen oprettede: i dets brugerdefinerede filfelt eller vedhæftet dets private note.
 
 ### Workflows
 

@@ -3,7 +3,9 @@ import { SpanEvent } from "Common/Models/AnalyticsModels/Span";
 import Query from "Common/Types/BaseDatabase/Query";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ExceptionDetailSection from "../Components/Exceptions/ExceptionDetailSection";
+import { getGroupFingerprints } from "./ExceptionGroupFingerprints";
 
 /*
  * What each exception detail page reads beyond the exception group itself.
@@ -119,15 +121,25 @@ export function buildBreadcrumbEventsFromSpans(
 export interface ExceptionOccurrenceQueryOptions {
   projectId: ObjectID;
   fingerprint: string;
+  /*
+   * The fingerprints of the exceptions merged into this one: their
+   * occurrences keep their own fingerprint and are this exception's now.
+   */
+  mergedFingerprints?: ReadonlyArray<string> | undefined;
   primaryEntityId?: ObjectID | undefined;
 }
 
 export function buildExceptionOccurrenceQuery(
   options: ExceptionOccurrenceQueryOptions,
 ): Query<ExceptionInstance> {
+  const fingerprints: Array<string> = getGroupFingerprints(options);
+
   return {
     projectId: options.projectId,
-    fingerprint: options.fingerprint,
+    fingerprint:
+      fingerprints.length > 1
+        ? new Includes(fingerprints)
+        : options.fingerprint,
     ...(options.primaryEntityId
       ? { primaryEntityId: options.primaryEntityId }
       : {}),

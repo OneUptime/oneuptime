@@ -1,4 +1,6 @@
 import {
+  EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS,
+  getExceptionSpanScopeFingerprints,
   EXCEPTION_SPAN_SCOPE_MAX_FINGERPRINT_LENGTH,
   EXCEPTION_SPAN_SCOPE_QUERY_KEY,
   parseExceptionSpanScope,
@@ -85,5 +87,77 @@ describe("parseExceptionSpanScope", () => {
     expect(parseExceptionSpanScope({ fingerprint })?.fingerprint).toBe(
       fingerprint,
     );
+  });
+
+  /*
+   * An exception others were merged into (TelemetryExceptionMerge) scopes its
+   * spans by their fingerprints too.
+   */
+  test("keeps the fingerprints of the exceptions merged into it, without its own or repeats", () => {
+    expect(
+      parseExceptionSpanScope({
+        fingerprint: FINGERPRINT,
+        mergedFingerprints: [
+          " fp-merged-1 ",
+          FINGERPRINT,
+          "fp-merged-1",
+          "fp-merged-2",
+        ],
+      }),
+    ).toEqual({
+      fingerprint: FINGERPRINT,
+      mergedFingerprints: ["fp-merged-1", "fp-merged-2"],
+    });
+  });
+
+  test("drops merged fingerprints that are not strings, blank or too long, and holds at most a bounded number", () => {
+    const scope: ReturnType<typeof parseExceptionSpanScope> =
+      parseExceptionSpanScope({
+        fingerprint: FINGERPRINT,
+        mergedFingerprints: [
+          7,
+          null,
+          "",
+          "  ",
+          "c".repeat(EXCEPTION_SPAN_SCOPE_MAX_FINGERPRINT_LENGTH + 1),
+          ...new Array(EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS + 10)
+            .fill(0)
+            .map((_value: number, index: number): string => {
+              return `fp-${index}`;
+            }),
+        ],
+      });
+
+    expect(scope!.mergedFingerprints!.length).toBeLessThanOrEqual(
+      EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS,
+    );
+    expect(
+      scope!.mergedFingerprints!.every((fingerprint: string) => {
+        return fingerprint.startsWith("fp-");
+      }),
+    ).toBe(true);
+  });
+
+  test("a list that is not one, or holds nothing usable, reads as none", () => {
+    for (const mergedFingerprints of ["fp-1", {}, [], [1, ""]]) {
+      expect(
+        parseExceptionSpanScope({
+          fingerprint: FINGERPRINT,
+          mergedFingerprints,
+        }),
+      ).toEqual({ fingerprint: FINGERPRINT });
+    }
+  });
+
+  test("the scope's fingerprints: its own first, then the merged ones", () => {
+    expect(
+      getExceptionSpanScopeFingerprints({
+        fingerprint: "a",
+        mergedFingerprints: ["b", "a", "c"],
+      }),
+    ).toEqual(["a", "b", "c"]);
+    expect(getExceptionSpanScopeFingerprints({ fingerprint: "a" })).toEqual([
+      "a",
+    ]);
   });
 });

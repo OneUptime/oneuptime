@@ -19,6 +19,13 @@ import {
   CUSTOM_FIELD_NO_LONGER_AN_OPTION_COLOR,
   CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT,
 } from "../CustomFields/CustomFieldFormFields";
+import CustomFieldFileList from "../CustomFields/CustomFieldFileList";
+import {
+  CustomFieldFile,
+  formatCustomFieldFileNames,
+  isCustomFieldFileType,
+  readCustomFieldFiles,
+} from "../../../Types/CustomField/CustomFieldFile";
 
 /*
  * ---------------------------------------------------------------------------
@@ -219,6 +226,21 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
 
   if (value === undefined || value === null || value === "") {
     return empty;
+  }
+
+  /*
+   * A file field's files, by name: the first, and how many more - every
+   * name on hover. Downloads are on the record's own Custom Fields card,
+   * where whoever may read the record may have them.
+   */
+  if (isCustomFieldFileType(definition.customFieldType)) {
+    const files: Array<CustomFieldFile> = readCustomFieldFiles(value);
+
+    if (files.length === 0) {
+      return empty;
+    }
+
+    return <CustomFieldFileList files={files} isCompact={true} />;
   }
 
   if (definition.customFieldType === CustomFieldType.Boolean) {
@@ -423,6 +445,11 @@ export const getCustomFieldColumns: GetCustomFieldColumnsFunction = <
 
           if (value === undefined || value === null) {
             return "";
+          }
+
+          // A file field exports its files' names, never their ids or JSON.
+          if (isCustomFieldFileType(definition.customFieldType)) {
+            return formatCustomFieldFileNames(value);
           }
 
           if (Array.isArray(value)) {

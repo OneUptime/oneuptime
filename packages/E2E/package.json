@@ -25,6 +25,7 @@
     "test-value-picker-ui": "playwright test --config playwright.value-picker-ui.config.ts",
     "test-color-picker-ui": "playwright test --config playwright.color-picker-ui.config.ts",
     "test-custom-field-options-ui": "playwright test --config playwright.custom-field-options-ui.config.ts",
+    "test-custom-field-files-ui": "playwright test --config playwright.custom-field-files-ui.config.ts",
     "test-diagrams-ui": "playwright test --config playwright.diagrams-ui.config.ts",
     "test-topology-ui": "playwright test --config playwright.topology.config.ts",
     "test-workflow-builder-ui": "playwright test --config playwright.workflow-builder-ui.config.ts",

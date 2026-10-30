@@ -133,6 +133,8 @@ IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesende
 
 Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Ihre Antwort wird bis zum nächsten Auftreten gespeichert.
 
+Eine, die OneUptime AI **Wahrscheinlich derselbe Fehler** nennt und die zum selben Dienst gehört, führen Sie mit **Zusammenführen** daneben mit dieser Ausnahme zusammen: Ihre Vorkommen, die bisherigen und jedes neue, zählen von da an bei dieser Ausnahme und erscheinen auf ihrer Seite, und sie verschwindet aus der Liste. **Mit dieser Ausnahme zusammengeführt** darunter listet, was zusammengeführt wurde, und **Trennen** daneben, oder auf der eigenen Seite einer zusammengeführten Ausnahme, gibt ihr ihren eigenen Platz in der Liste zurück, samt ihrer Vorkommen seither. Zusammenführen und Trennen erfordern die Berechtigung, Ausnahmen zu bearbeiten.
+
 ## Mit KI beheben
 
 Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe, die einen Pull Request in Ihrem Code-Repository öffnet:

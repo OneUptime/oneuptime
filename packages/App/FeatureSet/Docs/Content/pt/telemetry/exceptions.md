@@ -133,6 +133,8 @@ IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado,
 
 Abaixo dos cartões, **Exceções semelhantes** lista até cinco outras exceções parecidas com esta: a **Mesma mensagem** depois de tirados os valores, o **Mesmo local no código** do seu código, ou uma **Mensagem semelhante** com a maioria das mesmas palavras. Uma mesma causa pode cair em várias exceções, então **Verificar com a OneUptime AI** diz de cada uma se é **Provavelmente o mesmo bug**, **Um bug relacionado** ou **Um bug diferente**, e por quê. A verificação usa os créditos de IA do projeto e não é oferecida enquanto **Habilitar IA** está desligado. A resposta é guardada até a próxima ocorrência.
 
+Mescle a esta exceção uma que a OneUptime AI chame de **Provavelmente o mesmo bug**, do mesmo serviço, com **Mesclar** ao lado: suas ocorrências, as anteriores e cada nova, passam a contar nesta exceção e aparecem na página dela, e ela sai da lista. **Mescladas a esta exceção**, abaixo, lista o que foi mesclado, e **Desfazer mesclagem** ao lado de cada uma, ou na página de uma exceção mesclada, devolve a ela o seu lugar na lista, com as ocorrências desde então. Mesclar e desfazer a mesclagem exigem permissão para editar exceções.
+
 ## Corrigir com IA
 
 A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa de IA que abre um pull request no seu repositório de código:

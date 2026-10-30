@@ -110,6 +110,13 @@ const BYTE_READERS: Record<string, string> = {
    */
   "packages/Common/Server/Services/SecurityCaseEvidenceService.ts":
     "FileOwnership.isFileOfProject",
+  /*
+   * A file a record's File or Multiple files custom field holds, through
+   * its download route only: the record read as the person asking, the
+   * file one its file fields hold, held to the record's own project.
+   */
+  "packages/Common/Server/API/CustomFieldFileAPI.ts":
+    "FileOwnership.keepProjectFile",
 };
 
 // A select of a stored file's bytes: `file: true`.

@@ -81,10 +81,14 @@ The logo keeps the height of the OneUptime logo it replaces, and a wide one is f
 | **Checkbox** | A box to tick, such as a confirmation. |
 | **Date** | A day. |
 | **Date and Time** | A day and a time. |
+| **File** | One file, such as a screenshot or a signed document. |
+| **Multiple Files** | Up to 10 files, such as screenshots and logs. |
 
 A dropdown or multi-select lists the **Options** you give it, each with an optional color (the button beside an option opens a set of named colors, with **Custom color** for an exact code), between one and 100 of them. Switching a question between **Dropdown** and **Multi-Select** keeps its options; a question that becomes one starts with two you can rename, and one that stops being one drops them. **Duplicate** copies a question of the form's own, right below it.
 
 The answers to these questions are kept with the submission and listed on the private note of what the form creates — they do not fill in a field of it. To fill in a field, add the field itself, from the next two groups.
+
+A **File** or **Multiple Files** question takes files from the submitter's computer and attaches them to the private note, where your team downloads them. To keep the files in a custom field of the incident or event instead, add a **File** or **Multiple files** custom field.
 
 ### Fields of what the form creates
 
@@ -115,7 +119,7 @@ Each field can be asked once; the list marks the ones already on the form **Adde
 
 ### Custom fields
 
-Your incident custom fields — or scheduled maintenance custom fields, for a maintenance form — each one a question whose answer becomes the field's value. The question takes its type and options from the custom field, and starts with its name as the question and its description as the help text, which you can change.
+Your incident custom fields — or scheduled maintenance custom fields, for a maintenance form — each one a question whose answer becomes the field's value. The question takes its type and options from the custom field, and starts with its name as the question and its description as the help text, which you can change. A **File** or **Multiple files** custom field is asked as a file question, and its files go into the field.
 
 A form asks only the custom fields you add to it, whatever **Show on Create** says: every field a form asks shows its name, description and options to anyone with the link. When a custom field is deleted, its question stays on the form but is no longer asked, and its card says so — delete the question. A field created again with the same name is a new field: add it again.
 
@@ -232,6 +236,9 @@ After submitting, the page says "Thank you — your response was submitted." and
 | Any other text answer | 10,000 characters. |
 | A multi-select answer | 100 choices. |
 | **Your Name**, **Your Email** | 100 characters each. |
+| A file | 10 MB, of the kinds a [file custom field](/docs/incidents/settings#file-fields) takes. |
+| A **Multiple Files** question | 10 files. |
+| The files of one submission | 10 files, 20 MB together. |
 
 A submission that breaks a limit, leaves out a required answer or gives an answer that does not fit its question is refused with a message that says which, and nothing is created. Answers to questions the form does not ask are ignored.
 

@@ -1033,6 +1033,14 @@ jobs:
           # about 26 with it on a slow runner. #5281's follow-ups added 2
           # tests to Shared UI on 2026-10-30 (a secondary link's contrast,
           # light and dark: about 6 seconds).
+          # Custom Field Files (28 tests, 1.5 minutes locally with its two
+          # bundles, Chromium only: an incident's File and Multiple files
+          # custom fields on its card and in its Edit dialog - uploads and
+          # their progress, Replace, Remove, a full field, refused kinds and
+          # sizes, the drop zone's click and key - and a public form's file
+          # questions sent with the answers, at 1280 and 390 pixels, dark,
+          # German and Persian) joined them on 2026-10-30, the lightest group:
+          # about 17.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1043,6 +1051,7 @@ jobs:
               test-episode-bulk-add-ui
               test-traces-ai-ui
               test-network-traffic-names-ui
+              test-custom-field-files-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1141,6 +1150,8 @@ jobs:
             output/playwright/color-picker-ui/*.png
             output/playwright/color-picker-ui/test-results
             output/playwright/custom-field-options-ui/test-results
+            output/playwright/custom-field-files-ui/*.png
+            output/playwright/custom-field-files-ui/test-results
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/security-operations-ui/*.png

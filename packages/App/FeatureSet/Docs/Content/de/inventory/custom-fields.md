@@ -51,6 +51,8 @@ Fügen Sie bei einem Dropdown-Typ seine Optionen unter **Dropdown-Optionen** hin
 | **Datum und Uhrzeit** | Zuletzt geprüft am, außer Betrieb genommen am |
 | **Langer Text** | Zugangshinweise, Notizen: mehrere Zeilen reiner Text |
 | **Formatierter Text (Markdown)** | Notizen mit Formatierung und Links, geschrieben im Markdown-Editor |
+| **Datei** | Ein Garantiezertifikat, eine unterschriebene Bestellung, ein Foto des Rack-Etiketts: eine Datei |
+| **Mehrere Dateien** | Handbücher, Rechnungen und Fotos: bis zu 10 Dateien |
 
 ## Ein durchgespieltes Asset-Vokabular
 
@@ -79,6 +81,9 @@ Jedes benutzerdefinierte Feld wird zu einem Filter-Chip über der Liste **Alle E
 | **Zahl** | ist, ist nicht, ist größer als, ist größer als oder gleich, ist kleiner als, ist kleiner als oder gleich, ist leer, ist nicht leer |
 | **Boolescher Wert**, **Dropdown (Einfachauswahl)**, **Dropdown (Mehrfachauswahl)** | ist, ist nicht, ist leer, ist nicht leer |
 | **Datum**, **Datum und Uhrzeit** | ist, ist vor, ist nach, ist zwischen, ist leer, ist nicht leer |
+| **Datei**, **Mehrere Dateien** | ist |
+
+Ein Chip für **Datei** oder **Mehrere Dateien** fragt nur eines: ob das Feld **Hat Dateien** oder **Keine Dateien** hat.
 
 Chips werden mit UND verknüpft, also ist „Warranty Expiry ist vor 2026-10-01 UND Lifecycle Status ist In Betrieb" eine Ansicht der Liste. Das ist die Frage, für die es ein Asset-Register gibt, und der Grund, die Datumstypen zu verwenden statt eines Datums in einem Textfeld: Ein Textfeld speichert `2026-10-01` bereitwillig und kann dann nicht sagen, was im nächsten Quartal abläuft.
 
@@ -91,6 +96,7 @@ Spalten benutzerdefinierter Felder sind zunächst ausgeblendet: Schalten Sie sie
 - Nichts macht einen Wert eindeutig. Zwei Elemente können dieselbe Seriennummer tragen, und nichts hält Sie davon ab.
 - Datumswerte werden als ISO-8601-Zeitstempel in UTC gespeichert und in Ihrer eigenen Zeitzone angezeigt.
 - Ein Feld zu löschen entfernt es aus der Liste und aus der Filterleiste. Die bereits geschriebenen Werte bleiben an den Elementen.
+- Ein Feld vom Typ **Datei** oder **Mehrere Dateien** nimmt Dateien von bis zu 10 MB je Datei, von den Arten, die unter [Dateifelder](/docs/incidents/settings#dateifelder) stehen, hochgeladen im Projekt. Nur wer das Element sehen darf, kann sie herunterladen, und eine Datei wird gelöscht, sobald nichts sie mehr hält.
 
 ## Nächste Schritte
 

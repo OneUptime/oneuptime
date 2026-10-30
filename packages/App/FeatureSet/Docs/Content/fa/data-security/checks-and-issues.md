@@ -136,13 +136,13 @@ stateDiagram-v2
     state "پذیرفته‌شده" as Accepted
     state "برطرف‌شده" as Resolved
     state "مسئله نیست" as NotAnIssue
-    [*] --> Open: یک بررسی ناموفق می‌شود
+    [*] --> Open: یک بررسی<br/>ناموفق می‌شود
     Open --> Resolved: بررسی موفق می‌شود
-    Open --> Accepted: کسی ریسک را می‌پذیرد
-    Open --> NotAnIssue: کسی می‌گوید مسئله نیست
+    Open --> Accepted: کسی ریسک را<br/>می‌پذیرد
+    Open --> NotAnIssue: کسی می‌گوید<br/>مسئله نیست
     Accepted --> Open: پذیرش منقضی می‌شود
     Accepted --> Resolved: بررسی موفق می‌شود
-    Resolved --> Open: بررسی دوباره ناموفق می‌شود
+    Resolved --> Open: بررسی دوباره<br/>ناموفق می‌شود
 ```
 
 OneUptime هم‌زمان با اجرای بررسی‌ها مسائل را باز، به‌روز و برطرف می‌کند. کاری که یک فرد با یک مسئله می‌کند این است که تصمیم بگیرد بعد چه شود:

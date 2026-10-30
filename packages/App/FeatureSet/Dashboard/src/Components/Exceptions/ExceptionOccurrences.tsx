@@ -25,6 +25,8 @@ export interface ComponentProps {
   exception: TelemetryException;
   // Occurrences page always has a fingerprint; the explorer guards for it.
   fingerprint: string;
+  // The fingerprints of the exceptions merged into this one: theirs too.
+  mergedFingerprints?: Array<string> | undefined;
 }
 
 /*
@@ -52,12 +54,17 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
   const primaryEntityId: string | undefined =
     props.exception.primaryEntityId?.toString();
 
+  const mergedKey: string = (props.mergedFingerprints || []).join(",");
+
   const exceptionScope: ExceptionSpanScope = useMemo(() => {
     return {
       fingerprint: props.fingerprint,
       ...(primaryEntityId ? { primaryEntityId } : {}),
+      ...(props.mergedFingerprints && props.mergedFingerprints.length > 0
+        ? { mergedFingerprints: props.mergedFingerprints }
+        : {}),
     };
-  }, [props.fingerprint, primaryEntityId]);
+  }, [props.fingerprint, primaryEntityId, mergedKey]);
 
   return (
     <div data-testid="exception-occurrences">
@@ -145,6 +152,7 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
       {view === ExceptionOccurrencesView.Details ? (
         <OccouranceTable
           exceptionFingerprint={props.fingerprint}
+          mergedFingerprints={props.mergedFingerprints}
           primaryEntityId={props.exception.primaryEntityId}
         />
       ) : (

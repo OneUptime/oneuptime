@@ -225,8 +225,27 @@ Definitionerne ligger i deres egen model; værdierne ligger på selve hændelsen
 | **Dato og klokkeslæt**                     | En dato og et klokkeslæt                              | Forventet løsning                                  |
 | **Lang tekst**                             | Flere linjer almindelig tekst                         | Berørte brugere eller systemer, yderligere oplysninger |
 | **Formateret tekst (Markdown)**            | Formateret tekst, i Markdown-editoren med dens visuelle tilstand | En midlertidig løsning med links og lister |
+| **Fil** | Én fil, trukket hen på feltet eller valgt | En underskrevet ændringsanmodning, et skærmbillede |
+| **Flere filer** | Op til 10 filer | Skærmbilleder, logfiler og pakkeoptagelser |
 
 **Lang tekst** og **Formateret tekst (Markdown)** findes til de brugerdefinerede felter på hver ressource, ikke kun hændelser. En værdi med formateret tekst gemmes som den Markdown, den blev skrevet i. Der er ingen type med radioknapper eller en gruppe af afkrydsningsfelter: brug en **Rullemenu (enkeltvalg)**, en **Rullemenu (flervalg)** eller en **Boolesk**.
+
+### Filfelter
+
+Et felt af typen **Fil** rummer én fil og et felt af typen **Flere filer** op til 10. På hændelsens side **Brugerdefinerede felter** trækker du filer hen på feltet eller klikker på det for at vælge dem: **Erstat** skifter filen i et felt af typen **Fil**, og **Fjern** tager en fil ud. Siden viser hver fil med navn og størrelse, og et klik på den downloader den. De brugerdefinerede felter på alle andre ressourcer tager filer på samme måde.
+
+| Hvad | Grænse |
+| --- | --- |
+| Én fil | 10 MB |
+| Et felt af typen **Flere filer** | 10 filer, 50 MB i alt |
+| Filtyper | PDF-, Word-, RTF-, Excel-, PowerPoint- og OpenDocument-filer, billeder (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF og HEIC), almindelig tekst, Markdown-, CSV- og JSON-filer, ZIP-arkiver og pakkeoptagelser |
+
+- **Kontrolleret ud fra indholdet.** En fil skal indeholde det, dens type siger, så en webside, der er omdøbt til `report.pdf`, afvises. SVG-billeder tages ikke imod, fordi de kan indeholde scripts.
+- **Kun dit projekts filer.** Et felt tager kun filer, der er uploadet i hændelsens eget projekt.
+- **Downloades, åbnes aldrig på siden.** Kun den, der må se hændelsen og dens brugerdefinerede felter, kan downloade dens filer.
+- **Navngivet, ikke linket, alle andre steder.** Hændelseslisten og dens CSV-eksport, feedet, noteskabeloner og abonnentbeskeder viser et filfelt som navnene på dets filer. Listens filter spørger, om feltet **Har filer** eller har **Ingen filer**. Slack og Microsoft Teams udelader filfelter blandt de brugerdefinerede felter, de lader dig redigere: tilføj filer i OneUptime.
+- **Slettet, når intet længere holder dem.** En fil, der fjernes eller erstattes, og filerne i en slettet hændelse slettes, medmindre noget andet, fx en anden hændelse eller en skabelon, stadig holder dem.
+- **Via API'et og Terraform.** Upload filen med `POST /api/file` i hændelsens projekt med dens `name`, dens `fileType` og bytes i base64 i `file`, og sæt derefter feltet til det `_id`, der returneres. Feltet læses tilbage som de filer, det rummer, hver med sin `fileId`, `name`, `fileType` og `size`. I Terraform skriver du hver fil som `{ fileId = oneuptime_file.contract.id }`, så planen svarer til det, feltet læses tilbage som.
 
 ### Påkrævet ved oprettelse kontrolleres kun af dashboardet
 
@@ -271,6 +290,8 @@ Når en bruger eller en API-nøgle opretter eller opdaterer en hændelse, skal h
 | **Dato**, **Dato og klokkeslæt**                                   | En dato, helst som ISO 8601-tekst.                             |
 | **Rullemenu (enkeltvalg)**                                         | En af dets muligheder.                                         |
 | **Rullemenu (flervalg)**                                           | En liste over dets muligheder, eller en enkelt mulighed alene. |
+| **Fil** | En fils id, eller `{ "fileId": "<id>" }`, for en fil, der er uploadet i hændelsens projekt. |
+| **Flere filer** | En liste af dem, op til 10, eller en enkelt alene. |
 
 For en **Rullemenu (flervalg)** nævner afvisningen de første 10 poster, der ikke er blandt dens muligheder, og derefter hvor mange flere der er.
 

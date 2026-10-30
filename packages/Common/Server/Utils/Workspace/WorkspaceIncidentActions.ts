@@ -1406,6 +1406,34 @@ export default class WorkspaceIncidentActions {
   }
 
   /*
+   * Why, and where to go instead: a chat form cannot upload a file, and the
+   * incident's Custom Fields page in OneUptime is where its files are added
+   * and downloaded.
+   */
+  public static getOnlyFileCustomFieldsMessage(): string {
+    return `The custom fields you can edit here hold files, which can't be uploaded from chat. Add and download them in ${ProductBrandingText.getProductName()}, on the incident's Custom Fields page.`;
+  }
+
+  /*
+   * Why the custom fields form has nothing to ask: the project has no
+   * incident custom fields, every one is copied from the incident's
+   * monitor, or the ones that are not hold files.
+   */
+  public static getNothingToEditCustomFieldsMessage(data: {
+    form: WorkspaceCustomFieldsForm;
+  }): string {
+    if ((data.form.fileFieldNames || []).length > 0) {
+      return WorkspaceIncidentActions.getOnlyFileCustomFieldsMessage();
+    }
+
+    if (data.form.copiedFieldNames.length > 0) {
+      return WorkspaceIncidentActions.getOnlyCopiedCustomFieldsMessage();
+    }
+
+    return WorkspaceIncidentActions.getNoCustomFieldsMessage();
+  }
+
+  /*
    * What the custom fields form says under its fields, in both chats: that
    * an emptied field is cleared, and what it leaves out - fields copied from
    * the incident's monitor, and fields past what one form holds. The zone a
@@ -1427,6 +1455,21 @@ export default class WorkspaceIncidentActions {
         mdText`${WorkspaceIncidentActions.joinBoldNames(
           form.copiedFieldNames,
         )} ${isOne ? "is" : "are"} copied from the incident's monitor, so ${isOne ? "it is" : "they are"} not here.`,
+      );
+    }
+
+    /*
+     * "Files for Signed Contract are added and downloaded in OneUptime.":
+     * true of a File field and of a Multiple files one alike - the field
+     * holds one file, or several.
+     */
+    const fileFieldNames: Array<string> = form.fileFieldNames || [];
+
+    if (fileFieldNames.length > 0) {
+      parts.push(
+        mdText`Files for ${WorkspaceIncidentActions.joinBoldNames(
+          fileFieldNames,
+        )} are added and downloaded in ${ProductBrandingText.getProductName()}.`,
       );
     }
 

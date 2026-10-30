@@ -2,11 +2,16 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  FORM_FILES_RATE_LIMIT_MESSAGE,
   FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
   FORM_READ_RATE_LIMIT_MESSAGE,
   FORM_SUBMIT_RATE_LIMIT_MESSAGE,
   FORM_TOTAL_RATE_LIMIT_MESSAGE,
 } from "../../../Server/Middleware/FormRateLimit";
+import {
+  FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE,
+  FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE,
+} from "../../../Types/Form/FormPublic";
 import {
   FORM_NETWORK_NOT_ALLOWED_MESSAGE,
   FORM_NOT_AVAILABLE_MESSAGE,
@@ -72,6 +77,21 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
       FormMessage.SubmissionsUnavailable,
       FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
     ],
+    [
+      "too many files to one form this hour (429)",
+      FormMessage.FilesBusy,
+      FORM_FILES_RATE_LIMIT_MESSAGE,
+    ],
+    [
+      "too many files in one response (400, and the page's own check)",
+      FormMessage.TooManyFiles,
+      FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE,
+    ],
+    [
+      "files too large together (400, and the page's own check)",
+      FormMessage.FilesTooLarge,
+      FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE,
+    ],
   ])("%s", (_case: string, pageSentence: string, serverSentence: string) => {
     expect(pageSentence).toBe(serverSentence);
   });
@@ -106,6 +126,9 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
         FORM_SUBMIT_RATE_LIMIT_MESSAGE,
         FORM_TOTAL_RATE_LIMIT_MESSAGE,
         FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_FILES_RATE_LIMIT_MESSAGE,
+        FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE,
+        FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE,
         FormMessage.CaptchaMissing,
         FormMessage.CaptchaFailed,
         FormMessage.LoadFailed,

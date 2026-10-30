@@ -10,6 +10,10 @@ import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
+  CustomFieldFile,
+  readCustomFieldFiles,
+} from "Common/Types/CustomField/CustomFieldFile";
+import {
   FormSubmissionAnswer,
   readFormSubmissionAnswers,
 } from "Common/Types/Form/FormSubmissionAnswer";
@@ -19,6 +23,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import CustomFieldFileList from "Common/UI/Components/CustomFields/CustomFieldFileList";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -335,14 +340,34 @@ export const FormSubmissionAnswersList: FunctionComponent<AnswersListProps> = (
     >
       {answers.map(
         (answer: FormSubmissionAnswer, index: number): ReactElement => {
+          /*
+           * A file question's answer is the files stored for it: listed as
+           * the Custom Fields card lists files - each with its kind and its
+           * size - rather than as their names in a sentence. They download
+           * from the record the submission created (its file field, or its
+           * private note), so here they are listed, not linked.
+           */
+          const files: Array<CustomFieldFile> = readCustomFieldFiles(
+            answer.value,
+          );
+
           return (
             <div key={`${answer.fieldId}-${index}`} className="py-3">
               <dt className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                 {answer.label}
               </dt>
-              <dd className="mt-1 whitespace-pre-wrap text-sm text-gray-700 [overflow-wrap:anywhere]">
-                {answer.displayValue || "-"}
-              </dd>
+              {files.length > 0 ? (
+                <dd className="mt-2">
+                  <CustomFieldFileList
+                    files={files}
+                    dataTestId={`form-submission-files-${answer.fieldId}`}
+                  />
+                </dd>
+              ) : (
+                <dd className="mt-1 whitespace-pre-wrap text-sm text-gray-700 [overflow-wrap:anywhere]">
+                  {answer.displayValue || "-"}
+                </dd>
+              )}
             </div>
           );
         },

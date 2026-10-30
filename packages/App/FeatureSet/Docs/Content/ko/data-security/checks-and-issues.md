@@ -138,11 +138,11 @@ stateDiagram-v2
     state "문제 아님" as NotAnIssue
     [*] --> Open: A check fails
     Open --> Resolved: The check passes
-    Open --> Accepted: Someone accepts the risk
-    Open --> NotAnIssue: Someone says it is not an issue
-    Accepted --> Open: The acceptance expires
+    Open --> Accepted: Someone accepts<br/>the risk
+    Open --> NotAnIssue: Someone says it<br/>is not an issue
+    Accepted --> Open: The acceptance<br/>expires
     Accepted --> Resolved: The check passes
-    Resolved --> Open: The check fails again
+    Resolved --> Open: The check<br/>fails again
 ```
 
 OneUptime은 검사가 실행되면서 이슈를 열고, 갱신하고, 해결합니다. 사람이 이슈에 대해 하는 일은 그다음에 무슨 일이 일어날지 정하는 것입니다.

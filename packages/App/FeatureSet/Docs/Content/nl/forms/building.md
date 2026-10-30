@@ -81,10 +81,14 @@ Het logo houdt de hoogte van het OneUptime-logo dat het vervangt, en een breed l
 | **Selectievakje** | Een vakje om aan te vinken, zoals een bevestiging. |
 | **Datum** | Een dag. |
 | **Datum en tijd** | Een dag en een tijd. |
+| **Bestand** | Eén bestand, zoals een schermafbeelding of een ondertekend document. |
+| **Meerdere bestanden** | Tot 10 bestanden, zoals schermafbeeldingen en logs. |
 
 Een keuzelijst of meervoudige selectie toont de **Opties** die je haar geeft, elk met een optionele kleur (de knop naast een optie opent een set benoemde kleuren, met **Aangepaste kleur** voor een exacte code), tussen één en 100 ervan. Een vraag wisselen tussen **Vervolgkeuzelijst** en **Meervoudige keuze** behoudt de opties; een vraag die zo'n type wordt, begint met twee opties die je kunt hernoemen, en een die het niet meer is, verliest ze. **Dupliceren** kopieert een eigen vraag van het formulier direct eronder.
 
 De antwoorden op deze vragen worden bij de inzending bewaard en in de privénotitie getoond van wat het formulier aanmaakt — ze vullen geen veld in. Voeg om een veld in te vullen het veld zelf toe, uit de volgende twee groepen.
+
+Een vraag **Bestand** of **Meerdere bestanden** neemt bestanden van de computer van de inzender en voegt ze toe aan de privénotitie, waar je team ze downloadt. Wil je de bestanden in plaats daarvan in een aangepast veld van het incident of de gebeurtenis bewaren, voeg dan een aangepast veld **Bestand** of **Meerdere bestanden** toe.
 
 ### Velden van wat het formulier aanmaakt
 
@@ -115,7 +119,7 @@ Elk veld kan één keer worden gevraagd; de lijst markeert de velden die al op h
 
 ### Aangepaste velden
 
-Je aangepaste velden voor incidenten — of voor gepland onderhoud, bij een onderhoudsformulier — elk een vraag waarvan het antwoord de waarde van het veld wordt. De vraag neemt het type en de opties over van het aangepaste veld, en begint met de naam ervan als vraag en de beschrijving als helptekst, die je kunt wijzigen.
+Je aangepaste velden voor incidenten — of voor gepland onderhoud, bij een onderhoudsformulier — elk een vraag waarvan het antwoord de waarde van het veld wordt. De vraag neemt het type en de opties over van het aangepaste veld, en begint met de naam ervan als vraag en de beschrijving als helptekst, die je kunt wijzigen. Een aangepast veld **Bestand** of **Meerdere bestanden** wordt gevraagd als bestandsvraag, en de bestanden komen in het veld.
 
 Een formulier vraagt alleen de aangepaste velden die je eraan toevoegt, wat **Tonen bij aanmaken** ook zegt: elk veld dat een formulier vraagt, toont zijn naam, beschrijving en opties aan iedereen met de link. Als een aangepast veld wordt verwijderd, blijft zijn vraag op het formulier staan maar wordt hij niet meer gevraagd, en de kaart zegt dat — verwijder de vraag. Een veld dat opnieuw met dezelfde naam wordt aangemaakt, is een nieuw veld: voeg het opnieuw toe.
 
@@ -232,6 +236,9 @@ Na het verzenden zegt de pagina "Bedankt — je antwoord is verzonden." en geeft
 | Elk ander tekstantwoord | 10.000 tekens. |
 | Een antwoord met meervoudige selectie | 100 keuzes. |
 | **Uw naam**, **Uw e-mailadres** | Elk 100 tekens. |
+| Een bestand | 10 MB, van de soorten die een [aangepast bestandsveld](/docs/incidents/settings#bestandsvelden) aanneemt. |
+| Een vraag **Meerdere bestanden** | 10 bestanden. |
+| De bestanden van één inzending | 10 bestanden, samen 20 MB. |
 
 Een inzending die een limiet overschrijdt, een verplicht antwoord weglaat of een antwoord geeft dat niet bij de vraag past, wordt geweigerd met een bericht dat zegt welke, en er wordt niets aangemaakt. Antwoorden op vragen die het formulier niet stelt, worden genegeerd.
 

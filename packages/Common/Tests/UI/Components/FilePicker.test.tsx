@@ -366,7 +366,8 @@ describe("FilePicker", () => {
     render(<FilePicker {...defaultProps} />);
 
     expect(screen.getByText("test-document.png")).toBeInTheDocument();
-    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+    // A picker of one shows its file alone, under the field's own label.
+    expect(screen.queryByText("Uploaded files")).not.toBeInTheDocument();
   });
 
   it("should render with initial value and show Remove button", async () => {
@@ -394,12 +395,14 @@ describe("FilePicker", () => {
   it("should render with initial value array and show Uploaded files section", async () => {
     const file1: File = mockFile("doc1.png");
     const file2: File = mockFile("doc2.png");
+    defaultProps.isMultiFilePicker = true;
     defaultProps.initialValue = [
       await mockFileModel(file1, "id1"),
       await mockFileModel(file2, "id2"),
     ];
     render(<FilePicker {...defaultProps} />);
 
+    // A picker of several heads its list, under the zone that adds to it.
     expect(screen.getByText("Uploaded files")).toBeInTheDocument();
   });
 
@@ -410,7 +413,7 @@ describe("FilePicker", () => {
     render(<FilePicker {...defaultProps} />);
 
     expect(screen.getByText("single-file.png")).toBeInTheDocument();
-    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+    expect(screen.queryByText("Uploaded files")).not.toBeInTheDocument();
   });
 
   it("should render with value array containing multiple elements", async () => {
@@ -527,6 +530,7 @@ describe("FilePicker", () => {
       ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
     ).mockResolvedValue(createResponse);
 
+    defaultProps.isMultiFilePicker = true;
     render(<FilePicker {...defaultProps} />);
 
     const dropzone: HTMLElement = screen.getByText("Upload files");

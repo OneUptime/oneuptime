@@ -51,6 +51,8 @@ For en nedtrekkstype legger du til alternativene under **Nedtrekksalternativer**
 | **Dato og klokkeslett** | Sist revidert, tatt ut av drift |
 | **Lang tekst** | Tilgangsinstruksjoner, notater: flere linjer ren tekst |
 | **Formatert tekst (Markdown)** | Notater med formatering og lenker, skrevet i Markdown-redigeringsprogrammet |
+| **Fil** | Et garantibevis, en signert innkjøpsordre, et bilde av rackens etikett: én fil |
+| **Flere filer** | Håndbøker, fakturaer og bilder: opptil 10 filer |
 
 ## Et gjennomarbeidet eiendelsvokabular
 
@@ -79,6 +81,9 @@ Hvert egendefinert felt blir et filter over listen **All Items**, og filteret ti
 | **Antall** | er, er ikke, er større enn, er større enn eller lik, er mindre enn, er mindre enn eller lik, er tom, er ikke tom |
 | **Boolsk**, **Nedtrekksliste (enkeltvalg)**, **Nedtrekksliste (flervalg)** | er, er ikke, er tom, er ikke tom |
 | **Dato**, **Dato og klokkeslett** | er, er før, er etter, er mellom, er tom, er ikke tom |
+| **Fil**, **Flere filer** | er |
+
+En brikke for **Fil** eller **Flere filer** spør bare om én ting: om feltet **Har filer** eller har **Ingen filer**.
 
 Filtre kombineres med OG, så «Warranty Expiry er før 2026-10-01 OG Lifecycle Status er I drift» er én visning av listen. Det er spørsmålet et eiendelsregister finnes for å besvare, og grunnen til å bruke datotypene i stedet for en dato i et tekstfelt: et tekstfelt lagrer gjerne `2026-10-01` og kan så ikke fortelle deg hva som utløper neste kvartal.
 
@@ -91,6 +96,7 @@ Kolonner for egendefinerte felt er først skjult: slå dem på fra kolonnevelger
 - Ingenting gjør en verdi unik. To elementer kan ha samme serienummer, og ingenting stopper deg.
 - Datoer lagres som ISO-8601-tidsstempler i UTC og vises i din egen tidssone.
 - Å slette et felt fjerner det fra listen og fra filterlinjen. Verdiene som allerede er skrevet, blir værende på elementene.
+- Et felt av typen **Fil** eller **Flere filer** tar filer på opptil 10 MB hver, av slagene som står under [Filfelt](/docs/incidents/settings#filfelt), lastet opp i prosjektet. Bare den som kan se elementet, kan laste dem ned, og en fil slettes så snart ingenting holder den lenger.
 
 ## Neste steg
 
