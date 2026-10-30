@@ -805,9 +805,29 @@ Enterprise Edition, licensed through AWS Marketplace.
 To upgrade, run helm upgrade with a newer version of this chart and the same
 values.
 
-Guide: https://oneuptime.com/docs/installation/cloud-marketplaces
+Guide: https://oneuptime.com/docs/en/installation/cloud-marketplaces
 Support: https://oneuptime.com/support
 ```
+
+**Support description (AWS):** its only link is the support page. AWS made the
+last link of the first one (Documentation: https://oneuptime.com/docs) the
+listing's **Get support** button, which then opened the docs.
+
+```text
+Email support@oneuptime.com or visit https://oneuptime.com/support for help. We
+provide global coverage Monday through Friday, and most requests receive a
+response within one business day. Enterprise plans include a dedicated Slack
+channel, priority response times and direct access to our engineering team.
+```
+
+**Additional resources (AWS):** each link goes straight to its page, in English
+(`/docs/en/...`), not to an address that redirects there. AWS's review refused
+the first request to make the listing public for broken links (2026-10-20)
+without naming one; two of its links redirected then, and Get support opened
+the docs.
+
+- Installing from AWS Marketplace: https://oneuptime.com/docs/en/installation/cloud-marketplaces
+- Enterprise Edition: https://oneuptime.com/docs/en/self-hosted/enterprise
 
 **Refund policy (draft; the maintainer decides):**
 
