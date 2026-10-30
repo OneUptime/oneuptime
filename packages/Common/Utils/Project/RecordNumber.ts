@@ -12,7 +12,7 @@ import NumberPrefixUtil from "./NumberPrefix";
  *
  * Incidents, alerts, scheduled maintenance events, both kinds of episode and
  * security cases are numbered in their project: INC-18, ALT-7, SM-3, IE-2,
- * AE-4, SC-12 - or #18 in a project without a prefix (NumberPrefix). Their
+ * AE-4, CASE-12 - or #18 in a project without a prefix (NumberPrefix). Their
  * titles are not unique: two incidents declared by hand can both read
  * "Manually declared", and a monitor that fails again opens one more
  * "Checkout API p95 latency above 2s". The number is what tells them apart,

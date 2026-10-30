@@ -428,7 +428,7 @@ describe("getRecordDisplayName names a numbered record by its number first", () 
     ],
     ["an incident episode", new IncidentEpisode(), "episodeNumber", "IE-2"],
     ["an alert episode", new AlertEpisode(), "episodeNumber", "AE-4"],
-    ["a security case", new SecurityCase(), "caseNumber", "SC-12"],
+    ["a security case", new SecurityCase(), "caseNumber", "CASE-12"],
   ])(
     "%s is numbered the same way",
     (_name: string, model: BaseModel, numberColumn: string, number: string) => {
