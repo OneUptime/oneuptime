@@ -4,7 +4,7 @@ En lagringsarray-monitor følger med på ett lagringsarray og sier fra når arra
 
 :::cards
 - [Opprett monitoren](#opprett-en-lagringsarray-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Atten ferdige varsler, én hendelse per volum, vert eller komponent.
+- [Maler](#ferdige-varslingsmaler): Tjue ferdige varsler, én hendelse per volum, vert eller komponent.
 - [Slik fungerer Pures serier](#slik-er-pures-serier-bygd-opp): Ett metrikknavn, mange verdier.
 - [Metrikker](#innsamlede-metrikker): Hver serie monitoren kan varsle på.
 :::
@@ -109,7 +109,7 @@ I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resourc
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 18 maler — 11 for FlashArray og 7 for FlashBlade — og **Quick Setup** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: metrikkspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 20 maler — 12 for FlashArray og 8 for FlashBlade — og **Quick Setup** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: metrikkspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet. En monitor som utløste på en terskel for kapasitet, latens, etterslep eller forhold, gjenoppretter først 10 % forbi den, så en verdi som svinger rundt terskelen, ikke skifter fram og tilbake; malene for varsler og maskinvare gjenoppretter så snart tilstanden forsvinner.
 
@@ -117,6 +117,7 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 
 | Mal                            | Kategori     | Alvorlighetsgrad | Overvåker                                                                                       | Utløser når                                                                                                                                      |
 | ------------------------------ | ------------ | ---------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Array Stopped Reporting        | Tilgjengelighet | Kritisk          | `purefa_info`, Count, siste 10 minutter                                                         | Ingen data i hele vinduet — Storage Array Agent har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, eller arrayet sluttet å svare den; gjenoppretter når data kommer inn igjen |
 | Critical Array Alert           | Array Health | Kritisk          | `purefa_alerts_open` filtrert til `severity=critical`, Max per `summary`, siste 5 minutter      | > 0 — arrayet har et åpent kritisk varsel (en defekt komponent, en kapasitetskrise, en replikeringsfeil). Én hendelse per varsel; gjenoppretter når varselet lukkes |
 | Warning Array Alert            | Array Health | Warning          | `purefa_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter       | > 0 — arrayet har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes                                    |
 | Capacity Above 80%             | Kapasitet    | Warning          | `purefa_array_space_utilization`, Max, siste 15 minutter                                        | > 80 — Pures egen første kapasitetsterskel; gjenoppretter ved ≤ 72                                                                               |
@@ -133,6 +134,7 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 
 | Mal                          | Kategori     | Alvorlighetsgrad | Overvåker                                                                                                      | Utløser når                                                                                                         |
 | ---------------------------- | ------------ | ---------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Array Stopped Reporting      | Tilgjengelighet | Kritisk          | `purefb_info`, Count, siste 10 minutter                                                                        | Ingen data i hele vinduet — agenten, exporteren dens eller FlashBladen sluttet å svare; gjenoppretter når data kommer inn igjen |
 | Critical Array Alert         | Array Health | Kritisk          | `purefb_alerts_open` filtrert til `severity=critical`, Max per `summary`, siste 5 minutter                     | > 0 — FlashBladen har et åpent kritisk varsel. Én hendelse per varsel; gjenoppretter når varselet lukkes           |
 | Warning Array Alert          | Array Health | Warning          | `purefb_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter                      | > 0 — FlashBladen har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes   |
 | Capacity Above 80%           | Kapasitet    | Warning          | `purefb_array_space_utilization` filtrert til `type=array`, Max, siste 15 minutter                             | > 80; gjenoppretter ved ≤ 72                                                                                        |
@@ -143,6 +145,7 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 
+- **Array Stopped Reporting** teller plattformens identitetsserie (`purefa_info` eller `purefb_info`), som hvert endepunkt agenten leser, eksporterer ved hver avlesning. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Åpne varsler og maskinvaretilstander bruker Max** av en serie som bare finnes så lenge varselet er åpent eller komponenten er i den tilstanden, så én avlesning som viser den, krysser terskelen.
 - **Hver mal per objekt grupperer på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`), så det utløses én hendelse per berørt objekt, og hendelsen nevner det.
 - **Latensmaler bruker Avg** av arrayets eget gjennomsnitt per operasjon, og kapasitetsmaler **Maks.** av dets egen utnyttelsesprosent. Latenser er låst i mikrosekunder og kapasitet i prosent.

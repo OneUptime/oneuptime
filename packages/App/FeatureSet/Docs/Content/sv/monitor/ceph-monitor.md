@@ -4,7 +4,7 @@ En Ceph-monitor håller koll på ett Ceph-kluster — dess hälsa, health checks
 
 :::cards
 - [Skapa monitorn](#skapa-en-ceph-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): 23 färdiga larm för hälsa, OSD:er, placement groups och kapacitet.
+- [Mallar](#färdiga-larmmallar): 24 färdiga larm för ett tyst kluster, hälsa, OSD:er, placement groups och kapacitet.
 - [Health checks](#serier-för-health-checks): Larma på valfri health check i Ceph efter namn.
 - [Mätvärden](#insamlade-mätvärden): Varje `ceph_*`-serie som monitorn kan larma på.
 :::
@@ -99,9 +99,17 @@ Poolernas dataserier har bara etiketten `pool_id`: Poolens namn finns bara i `ce
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 23 mallar för klustrets hälsa, OSD:er, placement groups och kapacitet. Varje mall bygger en komplett monitor — frågor, etikettfilter, en gruppering, ett kriterium som utlöser och ett som återställer. Tröskelvärdena är utgångspunkter som du kan ändra.
+**Quick Setup** erbjuder 24 mallar för ett tyst kluster, klustrets hälsa, OSD:er, placement groups och kapacitet. Varje mall bygger en komplett monitor — frågor, etikettfilter, en gruppering, ett kriterium som utlöser och ett som återställer. Tröskelvärdena är utgångspunkter som du kan ändra.
 
 Mallar läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller under varje minut i fönstret, och ett tröskelkriterium återställs först 10 % bortom sitt tröskelvärde, så att ett värde som pendlar kring gränsen inte fladdrar. **Allvarlighetsgrad** är etiketten som väljaren visar; incidenten och larmet som en mall skapar börjar med projektets högsta allvarlighetsgrad för incidenter och larm.
+
+### Tillgänglighetsmallar
+
+| Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `ceph_health_status`, Count, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
+
+**Cluster Stopped Reporting** utlöses när ingenting kommer från klustret på tio minuter: Ceph Agent har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, eller så betjänar ingen mgr `prometheus`-modulen. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, och mallarna för health checks läser ett tyst kluster som ett friskt, så det är den här mallen som säger till.
 
 ### Mallar för klustrets hälsa
 

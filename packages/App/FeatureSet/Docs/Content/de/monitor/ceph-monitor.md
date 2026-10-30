@@ -4,7 +4,7 @@ Ein Ceph-Monitor überwacht einen Ceph-Cluster — seinen Zustand, seine Health-
 
 :::cards
 - [Den Monitor erstellen](#einen-ceph-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-alarmvorlagen): 23 fertige Alarme für Zustand, OSDs, Placement Groups und Kapazität.
+- [Vorlagen](#fertige-alarmvorlagen): 24 fertige Alarme für einen verstummten Cluster, Zustand, OSDs, Placement Groups und Kapazität.
 - [Health-Checks](#health-check-serien): Bei jedem Ceph-Health-Check nach Namen alarmieren.
 - [Metriken](#gesammelte-metriken): Jede `ceph_*`-Serie, auf die der Monitor alarmieren kann.
 :::
@@ -99,9 +99,17 @@ Datenserien von Pools tragen nur das Label `pool_id`: Der Name des Pools existie
 
 ## Fertige Alarmvorlagen
 
-**Quick Setup** bietet 23 Vorlagen für Cluster-Zustand, OSDs, Placement Groups und Kapazität. Jede baut einen vollständigen Monitor — Abfragen, Label-Filter, eine Gruppierung, ein auslösendes und ein erholendes Kriterium. Die Schwellenwerte sind Ausgangspunkte, die Sie anpassen können.
+**Quick Setup** bietet 24 Vorlagen für einen verstummten Cluster, Cluster-Zustand, OSDs, Placement Groups und Kapazität. Jede baut einen vollständigen Monitor — Abfragen, Label-Filter, eine Gruppierung, ein auslösendes und ein erholendes Kriterium. Die Schwellenwerte sind Ausgangspunkte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Fensters zutrifft, und ein Schwellenwert-Kriterium erholt sich erst 10 % jenseits seines Schwellenwerts, damit ein Wert, der um die Linie pendelt, nicht flattert. **Schweregrad** ist die Bezeichnung, die die Auswahl zeigt; der Vorfall und die Warnung, die eine Vorlage erzeugt, beginnen mit dem höchsten Vorfall- und Warnungsschweregrad Ihres Projekts.
+
+### Verfügbarkeitsvorlagen
+
+| Vorlage | Schweregrad | Überwacht | Löst aus bei | Erholt sich bei |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisch | `ceph_health_status`, Count, letzte 10 Minuten | Keine Daten im gesamten Fenster | Daten treffen wieder ein |
+
+**Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Cluster eintrifft: Der Ceph Agent läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen, oder kein mgr stellt das `prometheus`-Modul bereit. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, und die Health-Check-Vorlagen lesen einen verstummten Cluster als gesunden, daher ist es diese Vorlage, die Ihnen das meldet.
 
 ### Vorlagen für den Cluster-Zustand
 

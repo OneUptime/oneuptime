@@ -4,7 +4,7 @@ Docker 모니터는 Docker 호스트 한 대의 컨테이너를 감시하고, �
 
 :::cards
 - [모니터 만들기](#docker-모니터-만들기): 대시보드에서 6단계.
-- [템플릿](#미리-만들어진-알림-템플릿): 컨테이너마다 인시던트 하나를 여는 6개의 미리 만들어진 알림.
+- [템플릿](#미리-만들어진-알림-템플릿): 컨테이너마다 인시던트 하나를 여는 7개의 미리 만들어진 알림.
 - [메트릭](#수집되는-메트릭): 에이전트가 수집하는 내용과 각 메트릭의 의미.
 - [로그](#수집되는-로그): 컨테이너 로그와 이에 필요한 로그 드라이버.
 :::
@@ -84,20 +84,24 @@ flowchart TB
 
 ## 미리 만들어진 알림 템플릿
 
-**Quick Setup** 에는 템플릿이 6개 있습니다. 각각 완전한 모니터를 만듭니다. `resource.container.name`으로 그룹화한 쿼리, 작동하는 기준, 회복하는 기준입니다. 컨테이너는 하나씩 판단되므로 바쁜 컨테이너가 다른 컨테이너를 가리지 않으며, 임계값을 넘은 컨테이너마다 자체 인시던트와 알림을 받습니다. 임계값은 출발점이므로 편집할 수 있습니다.
+**Quick Setup** 에는 템플릿이 7개 있습니다. 각각 완전한 모니터를 만듭니다. 쿼리, 작동하는 기준, 회복하는 기준입니다. **Host Stopped Reporting** 을 제외한 모든 템플릿은 쿼리를 `resource.container.name`으로 그룹화하므로, 컨테이너는 하나씩 판단되고 바쁜 컨테이너가 다른 컨테이너를 가리지 않으며, 임계값을 넘은 컨테이너마다 자체 인시던트와 알림을 받습니다. 임계값은 출발점이므로 편집할 수 있습니다.
 
 표에 달리 적혀 있지 않으면, 기준은 기간의 매분 조건이 유지될 때만 작동하고 임계값에서 10% 지난 지점에서 회복하므로 경계 근처를 오가는 값 때문에 깜빡이지 않습니다.
 
 | 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | 심각 | `container.memory.percent`, 호스트의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, 컨테이너별 Max, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Container Memory Usage | Warning | `container.memory.percent`, 컨테이너별 Max, 최근 5분 | 85% 초과 | 76.5% 이하 |
 | Container Restart Loop | 심각 | 컨테이너별 `container.restarts` 증가량, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
 | Container CPU Throttling | Warning | 컨테이너별 `container.cpu.throttling_data.throttled_time` 증가량(ms), 최근 5분 | 기간 내 1000 ms 초과(합계) | 900 ms 이하 |
 | High Container Process Count | Warning | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
-| Container Down (Low Uptime) | 심각 | `container.uptime`, 컨테이너별 Min, 최근 1분 | 0과 같음 | 0 초과 |
+| Container Restarted (Low Uptime) | 심각 | `container.uptime`, 컨테이너별 Min, 최근 1분 | 120초 미만 | 132초 이상 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
+
+> [!NOTE]
+> **Host Stopped Reporting** 템플릿은 호스트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 호스트가 다운되었거나, 에이전트가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소된 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다. 에이전트는 컨테이너로 실행되며 자기 컨테이너도 보고하므로, 다른 컨테이너가 없는 호스트도 계속 보고합니다.
 
 > [!NOTE]
 > `container.cpu.utilization`은 `docker stats`가 출력하는 수치를 에이전트의 30초 간격으로 평균한 값입니다. 100%는 호스트 전체가 아니라 CPU 코어 하나이므로, 코어 두 개를 쓰는 컨테이너는 200으로 나옵니다. 멀티코어 호스트에서 임계값 80은 머신에 대한 비율이 아니라 CPU 예산입니다.
@@ -106,10 +110,10 @@ flowchart TB
 > `container.memory.percent`는 컨테이너에 메모리 한도가 있으면 그 한도로, 없으면 **호스트** 의 전체 메모리로 나눕니다. 초과를 곧 닥칠 메모리 부족 종료로 보기 전에, 컨테이너가 `--memory`로 시작되었는지 확인하세요.
 
 > [!WARNING]
-> `container.restarts`와 `container.cpu.throttling_data.throttled_time`은 늘기만 하므로, 두 템플릿은 기간 동안 얼마나 늘었는지로 알림을 보냅니다. 분마다 Maximum 쿼리와 Minimum 쿼리를 수식으로 빼고 합산합니다. 에이전트의 30초 수집에서는 실제 활동의 절반 정도만 보이며, 임계값은 이미 이를 감안합니다. 에이전트의 `collection_interval`을 60초 이상으로 올리면 1분에 샘플이 하나만 들어가 두 템플릿 모두 알림을 보내지 않습니다.
+> `container.restarts`와 `container.cpu.throttling_data.throttled_time`은 늘기만 하므로, 두 템플릿은 기간 동안 얼마나 늘었는지로 알림을 보냅니다. 분마다 Maximum 쿼리와 Minimum 쿼리를 수식으로 빼고 합산합니다. 에이전트의 30초 수집에서는 실제 활동의 절반 정도만 보이며, 임계값은 이미 이를 감안합니다. 에이전트의 `collection_interval`을 60초 이상으로 올리면 1분에 샘플이 하나만 들어가 두 템플릿 모두 알림을 보내지 않습니다. 또한 에이전트는 실행 중인 컨테이너만 샘플링하므로 시작하자마자 종료되는 컨테이너는 거의 샘플링되지 않습니다. **Container Restarted (Low Uptime)** 템플릿은 에이전트가 보는 모든 재시작에서 발생합니다.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** 템플릿은 멈춘 채로 있는 컨테이너를 잡지 못합니다. 에이전트는 실행 중인 컨테이너만 보고하므로, 멈춘 컨테이너는 데이터를 전혀 보내지 않고 가동 시간이 0으로 나오지도 않습니다. 계속 실행되어야 하는 서비스라면 그 서비스가 제공하는 기능도 감시하세요. 예를 들어 [API 모니터](/docs/monitor/api-monitor)를 쓸 수 있습니다.
+> `container.uptime`은 실행 중인 컨테이너에만 있습니다. 멈춘 채로 있는 컨테이너는 데이터를 보내지 않으므로, **Container Restarted (Low Uptime)** 템플릿은 재시작과 재배포를 잡을 뿐 영구적인 종료는 잡지 못합니다. 2분보다 짧게 실행되도록 만든 컨테이너는 수명 내내 알림 상태로 남습니다. 예를 들어 [API 모니터](/docs/monitor/api-monitor)를 쓸 수 있습니다.
 
 ## 수집되는 메트릭
 
@@ -143,8 +147,7 @@ flowchart TB
 
 | 메트릭 | 설명 |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | 블록 장치에서 읽은 바이트. |
-| `container.blockio.io_service_bytes_recursive.write` | 블록 장치에 쓴 바이트. |
+| `container.blockio.io_service_bytes_recursive` | 컨테이너가 시작된 이후 각 블록 장치에서 읽고 쓴 바이트 수로, `operation`(`read`, `write`)별로 나뉩니다. 수명 전체에 걸친 카운터입니다. 목록에서는 읽기와 쓰기로 각각 필터링해 제공합니다. |
 
 ### 컨테이너
 
@@ -154,7 +157,7 @@ flowchart TB
 | `container.restarts` | 생성된 이후 컨테이너가 다시 시작된 횟수. 수명 전체 카운터. |
 | `container.pids.count` | 컨테이너 안의 작업 수. cgroup의 pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. |
 
-**Docker 메트릭** 목록에는 `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache`, 네트워크 패킷 카운터도 있습니다. 함께 제공되는 에이전트 구성은 이것들을 켜지 않으므로, 이를 바탕으로 만들기 전에 호스트의 **메트릭** 페이지를 확인하세요. `container.cpu.throttling_data.throttled_periods`는 목록에 없으므로 **고급** 에서 조회하세요.
+`container.cpu.throttling_data.throttled_periods`는 목록에 없으므로 **고급** 에서 조회하세요.
 
 ## 모니터링 기준
 

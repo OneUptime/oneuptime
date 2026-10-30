@@ -5,7 +5,7 @@ Kubernetes モニターは、OneUptime の Kubernetes エージェントがク�
 :::cards
 - [エージェントをインストールする](/docs/monitor/kubernetes-agent): Helm コマンド 1 つでクラスターを OneUptime に取り込みます。
 - [モニターを作成する](#kubernetes-モニターを作成する): クラスターを選び、テンプレート、メトリクス、クエリのいずれかを選びます。
-- [アラートテンプレート](#既製のアラートテンプレート): CrashLoopBackOff から etcd まで、17 個の既製アラート。
+- [アラートテンプレート](#既製のアラートテンプレート): 報告が止まったクラスターから etcd まで、18 個の既製アラート。
 - [条件](#監視条件): 静的なしきい値と異常検知。
 :::
 
@@ -84,14 +84,14 @@ flowchart TB
 | カテゴリ | メトリクス |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | コンテナ | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | コントロールプレーン | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。
+> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。
 
 ## 監視条件
 
@@ -132,13 +132,14 @@ flowchart TB
 
 | テンプレート | カテゴリ | 発火する条件 | 重大度 |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | ワークロード | Pod の作成以降、コンテナが 5 回を超えて再起動した | 重大 |
+| Cluster Stopped Reporting | 可用性 | クラスターのエージェントから 10 分間データが届かない | 重大 |
+| CrashLoopBackOff Detection | ワークロード | コンテナが 15 分以内に再起動し、その半分未満しか準備完了でなかった | 重大 |
 | Pod Stuck in Pending | スケジューリング | 15 分間のすべてのサンプルで、いずれかの Pod が Pending フェーズにある | 警告 |
-| Node Not Ready | ノード | ノードが NotReady を報告した | 重大 |
+| Node Not Ready | ノード | ノードが NotReady を報告した、またはステータスの報告が止まった (Unknown) | 重大 |
 | High Node CPU Utilization | ノード | ノードの平均 CPU 使用量が割り当て可能な CPU の 90% を超えた | 警告 |
-| High Node Memory Utilization | ノード | ノードの平均メモリ使用量が割り当て可能なメモリの 85% を超えた | 警告 |
+| High Node Memory Utilization | ノード | ノードの平均メモリワーキングセットが割り当て可能なメモリの 85% を超えた | 警告 |
 | Deployment Replica Mismatch | ワークロード | Deployment の利用可能なレプリカが 15 分間、希望数を下回っている | 警告 |
-| Job Failures | ワークロード | Job に失敗した Pod がある | 警告 |
+| Job Failures | ワークロード | Job の Pod が 15 分以内に失敗した | 警告 |
 | etcd No Leader | コントロールプレーン | etcd に選出されたリーダーがいない | 重大 |
 | API Server Request Saturation | コントロールプレーン | API サーバーが期間全体にわたって 200 件以上の処理中リクエストを抱えている | 重大 |
 | Scheduler Backlog | スケジューリング | スケジューラーの保留中 Pod のキューが 5 分間空にならない | 警告 |
@@ -146,14 +147,16 @@ flowchart TB
 | DaemonSet Misscheduled Nodes | ワークロード | DaemonSet が、ノードセレクター、アフィニティ、トレレーションに合わなくなったノードで Pod を実行している | 警告 |
 | High Node CPU Request Commitment | ノード | ノード上のコンテナの CPU リクエストの合計が割り当て可能な CPU の 90% を超えた | 警告 |
 | High Node Memory Request Commitment | ノード | ノード上のコンテナのメモリリクエストの合計が割り当て可能なメモリの 90% を超えた | 警告 |
-| HPA Saturated at Max Replicas | ワークロード | HPA が `maxReplicas` の 90% 以上で動作している | 重大 |
+| HPA Saturated at Max Replicas | ワークロード | `minReplicas` を超えてスケールした HPA が `maxReplicas` の 90% 以上で動作している | 重大 |
 | Pod Memory Saturating Container Limit | ワークロード | Pod がコンテナのメモリ上限の 90% を超えて使用している | 重大 |
 | Pod CPU Saturating Container Limit | ワークロード | Pod がコンテナの CPU 上限の 90% を超えて使用している | 警告 |
 
 オブジェクト単位のメトリクスを使うテンプレートは、ノード、Pod、Deployment、Job、DaemonSet、HPA をそれぞれ個別に評価します。そのため、不健全な Pod が複数あるクラスターでは、クラスター全体で 1 件ではなく Pod ごとにインシデントが作成されます。
 
+**Cluster Stopped Reporting** は、クラスターのエージェントから 10 分間何も届かないときに発火します。エージェントがアンインストールされたかクラッシュを繰り返している場合、API キーが取り消された場合、OneUptime への経路を失った場合、またはクラスターの API サーバーがエージェントに応答しなくなった場合です。データが戻ると解決します。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** は、レートではなく、現在の Pod におけるコンテナの累計再起動回数を読み取ります。クラッシュループの後に回復したコンテナは、その Pod が置き換えられるまでアラートを開いたままにします。
+> **CrashLoopBackOff Detection** と **Job Failures** は、再起動数や失敗 Pod 数そのものではなく、ウィンドウ内でそれがどれだけ増えたかを数えるため、再起動や失敗が止まれば自動で解消します。増加は同じ分の 2 つのサンプル間でしか見えず、エージェントの 30 秒間隔ではおよそ半分です。クラッシュループは何度も再起動するので検出されますが、1 回だけの再起動は見逃されることがあります。
 
 ### 症状だけでなく原因を捉える
 
@@ -181,8 +184,8 @@ flowchart TB
 **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数なので、しきい値 `80` は 80 コアを意味します。しきい値をコア数で設定するか、パーセントで比較する **High Node CPU Utilization** または **Pod CPU Saturating Container Limit** から始めてください。
 :::
 
-:::details Pod が回復しても CrashLoopBackOff Detection が開いたまま
-テンプレートは現在の Pod におけるコンテナの累計再起動回数を読み取るため、いったん 5 を超えると回数は戻りません。アラートは、再デプロイ、退避、ノードのドレインなどで Pod が置き換えられると解決します。
+:::details 再起動で CrashLoopBackOff Detection が発火しなかった
+このテンプレートは、コンテナの再起動数が 15 分以内に増え、かつコンテナがその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。増加は同じ分の 2 つのサンプル間でしか見えないため、1 回だけの再起動は見逃されることがあります。数分ごとに再起動するクラッシュループは検出されます。
 :::
 
 ## 次のステップ

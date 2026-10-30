@@ -3,9 +3,13 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  AdditionalCriteriaFilterSpec,
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import FilterCondition from "../Filter/FilterCondition";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceScope,
@@ -14,6 +18,7 @@ import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type KubernetesAlertTemplateCategory =
+  | "Availability"
   | "Workload"
   | "Node"
   | "ControlPlane"
@@ -103,6 +108,15 @@ export function buildOfflineCriteriaInstance(args: {
   criteriaName?: string;
   criteriaDescription?: string;
   metricAggregationType?: EvaluateOverTimeType | undefined;
+  /*
+   * Comparisons combined with the primary one per `filterCondition`. On a
+   * grouped monitor they are combined WITHIN a series
+   * (MonitorCriteriaEvaluator.collectPerSeriesMatches), so `All` means
+   * "this container restarted AND this same container is mostly not
+   * ready".
+   */
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
+  filterCondition?: FilterCondition | undefined;
 }): MonitorCriteriaInstance {
   return buildUnhealthyCriteriaInstance({
     ...args,
@@ -119,6 +133,9 @@ export function buildOnlineCriteriaInstance(args: {
   marginFraction?: number | undefined;
   isBinaryMetric?: boolean | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
+  // Left on the builder default (Any): any one of them clears the alert.
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
+  filterCondition?: FilterCondition | undefined;
 }): MonitorCriteriaInstance {
   return buildHealthyCriteriaInstance(args);
 }
@@ -362,12 +379,150 @@ export function buildKubernetesRatioMonitorConfig(args: {
   };
 }
 
+export interface KubernetesQuerySpec {
+  alias: string;
+  metricName: string;
+  aggregationType: MetricsAggregationType;
+}
+
+export interface KubernetesFormulaSpec {
+  alias: string;
+  legend: string;
+  // References the query ALIASES, as in buildKubernetesRatioMonitorConfig.
+  formula: string;
+  // Display only, as a ratio's `resultLegendUnit`; "" for a count.
+  legendUnit: string;
+}
+
+/**
+ * Several queries over the SAME object, and the formulas over them that the
+ * criteria compare: a counter's growth next to the gauge that qualifies it
+ * (CrashLoopBackOff), or two derived values that must both hold (an HPA at
+ * its ceiling AND above its floor).
+ *
+ * Every query carries the same group-by key set, which is what lines the
+ * series up (see buildKubernetesRatioMonitorConfig: a key only one query
+ * carries splits the fingerprints and the formula silently evaluates
+ * against an empty operand), so pass only keys every metric's receiver
+ * stamps itself.
+ *
+ * A counter's growth is the house pattern of buildDockerDeltaMonitorConfig:
+ * a Max and a Min query over the same lifetime counter and a formula
+ * subtracting them give its growth WITHIN each one-minute bucket, and a
+ * criteria with `EvaluateOverTimeType.Sum` totals those across the window.
+ * The monitor path has no cross-bucket rate, so this sees only growth
+ * between two samples of the SAME minute: at the agent's 30-second
+ * collection interval, about half of the real increments - a lower bound,
+ * which cannot manufacture a breach. At 60 seconds or slower every bucket
+ * holds one sample and the growth reads 0.
+ */
+export function buildKubernetesMultiQueryMonitorConfig(args: {
+  clusterIdentifier: string;
+  queries: Array<KubernetesQuerySpec>;
+  formulas: Array<KubernetesFormulaSpec>;
+  groupByAttributeKeys: Array<string>;
+  resourceScope: KubernetesResourceScope;
+  rollingTime: RollingTime;
+}): MonitorStepKubernetesMonitor {
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceScope: args.resourceScope,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: args.queries.map((query: KubernetesQuerySpec) => {
+        return {
+          metricAliasData: {
+            metricVariable: query.alias,
+            title: query.alias,
+            description: query.alias,
+            legend: query.alias,
+            // Unset, so MetricResultUnitConverter passes the raw value through.
+            legendUnit: undefined,
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: query.metricName,
+              attributes: {},
+              aggegationType: query.aggregationType,
+              aggregateBy: {},
+            },
+            groupByAttributeKeys: args.groupByAttributeKeys,
+          },
+        };
+      }),
+      formulaConfigs: args.formulas.map((formula: KubernetesFormulaSpec) => {
+        return {
+          metricAliasData: {
+            metricVariable: formula.alias,
+            title: formula.legend,
+            description: formula.legend,
+            legend: formula.legend,
+            legendUnit: formula.legendUnit,
+          },
+          metricFormulaData: {
+            metricFormula: formula.formula,
+          },
+        };
+      }),
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
 // --- Template Definitions ---
+
+const clusterStoppedReportingTemplate: KubernetesAlertTemplate = {
+  id: "k8s-cluster-stopped-reporting",
+  name: "Cluster Stopped Reporting",
+  summary: "The cluster's agent sends no data for 10 minutes.",
+  // See etcdNoLeaderTemplate for why no backticks.
+  description:
+    "Alert when the cluster's agent sends no data for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. Reads k8s.node.condition_ready, which the agent's cluster receiver reports for every node every 30 seconds while it runs. Without this, every other template simply stops being evaluated when the data stops.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * The heartbeat. The k8s_cluster receiver (the agent's Deployment,
+         * configmap-deployment.yaml, collection_interval 30s) reports the
+         * Ready condition of EVERY node on every scrape whatever its value
+         * (True 1, False 0, Unknown -1), and a cluster always has a node,
+         * so this series is never empty while the agent runs. Ungrouped
+         * and counted: the whole cluster is one series, and only a window
+         * with no row at all is the breach.
+         */
+        metricName: "k8s.node.condition_ready",
+        metricAlias,
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Kubernetes cluster",
+        incidentTitle: `[K8s] Cluster Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no data from this cluster's agent for ten minutes, so the cluster's other monitors have nothing to evaluate either. Check, in order: whether the agent's pods are running and what their logs say (\`kubectl get pods\` in the namespace the agent was installed in), whether its API key is still valid, and whether the cluster can reach OneUptime. The incident resolves on its own once data arrives again.`,
+        criteriaName: "Cluster Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the cluster's agent sends no node readiness data for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
   id: "k8s-crashloopbackoff",
   name: "CrashLoopBackOff Detection",
-  summary: "A container restarted more than 5 times in its current pod.",
+  summary: "A container restarts within 15 minutes and is mostly not ready.",
   /*
    * No backticks in here. `template.description` is rendered as raw JSX
    * text on the recommendation card
@@ -375,31 +530,86 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
    * <p>, not markdown), so a code span would show up as literal backticks.
    */
   description:
-    "Alert when a container has restarted more than 5 times since its pod was created. k8s.container.restarts is the container status' cumulative restartCount, so this is a lifetime count for the CURRENT pod rather than a rate: it resets only when the pod object is replaced, which is also when this alert auto-resolves.",
+    "Alert when a container restarts within fifteen minutes and was ready for less than half of them: the kubelet keeps restarting a container that keeps crashing, with a growing back-off, and it is not ready in between. Reads the growth of k8s.container.restarts (the container's restart count) and the average of k8s.container.ready. The restart count is only seen growing between two samples of the same minute, so a single restart can go unseen; a crash loop restarts again and again and is caught. One incident per container.",
   category: "Workload",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "container_restarts";
+    const readyAlias: string = "container_ready";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      /*
+       * NOT the restart count itself. `k8s.container.restarts` is the
+       * container status' restartCount, a lifetime total for the pod: a
+       * long-lived pod that crashed six times over a month opened a
+       * Critical incident at once and held it until the pod was replaced,
+       * while a container crash-looping right now with only its third
+       * restart did not fire at all.
+       *
+       * A current-state signal would be better - kube-state-metrics'
+       * kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}
+       * or the receiver's k8s.container.status.reason - but the agent
+       * collects neither by default (kubeStateMetrics.enabled is false,
+       * and the k8s_cluster receiver runs with its default metrics).
+       *
+       * So the template reads what the agent always sends: the restart
+       * count's GROWTH in the window (the house delta, see
+       * buildKubernetesMultiQueryMonitorConfig) - a container restarting
+       * now - qualified by k8s.container.ready, so a one-off restart (an
+       * OOM kill, a node drain's replacement) of a container that came
+       * straight back and stayed ready does not page as a crash loop. A
+       * crash-looping container sits in its back-off, not ready, between
+       * restarts.
+       */
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.container.restarts",
-        metricAlias,
-        resourceScope: KubernetesResourceScope.Cluster,
-        rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Max,
+        queries: [
+          {
+            alias: "container_restarts_max",
+            metricName: "k8s.container.restarts",
+            aggregationType: MetricsAggregationType.Max,
+          },
+          {
+            alias: "container_restarts_min",
+            metricName: "k8s.container.restarts",
+            aggregationType: MetricsAggregationType.Min,
+          },
+          {
+            alias: readyAlias,
+            metricName: "k8s.container.ready",
+            // The share of the minute's samples that were ready.
+            aggregationType: MetricsAggregationType.Avg,
+          },
+        ],
+        formulas: [
+          {
+            alias: metricAlias,
+            legend: "Container Restarts (in window)",
+            formula: "container_restarts_max - container_restarts_min",
+            legendUnit: "",
+          },
+        ],
         /*
-         * Per pod: restarts are a property of one pod's containers, so a
-         * crash-looping pod must page on its own rather than dedupe behind
-         * whichever pod in the cluster crashed first. Max over the window
-         * therefore becomes "the worst container in THIS pod".
+         * Per container: a crash-looping container must page on its own
+         * rather than dedupe behind whichever one in the cluster crashed
+         * first. Both metrics come from the k8s_cluster receiver, which
+         * stamps all three keys itself, so the queries line up.
          */
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",
           "resource.k8s.pod.name",
           "resource.k8s.container.name",
         ],
+        resourceScope: KubernetesResourceScope.Cluster,
+        /*
+         * Fifteen minutes: a crash loop's back-off doubles from 10 seconds
+         * to its 5-minute cap, so even a loop at the cap restarts three
+         * times in the window, and each restart is seen with about even
+         * odds. A longer window would see more of them, but every query
+         * reads at most 10,000 rows (LIMIT_PER_PROJECT): 15 minutes of
+         * 30-second samples covers about 330 containers.
+         */
+        rollingTime: RollingTime.Past15Minutes,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -408,15 +618,28 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 5,
+        value: 0,
+        /*
+         * Sum, not the sustained AllValues default: each sample is ONE
+         * MINUTE'S growth and most minutes of a crash loop are 0, so "every
+         * minute breached" is unreachable. The window total is the count.
+         */
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        filterCondition: FilterCondition.All,
+        additionalFilters: [
+          {
+            /*
+             * Ready for less than half the window. The same container,
+             * because both filters are evaluated per series.
+             */
+            metricAlias: readyAlias,
+            filterType: FilterType.LessThan,
+            value: 0.5,
+            metricAggregationType: EvaluateOverTimeType.Average,
+          },
+        ],
         incidentTitle: `[K8s] CrashLoopBackOff Detected - ${args.monitorName}`,
         /*
-         * `k8s.container.restarts` is containerStatus.restartCount: it only
-         * ever goes up for the life of the pod object. Everything this copy
-         * says follows from that, so keep the two facts in it — the count is
-         * cumulative, and the alert therefore clears on pod replacement
-         * rather than when the crashing stops.
-         *
          * No bare angle-bracket placeholders in here. Incident.description
          * is a Markdown column, and the subscriber path runs it through
          * Markdown.convertToPlainText, which strips a tag-shaped <pod> as
@@ -431,16 +654,30 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
          * lives in the block SeriesContextEnricher appends to the
          * description.
          */
-        incidentDescription: `A container has restarted more than 5 times since its pod was created — the signature of a CrashLoopBackOff. This count is cumulative for THIS pod and never decreases, so the alert clears when the pod is replaced (a redeploy, an eviction, a node drain) rather than at the moment the crashing stops. Common causes: a crash on startup, a missing config map or secret, an OOMKill against the container's memory limit, or a failing liveness probe. The affected namespace, pod and container are named under "Affected resource" below, with the kubectl commands to inspect them — including the previous instance's logs — under "Start here".`,
-        criteriaName: "CrashLoopBackOff - Container Restarts > 5",
+        incidentDescription: `A container restarted within the last fifteen minutes and was ready for less than half of them — the signature of a CrashLoopBackOff: the kubelet keeps restarting a container that keeps crashing, waiting longer each time. The alert clears once the container stops restarting for fifteen minutes or stays ready. Common causes: a crash on startup, a missing config map or secret, an OOMKill against the container's memory limit, or a failing liveness probe. The affected namespace, pod and container are named under "Affected resource" below, with the kubectl commands to inspect them — including the previous instance's logs — under "Start here".`,
+        criteriaName: "CrashLoopBackOff - Restarts in 15 min > 0, Ready < 50%",
         criteriaDescription:
-          "Triggers when a container's cumulative restart count for its current pod exceeds 5. This is not a per-window rate: a container that crash-looped and then stabilised keeps the alert open until its pod is replaced, and a container that is actively crash-looping but has only reached 3 restarts does not fire yet.",
+          "Triggers when a container's restart count grows within the monitoring window and the container was ready for less than half of it. The growth is counted between two samples of the same minute, so it is a lower bound: a single restart can go unseen, a crash loop's repeated restarts are caught.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 5,
+        value: 0,
+        // Must match the unhealthy side: a sum of per-minute growth.
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        /*
+         * Either clears it: no restart in the window, or a container ready
+         * for most of it (with the shared dead band, 55%).
+         */
+        additionalFilters: [
+          {
+            metricAlias: readyAlias,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: 0.5,
+            metricAggregationType: EvaluateOverTimeType.Average,
+          },
+        ],
       }),
     });
   },
@@ -494,9 +731,9 @@ const podPendingTemplate: KubernetesAlertTemplate = {
          * Min also avoids the trap the previous `Sum` walked into, which
          * Common/Types/Dashboard/DashboardTemplates.ts documents: a
          * per-resource gauge re-emitted on every scrape sums to
-         * (pods x scrapes). This is the same idiom k8s-node-not-ready
-         * already uses on `k8s.node.condition_ready` (Min + an equality
-         * against the bad value).
+         * (pods x scrapes). k8s-node-not-ready reads its
+         * `k8s.node.condition_ready` the same way (Min per node), with a
+         * `< 1` because that metric has two bad values.
          */
         aggregationType: MetricsAggregationType.Min,
         /*
@@ -559,9 +796,9 @@ const podPendingTemplate: KubernetesAlertTemplate = {
 const nodeNotReadyTemplate: KubernetesAlertTemplate = {
   id: "k8s-node-not-ready",
   name: "Node Not Ready",
-  summary: "A node reports NotReady.",
+  summary: "A node reports NotReady, or stops reporting its status.",
   description:
-    "Alert when a node condition transitions to NotReady, indicating node health issues.",
+    "Alert when a node's Ready condition is not True: NotReady (the kubelet reports a problem) or Unknown (the kubelet stopped reporting, which is what a node that crashed, lost power or lost its network looks like). k8s.node.condition_ready is 1 for Ready, 0 for NotReady and -1 for Unknown.",
   category: "Node",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -577,8 +814,8 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
         aggregationType: MetricsAggregationType.Min,
         /*
          * Per node: one incident per NotReady node. Ungrouped, the Min
-         * across the fleet is 0 as soon as ANY node is down, and the
-         * second node to fail dedupes behind the first one's incident.
+         * across the fleet drops below 1 as soon as ANY node is down, and
+         * the second node to fail dedupes behind the first one's incident.
          */
         groupByAttributeKeys: ["resource.k8s.node.name"],
       }),
@@ -588,19 +825,35 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
-        filterType: FilterType.EqualTo,
-        value: 0,
+        /*
+         * `< 1`, NOT `= 0`. The k8s_cluster receiver maps the Ready
+         * condition's status to a number: True 1, False 0, Unknown -1
+         * (k8sclusterreceiver's nodeConditionValues). A node that goes
+         * down - crashed, powered off, partitioned - does not report
+         * False: its kubelet stops posting status, and after the node
+         * monitor grace period the node controller sets Ready to
+         * Unknown. `= 0` therefore never matched the outage this template
+         * exists for; it only caught a kubelet that was alive enough to
+         * say it was unhealthy. Every value below 1 is "not Ready".
+         */
+        filterType: FilterType.LessThan,
+        value: 1,
         incidentTitle: `[K8s] Node Not Ready - ${args.monitorName}`,
-        incidentDescription: `A Kubernetes node has transitioned to NotReady state. This is a critical condition that affects all pods scheduled on this node. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to read its conditions and list what it is still hosting.`,
-        criteriaName: "Node NotReady - Condition = 0",
+        incidentDescription: `A Kubernetes node is not Ready: it reports NotReady, or its kubelet has stopped reporting and the node's Ready condition is Unknown, which is how a node that crashed, lost power or lost its network looks. This is a critical condition that affects all pods scheduled on this node. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to read its conditions and list what it is still hosting.`,
+        criteriaName: "Node Not Ready - Ready Condition < 1",
         criteriaDescription:
-          "Triggers when any node reports a NotReady condition (value 0).",
+          "Triggers when a node's Ready condition stays below 1 (0 = NotReady, -1 = Unknown) for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.GreaterThan,
-        value: 0,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+        /*
+         * Ready is exactly 1, so the shared 10% dead band (recover at
+         * `>= 1.1`) could never be reached.
+         */
+        isBinaryMetric: true,
       }),
     });
   },
@@ -666,7 +919,7 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
   name: "High Node Memory Utilization",
   summary: "A node uses more than 85% of its allocatable memory.",
   description:
-    "Alert when a node's average memory usage exceeds 85% of its allocatable memory. Computed per node as k8s.node.memory.usage ÷ k8s.node.allocatable_memory × 100 — both are bytes, so this is a true percentage (the raw k8s.node.memory.usage metric is bytes, not a percent).",
+    "Alert when a node's average memory working set exceeds 85% of its allocatable memory. Computed per node as k8s.node.memory.working_set ÷ k8s.node.allocatable_memory × 100 — both are bytes, so this is a true percentage. The working set is the memory the kubelet counts when it evicts pods; k8s.node.memory.usage also counts page cache the kernel can reclaim, so a node full of cache would read near 100% without being under pressure.",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -675,7 +928,16 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
     return buildKubernetesMonitorStep({
       kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        numeratorMetricName: "k8s.node.memory.usage",
+        /*
+         * The WORKING SET, not `k8s.node.memory.usage`. kubeletstats'
+         * usage is the cgroup's total, page cache included; the working
+         * set is usage minus inactive file pages - the figure the kubelet
+         * compares against its eviction thresholds and that `kubectl top
+         * node` prints. A node whose memory is mostly reclaimable cache
+         * read near 100% on `usage` while nothing was under pressure. Both
+         * are default kubeletstats node metrics, from the same scrape.
+         */
+        numeratorMetricName: "k8s.node.memory.working_set",
         denominatorMetricName: "k8s.node.allocatable_memory",
         groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "used_mem",
@@ -701,10 +963,10 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 85,
         incidentTitle: `[K8s] High Memory Utilization (>85%) - ${args.monitorName}`,
-        incidentDescription: `A node's average memory usage has exceeded 85% of its allocatable memory. High memory usage can lead to OOMKilled pods, node instability, and potential evictions. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to list the pods on it and find the top memory consumers.`,
-        criteriaName: "High Memory - Utilization > 85%",
+        incidentDescription: `A node's average memory working set has exceeded 85% of its allocatable memory. The working set leaves out page cache the kernel can reclaim, so this is memory in use: past the kubelet's eviction threshold it starts evicting pods, and the kernel OOM-kills containers. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to list the pods on it and find the top memory consumers.`,
+        criteriaName: "High Memory - Working Set > 85%",
         criteriaDescription:
-          "Triggers when a node's average memory usage exceeds 85% of its allocatable memory over the monitoring window.",
+          "Triggers when a node's average memory working set exceeds 85% of its allocatable memory over the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -816,21 +1078,47 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
 const jobFailuresTemplate: KubernetesAlertTemplate = {
   id: "k8s-job-failures",
   name: "Job Failures",
-  summary: "A job has failed pods.",
-  description: "Alert when Kubernetes jobs fail.",
+  summary: "A pod of a job fails within 15 minutes.",
+  description:
+    "Alert when a pod of a Kubernetes Job fails, and clear fifteen minutes after the last failure: a Job that retried and succeeded stops alerting on its own. Reads the growth of k8s.job.failed_pods, the Job's running count of failed pods, which is only seen growing between two samples of the same minute: a Job that fails once can go unseen, one that exhausts its retries (six by default) is caught. One incident per Job.",
   category: "Workload",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "failed_pods";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      /*
+       * NOT the failed-pod count itself. `k8s.job.failed_pods` is the Job's
+       * status.failed, which only grows for the life of the Job object: a
+       * Job that failed once and succeeded on its retry kept "> 0" - and
+       * the alert open - until the Job was deleted, and a CronJob keeps
+       * its last failed Job (failedJobsHistoryLimit) indefinitely. Its
+       * GROWTH in the window is "a pod failed recently", which clears on
+       * its own; see buildKubernetesMultiQueryMonitorConfig for the house
+       * delta and what it can and cannot see.
+       */
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.job.failed_pods",
-        metricAlias,
-        resourceScope: KubernetesResourceScope.Workload,
-        rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Max,
+        queries: [
+          {
+            alias: "failed_pods_max",
+            metricName: "k8s.job.failed_pods",
+            aggregationType: MetricsAggregationType.Max,
+          },
+          {
+            alias: "failed_pods_min",
+            metricName: "k8s.job.failed_pods",
+            aggregationType: MetricsAggregationType.Min,
+          },
+        ],
+        formulas: [
+          {
+            alias: metricAlias,
+            legend: "Failed Job Pods (in window)",
+            formula: "failed_pods_max - failed_pods_min",
+            legendUnit: "",
+          },
+        ],
         /*
          * Per Job object — one failing Job must not hide the next one.
          * Jobs are short-lived: when a Job is cleaned up its series stops
@@ -841,6 +1129,13 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
           "resource.k8s.namespace.name",
           "resource.k8s.job.name",
         ],
+        resourceScope: KubernetesResourceScope.Workload,
+        /*
+         * Fifteen minutes: a Job that exhausts the default backoffLimit of
+         * 6 fails seven pods over about ten minutes (back-off 10 s, 20 s,
+         * 40 s ... capped at 6 minutes), all inside one window.
+         */
+        rollingTime: RollingTime.Past15Minutes,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -850,17 +1145,24 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        /*
+         * Sum: each sample is one minute's growth, and the window total is
+         * the number of pod failures seen.
+         */
+        metricAggregationType: EvaluateOverTimeType.Sum,
         incidentTitle: `[K8s] Job Failure Detected - ${args.monitorName}`,
-        incidentDescription: `A Kubernetes Job has one or more failed pods. This indicates the job's workload is failing to complete successfully. The affected namespace and job are named under "Affected resource" below, with the describe command under "Start here".`,
-        criteriaName: "Job Failures - Failed Pods > 0",
+        incidentDescription: `A pod of a Kubernetes Job failed within the last fifteen minutes, so the Job's workload is failing. If the Job retries and succeeds, or nothing fails for fifteen minutes, the alert clears on its own. The affected namespace and job are named under "Affected resource" below, with the describe command under "Start here"; the failed pod's logs say why it exited.`,
+        criteriaName: "Job Failures - Failed Pods in 15 min > 0",
         criteriaDescription:
-          "Triggers when any Kubernetes Job has failed pods.",
+          "Triggers when a Job's failed-pod count grows within the monitoring window. The growth is counted between two samples of the same minute, so it is a lower bound: a single failure can go unseen, a Job failing its retries is caught.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.EqualTo,
+        filterType: FilterType.LessThanOrEqualTo,
         value: 0,
+        // Must match the unhealthy side: a sum of per-minute growth.
+        metricAggregationType: EvaluateOverTimeType.Sum,
       }),
     });
   },
@@ -1333,38 +1635,70 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
 const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
   id: "k8s-hpa-at-max-replicas",
   name: "HPA Saturated at Max Replicas",
-  summary: "An autoscaler runs at 90% or more of its maximum replicas.",
+  summary:
+    "An autoscaler has scaled up to 90% or more of its maximum replicas.",
   description:
-    "Alert when a HorizontalPodAutoscaler is running at 90% or more of its maxReplicas. Computed per HPA as k8s.hpa.current_replicas ÷ k8s.hpa.max_replicas × 100. An HPA at its ceiling has no headroom left: load it cannot absorb by scaling turns straight into latency and errors, and a workload that reaches the ceiling and stays there is usually under-resourced per pod rather than genuinely at capacity.",
+    "Alert when a HorizontalPodAutoscaler has scaled above its minReplicas and runs at 90% or more of its maxReplicas. Computed per HPA as k8s.hpa.current_replicas ÷ k8s.hpa.max_replicas × 100, while k8s.hpa.current_replicas is above k8s.hpa.min_replicas — an HPA whose floor is already within 10% of its ceiling sits there at idle, and is not saturated. An HPA at its ceiling has no headroom left: load it cannot absorb by scaling turns straight into latency and errors, and a workload that reaches the ceiling and stays there is usually under-resourced per pod rather than genuinely at capacity.",
   category: "Workload",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "hpa_replica_saturation";
+    const aboveMinAlias: string = "hpa_replicas_above_min";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        numeratorMetricName: "k8s.hpa.current_replicas",
-        denominatorMetricName: "k8s.hpa.max_replicas",
+        /*
+         * ONE series per HPA on every query (they are the same object's
+         * status/spec fields, from the same k8s_cluster scrape), so Avg
+         * gives the representative per-minute value independent of scrape
+         * count. See buildKubernetesRatioMonitorConfig.
+         */
+        queries: [
+          {
+            alias: "current_replicas",
+            metricName: "k8s.hpa.current_replicas",
+            aggregationType: MetricsAggregationType.Avg,
+          },
+          {
+            alias: "max_replicas",
+            metricName: "k8s.hpa.max_replicas",
+            aggregationType: MetricsAggregationType.Avg,
+          },
+          {
+            alias: "min_replicas",
+            metricName: "k8s.hpa.min_replicas",
+            aggregationType: MetricsAggregationType.Avg,
+          },
+        ],
+        formulas: [
+          {
+            alias: metricAlias,
+            legend: "HPA Replica Saturation (%)",
+            formula: "(current_replicas / max_replicas) * 100",
+            legendUnit: "%",
+          },
+          {
+            /*
+             * How far the HPA has scaled above its floor. An HPA with
+             * minReplicas 9 and maxReplicas 10 is at 90% of its ceiling
+             * while idle, and the ratio alone paged on it forever; with
+             * minReplicas = maxReplicas it cannot scale at all. Requiring
+             * current > min keeps both out: the HPA must have scaled up
+             * to get there.
+             */
+            alias: aboveMinAlias,
+            legend: "HPA Replicas Above Minimum",
+            formula: "current_replicas - min_replicas",
+            legendUnit: "",
+          },
+        ],
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",
           "resource.k8s.hpa.name",
         ],
-        numeratorAlias: "current_replicas",
-        denominatorAlias: "max_replicas",
-        resultAlias: metricAlias,
-        resultLegend: "HPA Replica Saturation (%)",
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
-        /*
-         * ONE series per HPA on both sides (they are the same object's
-         * status/spec fields), so Avg gives the representative per-minute
-         * ratio independent of scrape count. Both come from the same
-         * k8s_cluster scrape, so Sum would also cancel — but Avg stays
-         * correct across restarts and missed scrapes. See
-         * buildKubernetesRatioMonitorConfig.
-         */
-        aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -1374,17 +1708,38 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 90,
+        // Both must hold for the SAME HPA (evaluated per series).
+        filterCondition: FilterCondition.All,
+        additionalFilters: [
+          {
+            metricAlias: aboveMinAlias,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
         incidentTitle: `[K8s] HPA Saturated at Max Replicas (>=90%) - ${args.monitorName}`,
-        incidentDescription: `A HorizontalPodAutoscaler is running at 90% or more of its maxReplicas and has effectively no scaling headroom left. Any further load cannot be absorbed by scaling out, so it will surface as latency and errors instead. Check whether the workload is genuinely at capacity or whether its per-pod CPU/memory limits are set too low — an under-resourced pod gets throttled or OOMKilled, which inflates the metric the HPA scales on and drives it to the ceiling. The affected namespace and HorizontalPodAutoscaler are named under "Affected resource" below, with the describe command under "Start here" for its target and current-vs-max replicas.`,
-        criteriaName: "HPA Saturation - Current/Max Replicas >= 90%",
+        incidentDescription: `A HorizontalPodAutoscaler has scaled up to 90% or more of its maxReplicas and has effectively no scaling headroom left. Any further load cannot be absorbed by scaling out, so it will surface as latency and errors instead. Check whether the workload is genuinely at capacity or whether its per-pod CPU/memory limits are set too low — an under-resourced pod gets throttled or OOMKilled, which inflates the metric the HPA scales on and drives it to the ceiling. The affected namespace and HorizontalPodAutoscaler are named under "Affected resource" below, with the describe command under "Start here" for its target and current-vs-max replicas.`,
+        criteriaName:
+          "HPA Saturation - Current/Max Replicas >= 90%, above minReplicas",
         criteriaDescription:
-          "Triggers when any HPA's current replica count reaches 90% or more of its configured maxReplicas.",
+          "Triggers when an HPA's current replica count stays at 90% or more of its maxReplicas, and above its minReplicas, for every sample in the monitoring window. An HPA that sits at its floor never fires, however close the floor is to the ceiling.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThan,
         value: 90,
+        /*
+         * Either clears it (the builder default, Any): it scaled back below
+         * the dead band, or back down to its floor.
+         */
+        additionalFilters: [
+          {
+            metricAlias: aboveMinAlias,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: 0,
+          },
+        ],
       }),
     });
   },
@@ -1520,6 +1875,7 @@ const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
 
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
+    clusterStoppedReportingTemplate,
     crashLoopBackOffTemplate,
     podPendingTemplate,
     nodeNotReadyTemplate,
@@ -1558,4 +1914,13 @@ export function getKubernetesAlertTemplateById(
       return template.id === id;
     },
   );
+}
+
+/*
+ * The template a NEW Kubernetes monitor starts on: the cluster going silent.
+ * It is the one template that still speaks when every other one has stopped
+ * being evaluated, and it has no threshold to tune.
+ */
+export function getKubernetesDefaultAlertTemplateId(): string {
+  return clusterStoppedReportingTemplate.id;
 }

@@ -4,7 +4,7 @@ Docker Swarm 监视器监控 Swarm 集群中服务任务背后的容器，在任
 
 :::cards
 - [创建监视器](#创建-docker-swarm-监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 四个现成的警报，每个任务一个事件。
+- [模板](#现成的警报模板): 五个现成的警报，每个任务一个事件。
 - [指标](#收集的指标): 可用于警报的容器指标。
 - [过滤器](#监视器设置): 把监视器限定到某个服务、任务或镜像。
 :::
@@ -92,18 +92,22 @@ flowchart TB
 
 ## 现成的警报模板
 
-**Quick Setup** 提供四个模板。每个模板都会构建一个完整的监视器：一个按 `resource.container.name` 分组的查询、一个触发的条件和一个恢复的条件。每个任务都单独评判，并有自己的事件和警报，其根本原因会列出受影响的任务及其值。阈值只是起点，你可以编辑。
+**Quick Setup** 提供五个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。除 **Cluster Stopped Reporting** 外，每个模板都按 `resource.container.name` 对查询分组，因此每个任务都单独评判，并有自己的事件和警报，其根本原因会列出受影响的任务及其值。阈值只是起点，你可以编辑。
 
 除非表中另有说明，条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 严重 | `container.memory.percent`，对集群中所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | Task Down (Low Uptime) | 严重 | `container.uptime`，按任务取 Min，最近 1 分钟 | 任意值低于 60 秒 | 每个值都不低于 66 秒 |
 | High Task CPU Usage | Warning | `container.cpu.utilization`，按任务取 Avg，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`，按任务取 Avg，最近 5 分钟 | 高于 85% | 不高于 76.5% |
-| High Task Process Count | Warning | `container.pids.count`，按任务取 Max，最近 5 分钟 | 高于 500 | 不高于 450 |
+| High Task Process Count | Warning | `container.pids.count`，按任务取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
+
+> [!NOTE]
+> **Cluster Stopped Reporting** 会在集群 10 分钟内没有任何数据到达时触发：运行代理的节点宕机，或者代理已停止、失去了通往 OneUptime 的路由或令牌被撤销。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。没有任务的节点仍会报告数据，因为代理本身就作为容器运行，并会报告它自己的容器。
 
 > [!NOTE]
 > **Task Down (Low Uptime)** 模板只要有一个“年轻”的样本就会触发，因为重启是一个事件，而不是一个水平。Swarm 会给替代任务一个新容器，也就是一个新序列，所以模板查找的是运行时间不足一分钟，而不是 0。部署或扩容也会触发它，当新任务的运行时间超过一分钟后就会清除。终止后没有被替换的任务不发送任何数据，因此无法被捕捉。
@@ -136,7 +140,7 @@ flowchart TB
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `container.pids.count` | 计数 | 任务容器内的进程。突然上升可能意味着 fork 炸弹或泄漏。 |
+| `container.pids.count` | 计数 | 任务容器内的任务数：cgroup pids 控制器既统计进程也统计线程。突然上升可能意味着 fork 炸弹或线程泄漏。 |
 | `container.uptime` | 秒 | 任务容器已运行的时间。被重新调度或重启的任务会从 0 开始一个新容器。 |
 
 每个序列都把容器的身份作为资源属性携带：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name` 和 `resource.docker.swarm.cluster.name`。

@@ -4,7 +4,7 @@ Ein Proxmox-Monitor überwacht einen Proxmox-VE-Cluster – seine Knoten, VMs un
 
 :::cards
 - [Den Monitor erstellen](#einen-proxmox-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Elf fertige Warnungen, ein Vorfall pro Knoten, Gast oder Volume.
+- [Vorlagen](#fertige-warnungsvorlagen): Zwölf fertige Warnungen, ein Vorfall pro Knoten, Gast oder Volume.
 - [Ressourcenidentität](#ressourcenidentität): Wie Sie einen einzelnen Knoten, Gast oder ein Speicher-Volume ansprechen.
 - [Metriken](#erfasste-metriken): Jede `pve_*`-Reihe, bei der der Monitor warnen kann.
 :::
@@ -109,12 +109,13 @@ Filtern Sie nach `pve.scope` oder `pve.type` für eine Art von Ressource, nach `
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet 11 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+**Quick Setup** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und ein Schwellenwert-Kriterium wird 10 % jenseits seines Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisch | `pve_up`, Count über den gesamten Cluster, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | Node Offline | Kritisch | `pve_up` für `pve.scope = node`, Min pro `id` | Unter 1 | Bei 1 |
 | Guest Down | Warnung | `pve_up` und `pve_onboot_status` für `pve.scope = guest`, Min pro `id` | `pve_up` unter 1 liegt, während `pve_onboot_status` 1 ist | `pve_up` wieder bei 1 ist oder der Start beim Booten ausgeschaltet wird |
 | Cluster Quorum at Risk | Kritisch | `pve_up` ÷ `pve_node_info` × 100 für `pve.scope = node` (beide Summe): der Anteil der Knoten, die online sind | 50 % oder weniger | Über 55 % |
@@ -129,6 +130,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
+- **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Cluster eintrifft: Der Proxmox-Agent oder sein pve-exporter läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen, die Proxmox-API antwortet ihm nicht mehr, oder jeder Knoten einer nativen Übertragung ist verstummt. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Die Ausfall-Vorlagen verwenden Minimum**, sodass eine einzige Abfrage, bei der die Ressource ausgefallen war, sie auslöst, statt von den Abfragen verdeckt zu werden, bei denen sie lief.
 - **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen, sodass ein Gast, den Sie absichtlich gestoppt haben, nie jemanden alarmiert.
 - **Cluster Quorum at Risk** ist ein Näherungswert: pve-exporter hat keine corosync-Metrik, daher zählt die Vorlage die Knoten, die online sind.

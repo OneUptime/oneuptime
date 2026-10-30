@@ -4,7 +4,7 @@ Ein Docker-Swarm-Monitor überwacht die Container hinter den Service-Tasks eines
 
 :::cards
 - [Den Monitor erstellen](#einen-docker-swarm-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Vier fertige Warnungen, ein Vorfall pro Task.
+- [Vorlagen](#fertige-warnungsvorlagen): Fünf fertige Warnungen, ein Vorfall pro Task.
 - [Metriken](#erfasste-metriken): Die Container-Metriken, bei denen Sie warnen können.
 - [Filter](#monitor-einstellungen): Einen Monitor auf einen Service, einen Task oder ein Image eingrenzen.
 :::
@@ -92,18 +92,22 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet vier Vorlagen. Jede baut einen vollständigen Monitor: eine nach `resource.container.name` gruppierte Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jeder Task wird einzeln beurteilt und erhält seinen eigenen Vorfall und seine eigene Warnung, deren Ursache die betroffenen Tasks und ihre Werte auflistet. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+**Quick Setup** bietet fünf Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jede Vorlage außer **Cluster Stopped Reporting** gruppiert ihre Abfrage nach `resource.container.name`, sodass jeder Task einzeln beurteilt wird und seinen eigenen Vorfall und seine eigene Warnung erhält, deren Ursache die betroffenen Tasks und ihre Werte auflistet. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisch | `container.memory.percent`, Count über alle Container im Cluster, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | Task Down (Low Uptime) | Kritisch | `container.uptime`, Min pro Task, letzte 1 Minute | Ein beliebiger Wert unter 60 Sekunden liegt | Jeder Wert bei oder über 66 Sekunden liegt |
 | High Task CPU Usage | Warnung | `container.cpu.utilization`, Avg pro Task, letzte 5 Minuten | Über 80 (% eines Kerns) | Bei oder unter 72 |
 | High Task Memory Usage | Warnung | `container.memory.percent`, Avg pro Task, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
-| High Task Process Count | Warnung | `container.pids.count`, Max pro Task, letzte 5 Minuten | Über 500 | Bei oder unter 450 |
+| High Task Process Count | Warnung | `container.pids.count`, Max pro Task, letzte 5 Minuten | Über 2000 | Bei oder unter 1800 |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Cluster eintrifft: Die Knoten, auf denen der Agent läuft, sind ausgefallen, oder der Agent läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet. Ein Knoten ohne Tasks sendet trotzdem Daten, denn der Agent läuft selbst als Container und meldet seine eigenen Metriken.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** löst bei einem einzigen jungen Messwert aus, weil ein Neustart ein Ereignis ist, kein Pegel. Swarm gibt einem Ersatz-Task einen neuen Container und damit eine neue Reihe; deshalb sucht die Vorlage nach einer Betriebszeit unter einer Minute statt nach einer 0. Ein Deployment oder eine Skalierung nach oben löst sie ebenfalls aus, und sie klingt ab, sobald die neuen Tasks eine Minute Betriebszeit überschreiten. Ein Task, der stirbt und nicht ersetzt wird, sendet nichts und wird daher nicht erkannt.
@@ -136,7 +140,7 @@ Der Collector des Agents verwendet den OpenTelemetry-Receiver `docker_stats`, di
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `container.pids.count` | count | Prozesse im Container eines Tasks. Ein plötzlicher Anstieg kann auf eine Fork-Bombe oder ein Leck hindeuten. |
+| `container.pids.count` | count | Tasks im Container eines Tasks: Der cgroup-pids-Controller zählt Threads ebenso wie Prozesse. Ein plötzlicher Anstieg kann auf eine Fork-Bombe oder ein Thread-Leck hindeuten. |
 | `container.uptime` | seconds | Wie lange der Container eines Tasks läuft. Ein neu eingeplanter oder neu gestarteter Task beginnt einen neuen Container bei 0. |
 
 Jede Reihe trägt die Identität des Containers als Ressourcenattribute: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` und `resource.docker.swarm.cluster.name`.

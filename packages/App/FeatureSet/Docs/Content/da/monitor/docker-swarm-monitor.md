@@ -4,7 +4,7 @@ En Docker Swarm-monitor overvåger containerne bag en Swarm-klynges tjenesteopga
 
 :::cards
 - [Opret monitoren](#opret-en-docker-swarm-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Fire færdige advarsler, én hændelse pr. opgave.
+- [Skabeloner](#færdige-advarselsskabeloner): Fem færdige advarsler, én hændelse pr. opgave.
 - [Metrikker](#indsamlede-metrikker): De containermetrikker, du kan advare på.
 - [Filtre](#monitorindstillinger): Indsnævr en monitor til en tjeneste, en opgave eller et image.
 :::
@@ -92,18 +92,22 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder fire skabeloner. Hver bygger en komplet monitor: en forespørgsel grupperet efter `resource.container.name`, et kriterium, der udløses, og et, der genopretter. Hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Cluster Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
 
 Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere i klyngen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min pr. opgave, seneste 1 minut | En vilkårlig værdi er under 60 sekunder | Hver værdi er ved eller over 66 sekunder |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg pr. opgave, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg pr. opgave, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
-| High Task Process Count | Warning | `container.pids.count`, Max pr. opgave, seneste 5 minutter | Over 500 | Ved eller under 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max pr. opgave, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngen i ti minutter: noderne, der kører agenten, er nede, eller agenten er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked. En node uden opgaver rapporterer stadig, fordi agenten selv kører som en container og rapporterer sine egne data.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** udløses på én enkelt ung måling, fordi en genstart er en hændelse, ikke et niveau. Swarm giver en erstatningsopgave en ny container og dermed en ny serie, og derfor leder skabelonen efter en oppetid under et minut i stedet for et 0. En udrulning eller en opskalering udløser den også, og den ophører, så snart de nye opgaver har passeret et minuts oppetid. En opgave, der dør og ikke erstattes, sender intet, så den fanges ikke.
@@ -136,7 +140,7 @@ Agentens collector bruger OpenTelemetry-modtageren `docker_stats`, så metrikker
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
-| `container.pids.count` | antal | Processer i en opgaves container. En pludselig stigning kan betyde en forkbombe eller en lækage. |
+| `container.pids.count` | antal | Opgaver i en tasks container: cgroup-pids-controlleren tæller både tråde og processer. En pludselig stigning kan betyde en fork-bombe eller en trådlækage. |
 | `container.uptime` | sekunder | Hvor længe en opgaves container har kørt. En opgave, der planlægges om eller genstartes, starter en ny container på 0. |
 
 Hver serie bærer containerens identitet som ressourceattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` og `resource.docker.swarm.cluster.name`.

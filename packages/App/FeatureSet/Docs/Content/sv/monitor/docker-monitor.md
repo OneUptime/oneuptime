@@ -4,7 +4,7 @@ En Docker-monitor övervakar containrarna på en Docker-värd och säger till n�
 
 :::cards
 - [Skapa monitorn](#skapa-en-docker-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Sex färdiga larm, en incident per container.
+- [Mallar](#färdiga-larmmallar): Sju färdiga larm, en incident per container.
 - [Mätvärden](#insamlade-mätvärden): Vad agenten samlar in och vad varje mätvärde betyder.
 - [Loggar](#insamlade-loggar): Containerloggar och den loggdrivrutin de behöver.
 :::
@@ -84,20 +84,24 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga grupperad efter `resource.container.name`, ett kriterium som utlöses och ett som återställer. Varje container bedöms för sig, så att en upptagen container inte döljer en annan, och varje container över tröskeln får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder sju mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Host Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje container bedöms för sig, en upptagen container inte döljer en annan, och varje container över tröskeln får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar på värden, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | Container Restart Loop | Kritisk | Ökning av `container.restarts` per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
 | Container CPU Throttling | Warning | Ökning av `container.cpu.throttling_data.throttled_time` i ms per container, senaste 5 minuterna | Mer än 1000 ms i fönstret (Summa) | 900 ms eller mindre |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
-| Container Down (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Lika med 0 | Över 0 |
+| Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Under 120 sekunder | Minst 132 sekunder |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
+
+> [!NOTE]
+> **Host Stopped Reporting** utlöses när ingenting kommer från värden på tio minuter: värden är nere, eller agenten har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till. En värd utan andra containrar rapporterar ändå, eftersom agenten själv körs som en container och rapporterar sina egna data.
 
 > [!NOTE]
 > `container.cpu.utilization` är talet som `docker stats` skriver ut, i genomsnitt över agentens intervall på 30 sekunder: 100 % är en hel CPU-kärna, inte hela värden, så en container som använder två kärnor visar 200. På en värd med flera kärnor är tröskeln 80 en CPU-budget, inte en andel av maskinen.
@@ -106,10 +110,10 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 > `container.memory.percent` delar med containerns minnesgräns när en sådan är satt, och annars med **värdens** totala minne. Kontrollera om containern startades med `--memory` innan du behandlar en överskridning som ett nära förestående avslut på grund av minnesbrist.
 
 > [!WARNING]
-> `container.restarts` och `container.cpu.throttling_data.throttled_time` bara växer, så de två mallarna varnar på hur mycket de växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga aktiviteten, och trösklarna tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och båda mallarna slutar varna.
+> `container.restarts` och `container.cpu.throttling_data.throttled_time` bara växer, så de två mallarna varnar på hur mycket de växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga aktiviteten, och trösklarna tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och båda mallarna slutar varna. Agenten mäter dessutom bara körande containrar, så en container som avslutas i samma stund som den startar mäts sällan: **Container Restarted (Low Uptime)** utlöses vid varje omstart som agenten ser.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** kan inte fånga en container som stannar och förblir stoppad. Agenten rapporterar bara körande containrar, så en stoppad container skickar inga data alls och dess drifttid visar aldrig 0. För en tjänst som måste vara igång bör du också övervaka det den levererar – till exempel med en [API-övervakning](/docs/monitor/api-monitor).
+> `container.uptime` finns bara för körande containrar. En container som stannar och förblir stoppad skickar inga data, så **Container Restarted (Low Uptime)** fångar omstarter och nya driftsättningar, inte en permanent avstängning. En container som är tänkt att köras i mindre än två minuter förblir i larmläge hela sin livstid. För en tjänst som måste vara igång bör du också övervaka det den levererar – till exempel med en [API-övervakning](/docs/monitor/api-monitor).
 
 ## Insamlade mätvärden
 
@@ -143,8 +147,7 @@ Agenten använder OpenTelemetry-mottagaren `docker_stats` mot Docker-socketen va
 
 | Mätvärde | Beskrivning |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Byte lästa från blockenheter. |
-| `container.blockio.io_service_bytes_recursive.write` | Byte skrivna till blockenheter. |
+| `container.blockio.io_service_bytes_recursive` | Byte lästa och skrivna på varje blockenhet sedan containern startade, uppdelade efter `operation` (`read`, `write`). En räknare över hela livstiden. Listan erbjuder den filtrerad på läsningar och på skrivningar. |
 
 ### Container
 
@@ -154,7 +157,7 @@ Agenten använder OpenTelemetry-mottagaren `docker_stats` mot Docker-socketen va
 | `container.restarts` | Antal gånger containern har startats om sedan den skapades. En räknare över hela livstiden. |
 | `container.pids.count` | Uppgifter i containern. Cgroupens pids-kontrollant räknar trådar lika väl som processer. |
 
-Listan **Docker-mått** erbjuder också `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` och räknarna för nätverkspaket. Den medföljande agentkonfigurationen slår inte på dem, så kontrollera värdens sida **Mätvärden** innan du bygger på dem. `container.cpu.throttling_data.throttled_periods` finns inte i listan; fråga efter det från **Avancerad**.
+`container.cpu.throttling_data.throttled_periods` finns inte i listan; fråga efter det från **Avancerad**.
 
 ## Övervakningskriterier
 
