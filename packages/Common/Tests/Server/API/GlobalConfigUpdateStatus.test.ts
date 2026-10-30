@@ -16,6 +16,7 @@ import SecurityAdvisoryUtil, {
 } from "../../../Types/UpdateCheck/SecurityAdvisory";
 import UpdateCheckFailure from "../../../Types/UpdateCheck/UpdateCheckFailure";
 import UpdateStatusUtil, {
+  AffectingAdvisory,
   UpdateState,
   UpdateStatus,
 } from "../../../Types/UpdateCheck/UpdateStatus";
@@ -337,7 +338,7 @@ describe("GET /global-config/update-status", () => {
       expect(status.state).toBe(UpdateState.SecurityUpdate);
       expect(status.recommendedVersion).toBe("999.0.0");
       expect(
-        status.advisories.map((advisory) => {
+        status.advisories.map((advisory: AffectingAdvisory): string => {
           return advisory.ghsaId;
         }),
       ).toEqual(["GHSA-aaaa-bbbb-cccc"]);
