@@ -7,7 +7,7 @@ import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import React, { ReactElement, useEffect, useState } from "react";
 import {
   getNoteKindCreateGate,
-  isNoteCreateOffered,
+  isNoteCreateRefused,
   NoteCreateGate,
 } from "./EventNoteComposer";
 import EventNoteComposerDialog, {
@@ -92,9 +92,11 @@ export default function useFeedNoteActions(
 
   /*
    * Whether the reader may add a private note: a private event's locked
-   * "Add Public Note" points them to one only then.
+   * "Add Public Note" points them to one unless a private note is refused
+   * them too. Not known yet - while the permissions load - it points to one,
+   * as it always did.
    */
-  const isPrivateNoteOffered: boolean = isNoteCreateOffered(
+  const isPrivateNoteOffered: boolean = !isNoteCreateRefused(
     getNoteKindCreateGate(
       options.privateNoteKind,
       translator,

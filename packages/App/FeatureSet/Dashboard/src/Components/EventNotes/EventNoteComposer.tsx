@@ -127,9 +127,13 @@ export function getNoteCreateGate(
   return { isShown: false, isDisabled: true };
 }
 
-// Whether a note gate offers the note: shown, and not locked.
-export function isNoteCreateOffered(gate: NoteCreateGate): boolean {
-  return gate.isShown && !gate.isDisabled;
+/*
+ * Whether a note gate refuses the note, saying why: shown, and locked. Not
+ * a refusal while the permissions have not arrived (not shown), when
+ * whether the reader may is not known yet.
+ */
+export function isNoteCreateRefused(gate: NoteCreateGate): boolean {
+  return gate.isShown && gate.isDisabled;
 }
 
 /*
@@ -231,11 +235,11 @@ function EventNoteComposer<TNote extends BaseModel>(
   /*
    * Whether the reader may write the event's private notes instead, where
    * this kind names them (siblingModelType): on a private record's page,
-   * only a team of theirs that owns it may. Not known - as if they may.
+   * only a team of theirs that owns it may. Not known yet - as if they may.
    */
   const isPrivateNoteOffered: boolean =
     !kind.siblingModelType ||
-    isNoteCreateOffered(
+    !isNoteCreateRefused(
       getNoteCreateGate(kind.siblingModelType, privateRecordOptions),
     );
 
