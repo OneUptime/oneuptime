@@ -31,3 +31,12 @@ the server writes it.
   page in Persian, right to left, on the dark theme.
 - `stores-phone.png`: 390 pixels (the screen only), the Data Stores list as
   cards, nothing running off the screen.
+- `issue-links-laptop.png`: the header of a Critical issue's page, with the
+  **Security case**, **Alert** and **Incident** it started.
+- `issue-links-persian-phone.png`: the same header at 390 pixels, in Persian,
+  right to left.
+- `when-an-issue-opens-laptop.png`: Settings > Scanning > When an Issue Opens,
+  with **Declare incidents for Critical issues** and its **Incident Severity**
+  beside the alerts' switch and severity.
+- `when-an-issue-opens-german-dark.png`: the same card in German, on the dark
+  theme.
