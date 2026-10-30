@@ -174,9 +174,9 @@ const ALERT_HREF: string = `/dashboard/${PROJECT_ID}/alerts/${ALERT_ID}`;
 const INSIGHT_HREF: string = `/dashboard/${PROJECT_ID}/ai/insights/${INSIGHT_ID}`;
 const SECOND_INSIGHT_HREF: string = `/dashboard/${PROJECT_ID}/ai/insights/${SECOND_INSIGHT_ID}`;
 
-const THIN_PAGES: Record<
-  AiResourceType,
-  FunctionComponent<PageComponentProps>
+// A cloud account has no AI Insights page of its own (TYPES_WITH_INSIGHTS).
+const THIN_PAGES: Partial<
+  Record<AiResourceType, FunctionComponent<PageComponentProps>>
 > = {
   [AiResourceType.DockerHost]: DockerHostAiInsights,
   [AiResourceType.PodmanHost]: PodmanHostAiInsights,
@@ -370,8 +370,9 @@ function openClusterInsightsPage(): void {
 function openResourceInsightsPage(type: AiResourceType): void {
   const descriptor: ResourceAiAgentDescriptor =
     getResourceAiAgentDescriptor(type);
-  const Page: FunctionComponent<PageComponentProps> = THIN_PAGES[type];
-  const path: string = pathFor(descriptor.insightsPage, RESOURCE_ID);
+  const Page: FunctionComponent<PageComponentProps> = THIN_PAGES[type]!;
+  const insightsPage: PageMap = descriptor.insightsPage!;
+  const path: string = pathFor(insightsPage, RESOURCE_ID);
   goTo(path);
 
   render(
@@ -379,10 +380,10 @@ function openResourceInsightsPage(type: AiResourceType): void {
       <NavigationProbe />
       <Routes>
         <PageRoute
-          path={String(RouteMap[descriptor.insightsPage])}
+          path={String(RouteMap[insightsPage])}
           element={
             <Page
-              pageRoute={RouteMap[descriptor.insightsPage] as Route}
+              pageRoute={RouteMap[insightsPage] as Route}
               currentProject={null}
               hasPaymentMethod={true}
             />
@@ -1864,8 +1865,18 @@ describe("a part of the cluster, on its own page", () => {
   );
 });
 
+/*
+ * The resource types with an AI Insights page of their own: a cloud
+ * account has none (its AI section is the AI agent and Logs).
+ */
+const TYPES_WITH_INSIGHTS: Array<AiResourceType> = ALL_AI_RESOURCE_TYPES.filter(
+  (type: AiResourceType): boolean => {
+    return getResourceAiAgentDescriptor(type).insightsPage !== null;
+  },
+);
+
 describe("every resource with a resource AI agent", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_INSIGHTS)(
     "%s: its thin page asks about this resource and links to its own AI pages",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -1944,7 +1955,7 @@ describe("every resource with a resource AI agent", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_INSIGHTS)(
     "%s: one empty state, pointing at the AI agent page when AI cannot run commands there",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -2021,7 +2032,7 @@ describe("every resource with a resource AI agent", () => {
     );
 
     act(() => {
-      navigate!(pathFor(CEPH.insightsPage, OTHER_RESOURCE_ID));
+      navigate!(pathFor(CEPH.insightsPage!, OTHER_RESOURCE_ID));
     });
 
     expect(await findTestId("ai-insights-empty")).toBeInTheDocument();

@@ -14,8 +14,10 @@ import AiResourceType, {
   isAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import AlertService from "../../../Services/AlertService";
+import CloudResourceService from "../../../Services/CloudResourceService";
 import IncidentService from "../../../Services/IncidentService";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
@@ -99,6 +101,18 @@ export const PAGE_INFRASTRUCTURE_SECTION_HEADING: string =
 export interface ChatInfrastructureStatuses {
   clusters: Array<KubernetesClusterAiAccessStatus>;
   resources: Array<ResourceAiAccessStatus>;
+  /*
+   * A cloud resource's page: the resource itself, which is reached through
+   * its account (the account is in resources), so the conversation can
+   * name it to the account's live reads and dry runs. Absent otherwise.
+   */
+  cloudResource?: PageCloudResource | undefined;
+}
+
+// The cloud resource a conversation's page is about, as its account names it.
+export interface PageCloudResource {
+  name: string;
+  providerResourceId: string;
 }
 
 // What one turn may reach, for the person asking.
@@ -174,6 +188,19 @@ export default class ChatInfrastructureAccess {
     const entityId: ObjectID = new ObjectID(context.entityId);
 
     if (context.type === AIChatPageContextType.Resource) {
+      /*
+       * A cloud resource has no agent of its own: it is reached through its
+       * account - the live reads through the account's read-only
+       * connection, a dry run of a change through its Cloud AI agent.
+       */
+      if (context.resourceType === AIResourceType.CloudResource) {
+        return await this.getStatusesForCloudResourcePage({
+          projectId: data.projectId,
+          props: data.props,
+          cloudResourceId: entityId,
+        });
+      }
+
       if (context.resourceType === AIResourceType.KubernetesCluster) {
         const cluster: KubernetesClusterAiAccessStatus | null =
           await KubernetesClusterAiAccessService.getStatusForCluster({
@@ -257,6 +284,95 @@ export default class ChatInfrastructureAccess {
     ]);
 
     return { clusters, resources };
+  }
+
+  /*
+   * A cloud resource's page: the status of the account it belongs to (one
+   * account, its cloud's type), and the resource as the account names it.
+   * The resource is read under the person's own props, pinned to the
+   * project: a page context is whatever the client sent, and a resource the
+   * person may not read offers nothing, not even its name. Its account is
+   * held to what the person may view later, as every status is (buildTools).
+   */
+  private static async getStatusesForCloudResourcePage(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    cloudResourceId: ObjectID;
+  }): Promise<ChatInfrastructureStatuses> {
+    const none: ChatInfrastructureStatuses = { clusters: [], resources: [] };
+
+    let resource: CloudResource | null = null;
+
+    try {
+      resource = await CloudResourceService.findOneBy({
+        query: {
+          _id: data.cloudResourceId.toString(),
+          projectId: data.projectId,
+        },
+        select: { _id: true, name: true, providerResourceId: true },
+        props: {
+          ...data.props,
+          tenantId: data.projectId,
+          isMultiTenantRequest: false,
+        },
+      });
+    } catch {
+      return none;
+    }
+
+    if (!resource || !resource.providerResourceId) {
+      return none;
+    }
+
+    const accounts: Map<
+      AiResourceType,
+      Array<string>
+    > = await ResourceAiAccessService.getCloudAccountsOfResources({
+      projectId: data.projectId,
+      cloudResourceIds: [data.cloudResourceId.toString()],
+    });
+
+    const resources: Array<ResourceAiAccessStatus> = [];
+
+    for (const [resourceType, ids] of accounts) {
+      for (const id of ids) {
+        const status: ResourceAiAccessStatus | null =
+          await ResourceAiAccessService.getStatusForResource({
+            projectId: data.projectId,
+            resourceType,
+            resourceId: new ObjectID(id),
+          });
+
+        if (status) {
+          resources.push(status);
+        }
+      }
+    }
+
+    if (resources.length === 0) {
+      return none;
+    }
+
+    return {
+      clusters: [],
+      resources,
+      cloudResource: {
+        name: resource.name || resource.providerResourceId,
+        providerResourceId: resource.providerResourceId,
+      },
+    };
+  }
+
+  /*
+   * What a conversation on a cloud resource's page is told about it: its id
+   * as its account's live reads and dry runs take it. Pure.
+   */
+  public static buildCloudResourcePageNote(
+    resource: PageCloudResource,
+  ): string {
+    return `- This page is about the cloud resource ${JSON.stringify(
+      resource.name,
+    )}, ${resource.providerResourceId} in its account's inventory. For its live state, its recent events or its logs, run cloud describe, cloud recent-events or cloud read-logs with that id on its account (${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME}), and to check a fix without making it, cloud dry-run <change> with the same id: it says whether the change would run and what it would replace.`;
   }
 
   /*
@@ -543,15 +659,21 @@ export default class ChatInfrastructureAccess {
         return null;
       }
 
+      const pageInstructions: string = this.buildPageInstructions({
+        hasClusterAccess: tools.hasClusterAccess,
+        hasInfrastructureAccess: tools.hasInfrastructureAccess,
+        hasInfrastructureWithoutAccess: tools.hasInfrastructureWithoutAccess,
+      });
+
       return {
         extraTools: tools.extraTools,
         instructions: [
-          this.buildPageInstructions({
-            hasClusterAccess: tools.hasClusterAccess,
-            hasInfrastructureAccess: tools.hasInfrastructureAccess,
-            hasInfrastructureWithoutAccess:
-              tools.hasInfrastructureWithoutAccess,
-          }),
+          // The cloud resource of the page, named for its account's commands.
+          statuses.cloudResource && tools.hasInfrastructureAccess
+            ? `${pageInstructions}\n${this.buildCloudResourcePageNote(
+                statuses.cloudResource,
+              )}`
+            : pageInstructions,
           ...tools.contextSections,
           this.buildWithoutAccessSection(tools.viewable),
         ]

@@ -26,6 +26,7 @@ import {
 import {
   RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
   RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS,
+  RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   getResourceAiAgentInstallInvestigationText,
   getResourceAiAgentNotInstalledText,
@@ -63,7 +64,10 @@ import {
   getResourceAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
 import { getResourceAccessTestPermissionRequirement } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAccessPermissions";
-import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -76,7 +80,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import {
   ResourceAiAccessGap,
   ResourceAiAccessGapCode,
@@ -335,7 +342,10 @@ function pagePath(descriptor: ResourceAiAgentDescriptor): string {
     .replace(":id", RESOURCE_ID);
 }
 
-function openAgentPage(descriptor: ResourceAiAgentDescriptor = DOCKER): void {
+function openAgentPage(
+  descriptor: ResourceAiAgentDescriptor = DOCKER,
+  cloudAccount?: CloudAccount,
+): void {
   const path: string = pagePath(descriptor);
   goTo(path);
 
@@ -350,12 +360,40 @@ function openAgentPage(descriptor: ResourceAiAgentDescriptor = DOCKER): void {
               pageRoute={RouteMap[descriptor.agentPage] as Route}
               currentProject={Object.assign(new Project(), { name: "Acme" })}
               hasPaymentMethod={true}
+              cloudAccount={cloudAccount}
             />
           }
         />
       </Routes>
     </MemoryRouter>,
   );
+}
+
+// The types whose agent is installed next to a collector (compose).
+const COMPOSE_INSTALLED_TYPES: Array<AiResourceType> =
+  ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+    return !isCloudAiResourceType(type);
+  });
+
+// A cloud account's row, as the account's AI pages load it.
+function cloudAccountOf(type: AiResourceType): CloudAccount {
+  return Object.assign(new CloudAccount(), {
+    _id: RESOURCE_ID,
+    name: "prod",
+    provider:
+      type === AiResourceType.AwsAccount
+        ? "aws"
+        : type === AiResourceType.AzureSubscription
+          ? "azure"
+          : "gcp",
+    accountId:
+      type === AiResourceType.AwsAccount
+        ? "123456789012"
+        : type === AiResourceType.AzureSubscription
+          ? "00000000-0000-0000-0000-0000000000ab"
+          : "shop-prod",
+    isAiLogReadEnabled: false,
+  });
 }
 
 async function findText(text: string | RegExp): Promise<HTMLElement> {
@@ -921,6 +959,25 @@ describe("the page heading", () => {
     expect(await findText("Network Error")).toBeInTheDocument();
     expect(screen.getByTestId("ai-agent-page-heading")).toBeInTheDocument();
     expect(screen.queryByText("Docker AI agent")).not.toBeInTheDocument();
+  });
+
+  /*
+   * A first read that failed is not the end of the page: Refresh? reads the
+   * status again, and the page appears once it answers.
+   */
+  test("a first read that failed offers Refresh?, which reads the status again", async () => {
+    postSpy.mockImplementation(failStatusRequest);
+    openAgentPage();
+
+    const retry: HTMLElement = await findTestId("refresh-button");
+    expect(postsTo(STATUS_ROUTE)).toHaveLength(1);
+
+    serve(makeStatus());
+    fireEvent.click(retry);
+
+    expect(await findText("Docker AI agent")).toBeInTheDocument();
+    expect(postsTo(STATUS_ROUTE)).toHaveLength(2);
+    expect(screen.queryByText("Network Error")).not.toBeInTheDocument();
   });
 });
 
@@ -1675,6 +1732,135 @@ describe("What AI may do", () => {
     expect(card).not.toHaveTextContent("only investigates");
     expect(card).not.toHaveTextContent("No — AI investigates");
     expect(card).not.toHaveTextContent("Yes — read-only");
+  });
+
+  /*
+   * The project's "Fix new incidents automatically" and "Fix new alerts
+   * automatically": with both off - the default - a resource whose fixes
+   * are on fixes nothing new. The fixes row says so in the line a
+   * cluster's page draws, with a link to each switch that is off.
+   */
+  test("the project's automatic fixing switches, under the fixes, with a link to each one off", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        automaticRemediation: { incidents: false, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-access-automatic-remediation",
+    );
+
+    expect(line).toHaveTextContent(
+      "This project fixes new alerts automatically, but not new incidents.",
+    );
+    expect(
+      within(screen.getByTestId("ai-access-fixes")).getByTestId(
+        "ai-access-automatic-remediation",
+      ),
+    ).toBe(line);
+
+    const links: Array<HTMLElement> = within(line).getAllByRole("link");
+
+    expect(
+      links.map((link: HTMLElement): string => {
+        return link.textContent || "";
+      }),
+    ).toEqual(["Turn on for incidents"]);
+    expect(links[0]).toHaveAttribute(
+      "href",
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+      ).toString(),
+    );
+  });
+
+  test("both switches off: both links", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        automaticRemediation: { incidents: false, alerts: false },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-access-automatic-remediation",
+    );
+
+    expect(line).toHaveTextContent(
+      "This project doesn't fix new incidents or alerts automatically.",
+    );
+    expect(
+      within(line)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return link.getAttribute("href") || "";
+        }),
+    ).toEqual([
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+      ).toString(),
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ALERTS_SETTINGS_AI] as Route,
+      ).toString(),
+    ]);
+  });
+
+  test("both switches on: the line, and nothing to follow", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        automaticRemediation: { incidents: true, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-access-automatic-remediation",
+    );
+
+    expect(line).toHaveTextContent(
+      "This project fixes new incidents and alerts automatically.",
+    );
+    expect(within(line).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  /*
+   * With the resource's own fixes off, the project's switches change
+   * nothing there yet: the hint that turns the fixes on is the one next
+   * step, so the line waits until they are on.
+   */
+  test("the resource's fixes off: no line about the project's switches, only the hint that turns the fixes on", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.Disabled,
+        automaticRemediation: { incidents: false, alerts: false },
+      }),
+    );
+    openAgentPage();
+    await findTestId("ai-access-fixes");
+
+    expect(
+      screen.queryByTestId("ai-access-automatic-remediation"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("ai-access-fixes-off-hint")).toBeInTheDocument();
+  });
+
+  test("a server older than the switches, or one that sends them unreadable: no line", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      }),
+    );
+    openAgentPage();
+    await findTestId("ai-access-fixes");
+
+    expect(
+      screen.queryByTestId("ai-access-automatic-remediation"),
+    ).not.toBeInTheDocument();
   });
 
   test("a member on fixes Off is told who may turn them on, not to click Change", async () => {
@@ -3102,7 +3288,7 @@ describe("the agent card's ⋯", () => {
 });
 
 describe("every resource type", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_TYPES)(
     "%s: the page asks about its own type and names its own agent",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -3135,7 +3321,132 @@ describe("every resource type", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: with no agent yet the page asks about its own type and offers Let AI fix problems, which opens the setup",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      // As the server reports it: the account is read live, with no agent.
+      serve({
+        ...notInstalledStatus(),
+        resourceType: type,
+        isInvestigationReady: true,
+        gaps: [
+          {
+            ...gap("ai_agent_not_connected"),
+            blocksInvestigation: false,
+          },
+        ],
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findText(descriptor.agentName)).toBeInTheDocument();
+      expect(postsTo(STATUS_ROUTE)[0]!["data"]).toEqual({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
+      expect(
+        await findText(
+          "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+        ),
+      ).toBeInTheDocument();
+      // No collector, so no compose install.
+      expect(screen.queryByTestId("ai-agent-install-command")).toBeNull();
+
+      fireEvent.click(screen.getByTestId("ai-agent-cloud-set-up"));
+
+      expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+    },
+  );
+
+  /*
+   * A Cloud AI agent once it runs: in the account (not next to it), set by
+   * its setup command - which Change shows again - and able to make
+   * changes, never "any target".
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: a running Cloud AI agent is in the account, set by its setup command, and Change shows that command",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve(
+        makeStatus({
+          resourceType: type,
+          aiSettingsSource: "agent_configuration",
+          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+          gaps: [],
+          isRemediationReady: true,
+          agent: makeAgent({
+            posture: makePosture({ resourceType: type, allowWrites: true }),
+          }),
+        }),
+      );
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findTestId("ai-agent-sentence")).toHaveTextContent(
+        `The Cloud AI agent is running in this ${descriptor.noun}.`,
+      );
+      expect(await findText(/Can make changes/)).toBeInTheDocument();
+      expect(screen.queryByText(/Can change any target/)).toBeNull();
+
+      const line: HTMLElement = await findTestId("ai-access-set-by");
+      expect(line).toHaveAttribute("data-set-by-agent", "true");
+      expect(line).toHaveTextContent(
+        RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT.replace(
+          "{{agent}}",
+          descriptor.agentName,
+        ),
+      );
+      expect(line).not.toHaveTextContent("ONEUPTIME_AI_INVESTIGATION");
+
+      // Change is the setup command again, never a .env to edit.
+      fireEvent.click(await findTestId("ai-access-change-button"));
+      expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+      expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+    },
+  );
+
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: with no agent yet the card says it once, and fixes that are off point at Change's command",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      grant(ADMIN_PERMISSIONS);
+      serve({
+        ...notInstalledStatus(),
+        resourceType: type,
+        isInvestigationReady: true,
+        gaps: [
+          {
+            ...gap("ai_agent_not_connected"),
+            blocksInvestigation: false,
+          },
+        ],
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findTestId("ai-agent-sentence")).toHaveTextContent(
+        "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+      );
+      // Said once, and no compose install for a cloud account.
+      expect(
+        screen.getAllByText(/OneUptime AI can read this account/),
+      ).toHaveLength(1);
+      expect(screen.queryByText(/Install the Cloud AI agent/)).toBeNull();
+      expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+        "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.",
+      );
+      // Nothing is installed by hand: a command sets the agent up.
+      expect(screen.getByTestId("ai-agent-status")).toHaveTextContent(
+        "Not set up",
+      );
+      expect(screen.getByTestId("ai-agent-status")).not.toHaveTextContent(
+        "Not installed",
+      );
+    },
+  );
+
+  test.each(COMPOSE_INSTALLED_TYPES)(
     "%s: the install instructions say AI investigations are on by default, in its own words",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -3227,11 +3538,14 @@ describe("every resource type", () => {
       openAgentPage(descriptor);
 
       await expectNoAgentActions();
+      // A cloud account's agent is set up by a command, never installed.
       expect(
         within(await agentCardHeader(descriptor)).getByTestId(
           "ai-agent-status",
         ),
-      ).toHaveTextContent("Not installed");
+      ).toHaveTextContent(
+        descriptor.isCloudAccount ? "Not set up" : "Not installed",
+      );
     },
   );
 

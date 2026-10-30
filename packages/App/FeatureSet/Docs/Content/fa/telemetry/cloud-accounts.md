@@ -7,6 +7,7 @@
 - [Microsoft Azure](#microsoft-azure): یک برنامه با نقش Monitoring Reader.
 - [Google Cloud](#google-cloud): یک حساب سرویس با چهار نقش فقط‌خواندنی.
 - [آنچه OneUptime می‌خواند](#آنچه-oneuptime-میخواند): منابع، متریک‌ها، تغییرها و رویدادهای سلامت، هر چند وقت یک‌بار، و با چه هزینه‌ای.
+- [اجازه به هوش مصنوعی برای رفع مشکلات](#اجازه-به-هوش-مصنوعی-برای-رفع-مشکلات): یک فرمان دیگر، و OneUptime AI می‌تواند آنچه را پیدا می‌کند رفع کند.
 :::
 
 ## چگونه کار می‌کند
@@ -20,7 +21,7 @@ flowchart TB
     ou --> chg["تغییرها و<br/>رویدادهای سلامت"]
 ```
 
-- **این دسترسی فقط می‌تواند بخواند.** فرمان دسترسی‌ای می‌سازد که منابع شما و پیکربندی آن‌ها، متریک‌هایشان، آنچه تغییر کرده و رویدادهای سلامت ارائه‌دهندهٔ شما را می‌خواند و هیچ کار دیگری نمی‌کند: کنش‌های فهرست‌شده در زیر در AWS، نقش **Monitoring Reader** در Azure و چهار نقش بیننده در Google Cloud. هرگز داده یا رازها را نمی‌خواند. برای قطع دسترسی OneUptime آن را حذف کنید.
+- **این دسترسی فقط می‌تواند بخواند.** فرمان دسترسی‌ای می‌سازد که منابع شما و پیکربندی آن‌ها، متریک‌هایشان، آنچه تغییر کرده و رویدادهای سلامت ارائه‌دهندهٔ شما را می‌خواند و هیچ کار دیگری نمی‌کند: کنش‌های فهرست‌شده در زیر در AWS، نقش **Monitoring Reader** در Azure و چهار نقش بیننده در Google Cloud. OneUptime هرگز با آن داده یا رازها را نمی‌خواند، جز خط‌های لاگ، وقتی اجازه دهید هوش مصنوعی لاگ‌های یک حساب را بخواند. برای قطع دسترسی OneUptime آن را حذف کنید.
 - **OneUptime طبق زمان‌بندی می‌خواند.** برای Azure و Google Cloud هر ۵ دقیقه و برای AWS هر ۱۰ دقیقه، مگر اینکه هنگام اتصال بازهٔ دیگری انتخاب کنید. هر خواندن همچنین ثبت می‌کند که از خواندن قبلی چه چیزی تغییر کرده، و هر ۳۰ دقیقه یک خواندن همهٔ منابع را دوباره فهرست می‌کند.
 - **هر منبع صفحهٔ خودش را دارد.** منابع در **ابر** > **همه منابع** همراه با متریک‌های کلیدی، مالکان و برچسب‌هایشان نمایش داده می‌شوند. صفحهٔ یک منبع فهرست‌شده همچنین کارت **منابع مرتبط** (اینکه در چه چیزی اجرا می‌شود، چه چیزی به آن ترافیک می‌فرستد)، نقطه‌های پایانی، تگ‌ها و تنظیماتش، و برگه‌های **حوادث**، **هشدارها** و **تغییرها** را نشان می‌دهد.
 - **هر حساب صفحهٔ خودش را دارد.** حساب‌ها در **ابر** > **حساب‌ها** همراه با منابعشان بر اساس نوع و منطقه، برگهٔ **تغییرها** و یک **توپولوژی** از چگونگی پیوند منابعشان با هم نمایش داده می‌شوند.
@@ -48,7 +49,7 @@ flowchart TB
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -70,6 +71,9 @@ OneUptime همین که این مرحله باز می‌شود اتصال را �
 | فهرست کردن هر منبع و پیکربندی آن، از راه Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | خواندن آنچه تغییر کرده: رویدادهای مدیریتی حساب | `cloudtrail:LookupEvents` |
 | خواندن رویدادهای سلامت خودِ AWS برای حساب | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| خواندن وضعیت کنونی و رویدادهای اخیر یک منبع در حین بررسی | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
+| خواندن سهمیه‌های حساب در حین بررسی | `servicequotas:ListServiceQuotas` |
+| خواندن خط‌های لاگ، فقط وقتی اجازه دهید هوش مصنوعی لاگ‌های یک حساب را بخواند | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | فهرست کردن حساب‌های سازمان، از حساب مدیریت آن | `organizations:ListAccounts` |
 
 `apigateway:GET` فقط روی تعریف‌های خودِ APIها مجاز است، هرگز روی کلیدهایشان، و فقط نقش حساب مدیریت می‌تواند حساب‌های سازمان را فهرست کند. AWS Health فقط به حساب‌هایی پاسخ می‌دهد که طرح پشتیبانی Business، Enterprise On-Ramp یا Enterprise دارند: بدون آن، OneUptime یک روز بعد دوباره می‌پرسد.
@@ -201,9 +205,25 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 ## آنچه در OneUptime می‌بینید
 
-- **صفحهٔ یک حساب.** در **ابر** > **حساب‌ها**، نمای کلی یک حساب منابع آن را بر اساس نوع و منطقه می‌شمارد و می‌گوید یک اتصال آخرین بار کی آن را خوانده است. برگهٔ **منابع** آن‌ها را فهرست می‌کند، برگهٔ **تغییرها** آنچه در آن تغییر کرده را از تازه‌ترین فهرست می‌کند، و **توپولوژی** منطقه‌هایش، شبکه‌های درون آن‌ها و آنچه در هر کدام اجرا می‌شود را می‌کشد، همراه با حوادث و هشدارهای باز روی منابعی که به آن‌ها پیوند خورده‌اند.
+- **صفحهٔ یک حساب.** در **ابر** > **حساب‌ها**، نمای کلی یک حساب منابع آن را بر اساس نوع و منطقه می‌شمارد و می‌گوید یک اتصال آخرین بار کی آن را خوانده است. برگهٔ **منابع** آن‌ها را فهرست می‌کند، برگهٔ **تغییرها** آنچه در آن تغییر کرده را از تازه‌ترین فهرست می‌کند، و **توپولوژی** منطقه‌هایش، شبکه‌های درون آن‌ها و آنچه در هر کدام اجرا می‌شود را می‌کشد، همراه با حوادث و هشدارهای باز روی منابعی که به آن‌ها پیوند خورده‌اند. **فید** آن ثبت می‌کند که حساب چگونه به OneUptime آمد، عامل هوش مصنوعی ابری آن کی وصل یا بازنشانی شد، و چه کسی آنچه OneUptime AI مجاز است در آن انجام دهد را تغییر داد.
 - **تغییرهای یک منبع.** یک تغییر به‌صورت یک رویداد تغییر نگه داشته می‌شود که به منبعی که تغییر داد و به حساب آن پیوند خورده، و به‌صورت یک نشانگر روی نمودارهای متریک منبع همراه با حوادث و هشدارهایش کشیده می‌شود. نمودارهایی که به هیچ منبعی فیلتر نشده‌اند گزارش فعالیت حساب ابری را کنار می‌گذارند، تا یک حساب شلوغ استقرارهای شما را کنار نزند؛ رویدادهای سلامت ارائه‌دهنده روی آن‌ها می‌مانند.
 - **حوادث و هشدارها.** یک منبع ابری را در منابع پیوندشدهٔ یک مانیتور، یک حادثه یا یک هشدار پیوند دهید تا حوادث و هشدارهای آن در صفحهٔ منبع فهرست شوند. یک مانیتور وب‌سایت، API، SSL، ping یا پورت که میزبانش، مستقیم یا از راه DNS، به نقطهٔ پایانی یک منبع می‌رسد، آن منبع را زیر **منابع ابری پیشنهادی** روی کارت **منابع پیوندشده** خود فهرست می‌کند: برای پیوند دادنش **پیوند منبع** را انتخاب کنید.
+
+## اجازه به هوش مصنوعی برای رفع مشکلات
+
+OneUptime AI هنگام بررسی، هر حساب متصل را با همان دسترسی فقط‌خواندنی بالا می‌خواند. برای اینکه مشکلات را هم رفع کند، مانند راه‌اندازی دوبارهٔ یک سرویس، افزایش مقیاس آن یا بازگرداندنش به نسخهٔ قبل، حساب را در **ابر** > **حساب‌ها** باز کنید و در کارت **عامل هوش مصنوعی** در **نمای کلی** آن، **اجازه به هوش مصنوعی برای رفع مشکلات** را انتخاب کنید.
+
+این کادر گفت‌وگو یک پرسش دارد، **هوش مصنوعی تا کجا پیش برود؟** و دو پاسخ: **اول از من بپرسد**، که پیش‌فرض است و در آن OneUptime AI هر اصلاح را پیشنهاد می‌دهد و یک نفر آن را با یک کلیک تأیید می‌کند، یا **مشکلات کم‌خطر را خودش رفع کند**، که در آن تغییرهای بی‌خطر خودبه‌خود اجرا می‌شوند و تغییرهای پرخطرتر همچنان منتظر تأیید می‌مانند. بقیهٔ تنظیمات زیر **فیلدهای بیشتر** یک پیش‌فرض امن دارند. سپس فرمانی را نشان می‌دهد که برای همین حساب نوشته شده است: آن را در AWS CloudShell، Azure Cloud Shell یا Google Cloud Shell اجرا کنید، در حالی که به‌عنوان کسی وارد شده‌اید که می‌تواند در حساب نقش بسازد. این فرمان نقشی می‌سازد که فقط می‌تواند تغییرهای روشن‌شده را انجام دهد، و عامل هوش مصنوعی ابری را با آن در حساب شما راه‌اندازی می‌کند. عامل خودش ظرف چند دقیقه وصل می‌شود و کادر گفت‌وگو همین را نشان می‌دهد: چیزی برای جای‌گذاری برگشتی نیست.
+
+عامل یک کانتینر کوچک است که تمام ماه در حساب شما اجرا می‌شود، و ابرتان با قیمت‌های اعلام‌شدهٔ خودش صورت‌حساب آن را می‌دهد:
+
+| ابر | چه اجرا می‌شود | حدود |
+| --- | --- | --- |
+| AWS | یک وظیفهٔ ECS Fargate با ۰٫۲۵ vCPU و ۰٫۵ GB، و نشانی IPv4 عمومی آن، با قیمت‌های `us-east-1` | $۱۳ در ماه |
+| Azure | یک replica از Container Apps با ۰٫۲۵ vCPU و ۰٫۵ GiB، پس از سهمیهٔ رایگان ماهانهٔ اشتراک، یعنی ۱۸۰٬۰۰۰ vCPU-ثانیه و ۳۶۰٬۰۰۰ GiB-ثانیه | $۱۴ در ماه |
+| Google Cloud | یک نمونهٔ Cloud Run با ۱ vCPU و ۰٫۵ GiB و CPU همیشه تخصیص‌یافته، که یک vCPU کامل را می‌گیرد، پس از ردهٔ رایگان ماهانه، یعنی ۲۴۰٬۰۰۰ vCPU-ثانیه و ۴۵۰٬۰۰۰ GiB-ثانیه | $۴۵ در ماه |
+
+آنچه عامل می‌تواند تغییر دهد، اینکه هر تغییر چگونه سطح‌بندی و بازگردانده می‌شود، و اینکه لاگ‌هایش را چگونه بخوانید: [عامل‌های هوش مصنوعی زیرساخت](/docs/ai/infrastructure-ai-agents#در-یک-حساب-ابری).
 
 ## عیب‌یابی
 
