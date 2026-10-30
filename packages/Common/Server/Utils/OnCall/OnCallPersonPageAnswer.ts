@@ -33,10 +33,14 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * makes answers nothing of theirs, and one OneUptime makes on its own (no
  * person) answers nothing at all.
  *
- * Every state timeline of an incident or an alert calls it, for the
- * record's current state only - a back-dated row is no answer. Never
- * throws: a page that could not be answered is logged, the state change
- * goes on, and its person can still answer it from the page.
+ * Every state timeline of an incident or an alert tells the one hook every
+ * state change reaches (OnCallAcknowledgementTimeout.onRecordStateChanged),
+ * for the record's current state only - a back-dated row is no answer - and
+ * that hook hands the change on to this, with who made it. Imported there
+ * rather than by the state timelines themselves, whose own imports load
+ * before half the server. Never throws: a page that could not be answered
+ * is logged, the state change goes on, and its person can still answer it
+ * from the page.
  */
 
 export type OnCallPersonPageRecordKind = "incident" | "alert";

@@ -65,7 +65,6 @@ import StateMoveCheck from "../Utils/StateMoveCheck";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
-import OnCallPersonPageAnswer from "../Utils/OnCall/OnCallPersonPageAnswer";
 import IncidentRoleFeedText from "../Utils/Incident/IncidentRoleFeedText";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
@@ -857,21 +856,13 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         stateId: createdItem.incidentStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
-      });
-
-      /*
-       * A person paged about the incident by a page a person asked for
-       * (OnCallPersonPage) who acknowledges it answers their page: it
-       * stops paging them. Never throws.
-       */
-      await OnCallPersonPageAnswer.onRecordStateChanged({
-        kind: "incident",
-        recordId: createdItem.incidentId!,
-        projectId: createdItem.projectId!,
+        /*
+         * Who changed it: a person paged about the incident by a page a
+         * person asked for who acknowledges it answers their page
+         * (OnCallPersonPageAnswer).
+         */
         changedByUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
-        isAcknowledged: isAcknowledged,
-        isResolved: isResolved,
       });
     }
 

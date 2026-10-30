@@ -38,6 +38,7 @@ import IncidentStateTimelineService from "../../Services/IncidentStateTimelineSe
 import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicyExecutionLogService";
 import UserOnCallLogService from "../../Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
+import OnCallPersonPageAnswer from "./OnCallPersonPageAnswer";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
@@ -498,6 +499,11 @@ export default class OnCallAcknowledgementTimeout {
    *   - Anything else - moving on within the acknowledged states, say -
    *     leaves the clocks alone.
    *
+   * An incident's or an alert's change is handed on to the pages people
+   * asked for, too (OnCallPersonPageAnswer): its author, paged about it by
+   * one, answers their page by acknowledging it. Here, as the one hook every
+   * state timeline calls, with the states it reads anyway.
+   *
    * Never throws: a clock that could not start is logged, and the state
    * change stands.
    */
@@ -509,6 +515,8 @@ export default class OnCallAcknowledgementTimeout {
     // The record's state now, and the state it moved from (none for its first).
     stateId: ObjectID;
     previousStateId?: ObjectID | null | undefined;
+    // Who changed it; none for a change OneUptime made on its own.
+    changedByUserId?: ObjectID | null | undefined;
   }): Promise<void> {
     try {
       const access: TimeoutRecordAccess = RECORD_ACCESS[data.kind];
@@ -519,6 +527,21 @@ export default class OnCallAcknowledgementTimeout {
         states: states,
         stateId: data.stateId,
       });
+
+      if (data.kind === "incident" || data.kind === "alert") {
+        await OnCallPersonPageAnswer.onRecordStateChanged({
+          kind: data.kind,
+          recordId: data.recordId,
+          projectId: data.projectId,
+          changedByUserId: data.changedByUserId,
+          isAcknowledged: AcknowledgedStateUtil.isAcknowledged({
+            list: access.list,
+            states: states,
+            stateId: data.stateId,
+          }),
+          isResolved: isResolved,
+        });
+      }
 
       if (isResolved) {
         await this.stopEveryClockOfRecord({

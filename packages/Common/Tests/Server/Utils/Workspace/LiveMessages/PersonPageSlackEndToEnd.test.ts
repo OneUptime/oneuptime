@@ -11,7 +11,7 @@ import User from "../../../../../Models/DatabaseModels/User";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import UserOnCallLogService from "../../../../../Server/Services/UserOnCallLogService";
 import UserService from "../../../../../Server/Services/UserService";
-import OnCallPersonPageAnswer from "../../../../../Server/Utils/OnCall/OnCallPersonPageAnswer";
+import OnCallAcknowledgementTimeout from "../../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -443,12 +443,12 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
     );
   });
 
-  test("an alert's state timeline answers its person's pages the same way: whoever moved it, as acknowledged", async () => {
-    const answer: jest.SpiedFunction<
-      typeof OnCallPersonPageAnswer.onRecordStateChanged
+  test("an alert's state timeline hands on whoever moved it the same way, for its person's pages", async () => {
+    const stateChanged: jest.SpiedFunction<
+      typeof OnCallAcknowledgementTimeout.onRecordStateChanged
     > = jest
-      .spyOn(OnCallPersonPageAnswer, "onRecordStateChanged")
-      .mockResolvedValue(0);
+      .spyOn(OnCallAcknowledgementTimeout, "onRecordStateChanged")
+      .mockResolvedValue(undefined);
 
     await world.alertState({
       to: STATE_ACKNOWLEDGED,
@@ -457,13 +457,12 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
       by: NITIN,
     });
 
-    expect(answer).toHaveBeenCalledWith(
+    expect(stateChanged).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: "alert",
         projectId: PROJECT_ID,
+        stateId: STATE_ACKNOWLEDGED,
         changedByUserId: NITIN,
-        isAcknowledged: true,
-        isResolved: false,
       }),
     );
   });

@@ -44,7 +44,6 @@ import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
-import OnCallPersonPageAnswer from "../Utils/OnCall/OnCallPersonPageAnswer";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -517,21 +516,13 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         stateId: createdItem.alertStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.alertStateId,
-      });
-
-      /*
-       * A person paged about the alert by a page a person asked for
-       * (OnCallPersonPage) who acknowledges it answers their page: it
-       * stops paging them. Never throws.
-       */
-      await OnCallPersonPageAnswer.onRecordStateChanged({
-        kind: "alert",
-        recordId: createdItem.alertId!,
-        projectId: createdItem.projectId!,
+        /*
+         * Who changed it: a person paged about the alert by a page a person
+         * asked for who acknowledges it answers their page
+         * (OnCallPersonPageAnswer).
+         */
         changedByUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
-        isAcknowledged: isAcknowledged,
-        isResolved: isResolvedState,
       });
     }
 
