@@ -11,8 +11,15 @@ import {
 import {
   ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS,
   SecurityPlaybookStep,
+  getStepsWaitingOn,
   normalizeSecurityPlaybookStepConfig,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import {
+  SecurityPlaybookStepCondition,
+  describeSecurityPlaybookStepOutcome,
+  getSecurityPlaybookStepOutcomes,
+  isSecurityPlaybookStepOutcome,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -36,6 +43,9 @@ export const CONNECTION_FIELD_BY_PROVIDER: Partial<
   [SecurityEventConnectorProvider.OktaSystemLog]: "oktaConnectionId",
   [SecurityEventConnectorProvider.CrowdStrikeFalcon]: "crowdStrikeConnectionId",
   [SecurityEventConnectorProvider.MicrosoftDefenderXdr]: "defenderConnectionId",
+  [SecurityEventConnectorProvider.MicrosoftEntraId]: "entraIdConnectionId",
+  [SecurityEventConnectorProvider.GoogleWorkspace]:
+    "googleWorkspaceConnectionId",
 };
 
 export function getConnectionFieldKey(
@@ -59,6 +69,7 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.SetCaseStatus]: ["statusId", "verdict"],
   [SecurityPlaybookActionType.AddCaseNote]: ["note"],
   [SecurityPlaybookActionType.AddCaseLabels]: ["labelIds"],
+  [SecurityPlaybookActionType.AddCaseTasks]: ["tasks", "assigneeUserId"],
   [SecurityPlaybookActionType.CheckThreatIntel]: ["raisePriorityToId"],
   [SecurityPlaybookActionType.LookUpEntityActivity]: ["lookbackInHours"],
   [SecurityPlaybookActionType.EmailPeople]: ["userIds", "teamIds", "message"],
@@ -75,9 +86,15 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.EndOktaSessions]: [],
   [SecurityPlaybookActionType.ContainCrowdStrikeHost]: [],
   [SecurityPlaybookActionType.IsolateDefenderDevice]: ["isolationType"],
+  [SecurityPlaybookActionType.DisableEntraIdUser]: [],
+  [SecurityPlaybookActionType.SignOutEntraIdUser]: [],
+  [SecurityPlaybookActionType.SuspendGoogleWorkspaceUser]: [],
+  [SecurityPlaybookActionType.SignOutGoogleWorkspaceUser]: [],
   [SecurityPlaybookActionType.UnsuspendOktaUser]: [],
   [SecurityPlaybookActionType.LiftCrowdStrikeContainment]: [],
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: [],
+  [SecurityPlaybookActionType.EnableEntraIdUser]: [],
+  [SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser]: [],
   [SecurityPlaybookActionType.BlockDataStorePublicAccess]: [],
   [SecurityPlaybookActionType.RevokeDataStoreSharing]: [],
   [SecurityPlaybookActionType.SendWebhook]: ["url"],
@@ -161,6 +178,7 @@ const ID_LIST_KEYS: ReadonlySet<string> = new Set<string>([
 const ID_KEYS: ReadonlySet<string> = new Set<string>([
   "userId",
   "teamId",
+  "assigneeUserId",
   "onCallPolicyId",
   "incidentSeverityId",
   "workflowId",
@@ -170,20 +188,321 @@ const ID_KEYS: ReadonlySet<string> = new Set<string>([
 // Switches among an action's settings: kept as true or false.
 const SWITCH_KEYS: ReadonlySet<string> = new Set<string>(["notifySubscribers"]);
 
-// A step as the dialog opens it: its settings under their form keys, and its three switches.
+/*
+ * RUN THIS STEP: always, or only after an earlier step's result - the one
+ * picker a step's branch is set with. Its value is "always", the legacy
+ * "only if threat intel matched" of a step saved before branching, or the
+ * earlier step and the result it waits on (encodeRunIf).
+ */
+export const RUN_IF_KEY: string = "runIf";
+export const RUN_ALWAYS: string = "always";
+export const RUN_IF_THREAT_INTEL_MATCHED: string = "threat-intel-matched";
+const RUN_IF_PREFIX: string = "after:";
+
+export function encodeRunIf(condition: SecurityPlaybookStepCondition): string {
+  // The result first: it holds no colon, and an id may.
+  return `${RUN_IF_PREFIX}${condition.outcome}:${condition.stepId}`;
+}
+
+export function decodeRunIf(
+  value: unknown,
+): SecurityPlaybookStepCondition | undefined {
+  const text: string = readFormId(value);
+
+  if (!text.startsWith(RUN_IF_PREFIX)) {
+    return undefined;
+  }
+
+  const rest: string = text.slice(RUN_IF_PREFIX.length);
+  const colon: number = rest.indexOf(":");
+  const outcome: string = colon > 0 ? rest.slice(0, colon) : "";
+  const stepId: string = colon > 0 ? rest.slice(colon + 1) : "";
+
+  return stepId && isSecurityPlaybookStepOutcome(outcome)
+    ? { stepId, outcome }
+    : undefined;
+}
+
+// What a step runs after, as Run This Step holds it.
+export function getRunIfFormValue(step: SecurityPlaybookStep): string {
+  if (step.runIf) {
+    return encodeRunIf(step.runIf);
+  }
+
+  return step.onlyIfThreatIntelMatched
+    ? RUN_IF_THREAT_INTEL_MATCHED
+    : RUN_ALWAYS;
+}
+
+/*
+ * The sentence each result reads as in Run This Step, with the step's
+ * number and title, by the result's own words (Common's
+ * describeSecurityPlaybookStepOutcome): a whole sentence for each, so every
+ * language words it its own way.
+ */
+export const RUN_IF_OPTION_TEMPLATES: Readonly<Record<string, string>> = {
+  succeeded: translationKey("Only if step {{number}} ({{title}}) succeeded"),
+  failed: translationKey("Only if step {{number}} ({{title}}) failed"),
+  "found a known-bad entity": translationKey(
+    "Only if step {{number}} ({{title}}) found a known-bad entity",
+  ),
+  "found nothing known-bad": translationKey(
+    "Only if step {{number}} ({{title}}) found nothing known-bad",
+  ),
+  "found activity": translationKey(
+    "Only if step {{number}} ({{title}}) found activity",
+  ),
+  "found no activity": translationKey(
+    "Only if step {{number}} ({{title}}) found no activity",
+  ),
+};
+
+// ...and on the step's card, where the steps are numbered above it.
+export const RUN_IF_FLAG_TEMPLATES: Readonly<Record<string, string>> = {
+  succeeded: translationKey("Only if step {{number}} succeeded"),
+  failed: translationKey("Only if step {{number}} failed"),
+  "found a known-bad entity": translationKey(
+    "Only if step {{number}} found a known-bad entity",
+  ),
+  "found nothing known-bad": translationKey(
+    "Only if step {{number}} found nothing known-bad",
+  ),
+  "found activity": translationKey("Only if step {{number}} found activity"),
+  "found no activity": translationKey(
+    "Only if step {{number}} found no activity",
+  ),
+};
+
+export const RUN_ALWAYS_LABEL: string = translationKey("Always");
+export const RUN_IF_THREAT_INTEL_MATCHED_LABEL: string = translationKey(
+  "Only if an earlier threat intel check found a known-bad entity",
+);
+export const RUN_IF_THREAT_INTEL_MATCHED_FLAG: string = translationKey(
+  "Only if threat intel matched",
+);
+// A condition on a step that is no longer before it: shown, so it can be changed.
+export const RUN_IF_MISSING_STEP_LABEL: string = translationKey(
+  "Only after a step that is no longer before it",
+);
+
+function readStepTitle(
+  action: SecurityPlaybookActionType | string,
+  translator: Translator,
+): string {
+  const title: string = getSecurityPlaybookAction(action)?.title || action;
+
+  return translator.translateText(title) || title;
+}
+
+/*
+ * One choice of Run This Step, shaped as the Dropdown takes it (kept here,
+ * React-free, rather than imported from the Dropdown component).
+ */
+export interface RunIfOption {
+  value: string;
+  label: string;
+  // Built from translated parts: it reads the page's way.
+  isInPageDirection: boolean;
+}
+
+/*
+ * What Run This Step offers a step: always, then each result of each step
+ * before it - found or found nothing for a step that looks something up,
+ * succeeded otherwise, and failed for one that carries on when it fails -
+ * in the order the steps run. A step saved with the legacy "only if threat
+ * intel matched", or one whose condition no longer fits, keeps what it has
+ * as an option, so opening it never changes it.
+ */
+export function getRunIfOptions(data: {
+  earlierSteps: ReadonlyArray<SecurityPlaybookStep>;
+  step?: SecurityPlaybookStep | undefined;
+  translator: Translator;
+}): Array<RunIfOption> {
+  const { translator } = data;
+  const options: Array<RunIfOption> = [
+    {
+      value: RUN_ALWAYS,
+      label: translator.translateText(RUN_ALWAYS_LABEL) || RUN_ALWAYS_LABEL,
+      isInPageDirection: true,
+    },
+  ];
+
+  data.earlierSteps.forEach(
+    (earlier: SecurityPlaybookStep, index: number): void => {
+      for (const outcome of getSecurityPlaybookStepOutcomes(earlier)) {
+        options.push({
+          value: encodeRunIf({ stepId: earlier.id, outcome }),
+          label: translator.translateTemplate(
+            RUN_IF_OPTION_TEMPLATES[
+              describeSecurityPlaybookStepOutcome(earlier.action, outcome)
+            ] || RUN_IF_OPTION_TEMPLATES["succeeded"]!,
+            {
+              number: translator.formatNumber(index + 1),
+              title: readStepTitle(earlier.action, translator),
+            },
+          ),
+          isInPageDirection: true,
+        });
+      }
+    },
+  );
+
+  const current: string | undefined = data.step
+    ? getRunIfFormValue(data.step)
+    : undefined;
+
+  if (
+    current &&
+    current !== RUN_ALWAYS &&
+    !options.some((option: RunIfOption): boolean => {
+      return option.value === current;
+    })
+  ) {
+    options.push({
+      value: current,
+      label:
+        current === RUN_IF_THREAT_INTEL_MATCHED
+          ? translator.translateText(RUN_IF_THREAT_INTEL_MATCHED_LABEL) ||
+            RUN_IF_THREAT_INTEL_MATCHED_LABEL
+          : translator.translateText(RUN_IF_MISSING_STEP_LABEL) ||
+            RUN_IF_MISSING_STEP_LABEL,
+      isInPageDirection: true,
+    });
+  }
+
+  return options;
+}
+
+/*
+ * What a step's card says of when it runs - "Only if step 1 found a
+ * known-bad entity" - or nothing for a step that always runs.
+ */
+export function describeRunIf(data: {
+  step: SecurityPlaybookStep;
+  steps: ReadonlyArray<SecurityPlaybookStep>;
+  translator: Translator;
+}): string {
+  const { step, translator } = data;
+  const condition: SecurityPlaybookStepCondition | undefined = step.runIf;
+
+  if (condition) {
+    const index: number = data.steps.findIndex(
+      (candidate: SecurityPlaybookStep): boolean => {
+        return candidate.id === condition.stepId;
+      },
+    );
+    const earlier: SecurityPlaybookStep | undefined = data.steps[index];
+
+    if (!earlier) {
+      return (
+        translator.translateText(RUN_IF_MISSING_STEP_LABEL) ||
+        RUN_IF_MISSING_STEP_LABEL
+      );
+    }
+
+    return translator.translateTemplate(
+      RUN_IF_FLAG_TEMPLATES[
+        describeSecurityPlaybookStepOutcome(earlier.action, condition.outcome)
+      ] || RUN_IF_FLAG_TEMPLATES["succeeded"]!,
+      { number: translator.formatNumber(index + 1) },
+    );
+  }
+
+  return step.onlyIfThreatIntelMatched
+    ? translator.translateText(RUN_IF_THREAT_INTEL_MATCHED_FLAG) ||
+        RUN_IF_THREAT_INTEL_MATCHED_FLAG
+    : "";
+}
+
+/*
+ * Why a step cannot move, or be deleted, without breaking a branch - a
+ * step may wait only on one before it - or undefined when it can.
+ */
+export const STEP_WAITED_ON_REASON: string = translationKey(
+  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.",
+);
+export const STEP_WAITS_ON_REASON: string = translationKey(
+  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.",
+);
+
+export function getStepMoveBlock(data: {
+  steps: ReadonlyArray<SecurityPlaybookStep>;
+  index: number;
+  direction: -1 | 1;
+  translator: Translator;
+}): string | undefined {
+  const { steps, index, direction, translator } = data;
+  const step: SecurityPlaybookStep | undefined = steps[index];
+  const neighbour: SecurityPlaybookStep | undefined =
+    steps[index + direction];
+
+  if (!step || !neighbour) {
+    return undefined;
+  }
+
+  // Up: past the step it waits on. Down: past a step that waits on it.
+  const [upper, lower]: [SecurityPlaybookStep, SecurityPlaybookStep] =
+    direction === -1 ? [neighbour, step] : [step, neighbour];
+
+  if (lower.runIf?.stepId !== upper.id) {
+    return undefined;
+  }
+
+  const upperNumber: string = translator.formatNumber(
+    (direction === -1 ? index - 1 : index) + 1,
+  );
+  const lowerNumber: string = translator.formatNumber(
+    (direction === -1 ? index : index + 1) + 1,
+  );
+
+  return direction === -1
+    ? translator.translateTemplate(STEP_WAITS_ON_REASON, {
+        number: upperNumber,
+      })
+    : translator.translateTemplate(STEP_WAITED_ON_REASON, {
+        number: lowerNumber,
+      });
+}
+
+export function getStepDeleteBlock(data: {
+  steps: ReadonlyArray<SecurityPlaybookStep>;
+  index: number;
+  translator: Translator;
+}): string | undefined {
+  const step: SecurityPlaybookStep | undefined = data.steps[data.index];
+
+  if (!step) {
+    return undefined;
+  }
+
+  const waiting: Array<{ index: number; step: SecurityPlaybookStep }> =
+    getStepsWaitingOn(data.steps, step.id);
+
+  return waiting.length > 0
+    ? data.translator.translateTemplate(STEP_WAITED_ON_REASON, {
+        number: data.translator.formatNumber(waiting[0]!.index + 1),
+      })
+    : undefined;
+}
+
+// A step as the dialog opens it: its settings under their form keys, and how it runs.
 export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
   const values: JSONObject = {
     [STEP_ACTION_KEY]: step.action,
     requiresApproval: step.requiresApproval,
     continueOnFailure: step.continueOnFailure,
-    onlyIfThreatIntelMatched: step.onlyIfThreatIntelMatched,
+    [RUN_IF_KEY]: getRunIfFormValue(step),
   };
 
   for (const key of getStepConfigKeys(step.action)) {
     const value: JSONValue | undefined = step.config[key];
 
     if (value !== undefined && value !== null) {
-      values[key] = value;
+      // The tasks are written one a line.
+      values[key] =
+        key === "tasks" && Array.isArray(value)
+          ? (value as Array<JSONValue>).join("\n")
+          : value;
     }
   }
 
@@ -212,7 +531,7 @@ export function getNewStepFormValues(
     [STEP_ACTION_KEY]: action,
     requiresApproval: doesActionNeedApprovalByDefault(definition),
     continueOnFailure: false,
-    onlyIfThreatIntelMatched: false,
+    [RUN_IF_KEY]: RUN_ALWAYS,
     ...(action === SecurityPlaybookActionType.LookUpEntityActivity
       ? { lookbackInHours: ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS }
       : {}),
@@ -274,6 +593,18 @@ export function formValuesToStep(data: {
 
   const definition: SecurityPlaybookActionDefinition | undefined =
     getSecurityPlaybookAction(action);
+  const runIfValue: JSONValue | undefined = data.values[RUN_IF_KEY];
+  const runIf: SecurityPlaybookStepCondition | undefined =
+    decodeRunIf(runIfValue);
+  /*
+   * The legacy "only if threat intel matched" stays only while Run This
+   * Step still holds it - or, from a caller that has no Run This Step, the
+   * switch it used to be.
+   */
+  const onlyIfThreatIntelMatched: boolean =
+    runIfValue === undefined || runIfValue === null
+      ? data.values["onlyIfThreatIntelMatched"] === true
+      : readFormId(runIfValue) === RUN_IF_THREAT_INTEL_MATCHED;
 
   return {
     id: data.stepId || ObjectID.generate().toString(),
@@ -285,7 +616,8 @@ export function formValuesToStep(data: {
     ),
     requiresApproval: data.values["requiresApproval"] === true,
     continueOnFailure: data.values["continueOnFailure"] === true,
-    onlyIfThreatIntelMatched: data.values["onlyIfThreatIntelMatched"] === true,
+    onlyIfThreatIntelMatched,
+    ...(runIf ? { runIf } : {}),
   };
 }
 

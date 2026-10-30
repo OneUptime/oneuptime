@@ -122,6 +122,11 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
   },
   [SecurityPlaybookActionType.AddCaseNote]: { note: "Check {{case.title}}." },
   [SecurityPlaybookActionType.AddCaseLabels]: { labelIds: [ID_A, ID_B] },
+  // One task a line, handed to a person.
+  [SecurityPlaybookActionType.AddCaseTasks]: {
+    tasks: "Confirm the sign-in with the user\nReset the password",
+    assigneeUserId: ID_A,
+  },
   [SecurityPlaybookActionType.CheckThreatIntel]: {
     raisePriorityToId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
   },
@@ -153,12 +158,30 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
     defenderConnectionId: ID_C,
     isolationType: "Selective",
   },
+  [SecurityPlaybookActionType.DisableEntraIdUser]: {
+    entraIdConnectionId: ID_A,
+  },
+  [SecurityPlaybookActionType.SignOutEntraIdUser]: {
+    entraIdConnectionId: ID_A,
+  },
+  [SecurityPlaybookActionType.SuspendGoogleWorkspaceUser]: {
+    googleWorkspaceConnectionId: ID_B,
+  },
+  [SecurityPlaybookActionType.SignOutGoogleWorkspaceUser]: {
+    googleWorkspaceConnectionId: ID_B,
+  },
   [SecurityPlaybookActionType.UnsuspendOktaUser]: { oktaConnectionId: ID_A },
   [SecurityPlaybookActionType.LiftCrowdStrikeContainment]: {
     crowdStrikeConnectionId: ID_B,
   },
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: {
     defenderConnectionId: ID_C,
+  },
+  [SecurityPlaybookActionType.EnableEntraIdUser]: {
+    entraIdConnectionId: ID_A,
+  },
+  [SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser]: {
+    googleWorkspaceConnectionId: ID_B,
   },
   [SecurityPlaybookActionType.BlockDataStorePublicAccess]: {},
   [SecurityPlaybookActionType.RevokeDataStoreSharing]: {},

@@ -29,6 +29,9 @@ export const UNDO_BUTTON_TITLES: Partial<
   [SecurityPlaybookActionType.LiftCrowdStrikeContainment]:
     translationKey("Lift Containment"),
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: translationKey("Release"),
+  [SecurityPlaybookActionType.EnableEntraIdUser]: translationKey("Enable"),
+  [SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser]:
+    translationKey("Unsuspend"),
 };
 
 export interface RunStepRow {
