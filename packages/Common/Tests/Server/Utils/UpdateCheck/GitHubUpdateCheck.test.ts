@@ -60,7 +60,8 @@ const PUBLISHED: JSONArray = JSON.parse(
   ),
 ) as JSONArray;
 
-type GetMock = jest.Mock<(...args: Array<unknown>) => Promise<unknown>>;
+// jest.Mock<what it returns, its arguments>, as BasicCron's RunMock.
+type GetMock = jest.Mock<Promise<unknown>, Array<unknown>>;
 
 let get: GetMock;
 

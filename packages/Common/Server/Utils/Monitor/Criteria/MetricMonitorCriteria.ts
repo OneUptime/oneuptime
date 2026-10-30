@@ -374,6 +374,18 @@ export default class MetricMonitorCriteria {
    * The evaluation type the window is judged with - the same precedence
    * CompareCriteria compares with.
    */
+  /*
+   * Has No Data (Is Empty) and Has Data (Is Not Empty) on a metric: they
+   * ask whether the window holds any data, not how large it is.
+   */
+  public static isDataPresenceFilter(
+    filterType: FilterType | undefined,
+  ): boolean {
+    return (
+      filterType === FilterType.IsEmpty || filterType === FilterType.IsNotEmpty
+    );
+  }
+
   private static isAllValues(criteriaFilter: CriteriaFilter): boolean {
     return (
       (criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
@@ -559,6 +571,43 @@ export default class MetricMonitorCriteria {
         projectId: input.projectId,
         nativeUnitsByMetricName: input.nativeUnitsByMetricName,
       });
+    }
+
+    /*
+     * Has No Data / Has Data: whether the query sent anything in the
+     * window at all - no threshold, no unit. An infrastructure monitor's
+     * out-of-the-box criteria are these two (offline while its agent sends
+     * nothing, online while it sends), so a value of 0 - no restarts, an
+     * idle CPU - is data, and never reads as "offline".
+     */
+    if (
+      MetricMonitorCriteria.isDataPresenceFilter(
+        input.criteriaFilter.filterType,
+      )
+    ) {
+      const sampleCount: number = (aggregatedResult?.data || []).length;
+      const isMet: boolean =
+        input.criteriaFilter.filterType === FilterType.IsEmpty
+          ? sampleCount === 0
+          : sampleCount > 0;
+
+      metricContext.totalSamplesInWindow = sampleCount;
+
+      let rootCause: string | null = null;
+
+      if (isMet) {
+        rootCause =
+          sampleCount === 0
+            ? `${MetricMonitorCriteria.getSeriesPrefix(input.seriesLabels)}No data received for ${metricContext.metricName} in the evaluation window.`
+            : `${MetricMonitorCriteria.getSeriesPrefix(input.seriesLabels)}${metricContext.metricName} sent ${sampleCount} ${sampleCount === 1 ? "value" : "values"} in the evaluation window.`;
+      }
+
+      return {
+        fingerprint: input.seriesFingerprint,
+        labels: input.seriesLabels,
+        rootCause: rootCause,
+        context: metricContext,
+      };
     }
 
     if (rawThreshold === null) {

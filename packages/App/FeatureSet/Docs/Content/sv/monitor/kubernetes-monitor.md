@@ -65,7 +65,7 @@ Slutför formuläret och spara. Monitorn visas under **Monitorer**, och dess sta
 | --- | --- | --- |
 | Kluster | Hela klustret | — |
 | Namnrymd | Resurser i en namnrymd | **Namnrymd** |
-| Arbetsbelastning | En deployment, statefulset, daemonset, job eller cronjob | **Namnrymd**, **Arbetsbelastningsnamn** |
+| Arbetsbelastning | En deployment, statefulset, daemonset, job eller cronjob | **Namnrymd**, **Arbetsbelastningstyp**, **Arbetsbelastningsnamn** |
 | Nod | En nod i klustret | **Nodnamn** |
 | Podd | En podd | **Namnrymd**, **Pod-namn** |
 
@@ -112,7 +112,7 @@ De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfi
 
 ### Villkor
 
-Statiska trösklar jämförs med det **Tröskel** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** och **Lika med**.
+Statiska trösklar jämförs med det **Tröskel** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** och **Lika med**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något.
 
 Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de här villkoren så visar formuläret i stället **Känslighet** och **Baslinjefönster**:
 
