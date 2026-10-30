@@ -85,17 +85,19 @@ export const UPDATE_CHECK_TIMEOUT_IN_MS: number = 5 * 60 * 1000;
 // Outlives the job, as the lease must (InstanceHealthLock).
 export const UPDATE_CHECK_LEASE_TTL_IN_SECONDS: number = 10 * 60;
 
-const isDue: (lastAt: Date | undefined | null, hours: number) => boolean = (
+// Whether `lastAt` plus the wait has passed, by the one clock the job reads.
+const hasPassed: (lastAt: Date | undefined | null, now: Date) => boolean = (
   lastAt: Date | undefined | null,
-  hours: number,
+  now: Date,
 ): boolean => {
   if (!lastAt) {
     return true;
   }
 
-  return !OneUptimeDate.isInTheFuture(
-    OneUptimeDate.addRemoveHours(lastAt, hours),
-  );
+  const at: Date = lastAt instanceof Date ? lastAt : new Date(lastAt);
+
+  // A date that is not one is no reason to stop asking.
+  return Number.isNaN(at.getTime()) || at.getTime() <= now.getTime();
 };
 
 export async function runUpdateCheck(): Promise<void> {
@@ -116,25 +118,38 @@ export async function runUpdateCheck(): Promise<void> {
   });
 
   const isSelfHosted: boolean = !IsBillingEnabled;
+  const now: Date = OneUptimeDate.getCurrentDate();
 
-  const isReleaseDue: boolean = isDue(
-    config?.latestReleaseCheckedAt,
-    MIN_HOURS_BETWEEN_CHECKS,
+  const isReleaseDue: boolean = hasPassed(
+    config?.latestReleaseCheckedAt
+      ? OneUptimeDate.addRemoveHours(
+          config.latestReleaseCheckedAt,
+          MIN_HOURS_BETWEEN_CHECKS,
+        )
+      : null,
+    now,
   );
 
   const areAdvisoriesDue: boolean =
     isSelfHosted &&
-    isDue(config?.securityAdvisoriesCheckedAt, MIN_HOURS_BETWEEN_CHECKS);
+    hasPassed(
+      config?.securityAdvisoriesCheckedAt
+        ? OneUptimeDate.addRemoveHours(
+            config.securityAdvisoriesCheckedAt,
+            MIN_HOURS_BETWEEN_CHECKS,
+          )
+        : null,
+      now,
+    );
 
-  const lastAttemptAt: Date | undefined = config?.updateCheckLastAttemptAt;
-  const wasAttemptedRecently: boolean = Boolean(
-    lastAttemptAt &&
-      OneUptimeDate.isInTheFuture(
-        OneUptimeDate.addRemoveMinutes(
-          lastAttemptAt,
+  const mayAskAgain: boolean = hasPassed(
+    config?.updateCheckLastAttemptAt
+      ? OneUptimeDate.addRemoveMinutes(
+          config.updateCheckLastAttemptAt,
           MIN_MINUTES_BETWEEN_ATTEMPTS,
-        ),
-      ),
+        )
+      : null,
+    now,
   );
 
   let latestVersion: string | null = config?.latestReleaseVersion || null;
@@ -142,8 +157,7 @@ export async function runUpdateCheck(): Promise<void> {
     config?.securityAdvisories,
   );
 
-  if ((isReleaseDue || areAdvisoriesDue) && !wasAttemptedRecently) {
-    const now: Date = OneUptimeDate.getCurrentDate();
+  if ((isReleaseDue || areAdvisoriesDue) && mayAskAgain) {
     let failure: UpdateCheckFailure | null = null;
 
     const update: PartialEntity<GlobalConfig> = {
