@@ -250,7 +250,7 @@ describe("Jane pages Team Platform from INC-8's own channel, with a message", ()
     await world.settle();
 
     expect(lines(pageMessageNow()).slice(0, 2)).toEqual([
-      `✅ *Nitin* acknowledged ${INCIDENT_IN_SLACK}, so paging stopped`,
+      `✅ *Nitin* acknowledged the page for ${INCIDENT_IN_SLACK}, so paging stopped`,
       `“${MESSAGE}”`,
     ]);
     expect(alarms()).toEqual([]);
@@ -415,7 +415,7 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
     expect(world.run!.acknowledgedByUserId!.toString()).toBe(NITIN.toString());
     expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Completed);
     expect(lines(pageMessageNow()).slice(0, 2)).toEqual([
-      `✅ *Nitin* acknowledged ${INCIDENT_IN_SLACK}, so paging stopped`,
+      `✅ *Nitin* acknowledged the page for ${INCIDENT_IN_SLACK}, so paging stopped`,
       `“${MESSAGE}”`,
     ]);
     expect(alarms()).toEqual([]);

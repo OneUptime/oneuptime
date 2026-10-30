@@ -335,7 +335,7 @@ describe("a direct page that somebody answered", () => {
     );
   });
 
-  test("a person's page: the paging stopped - the person did not stop it", () => {
+  test("a person's page: the paging stopped - the person did not stop it - and Nitin acknowledged the page", () => {
     expect(
       OnCallPolicyRunMessageView.getMarkdown(
         page({
@@ -344,7 +344,9 @@ describe("a direct page that somebody answered", () => {
           acknowledgedByName: "Nitin",
         }),
       ).split("\n\n")[0],
-    ).toBe(`✅ **Nitin** acknowledged ${RECORD}, so paging stopped`);
+    ).toBe(
+      `✅ **Nitin** acknowledged the page for ${RECORD}, so paging stopped`,
+    );
   });
 
   test("the people stay listed once it is over, with who acknowledged", () => {
@@ -725,17 +727,21 @@ describe("a direct page a person started", () => {
     );
   });
 
-  test("acknowledged: who acknowledged, and that paging stopped", () => {
+  test("acknowledged: who acknowledged the page, and that paging stopped", () => {
     const run: OnCallPolicyRun = samPage({
       outcome: OnCallPolicyRunOutcome.Acknowledged,
       acknowledgedByName: "Nitin",
     });
 
+    /*
+     * The page, not the incident: somebody else may have acknowledged the
+     * incident long before Sam paged Nitin into it.
+     */
     expect(headline(run)).toBe(
-      `✅ **Nitin** acknowledged ${RECORD}, so paging stopped`,
+      `✅ **Nitin** acknowledged the page for ${RECORD}, so paging stopped`,
     );
     expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
-      "Nitin acknowledged Incident INC-8",
+      "Nitin acknowledged the page for Incident INC-8",
     );
     expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([]);
   });
@@ -1235,7 +1241,7 @@ describe("a paged team, named by its name", () => {
     const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
 
     expect(markdown.split("\n\n")[0]).toBe(
-      `✅ **Test User 3** acknowledged ${RECORD}, so paging stopped`,
+      `✅ **Test User 3** acknowledged the page for ${RECORD}, so paging stopped`,
     );
     expect(markdown).not.toContain("member of");
   });

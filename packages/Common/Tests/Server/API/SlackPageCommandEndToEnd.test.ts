@@ -564,8 +564,8 @@ describe("Jane: /oneuptime page @nitin The checkout API is throwing 500s, in #op
 
       expect(message.method).toBe("chat.update");
       expect(lines(message).slice(0, 3)).toEqual([
-        // Jane's page stopped: Jane did not stop it.
-        `✅ *Nitin* acknowledged ${ALERT_IN_SLACK}, so paging stopped`,
+        // Jane's page stopped: Jane did not stop it. Nitin answered it.
+        `✅ *Nitin* acknowledged the page for ${ALERT_IN_SLACK}, so paging stopped`,
         `“${TITLE}”`,
         "•   *Nitin*: acknowledged · paged once · by SMS and email",
       ]);

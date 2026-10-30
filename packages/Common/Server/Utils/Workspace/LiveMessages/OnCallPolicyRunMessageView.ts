@@ -117,9 +117,12 @@ import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/On
  *   See every step in OneUptime
  *
  * A page a PERSON started ends as the paging ending, not as the person
- * doing something: "✅ Nawaz acknowledged Alert #12, so paging stopped". A
- * policy or a workflow stops paging itself ("so PolicyX stopped paging");
- * "so Simon Lee stopped paging" read as if Simon had called his page off.
+ * doing something: "✅ Nawaz acknowledged the page for Alert #12, so paging
+ * stopped". A policy or a workflow stops paging itself ("so PolicyX stopped
+ * paging"); "so Simon Lee stopped paging" read as if Simon had called his
+ * page off. Who answers a person's page acknowledges the page: the record
+ * may have been acknowledged long before by somebody else, and "Nawaz
+ * acknowledged Incident INC-8" would not be true of it then.
  *
  * In an incident's or an alert's own channel a page is about that incident
  * or alert (WorkspacePage), and what the person who paged wrote is the
@@ -690,7 +693,10 @@ export default class OnCallPolicyRunMessageView {
           ? `${pagerName} is paging ${team} for ${run.recordLabel}`
           : `${pagerName} is paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Acknowledged:
-        return `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
+        // A person's page is answered: its record may be somebody else's.
+        return isStartedByPerson
+          ? `${run.acknowledgedByName || "Someone"} acknowledged the page for ${run.recordLabel}`
+          : `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.RecordHandled:
         if (isStartedByPerson) {
           return run.outcomeDetail
@@ -942,7 +948,14 @@ export default class OnCallPolicyRunMessageView {
           ? mdText`📟 ${policy} is paging ${team} for ${record}`
           : mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
-        return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
+        /*
+         * A person's page is answered by acknowledging the page: its record
+         * may have been acknowledged by somebody else before (see the
+         * header).
+         */
+        return isStartedByPerson
+          ? mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged the page for ${record}, ${soPagingStopped}`
+          : mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
       case OnCallPolicyRunOutcome.RecordHandled:
         /*
          * In the past tense: the message is not edited once the run is
