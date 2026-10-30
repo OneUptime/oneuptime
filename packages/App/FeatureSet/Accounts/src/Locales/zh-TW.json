@@ -404,6 +404,7 @@
   "Add more files": "新增更多檔案",
   "Release to add them.": "放開即可新增。",
   "Click to choose files or drag & drop.": "按一下以選擇檔案，或將檔案拖放到此處。",
+  "Click to choose a file or drag & drop.": "按一下以選擇一個檔案，或將檔案拖放到此處。",
   "Click to add more or drag & drop.": "按一下以新增更多檔案，或將檔案拖放到此處。",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP，最大 10 MB。",
   "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "最多 10 個檔案，每個最大 10 MB：PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP。",

@@ -674,7 +674,8 @@ describe("each file it lists", () => {
     );
 
     expect(screen.getByText("DOCX")).toBeInTheDocument();
-    expect(screen.getByText("PCAP • 2.0 KB")).toBeInTheDocument();
+    // Its size as the Custom Fields card says it: "2 KB", never "2.0 KB".
+    expect(screen.getByText("PCAP • 2 KB")).toBeInTheDocument();
     expect(screen.queryByText(MimeType.docx)).not.toBeInTheDocument();
     expect(
       screen.queryByText(MimeType.pcap, { exact: false }),

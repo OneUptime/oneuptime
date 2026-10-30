@@ -13,6 +13,10 @@ import {
   getCustomFieldFormKey,
   packCustomFieldFormValues,
 } from "../../../../UI/Components/CustomFields/CustomFieldModelFormFields";
+import {
+  forgetKnownFileSizes,
+  getKnownFileSize,
+} from "../../../../UI/Components/FilePicker/KnownFileSizes";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FileModel from "../../../../Models/DatabaseModels/File";
@@ -200,6 +204,33 @@ describe("toCustomFieldFileFormValue: the record's files, as the picker lists th
         value: CONTRACT,
       }),
     ).toBe(CONTRACT);
+  });
+
+  /*
+   * A File holds no size, and the picker lists each file with its size as
+   * the card does ("PDF • 47 KB"): the sizes the record stores are told to
+   * the page, by file id, for the picker to read back.
+   */
+  test("tells the page each file's stored size, for the picker to show", () => {
+    forgetKnownFileSizes();
+
+    toCustomFieldFileFormValue({
+      customFieldType: CustomFieldType.MultipleFiles,
+      value: [CONTRACT, PHOTO],
+    });
+
+    expect(getKnownFileSize(CONTRACT.fileId)).toBe(CONTRACT.size);
+    expect(getKnownFileSize(PHOTO.fileId)).toBe(PHOTO.size);
+
+    forgetKnownFileSizes();
+
+    // A field of another kind tells nothing.
+    toCustomFieldFileFormValue({
+      customFieldType: CustomFieldType.Text,
+      value: CONTRACT,
+    });
+
+    expect(getKnownFileSize(CONTRACT.fileId)).toBeNull();
   });
 });
 

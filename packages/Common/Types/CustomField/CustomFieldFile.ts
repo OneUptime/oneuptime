@@ -1,4 +1,5 @@
 import ColumnLength from "../Database/ColumnLength";
+import { formatFileSize } from "../File/FileSize";
 import MimeType from "../File/MimeType";
 import ObjectID from "../ObjectID";
 import CustomFieldType from "./CustomFieldType";
@@ -341,23 +342,14 @@ export const formatCustomFieldFileNames: FormatCustomFieldFileNamesFunction = (
 
 export type FormatCustomFieldFileSizeFunction = (bytes: number) => string;
 
-// A file's size as people read it: "640 B", "48 KB", "1.5 MB".
+/*
+ * A file's size as people read it: "640 B", "48 KB", "1.5 MB" - as every
+ * list of files says it (Types/File/FileSize), the file picker included.
+ */
 export const formatCustomFieldFileSize: FormatCustomFieldFileSizeFunction = (
   bytes: number,
 ): string => {
-  if (!Number.isFinite(bytes) || bytes < 0) {
-    return "";
-  }
-
-  if (bytes < 1024) {
-    return `${Math.floor(bytes)} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  }
-
-  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
+  return formatFileSize(bytes);
 };
 
 export type GetCustomFieldValueEntryKeyFunction = (entry: unknown) => string;

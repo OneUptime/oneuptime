@@ -44,6 +44,7 @@ import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileMode
 import CustomFieldFileList, {
   readCustomFieldFileEntries,
 } from "../CustomFields/CustomFieldFileList";
+import { CustomFieldFile } from "../../../Types/CustomField/CustomFieldFile";
 import Color from "../../../Types/Color";
 import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
 import OneUptimeDate from "../../../Types/Date";
@@ -837,12 +838,12 @@ const Detail: DetailFunction = <T extends GenericObject>(
       field.fieldType === FieldType.File ||
       field.fieldType === FieldType.MultipleFiles
     ) {
-      data = (
-        <CustomFieldFileList
-          files={readCustomFieldFileEntries(props.item[fieldKey])}
-          emptyText={field.placeholder}
-        />
+      const files: Array<CustomFieldFile> = readCustomFieldFileEntries(
+        props.item[fieldKey],
       );
+
+      // No file is an empty value, drawn as every other (EmptyValue).
+      data = files.length > 0 ? <CustomFieldFileList files={files} /> : "";
     }
 
     if (field.fieldType === FieldType.Markdown) {

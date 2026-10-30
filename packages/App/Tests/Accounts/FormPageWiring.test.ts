@@ -507,6 +507,8 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   "Add more files",
   "Release to add them.",
   "Click to choose files or drag & drop.",
+  // A File question takes one file, and says so.
+  "Click to choose a file or drag & drop.",
   "Click to add more or drag & drop.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.",
   "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",

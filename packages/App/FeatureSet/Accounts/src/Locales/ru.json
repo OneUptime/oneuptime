@@ -404,6 +404,7 @@
   "Add more files": "Добавить ещё файлы",
   "Release to add them.": "Отпустите, чтобы добавить их.",
   "Click to choose files or drag & drop.": "Нажмите, чтобы выбрать файлы, или перетащите их сюда.",
+  "Click to choose a file or drag & drop.": "Нажмите, чтобы выбрать файл, или перетащите его сюда.",
   "Click to add more or drag & drop.": "Нажмите, чтобы добавить ещё, или перетащите файлы сюда.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "Файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP, до 10 МБ.",
   "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "До 10 файлов по 10 МБ: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",

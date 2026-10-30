@@ -6,7 +6,9 @@ import {
   readCustomFieldFiles,
 } from "../../../Types/CustomField/CustomFieldFile";
 import IconProp from "../../../Types/Icon/IconProp";
-import MimeType from "../../../Types/File/MimeType";
+import { getFileTypeIcon } from "../../../Types/File/FileTypeIcon";
+import { PLACEHOLDER_TEXT_CLASS_NAME } from "../Detail/PlaceholderText";
+import { getKnownFileSize } from "../FilePicker/KnownFileSizes";
 import { handleAuthenticatedLinkClick } from "../../Utils/OpenAuthenticatedUrl";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -43,30 +45,14 @@ export interface ComponentProps {
 
 type GetFileIconFunction = (fileType: string) => IconProp;
 
-// A picture, a spreadsheet, an archive, or another document.
+/*
+ * A picture, a spreadsheet, an archive, or another document: the icon the
+ * file picker draws the same file with (Types/File/FileTypeIcon).
+ */
 export const getCustomFieldFileIcon: GetFileIconFunction = (
   fileType: string,
 ): IconProp => {
-  const type: string = (fileType || "").toLowerCase();
-
-  if (type.startsWith("image/")) {
-    return IconProp.Photo;
-  }
-
-  if (
-    type === MimeType.csv ||
-    type === MimeType.xls ||
-    type === MimeType.xlsx ||
-    type === MimeType.ods
-  ) {
-    return IconProp.TableCells;
-  }
-
-  if (type === MimeType.zip || type === MimeType.pcap) {
-    return IconProp.Archive;
-  }
-
-  return IconProp.DocumentText;
+  return getFileTypeIcon(fileType);
 };
 
 export type ReadCustomFieldFileEntriesFunction = (
@@ -111,7 +97,10 @@ export const readCustomFieldFileEntries: ReadCustomFieldFileEntriesFunction = (
       name: typeof name === "string" && name ? name : fileId || "",
       fileType:
         typeof record["fileType"] === "string" ? record["fileType"] : "",
-      size: ArrayBuffer.isView(bytes) ? bytes.byteLength : 0,
+      // Its bytes' size, or - for a stored file - the size it was stored at.
+      size: ArrayBuffer.isView(bytes)
+        ? bytes.byteLength
+        : getKnownFileSize(fileId) || 0,
     });
   }
 
@@ -123,9 +112,17 @@ const CustomFieldFileList: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * No file: the field's own words for that, drawn as a detail card draws
+   * an empty value's (PlaceholderText) - "No data entered" read paler than
+   * the same words under the text field beside it.
+   */
   if (props.files.length === 0) {
     return (
-      <span className="text-gray-400" data-testid={props.dataTestId}>
+      <span
+        className={PLACEHOLDER_TEXT_CLASS_NAME}
+        data-testid={props.dataTestId}
+      >
         {translator.translateText(props.emptyText || "-") || "-"}
       </span>
     );

@@ -12,6 +12,11 @@ import CustomFieldFileList, {
 } from "../../../../UI/Components/CustomFields/CustomFieldFileList";
 import { CustomFieldValueSummary } from "../../../../UI/Components/CustomFields/CustomFieldModelFormFields";
 import Detail from "../../../../UI/Components/Detail/Detail";
+import { PLACEHOLDER_TEXT_CLASS_NAME } from "../../../../UI/Components/Detail/PlaceholderText";
+import {
+  forgetKnownFileSizes,
+  rememberFileSize,
+} from "../../../../UI/Components/FilePicker/KnownFileSizes";
 import {
   CustomFieldDefinition,
   getCustomFieldColumns,
@@ -20,8 +25,12 @@ import {
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import FileModel from "../../../../Models/DatabaseModels/File";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import { CustomFieldFile } from "../../../../Types/CustomField/CustomFieldFile";
+import {
+  CUSTOM_FIELD_FILE_TYPES,
+  CustomFieldFile,
+} from "../../../../Types/CustomField/CustomFieldFile";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import { getFileTypeIcon } from "../../../../Types/File/FileTypeIcon";
 import MimeType from "../../../../Types/File/MimeType";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../../Types/JSON";
@@ -81,6 +90,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
+  forgetKnownFileSizes();
 });
 
 const CONTRACT: CustomFieldFile = {
@@ -202,6 +212,26 @@ describe("the list of a field's files", () => {
     render(<CustomFieldFileList files={[]} dataTestId="empty" />);
 
     expect(screen.getByTestId("empty")).toHaveTextContent("-");
+  });
+
+  test("no file reads as a detail card's empty value does, not paler than the text field beside it", () => {
+    render(
+      <CustomFieldFileList
+        files={[]}
+        emptyText="No data entered"
+        dataTestId="empty"
+      />,
+    );
+
+    expect(screen.getByTestId("empty").className).toBe(
+      PLACEHOLDER_TEXT_CLASS_NAME,
+    );
+  });
+
+  test("each file has the icon the file picker draws it with", () => {
+    for (const type of CUSTOM_FIELD_FILE_TYPES) {
+      expect(getCustomFieldFileIcon(type)).toBe(getFileTypeIcon(type));
+    }
   });
 
   test("in the reader's language", () => {
@@ -335,6 +365,16 @@ describe("readCustomFieldFileEntries", () => {
     ]);
   });
 
+  test("a stored file the picker holds without its bytes: the size it was stored at", () => {
+    rememberFileSize(PHOTO.fileId, PHOTO.size);
+
+    const held: FileModel = new FileModel(new ObjectID(PHOTO.fileId));
+    held.name = "rack.png";
+    held.fileType = MimeType.png;
+
+    expect(readCustomFieldFileEntries([held])).toEqual([PHOTO]);
+  });
+
   test("anything that is no file is nothing to show", () => {
     for (const value of [
       null,
@@ -396,6 +436,35 @@ describe("a detail field of files", () => {
     );
 
     expect(screen.getByText("No data entered")).toBeInTheDocument();
+    expect(screen.queryByTestId("custom-field-file")).toBeNull();
+  });
+
+  test("an empty one is a detail card's empty value: its words, or the dash", () => {
+    render(
+      <Detail<JSONObject>
+        item={{ contract: null, photos: [] as never }}
+        showRecordLine={false}
+        fields={[
+          {
+            key: "contract",
+            title: "Contract",
+            fieldType: FieldType.File,
+            placeholder: "No data entered",
+          },
+          {
+            key: "photos",
+            title: "Photos",
+            fieldType: FieldType.MultipleFiles,
+          },
+        ]}
+      />,
+    );
+
+    // As every other empty field of a detail card is drawn (EmptyValue).
+    expect(screen.getByTestId("placeholder-text")).toHaveTextContent(
+      "No data entered",
+    );
+    expect(screen.getByTestId("detail-empty-value")).toBeInTheDocument();
     expect(screen.queryByTestId("custom-field-file")).toBeNull();
   });
 

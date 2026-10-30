@@ -1405,8 +1405,13 @@ export default class WorkspaceIncidentActions {
     return `Every custom field of this incident is copied from its monitor, so there is nothing to edit here. Change them on the monitor in ${ProductBrandingText.getProductName()}.`;
   }
 
+  /*
+   * Why, and where to go instead: a chat form cannot upload a file, and the
+   * incident's Custom Fields page in OneUptime is where its files are added
+   * and downloaded.
+   */
   public static getOnlyFileCustomFieldsMessage(): string {
-    return `Every custom field of this incident you can edit holds files, which are added and downloaded in ${ProductBrandingText.getProductName()}, on the incident's Custom Fields.`;
+    return `The custom fields you can edit here hold files, which can't be uploaded from chat. Add and download them in ${ProductBrandingText.getProductName()}, on the incident's Custom Fields page.`;
   }
 
   /*

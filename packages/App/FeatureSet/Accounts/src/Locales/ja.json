@@ -404,6 +404,7 @@
   "Add more files": "ファイルを追加",
   "Release to add them.": "離すと追加されます。",
   "Click to choose files or drag & drop.": "クリックしてファイルを選択するか、ドラッグ＆ドロップしてください。",
+  "Click to choose a file or drag & drop.": "クリックしてファイルを1つ選択するか、ドラッグ＆ドロップしてください。",
   "Click to add more or drag & drop.": "クリックしてさらに追加するか、ドラッグ＆ドロップしてください。",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP（最大 10 MB）。",
   "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "最大 10 個、各 10 MB まで：PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP。",

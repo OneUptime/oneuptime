@@ -4,6 +4,7 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import { translateValidationMessage } from "../Forms/Validation";
 import FileModel from "../../../Models/DatabaseModels/File";
+import { rememberFileSize } from "../FilePicker/KnownFileSizes";
 import Color from "../../../Types/Color";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
 import {
@@ -259,6 +260,11 @@ export const toCustomFieldFileFormValue: ToCustomFieldFileFormValueFunction =
         model._id = file.fileId;
         model.name = file.name;
         model.fileType = file.fileType as MimeType;
+        /*
+         * A File model holds no size, and the picker lists each file with
+         * its size as the card does: it reads it back from here.
+         */
+        rememberFileSize(file.fileId, file.size);
         return model;
       },
     );

@@ -176,7 +176,7 @@ describe("a form with nothing to ask says why", () => {
 
   test("the file message says where the files are", () => {
     expect(WorkspaceIncidentActions.getOnlyFileCustomFieldsMessage()).toBe(
-      "Every custom field of this incident you can edit holds files, which are added and downloaded in OneUptime, on the incident's Custom Fields.",
+      "The custom fields you can edit here hold files, which can't be uploaded from chat. Add and download them in OneUptime, on the incident's Custom Fields page.",
     );
   });
 });

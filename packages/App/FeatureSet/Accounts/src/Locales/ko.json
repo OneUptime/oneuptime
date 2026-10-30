@@ -404,6 +404,7 @@
   "Add more files": "파일 더 추가",
   "Release to add them.": "놓으면 추가됩니다.",
   "Click to choose files or drag & drop.": "클릭하여 파일을 선택하거나 끌어다 놓으세요.",
+  "Click to choose a file or drag & drop.": "클릭하여 파일 하나를 선택하거나 끌어다 놓으세요.",
   "Click to add more or drag & drop.": "클릭하여 더 추가하거나 끌어다 놓으세요.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP(최대 10MB).",
   "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "파일당 10MB, 최대 10개: PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP.",
