@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "태그와 스캔만으로는 항상 알 수 없는 정보입니다. 각 항목에 따라 검사 결과가 달라집니다.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "민감한 데이터를 찾기 위해 콘텐츠 샘플을 읽을지 여부와 스캔에서 건너뛸 항목입니다.",
   "{{confidence}} confidence": "신뢰도: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "승인하면 표시된 내용이 그대로 사용자 이름으로 실행됩니다."
 }

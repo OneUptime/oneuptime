@@ -278,6 +278,16 @@
  *            opened: it opened one. Absent, there is nothing to say. Open
  *            fix pull request (POST /ai-investigation/create-fix-task)
  *            starts one, which every later read answers as being written.
+ *   ?fixes=  many: Incident #1042's Remediation step holds three fixes of
+ *            different kinds, as a busy incident's does: a kubectl fix on
+ *            prod-eu-west-1 waiting for approval (a safe and a riskier
+ *            change), a fix OneUptime AI made through the project's MCP
+ *            servers on its own (one change done, one that failed), and a
+ *            runbook someone approved, verified fixed. Approve & Run (POST
+ *            /auto-remediation/approve) runs the kubectl fix at once and
+ *            Dismiss (POST /auto-remediation/dismiss) dismisses it;
+ *            ?fail=approve refuses the approval, as the server does when
+ *            the cluster's fixes were turned off after it was proposed.
  *   Try again (POST /auto-remediation/try-again) decides again for an open
  *            record, as AutoRemediationRuleEngineService.tryAgain does:
  *            the record's decision is written afresh - OneUptime AI started
@@ -632,6 +642,11 @@ const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
 const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
   ? params.get("codefix")
   : "";
+// ?fixes=: more fixes, of every kind, on Incident #1042's Remediation step.
+const FIXES_MODES = ["many"];
+const fixesMode = FIXES_MODES.includes(params.get("fixes"))
+  ? params.get("fixes")
+  : "";
 // Enable AI is off now only for off-project while the switches stay off.
 const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
 const resourcesMode = ["many", "none"].includes(params.get("resources"))
@@ -896,6 +911,7 @@ const fixture = {
     switches: switchesMode,
     cloudfix: cloudFixMode,
     codefix: codeFixMode,
+    fixes: fixesMode,
     hold: isAiHoldMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
@@ -4479,6 +4495,167 @@ if (cloudFixMode) {
 
 /*
  * ---------------------------------------------------------------------------
+ * A busy incident's fixes (?fixes=many), on the AI card's Remediation step:
+ * each kind of fix OneUptime AI proposes or makes, in the states that put
+ * the most on the step - the dense block the step draws as lines.
+ * ---------------------------------------------------------------------------
+ */
+const KUBECTL_FIX_SUGGESTION_ID = uuid("93000000", 2);
+const MCP_FIX_SUGGESTION_ID = uuid("93000000", 3);
+const RUNBOOK_FIX_SUGGESTION_ID = uuid("93000000", 4);
+
+function kubectlFixCommand(sequence, tier, command, words) {
+  return {
+    sequence,
+    stepType: "Kubectl",
+    runnerId: uuid("95000000", 2),
+    runnerNameSnapshot: "kubernetes-agent/prod-eu-west-1",
+    kubernetesClusterId: ID.kubernetesCluster(1),
+    kubernetesClusterNameSnapshot: "prod-eu-west-1",
+    kubectlTier: tier,
+    command,
+    timeoutInMs: 60000,
+    policyVerdict: "RequiresApproval",
+    ...words,
+  };
+}
+
+function kubectlFixPlan(hasRun) {
+  const execution = hasRun
+    ? { execution: { status: "Succeeded", exitCode: 0 } }
+    : {};
+  return {
+    commands: [
+      kubectlFixCommand(
+        1,
+        "SafeWrite",
+        "kubectl rollout restart deployment/checkout-api -n checkout",
+        {
+          rationale:
+            "The 17:52 release left checkout-api's pods with a pool of 10 connections; new pods read DB_POOL_MAX=40 again.",
+          expectedEffect:
+            "Fresh pods open up to 40 connections and the queue drains within 2 minutes.",
+          rollbackCommand:
+            "kubectl rollout undo deployment/checkout-api -n checkout",
+          ...execution,
+        },
+      ),
+      kubectlFixCommand(
+        2,
+        "RiskyWrite",
+        "kubectl scale deployment/checkout-api --replicas=8 -n checkout",
+        {
+          rationale:
+            "Until the new pods are ready, twice the replicas share the queued checkout requests.",
+          expectedEffect: "p95 latency falls back under 500 ms.",
+          rollbackCommand:
+            "kubectl scale deployment/checkout-api --replicas=4 -n checkout",
+          ...execution,
+        },
+      ),
+    ],
+    ...(hasRun ? { executionStatus: "Completed" } : {}),
+  };
+}
+
+if (fixesMode === "many") {
+  insert(AutoRemediationSuggestion, {
+    _id: KUBECTL_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Suggested",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
+    commandPlan: kubectlFixPlan(false),
+    createdAt: at("18:04", 10),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: MCP_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "AutoExecuted",
+    suggestionType: "McpToolCalls",
+    ruleNameSnapshot: "Checkout fixes",
+    mcpToolCallPlan: {
+      calls: [
+        {
+          sequence: 1,
+          serverId: uuid("97000000", 1),
+          serverNameSnapshot: "Feature flags",
+          toolName: "set_flag",
+          arguments: { flag: "checkout-db-pool-v2", enabled: false },
+          status: "Succeeded",
+          wasMadeWithoutAsking: true,
+          resultText: "checkout-db-pool-v2 is off in every environment.",
+          startedAt: at("18:03", 40).toISOString(),
+          completedAt: at("18:03", 41).toISOString(),
+        },
+        {
+          sequence: 2,
+          serverId: uuid("97000000", 2),
+          serverNameSnapshot: "Status page",
+          toolName: "post_update",
+          arguments: { component: "Checkout", status: "degraded" },
+          status: "Failed",
+          wasMadeWithoutAsking: true,
+          errorMessage: "The server did not answer within 30 seconds.",
+          startedAt: at("18:03", 41).toISOString(),
+          completedAt: at("18:04", 11).toISOString(),
+        },
+      ],
+    },
+    createdAt: at("18:03", 30),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: RUNBOOK_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Approved",
+    suggestionType: "Runbook",
+    ruleNameSnapshot: "Checkout fixes",
+    runbookNameSnapshot: "Restart checkout-api pods",
+    runbookId: new ObjectID(uuid("98000000", 1)),
+    runbookExecutionId: new ObjectID(uuid("98100000", 1)),
+    verificationStatus: "Verified",
+    verificationNote:
+      "p95 latency was back under 500 ms 4 minutes after the run.",
+    createdAt: at("18:02", 50),
+  });
+}
+
+// Approve & Run (POST /auto-remediation/approve) on a fix that waits.
+function approveFix(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  if (failures.has("approve")) {
+    throw fail(
+      400,
+      'Fixes were turned off for cluster "prod-eu-west-1" after this fix was proposed. Turn them back on for the cluster to approve it.',
+    );
+  }
+  if (!record || record.status !== "Suggested") {
+    throw fail(400, "Only suggested remediations can be approved.");
+  }
+  record.status = "Approved";
+  if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
+    record.commandPlan = kubectlFixPlan(true);
+  }
+}
+
+// Dismiss (POST /auto-remediation/dismiss) on a fix that waits.
+function dismissFix(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  if (!record || record.status !== "Suggested") {
+    throw fail(400, "Only suggested remediations can be dismissed.");
+  }
+  record.status = "Dismissed";
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The fix in the code an investigation recommends (?codefix=), on the AI
  * card's Remediation step: what came of it, in the wire form
  * investigationCodeFixSuggestionToJSON gives. A pull request someone asked
@@ -7528,6 +7705,17 @@ async function handleApi(method, options) {
   // Try again on the Remediation step: decided again, or refused.
   if (method === "POST" && url.endsWith("/auto-remediation/try-again")) {
     return ok(tryAgain(body));
+  }
+
+  // Approve & Run and Dismiss on a fix that waits (?fixes=many).
+  if (method === "POST" && url.endsWith("/auto-remediation/approve")) {
+    approveFix(body.suggestionId);
+    return ok({});
+  }
+
+  if (method === "POST" && url.endsWith("/auto-remediation/dismiss")) {
+    dismissFix(body.suggestionId);
+    return ok({});
   }
 
   /*

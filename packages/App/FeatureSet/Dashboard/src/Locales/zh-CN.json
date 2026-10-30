@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "其标签和扫描并不总能判断的信息。每一项都会改变其检查结果。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "是否读取其内容样本以查找敏感数据，以及扫描会跳过哪些内容。",
   "{{confidence}} confidence": "置信度：{{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "批准后将以您的名义完全按所示内容执行。"
 }

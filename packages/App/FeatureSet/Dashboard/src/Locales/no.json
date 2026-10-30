@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Det taggene og skanningene ikke alltid kan avgjøre. Hver av dem endrer hva kontrollene finner.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Om prøver av innholdet leses for å finne sensitive data, og hva skanningene hopper over.",
   "{{confidence}} confidence": "Sikkerhet: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "Godkjenning kjører nøyaktig det som vises, i ditt navn."
 }

@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "जो इसके टैग और स्कैन हमेशा नहीं बता सकते। हर एक से इसकी जांचों के नतीजे बदलते हैं।",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "क्या संवेदनशील डेटा खोजने के लिए इसकी सामग्री के नमूने पढ़े जाते हैं, और स्कैन क्या छोड़ते हैं।",
   "{{confidence}} confidence": "भरोसा: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "अनुमोदन करने पर ठीक वही, जो दिखाया गया है, आपके नाम से चलता है।"
 }

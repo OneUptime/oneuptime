@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "What its tags and scans cannot always tell. Each changes what its checks find.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Whether samples of its content are read to find sensitive data, and what the scans skip.",
   "{{confidence}} confidence": "{{confidence}} confidence",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "Approving runs exactly what is shown, under your name."
 }

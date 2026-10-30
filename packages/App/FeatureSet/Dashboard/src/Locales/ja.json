@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "タグやスキャンだけでは判断できない情報です。それぞれの設定によってチェックの結果が変わります。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "機密データを見つけるためにコンテンツのサンプルを読み取るかどうかと、スキャンでスキップする対象。",
   "{{confidence}} confidence": "信頼度: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "承認すると、表示されている内容がそのままあなたの名前で実行されます。"
 }

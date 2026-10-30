@@ -27,7 +27,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import RemediationStep, {
-  REMEDIATION_CARD_DESCRIPTION,
+  REMEDIATION_APPROVAL_NOTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import { REMEDIATION_STEP_STATUS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
@@ -43,8 +43,8 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * The AI card's Remediation step in the reader's language, from the shipped
  * locale files: its title, its status pill and the pill's name, the
  * sentence of each line, the "Why" and "What to do" of a blocked path, the
- * links and what the fixes are. Japanese, which translates the step's
- * sentences and labels.
+ * links, what approving a fix does and where each fix stands. Japanese,
+ * which translates the step's sentences and labels.
  *
  * The expected words are read from ja.json, so a translator rewording one
  * does not break this; what breaks it is a word on the card that is not
@@ -236,7 +236,7 @@ describe("the Remediation step in Japanese", () => {
     );
   });
 
-  test("with a fix, what the fixes are and the pill that asks for approval are looked up too", async () => {
+  test("with a fix, what approving it does, where it stands and the pill that asks for approval are looked up too", async () => {
     serve({
       suggestions: [
         Object.assign(new AutoRemediationSuggestion(), {
@@ -265,8 +265,12 @@ describe("the Remediation step in Japanese", () => {
     );
 
     expect(
-      await screen.findByTestId("remediation-fixes-description"),
-    ).toHaveTextContent(japanese(REMEDIATION_CARD_DESCRIPTION));
+      await screen.findByTestId("remediation-approval-note"),
+    ).toHaveTextContent(japanese(REMEDIATION_APPROVAL_NOTE));
+    // Where the fix stands: words with a dot, in Japanese too.
+    expect(screen.getByTestId("remediation-fix-status")).toHaveTextContent(
+      japanese("Waiting for approval"),
+    );
     expect(statusPill()).toHaveTextContent(
       japanese(REMEDIATION_STEP_STATUS_TEXT.needsApproval),
     );

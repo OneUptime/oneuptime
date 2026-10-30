@@ -309,14 +309,24 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
         >
           {translator.translateText(sentence)}
         </p>
-        {quieter ? <div className="mt-1">{quieter}</div> : <></>}
+        {/*
+          What to do comes right after what happened - Open fix pull
+          request, View pull request, Connect a repository - and why
+          OneUptime AI did not open it on its own after it, as a quieter
+          footnote with its own link: the press is the one obvious next
+          step, the setting is for the next incident.
+        */}
         {action ? (
-          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div
+            data-testid="remediation-code-fix-action"
+            className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2"
+          >
             {action}
           </div>
         ) : (
           <></>
         )}
+        {quieter ? <div className="mt-2">{quieter}</div> : <></>}
         {createError ? (
           <div className="mt-3">
             <InvestigationNotice

@@ -1420,7 +1420,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           </p>
         </div>
 
-        <div className="max-w-full">
+        {/*
+          On a phone the two answers share the row's width, half each: side
+          by side at their own width they reached past a 320px card.
+        */}
+        <div className="w-full max-w-full sm:w-auto">
           {humanVerdict && !isChangingVerdict ? (
             <div className="flex flex-wrap items-center gap-2">
               {/* A div, not a span: Icon renders a div. */}
@@ -1457,12 +1461,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             <div
               role="group"
               aria-label={translator.translateText(VERDICT_QUESTION)}
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm"
+              className="flex w-full items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm sm:inline-flex sm:w-auto"
             >
               <button
                 type="button"
                 disabled={isVerdictLocked}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600 sm:flex-none sm:px-3"
                 onClick={() => {
                   submitVerdict("Confirmed").catch(() => {
                     // handled inside submitVerdict
@@ -1479,7 +1483,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 disabled={isVerdictLocked}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600 sm:flex-none sm:px-3"
                 onClick={() => {
                   submitVerdict("Rejected").catch(() => {
                     // handled inside submitVerdict
@@ -1630,11 +1634,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           {/*
             Folded, the answer comes first: the AI-written TL;DR, set larger,
             or the report's own Summary when there is none. Plain text, never
-            markdown, like the event header's.
+            markdown, like the event header's, in its own reading direction
+            (dir="auto"): the AI's words are in whatever language it wrote.
           */}
           {isFoldedToSummary && reportSummary ? (
             <p
               data-testid="investigation-report-summary"
+              dir="auto"
               className={
                 analysisTldr
                   ? "break-words text-base font-semibold leading-7 text-gray-900"

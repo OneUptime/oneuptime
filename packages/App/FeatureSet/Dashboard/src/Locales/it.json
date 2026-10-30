@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Ciò che i suoi tag e le scansioni non sempre possono sapere. Ognuno cambia ciò che trovano i suoi controlli.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Se vengono letti campioni del suo contenuto per trovare dati sensibili, e cosa saltano le scansioni.",
   "{{confidence}} confidence": "Confidenza: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "Approvare esegue esattamente ciò che è mostrato, a tuo nome."
 }

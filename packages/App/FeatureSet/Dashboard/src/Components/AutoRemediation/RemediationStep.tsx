@@ -77,6 +77,9 @@ import useAiLaneSwitchStates, {
   AiLaneSwitchRead,
 } from "../AI/useAiLaneSwitchStates";
 import RemediationCodeFix from "./RemediationCodeFix";
+import RemediationFixFact, {
+  RemediationFixFactVisual,
+} from "./RemediationFixFact";
 import {
   REMEDIATION_STEP_NOT_TRIED,
   REMEDIATION_STEP_STATUS_LABEL,
@@ -127,6 +130,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -171,41 +175,36 @@ export interface RemediationStepCodeFix {
   investigationRunId: string | null;
 }
 
-interface StatusVisual {
-  label: string;
-  badge: string;
-  dot: string;
-}
-
-const STATUS_VISUAL: Record<AutoRemediationSuggestionStatus, StatusVisual> = {
+/*
+ * Where a fix stands, as the fact beside its title says it
+ * (RemediationFixFact): a dot and its words, not a pill.
+ */
+const STATUS_VISUAL: Record<
+  AutoRemediationSuggestionStatus,
+  RemediationFixFactVisual
+> = {
   [AutoRemediationSuggestionStatus.Planning]: {
     label: "AI is picking a runbook…",
-    badge: "bg-blue-50 text-blue-700 ring-blue-200",
     dot: "bg-blue-500",
   },
   [AutoRemediationSuggestionStatus.Suggested]: {
     label: "Waiting for approval",
-    badge: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
   },
   [AutoRemediationSuggestionStatus.Approved]: {
     label: "Approved & started",
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
   },
   [AutoRemediationSuggestionStatus.AutoExecuted]: {
     label: "Auto-executed",
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
   },
   [AutoRemediationSuggestionStatus.Dismissed]: {
     label: "Dismissed",
-    badge: "bg-gray-100 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
   },
   [AutoRemediationSuggestionStatus.NoneApplicable]: {
     label: "No runbook applies",
-    badge: "bg-gray-100 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
   },
 };
@@ -215,13 +214,12 @@ const STATUS_VISUAL: Record<AutoRemediationSuggestionStatus, StatusVisual> = {
  * SSH command, composed before runbook credentials were removed. "Waiting
  * for approval" would wait for what nobody can give.
  */
-const UNAPPROVABLE_PLAN_VISUAL: StatusVisual = {
+const UNAPPROVABLE_PLAN_VISUAL: RemediationFixFactVisual = {
   label: translationKey("Can't be approved"),
-  badge: "bg-gray-100 text-gray-700 ring-gray-200",
   dot: "bg-gray-400",
 };
 
-function StatusPill({
+function StatusFact({
   status,
   isCommandPlan,
   isUnapprovable,
@@ -230,74 +228,57 @@ function StatusPill({
   isCommandPlan?: boolean | undefined;
   isUnapprovable?: boolean | undefined;
 }): ReactElement {
-  const translator: Translator = useTranslator();
-  const v: StatusVisual = isUnapprovable
+  const visual: RemediationFixFactVisual = isUnapprovable
     ? UNAPPROVABLE_PLAN_VISUAL
     : STATUS_VISUAL[status] ||
       STATUS_VISUAL[AutoRemediationSuggestionStatus.Planning]!;
   // A command plan is composed, not picked from runbooks.
-  const label: string = translator.translateText(
+  const label: string =
     isCommandPlan && status === AutoRemediationSuggestionStatus.Planning
-      ? "AI is composing a fix…"
+      ? translationKey("AI is composing a fix…")
       : isCommandPlan &&
           status === AutoRemediationSuggestionStatus.NoneApplicable
-        ? "No safe fix found"
-        : v.label,
-  ) as string;
+        ? translationKey("No safe fix found")
+        : visual.label;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
-    >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {label}
-    </span>
+    <RemediationFixFact
+      visual={visual}
+      label={label}
+      testId="remediation-fix-status"
+    />
   );
-}
-
-interface TierVisual {
-  label: string;
-  badge: string;
-  dot: string;
 }
 
 /*
  * The kubectl policy tier, in the reader's words: is this a look, a safe
  * change, or something that needed a human to say yes.
  */
-const TIER_VISUAL: Record<KubectlCommandTier, TierVisual> = {
+const TIER_VISUAL: Record<KubectlCommandTier, RemediationFixFactVisual> = {
   [KubectlCommandTier.Read]: {
     label: "read-only",
-    badge: "bg-sky-50 text-sky-700 ring-sky-200",
     dot: "bg-sky-500",
   },
   [KubectlCommandTier.SafeWrite]: {
     label: "safe change",
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
   },
   [KubectlCommandTier.RiskyWrite]: {
     label: "riskier change",
-    badge: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
   },
   [KubectlCommandTier.Denied]: {
     label: "denied",
-    badge: "bg-rose-50 text-rose-700 ring-rose-200",
     dot: "bg-rose-500",
+    isAlarming: true,
   },
 };
 
-function KubectlTierPill({ tier }: { tier: KubectlCommandTier }): ReactElement {
-  const translator: Translator = useTranslator();
-  const v: TierVisual =
-    TIER_VISUAL[tier] || TIER_VISUAL[KubectlCommandTier.RiskyWrite]!;
+function KubectlTierFact({ tier }: { tier: KubectlCommandTier }): ReactElement {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
-    >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {translator.translateText(v.label)}
-    </span>
+    <RemediationFixFact
+      visual={TIER_VISUAL[tier] || TIER_VISUAL[KubectlCommandTier.RiskyWrite]!}
+      testId="remediation-command-tier"
+    />
   );
 }
 
@@ -324,13 +305,13 @@ export function getResourceCommandTierLabel(tier: ResourceCommandTier): string {
   ).label;
 }
 
-function ResourceCommandTierPill({
+function ResourceCommandTierFact({
   tier,
 }: {
   tier: ResourceCommandTier;
 }): ReactElement {
   return (
-    <KubectlTierPill
+    <KubectlTierFact
       tier={
         RESOURCE_TIER_TO_KUBECTL_TIER[tier] || KubectlCommandTier.RiskyWrite
       }
@@ -396,25 +377,63 @@ export function getCommandStepLabel(
 }
 
 /*
- * The card's description: what an AI fix on this signal can be. Commands
- * run through a resource's AI agent (a Docker host, a database server, a
- * host, ...) are named only when the card shows such a fix, so every other
- * card — kubectl, Runner and runbook fixes — reads exactly as before.
+ * The program chip a command row draws beside where it runs, or null when
+ * the command shown under it already starts with that program: "kubectl"
+ * over "kubectl rollout restart ..." said the same word twice in one row.
+ * A Bash or SSH step keeps its chip - its command does not say what runs it.
  */
-export const REMEDIATION_CARD_DESCRIPTION: string = translationKey(
-  "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.",
+export function getCommandProgramChip(
+  command: Pick<AiRemediationCommand, "stepType" | "command">,
+): string | null {
+  const program: string = getCommandStepLabel(command);
+  const firstWord: string =
+    (command.command || "").trim().split(/\s+/)[0] || "";
+
+  return firstWord === program ? null : program;
+}
+
+/*
+ * Said over the fixes while one of them waits for approval: what pressing
+ * Approve & Run does. It was the Remediation card's description, which also
+ * listed every kind of fix there is ("kubectl on a cluster, commands on a
+ * Runner, or a runbook ... for this signal"); inside the step each fix
+ * says what it is, so only the part that matters before the press is left,
+ * and only while there is something to press.
+ */
+export const REMEDIATION_APPROVAL_NOTE: string = translationKey(
+  "Approving runs exactly what is shown, under your name.",
 );
 
-export const REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES: string =
-  translationKey(
-    "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands through a resource's AI agent, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.",
-  );
+/*
+ * Whether a fix waits for the reader's approval - one Approve & Run can
+ * run: waiting for approval, and not a plan that can no longer be approved
+ * (an SSH command from before runbook credentials were removed).
+ */
+export function isRemediationApprovalNoteShown(
+  suggestions: Array<
+    Pick<AutoRemediationSuggestion, "status" | "suggestionType" | "commandPlan">
+  >,
+): boolean {
+  return suggestions.some(
+    (
+      suggestion: Pick<
+        AutoRemediationSuggestion,
+        "status" | "suggestionType" | "commandPlan"
+      >,
+    ): boolean => {
+      if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
+        return false;
+      }
 
-// Said when a fix on the card goes through the project's external MCP servers.
-export const REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES: string =
-  translationKey(
-    "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.",
+      const plan: AiRemediationCommandPlan | null =
+        suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+          ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null)
+          : null;
+
+      return !hasRemovedSshCommand(plan);
+    },
   );
+}
 
 /*
  * Whether a fix through MCP servers is still being made: a change sent and
@@ -450,109 +469,42 @@ export function isMcpFixInProgress(
   );
 }
 
-export function getRemediationCardDescription(
-  suggestions: Array<
-    Pick<
-      AutoRemediationSuggestion,
-      "resourceId" | "suggestionType" | "commandPlan"
-    >
-  >,
-): string {
-  const hasMcpFix: boolean = suggestions.some(
-    (
-      suggestion: Pick<AutoRemediationSuggestion, "suggestionType">,
-    ): boolean => {
-      return (
-        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
-      );
-    },
-  );
-
-  if (hasMcpFix) {
-    return REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES;
-  }
-
-  const hasResourceFix: boolean = suggestions.some(
-    (
-      suggestion: Pick<
-        AutoRemediationSuggestion,
-        "resourceId" | "suggestionType" | "commandPlan"
-      >,
-    ): boolean => {
-      if (suggestion.resourceId) {
-        return true;
-      }
-
-      if (
-        suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
-      ) {
-        return false;
-      }
-
-      const plan: AiRemediationCommandPlan | null =
-        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null);
-
-      return Boolean(
-        plan?.commands.some((command: AiRemediationCommand): boolean => {
-          return command.stepType === RunbookStepType.ResourceCommand;
-        }),
-      );
-    },
-  );
-
-  return hasResourceFix
-    ? REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES
-    : REMEDIATION_CARD_DESCRIPTION;
-}
-
-interface VerificationVisual {
-  label: string;
-  badge: string;
-  dot: string;
-}
-
 const VERIFICATION_VISUAL: Record<
   AutoRemediationVerificationStatus,
-  VerificationVisual
+  RemediationFixFactVisual
 > = {
   [AutoRemediationVerificationStatus.Pending]: {
     label: "Verifying recovery\u2026",
-    badge: "bg-blue-50 text-blue-700 ring-blue-200",
     dot: "bg-blue-500",
   },
   [AutoRemediationVerificationStatus.Verified]: {
     label: "Verified fixed",
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
   },
   [AutoRemediationVerificationStatus.Failed]: {
     label: "Verification failed",
-    badge: "bg-rose-50 text-rose-700 ring-rose-200",
     dot: "bg-rose-500",
+    isAlarming: true,
   },
   [AutoRemediationVerificationStatus.Skipped]: {
     label: "Verification skipped",
-    badge: "bg-gray-100 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
   },
 };
 
-function VerificationPill({
+function VerificationFact({
   status,
 }: {
   status: AutoRemediationVerificationStatus;
 }): ReactElement {
-  const translator: Translator = useTranslator();
-  const v: VerificationVisual =
-    VERIFICATION_VISUAL[status] ||
-    VERIFICATION_VISUAL[AutoRemediationVerificationStatus.Pending]!;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
-    >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {translator.translateText(v.label)}
-    </span>
+    <RemediationFixFact
+      visual={
+        VERIFICATION_VISUAL[status] ||
+        VERIFICATION_VISUAL[AutoRemediationVerificationStatus.Pending]!
+      }
+      testId="remediation-fix-verification"
+    />
   );
 }
 
@@ -627,26 +579,20 @@ export function getCommandApprovalPillKind(
   }
 }
 
-interface ApprovalVisual {
-  label: string;
-  badge: string;
-  dot: string;
-}
-
-const APPROVAL_VISUAL: Record<CommandApprovalPillKind, ApprovalVisual> = {
+const APPROVAL_VISUAL: Record<
+  CommandApprovalPillKind,
+  RemediationFixFactVisual
+> = {
   [CommandApprovalPillKind.RanWithoutApproval]: {
     label: "auto-approved",
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
   },
   [CommandApprovalPillKind.NeedsApproval]: {
     label: "needs approval",
-    badge: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
   },
   [CommandApprovalPillKind.NoLongerRuns]: {
     label: "no longer runs",
-    badge: "bg-gray-100 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
   },
 };
@@ -672,78 +618,64 @@ export function hasRemovedSshCommand(
   );
 }
 
-function CommandApprovalPill({
+function CommandApprovalFact({
   kind,
 }: {
   kind: CommandApprovalPillKind;
 }): ReactElement {
-  const translator: Translator = useTranslator();
-  const v: ApprovalVisual =
-    APPROVAL_VISUAL[kind] ||
-    APPROVAL_VISUAL[CommandApprovalPillKind.NeedsApproval]!;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
-    >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {translator.translateText(v.label)}
-    </span>
+    <RemediationFixFact
+      visual={
+        APPROVAL_VISUAL[kind] ||
+        APPROVAL_VISUAL[CommandApprovalPillKind.NeedsApproval]!
+      }
+      testId="remediation-command-approval"
+    />
   );
-}
-
-interface CommandExecutionVisual {
-  label: string;
-  badge: string;
-  dot: string;
 }
 
 const COMMAND_EXECUTION_VISUAL: Record<
   AiRemediationCommandExecutionStatus,
-  CommandExecutionVisual
+  RemediationFixFactVisual
 > = {
   [AiRemediationCommandExecutionStatus.Pending]: {
     label: "Pending",
-    badge: "bg-gray-100 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
   },
   [AiRemediationCommandExecutionStatus.Running]: {
     label: "Running…",
-    badge: "bg-blue-50 text-blue-700 ring-blue-200",
     dot: "bg-blue-500",
   },
   [AiRemediationCommandExecutionStatus.Succeeded]: {
     label: "Succeeded",
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
   },
   [AiRemediationCommandExecutionStatus.Failed]: {
     label: "Failed",
-    badge: "bg-rose-50 text-rose-700 ring-rose-200",
     dot: "bg-rose-500",
+    isAlarming: true,
   },
   [AiRemediationCommandExecutionStatus.Skipped]: {
     label: "Skipped",
-    badge: "bg-gray-100 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
   },
 };
 
-function CommandExecutionPill({
+function CommandExecutionFact({
   status,
+  testId,
 }: {
   status: AiRemediationCommandExecutionStatus;
+  testId?: string | undefined;
 }): ReactElement {
-  const translator: Translator = useTranslator();
-  const v: CommandExecutionVisual =
-    COMMAND_EXECUTION_VISUAL[status] ||
-    COMMAND_EXECUTION_VISUAL[AiRemediationCommandExecutionStatus.Pending]!;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
-    >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {translator.translateText(v.label)}
-    </span>
+    <RemediationFixFact
+      visual={
+        COMMAND_EXECUTION_VISUAL[status] ||
+        COMMAND_EXECUTION_VISUAL[AiRemediationCommandExecutionStatus.Pending]!
+      }
+      testId={testId || "remediation-command-execution"}
+    />
   );
 }
 
@@ -798,7 +730,8 @@ function CommandExecutionDetails(props: {
         <div className="mt-1">
           <button
             type="button"
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+            aria-expanded={props.isOutputExpanded}
+            className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onClick={props.onToggleOutput}
           >
             {translator.translateText(
@@ -806,7 +739,7 @@ function CommandExecutionDetails(props: {
             )}
           </button>
           {props.isOutputExpanded ? (
-            <pre className="mt-1 max-h-64 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
+            <pre className="mt-1 max-h-64 overflow-auto rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800">
               {props.execution.output}
             </pre>
           ) : (
@@ -1046,6 +979,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   // Try again: in flight, and what the server said when it refused.
   const [isTryingAgain, setIsTryingAgain] = useState<boolean>(false);
   const [tryAgainError, setTryAgainError] = useState<string>("");
+  /*
+   * How many times Try again has had its answer, and where the keyboard's
+   * place goes then: Try again itself while it is still offered, else the
+   * step's title (useEffect below).
+   */
+  const [tryAgainAnswerCount, setTryAgainAnswerCount] = useState<number>(0);
+  const tryAgainButtonId: string = useId();
+  const stepHeadingRef: React.RefObject<HTMLHeadingElement | null> =
+    useRef<HTMLHeadingElement | null>(null);
   // The fix in the code the investigation recommends, once read.
   const [codeFixSuggestion, setCodeFixSuggestion] =
     useState<InvestigationCodeFixSuggestion | null>(null);
@@ -1504,10 +1446,44 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       if (currentSubjectIdRef.current === requestedSubjectId) {
         setTryAgainError(refusal);
         setIsTryingAgain(false);
+        setTryAgainAnswerCount((count: number): number => {
+          return count + 1;
+        });
       }
       isTryAgainInFlightRef.current = false;
     }
   };
+
+  /*
+   * Once Try again has its answer, the keyboard stays on the step. The
+   * button is locked while it works, which takes the focus off it, and a
+   * new decision that started a fix takes the button away altogether: the
+   * focus fell to the top of the page, and a screen reader said nothing of
+   * what changed. It goes back to Try again while it is offered, else to
+   * the step's title, so the new lines are read from there. A reader who
+   * has moved on meanwhile keeps their place.
+   */
+  useEffect(() => {
+    if (tryAgainAnswerCount === 0) {
+      return;
+    }
+
+    const active: Element | null = document.activeElement;
+
+    if (active && active !== document.body) {
+      return;
+    }
+
+    const button: HTMLElement | null =
+      document.getElementById(tryAgainButtonId);
+
+    if (button) {
+      button.focus();
+      return;
+    }
+
+    stepHeadingRef.current?.focus();
+  }, [tryAgainAnswerCount, tryAgainButtonId]);
 
   /*
    * The project's switches as they are now: a decision that found fixing,
@@ -1584,7 +1560,34 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     onFoldStateChangeRef.current?.(foldState);
   });
 
-  // One fix, flat: its title and pills, why, its commands, and its actions.
+  /*
+   * Why an approve, a dry run or a dismiss was refused, headed by what
+   * really happened to the fix (getActionErrorTitle): under the buttons of
+   * the fix that was pressed, where the reader is looking - a long fix on a
+   * phone put the step's own top out of sight - or over the step when that
+   * fix is gone from it.
+   */
+  const renderActionError: (
+    statusAfterReload: AutoRemediationSuggestionStatus | undefined,
+  ) => ReactElement = (
+    statusAfterReload: AutoRemediationSuggestionStatus | undefined,
+  ): ReactElement => {
+    return (
+      <InvestigationNotice
+        role="alert"
+        testId="remediation-action-error"
+        indicator={noticeFailedIcon}
+        title={getActionErrorTitle(failedAction, statusAfterReload)}
+        onDismiss={() => {
+          setActionError("");
+        }}
+      >
+        {translator.translateText(actionError)}
+      </InvestigationNotice>
+    );
+  };
+
+  // One fix, flat: its title and where it stands, why, its commands, and its actions.
   const renderSuggestion: (
     suggestion: AutoRemediationSuggestion,
   ) => ReactElement = (suggestion: AutoRemediationSuggestion): ReactElement => {
@@ -1671,14 +1674,36 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         (translator.translateText("AI remediation") as string);
     }
 
+    // What can be done with the fix now.
+    const canApprove: boolean =
+      status === AutoRemediationSuggestionStatus.Suggested &&
+      !isUnapprovablePlan;
+    const canDismiss: boolean =
+      status === AutoRemediationSuggestionStatus.Suggested ||
+      status === AutoRemediationSuggestionStatus.Planning;
+    const canViewExecution: boolean = Boolean(
+      !isCommandPlan &&
+        (status === AutoRemediationSuggestionStatus.Approved ||
+          status === AutoRemediationSuggestionStatus.AutoExecuted) &&
+        suggestion.runbookId &&
+        suggestion.runbookExecutionId,
+    );
+    const hasActions: boolean =
+      canApprove || Boolean(dryRunTitle) || canDismiss || canViewExecution;
+
     return (
       <div
         key={suggestionId}
         data-testid="remediation-fix"
         data-status={status}
-        className="py-5 last:pb-0"
+        className="py-5 first:pt-0 last:pb-0"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {/*
+          The fix's name and where it came from, and where it stands beside
+          them: at the end of the name's line while both fit, under the name
+          on a narrow card, where it starts like the lines it heads.
+        */}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <div className="flex min-w-0 flex-col">
             <span className="break-words text-sm font-medium text-gray-900">
               {title}
@@ -1687,14 +1712,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               {sourceLabel}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusPill
+          <div
+            data-testid="remediation-fix-facts"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:pt-0.5"
+          >
+            <StatusFact
               status={status}
               isCommandPlan={isCommandPlan || isMcpFix}
               isUnapprovable={isUnapprovablePlan}
             />
             {suggestion.verificationStatus ? (
-              <VerificationPill
+              <VerificationFact
                 status={
                   suggestion.verificationStatus as AutoRemediationVerificationStatus
                 }
@@ -1761,6 +1789,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                     commandPillKind === CommandApprovalPillKind.NeedsApproval
                       ? null
                       : commandPillKind;
+                  const programChip: string | null =
+                    getCommandProgramChip(command);
 
                   return (
                     <li
@@ -1768,34 +1798,48 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                       data-testid="remediation-command"
                       className="border-l-2 border-gray-200 pl-3"
                     >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-medium text-gray-500">
-                          {command.sequence}.
-                        </span>
-                        <span className="break-words text-xs font-medium text-gray-900">
-                          {getCommandTargetLabel(command, translator)}
-                        </span>
-                        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-                          {getCommandStepLabel(command)}
+                      {/*
+                        Where it runs and the program it runs, then what
+                        the policy says of it and how it went: words with a
+                        dot, which wrap as words do on a phone.
+                      */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-xs font-medium text-gray-500">
+                            {command.sequence}.
+                          </span>
+                          <span className="break-words text-xs font-medium text-gray-900">
+                            {getCommandTargetLabel(command, translator)}
+                          </span>
+                          {programChip ? (
+                            <code
+                              data-testid="remediation-command-program"
+                              className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700"
+                            >
+                              {programChip}
+                            </code>
+                          ) : (
+                            <></>
+                          )}
                         </span>
                         {command.kubectlTier ? (
-                          <KubectlTierPill tier={command.kubectlTier} />
+                          <KubectlTierFact tier={command.kubectlTier} />
                         ) : command.stepType ===
                             RunbookStepType.ResourceCommand &&
                           command.resourceCommandTier ? (
-                          <ResourceCommandTierPill
+                          <ResourceCommandTierFact
                             tier={command.resourceCommandTier}
                           />
                         ) : (
                           <></>
                         )}
                         {approvalPillKind ? (
-                          <CommandApprovalPill kind={approvalPillKind} />
+                          <CommandApprovalFact kind={approvalPillKind} />
                         ) : (
                           <></>
                         )}
                         {command.execution ? (
-                          <CommandExecutionPill
+                          <CommandExecutionFact
                             status={command.execution.status}
                           />
                         ) : (
@@ -1861,12 +1905,13 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                           className="mt-2 border-l-2 border-gray-200 pl-2"
                           data-testid="remediation-rollback-outcome"
                         >
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span className="text-xs font-medium text-gray-700">
                               {translator.translateText("Rollback result")}
                             </span>
-                            <CommandExecutionPill
+                            <CommandExecutionFact
                               status={command.rollbackExecution.status}
+                              testId="remediation-rollback-execution"
                             />
                           </div>
                           {command.rollbackExecution.status ===
@@ -1957,93 +2002,106 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
-          {status === AutoRemediationSuggestionStatus.Suggested &&
-          !isUnapprovablePlan ? (
-            <Button
-              title="Approve & Run"
-              icon={IconProp.Check}
-              buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-              buttonSize={ButtonSize.Small}
-              disabled={isBusy}
-              isLoading={isBusy && busyAction === "approve"}
-              dataTestId="remediation-approve-button"
-              onClick={() => {
-                performAction(suggestion, "approve").catch(() => {
-                  // handled inside performAction
-                });
-              }}
-            />
-          ) : (
-            <></>
-          )}
+        {/*
+          What the reader can do with the fix, each button as wide as its
+          words: a Button fills the row below md, which made Approve & Run a
+          bar of its own over the others on a phone. A refused press says
+          why right under the buttons that were pressed.
+        */}
+        {hasActions ? (
+          <div
+            data-testid="remediation-fix-actions"
+            className="mt-3 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0"
+          >
+            {canApprove ? (
+              <Button
+                title="Approve & Run"
+                icon={IconProp.Check}
+                buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                buttonSize={ButtonSize.Small}
+                disabled={isBusy}
+                isLoading={isBusy && busyAction === "approve"}
+                dataTestId="remediation-approve-button"
+                onClick={() => {
+                  performAction(suggestion, "approve").catch(() => {
+                    // handled inside performAction
+                  });
+                }}
+              />
+            ) : (
+              <></>
+            )}
 
-          {dryRunTitle ? (
-            <Button
-              title={dryRunTitle}
-              icon={IconProp.Search}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              buttonSize={ButtonSize.Small}
-              disabled={
-                isBusy ||
-                isCloudDryRunInFlight(plan, OneUptimeDate.getCurrentDate())
-              }
-              isLoading={isBusy && busyAction === "dry-run"}
-              dataTestId="remediation-dry-run-button"
-              onClick={() => {
-                performAction(suggestion, "dry-run").catch(() => {
-                  // handled inside performAction
-                });
-              }}
-            />
-          ) : (
-            <></>
-          )}
+            {dryRunTitle ? (
+              <Button
+                title={dryRunTitle}
+                icon={IconProp.Search}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                disabled={
+                  isBusy ||
+                  isCloudDryRunInFlight(plan, OneUptimeDate.getCurrentDate())
+                }
+                isLoading={isBusy && busyAction === "dry-run"}
+                dataTestId="remediation-dry-run-button"
+                onClick={() => {
+                  performAction(suggestion, "dry-run").catch(() => {
+                    // handled inside performAction
+                  });
+                }}
+              />
+            ) : (
+              <></>
+            )}
 
-          {status === AutoRemediationSuggestionStatus.Suggested ||
-          status === AutoRemediationSuggestionStatus.Planning ? (
-            <Button
-              title="Dismiss"
-              icon={IconProp.Close}
-              buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-              buttonSize={ButtonSize.Small}
-              disabled={isBusy}
-              onClick={() => {
-                performAction(suggestion, "dismiss").catch(() => {
-                  // handled inside performAction
-                });
-              }}
-            />
-          ) : (
-            <></>
-          )}
+            {canDismiss ? (
+              <Button
+                title="Dismiss"
+                icon={IconProp.Close}
+                buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                buttonSize={ButtonSize.Small}
+                disabled={isBusy}
+                onClick={() => {
+                  performAction(suggestion, "dismiss").catch(() => {
+                    // handled inside performAction
+                  });
+                }}
+              />
+            ) : (
+              <></>
+            )}
 
-          {!isCommandPlan &&
-          (status === AutoRemediationSuggestionStatus.Approved ||
-            status === AutoRemediationSuggestionStatus.AutoExecuted) &&
-          suggestion.runbookId &&
-          suggestion.runbookExecutionId ? (
-            <Button
-              title="View Execution"
-              icon={IconProp.List}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              buttonSize={ButtonSize.Small}
-              onClick={() => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route,
-                    {
-                      modelId: suggestion.runbookId!,
-                      subModelId: suggestion.runbookExecutionId!.toString(),
-                    },
-                  ),
-                );
-              }}
-            />
-          ) : (
-            <></>
-          )}
-        </div>
+            {canViewExecution ? (
+              <Button
+                title="View Execution"
+                icon={IconProp.List}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route,
+                      {
+                        modelId: suggestion.runbookId!,
+                        subModelId: suggestion.runbookExecutionId!.toString(),
+                      },
+                    ),
+                  );
+                }}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {actionError && failedSuggestionId === suggestionId ? (
+          <div className="mt-3">{renderActionError(status)}</div>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -2062,6 +2120,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
   const isLoadedForSubject: boolean =
     isLoaded && loadedSubjectId === subjectIdString;
+  // A refusal shows under the fix that was pressed while it is on the step.
+  const isActionErrorOnItsFix: boolean = suggestions.some(
+    (suggestion: AutoRemediationSuggestion): boolean => {
+      return (
+        Boolean(failedSuggestionId) &&
+        suggestion.id?.toString() === failedSuggestionId
+      );
+    },
+  );
   const fixes: Array<RemediationFixFacts> = suggestions.map(
     (suggestion: AutoRemediationSuggestion): RemediationFixFacts => {
       return getRemediationFixFacts(suggestion);
@@ -2145,26 +2212,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       statusLabel={REMEDIATION_STEP_STATUS_LABEL}
       isLast={true}
       testId="ai-card-step-remediation"
+      headingRef={stepHeadingRef}
     >
-      {actionError ? (
-        <InvestigationNotice
-          role="alert"
-          testId="remediation-action-error"
-          indicator={noticeFailedIcon}
-          title={getActionErrorTitle(
-            failedAction,
-            suggestions.find(
-              (suggestion: AutoRemediationSuggestion): boolean => {
-                return suggestion.id?.toString() === failedSuggestionId;
-              },
-            )?.status as AutoRemediationSuggestionStatus | undefined,
-          )}
-          onDismiss={() => {
-            setActionError("");
-          }}
-        >
-          {translator.translateText(actionError)}
-        </InvestigationNotice>
+      {actionError && !isActionErrorOnItsFix ? (
+        renderActionError(undefined)
       ) : (
         <></>
       )}
@@ -2198,18 +2249,20 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       {suggestions.length > 0 ? (
         <div data-testid="remediation-fixes">
           {/*
-            What the fixes below can be, and what approving one does: it
-            runs exactly what is shown, under the approver's name.
+            While a fix waits for approval: what approving it does. It runs
+            exactly what is shown, under the approver's name.
           */}
-          <p
-            data-testid="remediation-fixes-description"
-            className="text-xs leading-5 text-gray-500"
-          >
-            {translator.translateText(
-              getRemediationCardDescription(suggestions),
-            )}
-          </p>
-          <div className="mt-1 divide-y divide-gray-200">
+          {isRemediationApprovalNoteShown(suggestions) ? (
+            <p
+              data-testid="remediation-approval-note"
+              className="mb-4 text-xs leading-5 text-gray-500"
+            >
+              {translator.translateText(REMEDIATION_APPROVAL_NOTE)}
+            </p>
+          ) : (
+            <></>
+          )}
+          <div className="divide-y divide-gray-200">
             {suggestions.map(
               (suggestion: AutoRemediationSuggestion): ReactElement => {
                 return renderSuggestion(suggestion);
@@ -2245,6 +2298,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         >
           <div className="flex-none [&>button]:ml-0 [&>button]:md:ml-0">
             <Button
+              id={tryAgainButtonId}
               title={REMEDIATION_TRY_AGAIN_BUTTON}
               icon={IconProp.Refresh}
               buttonStyle={ButtonStyleType.NORMAL}

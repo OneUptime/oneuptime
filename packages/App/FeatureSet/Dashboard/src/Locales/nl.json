@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Wat de tags en scans niet altijd kunnen vertellen. Elk ervan verandert wat de controles vinden.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Of voorbeelden van de inhoud worden gelezen om gevoelige gegevens te vinden, en wat de scans overslaan.",
   "{{confidence}} confidence": "Betrouwbaarheid: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "Goedkeuren voert precies uit wat wordt getoond, op uw naam."
 }

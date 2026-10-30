@@ -50,6 +50,12 @@ export interface ComponentProps {
   // The last step draws no rail under its mark.
   isLast?: boolean | undefined;
   testId: string;
+  /*
+   * Given, the step's title can take the focus (tabIndex -1): the step puts
+   * the keyboard's place there when a control it pressed is gone, such as
+   * Try again once a fix started.
+   */
+  headingRef?: React.RefObject<HTMLHeadingElement | null> | undefined;
   children?: ReactNode | undefined;
 }
 
@@ -121,7 +127,9 @@ const AiCardStep: FunctionComponent<ComponentProps> = (
       <div className="col-start-2 row-start-1 flex min-h-7 min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <h3
           id={headingId}
-          className="text-sm font-semibold leading-7 text-gray-900"
+          ref={props.headingRef}
+          tabIndex={props.headingRef ? -1 : undefined}
+          className="text-sm font-semibold leading-7 text-gray-900 focus:outline-none"
         >
           {translator.translateText(props.title)}
         </h3>

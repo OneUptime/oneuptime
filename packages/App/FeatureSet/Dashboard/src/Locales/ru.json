@@ -38744,5 +38744,6 @@
   "What its tags and scans cannot always tell. Each changes what its checks find.": "То, что не всегда можно определить по тегам и сканированиям. Каждый параметр влияет на результаты проверок.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Читаются ли образцы содержимого для поиска конфиденциальных данных и что пропускают сканирования.",
   "{{confidence}} confidence": "Достоверность: {{confidence}}",
-  "Page Message": "Page Message"
+  "Page Message": "Page Message",
+  "Approving runs exactly what is shown, under your name.": "Подтверждение запускает ровно то, что показано, от вашего имени."
 }
