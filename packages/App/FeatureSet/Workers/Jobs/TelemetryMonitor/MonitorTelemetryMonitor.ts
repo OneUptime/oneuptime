@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import InfrastructureResourceBinding from "Common/Server/Utils/Monitor/InfrastructureResourceBinding";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType, {
   MonitorTypeHelper,
@@ -370,8 +371,17 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     return;
   }
 
+  /*
+   * An infrastructure step is evaluated on its resource's current value: a
+   * renamed cluster or vCenter, or a host whose host name was corrected,
+   * keeps its monitor (InfrastructureResourceBinding).
+   */
   const monitorStep: MonitorStep =
-    monitor.monitorSteps.data.monitorStepsInstanceArray[0]!;
+    await InfrastructureResourceBinding.resolveForEvaluation({
+      projectId: monitor.projectId!,
+      monitorType: monitor.monitorType!,
+      monitorStep: monitor.monitorSteps.data.monitorStepsInstanceArray[0]!,
+    });
 
   /*
    * OneUptime's own downtime is never a resource's silence (issue #2825).

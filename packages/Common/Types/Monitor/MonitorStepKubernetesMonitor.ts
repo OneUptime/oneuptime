@@ -40,6 +40,11 @@ export const DEFAULT_KUBERNETES_WORKLOAD_KIND: string = "deployment";
 
 export default interface MonitorStepKubernetesMonitor {
   clusterIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   resourceScope: KubernetesResourceScope;
   resourceFilters: KubernetesResourceFilters;
   metricViewConfig: MetricsViewConfig;

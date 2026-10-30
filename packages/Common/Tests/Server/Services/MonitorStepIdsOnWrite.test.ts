@@ -35,6 +35,7 @@ import MonitorStatusService from "../../../Server/Services/MonitorStatusService"
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
+import InfrastructureResourceBinding from "../../../Server/Utils/Monitor/InfrastructureResourceBinding";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -488,5 +489,69 @@ describe("MonitorTemplateService gives the ids inside monitorSteps", () => {
     ).monitorSteps;
 
     expect(idsOf(updated)).toEqual(idsOf(created));
+  });
+});
+
+/*
+ * An infrastructure step keeps its resource's id, bound on every write
+ * (InfrastructureResourceBinding, whose own suite pins what binding does).
+ */
+describe("MonitorService binds an infrastructure step to its resource", () => {
+  test("on create and on update, for the monitor's project and type", async () => {
+    const bindSpy: SpyLike = jest
+      .spyOn(InfrastructureResourceBinding, "bindMonitorSteps")
+      .mockResolvedValue(false) as unknown as SpyLike;
+
+    const created: MonitorSteps = await createMonitor(
+      terraformMonitorStepsJSON(),
+    );
+    await updateMonitor({
+      monitorSteps: terraformMonitorStepsJSON(),
+      storedMonitorSteps: created,
+    });
+
+    expect(bindSpy.mock.calls).toHaveLength(2);
+
+    type BindArgs = {
+      projectId: ObjectID;
+      monitorType: MonitorType;
+      monitorSteps: MonitorSteps;
+      storedMonitorSteps?: MonitorSteps | undefined;
+    };
+
+    for (const call of bindSpy.mock.calls) {
+      const args: BindArgs = call[0] as never;
+
+      expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(args.monitorType).toBe(MonitorType.Website);
+      expect(args.monitorSteps).toBeInstanceOf(MonitorSteps);
+    }
+
+    // A create replaces nothing; an update is held to the steps it replaces.
+    expect((bindSpy.mock.calls[0]![0] as BindArgs).storedMonitorSteps).toBe(
+      undefined,
+    );
+    expect(
+      idsOf((bindSpy.mock.calls[1]![0] as BindArgs).storedMonitorSteps!),
+    ).toEqual(idsOf(created));
+  });
+
+  test("a bulk write over monitors of one project and one type binds once", async () => {
+    const bindSpy: SpyLike = jest
+      .spyOn(InfrastructureResourceBinding, "bindMonitorSteps")
+      .mockResolvedValue(false) as unknown as SpyLike;
+
+    await updateMonitor({
+      monitorSteps: terraformMonitorStepsJSON(),
+      storedMonitorSteps: undefined,
+      matchedRows: 2,
+    });
+
+    expect(bindSpy.mock.calls).toHaveLength(1);
+    // Two monitors' steps: none of them is the one the write replaces.
+    expect(
+      (bindSpy.mock.calls[0]![0] as { storedMonitorSteps?: MonitorSteps })
+        .storedMonitorSteps,
+    ).toBeUndefined();
   });
 });

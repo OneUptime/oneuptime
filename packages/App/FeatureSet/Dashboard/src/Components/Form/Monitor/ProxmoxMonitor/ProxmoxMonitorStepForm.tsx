@@ -334,7 +334,10 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Proxmox Cluster"
         placeholder="Select a Proxmox cluster..."
         options={resources.options}
-        value={monitorStepProxmoxMonitor.clusterIdentifier}
+        value={resources.valueOf({
+          value: monitorStepProxmoxMonitor.clusterIdentifier,
+          resourceId: monitorStepProxmoxMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

@@ -309,7 +309,10 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="IoT Fleet"
         placeholder="Select an IoT fleet..."
         options={resources.options}
-        value={monitorStepIoTMonitor.fleetIdentifier}
+        value={resources.valueOf({
+          value: monitorStepIoTMonitor.fleetIdentifier,
+          resourceId: monitorStepIoTMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

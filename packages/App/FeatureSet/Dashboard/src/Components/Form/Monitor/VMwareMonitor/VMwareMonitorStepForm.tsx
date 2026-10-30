@@ -417,7 +417,10 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="vCenter"
         placeholder="Select a vCenter..."
         options={resources.options}
-        value={monitorStepVMwareMonitor.vcenterIdentifier}
+        value={resources.valueOf({
+          value: monitorStepVMwareMonitor.vcenterIdentifier,
+          resourceId: monitorStepVMwareMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
