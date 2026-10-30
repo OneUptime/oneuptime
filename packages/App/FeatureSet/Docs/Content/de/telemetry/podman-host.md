@@ -4,18 +4,18 @@ Der OneUptime-Podman-Agent ist ein Container, den Sie auf einem Podman-Host ausf
 
 :::cards
 - [Agent installieren](#agent-installieren): Zwei Container, mit `podman run` oder Podman Compose.
-- [Was der Agent erfasst](#was-der-agent-erfasst): Metriken, Logs und ein Inventar aller Container.
+- [Was der Agent erfasst](#was-der-agent-erfasst): Die Metriken und Logs jedes Containers.
 - [Container-Logs brauchen k8s-file](#container-logs-brauchen-den-log-treiber-k8s-file): Podman protokolliert nach journald, sofern Sie nicht umstellen.
 - [Fehlerbehebung](#fehlerbehebung): Neustartschleifen, fehlende Metriken, fehlende Logs.
 :::
 
 ## So funktioniert es
 
-Der Agent ist ein OpenTelemetry Collector mit eingebauter OneUptime-Konfiguration. Über den Docker-kompatiblen API-Socket von Podman liest er alle 30 Sekunden die Statistiken jedes Containers und listet alle 5 Minuten jeden Container, jedes Image, jedes Netzwerk und jedes Volume auf. Er verfolgt die Logdateien der Container und sendet alles per OTLP mit dem Ingestion-Schlüssel, den Sie ihm geben, an Ihre OneUptime-URL.
+Der Agent ist ein OpenTelemetry Collector mit eingebauter OneUptime-Konfiguration. Über den Docker-kompatiblen API-Socket von Podman liest er alle 30 Sekunden die Statistiken jedes Containers. Er verfolgt die Logdateien der Container und sendet alles per OTLP mit dem Ingestion-Schlüssel, den Sie ihm geben, an Ihre OneUptime-URL.
 
 ```mermaid title="Zwei Container auf Ihrem Podman-Host"
 flowchart TB
-    containers["Ihre Container"] -->|"Statistiken, Logdateien,<br/>Inventar"| agent["Podman-Agent"]
+    containers["Ihre Container"] -->|"Statistiken und<br/>Logdateien"| agent["Podman-Agent"]
     agent -->|"OTLP über HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"untersucht einen<br/>Vorfall oder Alarm"| ai["Podman-KI-Agent"]
     ai -->|"docker-Befehle,<br/>nur lesend"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Den Host in OneUptime finden
 
-Öffnen Sie **Produkte → Infrastruktur → Podman → Alle Hosts**. Der Host erscheint innerhalb etwa einer Minute unter seinem `PODMAN_HOST_NAME`, mit seinen Containern, Metriken und Logs. Der KI-Agent wird auf der Seite **KI-Agent** des Hosts und unten in seiner **Übersicht** als verbunden angezeigt. Die Seite **Topologie** des Hosts zeichnet seine Compose-Projekte, Container, Images, Netzwerke und Volumes als eine Karte: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
+Öffnen Sie **Produkte → Infrastruktur → Podman → Alle Hosts**. Der Host erscheint innerhalb etwa einer Minute unter seinem `PODMAN_HOST_NAME`, mit seinen Containern, Metriken und Logs. Der KI-Agent wird auf der Seite **KI-Agent** des Hosts und unten in seiner **Übersicht** als verbunden angezeigt. Die Seite **Topologie** des Hosts zeichnet seine Compose-Projekte und Container als eine Karte: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Umgebungsvariablen
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | Ja | Ihre OneUptime-URL, etwa `https://oneuptime.com` oder Ihre selbst gehostete Instanz. Verwenden Sie `http://` und ihren Port, wenn die Instanz nur HTTP spricht. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. |
 | `PODMAN_HOST_NAME` | Nein | Der Name des Hosts in OneUptime. Standard ist `podman-host`; geben Sie daher jedem Host einen eigenen. |
-| `DOCKER_API_VERSION` | Nein | Die Docker-API-Version, die der Agent mit dem Podman-Socket spricht. Standard ist `1.44`. Senken Sie sie, wenn der Socket ein älteres Maximum meldet, oder setzen Sie einen leeren Wert, um sie auszuhandeln (siehe [Fehlerbehebung](#fehlerbehebung)). |
+| `DOCKER_API_VERSION` | Nein | Die Docker-API-Version, die der Agent mit dem Podman-Socket spricht. Standardmäßig leer: Der Agent handelt sie mit dem Socket aus. Setzen Sie sie nur, um eine Version festzulegen (siehe [Fehlerbehebung](#fehlerbehebung)). |
 
 Um einen Wert zu ändern, entfernen Sie den Agent und führen seinen Befehl erneut aus (Podman CLI), oder Sie bearbeiten `docker-compose.yml` und führen `podman compose up -d` aus (Podman Compose).
 
@@ -149,7 +149,6 @@ Um einen Wert zu ändern, entfernen Sie den Agent und führen seinen Befehl erne
 | --- | --- |
 | Container-Metriken | CPU (Nutzung, Prozentsatz, Drosselung), Speicher (Nutzung, Limit, Prozentsatz), Netzwerk- und Block-I/O, Betriebszeit, Neustarts und Prozessanzahl, pro Container, alle 30 Sekunden. |
 | Container-Logs | stdout und stderr jedes Containers, aus der Datei `ctr.log`, die der Log-Treiber `k8s-file` schreibt. |
-| Inventar | Jeder Container in jedem Zustand sowie jedes Image, Netzwerk und Volume, alle 5 Minuten. |
 
 Die Metriken und Logs jedes Containers werden unter einem Dienst abgelegt, der nach dem Container benannt ist. Jede Logzeile erhält einen Schweregrad aus der Stufe, die sie nennt, etwa `[ERROR]`, `level=warn` oder `{"level":"info"}`; eine Zeile ohne Stufe übernimmt die ihres Streams: stderr ist `ERROR`, stdout ist `INFO`. Zeilen, die mit Leerraum oder einer schließenden Klammer beginnen, werden an die vorherige Zeile angehängt, sodass ein Stacktrace als ein Datensatz ankommt. Die eigenen Logs des Agents werden weggelassen.
 
@@ -253,23 +252,19 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-Ein Docker-API-Server, der eine maximale Client-Version erzwingt, lehnt eine neuere ab; der Receiver startet daher nie, und der Collector beendet sich mit ihm. Prüfen Sie die API-Version, die der Podman-Socket meldet:
+Ein Docker-API-Server, der eine maximale Client-Version erzwingt, lehnt eine neuere ab; der Receiver startet daher nie, und der Collector beendet sich mit ihm. Der Agent handelt die Version mit dem Socket aus (ein `HEAD /_ping`, dann das Maximum, das der Socket meldet), sofern `DOCKER_API_VERSION` keine vorgibt, und ein älteres Image des Agents legte `1.44` fest. [Aktualisieren Sie den Agenten](#agent-aktualisieren) und starten Sie ihn ohne `-e DOCKER_API_VERSION` (oder nehmen Sie `DOCKER_API_VERSION` aus Compose heraus).
+
+Um dennoch eine Version festzulegen, verwenden Sie höchstens die API-Version, die der Podman-Socket meldet:
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 ```
 
 Fügen Sie dann `-e DOCKER_API_VERSION=1.41` (oder den ermittelten Wert) zu `podman run` hinzu, oder setzen Sie `DOCKER_API_VERSION` in Compose. Neuere Server bedienen weiterhin ältere API-Versionen, daher bleibt die Einstellung nach einem Upgrade gültig.
-
-Sie möchten die Zahl lieber nicht nachschlagen? Setzen Sie `DOCKER_API_VERSION` auf die leere Zeichenkette. Der Agent handelt die Version dann mit dem Socket aus (ein `HEAD /_ping`, dann das Maximum, das der Socket meldet), statt eine festzulegen:
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Podman-Socket: Zugriff verweigert, oder kein Socket
-Der Agent muss als root laufen, um `/run/podman/podman.sock` zu lesen. Prüfen Sie, ob `--user 0:0` in Ihrem `podman run`-Befehl steht oder `user: "0:0"` in Compose, und ob der Socket aktiv ist: `sudo systemctl enable --now podman.socket`. Rootless Podman hat seinen Socket stattdessen unter `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`): Hängen Sie diesen Pfad anstelle von `/run/podman/podman.sock` ein.
+Der Agent muss als root laufen, um `/run/podman/podman.sock` zu lesen. Prüfen Sie, ob `--user 0:0` in Ihrem `podman run`-Befehl steht oder `user: "0:0"` in Compose, und ob der Socket aktiv ist: `sudo systemctl enable --now podman.socket`. Rootless Podman hat seinen Socket stattdessen unter `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`) und seinen Container-Speicher unter `~/.local/share/containers/storage`: Hängen Sie diese anstelle von `/run/podman/podman.sock` und `/var/lib/containers/storage` ein. Das `install.sh` des Agents erledigt beides, wenn Sie es als dieser Benutzer ausführen, und bricht mit dem auszuführenden Befehl ab, wenn der Socket nicht aktiv ist.
 :::
 
 :::details Der Host wird als getrennt angezeigt

@@ -11,7 +11,7 @@ Un monitor Docker Swarm sorveglia i container dietro i task di servizio di un cl
 
 ## Come funziona
 
-L'agente Docker Swarm di OneUptime viene eseguito su un nodo manager. Il suo collector legge le statistiche dei container dal demone Docker di quel nodo ogni 30 secondi e contrassegna ogni lotto con il nome del cluster, `docker.swarm.cluster.name`. Un piccolo lettore dell'inventario al suo fianco legge i nodi, i servizi e i task del cluster dall'API di Swarm ogni 5 minuti. I primi dati registrano il cluster in OneUptime.
+L'agente Docker Swarm di OneUptime viene eseguito su un nodo manager. Il suo collector legge le statistiche dei container dal demone Docker di quel nodo ogni 30 secondi, contrassegna ogni lotto con il nome del cluster, `docker.swarm.cluster.name`, e le metriche di ogni task con il suo servizio e il suo nodo. Un piccolo lettore dell'inventario al suo fianco legge i nodi, i servizi e i task del cluster dall'API di Swarm ogni 5 minuti. I primi dati registrano il cluster in OneUptime.
 
 Il collector vede solo i container del nodo su cui gira. Per avere metriche da ogni nodo, eseguite il collector su ogni nodo con lo stesso `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,18 +77,18 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. È l'unico attributo di risorsa apposto dall'agente, quindi il monitor non aggiunge filtri su `container.runtime` o `host.name`. |
-| **Nome del servizio** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `docker.swarm.service.name`, per esempio `web`. |
-| **Nome del nodo** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `docker.swarm.node.name`, per esempio `swarm-node-1`. |
+| **Docker Swarm Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. Le metriche di un task portano `container.runtime=docker` come quelle di un host Docker, e l'agente non appone mai `host.name`, quindi il monitor non filtra su nessuno dei due. |
+| **Nome del servizio** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.service.name`, il servizio come lo chiama `docker service ls`, per esempio `web` (`<stack>_web` in uno stack). |
+| **Nome del nodo** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.node.name`, l'hostname del nodo come lo mostra `docker node ls`, per esempio `swarm-node-1`. L'agente su quel nodo lo appone a partire da `DOCKER_SWARM_NODE_NAME`. |
 | **Nome del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.name`. Il container di un task si chiama `<service>.<slot>.<taskid>`, per esempio `web.1.abc123`. |
-| **Immagine del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.image.name`, per esempio `nginx:latest`. |
+| **Immagine del container** | Custom Metric, Avanzato | Facoltativo. Corrisponde a `resource.container.image.name` con o senza il digest che Swarm fissa all'immagine: `nginx:latest` corrisponde anche a `nginx:latest@sha256:…`, un digest che digitate viene ignorato, e un nome senza tag significa `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
 | **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
-> [!WARNING]
-> L'agente distribuito non imposta ancora `docker.swarm.service.name` né `docker.swarm.node.name`, quindi un monitor con **Nome del servizio** o **Nome del nodo** compilato non trova dati. Restringete invece per **Immagine del container**, oppure raggruppate per `resource.container.name`.
+> [!NOTE]
+> **Nome del servizio** e **Nome del nodo** richiedono i file dell'agente dalla versione 0.161.2 in poi: quelli più vecchi non inviano né il servizio né il nodo. [Aggiornate l'agente](/docs/telemetry/docker-swarm#aggiornare-lagent) su ogni nodo su cui gira.
 
 ## Modelli di avviso pronti
 
@@ -139,7 +139,7 @@ Il collector dell'agente usa il receiver OpenTelemetry `docker_stats`, quindi le
 | `container.pids.count` | count | Processi all'interno del container di un task. Un aumento improvviso può indicare una fork bomb o un leak. |
 | `container.uptime` | secondi | Da quanto tempo è in esecuzione il container di un task. Un task ripianificato o riavviato avvia un nuovo container da 0. |
 
-Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` e `resource.docker.swarm.cluster.name`.
+Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (quando l'agente conosce il nome del nodo) e `resource.docker.swarm.cluster.name`.
 
 ## Criteri di monitoraggio
 
@@ -182,7 +182,7 @@ Il collector legge il demone Docker del nodo su cui gira, quindi vede solo i tas
 :::
 
 :::details Un monitor filtrato per servizio o per nodo non trova dati
-**Nome del servizio** e **Nome del nodo** corrispondono a `docker.swarm.service.name` e `docker.swarm.node.name`, che l'agente distribuito non imposta. Svuotateli e restringete per **Immagine del container**, oppure raggruppate per `resource.container.name`.
+**Nome del servizio** e **Nome del nodo** corrispondono a `resource.docker.swarm.service.name` e `resource.docker.swarm.node.name`, che l'agente invia dalla versione 0.161.2 dei suoi file in poi: [aggiornatelo](/docs/telemetry/docker-swarm#aggiornare-lagent). Il nome del nodo viene da `DOCKER_SWARM_NODE_NAME` nel `.env` di ogni nodo, che lo script di installazione scrive; su un nodo configurato in un altro modo, aggiungetelo lì.
 :::
 
 :::details Tutti i task appaiono come un'unica serie

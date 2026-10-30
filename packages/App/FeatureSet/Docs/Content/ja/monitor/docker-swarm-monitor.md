@@ -11,7 +11,7 @@ Docker Swarm モニターは、Swarm クラスターのサービスタスクの�
 
 ## 仕組み
 
-OneUptime の Docker Swarm エージェントはマネージャーノード上で動作します。そのコレクターは 30 秒ごとにノードの Docker デーモンからコンテナの統計を読み取り、各バッチにクラスター名 `docker.swarm.cluster.name` を付けます。隣で動く小さなインベントリポーラーは、5 分ごとに Swarm API からクラスターのノード、サービス、タスクを読み取ります。最初のデータでクラスターが OneUptime に登録されます。
+OneUptime の Docker Swarm エージェントはマネージャーノード上で動作します。そのコレクターは 30 秒ごとにノードの Docker デーモンからコンテナの統計を読み取り、各バッチにクラスター名 `docker.swarm.cluster.name` を、各タスクのメトリクスにそのサービスとノードを付けます。隣で動く小さなインベントリポーラーは、5 分ごとに Swarm API からクラスターのノード、サービス、タスクを読み取ります。最初のデータでクラスターが OneUptime に登録されます。
 
 コレクターは、自身が動作しているノード上のコンテナしか見ません。すべてのノードからメトリクスを得るには、同じ `DOCKER_SWARM_CLUSTER_NAME` で各ノードにコレクターを実行します。
 
@@ -77,18 +77,18 @@ flowchart TB
 
 | 項目 | タブ | 役割 |
 | --- | --- | --- |
-| **Docker Swarm クラスター** | すべて | 必須。すべてのクエリを `resource.docker.swarm.cluster.name` に限定します。エージェントが付けるリソース属性はこれだけなので、モニターは `container.runtime` や `host.name` のフィルターを追加しません。 |
-| **サービス名** | Custom Metric、詳細 | 任意。`docker.swarm.service.name` との完全一致。例：`web`。 |
-| **ノード名** | Custom Metric、詳細 | 任意。`docker.swarm.node.name` との完全一致。例：`swarm-node-1`。 |
+| **Docker Swarm クラスター** | すべて | 必須。すべてのクエリを `resource.docker.swarm.cluster.name` に限定します。タスクのメトリクスは Docker ホストのものと同じく `container.runtime=docker` を持ち、エージェントは `host.name` を付けないため、モニターはどちらでも絞り込みません。 |
+| **サービス名** | Custom Metric、詳細 | 任意。`resource.docker.swarm.service.name` との完全一致で、`docker service ls` が表示するサービス名です。例：`web`（スタック内では `<stack>_web`）。 |
+| **ノード名** | Custom Metric、詳細 | 任意。`resource.docker.swarm.node.name` との完全一致で、`docker node ls` が表示するノードのホスト名です。例：`swarm-node-1`。そのノードのエージェントが `DOCKER_SWARM_NODE_NAME` から付けます。 |
 | **コンテナ名** | Custom Metric、詳細 | 任意。`resource.container.name` との完全一致。タスクのコンテナ名は `<service>.<slot>.<taskid>` で、例は `web.1.abc123` です。 |
-| **コンテナイメージ** | Custom Metric、詳細 | 任意。`resource.container.image.name` との完全一致。例：`nginx:latest`。 |
+| **コンテナイメージ** | Custom Metric、詳細 | 任意。Swarm がイメージに固定するダイジェストの有無にかかわらず `resource.container.image.name` に一致します。`nginx:latest` は `nginx:latest@sha256:…` にも一致し、入力したダイジェストは無視され、タグのない名前は `:latest` を意味します。 |
 | **Docker Swarm メトリクス** | Custom Metric | [カタログ](#収集されるメトリクス) にあるメトリクス 1 つ。 |
 | **集計** | Custom Metric | サンプルの組み合わせ方：**平均**、**最大**、**最小**、**合計**、**カウント**。初期値はメトリクスの通常の集計です。 |
 | **時間範囲** | すべて | クエリが読み取る移動ウィンドウで、**Past 1 Minute** から **Past 365 Days** まで。新しいモニターは **Past 1 Minute** から始まり、テンプレートは独自の値を設定します。 |
 | **メトリクスを選択** | 詳細 | クエリビルダー：**メトリクス**、**集計の基準**、**属性で絞り込み**、**グループ化**、さらにクエリを組み合わせる **メトリクスを追加** と **数式を追加**。 |
 
-> [!WARNING]
-> 同梱のエージェントはまだ `docker.swarm.service.name` と `docker.swarm.node.name` を設定しないため、**サービス名** または **ノード名** を入力したモニターはデータを見つけられません。代わりに **コンテナイメージ** で絞り込むか、`resource.container.name` でグループ化してください。
+> [!NOTE]
+> **サービス名** と **ノード名** には、バージョン 0.161.2 以降のエージェントファイルが必要です。それより古いファイルはサービスもノードも送信しません。エージェントが動作しているすべてのノードで [エージェントをアップグレード](/docs/telemetry/docker-swarm#エージェントのアップグレード) してください。
 
 ## 既製のアラートテンプレート
 
@@ -139,7 +139,7 @@ flowchart TB
 | `container.pids.count` | 個数 | タスクのコンテナ内のプロセス。急増はフォーク爆弾やリークの兆候かもしれません。 |
 | `container.uptime` | 秒 | タスクのコンテナが動作している時間。再スケジュールまたは再起動されたタスクは、0 から新しいコンテナを始めます。 |
 
-各系列は、コンテナの識別情報をリソース属性として持ちます：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name`、`resource.docker.swarm.cluster.name`。
+各系列は、コンテナの識別情報をリソース属性として持ちます：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name`、`resource.docker.swarm.service.name`、`resource.docker.swarm.node.id`、`resource.docker.swarm.node.name`（エージェントがノード名を知っている場合）、`resource.docker.swarm.cluster.name`。
 
 ## 監視条件
 
@@ -182,7 +182,7 @@ flowchart TB
 :::
 
 :::details サービスやノードで絞り込んだモニターがデータを見つけない
-**サービス名** と **ノード名** は `docker.swarm.service.name` と `docker.swarm.node.name` に一致させますが、同梱のエージェントはこれらを設定しません。これらを空にして **コンテナイメージ** で絞り込むか、`resource.container.name` でグループ化してください。
+**サービス名** と **ノード名** は `resource.docker.swarm.service.name` と `resource.docker.swarm.node.name` に一致させます。エージェントはこれらを、そのファイルのバージョン 0.161.2 以降で送信します：[アップグレードしてください](/docs/telemetry/docker-swarm#エージェントのアップグレード)。ノード名は各ノードの `.env` にある `DOCKER_SWARM_NODE_NAME` から取られ、インストールスクリプトがこれを書き込みます。別の方法でセットアップしたノードでは、そこに追加してください。
 :::
 
 :::details すべてのタスクが 1 つの系列として表示される
