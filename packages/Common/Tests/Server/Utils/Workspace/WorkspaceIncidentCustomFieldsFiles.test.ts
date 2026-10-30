@@ -112,7 +112,7 @@ describe("what the form says about them", () => {
         },
       }).toString(),
     ).toBe(
-      "Leave a field empty to clear it. **Signed Contract** holds files: add and download them in OneUptime.",
+      "Leave a field empty to clear it. Files for **Signed Contract** are added and downloaded in OneUptime.",
     );
   });
 
@@ -127,7 +127,7 @@ describe("what the form says about them", () => {
         },
       }).toString(),
     ).toBe(
-      "Leave a field empty to clear it. **Region** is copied from the incident's monitor, so it is not here. **Signed Contract** and **Screenshots** hold files: add and download them in OneUptime. 2 more fields don't fit here: edit them in OneUptime.",
+      "Leave a field empty to clear it. **Region** is copied from the incident's monitor, so it is not here. Files for **Signed Contract** and **Screenshots** are added and downloaded in OneUptime. 2 more fields don't fit here: edit them in OneUptime.",
     );
   });
 

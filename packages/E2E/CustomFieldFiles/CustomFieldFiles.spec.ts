@@ -368,6 +368,22 @@ test.describe("a record's file custom fields: the card", () => {
     await expect(cardFiles(page, FILE_FIELD)).toHaveText("No data entered");
     await expect(cardFiles(page, FILES_FIELD)).toHaveText("No data entered");
     await expect(page.getByTestId("custom-field-file")).toHaveCount(0);
+
+    // As the empty text field beside them says it: not paler, not smaller.
+    const style: (locator: Locator) => Promise<string> = async (
+      locator: Locator,
+    ): Promise<string> => {
+      return locator.evaluate((element: Element): string => {
+        const computed: CSSStyleDeclaration = getComputedStyle(element);
+        return `${computed.color} ${computed.fontSize} ${computed.lineHeight}`;
+      });
+    };
+    const textField: Locator = page.getByTestId("placeholder-text");
+
+    await expect(textField).toHaveText("No data entered");
+    expect(await style(cardFiles(page, FILE_FIELD))).toBe(
+      await style(textField),
+    );
   });
 
   test("long names wrap in their row at 1280 and 390, nothing runs off the screen", async ({
@@ -456,12 +472,19 @@ test.describe("a record's file custom fields: Edit", () => {
     await expect(
       picker(page, FILE_FIELD).locator("xpath=..").getByText("Replace"),
     ).toBeVisible();
-    // Its type by its short name, never its MIME type.
+    /*
+     * Its type by its short name, never its MIME type, and its size as the
+     * card says it - though the File the dialog is handed holds no bytes.
+     */
     await expect(
-      picker(page, FILE_FIELD).locator("xpath=..").getByText("PDF", {
+      picker(page, FILE_FIELD).locator("xpath=..").getByText("PDF • 47 KB", {
         exact: true,
       }),
     ).toBeVisible();
+    // One file, alone under its field's label: no heading over it.
+    await expect(
+      picker(page, FILE_FIELD).locator("xpath=..").getByText("Uploaded files"),
+    ).toHaveCount(0);
 
     // A Multiple files field: its files, and room for more, said in a sentence.
     expect(await listedNames(page, FILES_FIELD)).toEqual([
@@ -469,10 +492,78 @@ test.describe("a record's file custom fields: Edit", () => {
       "gateway-errors.csv",
       "capture-eu-west-1.pcap",
     ]);
+    for (const metadata of ["PNG • 240 KB", "CSV • 18 KB", "PCAP • 2.4 MB"]) {
+      await expect(
+        picker(page, FILES_FIELD)
+          .locator("xpath=..")
+          .getByText(metadata, { exact: true }),
+      ).toBeVisible();
+    }
+    await expect(
+      picker(page, FILES_FIELD).locator("xpath=..").getByText("Uploaded files"),
+    ).toHaveCount(1);
     await expect(picker(page, FILES_FIELD)).toContainText(FILES_HINT);
     await expect(picker(page, FILES_FIELD)).toContainText("Add more files");
 
     await screenshot(page, "dialog-1280");
+  });
+
+  test("a click anywhere on a drop zone opens the file chooser, and a key does too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCard(page, "?data=empty");
+    await openDialog(page);
+
+    // A File field takes a file, a Multiple files field files.
+    await expect(picker(page, FILE_FIELD)).toContainText(
+      "Click to choose a file or drag & drop.",
+    );
+    await expect(picker(page, FILES_FIELD)).toContainText(
+      "Click to choose files or drag & drop.",
+    );
+
+    // The zone's hint, nowhere near the link-coloured words.
+    const byClick: Promise<import("@playwright/test").FileChooser> =
+      page.waitForEvent("filechooser");
+    await picker(page, FILE_FIELD).getByText(FILE_HINT).click();
+    expect((await byClick).isMultiple()).toBe(false);
+
+    // From the keyboard: the zone is where it stops, and Enter opens it.
+    const byKey: Promise<import("@playwright/test").FileChooser> =
+      page.waitForEvent("filechooser");
+    await picker(page, FILES_FIELD).focus();
+    await page.keyboard.press("Enter");
+    expect((await byKey).isMultiple()).toBe(true);
+  });
+
+  test("a Multiple files field holding files asks for more in a smaller zone than an empty one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCard(page, "?data=empty");
+    await openDialog(page);
+
+    const emptyZone: { height: number } | null = await picker(
+      page,
+      FILES_FIELD,
+    ).boundingBox();
+
+    await page.goto(`${CARD_PATH}`);
+    await expect(page.getByText(FILE_FIELD, { exact: true })).toBeVisible();
+    await settle(page);
+    await openDialog(page);
+
+    const holdingZone: { height: number } | null = await picker(
+      page,
+      FILES_FIELD,
+    ).boundingBox();
+
+    // The files are what the reader came for: the zone gives them room.
+    expect(holdingZone!.height).toBeLessThan(emptyZone!.height * 0.75);
+    await expect(picker(page, FILES_FIELD).locator("svg.h-12")).toHaveCount(0);
   });
 
   test("a file added uploads with its progress, and Save keeps it beside the others", async ({
@@ -498,6 +589,12 @@ test.describe("a record's file custom fields: Edit", () => {
       "capture-eu-west-1.pcap",
       "latency-p99.png",
     ]);
+    // Uploaded, it keeps its size, though the form holds it without bytes.
+    await expect(
+      picker(page, FILES_FIELD)
+        .locator("xpath=..")
+        .getByText(`PNG • ${PNG_BYTES.length} B`, { exact: true }),
+    ).toBeVisible();
 
     const uploads: Array<Upload> = (await dashboardFixture(page)).uploads;
     expect(uploads).toEqual([
@@ -673,6 +770,12 @@ test.describe("a record's file custom fields: Edit", () => {
 
     await expect(picker(page, FILES_FIELD)).toContainText(FULL_NOTE);
     await expect(pickerInput(page, FILES_FIELD)).toHaveCount(0);
+    // A note, not a dashed place to drop files.
+    expect(
+      await picker(page, FILES_FIELD).evaluate((element: Element): string => {
+        return getComputedStyle(element).borderTopStyle;
+      }),
+    ).toBe("solid");
     await screenshot(page, "dialog-full-1280");
 
     await picker(page, FILES_FIELD)
@@ -701,6 +804,12 @@ test.describe("a record's file custom fields: Edit", () => {
     await expect(picker(page, FILES_FIELD).locator("xpath=..")).toContainText(
       "This file type is not supported. Please upload a supported file type.",
     );
+    // Said once, in the upload's own row.
+    await expect(
+      dialog.getByText(
+        "This file type is not supported. Please upload a supported file type.",
+      ),
+    ).toHaveCount(1);
     expect(await listedNames(page, FILES_FIELD)).toHaveLength(3);
   });
 
@@ -889,6 +998,25 @@ test.describe("a public form's file questions", () => {
     // Chosen, not uploaded: nothing is sent before Submit.
     await expect(page.getByText("Chosen files").first()).toBeVisible();
     await expect(page.getByText("Uploaded files")).toHaveCount(0);
+    /*
+     * The File question's one file sits alone under its question, its size
+     * in bytes - never "0.1 KB"; the Multiple Files question heads its list.
+     */
+    await expect(
+      formPicker(page, "screenshot")
+        .locator("xpath=..")
+        .getByText("Chosen files"),
+    ).toHaveCount(0);
+    await expect(
+      formPicker(page, "screenshot")
+        .locator("xpath=..")
+        .getByText(`PNG • ${PNG_BYTES.length} B`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      formPicker(page, "evidence")
+        .locator("xpath=..")
+        .getByText("Chosen files"),
+    ).toHaveCount(1);
     expect((await formFixture(page)).requests).toEqual([
       `GET /api/form/public/${FORM_KEY}`,
     ]);

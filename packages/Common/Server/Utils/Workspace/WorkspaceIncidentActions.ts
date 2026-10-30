@@ -1458,15 +1458,18 @@ export default class WorkspaceIncidentActions {
       );
     }
 
+    /*
+     * "Files for Signed Contract are added and downloaded in OneUptime.":
+     * true of a File field and of a Multiple files one alike - the field
+     * holds one file, or several.
+     */
     const fileFieldNames: Array<string> = form.fileFieldNames || [];
 
     if (fileFieldNames.length > 0) {
-      const isOne: boolean = fileFieldNames.length === 1;
-
       parts.push(
-        mdText`${WorkspaceIncidentActions.joinBoldNames(
+        mdText`Files for ${WorkspaceIncidentActions.joinBoldNames(
           fileFieldNames,
-        )} ${isOne ? "holds" : "hold"} files: add and download them in ${ProductBrandingText.getProductName()}.`,
+        )} are added and downloaded in ${ProductBrandingText.getProductName()}.`,
       );
     }
 
