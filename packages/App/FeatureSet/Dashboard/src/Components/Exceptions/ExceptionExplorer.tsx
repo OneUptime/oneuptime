@@ -55,6 +55,7 @@ import ExceptionOccurrenceAttributes from "./ExceptionOccurrenceAttributes";
 import ExceptionLogs from "./ExceptionLogs";
 import ExceptionAIAssistance from "./ExceptionAIAssistance";
 import ExceptionSettings from "./ExceptionSettings";
+import { getExceptionTriageWrite } from "./ExceptionRowActions";
 import {
   buildBreadcrumbEventsFromSpans,
   buildExceptionOccurrenceQuery,
@@ -361,6 +362,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             primaryEntityType: true,
             unhandled: true,
             errorClass: true,
+            regressedAt: true,
+            resolvedInReleaseAfter: true,
             ...(dataPlan.loadTriageHistory
               ? {
                   markedAsResolvedAt: true,
@@ -404,19 +407,17 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         setActionError(undefined);
 
         try {
-          const isResolveChange: boolean =
-            action.id === "resolve" || action.id === "unresolve";
-
           /*
-           * Only the switch is sent: the server records who turned it, and
+           * Only the switch is sent - and, to resolve in the next release,
+           * the release it waits out: the server records who turned it, and
            * when.
            */
           await ModelAPI.updateById<TelemetryException>({
             id: props.telemetryExceptionId,
             modelType: TelemetryException,
-            data: isResolveChange
-              ? { isResolved: action.nextState.isResolved }
-              : { isArchived: action.nextState.isArchived },
+            data: getExceptionTriageWrite(action.id, {
+              lastSeenInRelease: action.release,
+            }),
           });
 
           await loadException();
@@ -522,6 +523,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                   <ExceptionTriageActions
                     isResolved={isResolved}
                     isArchived={isArchived}
+                    lastSeenInRelease={telemetryException.lastSeenInRelease}
                     pendingActionId={pendingActionId}
                     onAction={onTriageAction}
                   />
