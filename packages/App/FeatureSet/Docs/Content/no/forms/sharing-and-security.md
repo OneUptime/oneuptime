@@ -71,6 +71,7 @@ Hver forespørsel passerer disse sjekkene, i denne rekkefølgen:
 6. Hvert svar må være innenfor størrelsesgrensene og passe til spørsmålet — se [Bygg et skjema](/docs/forms/building#størrelsesgrenser).
 7. Det svarene og innstillingene danner, må kunne opprettes: en hendelse trenger en alvorlighetsgrad, en begivenhet en slutt etter starten.
 8. En innsending må passe innenfor skjemaets timekvote — se [Frekvensgrenser](#frekvensgrenser).
+9. Filene må passe innenfor skjemaets timekvote for filer, rett før de lagres.
 
 Et skjemas logo og favikon er en del av skjemaet: de sendes inne i svaret som åpner det, i base64, først når det har bestått de fire første sjekkene, og aldri fra en egen adresse. Ingen kan hente dem uten skjemaet, og ingen fil kan hentes via id-en sin gjennom et skjema; selve filene forblir private. Et skjema viser bare bilder som er lastet opp i dets eget prosjekt: en fil fra et annet prosjekt avvises når skjemaet lagres, og sendes aldri til siden.
 
@@ -109,6 +110,7 @@ En forespørsel avvises når headeren `Sec-Fetch-Site` er til stede og sier noe 
 - **Å åpne et skjema** — per skjema fra én adresse, og per adresse på tvers av alle skjemaer, med plass til at et helt kontor åpner lenken samtidig. Over en av dem viser siden "For mange forespørsler. Prøv igjen senere." Hvis frekvensbegrenseren ikke kan nås, åpnes skjemaer fortsatt.
 - **Å sende inn, per adresse** — per skjema fra én adresse, og per adresse på tvers av alle skjemaer. Over en av dem ser innsenderen "For mange innsendinger fra nettverket ditt. Vent noen minutter, og prøv igjen." Alle bak én adresse — et kontornettverk, en VPN-gateway — deler disse grensene, og hver innsending teller, også en som deretter avvises for et feil svar.
 - **Å sende inn, per skjema** — hvor mange poster ett skjema kan opprette i løpet av en time, fra alle adresser til sammen, så selv innsendinger fra mange adresser samtidig bare kan tilkalle deg et begrenset antall ganger i timen. Bare en innsending som har bestått alle andre sjekker, teller, rett før posten opprettes. Over den ser alle "Dette skjemaet mottar for mange innsendinger akkurat nå. Prøv igjen senere." til vinduet er over. **Tilbakestill lenke** starter den nye lenken med en ny kvote.
+- **Filer, per skjema** — hvor mange megabyte filer ett skjema kan ta imot i løpet av en time, fra alle adresser til sammen. Bare filene fra en innsending som har bestått alle andre kontroller, telles, rett før de lagres. Over grensen avvises en innsending med filer med "Dette skjemaet mottar for mange filer akkurat nå. Prøv igjen senere." til tidsvinduet er over; en innsending uten filer går fortsatt gjennom.
 
 Hver grense svarer `429` med en header `Retry-After`, i sekunder, og siden forteller innsenderen når det kan prøves igjen. Vinduene er faste, ikke glidende. Hver grense per adresse teller også adressene i ett IPv6-/64 sammen, med ti ganger tallet sitt. Hvis frekvensbegrenseren ikke kan nås, avvises innsendinger i stedet for å slippes gjennom uten å telles: API-et svarer `503`, og innsenderen ser "Innsendinger kan ikke tas imot akkurat nå. Prøv igjen om noen minutter."
 
@@ -124,6 +126,8 @@ På en selvdriftet installasjon endrer disse miljøvariablene i OneUptime-appen 
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Innsendinger fra én adresse per vindu, på tvers av alle skjemaer. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | Vinduet for grensen per skjema, i sekunder. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Poster ett skjema kan opprette per vindu, fra alle adresser til sammen. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | Tidsvinduet for filgrensen per skjema, i sekunder. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabyte filer ett skjema kan ta imot per tidsvindu, fra alle adresser til sammen. |
 
 Hver variabel leser også det gamle navnet sitt, med `INCIDENT_FORM_` foran i stedet for `FORM_` — som `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` —, så en installasjon som hadde justert hendelsesskjemaer, beholder grensene sine; det nye navnet vinner når begge er angitt. Verken `config.env` eller Helm-chartets verdier sender dem videre: legg dem selv til i miljøet til containeren `app` — med `app.extraEnv`, eller den felles `extraEnv` for hele chartet, i Helm-chartet, eller i en `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer hvilken adresse grensene per adresse teller.
 

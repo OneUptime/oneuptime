@@ -190,7 +190,7 @@ OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필�
 
 | `source` | 묻는 것 |
 | --- | --- |
-| `Question` | 양식 자체의 질문으로, `type` 에 따라 답합니다: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`. 드롭다운은 `dropdownOptions` 를 한 줄에 하나씩 나열합니다. |
+| `Question` | 양식 자체의 질문으로, `type` 에 따라 답합니다: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File`, `MultipleFiles`. 드롭다운은 `dropdownOptions` 를 한 줄에 하나씩 나열합니다. |
 | `TargetField` | 양식이 만드는 항목의 필드로, `targetField` 로 지정합니다: 인시던트는 `title`, `description`, `incidentSeverityId`, `monitors`, `labels`, `impactStartedAt`, 유지 관리 이벤트는 `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages`, `labels`. 골라서 답하는 필드는 제공하는 레코드를 `allowedOptionIds` 에 나열합니다. |
 | `TargetCustomField` | 인시던트나 이벤트의 사용자 지정 필드 중 하나로, `customFieldId` 로 지정합니다. |
 | `Submitter` | 제출자의 `Name` 또는 `Email` 로, `submitterField` 로 지정합니다. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+파일 질문의 답변은 저장된 그대로의 파일이며, 각각 `fileId`, `name`, `fileType`, `size`를 가집니다. 파일 자체는 제출이 만든 것에 있습니다. 그 파일 사용자 정의 필드 안에 있거나, 비공개 메모에 첨부되어 있습니다.
 
 ### 워크플로
 

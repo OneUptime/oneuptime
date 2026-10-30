@@ -214,16 +214,83 @@ describe("the recipes each telemetry monitor type offers", () => {
     ]);
   });
 
-  test("an Exceptions monitor asks about any exception or too many", () => {
+  test("an Exceptions monitor asks about any exception, too many, a new one, one back, or a spike", () => {
     expect(
       getRecipes(MonitorType.Exceptions).map((recipe: TelemetryRuleRecipe) => {
-        return [recipe.key, recipe.title];
+        return [recipe.key, recipe.title, recipe.measure];
       }),
     ).toEqual([
-      [TelemetryRuleRecipeKey.AnyException, "Any exception"],
-      [TelemetryRuleRecipeKey.ExceptionSpike, "Too many exceptions"],
+      [TelemetryRuleRecipeKey.AnyException, "Any exception", undefined],
+      [TelemetryRuleRecipeKey.ExceptionSpike, "Too many exceptions", undefined],
+      [
+        TelemetryRuleRecipeKey.NewException,
+        "A new exception",
+        CheckOn.NewExceptionCount,
+      ],
+      [
+        TelemetryRuleRecipeKey.RegressedException,
+        "A resolved exception comes back",
+        CheckOn.RegressedExceptionCount,
+      ],
+      [
+        TelemetryRuleRecipeKey.ExceptionRise,
+        "Exceptions spike",
+        CheckOn.ExceptionCountIncreasePercent,
+      ],
     ]);
   });
+
+  /*
+   * A new or a regressed exception is a rule on another measure: the rule
+   * it writes compares that measure, and reads back as the same recipe -
+   * never as Any exception, which has the same condition and number.
+   */
+  test.each([
+    [TelemetryRuleRecipeKey.NewException, CheckOn.NewExceptionCount],
+    [
+      TelemetryRuleRecipeKey.RegressedException,
+      CheckOn.RegressedExceptionCount,
+    ],
+    [
+      TelemetryRuleRecipeKey.ExceptionRise,
+      CheckOn.ExceptionCountIncreasePercent,
+    ],
+  ])(
+    "%s writes criteria on its own measure",
+    (key: TelemetryRuleRecipeKey, measure: CheckOn) => {
+      const recipe: TelemetryRuleRecipe = getRecipes(
+        MonitorType.Exceptions,
+      ).find((candidate: TelemetryRuleRecipe) => {
+        return candidate.key === key;
+      })!;
+      const step: MonitorStep = applyRecipe({
+        monitorStep: MonitorStep.getDefaultMonitorStep({
+          monitorType: MonitorType.Exceptions,
+          monitorName: "Checkout",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+        }),
+        recipe,
+        seeds: { monitorName: "Checkout" },
+        translator: ENGLISH,
+      });
+
+      const filters: Array<{ checkOn: CheckOn }> = (
+        step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+      ).flatMap(
+        (instance: { data?: { filters: Array<{ checkOn: CheckOn }> } }) => {
+          return instance.data?.filters || [];
+        },
+      );
+
+      expect(filters.length).toBeGreaterThan(0);
+      for (const filter of filters) {
+        expect(filter.checkOn).toBe(measure);
+      }
+    },
+  );
 
   test("a Metrics monitor offers no recipe to pick: what is too high depends on the metric", () => {
     expect(getRecipes(MonitorType.Metrics)).toEqual([]);

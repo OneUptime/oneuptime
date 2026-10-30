@@ -228,7 +228,6 @@ const DASHBOARD_LABELS: ReadonlyArray<string> = [
   "Workflow Run",
   "Success",
   "Error",
-  "Log",
 ];
 
 // The Global Variables list's create button: "<verb> <noun>".
@@ -1116,7 +1115,12 @@ describe("the IRC page and the template it points to", () => {
     ]);
   });
 
-  test("builds On Create Incident, then Send Message to IRC, with a Log step on its Error output", () => {
+  /*
+   * Nothing on the IRC step's Error output: a message that is not
+   * delivered fails the run (Types/Workflow/UnhandledStepFailure), and the
+   * step's log line says why - where the template had a Log step.
+   */
+  test("builds On Create Incident, then Send Message to IRC, with nothing on its Error output", () => {
     expect(graph).not.toBeNull();
 
     const nodes: Array<{ componentId: string; metadataId: string }> =
@@ -1131,11 +1135,7 @@ describe("the IRC page and the template it points to", () => {
       nodes.map((node: { metadataId: string }) => {
         return node.metadataId;
       }),
-    ).toEqual([
-      "incident-on-create",
-      ComponentID.IRCSendMessageToChannel,
-      ComponentID.Log,
-    ]);
+    ).toEqual(["incident-on-create", ComponentID.IRCSendMessageToChannel]);
 
     const edges: Array<{ from: string; to: string; port: string }> =
       graph!.edges.map(
@@ -1158,12 +1158,10 @@ describe("the IRC page and the template it points to", () => {
         to: ComponentID.IRCSendMessageToChannel,
         port: "success",
       },
-      {
-        from: ComponentID.IRCSendMessageToChannel,
-        to: ComponentID.Log,
-        port: "error",
-      },
     ]);
+    expect(readIrcPage("en")).toContain(
+      "A message that isn't delivered fails the run, and the run's log says why.",
+    );
   });
 
   test("posts the incident's number, title, severity and state, in two lines", () => {

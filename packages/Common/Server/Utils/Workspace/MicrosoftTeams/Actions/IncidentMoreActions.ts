@@ -932,9 +932,9 @@ export default class MicrosoftTeamsIncidentMoreActions {
 
     if (form.inputs.length === 0) {
       throw new NotAuthorizedException(
-        form.copiedFieldNames.length > 0
-          ? WorkspaceIncidentActions.getOnlyCopiedCustomFieldsMessage()
-          : WorkspaceIncidentActions.getNoCustomFieldsMessage(),
+        WorkspaceIncidentActions.getNothingToEditCustomFieldsMessage({
+          form: form,
+        }),
       );
     }
 

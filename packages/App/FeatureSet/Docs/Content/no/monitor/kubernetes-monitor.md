@@ -153,6 +153,8 @@ Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kate
 
 Maler på metrikker per objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for seg, slik at en klynge med flere usunne poder får én hendelse per pod i stedet for én for hele klyngen.
 
+**High Node CPU Request Commitment** og **High Node Memory Request Commitment** teller bare requests fra pods som ikke er ferdige, slik scheduleren gjør. Klyngen fortsetter å rapportere requests fra en pod som er Succeeded eller Failed, for eksempel fra en ferdig Job, til poden slettes: de telles ikke med.
+
 **Cluster Stopped Reporting** utløses når ingenting kommer fra klyngens agent på ti minutter: agenten ble avinstallert eller krasjer gang på gang, API-nøkkelen dens ble tilbakekalt, den mistet ruten sin til OneUptime, eller klyngens API-server sluttet å svare den. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 
 > [!NOTE]

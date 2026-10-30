@@ -21,6 +21,7 @@ import CodeType from "Common/Types/Code/CodeType";
 import Dictionary from "Common/Types/Dictionary";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import ReplacedCriteriaEdit from "../../../Utils/Form/Monitor/ReplacedCriteriaEdit";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
@@ -886,6 +887,16 @@ return {
       incidentRoleOptions={props.incidentRoleOptions}
       value={monitorStep?.data?.monitorCriteria}
       onChange={(value: MonitorCriteria) => {
+        // An echo of criteria the step form has just replaced (a default alert).
+        if (
+          ReplacedCriteriaEdit.isEditOfReplacedCriteria({
+            current: monitorStep.data?.monitorCriteria,
+            edited: value,
+          })
+        ) {
+          return;
+        }
+
         monitorStep.setMonitorCriteria(value);
         props.onChange?.(MonitorStep.clone(monitorStep));
       }}

@@ -35,6 +35,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
 import LogsQueueService from "./Queue/LogsQueueService";
 import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import OtelIngestBaseService, {
@@ -1699,6 +1700,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       traceId: traceId,
       spanId: spanId,
       sessionId: sessionId,
+      /*
+       * The user the log record names (Common/Utils/Exceptions/
+       * ExceptionUserId): its own attributes, then its resource's, as stored
+       * after the scrub rules and pipelines. Read here because the row's
+       * attribute bag below deliberately keeps none of the log's.
+       */
+      userId: readExceptionUserId([finalAttributes]),
       fingerprint: fingerprint,
       spanName: "",
       release: release,

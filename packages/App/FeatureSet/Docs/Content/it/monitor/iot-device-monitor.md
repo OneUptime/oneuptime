@@ -118,6 +118,8 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 
 Un dispositivo registrato viene anche mantenuto come offline nell'inventario della flotta, mentre uno non registrato viene rimosso dopo 15 minuti di silenzio. Il rilevamento del silenzio richiede la politica per i dati mancanti **Treat As Zero** sul criterio di `iot_device_up`, che hanno i monitor Device Offline creati dal modello. Un monitor Device Offline creato prima che esistesse la registrazione dei dispositivi deve averla impostata a mano, o essere ricreato dal modello.
 
+**Device Offline** giudica ogni dispositivo sulla sua lettura più recente, quindi un dispositivo che ha segnalato di essere giù e poi di nuovo attivo è attivo al controllo successivo. Un monitor Device Offline che resta offline finché la lettura di inattività non ha 30 minuti è stato creato prima che il modello lo facesse: scegli di nuovo il modello in **Su cosa avvisare** per aggiornarlo.
+
 > [!NOTE]
 > Un dispositivo non registrato che diventa silenzioso, senza un Last Will né una segnalazione del gateway, smette solo di inviare dati, e un monitor raggruppato per dispositivo non può individuarlo. Registra i tuoi dispositivi, oppure dai a un dispositivo critico un monitor tutto suo (**Custom Metric**, con il suo **Device ID**) e imposta **Se nessun dato** su **Trigger**. Il rilevamento del silenzio richiede anche che almeno un altro dispositivo della flotta continui a segnalare: una flotta che si spegne del tutto, per esempio durante un guasto del gateway, genera un solo incidente per il monitor, non uno per dispositivo.
 

@@ -52,6 +52,8 @@ Vaya a **Productos → Observabilidad → Excepciones**. La insignia de la pesta
 
 Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo. Una fila marcada como **Regresión** volvió después de resolverse, y una marcada como **Nuevo** se vio por primera vez en las últimas 24 horas.
 
+Cada fila muestra también a cuántos usuarios afectó la excepción en el intervalo elegido y un pequeño gráfico de sus ocurrencias en ese intervalo. Una ocurrencia nombra a su usuario con el atributo `user.id`, `enduser.id` o `enduser.pseudo.id`, en el evento de la excepción, en su span o registro de log, o en su recurso; las ocurrencias que no nombran a ningún usuario no se cuentan.
+
 ### Elegir qué cuenta como problema
 
 **Problemas**, el predeterminado, oculta los errores de usuario y las denegaciones esperadas, para que la lista muestre lo que necesita una corrección. **User errors** muestra solo esos, y **Todos** muestra cada excepción.
@@ -129,7 +131,9 @@ La explicación se guarda en la excepción, así que la siguiente persona que la
 
 Los ID, las direcciones de correo e IP y los tokens se quitan de todo lo que se envía, y de los atributos de un span solo se envían unos pocos, como su ruta y su código de estado. La explicación usa el proveedor de LLM y los créditos de IA del proyecto, y no se ofrece mientras **Habilitar IA** esté desactivado. Cualquiera que pueda leer la excepción puede pedir una.
 
-Debajo de las tarjetas, **Excepciones similares** enumera hasta cinco excepciones más que se parecen a esta: el **Mismo mensaje** una vez quitados los valores, la **Misma ubicación en el código** de su código, o un **Mensaje similar** con la mayoría de las mismas palabras. Una misma causa puede acabar en varias excepciones, así que **Comprobar con OneUptime AI** dice de cada una si es **Probablemente el mismo error**, **Un error relacionado** o **Un error distinto**, y por qué. La comprobación usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado.
+Debajo de las tarjetas, **Excepciones similares** enumera hasta cinco excepciones más que se parecen a esta: el **Mismo mensaje** una vez quitados los valores, la **Misma ubicación en el código** de su código, o un **Mensaje similar** con la mayoría de las mismas palabras. Una misma causa puede acabar en varias excepciones, así que **Comprobar con OneUptime AI** dice de cada una si es **Probablemente el mismo error**, **Un error relacionado** o **Un error distinto**, y por qué. La comprobación usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado. Su respuesta se guarda hasta la siguiente ocurrencia.
+
+Fusione con esta excepción una que OneUptime AI llame **Probablemente el mismo error**, del mismo servicio, con **Fusionar** a su lado: sus ocurrencias, las anteriores y cada nueva, cuentan desde entonces en esta excepción y aparecen en su página, y sale de la lista. **Fusionadas con esta excepción**, debajo, enumera lo fusionado, y **Separar** al lado de cada una, o en la página de una excepción fusionada, le devuelve su propio lugar en la lista, con sus ocurrencias desde entonces. Fusionar y separar requieren permiso para editar excepciones.
 
 ## Corregirla con IA
 
@@ -185,7 +189,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 La pestaña **Análisis** cuenta sus excepciones **Sin resolver**, **Resuelto** y **Archivado** y su tasa de resolución, y enumera las excepciones más frecuentes, los servicios a los que afectan y las vistas más recientemente.
 
-**Novedades**, en la parte superior de la pestaña, pide a OneUptime AI, con **Resumir con OneUptime AI**, que resuma las excepciones vistas por primera vez en las últimas 24 horas y las que volvieron después de resolverse: unas frases sobre todas, luego cada una en una línea, la más urgente primero, con un enlace a la excepción. Se escribe cuando lo pide y no se guarda, usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado.
+**Novedades**, en la parte superior de la pestaña, pide a OneUptime AI, con **Resumir con OneUptime AI**, que resuma las excepciones vistas por primera vez en las últimas 24 horas y las que volvieron después de resolverse: unas frases sobre todas, luego cada una en una línea, la más urgente primero, con un enlace a la excepción. Se escribe cuando lo pide y se guarda hasta la siguiente ocurrencia, así que pedirlo otra vez no cuesta nada; usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado.
 
 ## Solución de problemas
 

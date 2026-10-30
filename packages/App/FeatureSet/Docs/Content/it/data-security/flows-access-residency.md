@@ -11,7 +11,7 @@ Sapere cosa contiene un archivio è solo metà del lavoro. Sicurezza dei dati ri
 ## Flussi di dati
 
 ```mermaid title="I quattro tipi di flusso"
-flowchart TB
+flowchart LR
     service["Un servizio"] -->|"Usa"| db["Un database"]
     service -->|"Provider di IA"| ai["Un provider di IA"]
     service -->|"Host esterno"| host["Un host esterno"]

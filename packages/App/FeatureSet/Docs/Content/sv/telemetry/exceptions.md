@@ -52,6 +52,8 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
+Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte.
+
 ### Välj vad som räknas som ett problem
 
 **Problem**, som är standard, döljer användarfel och förväntade nekanden, så att listan visar det som behöver rättas. **User errors** visar bara dem, och **Alla** visar alla undantag.
@@ -129,7 +131,9 @@ Förklaringen sparas på undantaget, så nästa person som öppnar det läser de
 
 ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
-Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt. Svaret sparas till nästa förekomst.
+
+Slå ihop ett som OneUptime AI kallar **Troligen samma bugg**, i samma tjänst, med det här undantaget med **Slå ihop** bredvid: dess förekomster, hittills och varje ny, räknas från och med då på det här undantaget och visas på dess sida, och det lämnar listan. **Ihopslagna med det här undantaget** nedanför listar det som slagits ihop, och **Dela upp** bredvid vart och ett, eller på ett ihopslaget undantags egen sida, ger det tillbaka sin egen plats i listan, med dess förekomster sedan dess. Att slå ihop och dela upp kräver behörighet att redigera undantag.
 
 ## Rätta det med AI
 
@@ -185,7 +189,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 Fliken **Insikter** räknar dina undantag under **Olöst**, **Löst** och **Arkiverad** och din lösningsgrad, och visar de vanligaste undantagen, tjänsterna de påverkar och de som setts senast.
 
-**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas inte, använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas till nästa förekomst, så att fråga igen kostar inget; den använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
 
 ## Felsökning
 

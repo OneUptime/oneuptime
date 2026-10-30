@@ -260,10 +260,11 @@ function argumentsOf(workflow: Workflow, componentId: string): JSONObject {
   ] || {}) as JSONObject;
 }
 
-function createdIncidentJson(workflow: Workflow): JSONObject {
-  return JSON.parse(
-    String(argumentsOf(workflow, "create-incident-1")["json"]),
-  ) as JSONObject;
+// The labels the step that opens the incident gives it: the organization's, then the connection's.
+function incidentLabels(workflow: Workflow): Array<string> {
+  return String(
+    argumentsOf(workflow, "incident-from-another-tool-1")["labels"],
+  ).split(", ");
 }
 
 beforeEach(() => {
@@ -489,7 +490,7 @@ describe("a connection becomes the workflow that does what it did", () => {
     expect(workflow.createdByUserId?.toString()).toBe(USER_1);
   });
 
-  test("its graph is the Huntress template's: the trigger, the paths, the policies it paged", async () => {
+  test("its graph is the Huntress template's: the trigger, the step that keeps the incident, the policies it paged", async () => {
     database.connections = [connectionRow()];
     database.policies[CONNECTION_1] = [POLICY_1, POLICY_2];
 
@@ -501,7 +502,11 @@ describe("a connection becomes the workflow that does what it did", () => {
     expect((trigger?.["data"] as JSONObject)["metadataId"]).toBe(
       ComponentID.HuntressIncidentReport,
     );
-    expect(node(workflow, "switch-1")).toBeDefined();
+    expect(
+      (node(workflow, "incident-from-another-tool-1")?.["data"] as JSONObject)[
+        "metadataId"
+      ],
+    ).toBe(ComponentID.IncidentFromAnotherTool);
     expect(
       argumentsOf(workflow, "page-on-call-policy-1")[
         PAGE_ARGUMENT_IDS.onCallPolicies
@@ -553,7 +558,8 @@ describe("a connection becomes the workflow that does what it did", () => {
     await moveAll();
 
     expect(node(created[0]!, "page-on-call-policy-1")).toBeUndefined();
-    expect(node(created[0]!, "log-opened")).toBeDefined();
+    expect(node(created[0]!, "if-page-1")).toBeUndefined();
+    expect(node(created[0]!, "incident-from-another-tool-1")).toBeDefined();
   });
 
   test("its labels go on every incident, beside the organization's", async () => {
@@ -562,12 +568,13 @@ describe("a connection becomes the workflow that does what it did", () => {
 
     await moveAll();
 
-    const labels: Array<JSONObject> = createdIncidentJson(created[0]!)[
-      "labels"
-    ] as Array<JSONObject>;
+    const labels: Array<string> = incidentLabels(created[0]!);
 
     expect(labels).toHaveLength(2);
-    expect(labels[1]).toEqual({ _id: LABEL_1 });
+    expect(labels[0]).toBe(
+      "{{local.components.huntress-1.returnValues.organization-label-id}}",
+    );
+    expect(labels[1]).toBe(LABEL_1);
   });
 
   test("its organizations and the incident severities it opened at become the trigger's settings", async () => {
@@ -595,8 +602,11 @@ describe("a connection becomes the workflow that does what it did", () => {
 
     await moveAll();
 
-    expect(node(created[0]!, "add-note-2")).toBeDefined();
-    expect(node(created[0]!, "resolve-incident-1")).toBeUndefined();
+    expect(
+      argumentsOf(created[0]!, "incident-from-another-tool-1")[
+        "note-instead-of-resolving"
+      ],
+    ).toBe(true);
   });
 
   test("when Huntress last reached it, and why it last refused, carry over", async () => {
@@ -717,9 +727,10 @@ describe("what the move cannot do, it leaves as it was", () => {
         PAGE_ARGUMENT_IDS.onCallPolicies
       ],
     ).toEqual([POLICY_1]);
-    expect(
-      (createdIncidentJson(created[0]!)["labels"] as Array<JSONObject>).length,
-    ).toBe(2);
+    expect(incidentLabels(created[0]!)).toEqual([
+      "{{local.components.huntress-1.returnValues.organization-label-id}}",
+      LABEL_1,
+    ]);
   });
 });
 

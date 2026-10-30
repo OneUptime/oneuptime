@@ -190,7 +190,7 @@ flowchart TB
 
 | `source` | چه می‌پرسد |
 | --- | --- |
-| `Question` | پرسشی از خود فرم، که بر پایهٔ `type` پاسخ داده می‌شود: `Text`، `LongText`، `Markdown`، `Number`، `Dropdown`، `MultiSelectDropdown`، `Boolean`، `Date` یا `DateTime`. یک فهرست کشویی `dropdownOptions` خود را، هر کدام در یک خط، فهرست می‌کند. |
+| `Question` | پرسشی از خود فرم، که بر پایهٔ `type` پاسخ داده می‌شود: `Text`، `LongText`، `Markdown`، `Number`، `Dropdown`، `MultiSelectDropdown`، `Boolean`، `Date`، `DateTime`، `File` یا `MultipleFiles`. یک فهرست کشویی `dropdownOptions` خود را، هر کدام در یک خط، فهرست می‌کند. |
 | `TargetField` | یکی از فیلدهای آنچه فرم می‌سازد، که با `targetField` نام برده می‌شود: `title`، `description`، `incidentSeverityId`، `monitors`، `labels` و `impactStartedAt` برای یک حادثه؛ `title`، `description`، `startsAt`، `endsAt`، `monitors`، `statusPages` و `labels` برای یک رویداد نگهداری. فیلدی که با انتخاب پاسخ داده می‌شود، رکوردهایی را که پیشنهاد می‌کند در `allowedOptionIds` فهرست می‌کند. |
 | `TargetCustomField` | یکی از فیلدهای سفارشی حادثه یا رویداد، که با `customFieldId` نام برده می‌شود. |
 | `Submitter` | `Name` یا `Email` فرستنده، که با `submitterField` نام برده می‌شود. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+پاسخ یک پرسش فایل، همان فایل‌هایی است که ذخیره شده‌اند، هر کدام با `fileId`، `name`، `fileType` و `size` خودش. خود فایل‌ها روی چیزی هستند که ارسال ساخته است: در فیلد سفارشی فایلِ آن، یا پیوست‌شده به یادداشت خصوصی‌اش.
 
 ### گردش‌های کاری
 

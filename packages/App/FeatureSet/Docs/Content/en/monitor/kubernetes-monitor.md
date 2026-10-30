@@ -153,6 +153,8 @@ The **What to alert on** list holds these templates, grouped by category. Each o
 
 Templates on per-object metrics evaluate each node, pod, deployment, job, DaemonSet or HPA on its own, so a cluster with several unhealthy pods gets an incident per pod rather than one for the whole cluster.
 
+**High Node CPU Request Commitment** and **High Node Memory Request Commitment** count only the requests of pods that have not finished, as the scheduler does. The cluster keeps reporting the requests of a pod that has Succeeded or Failed, such as a finished Job's, until the pod is deleted: those are left out.
+
 **Cluster Stopped Reporting** fires when nothing arrives from the cluster's agent for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 
 > [!NOTE]

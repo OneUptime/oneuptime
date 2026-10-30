@@ -52,6 +52,8 @@ Go to **Products → Observability → Exceptions**. The badge on the **Exceptio
 
 Switch between **Unresolved**, **Resolved**, **Archived** and **All**. The chart above the list shows how many occurrences were **Unhandled** and how many **Handled** over time. A row marked **Regressed** came back after it was resolved, and one marked **New** was first seen in the last 24 hours.
 
+Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range. An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted.
+
 ### Choose what counts as an issue
 
 **Issues**, the default, hides user errors and expected denials, so the list shows what needs a fix. **User errors** shows only those, and **All** shows every exception.
@@ -129,7 +131,9 @@ The explanation is kept on the exception, so the next person who opens it reads 
 
 IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent. The explanation uses the project's LLM provider and AI credits, and is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.
 
-Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words. One root cause can land in several exceptions, so **Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off.
+Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words. One root cause can land in several exceptions, so **Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off. Its answer is kept until a new occurrence arrives.
+
+Merge one that OneUptime AI calls **Likely the same bug**, in the same service, into this exception with **Merge** beside it: its occurrences, those so far and every new one, count on this exception from then on and show on its page, and it leaves the list. **Merged into this exception** below lists what was merged in, and **Unmerge** beside each, or on a merged exception's own page, gives it back its own place in the list, its occurrences since included. Merging and unmerging take permission to edit exceptions.
 
 ## Fix it with AI
 
@@ -185,7 +189,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 The **Insights** tab counts your **Unresolved**, **Resolved** and **Archived** exceptions and your resolution rate, and lists the most frequent exceptions, the services they affect and the ones seen most recently.
 
-**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception. It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.
+**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception. It is written when you ask and kept until a new occurrence arrives, so asking again spends nothing; it uses the project's AI credits, and is not offered while **Enable AI** is off.
 
 ## Troubleshooting
 

@@ -118,6 +118,8 @@ O **Device Offline** dispara quando um dispositivo informa `iot_device_up = 0`. 
 
 Um dispositivo registrado também é mantido como offline no inventário da frota, enquanto um não registrado é removido depois de 15 minutos de silêncio. A detecção de silêncio precisa da política de ausência de dados **Treat As Zero** no critério de `iot_device_up`, que os monitores Device Offline criados a partir do modelo têm. Um monitor Device Offline criado antes de existir o registro de dispositivos precisa que ela seja definida à mão, ou precisa ser criado de novo a partir do modelo.
 
+**Device Offline** avalia cada dispositivo pela leitura mais recente, então um dispositivo que informou estar fora e depois ativo de novo está ativo na verificação seguinte. Um monitor Device Offline que fica offline até a leitura de queda ter 30 minutos foi criado antes de o modelo fazer isso: escolha o modelo de novo em **Sobre o que alertar** para atualizá-lo.
+
 > [!NOTE]
 > Um dispositivo não registrado que fica em silêncio, sem Last Will nem relatório do gateway, apenas para de enviar dados, e um monitor agrupado por dispositivo não consegue destacá-lo. Registre os seus dispositivos, ou dê a um dispositivo crítico um monitor próprio (**Custom Metric**, com o seu **Device ID**) e defina **Se não houver dados** como **Gatilho**. A detecção de silêncio também precisa de pelo menos um outro dispositivo da frota ainda informando: uma frota que se apaga por completo, durante uma queda do gateway, por exemplo, dispara um incidente para o monitor, não um por dispositivo.
 

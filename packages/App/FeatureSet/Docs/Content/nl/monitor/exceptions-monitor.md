@@ -41,7 +41,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Uitzonderingen** o
 
 ### Kiezen waarover de monitor u informeert
 
-Kies onder **Waarover moet deze monitor je informeren?** voor **Elke uitzondering** of **Te veel uitzonderingen**. Elke keuze vult de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om hem zelf in te stellen.
+Kies onder **Waarover moet deze monitor je informeren?** voor **Elke uitzondering** of **Te veel uitzonderingen**. Elke keuze vult de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om hem zelf in te stellen. **Een nieuwe uitzondering**, **Een opgeloste uitzondering komt terug** en **Uitzonderingen pieken** waarschuwen bij een uitzondering die voor het eerst wordt gezien, bij een die terugkwam nadat u haar had opgelost, en bij een stijging ver boven het gewone.
 
 ### De te tellen uitzonderingen kiezen
 
@@ -53,7 +53,7 @@ Open **Meer velden** om te filteren op telemetrieservice of infrastructuurentite
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
-Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal uitzonderingen** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende uitzonderingen in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden.
+Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal uitzonderingen** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende uitzonderingen in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden. **Waarschuwen bij** kiest wat de regel vergelijkt: **Uitzonderingen**, **Nieuwe uitzonderingen**, **Teruggekomen uitzonderingen** of **Een stijging boven het gewone**. De grafiek wordt alleen voor **Uitzonderingen** getekend.
 
 ### Kiezen wat er gebeurt
 
@@ -116,7 +116,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben één **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens** of **Precies**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam, en **New Exceptions**, **Regressed Exceptions** en **Exception Increase (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens** of **Precies**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -135,6 +135,9 @@ Een uitzonderingen-monitor die in Monitor maken is aangemaakt, begint met de reg
 | --- | --- | --- |
 | **Elke uitzondering** | **Meer dan** `0` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 | **Te veel uitzonderingen** | **Meer dan** `20` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Een nieuwe uitzondering** | **Nieuwe uitzonderingen**: **Meer dan** `0` in **Laatste 10 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Een opgeloste uitzondering komt terug** | **Teruggekomen uitzonderingen**: **Meer dan** `0` in **Laatste 10 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Uitzonderingen pieken** | **Een stijging boven het gewone**: **Meer dan** `200` in **Laatste 15 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 
 Een uitzonderingen-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met deze criteria:
 
@@ -142,6 +145,18 @@ Een uitzonderingen-monitor die via de API of Terraform zonder criteria is aangem
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Groter dan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
 | Check if … has no exceptions | **Exception Count** **Gelijk aan** `0` | Zet de monitor online |
+
+## Nieuwe, teruggekomen en piekende uitzonderingen
+
+Naast hoeveel uitzonderingen er waren, kan een uitzonderingen-monitor waarschuwen bij waar een error tracker mee begint. Elk wordt alleen gelezen wanneer een criterium het controleert.
+
+| Filtertype | Wat het telt in het venster |
+| --- | --- |
+| **New Exceptions** | Overeenkomende uitzonderingen die voor het eerst zijn gezien en niet opgelost of gearchiveerd zijn. |
+| **Regressed Exceptions** | Overeenkomende uitzonderingen die u hebt opgelost, die terugkwamen en nog open zijn. |
+| **Exception Increase (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
+
+Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderingstype, omgeving en bericht; het filter op infrastructuurentiteit geldt alleen voor de andere twee.
 
 ## Uitgewerkt voorbeeld: alleen uitzonderingen uit productie
 

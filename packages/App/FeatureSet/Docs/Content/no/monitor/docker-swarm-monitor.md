@@ -94,6 +94,8 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 Listen under **Hva det skal varsles om** tilbyr fem maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Alle maler unntatt **Cluster Stopped Reporting** grupperer spørringen sin etter `resource.container.name`, så hver oppgave vurderes for seg og får sin egen hendelse og sitt eget varsel, der rotårsaken lister de berørte oppgavene og verdiene deres. Tersklene er utgangspunkter du kan redigere.
 
+Disse malene leser også bare Swarms oppgaver: en container som er startet på en annen måte på en node, blant dem agentens egen, telles ikke med. En spørring via **Custom Metric** eller **Avansert** leser alle containerne agenten rapporterer; filteret **Tjenestenavn** snevrer den inn til én tjenestes oppgaver.
+
 Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |

@@ -190,7 +190,7 @@ flowchart TB
 
 | `source` | О чём спрашивает |
 | --- | --- |
-| `Question` | Собственный вопрос формы, ответ на который зависит от `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` или `DateTime`. Выпадающий список показывает свои `dropdownOptions`, по одному в строке. |
+| `Question` | Собственный вопрос формы, ответ на который зависит от `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` или `MultipleFiles`. Выпадающий список показывает свои `dropdownOptions`, по одному в строке. |
 | `TargetField` | Поле того, что создаёт форма, заданное в `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` и `impactStartedAt` для инцидента; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` и `labels` для события обслуживания. Поле, на которое отвечают выбором, перечисляет предлагаемые записи в `allowedOptionIds`. |
 | `TargetCustomField` | Одно из пользовательских полей инцидента или события, заданное в `customFieldId`. |
 | `Submitter` | `Name` или `Email` отправителя, заданное в `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+Ответ на вопрос с файлами — это файлы в том виде, в каком они сохранены, каждый со своими `fileId`, `name`, `fileType` и `size`. Сами файлы находятся в том, что создала отправка: в его пользовательском поле с файлами или во вложениях его приватной заметки.
 
 ### Рабочие процессы
 

@@ -52,6 +52,8 @@ Gå til **Produkter → Observabilitet → Undtagelser**. Mærket på fanen **Un
 
 Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid. En række markeret **Regression** kom igen, efter at den var løst, og en markeret **Ny** blev set første gang inden for de seneste 24 timer.
 
+Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med.
+
 ### Vælg, hvad der tæller som et problem
 
 **Problemer**, som er standard, skjuler brugerfejl og forventede afvisninger, så listen viser det, der kræver en rettelse. **User errors** viser kun dem, og **Alle** viser hver undtagelse.
@@ -129,7 +131,9 @@ Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den 
 
 ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
-Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
+Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Svaret gemmes til næste forekomst.
+
+Flet en, som OneUptime AI kalder **Sandsynligvis den samme fejl**, og som hører til samme tjeneste, ind i denne undtagelse med **Flet** ved siden af: dens forekomster, de hidtidige og hver ny, tælles fra da af på denne undtagelse og vises på dens side, og den forsvinder fra listen. **Flettet ind i denne undtagelse** nedenfor viser, hvad der er flettet ind, og **Fjern fletning** ved siden af hver, eller på en flettet undtagelses egen side, giver den sin egen plads i listen tilbage, med dens forekomster siden. At flette og fjerne fletning kræver tilladelse til at redigere undtagelser.
 
 ## Ret den med AI
 
@@ -185,7 +189,7 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 
 Fanen **Indsigter** tæller dine undtagelser under **Uløst**, **Løst** og **Arkiveret** og din løsningsrate og viser de hyppigste undtagelser, de tjenester, de rammer, og dem, der senest er set.
 
-**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes ikke, bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
+**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes til næste forekomst, så det koster intet at spørge igen; den bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
 
 ## Fejlfinding
 

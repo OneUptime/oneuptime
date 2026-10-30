@@ -148,7 +148,7 @@ describe("the constants", () => {
     expect(FORM_FIELD_MAX_ALLOWED_OPTIONS).toBe(100);
   });
 
-  test("a question of the form's own has the nine types the palette offers, two of them choices", () => {
+  test("a question of the form's own has the eleven types the palette offers, two of them choices and two files", () => {
     expect(FORM_QUESTION_TYPES).toEqual([
       CustomFieldType.Text,
       CustomFieldType.LongText,
@@ -159,6 +159,8 @@ describe("the constants", () => {
       CustomFieldType.Boolean,
       CustomFieldType.Date,
       CustomFieldType.DateTime,
+      CustomFieldType.File,
+      CustomFieldType.MultipleFiles,
     ]);
     expect(FORM_CHOICE_QUESTION_TYPES).toEqual([
       CustomFieldType.Dropdown,

@@ -142,16 +142,23 @@ describe("the start view leads with what people use", () => {
       "Page a Team",
       "Page Whoever Is On Call",
       "Page an On-Call Policy",
+      // What an incident or an alert from another tool is opened and kept in step by.
+      "Incident From Another Tool",
+      "Alert From Another Tool",
       "Generate Text with AI",
       "API Put (JSON)",
       "API Patch (JSON)",
       "API Delete (JSON)",
+      "API Get By ID (JSON)",
       "Send Message to Telegram",
       "Send Message to IRC",
       "Send Message to Mattermost",
+      // Beside Run Custom JavaScript, which is among the popular steps.
+      "Check With JavaScript",
       "JSON to Text",
       "Text to JSON",
       "Merge JSON",
+      "Update Zabbix Problem",
       "Execute Workflow",
       "Sleep",
     ]);
@@ -192,12 +199,16 @@ describe("the start view leads with what people use", () => {
       ).not.toBeInTheDocument();
     }
 
-    // Everything on the start view, in all: a short list, whatever the catalog holds.
+    /*
+     * Everything on the start view, in all: a short list, whatever the
+     * catalog holds - some forty, the hand-written steps and the common
+     * resources (41 with the steps the simpler templates are built from).
+     */
     expect(
       within(screen.getByTestId("workflow-component-picker")).getAllByRole(
         "button",
       ).length,
-    ).toBeLessThan(40);
+    ).toBeLessThan(45);
   });
 
   it("describes every step it shows", () => {
@@ -538,7 +549,8 @@ describe("search results", () => {
 
     search("incident");
 
-    const total: number = 72;
+    // Incident From Another Tool among them, after Incident's own steps.
+    const total: number = 73;
     expect(screen.getAllByRole("option")).toHaveLength(
       SEARCH_RESULTS_PAGE_SIZE,
     );

@@ -32,12 +32,23 @@ import {
   getIpv4OfMappedAddress,
   validateFormIpAllowlist,
 } from "../../Types/Form/FormIpAllowlist";
+import { CustomFieldFile } from "../../Types/CustomField/CustomFieldFile";
+import {
+  decodeBase64,
+  FORM_FILE_MAX_SIZE_IN_BYTES,
+  FormFileAnswer,
+} from "../../Types/Form/FormFileAnswer";
+import MimeType from "../../Types/File/MimeType";
+import QueryHelper from "../Types/Database/QueryHelper";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
   BuiltPublicForm,
   buildPublicForm,
   FormCustomFieldDefinition,
   FormFieldBinding,
   FormQuestionsForTemplate,
+  getFormFileAnswerFiles,
+  isPublicFormFileField,
   FormRecordOption,
   FormSubmissionValidationResult,
   formatFormSubmissionErrors,
@@ -81,6 +92,7 @@ import File from "../../Models/DatabaseModels/File";
 import Model from "../../Models/DatabaseModels/Form";
 import FormSubmission from "../../Models/DatabaseModels/FormSubmission";
 import FormRateLimit from "../Middleware/FormRateLimit";
+import FormFileAllowance from "../Utils/Form/FormFileAllowance";
 import CaptchaUtil from "../Utils/Captcha";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import FileOwnership from "../Utils/File/FileOwnership";
@@ -156,6 +168,15 @@ export const FORM_NOT_AVAILABLE_MESSAGE: string =
  */
 export const FORM_NETWORK_NOT_ALLOWED_MESSAGE: string =
   "This form can only be opened from an allowed network.";
+
+/*
+ * A submission's answers once its files are stored (storeSubmissionFiles):
+ * each file answer the files as stored, and every file stored.
+ */
+interface StoredSubmissionFiles {
+  answers: ValidatedFormAnswers;
+  files: Array<CustomFieldFile>;
+}
 
 /*
  * A form a branding write is for, as the check needs it: the project its
@@ -645,6 +666,20 @@ export class Service extends DatabaseService<Model> {
     });
 
     /*
+     * Its files, last of all: under the form's hourly allowance of files,
+     * then stored in the form's project - private, uploaded by nobody - and
+     * named in the answers by what was stored (storeSubmissionFiles). From
+     * here on nothing refuses the submission, so no file is kept for one
+     * that is turned away; one whose record cannot be created loses them.
+     */
+    const stored: StoredSubmissionFiles = await this.storeSubmissionFiles({
+      form: form,
+      shareKey: data.shareKey,
+      fields: built.allFields,
+      answers: answers,
+    });
+
+    /*
      * Only a submission about to be created - which the ceiling above
      * bounds - pays for reading its Markdown; one refused on the way here
      * never does.
@@ -652,7 +687,7 @@ export class Service extends DatabaseService<Model> {
     const safeContext: FormSubmissionContext = {
       ...context,
       answers: neutralizeFormAnswers({
-        answers: answers,
+        answers: stored.answers,
         fields: built.allFields,
         bindings: built.bindings,
       }),
@@ -671,6 +706,8 @@ export class Service extends DatabaseService<Model> {
         this.getLogAttributes(form),
       );
       logger.error(err, this.getLogAttributes(form));
+
+      await this.deleteSubmissionFiles({ form: form, files: stored.files });
 
       throw new ServerException(FORM_SUBMIT_FAILED_MESSAGE);
     }
@@ -704,6 +741,163 @@ export class Service extends DatabaseService<Model> {
     }
 
     return result;
+  }
+
+  /*
+   * A submission's files, stored (see submitPublicForm): every file of every
+   * file question, decoded again from the base64 the answers check read,
+   * counted against the form's hourly allowance of files
+   * (FormFileAllowance.reserve) - a 429 or a 503 before anything is
+   * stored - then written as File rows of the form's project, private and
+   * uploaded by nobody. Each answer is then the files as stored
+   * (CustomFieldFile): what a file custom field holds, what the submission
+   * keeps and what the note names - never the bytes. A file that cannot be
+   * stored refuses the submission (500) and takes the ones stored before it
+   * away.
+   */
+  private async storeSubmissionFiles(data: {
+    form: Model;
+    shareKey: string | undefined;
+    fields: Array<PublicFormField>;
+    answers: ValidatedFormAnswers;
+  }): Promise<StoredSubmissionFiles> {
+    const fileFields: Array<PublicFormField> = data.fields.filter(
+      (field: PublicFormField): boolean => {
+        return (
+          isPublicFormFileField(field) &&
+          Object.prototype.hasOwnProperty.call(data.answers, field.id)
+        );
+      },
+    );
+
+    if (fileFields.length === 0) {
+      return { answers: data.answers, files: [] };
+    }
+
+    const decoded: Map<
+      string,
+      Array<{ file: FormFileAnswer; bytes: Buffer }>
+    > = new Map();
+    let totalBytes: number = 0;
+
+    for (const field of fileFields) {
+      const files: Array<{ file: FormFileAnswer; bytes: Buffer }> = [];
+
+      for (const file of getFormFileAnswerFiles(data.answers[field.id])) {
+        const bytes: Uint8Array | null = decodeBase64(
+          file.data,
+          FORM_FILE_MAX_SIZE_IN_BYTES,
+        );
+
+        // validateFormSubmission read every one of them already.
+        if (!bytes) {
+          throw new BadDataException(
+            `${field.label} takes a file chosen on the form, with its name, its type and its contents.`,
+          );
+        }
+
+        totalBytes += bytes.length;
+        files.push({ file: file, bytes: Buffer.from(bytes) });
+      }
+
+      decoded.set(field.id, files);
+    }
+
+    await FormFileAllowance.reserve({
+      shareKey: data.shareKey,
+      bytes: totalBytes,
+    });
+
+    const answers: ValidatedFormAnswers = { ...data.answers };
+    const storedFiles: Array<CustomFieldFile> = [];
+
+    try {
+      for (const field of fileFields) {
+        const fieldFiles: Array<CustomFieldFile> = [];
+
+        for (const entry of decoded.get(field.id) || []) {
+          const file: File = new File();
+          file.name = entry.file.name;
+          file.fileType = entry.file.fileType as MimeType;
+          file.file = entry.bytes;
+          // OneUptime's own write says what it means: private.
+          file.isPublic = false;
+
+          const created: File = await FileService.create({
+            data: file,
+            props: {
+              isRoot: true,
+              tenantId: data.form.projectId!,
+            },
+          });
+
+          const storedFile: CustomFieldFile = {
+            fileId: created.id!.toString().toLowerCase(),
+            name: entry.file.name,
+            fileType: entry.file.fileType,
+            size: entry.bytes.length,
+          };
+
+          storedFiles.push(storedFile);
+          fieldFiles.push(storedFile);
+        }
+
+        Object.defineProperty(answers, field.id, {
+          value: (field.type === PublicFormFieldType.MultipleFiles
+            ? fieldFiles
+            : fieldFiles[0] || null) as unknown as JSONValue,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    } catch (err) {
+      logger.error(
+        `FormService: form ${data.form.id?.toString()} could not store a submission's files.`,
+        this.getLogAttributes(data.form),
+      );
+      logger.error(err, this.getLogAttributes(data.form));
+
+      await this.deleteSubmissionFiles({
+        form: data.form,
+        files: storedFiles,
+      });
+
+      throw new ServerException(FORM_SUBMIT_FAILED_MESSAGE);
+    }
+
+    return { answers: answers, files: storedFiles };
+  }
+
+  // A refused submission's stored files, taken away again. Best-effort.
+  private async deleteSubmissionFiles(data: {
+    form: Model;
+    files: Array<CustomFieldFile>;
+  }): Promise<void> {
+    if (data.files.length === 0) {
+      return;
+    }
+
+    try {
+      await FileService.hardDeleteBy({
+        query: {
+          _id: QueryHelper.any(
+            data.files.map((file: CustomFieldFile): string => {
+              return file.fileId;
+            }),
+          ),
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      logger.error(
+        `FormService: could not take away the files of a refused submission to form ${data.form.id?.toString()}.`,
+        this.getLogAttributes(data.form),
+      );
+      logger.error(err, this.getLogAttributes(data.form));
+    }
   }
 
   /*
@@ -1131,6 +1325,7 @@ export class Service extends DatabaseService<Model> {
       await data.handler.addNote({
         form: data.form,
         createdId: data.created.id,
+        attachments: data.sorted.noteAttachments,
         note: getFormSubmissionNote({
           formName: data.form.name,
           submitterName: data.sorted.submitterName,

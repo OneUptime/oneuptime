@@ -394,6 +394,8 @@ Chaque ligne indique où son OID est connu : une valeur que collecte un modèle 
 - **Créer une alerte**, qui apparaît une fois l'OID collecté, ouvre un nouveau moniteur Équipement réseau pour l'équipement avec un critère sur l'OID. Un compteur démarre sur **SNMP OID Rate (per second)** et une jauge sur **SNMP OID Value**, chacun au-dessus d'un seuil que vous fixez ; une durée de fonctionnement alerte sous dix minutes (l'équipement a redémarré), tout le reste quand il diffère de la valeur lue.
 - **Copier l'OID**, dans le menu de la ligne, copie l'OID.
 
+**Télécharger**, à côté du résumé du parcours, enregistre ce que le parcours a lu dans un fichier : **Texte snmpwalk (.txt)**, un OID par ligne tel que `snmpwalk -On` l'affiche, que lisent tous les outils SNMP et le support de tous les fabricants, ou **Feuille de calcul CSV (.csv)**, avec le nom, la MIB, le type et la valeur de chaque OID. Le fichier contient chaque OID lu par le parcours, parcours poursuivis compris, quel que soit ce que montre le filtre, et porte le nom de l'équipement, du sous-arbre et de l'heure de l'enregistrement. Toute personne qui peut lire le dernier parcours de l'équipement peut le télécharger.
+
 Un parcours qui échoue dit pourquoi, et quoi vérifier : un équipement qui ne répond pas (SNMP désactivé, UDP 161 bloqué ou, en v1 et v2c, une chaîne de communauté erronée, qu'un agent ignore sans rien dire), un utilisateur, un mot de passe ou un protocole SNMPv3 que l'équipement a refusé, ou une partie de l'arbre que la vue SNMP des identifiants exclut. Un parcours qui s'arrête en route garde ce qu'il a lu. Parcourir demande l'autorisation **Create Network Device Diagnostic** et une sonde assez récente pour parcourir SNMP : avec une sonde plus ancienne, la page vous demande de la mettre à jour.
 
 ### Tables SNMP
@@ -753,6 +755,8 @@ Tant qu'il n'y a pas de politique, la page propose **Créer la politique recomma
 
 Ouvrez la page de l'équipement et cliquez sur **Créer un moniteur** dans la carte **Moniteurs en alerte sur cet équipement**. Le formulaire du moniteur s'ouvre avec le type Équipement réseau et l'équipement choisis, et le [pack d'alertes recommandé](#pack-dalertes-recommandé) rempli : vérifiez-le, définissez les niveaux de gravité et les politiques d'astreinte, puis enregistrez.
 
+La plupart des commutateurs, routeurs, pare-feu et imprimantes servent aussi une interface web à leur propre adresse. **Surveiller l'interface web**, dans la même carte, ouvre un moniteur **Site web** pour celle-ci : `https://` à l'adresse de l'équipement, avec **Autoriser les certificats auto-signés** activé, car l'interface web d'un équipement en a presque toujours un, vérifié depuis la sonde de l'équipement et nommé d'après l'équipement. Modifiez l'URL si l'interface répond en `http`, sur un autre port ou sous un chemin, puis enregistrez. La carte liste le moniteur tant que son nom contient le nom de l'équipement et que son URL est à l'adresse de l'équipement ; il ne change pas le statut de l'équipement.
+
 Pour en créer un depuis **Moniteurs** à la place :
 
 1. Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**.
@@ -760,6 +764,8 @@ Pour en créer un depuis **Moniteurs** à la place :
 3. Choisissez l'équipement réseau sur lequel alerter. Tout ce qui concerne la collecte des données — nom d'hôte, identifiants, calendrier, parcours des interfaces, OID de santé — vient de l'équipement ; le moniteur choisit seulement sur quoi alerter, par ses critères.
 
 Un moniteur Équipement réseau n'a pas d'intervalle propre : il est évalué chaque fois que les résultats d'interrogation de l'équipement arrivent, et chaque fois qu'un trap de l'équipement arrive.
+
+Quand les interrogations s'arrêtent, le moniteur est toujours évalué. Dès qu'un équipement a passé trois intervalles d'interrogation, et au moins dix minutes, sans interrogation, ses moniteurs sont évalués toutes les cinq minutes comme une interrogation qui n'a pas pu le joindre : un critère qui correspond à **SNMP Device Is Online** à False, comme **Device unreachable**, se déclenche, et l'incident indique pourquoi aucune interrogation n'est arrivée, par exemple que la sonde est hors service ou que l'équipement n'a pas de sonde. Un équipement dont l'interrogation est désactivée, ou qui utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié), n'est pas concerné. L'interrogation suivante évalue le moniteur comme d'habitude.
 
 ### Les incidents et les alertes d'un équipement
 

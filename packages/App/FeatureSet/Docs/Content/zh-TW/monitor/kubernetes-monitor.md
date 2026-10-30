@@ -153,6 +153,8 @@ flowchart TB
 
 以個別物件指標為基礎的範本會分別評估每個節點、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多個不健康 Pod 的叢集會為每個 Pod 建立一個事件，而不是整個叢集只建立一個。
 
+**High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 與排程器一樣，只計算尚未結束的 Pod 的請求（request）。處於 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被刪除之前，叢集仍會回報其請求：這些不計入。
+
 **Cluster Stopped Reporting** 會在叢集的代理程式 10 分鐘內沒有任何資料送達時觸發：代理程式被解除安裝或不斷當機、它的 API 金鑰被撤銷、它失去通往 OneUptime 的路由，或者叢集的 API 伺服器不再回應它。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 
 > [!NOTE]

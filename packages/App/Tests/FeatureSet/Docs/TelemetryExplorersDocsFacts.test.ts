@@ -52,6 +52,11 @@ import ErrorClass, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
 import { MAX_SIMILAR_EXCEPTIONS } from "Common/Types/Telemetry/SimilarExceptions";
+import { EXCEPTION_TREND_BUCKET_COUNT } from "Common/Types/Telemetry/ExceptionListStats";
+import {
+  EXCEPTION_USER_ID_ATTRIBUTE_KEYS,
+  readExceptionUserId,
+} from "Common/Utils/Exceptions/ExceptionUserId";
 import {
   CORE_LOGS_TABLE_COLUMN_OPTIONS,
   DEFAULT_LOGS_TABLE_COLUMNS,
@@ -2168,6 +2173,119 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
+  /*
+   * Each row's affected users and trend chart: counted over the list's own
+   * range, from the user attributes ingest reads, in the order it reads
+   * them, and shown only when an occurrence named a user.
+   */
+  it("shows each row's affected users and its occurrences over the range picked", () => {
+    const row: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRow.tsx",
+    );
+    const listStats: string = readDashboardSource(
+      "Utils/ExceptionListStats.ts",
+    );
+    const traces: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
+    );
+    const logs: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+    );
+    const users: string =
+      "An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted.";
+
+    expect(page).toContain(
+      "Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range.",
+    );
+    expect(page).toContain(users);
+
+    // The attributes named, in the order ingest prefers them.
+    expect(inlineCodes(users)).toEqual([...EXCEPTION_USER_ID_ATTRIBUTE_KEYS]);
+    // On the exception event, then its span or log record, then its resource.
+    expect(
+      readExceptionUserId([
+        { "enduser.id": "event" },
+        { "user.id": "span", "resource.user.id": "resource" },
+      ]),
+    ).toBe("event");
+    expect(
+      readExceptionUserId([{}, { "user.id": "span", "resource.user.id": "r" }]),
+    ).toBe("span");
+    expect(readExceptionUserId([{}, { "resource.enduser.id": "r" }])).toBe("r");
+    // An occurrence that names no user is not counted.
+    expect(readExceptionUserId([{ "user.email": "a@example.com" }])).toBe("");
+    expect(traces).toContain("userId: readExceptionUserId([");
+    expect(logs).toContain("userId: readExceptionUserId([finalAttributes])");
+    expect(row).toContain("affectedUsers > 0 &&");
+
+    // Over the range picked: the rows' own range goes with the request.
+    expect(exceptionsViewer).toContain("setListWindow(readWindow);");
+    expect(exceptionsViewer).toContain(
+      "buildExceptionListStatsRequest({ exceptions, window: listWindow })",
+    );
+    expect(listStats).toContain('"/telemetry-exception/list-stats"');
+    expect(EXCEPTION_TREND_BUCKET_COUNT).toBeGreaterThan(1);
+    expect(row).toContain("<ExceptionTrendSparkline");
+  });
+
+  /*
+   * Merging a likely duplicate into the exception, and undoing it: offered
+   * on the Similar exceptions card for the AI's "Likely the same bug" in the
+   * same service, listed on the Overview, undone from either page, and only
+   * by someone who may edit exceptions.
+   */
+  it("merges a likely duplicate into the exception, and unmerges it", () => {
+    const similar: string = readDashboardSource(
+      "Components/Exceptions/ExceptionSimilar.tsx",
+    );
+    const panel: string = readDashboardSource(
+      "Components/Exceptions/ExceptionMergedPanel.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Utils/Exception.ts",
+    );
+    const explain: string = section(page, "## Explain it with AI");
+
+    expect(explain).toContain(
+      "Merge one that OneUptime AI calls **Likely the same bug**, in the same service, into this exception with **Merge** beside it: its occurrences, those so far and every new one, count on this exception from then on and show on its page, and it leaves the list.",
+    );
+    expect(explain).toContain(
+      "**Merged into this exception** below lists what was merged in, and **Unmerge** beside each, or on a merged exception's own page, gives it back its own place in the list, its occurrences since included. Merging and unmerging take permission to edit exceptions.",
+    );
+
+    // Merge: only on the AI's duplicate, in the same service, for an editor.
+    expect(similar).toContain("entry.isSameService === true");
+    expect(similar).toContain(
+      "verdict?.verdict === DuplicateVerdictKind.Duplicate",
+    );
+    expect(similar).toContain('title="Merge"');
+    expect(explorer).toContain(
+      "PermissionGate.check(new TelemetryException(), ModelAction.Update)",
+    );
+    expect(merge).toContain(
+      "Only exceptions of the same service can be merged.",
+    );
+    expect(merge).toContain("ModelPermission.getUpdatableQuery(");
+
+    // Every new occurrence counts there: the alias is read at ingest.
+    expect(ingest).toContain(
+      "await ExceptionUtil.withMergedSurvivors(exceptions)",
+    );
+
+    // Below, on the Overview, and on the merged one's own page.
+    expect(panel).toContain('title="Merged into this exception"');
+    expect(panel).toContain('title="Unmerge"');
+    expect(panel).toContain(
+      'template="This exception was merged into {{exception}}. Its occurrences count there."',
+    );
+  });
+
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Error classes"),
@@ -2296,7 +2414,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception.",
     );
     expect(page).toContain(
-      "It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.",
+      "It is written when you ask and kept until a new occurrence arrives, so asking again spends nothing; it uses the project's AI credits, and is not offered while **Enable AI** is off.",
     );
   });
 
@@ -2312,8 +2430,9 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "Components/Exceptions/ExceptionSimilar.tsx",
     );
 
+    // On the Overview, where a likely duplicate can be merged in.
     expect(explorer).toContain(
-      "<ExceptionSimilar telemetryExceptionId={props.telemetryExceptionId} />",
+      "<ExceptionSimilar\n            telemetryExceptionId={props.telemetryExceptionId}\n            canMerge={canMergeIntoThis}",
     );
     expect(card).toContain('title="Similar exceptions"');
     for (const label of [
@@ -2328,6 +2447,15 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       expect(card).toContain(label);
     }
     expect(MAX_SIMILAR_EXCEPTIONS).toBe(5);
+    // Kept by what it was written from, occurrence counts included.
+    const checker: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts",
+    );
+    expect(checker).toContain("AiAnswerCache.key([");
+    expect(checker).toContain("String(exception.occuranceCount || 0),");
+    expect(page).toContain(
+      "Its answer is kept until a new occurrence arrives.",
+    );
     expect(page).toContain(
       "Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words.",
     );

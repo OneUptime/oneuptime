@@ -153,6 +153,8 @@ L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per catego
 
 I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, job, DaemonSet o HPA separatamente, quindi un cluster con diversi pod non sani riceve un incidente per pod invece di uno per l'intero cluster.
 
+**High Node CPU Request Commitment** e **High Node Memory Request Commitment** contano solo le request dei pod che non sono terminati, come fa lo scheduler. Il cluster continua a riportare le request di un pod Succeeded o Failed, come quello di un Job terminato, finché il pod non viene eliminato: queste non vengono contate.
+
 **Cluster Stopped Reporting** scatta quando dall'agente del cluster non arriva nulla per dieci minuti: l'agente è stato disinstallato o va continuamente in crash, la sua chiave API è stata revocata, ha perso la connessione a OneUptime, oppure il server API del cluster ha smesso di rispondergli. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 
 > [!NOTE]

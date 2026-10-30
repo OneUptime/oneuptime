@@ -231,6 +231,8 @@ import { AddUpdateCheckSecurityAdvisoryColumns1808540000000 } from "./1808540000
 import { AddTelemetryExceptionRegression1808560000000 } from "./1808560000000-AddTelemetryExceptionRegression";
 import { AddTelemetryExceptionAiExplanation1808580000000 } from "./1808580000000-AddTelemetryExceptionAiExplanation";
 import { AddDetectionRuleRealTime1808600000000 } from "./1808600000000-AddDetectionRuleRealTime";
+import { AddTelemetryExceptionMerge1808620000000 } from "./1808620000000-AddTelemetryExceptionMerge";
+import { AddTelemetryExceptionMergeIndexesAndKeys1808630000000 } from "./1808630000000-AddTelemetryExceptionMergeIndexesAndKeys";
 import { AddDashboardDarkThemeLogo1808700000000 } from "./1808700000000-AddDashboardDarkThemeLogo";
 import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDashboardDarkThemeLogoKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1666,6 +1668,8 @@ export default [
   AddTelemetryExceptionRegression1808560000000,
   AddTelemetryExceptionAiExplanation1808580000000,
   AddDetectionRuleRealTime1808600000000,
+  AddTelemetryExceptionMerge1808620000000,
+  AddTelemetryExceptionMergeIndexesAndKeys1808630000000,
   AddDashboardDarkThemeLogo1808700000000,
   AddDashboardDarkThemeLogoKey1808710000000,
 ];

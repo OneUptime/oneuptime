@@ -31,6 +31,10 @@
 
 import { describe, expect, jest, test } from "@jest/globals";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import {
+  SeverityChoice,
+  pickSeverityIndex,
+} from "../../../Types/Workflow/Components/FromAnotherTool";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import {
   DYNAMICS_SYNCED_FROM_ONEUPTIME_MARKER,
@@ -43,16 +47,13 @@ import {
   ALERT_ID,
   ALERT_NUMBER,
   ALERT_RESOLVED_STATE,
-  ALERT_RESOLVED_STATE_ID,
   ALERT_SEVERITIES,
-  ALERT_STATES,
   CREATED_STATE,
   CRITICAL_SEVERITY_ID,
   HIGH_ALERT_SEVERITY_ID,
   INCIDENT_ID,
   INCIDENT_NUMBER,
   INCIDENT_SEVERITIES,
-  INCIDENT_STATES,
   LOW_ALERT_SEVERITY_ID,
   MAJOR_SEVERITY_ID,
   MINOR_SEVERITY_ID,
@@ -60,7 +61,6 @@ import {
   OTHER_INCIDENT_ID,
   PROJECT_ID,
   RESOLVED_STATE,
-  RESOLVED_STATE_ID,
   alertModel,
   alertNoteModel,
   incidentModel,
@@ -270,15 +270,12 @@ interface RecordKind {
   /** A link the other kind's templates write. */
   otherKindLink: string;
   idKey: string;
-  severityIdKey: string;
   dashboardPath: string;
   prepareRecordStep: string;
   syncPrivateName: string;
   createdState: JSONObject;
   acknowledgedState: JSONObject;
   resolvedState: JSONObject;
-  resolvedStateId: string;
-  states: Array<JSONObject>;
   severities: Array<JSONObject>;
   severityName: string;
   /** The case priority each default severity opens a case with. */
@@ -346,15 +343,12 @@ const INCIDENT: RecordKind = {
   linkPrefix: "oneuptime-incident-",
   otherKindLink: `oneuptime-alert-${ALERT_ID}`,
   idKey: "incidentId",
-  severityIdKey: "incidentSeverityId",
   dashboardPath: "incidents",
   prepareRecordStep: "prepare-incident-1",
   syncPrivateName: "SYNC_PRIVATE_INCIDENTS",
   createdState: CREATED_STATE,
   acknowledgedState: ACKNOWLEDGED_STATE,
   resolvedState: RESOLVED_STATE,
-  resolvedStateId: RESOLVED_STATE_ID,
-  states: INCIDENT_STATES,
   severities: INCIDENT_SEVERITIES,
   severityName: "Critical Incident",
   severityPriorities: [
@@ -421,15 +415,12 @@ const ALERT: RecordKind = {
   linkPrefix: "oneuptime-alert-",
   otherKindLink: `oneuptime-incident-${INCIDENT_ID}`,
   idKey: "alertId",
-  severityIdKey: "alertSeverityId",
   dashboardPath: "alerts",
   prepareRecordStep: "prepare-alert-1",
   syncPrivateName: "SYNC_PRIVATE_ALERTS",
   createdState: ALERT_CREATED_STATE,
   acknowledgedState: ALERT_ACKNOWLEDGED_STATE,
   resolvedState: ALERT_RESOLVED_STATE,
-  resolvedStateId: ALERT_RESOLVED_STATE_ID,
-  states: ALERT_STATES,
   severities: ALERT_SEVERITIES,
   severityName: "High",
   severityPriorities: [
@@ -952,18 +943,20 @@ describe.each(KINDS)("%s: plan-case-1", (_name: string, kind: RecordKind) => {
 
   type SkippedFunction = (result: JSONObject, reason: string) => void;
 
-  // Every skip here also says action: 'skip', which the If / Else steps read.
+  /*
+   * A Check With JavaScript step: it goes on to close the case by Yes, or
+   * ends the run by No with the reason.
+   */
   const expectNothing: SkippedFunction = (
     result: JSONObject,
     reason: string,
   ): void => {
-    expect(result).toEqual({ proceed: false, reason: reason, action: "skip" });
+    expect(result).toEqual({ proceed: false, reason: reason });
   };
 
   test(`a resolved ${kind.noun} closes its case as Problem Solved`, async () => {
     expect(await run(args())).toEqual({
       proceed: true,
-      action: "close",
       caseId: CASE_ID,
       caseNumber: CASE_NUMBER,
       closeBody: {
@@ -999,7 +992,7 @@ describe.each(KINDS)("%s: plan-case-1", (_name: string, kind: RecordKind) => {
       ),
     );
 
-    expect(result["action"]).toBe("close");
+    expect(result["proceed"]).toBe(true);
     expect((result["closeBody"] as JSONObject)["Status"]).toBe(1000);
   });
 
@@ -1010,19 +1003,22 @@ describe.each(KINDS)("%s: plan-case-1", (_name: string, kind: RecordKind) => {
       }),
     );
 
-    expect(result["action"]).toBe("close");
+    expect(result["proceed"]).toBe(true);
     expect(result["reason"]).toBe(`${kind.number} is All clear in OneUptime.`);
   });
 
-  test(`an acknowledged ${kind.noun} leaves the case alone unless its state is mapped`, async () => {
+  /*
+   * Only resolving closes a case. The template used to move the case to an
+   * active status of its own for a state STATE_TO_CASE_STATUS named, on a
+   * path of its own; it is one path now, and a state that is not resolved
+   * leaves the case as it is, named in STATE_TO_CASE_STATUS or not.
+   */
+  test(`an acknowledged ${kind.noun} leaves the case alone, and says only resolving closes it`, async () => {
     expectNothing(
       await run(args({ state: kind.acknowledgedState })),
-      `${kind.number} moved to Acknowledged, which has no case status mapped to it.`,
+      `${kind.number} moved to Acknowledged: only resolving the ${kind.noun} closes its Dynamics 365 case.`,
     );
-  });
-
-  test("a state mapped in STATE_TO_CASE_STATUS moves the case to that status", async () => {
-    expect(
+    expectNothing(
       await run(
         args({ state: kind.acknowledgedState }),
         replaceInCode(
@@ -1030,32 +1026,14 @@ describe.each(KINDS)("%s: plan-case-1", (_name: string, kind: RecordKind) => {
           "const STATE_TO_CASE_STATUS = { Acknowledged: 4 };",
         ),
       ),
-    ).toEqual({
-      proceed: true,
-      action: "status",
-      caseId: CASE_ID,
-      caseNumber: CASE_NUMBER,
-      statusBody: { statecode: 0, statuscode: 4 },
-      status: 4,
-      reason: `${kind.number} is Acknowledged in OneUptime.`,
-    });
+      `${kind.number} moved to Acknowledged: only resolving the ${kind.noun} closes its Dynamics 365 case.`,
+    );
   });
 
-  test("a case already in the mapped status is left as it is", async () => {
+  test(`an ${kind.noun} back at Created leaves the case alone too`, async () => {
     expectNothing(
-      await run(
-        args({
-          state: kind.acknowledgedState,
-          search: quoted(
-            caseSearchResponse([caseSearchRow({ statuscode: 4 })]),
-          ),
-        }),
-        replaceInCode(
-          "const STATE_TO_CASE_STATUS = {};",
-          "const STATE_TO_CASE_STATUS = { Acknowledged: 4 };",
-        ),
-      ),
-      `Dynamics 365 case ${CASE_NUMBER} is already Researching.`,
+      await run(args({ state: kind.createdState })),
+      `${kind.number} moved to Identified: only resolving the ${kind.noun} closes its Dynamics 365 case.`,
     );
   });
 
@@ -1126,7 +1104,8 @@ describe.each(KINDS)("%s: plan-case-1", (_name: string, kind: RecordKind) => {
       syncPrivate(kind),
     );
 
-    expect(result["action"]).toBe("close");
+    expect(result["proceed"]).toBe(true);
+    expect(result["closeBody"]).toBeDefined();
   });
 
   test("the resolution's subject stops at 200 characters", async () => {
@@ -1309,105 +1288,44 @@ describe.each(NOTE_TEMPLATES)(
 
 /* ------------------------ Dynamics 365 -> OneUptime ------------------------ */
 
-describe.each(KINDS)(
-  "%s: read-event-1, for new cases",
-  (_name: string, kind: RecordKind) => {
-    const run: RunStepFunction = step(
-      kind.templates.createRecord,
-      "read-event-1",
-    );
+type SeverityAtFunction = (
+  place: string,
+  severities: Array<JSONObject>,
+) => string;
 
-    test("a Dataverse webhook for a new case names it", async () => {
-      expect(await run(webhookContext({ messageName: "Create" }))).toEqual({
-        proceed: true,
-        caseId: CASE_ID,
-        message: "Create",
-      });
+/*
+ * The severity a place lands on, as Incident or Alert From Another Tool
+ * picks it (pickSeverityIndex): among the project's severities by their
+ * order, most severe first.
+ */
+const severityAt: SeverityAtFunction = (
+  place: string,
+  severities: Array<JSONObject>,
+): string => {
+  const ordered: Array<{ id: string; name: string }> = [...severities]
+    .sort((a: JSONObject, b: JSONObject): number => {
+      return Number(a["order"]) - Number(b["order"]);
+    })
+    .map((severity: JSONObject): { id: string; name: string } => {
+      return { id: String(severity["_id"]), name: String(severity["name"]) };
     });
+  const choice: SeverityChoice = pickSeverityIndex({
+    given: place,
+    severities: ordered,
+  });
 
-    test("the id is read however Dataverse writes it", async () => {
-      for (const id of [CASE_ID.toUpperCase(), `{${CASE_ID}}`]) {
-        expect(
-          (await run(webhookContext({ messageName: "Create", rowId: id })))[
-            "caseId"
-          ],
-        ).toBe(CASE_ID);
-      }
-    });
+  expect(choice.namedBy).toBe("position");
 
-    test("a body Dataverse cut down past 256 KB still names the case", async () => {
-      expect(
-        (await run(webhookContext({ messageName: "Create", stripped: true })))[
-          "caseId"
-        ],
-      ).toBe(CASE_ID);
-    });
+  return ordered[choice.index]?.name as string;
+};
 
-    test("an edit is ignored: an old case must not become a record the first time it is edited", async () => {
-      expectSkipped(
-        await run(webhookContext({ messageName: "Update" })),
-        "Ignored the Update event: this workflow only handles Create.",
-      );
-    });
-
-    test("a Power Automate flow's body names the case by incidentid", async () => {
-      expect(await run(flowBody())).toEqual({
-        proceed: true,
-        caseId: CASE_ID,
-        message: "a change",
-      });
-      expect(await run({ incidentid: CASE_ID })).toEqual({
-        proceed: true,
-        caseId: CASE_ID,
-        message: "a change",
-      });
-    });
-
-    test("a flow that passes the trigger's SdkMessage on is held to the same events", async () => {
-      expect((await run(flowBody({ sdkMessage: "Create" })))["proceed"]).toBe(
-        true,
-      );
-      expectSkipped(
-        await run(flowBody({ sdkMessage: "Update" })),
-        "Ignored the Update event: this workflow only handles Create.",
-      );
-    });
-
-    test("a webhook registered on another table is not taken for a case", async () => {
-      expectSkipped(
-        await run(webhookContext({ messageName: "Create", table: "account" })),
-        "The request is about the account table, not cases, so it was ignored.",
-      );
-    });
-
-    test("a request that names no case is ignored", async () => {
-      // The JavaScript step hands a script {} for an empty body, and refuses one that is not JSON.
-      for (const body of [
-        {},
-        { incidentid: "not-an-id" },
-        { incidentid: EMPTY_ID },
-        { PrimaryEntityName: "incident" },
-        [CASE_ID],
-      ]) {
-        expectSkipped(
-          await run(body as JSONValue),
-          "The request did not name a Dynamics 365 case, so it was ignored.",
-        );
-      }
-    });
-
-    test("the event's name is defused, since anyone with the URL can choose it", async () => {
-      const result: JSONObject = await run({
-        incidentid: CASE_ID,
-        SdkMessage: MALICIOUS,
-      });
-
-      expect(result["proceed"]).toBe(false);
-      expectDefused(result);
-    });
-  },
-);
-
+/*
+ * The create-from-case template reads the case by the id the webhook names
+ * (get-case-1, API Get By ID on the body's PrimaryEntityId), and its
+ * prepare step reads the rest: which event the request names, and the case
+ * as Dynamics 365 has it. Reading the event was a step of its own,
+ * read-event-1, and is now the prepare step's.
+ */
 describe.each(KINDS)(
   `%s: the create-from-case template's prepare step`,
   (_name: string, kind: RecordKind) => {
@@ -1418,25 +1336,27 @@ describe.each(KINDS)(
 
     type ArgsFunction = (props?: {
       row?: JSONObject | string | undefined;
-      severities?: JSONValue | undefined;
+      payload?: JSONValue | undefined;
       linkColumn?: string | undefined;
     }) => JSONObject;
 
+    // In the template's order: the site, the link column, the request, then the case.
     const args: ArgsFunction = (props?: {
       row?: JSONObject | string | undefined;
-      severities?: JSONValue | undefined;
+      payload?: JSONValue | undefined;
       linkColumn?: string | undefined;
     }): JSONObject => {
       const row: JSONObject | string = props?.row || caseRow();
+      const payload: JSONValue =
+        props?.payload === undefined
+          ? webhookContext({ messageName: "Create" })
+          : props.payload;
 
       return {
-        severities:
-          props?.severities === undefined
-            ? quoted(kind.severities)
-            : props.severities,
         dynamicsUrl: DYNAMICS_URL,
         linkColumn:
           props?.linkColumn === undefined ? LINK_COLUMN : props.linkColumn,
+        payload: typeof payload === "string" ? payload : quoted(payload),
         case: typeof row === "string" ? row : quoted(row),
       };
     };
@@ -1448,8 +1368,7 @@ describe.each(KINDS)(
         proceed: true,
         caseId: CASE_ID,
         caseNumber: CASE_NUMBER,
-        severityName: kind.priorities[0]?.severityName,
-        [kind.severityIdKey]: kind.priorities[0]?.severityId,
+        severity: "most severe",
         title: "Customers in the EU cannot complete checkout",
         description: [
           `${kind.Created} from Dynamics 365 case [${CASE_NUMBER}](${caseUrl}).`,
@@ -1461,17 +1380,44 @@ describe.each(KINDS)(
       });
     });
 
+    /*
+     * Incident or Alert From Another Tool takes the place among the
+     * project's own severities: the same severity for each priority as the
+     * script picked before.
+     */
     test.each(kind.priorities)(
       "a case of priority $prioritycode becomes a $severityName record",
-      async ({ prioritycode, severityId, severityName }: PriorityMapping) => {
+      async ({ prioritycode, severityName }: PriorityMapping) => {
         const result: JSONObject = await run(
           args({ row: caseRow({ prioritycode: prioritycode }) }),
         );
 
-        expect(result[kind.severityIdKey]).toBe(severityId);
-        expect(result["severityName"]).toBe(severityName);
+        expect(severityAt(textOf(result, "severity"), kind.severities)).toBe(
+          severityName,
+        );
       },
     );
+
+    test("names each priority's place: High most severe, Normal and the rest the middle, Low least severe", async () => {
+      const places: Array<string> = [];
+
+      for (const prioritycode of [1, 2, 3, null, 100000001]) {
+        places.push(
+          textOf(
+            await run(args({ row: caseRow({ prioritycode: prioritycode }) })),
+            "severity",
+          ),
+        );
+      }
+
+      expect(places).toEqual([
+        "most severe",
+        "middle",
+        "least severe",
+        "middle",
+        "middle",
+      ]);
+    });
 
     test("PRIORITY_RANK can send a Normal case to the most severe severity", async () => {
       const result: JSONObject = await run(
@@ -1482,7 +1428,7 @@ describe.each(KINDS)(
         ),
       );
 
-      expect(result[kind.severityIdKey]).toBe(kind.priorities[0]?.severityId);
+      expect(result["severity"]).toBe("most severe");
     });
 
     test("ONLY_PRIORITIES leaves the other cases out", async () => {
@@ -1552,13 +1498,6 @@ describe.each(KINDS)(
       }
     });
 
-    test(`a project with no ${kind.noun} severities gets nothing`, async () => {
-      expectSkipped(
-        await run(args({ severities: quoted([]) })),
-        `This project has no ${kind.noun} severities to choose from.`,
-      );
-    });
-
     test("a link column that is not a logical name stops it", async () => {
       expectSkipped(
         await run(args({ linkColumn: "OneUptime Link" })),
@@ -1609,6 +1548,59 @@ describe.each(KINDS)(
       expect(textOf(result, "title")).toHaveLength(500);
       expect(textOf(result, "description")).toHaveLength(20000);
     });
+
+    // What read-event-1 checked, for new cases.
+    test("a Dataverse webhook for a new case goes on, whatever it was cut down to", async () => {
+      for (const payload of [
+        webhookContext({ messageName: "Create" }),
+        webhookContext({ messageName: "Create", stripped: true }),
+      ]) {
+        expect((await run(args({ payload: payload })))["proceed"]).toBe(true);
+      }
+    });
+
+    test("an edit is ignored: an old case must not become a record the first time it is edited", async () => {
+      expectSkipped(
+        await run(args({ payload: webhookContext({ messageName: "Update" }) })),
+        "Ignored the Update event: this workflow only handles Create.",
+      );
+    });
+
+    test("a Power Automate flow's body goes on, held to the same events when it passes the trigger's SdkMessage on", async () => {
+      expect((await run(args({ payload: flowBody() })))["proceed"]).toBe(true);
+      expect(
+        (await run(args({ payload: flowBody({ sdkMessage: "Create" }) })))[
+          "proceed"
+        ],
+      ).toBe(true);
+      expectSkipped(
+        await run(args({ payload: flowBody({ sdkMessage: "Update" }) })),
+        "Ignored the Update event: this workflow only handles Create.",
+      );
+    });
+
+    test("a webhook registered on another table is not taken for a case", async () => {
+      expectSkipped(
+        await run(
+          args({
+            payload: webhookContext({
+              messageName: "Create",
+              table: "account",
+            }),
+          }),
+        ),
+        "The request is about the account table, not cases, so it was ignored.",
+      );
+    });
+
+    test("the event's name is defused, since anyone with the URL can choose it", async () => {
+      const result: JSONObject = await run(
+        args({ payload: { PrimaryEntityId: CASE_ID, SdkMessage: MALICIOUS } }),
+      );
+
+      expect(result["proceed"]).toBe(false);
+      expectDefused(result);
+    });
   },
 );
 
@@ -1655,131 +1647,16 @@ describe.each(KINDS)(
   },
 );
 
-describe.each(KINDS)("%s: find-link-1", (_name: string, kind: RecordKind) => {
-  const run: RunStepFunction = step(
-    kind.templates.statusToState,
-    "find-link-1",
-  );
-
-  type ArgsFunction = (
-    row: JSONObject | string,
-    linkColumn?: string,
-  ) => JSONObject;
-
-  const args: ArgsFunction = (
-    row: JSONObject | string,
-    linkColumn?: string,
-  ): JSONObject => {
-    return {
-      linkColumn: linkColumn === undefined ? LINK_COLUMN : linkColumn,
-      case: typeof row === "string" ? row : quoted(row),
-    };
-  };
-
-  test(`reads the ${kind.noun} off the case's link column, with the case's status`, async () => {
-    expect(
-      await run(args(caseRow({ link: kind.link, statuscode: 5 }))),
-    ).toEqual({
-      proceed: true,
-      [kind.idKey]: kind.id,
-      caseId: CASE_ID,
-      caseNumber: CASE_NUMBER,
-      caseState: 1,
-      caseStateName: "Resolved",
-      caseStatus: 5,
-      caseStatusName: "Problem Solved",
-      caseStatusText: "Problem Solved",
-      changedBy: "Priya Patel",
-    });
-  });
-
-  test("a link written in capitals is still read", async () => {
-    expect(
-      (
-        await run(
-          args(
-            caseRow({
-              link: `  ${kind.link.toUpperCase().replace("ONEUPTIME", "OneUptime")} `,
-            }),
-          ),
-        )
-      )[kind.idKey],
-    ).toBe(kind.id);
-  });
-
-  test("without display text, the status is still described", async () => {
-    const result: JSONObject = await run(
-      args(
-        caseRow({
-          link: kind.link,
-          statuscode: 5,
-          withoutFormattedValues: true,
-        }),
-      ),
-    );
-
-    expect(result["caseStatusName"]).toBe("");
-    expect(result["caseStatusText"]).toBe("in status 5");
-  });
-
-  test.each([
-    ["no link", null],
-    ["the other kind's link", "other"],
-    ["a link with no id", "prefix-only"],
-    ["a link with a bad id", "bad-id"],
-  ])(
-    `a case with %s is not linked to an ${kind.noun}`,
-    async (_label: string, link: string | null) => {
-      const value: string | null =
-        link === "other"
-          ? kind.otherKindLink
-          : link === "prefix-only"
-            ? kind.linkPrefix
-            : link === "bad-id"
-              ? `${kind.linkPrefix}12345`
-              : link;
-
-      expectSkipped(
-        await run(args(caseRow({ link: value }))),
-        `Dynamics 365 case ${CASE_NUMBER} is not linked to an ${kind.noun}: its ${LINK_COLUMN} column does not hold ${kind.linkPrefix}<id>.`,
-      );
-    },
-  );
-
-  test("a case Dynamics 365 did not return is nothing to go on", async () => {
-    for (const row of [
-      "null",
-      "{{local.components.get-case-1.returnValues.response-body}}",
-    ]) {
-      expectSkipped(
-        await run(args(row)),
-        "Dynamics 365 did not return the case.",
-      );
-    }
-  });
-
-  test("a link column that is not a logical name stops it", async () => {
-    expectSkipped(
-      await run(args(caseRow({ link: kind.link }), "")),
-      "The Case Link Column setting, which is empty, is not the logical name of a column, such as new_oneuptimelink.",
-    );
-  });
-
-  test("the status and the name of whoever changed it are defused", async () => {
-    expectDefused(
-      await run(
-        args(
-          caseRow({
-            link: kind.link,
-            modifiedBy: MALICIOUS,
-            ticketnumber: MALICIOUS,
-          }),
-        ),
-      ),
-    );
-  });
-});
-
+/*
+ * The case-status template reads the case by the id read-event-1 took off
+ * the request (get-case-1), and decide-state-1 reads the record it is
+ * linked to off its link column and what its state means for the record.
+ * Finding the link was a step of its own, find-link-1. Whether the record
+ * is already where the case would put it - resolved, which settles the
+ * echo of the OneUptime to Dynamics 365 template closing the case - is
+ * Incident or Alert From Another Tool's (FromAnotherTool.test.ts): it moves
+ * a record only ever forward.
+ */
 describe.each(KINDS)(
   "%s: decide-state-1",
   (_name: string, kind: RecordKind) => {
@@ -1788,128 +1665,180 @@ describe.each(KINDS)(
       "decide-state-1",
     );
 
-    type LinkFunction = (props?: {
-      caseState?: number | undefined;
-      caseStatusName?: string | undefined;
-    }) => JSONObject;
+    type ArgsFunction = (
+      row: JSONObject | string,
+      linkColumn?: string,
+    ) => JSONObject;
 
-    const linkOf: LinkFunction = (props?: {
-      caseState?: number | undefined;
-      caseStatusName?: string | undefined;
-    }): JSONObject => {
+    const args: ArgsFunction = (
+      row: JSONObject | string,
+      linkColumn?: string,
+    ): JSONObject => {
       return {
+        linkColumn: linkColumn === undefined ? LINK_COLUMN : linkColumn,
+        case: typeof row === "string" ? row : quoted(row),
+      };
+    };
+
+    test(`a resolved case resolves the ${kind.noun} its link column names, and says why`, async () => {
+      expect(
+        await run(args(caseRow({ link: kind.link, statuscode: 5 }))),
+      ).toEqual({
         proceed: true,
         [kind.idKey]: kind.id,
         caseId: CASE_ID,
-        caseNumber: CASE_NUMBER,
-        caseState: props?.caseState === undefined ? 1 : props.caseState,
-        caseStateName: "Resolved",
-        caseStatus: 5,
-        caseStatusName: props?.caseStatusName || "Problem Solved",
-        caseStatusText: props?.caseStatusName || "Problem Solved",
-        changedBy: "Priya Patel",
-      };
-    };
-
-    type ArgsFunction = (props?: {
-      record?: JSONObject | string | undefined;
-      link?: JSONObject | undefined;
-    }) => JSONObject;
-
-    const args: ArgsFunction = (props?: {
-      record?: JSONObject | string | undefined;
-      link?: JSONObject | undefined;
-    }): JSONObject => {
-      const record: JSONObject | string =
-        props?.record || kind.model({ state: kind.createdState });
-
-      return {
-        [kind.noun]: typeof record === "string" ? record : quoted(record),
-        states: quoted(kind.states),
-        link: quoted(props?.link || linkOf()),
-      };
-    };
-
-    test(`a resolved case resolves the ${kind.noun}, and says why`, async () => {
-      expect(await run(args())).toEqual({
-        proceed: true,
-        [kind.idKey]: kind.id,
-        stateId: kind.resolvedStateId,
-        stateName: "Resolved",
-        rootCause: `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: case ${CASE_NUMBER} is Problem Solved, changed by Priya Patel.`,
+        whatHappened: "resolve",
+        reason: `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: case ${CASE_NUMBER} is Problem Solved, changed by Priya Patel.`,
       });
+    });
+
+    test("any resolved status resolves it", async () => {
+      const result: JSONObject = await run(
+        args(caseRow({ link: kind.link, statuscode: 1000 })),
+      );
+
+      expect(result["whatHappened"]).toBe("resolve");
     });
 
     test("an active case maps to nothing: the record never moves backwards", async () => {
       expectSkipped(
-        await run(
-          args({
-            link: linkOf({ caseState: 0, caseStatusName: "In Progress" }),
-          }),
-        ),
+        await run(args(caseRow({ link: kind.link, statuscode: 1 }))),
         `Dynamics 365 case ${CASE_NUMBER} is In Progress, which does not map to a OneUptime state.`,
       );
     });
 
     test("a cancelled case maps to nothing, unless CASE_STATE_TO_STATE_FLAG says so", async () => {
-      const cancelled: JSONObject = linkOf({
-        caseState: 2,
-        caseStatusName: "Cancelled",
-      });
+      const cancelled: JSONObject = caseRow({ link: kind.link, statuscode: 6 });
 
       expectSkipped(
-        await run(args({ link: cancelled })),
+        await run(args(cancelled)),
         `Dynamics 365 case ${CASE_NUMBER} is Cancelled, which does not map to a OneUptime state.`,
       );
 
       const result: JSONObject = await run(
-        args({ link: cancelled }),
+        args(cancelled),
         replaceInCode(
           "const CASE_STATE_TO_STATE_FLAG = { 1: 'isResolvedState' };",
           "const CASE_STATE_TO_STATE_FLAG = { 1: 'isResolvedState', 2: 'isResolvedState' };",
         ),
       );
 
-      expect(result["stateId"]).toBe(kind.resolvedStateId);
+      expect(result["whatHappened"]).toBe("resolve");
     });
 
     test("CASE_STATUS_TO_STATE maps a status by name, over its state", async () => {
       const result: JSONObject = await run(
-        args({ link: linkOf({ caseState: 0, caseStatusName: "Researching" }) }),
+        args(caseRow({ link: kind.link, statuscode: 4 })),
         replaceInCode(
           "const CASE_STATUS_TO_STATE = {};",
-          "const CASE_STATUS_TO_STATE = { Researching: 'acknowledged' };",
+          "const CASE_STATUS_TO_STATE = { Researching: 'Acknowledged' };",
         ),
       );
 
-      expect(result["stateName"]).toBe("Acknowledged");
+      expect(result["whatHappened"]).toBe("state: Acknowledged");
     });
 
-    test(`an ${kind.noun} already resolved changes nothing: that is what settles the echo`, async () => {
-      expectSkipped(
-        await run(args({ record: kind.model({ state: kind.resolvedState }) })),
-        `${kind.number} is already Resolved, so Dynamics 365 case ${CASE_NUMBER} being Problem Solved changes nothing.`,
+    test("a link written in capitals is still read", async () => {
+      expect(
+        (
+          await run(
+            args(
+              caseRow({
+                link: `  ${kind.link.toUpperCase().replace("ONEUPTIME", "OneUptime")} `,
+                statuscode: 5,
+              }),
+            ),
+          )
+        )[kind.idKey],
+      ).toBe(kind.id);
+    });
+
+    test("without display text, the status is still described", async () => {
+      const result: JSONObject = await run(
+        args(
+          caseRow({
+            link: kind.link,
+            statuscode: 5,
+            withoutFormattedValues: true,
+          }),
+        ),
+      );
+
+      expect(result["reason"]).toBe(
+        `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: case ${CASE_NUMBER} is in status 5.`,
       );
     });
 
-    test(`an ${kind.noun} this project does not have is left alone`, async () => {
-      for (const record of [
+    test.each([
+      ["no link", null],
+      ["the other kind's link", "other"],
+      ["a link with no id", "prefix-only"],
+      ["a link with a bad id", "bad-id"],
+    ])(
+      `a case with %s is not linked to an ${kind.noun}`,
+      async (_label: string, link: string | null) => {
+        const value: string | null =
+          link === "other"
+            ? kind.otherKindLink
+            : link === "prefix-only"
+              ? kind.linkPrefix
+              : link === "bad-id"
+                ? `${kind.linkPrefix}12345`
+                : link;
+
+        expectSkipped(
+          await run(args(caseRow({ link: value, statuscode: 5 }))),
+          `Dynamics 365 case ${CASE_NUMBER} is not linked to an ${kind.noun}: its ${LINK_COLUMN} column does not hold ${kind.linkPrefix}<id>.`,
+        );
+      },
+    );
+
+    test("a case Dynamics 365 did not return is nothing to go on", async () => {
+      for (const row of [
         "null",
-        `{{local.components.find-${kind.noun}-1.returnValues.model}}`,
+        "{{local.components.get-case-1.returnValues.response-body}}",
       ]) {
         expectSkipped(
-          await run(args({ record: record })),
-          `No ${kind.noun} with id ${kind.id} exists in this project.`,
+          await run(args(row)),
+          "Dynamics 365 did not return the case.",
         );
       }
     });
 
-    test("the root cause stops at 1000 characters", async () => {
+    test("a link column that is not a logical name stops it", async () => {
+      expectSkipped(
+        await run(args(caseRow({ link: kind.link }), "")),
+        "The Case Link Column setting, which is empty, is not the logical name of a column, such as new_oneuptimelink.",
+      );
+    });
+
+    test("the case number, the status and the name of whoever changed it are defused", async () => {
+      expectDefused(
+        await run(
+          args(
+            caseRow({
+              link: kind.link,
+              statuscode: 5,
+              modifiedBy: MALICIOUS,
+              ticketnumber: MALICIOUS,
+            }),
+          ),
+        ),
+      );
+    });
+
+    test("the reason stops at 1000 characters", async () => {
       const result: JSONObject = await run(
-        args({ link: { ...linkOf(), changedBy: "P".repeat(2000) } }),
+        args(
+          caseRow({
+            link: kind.link,
+            statuscode: 5,
+            modifiedBy: "P".repeat(2000),
+          }),
+        ),
       );
 
-      expect(textOf(result, "rootCause")).toHaveLength(1000);
+      expect(textOf(result, "reason")).toHaveLength(1000);
     });
   },
 );
@@ -2194,9 +2123,9 @@ describe("a case linked to one kind is never taken for the other", () => {
       [INCIDENT, ALERT],
       [ALERT, INCIDENT],
     ] as Array<[RecordKind, RecordKind]>) {
-      const findLink: RunStepFunction = step(
+      const decideState: RunStepFunction = step(
         own.templates.statusToState,
-        "find-link-1",
+        "decide-state-1",
       );
       const readNote: RunStepFunction = step(
         own.templates.caseNoteToNote,
@@ -2205,9 +2134,9 @@ describe("a case linked to one kind is never taken for the other", () => {
 
       expect(
         (
-          await findLink({
+          await decideState({
             linkColumn: LINK_COLUMN,
-            case: quoted(caseRow({ link: other.link })),
+            case: quoted(caseRow({ link: other.link, statuscode: 5 })),
           })
         )["proceed"],
       ).toBe(false);
@@ -2236,9 +2165,9 @@ describe("a case linked to one kind is never taken for the other", () => {
       expect(
         (
           await prepare({
-            severities: quoted(own.severities),
             dynamicsUrl: DYNAMICS_URL,
             linkColumn: LINK_COLUMN,
+            payload: quoted(webhookContext({ messageName: "Create" })),
             case: quoted(caseRow({ link: other.link })),
           })
         )["proceed"],

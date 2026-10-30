@@ -432,7 +432,10 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Kubernetes Cluster"
         placeholder="Select a cluster..."
         options={resources.options}
-        value={monitorStepKubernetesMonitor.clusterIdentifier}
+        value={resources.valueOf({
+          value: monitorStepKubernetesMonitor.clusterIdentifier,
+          resourceId: monitorStepKubernetesMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

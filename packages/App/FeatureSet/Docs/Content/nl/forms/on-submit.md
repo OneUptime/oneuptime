@@ -134,7 +134,7 @@ Elke inzending laat een privénotitie achter op wat ze aanmaakte:
 > **Which office are you in?**\
 > Berlin
 
-Ze noemt het formulier en de inzender — "Submitted anonymously through the form **Report a Problem**." als het formulier niet vroeg wie het is —, zegt daarna, als de inzending met een van de sjablonen van het formulier begon, welk: "Started from the template **Application Outage**." — en toont dan de antwoorden op de eigen vragen van het formulier, elk onder zijn vraag, in de volgorde van het formulier. De antwoorden op gekoppelde vragen staan al op het record: de titel, het ernstniveau, de aangepaste velden. Omdat de notitie privé is, bereikt ze nooit een statuspagina, maar ze wordt wel in de Slack- en Microsoft Teams-kanalen van het record geplaatst, zoals elke andere notitie.
+Ze noemt het formulier en de inzender — "Submitted anonymously through the form **Report a Problem**." als het formulier niet vroeg wie het is —, zegt daarna, als de inzending met een van de sjablonen van het formulier begon, welk: "Started from the template **Application Outage**." — en toont dan de antwoorden op de eigen vragen van het formulier, elk onder zijn vraag, in de volgorde van het formulier. De antwoorden op gekoppelde vragen staan al op het record: de titel, het ernstniveau, de aangepaste velden. Omdat de notitie privé is, bereikt ze nooit een statuspagina, maar ze wordt wel in de Slack- en Microsoft Teams-kanalen van het record geplaatst, zoals elke andere notitie. De bestanden van de vragen **Bestand** en **Meerdere bestanden** worden aan de notitie toegevoegd, waar je team ze downloadt.
 
 Het adres is een link die precies naar dat adres schrijft — in het dashboard, in Slack en in de e-mail aan de eigenaren.
 
@@ -158,6 +158,10 @@ Een inzending gaat rechtstreeks naar plekken waar tekst vanzelf iets kan doen �
 | Afbeeldingssyntaxis of een diagramblok in de titel | **De titel is platte tekst.** Ook die krijgen het onzichtbare teken, dus waar de titel ook terechtkomt — een episode, een chatbericht, een notitiesjabloon — hij laadt niets en tekent niets. De onzichtbare tekens tellen mee voor de limiet van de titel. |
 
 Al het andere — links, de rest van de Markdown, keuzes uit keuzelijsten, getallen, datums, een aangevinkt vakje — wordt opgeslagen zoals de inzender het gaf, en de inzending bewaart de naam en het e-mailadres van de inzender zoals getypt.
+
+## Bestanden die een inzender stuurt
+
+Een bestandsvraag houdt de bestanden die een inzender kiest in diens browser en stuurt ze mee met de antwoorden, zodat niemand een account nodig heeft om er een toe te voegen. De server controleert elk bestand zoals een [aangepast bestandsveld](/docs/incidents/settings#bestandsvelden) dat doet — de grootte, de soort en wat erin staat — en slaat de bestanden privé in je project op, pas als de inzending elke andere controle heeft doorstaan: voor een geweigerde inzending wordt niets bewaard. Een vraag voor een aangepast veld **Bestand** of **Meerdere bestanden** zet de bestanden in dat veld, en de eigen bestandsvragen van het formulier voegen die van hen toe aan de privénotitie. De inzending bewaart de naam van elk bestand. [Groottelimieten](/docs/forms/building#groottelimieten) en [Snelheidslimieten](/docs/forms/sharing-and-security#snelheidslimieten) zeggen hoeveel een inzending en een formulier mogen sturen.
 
 ## Volgende stappen
 

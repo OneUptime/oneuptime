@@ -52,6 +52,8 @@ Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak**
 
 Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid. En rad merket **Regresjon** kom tilbake etter at den ble løst, og en merket **Ny** ble sett første gang i løpet av de siste 24 timene.
 
+Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke.
+
 ### Velg hva som teller som et problem
 
 **Problemer**, som er standard, skjuler brukerfeil og forventede avvisninger, slik at listen viser det som trenger retting. **User errors** viser bare dem, og **Alle** viser alle unntak.
@@ -129,7 +131,9 @@ Forklaringen lagres på unntaket, så den neste som åpner det leser den med en 
 
 ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
-Under kortene viser **Lignende unntak** opptil fem andre unntak som ligner på dette: med **Samme melding** når verdiene er tatt ut, med **Samme sted i koden** i koden din, eller med **Lignende melding** med de fleste av de samme ordene. Én årsak kan havne i flere unntak, så **Sjekk med OneUptime AI** sier om hvert om det er **Sannsynligvis den samme feilen**, **En relatert feil** eller **En annen feil**, og hvorfor. Sjekken bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
+Under kortene viser **Lignende unntak** opptil fem andre unntak som ligner på dette: med **Samme melding** når verdiene er tatt ut, med **Samme sted i koden** i koden din, eller med **Lignende melding** med de fleste av de samme ordene. Én årsak kan havne i flere unntak, så **Sjekk med OneUptime AI** sier om hvert om det er **Sannsynligvis den samme feilen**, **En relatert feil** eller **En annen feil**, og hvorfor. Sjekken bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Svaret lagres til neste forekomst.
+
+Slå et som OneUptime AI kaller **Sannsynligvis den samme feilen**, og som hører til samme tjeneste, sammen med dette unntaket med **Slå sammen** ved siden av: forekomstene, de hittil og hver ny, telles fra da av på dette unntaket og vises på siden dets, og det forsvinner fra listen. **Slått sammen med dette unntaket** nedenfor viser hva som er slått sammen, og **Del opp** ved siden av hvert, eller på et sammenslått unntaks egen side, gir det tilbake sin egen plass i listen, med forekomstene siden. Å slå sammen og dele opp krever tillatelse til å redigere unntak.
 
 ## Rett det med AI
 
@@ -185,7 +189,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 Fanen **Innsikt** teller unntakene dine under **Uløst**, **Løst** og **Arkivert** og løsningsraten din, og viser de vanligste unntakene, tjenestene de rammer og de som sist ble sett.
 
-**Hva er nytt** øverst i fanen ber OneUptime AI med **Oppsummer med OneUptime AI** om å oppsummere unntakene som først ble sett de siste 24 timene, og de som kom tilbake etter at de var løst: noen setninger om alle, deretter hvert på én linje, det mest presserende først, med en lenke til unntaket. Oppsummeringen skrives når du ber om den, og lagres ikke, bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
+**Hva er nytt** øverst i fanen ber OneUptime AI med **Oppsummer med OneUptime AI** om å oppsummere unntakene som først ble sett de siste 24 timene, og de som kom tilbake etter at de var løst: noen setninger om alle, deretter hvert på én linje, det mest presserende først, med en lenke til unntaket. Oppsummeringen skrives når du ber om den, og lagres til neste forekomst, så det koster ingenting å spørre igjen; den bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
 
 ## Feilsøking
 

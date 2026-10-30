@@ -55,6 +55,15 @@ export const BUTTON_DISABLED_CLASS_NAME: string =
 export const BUTTON_DISABLED_CURSOR_CLASS_NAME: string = "cursor-not-allowed";
 
 /*
+ * SECONDARY_LINK's words, and its words under the pointer: a muted link that
+ * still meets WCAG's 4.5:1 for text on the light cards it sits on, and on
+ * the dark theme's (Theme.css maps gray-600 to its muted text, and the hover
+ * to its primary text).
+ */
+export const SECONDARY_LINK_TEXT_CLASS_NAME: string = "text-sm text-gray-600";
+export const SECONDARY_LINK_HOVER_CLASS_NAME: string = "hover:text-gray-900";
+
+/*
  * OUTLINE: the plain bordered button. NORMAL's border, fill, text, shadow,
  * hover and focus ring, sized to its label at every width - NORMAL is as
  * wide as a phone's screen and keeps a dialog footer's margin (md:ml-3),
@@ -279,9 +288,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
   }
 
+  /*
+   * A quieter link than LINK - Show More Details, Clear Filters - but one
+   * that reads as a link that works: gray-600 is 7.6:1 on a white card (and
+   * Theme.css draws it in the dark theme's muted text). It was gray-400,
+   * 2.5:1, under WCAG's 4.5:1 for text, and read as switched off.
+   */
   if (buttonStyle === ButtonStyleType.SECONDARY_LINK) {
-    buttonStyleCssClass = `text-sm text-gray-400 ${
-      isInert ? "" : "hover:text-gray-500"
+    buttonStyleCssClass = `${SECONDARY_LINK_TEXT_CLASS_NAME} ${
+      isInert ? "" : SECONDARY_LINK_HOVER_CLASS_NAME
     } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon || isLoading) {

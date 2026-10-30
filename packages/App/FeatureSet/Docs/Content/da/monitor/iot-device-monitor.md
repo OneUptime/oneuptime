@@ -118,6 +118,8 @@ Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindu
 
 En registreret enhed bevares også som offline i flådens inventar, mens en uregistreret fjernes efter 15 minutters stilhed. Registrering af stilhed kræver politikken **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer oprettet fra skabelonen har. En Device Offline-monitor, der blev oprettet, før enhedsregistrering fandtes, skal have den sat manuelt eller oprettes igen fra skabelonen.
 
+**Device Offline** bedømmer hver enhed ud fra dens seneste måling, så en enhed, der meldte sig nede og derefter oppe igen, er oppe ved næste kontrol. En Device Offline-monitor, der forbliver offline, indtil målingen om nede er 30 minutter gammel, blev oprettet, før skabelonen gjorde dette: vælg skabelonen igen under **Hvad der skal advares om** for at opdatere den.
+
 > [!NOTE]
 > En uregistreret enhed, der bliver tavs uden en Last Will eller en gatewayrapport, holder bare op med at sende data, og en monitor, der grupperer pr. enhed, kan ikke udpege den. Registrér dine enheder, eller giv en kritisk enhed sin egen monitor (**Custom Metric**, med dens **Device ID**), og sæt **Hvis ingen data** til **Trigger**. Registrering af stilhed kræver også, at mindst én anden enhed i flåden stadig rapporterer: en flåde, der går helt i sort, for eksempel under et gatewaynedbrud, udsender én hændelse for monitoren, ikke én pr. enhed.
 

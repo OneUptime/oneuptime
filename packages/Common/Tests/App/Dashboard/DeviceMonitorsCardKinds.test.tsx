@@ -1,12 +1,27 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
+import fs from "fs";
+import path from "path";
 import { MemoryRouter } from "react-router-dom";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import DeviceMonitorsCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorsCard";
+import DeviceMonitorsCard, {
+  getDeviceWebUiMonitorRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorsCard";
+import Navigation from "../../../UI/Utils/Navigation";
+import {
+  DEVICE_MONITOR_CHECK_QUERY_PARAM,
+  DeviceMonitorCheck,
+} from "../../../Utils/NetworkDevice/DeviceWebUiUtil";
 
 /*
  * A device's "Monitors alerting on this device" card, RENDERED, with the
@@ -20,6 +35,13 @@ import DeviceMonitorsCard from "../../../../App/FeatureSet/Dashboard/src/Compone
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const DEVICE_ID: string = "40000000-0000-4000-8000-000000000001";
+
+// Runs of whitespace, read as one space when a page's source is compared.
+const WHITESPACE_RUNS: RegExp = /\s+/g;
+
+// What a device page asks before it offers Monitor web UI.
+const CREATE_MONITOR_GATE: string =
+  "const canCreateMonitor: boolean = PermissionGate.check( new Monitor(), ModelAction.Create, ).isAllowed;";
 
 jest.mock("../../../UI/Utils/Project", () => {
   return {
@@ -69,6 +91,8 @@ const PING_MONITOR_FROM_IMPORT: Monitor = monitor({
 function renderCard(data: {
   monitors: Array<Monitor>;
   isMonitorBacked: boolean;
+  // Whether the reader may create monitors: yes unless a test says no.
+  canCreateMonitor?: boolean;
 }): void {
   render(
     <MemoryRouter>
@@ -78,6 +102,7 @@ function renderCard(data: {
         error=""
         networkDeviceId={DEVICE_ID}
         isMonitorBacked={data.isMonitorBacked}
+        canCreateMonitor={data.canCreateMonitor ?? true}
       />
     </MemoryRouter>,
   );
@@ -154,5 +179,152 @@ describe("the device monitors card says what every monitor it lists does", () =>
     expect(
       screen.getByRole("button", { name: "Create Monitor" }),
     ).toBeVisible();
+  });
+});
+
+/*
+ * "Monitor web UI" (#5281, the follow-up of #5145's device web UI
+ * templates): in the card's header, with monitors listed or none, it opens
+ * Create Monitor on a Website monitor of the device's management page.
+ */
+describe("Monitor web UI", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the device's link asks Create Monitor for its web UI check", () => {
+    const route: string = getDeviceWebUiMonitorRoute(DEVICE_ID).toString();
+    const query: URLSearchParams = new URLSearchParams(
+      route.slice(route.indexOf("?")),
+    );
+
+    expect(route.startsWith(`/dashboard/${PROJECT_ID}/monitors/create?`)).toBe(
+      true,
+    );
+    expect(query.get("networkDeviceId")).toBe(DEVICE_ID);
+    expect(query.get(DEVICE_MONITOR_CHECK_QUERY_PARAM)).toBe(
+      DeviceMonitorCheck.WebUi,
+    );
+  });
+
+  test.each([
+    ["with monitors listed", [NETWORK_DEVICE_MONITOR]],
+    ["with none", []],
+  ])(
+    "sits in the card's header %s, and opens Create Monitor on it",
+    (_name: string, monitors: Array<Monitor>) => {
+      const navigate: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+
+      renderCard({ monitors: monitors, isMonitorBacked: false });
+
+      const actions: HTMLElement = screen.getByTestId("card-header-actions");
+      const button: HTMLElement = within(actions).getByRole("button", {
+        name: "Monitor web UI",
+      });
+
+      fireEvent.click(button);
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(String((navigate.mock.calls[0] as Array<unknown>)[0])).toBe(
+        getDeviceWebUiMonitorRoute(DEVICE_ID).toString(),
+      );
+    },
+  );
+
+  test("a device whose status a bound monitor decides is offered it too", () => {
+    renderCard({ monitors: [], isMonitorBacked: true });
+
+    expect(
+      screen.getByRole("button", { name: "Monitor web UI" }),
+    ).toBeVisible();
+    // The way out of no bound monitor stays the empty state's.
+    expect(
+      screen.getByRole("button", { name: "Create Ping Monitor" }),
+    ).toBeVisible();
+  });
+
+  test("a card that names no device offers nothing to monitor", () => {
+    render(
+      <MemoryRouter>
+        <DeviceMonitorsCard
+          monitors={[]}
+          isLoading={false}
+          error=""
+          canCreateMonitor={true}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Monitor web UI" })).toBeNull();
+  });
+
+  /*
+   * Offered only to a reader who may create monitors - hidden, not locked,
+   * as the device's other on-demand actions are: for anyone else it opened
+   * a form that would not save.
+   */
+  test.each([
+    ["with monitors listed", [NETWORK_DEVICE_MONITOR]],
+    ["with none", []],
+  ])(
+    "a reader who may not create monitors is not offered it, %s",
+    (_name: string, monitors: Array<Monitor>) => {
+      renderCard({
+        monitors: monitors,
+        isMonitorBacked: false,
+        canCreateMonitor: false,
+      });
+
+      expect(
+        screen.queryByRole("button", { name: "Monitor web UI" }),
+      ).toBeNull();
+      expect(screen.queryByTestId("device-monitors-web-ui")).toBeNull();
+      // The card still says what watches the device.
+      expect(
+        screen.getByText("Monitors alerting on this device"),
+      ).toBeVisible();
+    },
+  );
+
+  test("both device pages ask the reader's permission to create a monitor", () => {
+    const pages: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View",
+    );
+
+    for (const page of ["Index.tsx", "Monitors.tsx"]) {
+      const source: string = fs
+        .readFileSync(path.join(pages, page), "utf8")
+        .replace(WHITESPACE_RUNS, " ");
+
+      expect({ page, asks: source.includes(CREATE_MONITOR_GATE) }).toEqual({
+        page,
+        asks: true,
+      });
+      expect({
+        page,
+        hands: source.includes("canCreateMonitor={canCreateMonitor}"),
+      }).toEqual({ page, hands: true });
+    }
+  });
+
+  test("the device's web UI monitor is listed with the others", () => {
+    renderCard({
+      monitors: [
+        NETWORK_DEVICE_MONITOR,
+        monitor({
+          id: "90000000-0000-4000-8000-000000000005",
+          name: "WB0024KDS03 web UI",
+          monitorType: MonitorType.Website,
+        }),
+      ],
+      isMonitorBacked: false,
+    });
+
+    expect(screen.getByText("WB0024KDS03 web UI")).toBeVisible();
   });
 });

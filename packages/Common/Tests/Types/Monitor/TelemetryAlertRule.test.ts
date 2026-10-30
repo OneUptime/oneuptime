@@ -1702,3 +1702,100 @@ describe("Matching a value, as the server compares one number", () => {
     expect(TelemetryAlertRuleUtil.toNumber(null)).toBeUndefined();
   });
 });
+
+/*
+ * An Exceptions rule can compare new exceptions, exceptions that came back
+ * or the rise over the usual count, not only how many: the measure is read
+ * from the rule's criteria, written back on change, and a count rule reads
+ * exactly as before - with no measure.
+ */
+describe("an Exceptions rule's measure", () => {
+  test("Exceptions offer four measures; every other type its one", () => {
+    expect(
+      TelemetryAlertRuleUtil.getMeasureOptions(MonitorType.Exceptions),
+    ).toEqual([
+      CheckOn.ExceptionCount,
+      CheckOn.NewExceptionCount,
+      CheckOn.RegressedExceptionCount,
+      CheckOn.ExceptionCountIncreasePercent,
+    ]);
+    expect(TelemetryAlertRuleUtil.getMeasureOptions(MonitorType.Logs)).toEqual([
+      CheckOn.LogCount,
+    ]);
+    // A measure the type does not offer is the type's own.
+    expect(
+      TelemetryAlertRuleUtil.getRuleMeasure({
+        monitorType: MonitorType.Logs,
+        rule: { measure: CheckOn.NewExceptionCount },
+      }),
+    ).toBe(CheckOn.LogCount);
+  });
+
+  test("a count rule reads with no measure, as before", () => {
+    const rule: TelemetryAlertRule = ruleOf(
+      MonitorType.Exceptions,
+      defaultStep(MonitorType.Exceptions),
+    );
+
+    expect("measure" in rule).toBe(false);
+  });
+
+  test.each([
+    CheckOn.NewExceptionCount,
+    CheckOn.RegressedExceptionCount,
+    CheckOn.ExceptionCountIncreasePercent,
+  ])(
+    "a rule on %s is written on it and reads back with it",
+    (measure: CheckOn) => {
+      const step: MonitorStep = defaultStep(MonitorType.Exceptions);
+      const rule: TelemetryAlertRule = ruleOf(MonitorType.Exceptions, step);
+
+      const written: MonitorStep = TelemetryAlertRuleUtil.write({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: step,
+        rule: { ...rule, measure, threshold: 0 },
+      });
+
+      for (const instance of written.data!.monitorCriteria!.data!
+        .monitorCriteriaInstanceArray) {
+        for (const filter of instance.data!.filters) {
+          expect(filter.checkOn).toBe(measure);
+        }
+      }
+
+      const readBack: TelemetryAlertRule = ruleOf(
+        MonitorType.Exceptions,
+        written,
+      );
+      expect(readBack.measure).toBe(measure);
+      expect(readBack.threshold).toBe(0);
+
+      // And back to a plain count.
+      const count: MonitorStep = TelemetryAlertRuleUtil.write({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: written,
+        rule: { ...readBack, measure: undefined },
+      });
+      expect(ruleOf(MonitorType.Exceptions, count).measure).toBeUndefined();
+      expect(
+        count.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0]!
+          .data!.filters[0]!.checkOn,
+      ).toBe(CheckOn.ExceptionCount);
+    },
+  );
+
+  test("a new rule is built on its measure", () => {
+    const rule: TelemetryAlertRule = ruleOf(
+      MonitorType.Exceptions,
+      defaultStep(MonitorType.Exceptions),
+    );
+    const criteria: MonitorCriteria = TelemetryAlertRuleUtil.buildCriteria({
+      monitorType: MonitorType.Exceptions,
+      rule: { ...rule, measure: CheckOn.NewExceptionCount },
+    });
+
+    expect(
+      criteria.data!.monitorCriteriaInstanceArray[0]!.data!.filters[0]!.checkOn,
+    ).toBe(CheckOn.NewExceptionCount);
+  });
+});

@@ -2354,6 +2354,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionRegressionPostgres.test.ts --forceExit
 
+      # Exceptions merged as the same bug: the merge and the unmerge move the
+      # counts under row locks, and the ingest upsert counts an occurrence of
+      # a merged exception on the one it was merged into too. A seeded sweep
+      # of ingests, merges and unmerges holds the counts to every occurrence
+      # ingested. Clones the migrated TelemetryException into an isolated
+      # schema.
+      - name: Test merging exceptions on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EXCEPTION_MERGE_TESTS: "true"
+          EXCEPTION_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when

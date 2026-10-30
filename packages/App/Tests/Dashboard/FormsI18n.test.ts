@@ -219,7 +219,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   de: ["Name", "Optional", "Status"],
   fr: ["Date", "Description", "Incident", "Options", "Question", "Questions"],
   es: ["No"],
-  it: ["No"],
+  // Italian says "file" too.
+  it: ["No", "File"],
   pt: ["Status"],
   nl: ["Incident", "Labels", "Status"],
   da: ["Status"],

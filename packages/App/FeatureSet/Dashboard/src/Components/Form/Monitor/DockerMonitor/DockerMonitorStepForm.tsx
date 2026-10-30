@@ -303,7 +303,10 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Docker Host"
         placeholder="Select a Docker host..."
         options={resources.options}
-        value={monitorStepDockerMonitor.hostIdentifier}
+        value={resources.valueOf({
+          value: monitorStepDockerMonitor.hostIdentifier,
+          resourceId: monitorStepDockerMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

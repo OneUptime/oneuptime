@@ -52,6 +52,8 @@ Aprite **Prodotti → Osservabilità → Eccezioni**. Il badge sulla scheda **Ec
 
 Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico sopra l'elenco mostra quante occorrenze sono state **Non gestito** e quante **Gestito** nel tempo. Una riga segnata **Regressione** si è ripresentata dopo essere stata risolta, e una segnata **Nuovo** è stata vista per la prima volta nelle ultime 24 ore.
 
+Ogni riga mostra anche quanti utenti l'eccezione ha colpito nell'intervallo scelto, e un piccolo grafico delle sue occorrenze in quell'intervallo. Un'occorrenza indica il suo utente con l'attributo `user.id`, `enduser.id` o `enduser.pseudo.id`, sull'evento dell'eccezione, sul suo span o record di log, o sulla sua risorsa; le occorrenze che non indicano alcun utente non vengono contate.
+
 ### Scegliere che cosa conta come problema
 
 **Problemi**, il predefinito, nasconde gli errori degli utenti e i rifiuti previsti, così l'elenco mostra ciò che richiede una correzione. **User errors** mostra solo quelli, e **Tutti** mostra ogni eccezione.
@@ -129,7 +131,9 @@ La spiegazione resta sull'eccezione, così la persona successiva che la apre la 
 
 ID, indirizzi email e IP e token vengono tolti da tutto ciò che viene inviato, e degli attributi di uno span ne vengono inviati solo alcuni, come la route e il codice di stato. La spiegazione usa il provider LLM e i crediti IA del progetto, e non viene offerta finché **Abilita IA** è disattivato. Chiunque possa leggere l'eccezione può chiederne una.
 
-Sotto le schede, **Eccezioni simili** elenca fino a cinque altre eccezioni che somigliano a questa: lo **Stesso messaggio** una volta tolti i valori, la **Stessa posizione nel codice** del vostro codice, o un **Messaggio simile** con quasi tutte le stesse parole. Una stessa causa può finire in più eccezioni, quindi **Verifica con OneUptime AI** dice di ciascuna se è **Probabilmente lo stesso bug**, **Un bug correlato** o **Un bug diverso**, e perché. La verifica usa i crediti IA del progetto e non viene offerta finché **Abilita IA** è disattivato.
+Sotto le schede, **Eccezioni simili** elenca fino a cinque altre eccezioni che somigliano a questa: lo **Stesso messaggio** una volta tolti i valori, la **Stessa posizione nel codice** del vostro codice, o un **Messaggio simile** con quasi tutte le stesse parole. Una stessa causa può finire in più eccezioni, quindi **Verifica con OneUptime AI** dice di ciascuna se è **Probabilmente lo stesso bug**, **Un bug correlato** o **Un bug diverso**, e perché. La verifica usa i crediti IA del progetto e non viene offerta finché **Abilita IA** è disattivato. La sua risposta viene conservata fino alla prossima occorrenza.
+
+Unite a questa eccezione una che OneUptime AI definisce **Probabilmente lo stesso bug**, dello stesso servizio, con **Unisci** accanto: le sue occorrenze, quelle finora e ogni nuova, da allora contano su questa eccezione e compaiono nella sua pagina, ed esce dall'elenco. **Unite a questa eccezione**, sotto, elenca ciò che è stato unito, e **Separa** accanto a ciascuna, o nella pagina di un'eccezione unita, le restituisce il suo posto nell'elenco, con le sue occorrenze da allora. Unire e separare richiedono il permesso di modificare le eccezioni.
 
 ## Correggerla con l'IA
 
@@ -185,7 +189,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 La scheda **Informazioni** conta le vostre eccezioni **Non risolto**, **Risolto** e **Archiviato** e il vostro tasso di risoluzione, ed elenca le eccezioni più frequenti, i servizi che colpiscono e quelle viste più di recente.
 
-**Novità**, in cima alla scheda, chiede a OneUptime AI, con **Riepiloga con OneUptime AI**, di riassumere le eccezioni viste per la prima volta nelle ultime 24 ore e quelle tornate dopo essere state risolte: qualche frase su tutte, poi ciascuna in una riga, la più urgente per prima, con un link all'eccezione. Il riepilogo viene scritto quando lo chiedete e non viene conservato, usa i crediti IA del progetto e non viene offerto finché **Abilita IA** è disattivato.
+**Novità**, in cima alla scheda, chiede a OneUptime AI, con **Riepiloga con OneUptime AI**, di riassumere le eccezioni viste per la prima volta nelle ultime 24 ore e quelle tornate dopo essere state risolte: qualche frase su tutte, poi ciascuna in una riga, la più urgente per prima, con un link all'eccezione. Il riepilogo viene scritto quando lo chiedete e conservato fino alla prossima occorrenza, quindi chiederlo di nuovo non costa nulla; usa i crediti IA del progetto e non viene offerto finché **Abilita IA** è disattivato.
 
 ## Risoluzione dei problemi
 

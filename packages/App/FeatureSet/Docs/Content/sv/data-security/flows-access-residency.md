@@ -11,7 +11,7 @@ Att veta vad ett datalager innehåller är bara halva saken. Datasäkerhet räkn
 ## Dataflöden
 
 ```mermaid title="De fyra typerna av flöden"
-flowchart TB
+flowchart LR
     service["En tjänst"] -->|"Använder"| db["En databas"]
     service -->|"AI-leverantör"| ai["En AI-leverantör"]
     service -->|"Extern värd"| host["En extern värd"]

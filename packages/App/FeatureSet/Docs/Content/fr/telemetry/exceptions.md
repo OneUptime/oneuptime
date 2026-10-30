@@ -52,6 +52,8 @@ Ouvrez **Produits → Observabilité → Exceptions**. Le badge de l'onglet **Ex
 
 Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps. Une ligne marquée **Régression** est revenue après avoir été résolue, et une ligne marquée **Nouveau** a été vue pour la première fois au cours des dernières 24 heures.
 
+Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la période choisie, avec un petit graphique de ses occurrences sur cette période. Une occurrence nomme son utilisateur avec l'attribut `user.id`, `enduser.id` ou `enduser.pseudo.id`, sur l'événement d'exception, son span ou son enregistrement de log, ou sa ressource ; les occurrences qui ne nomment aucun utilisateur ne sont pas comptées.
+
 ### Choisir ce qui compte comme un problème
 
 **Problèmes**, la vue par défaut, masque les erreurs d'utilisateur et les refus attendus, pour que la liste montre ce qui demande un correctif. **User errors** ne montre qu'eux, et **Tous** montre chaque exception.
@@ -129,7 +131,9 @@ L'explication est conservée sur l'exception : la personne suivante qui l'ouvre 
 
 Les identifiants, les adresses e-mail et IP et les jetons sont retirés de tout ce qui est envoyé, et seuls quelques attributs d'un span sont envoyés, comme sa route et son code de statut. L'explication utilise le fournisseur LLM et les crédits IA du projet, et n'est pas proposée tant que **Activer l'IA** est désactivé. Toute personne qui peut lire l'exception peut en demander une.
 
-Sous les cartes, **Exceptions similaires** liste jusqu'à cinq autres exceptions qui ressemblent à celle-ci : le **Même message** une fois les valeurs retirées, le **Même emplacement dans le code** de votre code, ou un **Message similaire** avec la plupart des mêmes mots. Une même cause peut se retrouver dans plusieurs exceptions, donc **Vérifier avec OneUptime AI** dit de chacune si c'est **Probablement le même bug**, **Un bug lié** ou **Un autre bug**, et pourquoi. La vérification utilise les crédits d'IA du projet et n'est pas proposée tant que **Activer l'IA** est désactivé.
+Sous les cartes, **Exceptions similaires** liste jusqu'à cinq autres exceptions qui ressemblent à celle-ci : le **Même message** une fois les valeurs retirées, le **Même emplacement dans le code** de votre code, ou un **Message similaire** avec la plupart des mêmes mots. Une même cause peut se retrouver dans plusieurs exceptions, donc **Vérifier avec OneUptime AI** dit de chacune si c'est **Probablement le même bug**, **Un bug lié** ou **Un autre bug**, et pourquoi. La vérification utilise les crédits d'IA du projet et n'est pas proposée tant que **Activer l'IA** est désactivé. Sa réponse est conservée jusqu'à la prochaine occurrence.
+
+Fusionnez avec cette exception celle que OneUptime AI juge **Probablement le même bug**, dans le même service, avec **Fusionner** à côté : ses occurrences, passées et à venir, comptent dès lors sur cette exception et apparaissent sur sa page, et elle quitte la liste. **Fusionnées avec cette exception** en dessous liste ce qui a été fusionné, et **Défusionner** à côté de chacune, ou sur la page d'une exception fusionnée, lui rend sa propre place dans la liste, avec ses occurrences depuis. Fusionner et défusionner demandent la permission de modifier les exceptions.
 
 ## La corriger avec l'IA
 
@@ -185,7 +189,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 
 L'onglet **Analyses** compte vos exceptions **Non résolu**, **Résolu** et **Archivé** ainsi que votre taux de résolution, et liste les exceptions les plus fréquentes, les services qu'elles touchent et les plus récemment vues.
 
-**Quoi de neuf**, en haut de l'onglet, demande à OneUptime AI, avec **Résumer avec OneUptime AI**, de résumer les exceptions vues pour la première fois dans les dernières 24 heures et celles revenues après avoir été résolues : quelques phrases sur l'ensemble, puis chacune en une ligne, la plus urgente d'abord, avec un lien vers l'exception. Le résumé est écrit quand vous le demandez et n'est pas conservé, utilise les crédits d'IA du projet et n'est pas proposé tant que **Activer l'IA** est désactivé.
+**Quoi de neuf**, en haut de l'onglet, demande à OneUptime AI, avec **Résumer avec OneUptime AI**, de résumer les exceptions vues pour la première fois dans les dernières 24 heures et celles revenues après avoir été résolues : quelques phrases sur l'ensemble, puis chacune en une ligne, la plus urgente d'abord, avec un lien vers l'exception. Le résumé est écrit quand vous le demandez et conservé jusqu'à la prochaine occurrence, donc le redemander ne coûte rien ; il utilise les crédits d'IA du projet et n'est pas proposé tant que **Activer l'IA** est désactivé.
 
 ## Dépannage
 
