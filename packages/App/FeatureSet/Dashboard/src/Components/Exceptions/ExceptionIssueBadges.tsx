@@ -31,44 +31,43 @@ export function getExceptionIssueBadgePresentation(
 ): Array<ExceptionIssueBadgePresentation> {
   return getExceptionIssueBadges(exception, now).map(
     (badge: ExceptionIssueBadge): ExceptionIssueBadgePresentation => {
-      switch (badge) {
-        case ExceptionIssueBadge.Regressed:
-          return {
-            badge,
-            label: translator.translateText("Regressed") as string,
-            title: exception.regressedAt
-              ? translator.translateTemplate(
-                  "It came back {{time}}, after it was resolved.",
-                  {
-                    time: OneUptimeDate.fromNow(
-                      new Date(exception.regressedAt),
-                    ),
-                  },
-                )
-              : (translator.translateText(
-                  "It came back after it was resolved.",
-                ) as string),
-            className: "border-orange-200 bg-orange-50 text-orange-700",
-          };
-        case ExceptionIssueBadge.New:
-          return {
-            badge,
-            label: translator.translateText("New") as string,
-            title: translator.translateText(
-              "First seen in the last 24 hours.",
-            ) as string,
-            className: "border-sky-200 bg-sky-50 text-sky-700",
-          };
-        case ExceptionIssueBadge.Unhandled:
-          return {
-            badge,
-            label: translator.translateText("Unhandled") as string,
-            title: translator.translateText(
-              "At least one occurrence escaped its span without being caught by application code.",
-            ) as string,
-            className: "border-amber-200 bg-amber-50 text-amber-700",
-          };
+      if (badge === ExceptionIssueBadge.Regressed) {
+        return {
+          badge,
+          label: translator.translateText("Regressed") as string,
+          title: exception.regressedAt
+            ? translator.translateTemplate(
+                "It came back {{time}}, after it was resolved.",
+                {
+                  time: OneUptimeDate.fromNow(new Date(exception.regressedAt)),
+                },
+              )
+            : (translator.translateText(
+                "It came back after it was resolved.",
+              ) as string),
+          className: "border-orange-200 bg-orange-50 text-orange-700",
+        };
       }
+
+      if (badge === ExceptionIssueBadge.New) {
+        return {
+          badge,
+          label: translator.translateText("New") as string,
+          title: translator.translateText(
+            "First seen in the last 24 hours.",
+          ) as string,
+          className: "border-sky-200 bg-sky-50 text-sky-700",
+        };
+      }
+
+      return {
+        badge,
+        label: translator.translateText("Unhandled") as string,
+        title: translator.translateText(
+          "At least one occurrence escaped its span without being caught by application code.",
+        ) as string,
+        className: "border-amber-200 bg-amber-50 text-amber-700",
+      };
     },
   );
 }
@@ -92,20 +91,18 @@ const ExceptionIssueBadges: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      {badges.map(
-        (badge: ExceptionIssueBadgePresentation): ReactElement => {
-          return (
-            <span
-              key={badge.badge}
-              title={badge.title}
-              data-testid={`exception-badge-${badge.badge}`}
-              className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}
-            >
-              {badge.label}
-            </span>
-          );
-        },
-      )}
+      {badges.map((badge: ExceptionIssueBadgePresentation): ReactElement => {
+        return (
+          <span
+            key={badge.badge}
+            title={badge.title}
+            data-testid={`exception-badge-${badge.badge}`}
+            className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}
+          >
+            {badge.label}
+          </span>
+        );
+      })}
     </>
   );
 };

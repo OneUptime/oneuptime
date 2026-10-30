@@ -138,6 +138,6 @@ export function applyManualResolutionChange(
 
   data["resolvedInReleaseAfter"] =
     data["isResolved"] === true || data["isResolved"] === "true"
-      ? (tidiedRelease ?? null)
+      ? tidiedRelease ?? null
       : null;
 }

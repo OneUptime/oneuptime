@@ -13,11 +13,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   ExceptionTriageAction,
   ExceptionTriageState,

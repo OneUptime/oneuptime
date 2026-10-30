@@ -33,9 +33,9 @@ describe("Regressed", () => {
       isExceptionRegressed({ isResolved: true, regressedAt: hoursAgo(1) }),
     ).toBe(false);
     expect(isExceptionRegressed({ isResolved: false })).toBe(false);
-    expect(
-      isExceptionRegressed({ isResolved: false, regressedAt: null }),
-    ).toBe(false);
+    expect(isExceptionRegressed({ isResolved: false, regressedAt: null })).toBe(
+      false,
+    );
   });
 
   test("reads the time as the API sends it, and ignores one that is not a time", () => {
@@ -164,13 +164,11 @@ describe("what resolving or reopening by hand writes", () => {
       regressedAt: null,
       resolvedInReleaseAfter: null,
     });
-    expect(written({ isResolved: true, resolvedInReleaseAfter: 42 })).toEqual(
-      {
-        isResolved: true,
-        regressedAt: null,
-        resolvedInReleaseAfter: null,
-      },
-    );
+    expect(written({ isResolved: true, resolvedInReleaseAfter: 42 })).toEqual({
+      isResolved: true,
+      regressedAt: null,
+      resolvedInReleaseAfter: null,
+    });
   });
 
   test("a reopen clears both, whatever release it names", () => {

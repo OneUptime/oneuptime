@@ -197,10 +197,12 @@ describePostgres("exception regressions against Postgres", () => {
     const row: GroupRow = await read("fp-new");
     expect(row.isResolved).toBe(false);
     expect(row.occuranceCount).toBe(2);
-    expect(Math.abs(row.firstSeenAt!.getTime() - minutesAgo(30).getTime()))
-      .toBeLessThan(MINUTE_MS);
-    expect(Math.abs(row.lastSeenAt!.getTime() - minutesAgo(5).getTime()))
-      .toBeLessThan(MINUTE_MS);
+    expect(
+      Math.abs(row.firstSeenAt!.getTime() - minutesAgo(30).getTime()),
+    ).toBeLessThan(MINUTE_MS);
+    expect(
+      Math.abs(row.lastSeenAt!.getTime() - minutesAgo(5).getTime()),
+    ).toBeLessThan(MINUTE_MS);
     expect(row.firstSeenInRelease).toBe("2.3.1");
     expect(row.lastSeenInRelease).toBe("2.3.2");
     expect(row.regressedAt).toBeNull();
@@ -235,19 +237,29 @@ describePostgres("exception regressions against Postgres", () => {
     expect(row.markedAsResolvedByUserId).toBe(resolverId.toString());
     // Still counted, and seen at its own time.
     expect(row.occuranceCount).toBe(2);
-    expect(Math.abs(row.lastSeenAt!.getTime() - minutesAgo(90).getTime()))
-      .toBeLessThan(MINUTE_MS);
+    expect(
+      Math.abs(row.lastSeenAt!.getTime() - minutesAgo(90).getTime()),
+    ).toBeLessThan(MINUTE_MS);
   });
 
   test("resolved in the next release: its own release and a release-less occurrence do not reopen it, the next release does", async () => {
     await ingest([
-      occurrence("fp-rollout", { occurredAt: minutesAgo(120), release: "2.3.1" }),
+      occurrence("fp-rollout", {
+        occurredAt: minutesAgo(120),
+        release: "2.3.1",
+      }),
     ]);
-    await resolve("fp-rollout", { at: minutesAgo(60), inReleaseAfter: "2.3.1" });
+    await resolve("fp-rollout", {
+      at: minutesAgo(60),
+      inReleaseAfter: "2.3.1",
+    });
 
     // Old pods still on 2.3.1 during the rollout.
     await ingest([
-      occurrence("fp-rollout", { occurredAt: minutesAgo(10), release: "2.3.1" }),
+      occurrence("fp-rollout", {
+        occurredAt: minutesAgo(10),
+        release: "2.3.1",
+      }),
     ]);
     let row: GroupRow = await read("fp-rollout");
     expect(row.isResolved).toBe(true);
@@ -317,10 +329,12 @@ describePostgres("exception regressions against Postgres", () => {
 
     const row: GroupRow = await read("fp-order");
     expect(row.lastSeenInRelease).toBe("2.3.2");
-    expect(Math.abs(row.lastSeenAt!.getTime() - minutesAgo(5).getTime()))
-      .toBeLessThan(MINUTE_MS);
-    expect(Math.abs(row.firstSeenAt!.getTime() - minutesAgo(20).getTime()))
-      .toBeLessThan(MINUTE_MS);
+    expect(
+      Math.abs(row.lastSeenAt!.getTime() - minutesAgo(5).getTime()),
+    ).toBeLessThan(MINUTE_MS);
+    expect(
+      Math.abs(row.firstSeenAt!.getTime() - minutesAgo(20).getTime()),
+    ).toBeLessThan(MINUTE_MS);
   });
 
   test("a regression is stamped once per comeback: an open exception's later occurrences keep its time", async () => {
@@ -338,7 +352,8 @@ describePostgres("exception regressions against Postgres", () => {
 
     const row: GroupRow = await read("fp-twice");
     expect(first).not.toBeNull();
-    expect(Math.abs(row.regressedAt!.getTime() - minutesAgo(3).getTime()))
-      .toBeLessThan(MINUTE_MS);
+    expect(
+      Math.abs(row.regressedAt!.getTime() - minutesAgo(3).getTime()),
+    ).toBeLessThan(MINUTE_MS);
   });
 });

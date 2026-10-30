@@ -226,8 +226,10 @@ describe("the upsert statement", () => {
     expect(calls).toHaveLength(1);
 
     const params: Array<unknown> = calls[0]!.params;
-    // projectId, primaryEntityId, fingerprint, message, stackTrace, type,
-    // firstSeenAt, lastSeenAt, count, firstSeenInRelease, lastSeenInRelease.
+    /*
+     * projectId, primaryEntityId, fingerprint, message, stackTrace, type,
+     * firstSeenAt, lastSeenAt, count, firstSeenInRelease, lastSeenInRelease.
+     */
     expect(params[6]).toEqual(minutesAgo(9));
     expect(params[7]).toEqual(minutesAgo(2));
     expect(params[8]).toBe(2);

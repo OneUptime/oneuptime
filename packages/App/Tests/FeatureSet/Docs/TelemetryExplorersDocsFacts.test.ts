@@ -29,6 +29,7 @@ import {
 import {
   ExceptionTriageAction,
   getExceptionTriageActions,
+  getResolveInNextReleaseAction,
 } from "../../../FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation";
 import { AI_INSIGHTS_SWITCHES } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -1771,7 +1772,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
-  it("reopens a resolved exception on a new occurrence, and leaves an archived one archived but counted", () => {
+  it("reopens a resolved exception on a later occurrence as Regressed, and leaves an archived one archived but counted", () => {
     // The statement itself, not the comment above it that names it.
     const update: string = between(
       exceptionUtil,
@@ -1779,7 +1780,18 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "`;",
     );
 
-    expect(update).toContain('"isResolved" = false');
+    /*
+     * Reopened only by an occurrence after the resolve (a late one from
+     * before does not), stamped Regressed as it is: the conditions
+     * themselves are run on Postgres by ExceptionRegressionPostgres.
+     */
+    expect(update).toContain('"isResolved" = ${STAYS_RESOLVED_SQL}');
+    expect(update).toContain(
+      '"regressedAt" = CASE\n            WHEN "TelemetryException"."isResolved" AND NOT ${STAYS_RESOLVED_SQL}\n              THEN now()',
+    );
+    expect(exceptionUtil).toContain(
+      'OR EXCLUDED."lastSeenAt" > "TelemetryException"."markedAsResolvedAt"',
+    );
     expect(update).toContain(
       '"occuranceCount" =\n            "TelemetryException"."occuranceCount" + EXCLUDED."occuranceCount"',
     );
@@ -1803,7 +1815,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     }
 
     expect(page).toContain(
-      "**A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold.",
+      "**A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold, and the exception is marked **Regressed**. An occurrence from before you resolved it that reaches OneUptime late does not reopen it.",
     );
     expect(page).toContain(
       "**An archived exception stays archived.** Its new occurrences are still counted, but they stop notifying.",
@@ -1939,9 +1951,31 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
     expect(labels(false, false)).toEqual(["Resolve", "Archive"]);
     expect(labels(true, true)).toEqual(["Reopen", "Unarchive"]);
+
+    // Beside Resolve, while the exception's occurrences name their release.
+    const nextRelease: ExceptionTriageAction | null =
+      getResolveInNextReleaseAction({
+        isResolved: false,
+        isArchived: false,
+        lastSeenInRelease: "2.3.1",
+      });
+
+    expect(nextRelease?.label).toBe("Resolve in next release");
+    expect(
+      getResolveInNextReleaseAction({ isResolved: false, isArchived: false }),
+    ).toBeNull();
     expect(
       firstColumn(section(page, "## Resolve, reopen and archive")),
-    ).toEqual(["Resolve", "Reopen", "Archive", "Unarchive"]);
+    ).toEqual([
+      "Resolve",
+      nextRelease!.label,
+      "Reopen",
+      "Archive",
+      "Unarchive",
+    ]);
+    expect(page).toContain(
+      "**Resolve in next release** is in the menu beside **Resolve**, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.",
+    );
 
     const settings: string = readDashboardSource(
       "Components/Exceptions/ExceptionSettings.tsx",
@@ -1997,8 +2031,9 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     // The same four, in the row's order, each saying why it left one alone.
     expect(actions).toContain("return EXCEPTION_ROW_TRIAGE_ORDER.map(");
     expect(actions).toContain(
-      "return bulkItemUnchanged(\n                  getGlobalTranslator().translateText(\n                    EXCEPTION_ALREADY_THERE[id],",
+      "return bulkItemUnchanged(\n                  getGlobalTranslator().translateText(reason) || reason,",
     );
+    expect(actions).toContain(": EXCEPTION_ALREADY_THERE[id];");
   });
 
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {

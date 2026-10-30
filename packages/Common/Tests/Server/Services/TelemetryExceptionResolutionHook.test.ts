@@ -31,9 +31,9 @@ async function hookWrite(
 
   const result: OnUpdate<TelemetryException> = await onBeforeUpdate({
     query: { _id: ObjectID.generate().toString() },
-    data: data as never,
+    data: data,
     props: props,
-  } as UpdateBy<TelemetryException>);
+  } as unknown as UpdateBy<TelemetryException>);
 
   return result.updateBy.data as unknown as Record<string, unknown>;
 }
