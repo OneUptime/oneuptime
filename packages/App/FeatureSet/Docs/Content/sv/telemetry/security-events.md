@@ -178,7 +178,22 @@ Sidan **Installationsguide**, under **Anslutningar**, har de här kodsnuttarna m
 
 ### Hitta säkerhetshändelser i dina loggar
 
-Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH-inloggning, sudo-kommando, Kubernetes-granskningspost, AWS CloudTrail-ändring och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, Kubernetes-granskningspost och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+
+Varje typ når OneUptime som vanliga loggar:
+
+| Typ | Skicka den från |
+| --- | --- |
+| SSH-inloggningar, sudo | En Linux-maskins journal eller auth-logg, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| Windows-händelser | Collectorns `windowseventlog`-receiver på maskinen, eller en vidarebefordrare som skriver varje händelse som JSON, till exempel NXLog eller Winlogbeat |
+| AWS CloudTrail | Ett trail som levereras till CloudWatch Logs, läst av collectorns `awscloudwatch`-receiver |
+| Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text` |
+| Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw` |
+| CEF, LEEF | Produktens syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
+| Kubernetes-granskningsloggar | API-serverns granskningsloggfil, läst av collectorns `filelog`-receiver |
+| Webbattacker | En webbservers åtkomstlogg, läst av collectorns `filelog`-receiver |
+
+På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera en loggrad** visar vad en rad som du klistrar in blir, innan någon har kommit.
 
 ### Anslut en säkerhetsprodukt
 
@@ -194,6 +209,8 @@ Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan 
 | Elastic Security | Detektionslarm, som Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, som Detection och Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Händelser för inloggning, MFA, konton och policyer | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | Inloggningar och katalogändringar, och från Microsoft 365-granskningsloggen vidarebefordran av e-post, delning och nätfiskeutlåtanden | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | Inloggningar, Googles egna fynd, administratörsändringar och appåtkomst, och delning i Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Produktens egna larm på eller över **Open Cases From** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.

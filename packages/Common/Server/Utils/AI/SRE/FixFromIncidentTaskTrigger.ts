@@ -1,6 +1,8 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus, {
+  AIRunStatusHelper,
+} from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
@@ -9,7 +11,9 @@ import CodeFixTaskContext, {
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationTriggerEntity, {
+  IncidentOrAlertTriggerEntity,
+} from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   AutomaticFixPullRequest,
   AutomaticFixPullRequestDecision,
@@ -29,11 +33,30 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
 import ProjectService from "../../../Services/ProjectService";
 import FixRunBudget, { FixRunBudgetDecision } from "../CodeFix/FixRunBudget";
+import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
+import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import PostedRootCause from "./PostedRootCause";
 import RemediationRulePullRequests from "./RemediationRulePullRequests";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import {
+  FINISHED_FIX_STATUSES,
+  getFinishedFixOutcome,
+} from "../../../../Utils/Suggestions/CodeFixSuggestion";
+import {
+  SuggestionBlocker,
+  toSuggestionBlocker,
+} from "../../../../Utils/Suggestions/SuggestionBlocker";
+import {
+  AUTOMATIC_CODE_FIX_BLOCKER_BY_RULE_BLOCKER,
+  AutomaticCodeFixBlocker,
+  getInvestigationCodeFixSuggestion,
+  InvestigationCodeFixSuggestion,
+  InvestigationCodeFixSuggestionInput,
+  NO_INVESTIGATION_CODE_FIX_SUGGESTION,
+} from "../../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
 
 /*
  * AI SRE — the FixFromIncident trigger (the roadmap's headline `code_fix`
@@ -289,6 +312,249 @@ export default class FixFromIncidentTaskTrigger {
         sourceInvestigationAnalysisMarkdown: analysisMarkdown,
       },
     });
+  }
+
+  /*
+   * What the Remediation step of an incident's or alert's AI card says about
+   * the fix in the code its investigation recommends
+   * (Utils/Suggestions/InvestigationCodeFixSuggestion): being written, done,
+   * the one setup step in the way, or ready for a person to open - and why
+   * OneUptime AI did not open it on its own, with the project's settings of
+   * now. The automatic trigger above used to stop with a debug line only, so
+   * an investigation that blamed the code was followed by nothing anyone
+   * could see (block 43).
+   *
+   * Read as OneUptime: the caller has checked the reader may read the
+   * record. Asks only what the answer needs: nothing past the investigation
+   * when it recommends no change in the code, and the automatic gates only
+   * while no fix exists.
+   */
+  @CaptureSpan()
+  public static async getSuggestionForSubject(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<InvestigationCodeFixSuggestion> {
+    const signal: IncidentOrAlertTriggerEntity | null = getAutomaticFixSignal({
+      incidentId: data.incidentId,
+      alertId: data.alertId,
+    });
+
+    if (!signal) {
+      return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        enableAi: true,
+        ...getAutomaticFixSwitchSelect(signal),
+      },
+      props: { isRoot: true },
+    });
+
+    if (!project || project.enableAi === false) {
+      return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
+    }
+
+    const subjectQuery:
+      | { triggeredByIncidentId: ObjectID }
+      | { triggeredByAlertId: ObjectID } = data.incidentId
+      ? { triggeredByIncidentId: data.incidentId }
+      : { triggeredByAlertId: data.alertId! };
+
+    // The latest investigation, as the panel shows it and the create gates read it.
+    const latestInvestigation: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.Investigation,
+        ...subjectQuery,
+      },
+      select: { _id: true, status: true, codeFixRecommendation: true },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+
+    const isCodeFixRecommended: boolean = Boolean(
+      latestInvestigation &&
+        latestInvestigation.status === AIRunStatus.Completed &&
+        latestInvestigation.codeFixRecommendation ===
+          AIRunCodeFixRecommendation.Recommended,
+    );
+
+    if (!isCodeFixRecommended) {
+      return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
+    }
+
+    const activeRun: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        codeFixTaskType: CodeFixTaskType.FixFromIncident,
+        // A task's first turn: its replies are the same task.
+        codeTaskId: QueryHelper.isNull(),
+        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
+        ...subjectQuery,
+      },
+      select: { _id: true, userId: true },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+
+    const finishedRun: AIRun | null = activeRun
+      ? null
+      : await AIRunService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            runType: AIRunType.CodeFix,
+            codeFixTaskType: CodeFixTaskType.FixFromIncident,
+            codeTaskId: QueryHelper.isNull(),
+            status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
+            ...subjectQuery,
+          },
+          select: {
+            _id: true,
+            status: true,
+            needsUserInput: true,
+            userId: true,
+          },
+          sort: { createdAt: SortOrder.Descending },
+          props: { isRoot: true },
+        });
+
+    let finishedFix: InvestigationCodeFixSuggestionInput["finishedFix"] = null;
+
+    if (finishedRun?.id) {
+      const latestTurn: AIRun = await CodeTaskRuns.getLatestTurn({
+        projectId: data.projectId,
+        task: finishedRun,
+      });
+
+      finishedFix = {
+        aiRunId: finishedRun.id.toString(),
+        isAutomatic: !finishedRun.userId,
+        outcome: getFinishedFixOutcome({ fix: finishedRun, latestTurn }),
+      };
+    }
+
+    /*
+     * A fix on its way or done was opened in a repository: whether one is
+     * still connected does not change what the step links to.
+     */
+    const hasFix: boolean = Boolean(activeRun || finishedFix);
+    const hasConnectedRepository: boolean = hasFix
+      ? true
+      : await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
+
+    // Code's gate: only where it decides the answer - no fix yet, a repository.
+    let blocker: SuggestionBlocker | null = null;
+
+    if (!hasFix && hasConnectedRepository) {
+      const start: CodeFixStart = await CodeFixStartGate.check({
+        projectId: data.projectId,
+        taskType: CodeFixTaskType.FixFromIncident,
+        taskContext: {
+          sourceInvestigationRunId: latestInvestigation!.id!.toString(),
+        },
+      });
+
+      blocker = start.blocker
+        ? toSuggestionBlocker(
+            start.blocker,
+            start.codeRepositoryId?.toString() || null,
+          )
+        : null;
+    }
+
+    return getInvestigationCodeFixSuggestion({
+      isAiEnabled: true,
+      isCodeFixRecommended,
+      activeFix: activeRun?.id
+        ? { aiRunId: activeRun.id.toString(), isAutomatic: !activeRun.userId }
+        : null,
+      finishedFix,
+      hasConnectedRepository,
+      blocker,
+      automaticBlocker: hasFix
+        ? null
+        : await this.getAutomaticCodeFixBlocker({
+            projectId: data.projectId,
+            project,
+            signal,
+            incidentId: data.incidentId,
+            alertId: data.alertId,
+          }),
+    });
+  }
+
+  /*
+   * Why OneUptime AI did not open the fix pull request on its own, asked
+   * with the automatic trigger's own gates, in its order, with the project's
+   * settings of now: Enable AI and the lane's fixing switch, the AI rules,
+   * a repository they allow, the day's share. Nothing stops it now:
+   * ChangedSince - it opens on its own only when an investigation ends.
+   */
+  private static async getAutomaticCodeFixBlocker(data: {
+    projectId: ObjectID;
+    project: Project;
+    signal: IncidentOrAlertTriggerEntity;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<AutomaticCodeFixBlocker> {
+    if (data.project.enableAi === false) {
+      return AutomaticCodeFixBlocker.AiOff;
+    }
+
+    const switchDecision: AutomaticFixPullRequestDecision =
+      decideAutomaticFixPullRequest({
+        project: data.project,
+        signal: data.signal,
+        pullRequest: AutomaticFixPullRequest.CodeFix,
+        rules: { rulesSetUp: false, matchingRules: [] },
+      });
+
+    if (switchDecision.blocker) {
+      return AUTOMATIC_CODE_FIX_BLOCKER_BY_RULE_BLOCKER[switchDecision.blocker];
+    }
+
+    const rules: AutomaticFixPullRequestRules | null =
+      await RemediationRulePullRequests.getRulesForSignal({
+        projectId: data.projectId,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+      });
+
+    const decision: AutomaticFixPullRequestDecision =
+      decideAutomaticFixPullRequest({
+        project: data.project,
+        signal: data.signal,
+        pullRequest: AutomaticFixPullRequest.CodeFix,
+        rules,
+      });
+
+    if (decision.blocker) {
+      return AUTOMATIC_CODE_FIX_BLOCKER_BY_RULE_BLOCKER[decision.blocker];
+    }
+
+    if (
+      !(await SubjectCodeFixRun.hasConnectedRepository(
+        data.projectId,
+        decision.repositories,
+      ))
+    ) {
+      return AutomaticCodeFixBlocker.NoRepository;
+    }
+
+    const budget: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      data.projectId,
+      { incidentId: data.incidentId, alertId: data.alertId },
+    );
+
+    if (!budget.allowed) {
+      return AutomaticCodeFixBlocker.DailyLimit;
+    }
+
+    return AutomaticCodeFixBlocker.ChangedSince;
   }
 
   /*

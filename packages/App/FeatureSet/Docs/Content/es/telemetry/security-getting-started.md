@@ -58,8 +58,13 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, no necesit
 | --- | --- |
 | Inicios de sesión SSH | Inicios de sesión SSH fallidos y correctos del registro de autenticación, el journal o el syslog de un servidor |
 | sudo | Comandos ejecutados como otro usuario, contraseñas de sudo incorrectas y personas que no tienen permiso para usar sudo |
-| Registros de auditoría de Kubernetes | Cambios en el clúster, shells abiertos en pods, secretos leídos y solicitudes rechazadas |
+| Eventos de Windows | Inicios de sesión, procesos nuevos, cuentas y grupos cambiados, servicios instalados y registros borrados, de Windows, Sysmon y Microsoft Defender |
 | AWS CloudTrail | Inicios de sesión en la consola, cambios en sus cuentas de AWS y llamadas que AWS rechazó |
+| Registros de auditoría de Google Cloud | Cambios en sus proyectos de Google Cloud, llamadas que Google rechazó e inicios de sesión de Google Workspace compartidos con Google Cloud |
+| Registros de actividad de Azure y de Entra ID | Cambios en sus suscripciones de Azure, alertas de Defender for Cloud, e inicios de sesión y cambios de directorio de Microsoft Entra ID |
+| CEF | Amenazas, conexiones bloqueadas e inicios de sesión de firewalls, IDS, WAF y otros productos de seguridad que envían Common Event Format |
+| LEEF | Lo mismo de los productos que envían Log Event Extended Format, como hacen muchos para IBM QRadar |
+| Registros de auditoría de Kubernetes | Cambios en el clúster, shells abiertos en pods, secretos leídos y solicitudes rechazadas |
 | Ataques web | Solicitudes del registro de acceso de un servidor web que intentan inyección SQL, recorrido de rutas o Log4Shell |
 
 Sus registros quedan como están. Solo las líneas que importan para la seguridad se convierten en eventos: nunca cada página que sirvió un servidor web ni cada lectura de una API.
@@ -83,7 +88,7 @@ Normalmente el caso se abre antes de que el botón responda; si la regla aún se
 :::
 
 :::details Mis registros no generan ningún evento de seguridad
-Compruebe que **Encontrar eventos de seguridad en tus registros** está activado y que la tarjeta **Tus registros** indica cuándo fue la última comprobación. Solo los tipos de líneas de la tabla anterior se convierten en eventos: un servidor que no envía registros de SSH, sudo, auditoría, CloudTrail ni de acceso no tiene nada que encontrar.
+Compruebe que **Encontrar eventos de seguridad en tus registros** está activado y que la tarjeta **Tus registros** indica cuándo fue la última comprobación. Solo los tipos de líneas de la tabla anterior se convierten en eventos: un servidor que no envía registros de SSH, sudo, Windows, auditoría, CEF, LEEF ni de acceso no tiene nada que encontrar. Pegue una de sus líneas en **Comprobar una línea de registro**, en **Tus registros**, para ver si OneUptime la lee.
 :::
 
 :::details Vista general dice que el último evento de seguridad llegó hace días

@@ -178,7 +178,22 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 
 ### 로그에서 보안 이벤트 찾기
 
-**연결** 상단의 **내 로그**는 이미 OneUptime에 보내고 있는 로그를 소스로 만듭니다. **로그에서 보안 이벤트 찾기**를 켜면 프로젝트의 새 로그를 매분 읽고, 그 안의 SSH 로그인, sudo 명령, Kubernetes 감사 기록, AWS CloudTrail 변경, 웹 공격을 각각 보안 이벤트로 저장합니다. 종류별로 다루는 내용은 [보안 시작하기](/docs/telemetry/security-getting-started#로그에서-보안-이벤트-찾기)를 참고하세요.
+**연결** 상단의 **내 로그**는 이미 OneUptime에 보내고 있는 로그를 소스로 만듭니다. **로그에서 보안 이벤트 찾기**를 켜면 프로젝트의 새 로그를 매분 읽고, 그 안의 SSH 또는 Windows 로그인, sudo 명령, 클라우드 감사 기록, 보안 제품의 CEF 또는 LEEF 기록, Kubernetes 감사 기록, 웹 공격을 각각 보안 이벤트로 저장합니다. 종류별로 다루는 내용은 [보안 시작하기](/docs/telemetry/security-getting-started#로그에서-보안-이벤트-찾기)를 참고하세요.
+
+모든 종류는 일반 로그로 OneUptime에 도착합니다.
+
+| 종류 | 보내는 곳 |
+| --- | --- |
+| SSH 로그인, sudo | Linux 머신의 journal 또는 인증 로그를 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector)로 보냄 |
+| Windows 이벤트 | 머신에 있는 컬렉터의 `windowseventlog` 리시버, 또는 NXLog나 Winlogbeat처럼 각 이벤트를 JSON으로 쓰는 포워더 |
+| AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음 |
+| Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음 |
+| Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음 |
+| CEF, LEEF | 제품의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
+| Kubernetes 감사 로그 | API 서버의 감사 로그 파일을 컬렉터의 `filelog` 리시버로 읽음 |
+| 웹 공격 | 웹 서버의 액세스 로그를 컬렉터의 `filelog` 리시버로 읽음 |
+
+**내 로그**에서는 종류마다 마지막으로 발견된 시각을 보여 주고, **로그 줄 확인**에서는 아직 아무것도 도착하지 않았어도 붙여 넣은 줄이 무엇이 되는지 보여 줍니다.
 
 ### 보안 제품 연결하기
 
@@ -194,6 +209,8 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | Elastic Security | 탐지 알림을 Detection Finding으로 | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding을 Detection Finding과 Compliance Finding으로 | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 로그인, MFA, 계정, 정책 이벤트 | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | 로그인과 디렉터리 변경, 그리고 Microsoft 365 감사 로그의 메일 전달, 공유, 피싱 판정 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | 로그인, Google 자체 탐지, 관리자 변경과 앱 액세스 허용, 드라이브 공유 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **높음 이상**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
 - 연결은 레코드가 설명하는 활동 시각이 아니라, 제품이 레코드를 만든 시각을 기준으로 읽습니다. 매시간 실행되는 SIEM 규칙은 일치한 이벤트보다 한참 뒤에 탐지를 만들지만, 그것도 가져옵니다.
