@@ -12,11 +12,31 @@ export enum KubernetesResourceScope {
 
 export interface KubernetesResourceFilters {
   namespace?: string | undefined;
-  workloadType?: string | undefined; // deployment, statefulset, daemonset, job, cronjob
+  workloadType?: string | undefined; // deployment, statefulset, daemonset, replicaset, job, cronjob
   workloadName?: string | undefined;
   nodeName?: string | undefined;
   podName?: string | undefined;
 }
+
+/*
+ * The kinds of workload a Workload Name filter can name, by the word the
+ * metrics carry them under: a pod of a StatefulSet carries
+ * `k8s.statefulset.name`, of a Deployment `k8s.deployment.name`.
+ */
+export const KUBERNETES_WORKLOAD_KINDS: ReadonlyArray<{
+  label: string;
+  value: string;
+}> = [
+  { label: "Deployment", value: "deployment" },
+  { label: "StatefulSet", value: "statefulset" },
+  { label: "DaemonSet", value: "daemonset" },
+  { label: "ReplicaSet", value: "replicaset" },
+  { label: "Job", value: "job" },
+  { label: "CronJob", value: "cronjob" },
+];
+
+// The kind a Workload Name is read as when the step names none.
+export const DEFAULT_KUBERNETES_WORKLOAD_KIND: string = "deployment";
 
 export default interface MonitorStepKubernetesMonitor {
   clusterIdentifier: string;
@@ -38,6 +58,34 @@ export class MonitorStepKubernetesMonitorUtil {
       },
       rollingTime: RollingTime.Past1Minute,
     };
+  }
+
+  /*
+   * The resource attribute a Workload Name filter matches, or null when
+   * the step names no workload.
+   *
+   * The form asked only for the name and never set the kind, and the
+   * worker applied the filter only when both were set - so a monitor
+   * scoped to one workload watched every workload in the cluster. A name
+   * without a kind is read as a Deployment's, the kind the form now starts
+   * on.
+   */
+  public static getWorkloadNameAttributeKey(
+    resourceFilters: KubernetesResourceFilters | undefined,
+  ): string | null {
+    const workloadName: string = (resourceFilters?.workloadName || "").trim();
+
+    if (!workloadName) {
+      return null;
+    }
+
+    // Letters only: the kind becomes part of an attribute key.
+    const kind: string = (resourceFilters?.workloadType || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+
+    return `resource.k8s.${kind || DEFAULT_KUBERNETES_WORKLOAD_KIND}.name`;
   }
 
   public static fromJSON(json: JSONObject): MonitorStepKubernetesMonitor {

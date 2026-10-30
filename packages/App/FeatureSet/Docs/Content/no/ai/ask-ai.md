@@ -37,7 +37,7 @@ I modusen **Skrivebeskyttet** tilbys modellen aldri handlingene, så samtalen ba
 
 Spør AI åpnes midt på skjermen, over siden du var på, og på en telefon fyller den hele skjermen. Trykk `Esc`, eller klikk ved siden av, for å gå tilbake til siden. Samtalen blir der du forlot den: åpne Spør AI igjen for å fortsette. Lukker du den mens den fortsatt svarer, sier en påminnelse i hjørnet når svaret er klart, og åpner det.
 
-På en hendelse eller et varsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
+På en hendelse eller et varsel har kortet **OneUptime AI** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
 
 ## Hva den kan se
 

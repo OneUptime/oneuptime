@@ -16,6 +16,7 @@ import {
   getUserDisplayName,
 } from "./OverridePresentation";
 import TimezoneSelectButton from "./TimezoneSelectButton";
+import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "./ScheduleOverviewCopy";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
 import TimezoneAlias from "Common/Types/TimezoneAlias";
@@ -35,7 +36,9 @@ import UserOverrideUtil, {
 import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Calendar from "Common/UI/Components/Calendar/Calendar";
+import Calendar, {
+  DefaultCalendarView,
+} from "Common/UI/Components/Calendar/Calendar";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
@@ -47,10 +50,13 @@ import {
 } from "./ScheduleOverrides";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -77,6 +83,66 @@ const CALENDAR_EDGE_MARGIN_DAYS: number = 1;
 
 // Uncovered stretches shorter than this would be invisible hairlines on the grid.
 const CALENDAR_MINIMUM_GAP_SECONDS: number = 60;
+
+/*
+ * The view the schedule's calendar opens on: a week where the preview has
+ * room for seven readable columns, a day where it has not. A week in a
+ * phone's 300 pixels drew seven columns of 40, every name broken into a
+ * letter a line down its block ("N / i / n / a") - and beside the side menu
+ * at 768 pixels the card gives the grid 430 pixels, hardly more than a
+ * phone ("Bob / Riv / era"), while the window is a tablet's. So the room is
+ * the preview's own width, read before it is first drawn: a week from 560
+ * pixels (columns of some 70, a name on two lines at most); only where no
+ * width can be read (nothing laid out yet, a test's DOM) the window's, a
+ * day under 640. The reader can still switch to Week, Month or Agenda; this
+ * is only where it opens.
+ */
+export const FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX: number = 560;
+
+export const FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX: number = 640;
+
+export const getFinalScheduleCalendarView: (data: {
+  previewWidth?: number | undefined;
+  windowWidth?: number | undefined;
+}) => DefaultCalendarView = (data: {
+  previewWidth?: number | undefined;
+  windowWidth?: number | undefined;
+}): DefaultCalendarView => {
+  if (data.previewWidth !== undefined && data.previewWidth > 0) {
+    return data.previewWidth < FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX
+      ? DefaultCalendarView.Day
+      : DefaultCalendarView.Week;
+  }
+
+  return data.windowWidth !== undefined &&
+    data.windowWidth < FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX
+    ? DefaultCalendarView.Day
+    : DefaultCalendarView.Week;
+};
+
+/*
+ * The "View as" row: the control, then the note that says which zone the
+ * times are in - beside it where they both fit, under it where they do not
+ * (the note is one wrapping item, never squeezed into a narrow column beside
+ * the control). "View as" itself never breaks: beside the side menu it read
+ * "View / as". Only the words keep to one line, and the control may still
+ * narrow to the row: it holds the timezone dialog too, drawn in place, and
+ * for the moment before the dialog is styled its words sit in the row - a
+ * no-wrap around them, or a control that may not shrink, stretched the page
+ * to three phone screens wide.
+ */
+export const VIEW_AS_ROW_CLASS_NAME: string =
+  "mt-5 flex flex-wrap items-center gap-x-4 gap-y-2";
+
+export const VIEW_AS_CONTROL_CLASS_NAME: string =
+  "flex min-w-0 max-w-full items-center gap-2";
+
+export const VIEW_AS_LABEL_CLASS_NAME: string =
+  "whitespace-nowrap text-xs font-medium text-gray-500";
+
+// Wrapped "pretty": no last line of one word ("... actually paged / in.").
+export const VIEW_AS_NOTE_CLASS_NAME: string =
+  "min-w-0 text-pretty text-xs text-gray-500";
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -554,7 +620,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       event.color = getColorForUserId(displayedUserId);
 
       if (!meta) {
-        event.title = formatUserLabel(displayedInfo);
+        /*
+         * The block shows the name, as an override's block does; the
+         * address is in its tooltip with the times. "Nina Patel
+         * (nina@example.com)" broke in a week's narrow column as
+         * "(nina@exampl / e.com)" on every block.
+         */
+        event.title = getUserDisplayName(displayedInfo);
         event.desc = buildPlainEventTooltip({
           userLabel: formatUserLabel(displayedInfo),
           start: event.start,
@@ -756,6 +828,20 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         return null;
       }
 
+      /*
+       * With no override in the window, and at most one policy escalating
+       * here, there is nothing whose scope to explain: "this preview
+       * reflects global user overrides only. No on-call policy escalates to
+       * this schedule yet, so there are no policy-scoped overrides to
+       * apply" sat under every schedule, two sentences about nothing,
+       * between the legend and the calendar. Several policies keep their
+       * caveat with no override showing: each may scope overrides of its
+       * own, which this one preview does not draw.
+       */
+      if (!hasActiveOverrides && overrideResolution.attachedPolicyCount <= 1) {
+        return null;
+      }
+
       const globalWord: ReactElement = (
         <span className="font-medium">
           {translator.translateText("global")}
@@ -822,23 +908,51 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       );
     };
 
+  /*
+   * The preview's own width, read once before it is first drawn: the room
+   * the calendar's first view is chosen for (getFinalScheduleCalendarView).
+   * Its layout width, which a dialog's opening scale does not shrink.
+   */
+  const previewRef: MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const [previewWidth, setPreviewWidth] = useState<number | undefined>(
+    undefined,
+  );
+
+  useLayoutEffect(() => {
+    const width: number = previewRef.current?.offsetWidth || 0;
+
+    if (width > 0) {
+      setPreviewWidth(width);
+    }
+  }, []);
+
+  const calendarView: DefaultCalendarView = getFinalScheduleCalendarView({
+    previewWidth: previewWidth,
+    windowWidth: typeof window === "undefined" ? undefined : window.innerWidth,
+  });
+
   return (
-    <div id={props.id}>
+    <div
+      ref={previewRef}
+      id={props.id}
+      data-testid="layers-preview"
+      /*
+       * Whether the overrides in force are known yet: "resolving" while the
+       * policy context or a new window's overrides are being read. Nothing
+       * on screen says so when there is no override to explain.
+       */
+      data-overrides={
+        overrideResolution.policyContextState === PolicyContextState.Resolving
+          ? "resolving"
+          : "resolved"
+      }
+    >
       {props.showFieldLabel && (
         <FieldLabelElement
           required={true}
           title="Layer Preview"
-          description={
-            scheduleZoneName
-              ? translator.translateTemplate(
-                  "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
-                  { timezone: scheduleZoneName },
-                )
-              : translator.translateTemplate(
-                  "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
-                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
-                )
-          }
+          description={SCHEDULE_FINAL_SCHEDULE_DESCRIPTION}
         />
       )}
 
@@ -881,83 +995,6 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/*
-       * The legend for the grid below. Renders when there is either a colour to
-       * explain or a hatched band to name — a schedule with no users still needs
-       * the "Uncovered" key, since in that case the whole grid is hatched.
-       */}
-      {(uniqueUsers.length > 0 || calendarGaps.length > 0) && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {translator.translateText(
-              uniqueUsers.length > 0 ? "On-Call Users" : "Legend",
-            )}
-          </span>
-          {uniqueUsers.map((u: UserColorAssignment) => {
-            return (
-              <div
-                key={u.userId}
-                className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
-                title={u.email}
-              >
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: u.color }}
-                />
-                <span className="font-medium text-gray-900">{u.name}</span>
-                {u.coveringLabel && (
-                  <span
-                    data-testid="legend-covering-label"
-                    className="text-[10px] font-medium uppercase tracking-wide text-indigo-600"
-                  >
-                    {u.coveringLabel}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-          {/*
-           * Names the striped edge drawn on substituted blocks. Without this
-           * the stripe is decoration: the reader can see that two blocks differ
-           * without being told that the difference means somebody else's alerts
-           * are being answered.
-           */}
-          {hasActiveOverrides && (
-            <div
-              data-testid="legend-override-key"
-              className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-indigo-200"
-              title={translator.translateText(
-                "A block with a striped edge is covered by a substitute. The stripe is the colour of the person who was overridden.",
-              )}
-            >
-              <span className="oneuptime-calendar-override-swatch inline-block h-2.5 w-2.5 rounded-sm" />
-              <span className="font-medium text-indigo-700">
-                {translator.translateText("Covered by an override")}
-              </span>
-            </div>
-          )}
-
-          {/*
-           * Names the hatched bands drawn on the grid below. Only shown when
-           * the visible range actually contains one, so a fully-covered week
-           * does not carry a legend entry for something that is not there.
-           */}
-          {calendarGaps.length > 0 && (
-            <div
-              className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-amber-200"
-              title={translator.translateText(
-                "Nobody is on call during these hours",
-              )}
-            >
-              <span className="oneuptime-calendar-gap-swatch inline-block h-2.5 w-2.5 rounded-sm" />
-              <span className="font-medium text-amber-800">
-                {translator.translateText("Uncovered")}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {hasActiveOverrides && (
         <div className="mt-2 text-xs text-gray-500">
           <TranslatedSentence
@@ -976,9 +1013,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       {getOverrideScopeNote()}
 
       {/* View-as timezone bubble + note above the calendar grid. */}
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <div className={VIEW_AS_ROW_CLASS_NAME} data-testid="view-as-row">
+        <div className={VIEW_AS_CONTROL_CLASS_NAME}>
+          <span className={VIEW_AS_LABEL_CLASS_NAME}>
             {translator.translateText("View as")}
           </span>
           <TimezoneSelectButton
@@ -997,14 +1034,106 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        <p className="text-xs text-gray-500 sm:max-w-md sm:text-right">
+        <p className={VIEW_AS_NOTE_CLASS_NAME} data-testid="view-as-note">
           {viewNote}
         </p>
       </div>
 
+      {/*
+       * The legend for the grid, right above it: whose colour is whose, and
+       * what a striped or hatched block means. Plain words in a row - it used
+       * to be a framed grey box with an upper-case label and a framed chip
+       * per person, the loudest thing between the hand-offs and the grid it
+       * explains, and above the "View as" row rather than beside the grid.
+       * Renders when there is either a colour to explain or a hatched band
+       * to name — a schedule with no users still needs the "Uncovered" key,
+       * since in that case the whole grid is hatched.
+       */}
+      {(uniqueUsers.length > 0 || calendarGaps.length > 0) && (
+        <div
+          className="mb-3 mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5"
+          data-testid="final-schedule-legend"
+        >
+          <span className="text-xs font-medium text-gray-500">
+            {translator.translateText(
+              uniqueUsers.length > 0 ? "On-Call Users" : "Legend",
+            )}
+          </span>
+          {uniqueUsers.map((u: UserColorAssignment) => {
+            return (
+              <div
+                key={u.userId}
+                className="inline-flex items-center gap-1.5 text-xs text-gray-700"
+                title={u.email}
+              >
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: u.color }}
+                />
+                <span className="font-medium text-gray-900">{u.name}</span>
+                {u.coveringLabel && (
+                  <span
+                    data-testid="legend-covering-label"
+                    className="text-[11px] font-medium text-indigo-600"
+                  >
+                    {u.coveringLabel}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          {/*
+           * Names the striped edge drawn on substituted blocks. Without this
+           * the stripe is decoration: the reader can see that two blocks differ
+           * without being told that the difference means somebody else's alerts
+           * are being answered.
+           */}
+          {hasActiveOverrides && (
+            <div
+              data-testid="legend-override-key"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-700"
+              title={translator.translateText(
+                "A block with a striped edge is covered by a substitute. The stripe is the colour of the person who was overridden.",
+              )}
+            >
+              <span className="oneuptime-calendar-override-swatch inline-block h-2.5 w-2.5 rounded-sm" />
+              <span className="font-medium text-indigo-700">
+                {translator.translateText("Covered by an override")}
+              </span>
+            </div>
+          )}
+
+          {/*
+           * Names the hatched bands drawn on the grid below. Only shown when
+           * the visible range actually contains one, so a fully-covered week
+           * does not carry a legend entry for something that is not there.
+           */}
+          {calendarGaps.length > 0 && (
+            <div
+              className="inline-flex items-center gap-1.5 text-xs text-gray-700"
+              title={translator.translateText(
+                "Nobody is on call during these hours",
+              )}
+            >
+              <span className="oneuptime-calendar-gap-swatch inline-block h-2.5 w-2.5 rounded-sm" />
+              <span className="font-medium text-amber-800">
+                {translator.translateText("Uncovered")}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       <Calendar
+        /*
+         * Opened again on the view for the room the preview turned out to
+         * have, if that is not the one the window suggested (the width is
+         * read before anything is drawn, so nobody sees the first).
+         */
+        key={calendarView}
         events={displayEvents}
         backgroundEvents={displayGapEvents}
+        defaultCalendarView={calendarView}
         defaultDate={displayDefaultDate}
         getNow={getDisplayNow}
         onRangeChange={(startEndTime: StartAndEndTime) => {

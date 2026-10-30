@@ -22,15 +22,23 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * An empty list gets a row to fill in, as the alerts form does: the Add
+   * button is gone, so a criteria handed no incident (the network device
+   * alert pack's, before it seeded one) showed nothing to type into and
+   * declared nothing.
+   */
   const [incidents, setIncidents] = React.useState<Array<CriteriaIncident>>(
-    props.initialValue || [
-      {
-        title: "",
-        description: "",
-        incidentSeverityId: undefined,
-        id: ObjectID.generate().toString(),
-      },
-    ],
+    props.initialValue && props.initialValue.length > 0
+      ? props.initialValue
+      : [
+          {
+            title: "",
+            description: "",
+            incidentSeverityId: undefined,
+            id: ObjectID.generate().toString(),
+          },
+        ],
   );
 
   useEffect(() => {

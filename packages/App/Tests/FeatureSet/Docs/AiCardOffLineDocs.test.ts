@@ -53,10 +53,10 @@ const REMEDIATION_DID_LINE: number = lineStarting(
 );
 // Troubleshooting: "An incident was not investigated" and "Nothing was fixed".
 const NOT_INVESTIGATED_LINE: number = lineStarting(
-  "Its **AI Investigation** card says why:",
+  "Its **OneUptime AI** card says why:",
 );
 const NOTHING_FIXED_LINE: number = lineStarting(
-  "The incident's **Remediation** card has a line for every way it could have been fixed",
+  "The **Remediation** step of the incident's **OneUptime AI** card has a line for every way it could have been fixed",
 );
 
 const INVESTIGATE_SWITCH: string = AI_LANE_SWITCHES[AiLane.Incident][0]!.title;
@@ -152,25 +152,25 @@ describe("the AI SRE page says when the AI card is one line", () => {
     );
   });
 
-  test("says a conversation already started shows under the line, and the Remediation card is left out", () => {
+  test("says a conversation already started shows under the line, and the Remediation step is folded into it", () => {
     expect(PARAGRAPH).toContain(
       "a conversation someone has already started shows under the line by itself.",
     );
     expect(PARAGRAPH).toContain(
-      "The **Remediation** card is left out then: the line says why nothing was fixed.",
+      "The card's **Remediation** step is folded into the line then: the line says why nothing was fixed.",
     );
   });
 
   test("what auto-remediation did and both troubleshooting entries point at the line", () => {
     expect(REMEDIATION_DID_LINE).toBeGreaterThan(PARAGRAPH_LINE);
     expect(ENGLISH_LINES[REMEDIATION_DID_LINE]).toMatch(
-      /When AI was off for an incident altogether, the \*\*AI Investigation\*\* card's one line says why nothing was fixed, and the \*\*Remediation\*\* card is left out\.$/,
+      /When AI was off for an incident altogether, the \*\*OneUptime AI\*\* card's one line says why nothing was fixed, and the \*\*Remediation\*\* step is folded into it\.$/,
     );
     expect(ENGLISH_LINES[NOT_INVESTIGATED_LINE]).toMatch(
       /When AI was off for the incident and nothing was fixed either, the card is one line: open \*\*What you can do\*\* on it to see what to turn on\.$/,
     );
     expect(ENGLISH_LINES[NOTHING_FIXED_LINE]).toMatch(
-      /When AI was off for the incident altogether, the \*\*AI Investigation\*\* card's one line says so instead\.$/,
+      /When AI was off for the incident altogether, the card's one line says so instead\.$/,
     );
   });
 });
@@ -239,12 +239,13 @@ describe("every language says it in the English page's places", () => {
     "%s points at the line from what auto-remediation did and both troubleshooting entries",
     (language: string) => {
       const lines: Array<string> = readPage(language, AI_SRE).split("\n");
-      const investigation: string = `**${drawnActionLabel(language, "AI Investigation")}**`;
+      // The AI card, by its title (block 43: one card of two steps).
+      const investigation: string = `**${drawnActionLabel(language, "OneUptime AI")}**`;
       const remediation: string = `**${drawnActionLabel(language, "Remediation")}**`;
       const whatYouCanDo: string = `**${drawnActionLabel(language, AI_OFF_WHAT_YOU_CAN_DO)}**`;
       const remediationDid: string = lines[REMEDIATION_DID_LINE] || "";
 
-      // Its own Remediation and AI Investigation cards, after what it said before.
+      // The card and its own Remediation step, after what it said before.
       expect(
         remediationDid.slice(remediationDid.lastIndexOf(investigation)),
       ).toContain(remediation);

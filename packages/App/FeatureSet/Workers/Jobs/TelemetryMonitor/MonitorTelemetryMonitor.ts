@@ -126,6 +126,7 @@ import ProfileService from "Common/Server/Services/ProfileService";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
+  MonitorStepKubernetesMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import MonitorStepDockerMonitor, {
   DockerContainerFilters,
@@ -2182,10 +2183,14 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         attributes["resource.k8s.pod.name"] = resourceFilters.podName;
       }
 
-      if (resourceFilters.workloadName && resourceFilters.workloadType) {
-        const workloadType: string = resourceFilters.workloadType.toLowerCase();
-        attributes[`resource.k8s.${workloadType}.name`] =
-          resourceFilters.workloadName;
+      const workloadNameAttributeKey: string | null =
+        MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+          resourceFilters,
+        );
+
+      if (workloadNameAttributeKey && resourceFilters.workloadName) {
+        attributes[workloadNameAttributeKey] =
+          resourceFilters.workloadName.trim();
       }
     }
 
@@ -3332,10 +3337,15 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
 
     /*
      * IoT-specific resource filters. Device-level data metrics carry a
-     * `device.id` datapoint label and the agent-stamped `iot.scope` /
-     * `iot.device.type` datapoint attributes (stored unprefixed). The
-     * deviceId filter pins an exact device; deviceType / scope narrow to
-     * a class of devices.
+     * `device.id` datapoint label and, when the device sends it, an
+     * `iot.device.type` datapoint attribute (stored unprefixed). The
+     * deviceId filter pins an exact device; deviceType narrows to a class
+     * of devices.
+     *
+     * A saved Resource Scope is read and ignored: it matched an `iot.scope`
+     * attribute nothing stamps (MQTT and OTLP ingest add `device.id` and
+     * the device's own attributes only), and the form set it to Device on
+     * every metric picked - so every such monitor read no data at all.
      */
     if (iotMonitorConfig.resourceFilters) {
       const resourceFilters: IoTDeviceFilters =
@@ -3347,10 +3357,6 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
 
       if (resourceFilters.deviceType) {
         attributes["iot.device.type"] = resourceFilters.deviceType;
-      }
-
-      if (resourceFilters.scope) {
-        attributes["iot.scope"] = resourceFilters.scope;
       }
     }
 
@@ -3428,8 +3434,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
   if (
     iotMonitorConfig.fleetIdentifier &&
     !iotMonitorConfig.resourceFilters?.deviceId &&
-    !iotMonitorConfig.resourceFilters?.deviceType &&
-    !iotMonitorConfig.resourceFilters?.scope
+    !iotMonitorConfig.resourceFilters?.deviceType
   ) {
     seriesBreakdown = await injectExpectedAbsentIoTDeviceSeries({
       monitorStep: data.monitorStep,

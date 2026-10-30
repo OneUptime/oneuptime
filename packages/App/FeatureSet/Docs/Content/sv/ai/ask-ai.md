@@ -37,7 +37,7 @@ I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bar
 
 Fråga AI öppnas mitt på skärmen, över sidan du var på, och på en telefon fyller den hela skärmen. Tryck på `Esc`, eller klicka bredvid, för att gå tillbaka till sidan. Samtalet stannar där du lämnade det: öppna Fråga AI igen för att fortsätta. Stänger du den medan den fortfarande svarar säger en påminnelse i hörnet när svaret är klart, och öppnar det.
 
-På en incident eller ett larm har kortet **AI Investigation** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
+På en incident eller ett larm har kortet **OneUptime AI** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
 
 ## Vad den kan se
 

@@ -65,7 +65,7 @@ Completate il modulo e salvate. Il monitor compare in **Monitor**, e il suo stat
 | --- | --- | --- |
 | Cluster | L'intero cluster | — |
 | Namespace | Le risorse di un namespace | **Namespace** |
-| Carico di lavoro | Un deployment, statefulset, daemonset, job o cronjob | **Namespace**, **Nome del carico di lavoro** |
+| Carico di lavoro | Un deployment, statefulset, daemonset, job o cronjob | **Namespace**, **Tipo di carico di lavoro**, **Nome del carico di lavoro** |
 | Nodo | Un nodo del cluster | **Nome del nodo** |
 | Pod | Un pod | **Namespace**, **Nome del pod** |
 
@@ -112,7 +112,7 @@ Questi monitor valutano sempre il **Metric Value**: il valore della query di met
 
 ### Condizioni
 
-Le soglie statiche vengono confrontate con il **Soglia** che inserite: **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** ed **Uguale a**.
+Le soglie statiche vengono confrontate con il **Soglia** che inserite: **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** ed **Uguale a**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa.
 
 Il rilevamento delle anomalie rispetto a una baseline non richiede soglie. Scegliete una di queste condizioni, e il modulo mostra invece **Sensibilità** e **Finestra di riferimento**:
 

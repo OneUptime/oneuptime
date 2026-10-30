@@ -42,10 +42,9 @@ Above the list, the tiles count **Responders**, **Ready**, **Needs setup** and *
 | --- | --- |
 | **Responder** | The person, with their email address. |
 | **Status** | **Ready**, **Unreachable**, or how many gaps they have. |
-| **Teams** | The teams that page them through an escalation rule. |
 | **Channels** | A segment per channel: filled for a verified method, hollow for one that is not verified yet. |
 | **Coverage** | How many severities have a rule, on every tab, out of all of them. |
-| **Reached via** | How the policies reach them: `Direct`, `Team`, `Schedule` or `Override`. |
+| **Reached via** | How the policies reach them: each team that pages them through an escalation rule, by its name, or **Direct**, **Schedule** or **Override**. |
 
 **Coverage** on a row shows the person's notification methods, why they have their status, and a grid of every severity with or without a rule. The funnel filters the list by **Responder**, **Status**, **Team** or **Reached via**. The answer can be a minute old: **Refresh** works it out again.
 

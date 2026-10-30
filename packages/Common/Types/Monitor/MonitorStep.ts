@@ -19,7 +19,7 @@ import MonitorStepSecurityEventsMonitor, {
 import MonitorStepLlmMonitor, {
   MonitorStepLlmMonitorUtil,
 } from "./MonitorStepLlmMonitor";
-import MonitorType from "./MonitorType";
+import MonitorType, { MonitorTypeHelper } from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
 import { FindOperator } from "typeorm";
@@ -1220,6 +1220,27 @@ export default class MonitorStep extends DatabaseProperty {
 
       if (!value.data.iotMonitor.fleetIdentifier) {
         return "IoT fleet is required";
+      }
+    }
+
+    /*
+     * An infrastructure monitor reads nothing but its metric queries. One
+     * saved without a query - its alert template and metric both left
+     * unpicked - was accepted, and then evaluated nothing, ever.
+     */
+    if (MonitorTypeHelper.isInfrastructureMonitor(monitorType)) {
+      const hasMetricQuery: boolean = (
+        MonitorStep.getMetricsViewConfig(value)?.queryConfigs || []
+      ).some((queryConfig: MetricQueryConfigData): boolean => {
+        return Boolean(
+          queryConfig?.metricQueryData?.filterData?.metricName
+            ?.toString()
+            .trim(),
+        );
+      });
+
+      if (!hasMetricQuery) {
+        return "Pick an alert template or a metric to watch";
       }
     }
 

@@ -298,7 +298,7 @@ flowchart TB
 - **Vid eller efter ditt lösta tillstånd** — **Löst**, eller varje tillstånd som står under det — är incidenten över, så dessutom körs inget som reagerar på en pågående incident:
   - den grupperas inte i en episod, som skulle kunna larma igen;
   - ingen runbook-regel och ingen AI-regel agerar på den;
-  - OneUptime AI utreder den inte — dess kort **AI Investigation** säger att den skapades redan löst, och **Ask OneUptime AI** under det besvarar fortfarande frågor om den;
+  - OneUptime AI utreder den inte — dess kort **OneUptime AI** säger att den skapades redan löst, och **Ask OneUptime AI** under det besvarar fortfarande frågor om den;
   - ingen Slack- eller Microsoft Teams-kanal skapas för den;
   - dess monitorer behåller sin status och fortsätter att övervakas, vad **Ändra övervakningsstatus till** än säger;
   - ingen SLA startas för den.

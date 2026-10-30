@@ -13,10 +13,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The latest dry run of a cloud change a fix proposes, under the change on
- * the Remediation card: being checked, would run, would be refused, or
- * could not finish - each saying nothing was changed - and what the agent
- * said, in its own words, below it (what the change would call and how it
- * would be undone, or why it would not run).
+ * the AI card's Remediation step: being checked, would run, would be
+ * refused, or could not finish - each saying nothing was changed - and what
+ * the agent said, in its own words, below it (what the change would call
+ * and how it would be undone, or why it would not run).
+ *
+ * Lines, not a box: the AI card is the only frame (block 43). A refusal is
+ * told by its amber mark and words.
  */
 
 export const CLOUD_DRY_RUN_NOTE_TEST_ID: string = "remediation-dry-run";
@@ -74,10 +77,8 @@ const CloudDryRunNote: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`mt-2 rounded border px-2 py-1.5 text-xs ${
-        isRefused
-          ? "border-amber-200 bg-amber-50 text-amber-800"
-          : "border-gray-200 bg-white text-gray-700"
+      className={`mt-2 text-xs ${
+        isRefused ? "text-amber-800" : "text-gray-700"
       }`}
       data-testid={CLOUD_DRY_RUN_NOTE_TEST_ID}
       data-status={status}
@@ -112,6 +113,7 @@ const CloudDryRunNote: FunctionComponent<ComponentProps> = (
             {translator.translateText(CLOUD_DRY_RUN_COPY.agentSaid)}
           </div>
           <p
+            dir="auto"
             className={`whitespace-pre-line break-words ${
               isRefused ? "text-amber-800" : "text-gray-500"
             }`}

@@ -23,6 +23,10 @@ import path from "path";
  * it - in a box that opens to the right of the title, in both themes; each
  * option says its own on hover and keyboard focus; and a click anywhere on
  * the header's row but the (i) still folds the section, the chevron too.
+ *
+ * Escape puts either away however it came up - pointed at, reached with
+ * Tab, tapped - with the pointer and the focus left where they were, and
+ * nothing else answers that Escape (WCAG 1.4.13).
  */
 
 const PORT: string = process.env["CHART_TIME_ZOOM_FIXTURE_PORT"] || "4233";
@@ -139,6 +143,11 @@ function spanTypeSection(page: Page): Locator {
 
 function helpButton(page: Page): Locator {
   return page.getByRole("button", { name: "About Span Type", exact: true });
+}
+
+// One of the Span Type's options, by its name.
+function spanTypeOption(page: Page, name: string): Locator {
+  return spanTypeSection(page).getByRole("radio", { name: name, exact: true });
 }
 
 // A Tippy box on the page, by what it says.
@@ -462,6 +471,98 @@ test.describe("Traces explorer: what each Span Type option is", () => {
   });
 });
 
+test.describe("Traces explorer: Escape puts what the Span Type says away", () => {
+  test("pointed at, the (i)'s help goes on Escape and stays away while the pointer rests there; pointing at it again brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { width: 1440 });
+
+    const info: Locator = helpButton(page);
+    await info.hover();
+    await expect(tooltipSaying(page, "Where a trace starts.")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+
+    // The pointer has not moved, and the help does not come back on its own.
+    await page.waitForTimeout(600);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+
+    // Nothing else answered the key: the section is open, the choice the same.
+    await expect(spanTypeHeader(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(spanTypeOption(page, "Entry spans")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await page.mouse.move(1400, 960);
+    await info.hover();
+    await expect(tooltipSaying(page, "Where a trace starts.")).toBeVisible();
+  });
+
+  test("reached with Tab, the (i)'s help and then an option's sentence go on Escape, and the focus stays where it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { width: 1440 });
+
+    await spanTypeHeader(page).focus();
+    await page.keyboard.press("Tab");
+    await expect(helpButton(page)).toBeFocused();
+    await expect(tooltipSaying(page, "Where a trace starts.")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(helpButton(page)).toBeFocused();
+    await expect(spanTypeHeader(page)).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("Tab");
+    const entrySpans: Locator = spanTypeOption(page, "Entry spans");
+    await expect(entrySpans).toBeFocused();
+    await expect(
+      optionTooltip(page, "Where a request or message enters a service."),
+    ).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(entrySpans).toBeFocused();
+    await expect(entrySpans).toHaveAttribute("aria-checked", "true");
+
+    // The next option says its sentence when Tab reaches it, as before.
+    await page.keyboard.press("Tab");
+    await expect(spanTypeOption(page, "Root spans")).toBeFocused();
+    await expect(optionTooltip(page, "Where a trace starts.")).toBeVisible();
+  });
+
+  test("an option's sentence, pointed at, goes on Escape, and what is chosen stays chosen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { width: 1440 });
+
+    const allSpans: Locator = spanTypeOption(page, "All spans");
+    await allSpans.hover();
+    await expect(
+      optionTooltip(
+        page,
+        "Every operation, including database calls and internal steps.",
+      ),
+    ).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(allSpans).toHaveAttribute("aria-checked", "false");
+    await expect(spanTypeOption(page, "Entry spans")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+});
+
 test.describe("Traces explorer on a phone: what each Span Type option is", () => {
   test.use({ hasTouch: true, isMobile: true });
 
@@ -512,6 +613,30 @@ test.describe("Traces explorer on a phone: what each Span Type option is", () =>
 
     await info.tap();
     await expect(page.getByRole("tooltip")).toHaveCount(0);
+  });
+
+  test("a tapped (i)'s help goes on Escape too - a keyboard paired with the phone, or a switch - and the next tap brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { width: 390 });
+
+    const info: Locator = helpButton(page);
+    await info.scrollIntoViewIfNeeded();
+    await info.tap();
+    await expect(tooltipSaying(page, "Where a trace starts.")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+
+    // The filters it sits among are still open, the section too.
+    await expect(spanTypeOption(page, "Entry spans")).toBeVisible();
+    await expect(spanTypeHeader(page)).toHaveAttribute("aria-expanded", "true");
+
+    // One tap, not two: Escape left nothing behind that the tap would close.
+    await info.tap();
+    await expect(tooltipSaying(page, "Where a trace starts.")).toBeVisible();
   });
 
   test("a tap on an option still chooses it, and nothing it showed stays once the next tap lands elsewhere", async ({
