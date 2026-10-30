@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "The riskiest open issues, scored from 0 to 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "What its tags and scans cannot always tell. Each changes what its checks find.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Whether samples of its content are read to find sensitive data, and what the scans skip.",
-  "{{confidence}} confidence": "{{confidence}} confidence"
+  "{{confidence}} confidence": "{{confidence}} confidence",
+  "First seen in the last 24 hours.": "First seen in the last 24 hours.",
+  "It came back after it was resolved.": "It came back after it was resolved.",
+  "It came back {{time}}, after it was resolved.": "It came back {{time}}, after it was resolved.",
+  "Marked as Archived At": "Marked as Archived At",
+  "Marked as Resolved At": "Marked as Resolved At",
+  "More ways to resolve": "More ways to resolve",
+  "No release is recorded for it.": "No release is recorded for it.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Occurrences from {{release}} will not reopen it. One from any other release will.",
+  "Regressed": "Regressed",
+  "Regressed At": "Regressed At",
+  "Resolve in next release": "Resolve in next release",
+  "Resolved in Release After": "Resolved in Release After",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolved in the next release: occurrences from {{release}} do not reopen it."
 }

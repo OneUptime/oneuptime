@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "De mest riskfyllda öppna problemen, poängsatta från 0 till 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Det som dess taggar och skanningar inte alltid kan avgöra. Var och en ändrar vad dess kontroller hittar.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Om prover av dess innehåll läses för att hitta känsliga data, och vad skanningarna hoppar över.",
-  "{{confidence}} confidence": "Konfidens: {{confidence}}"
+  "{{confidence}} confidence": "Konfidens: {{confidence}}",
+  "First seen in the last 24 hours.": "Sågs första gången under de senaste 24 timmarna.",
+  "It came back after it was resolved.": "Det kom tillbaka efter att det lösts.",
+  "It came back {{time}}, after it was resolved.": "Det kom tillbaka {{time}}, efter att det lösts.",
+  "Marked as Archived At": "Markerat som arkiverat den",
+  "Marked as Resolved At": "Markerat som löst den",
+  "More ways to resolve": "Fler sätt att lösa",
+  "No release is recorded for it.": "Ingen version är registrerad för det.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Förekomster från {{release}} öppnar inte det igen. En från vilken annan version som helst gör det.",
+  "Regressed": "Regression",
+  "Regressed At": "Regression den",
+  "Resolve in next release": "Lös i nästa version",
+  "Resolved in Release After": "Löst i versionen efter",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Löst i nästa version: förekomster från {{release}} öppnar inte det igen."
 }

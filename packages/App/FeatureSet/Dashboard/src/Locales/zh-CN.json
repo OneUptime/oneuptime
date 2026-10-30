@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "风险最高的未解决问题，按 0 到 100 评分。",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "其标签和扫描并不总能判断的信息。每一项都会改变其检查结果。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "是否读取其内容样本以查找敏感数据，以及扫描会跳过哪些内容。",
-  "{{confidence}} confidence": "置信度：{{confidence}}"
+  "{{confidence}} confidence": "置信度：{{confidence}}",
+  "First seen in the last 24 hours.": "在过去 24 小时内首次出现。",
+  "It came back after it was resolved.": "解决后再次出现。",
+  "It came back {{time}}, after it was resolved.": "解决后于{{time}}再次出现。",
+  "Marked as Archived At": "归档时间",
+  "Marked as Resolved At": "标记为已解决的时间",
+  "More ways to resolve": "更多解决方式",
+  "No release is recorded for it.": "未记录版本。",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "来自 {{release}} 的发生不会重新打开它。来自其他任何版本的发生会重新打开它。",
+  "Regressed": "回归",
+  "Regressed At": "回归时间",
+  "Resolve in next release": "在下一版本中解决",
+  "Resolved in Release After": "在此版本之后的版本中解决",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "已在下一版本中解决：来自 {{release}} 的发生不会重新打开它。"
 }

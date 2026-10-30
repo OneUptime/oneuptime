@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "Os problemas abertos mais arriscados, pontuados de 0 a 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "O que as tags e as varreduras dele nem sempre conseguem dizer. Cada um muda o que as verificações dele encontram.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Se amostras do conteúdo dele são lidas para encontrar dados sensíveis, e o que as varreduras ignoram.",
-  "{{confidence}} confidence": "Confiança: {{confidence}}"
+  "{{confidence}} confidence": "Confiança: {{confidence}}",
+  "First seen in the last 24 hours.": "Vista pela primeira vez nas últimas 24 horas.",
+  "It came back after it was resolved.": "Voltou a ocorrer depois de ser resolvida.",
+  "It came back {{time}}, after it was resolved.": "Voltou a ocorrer {{time}}, depois de ser resolvida.",
+  "Marked as Archived At": "Marcada como arquivada em",
+  "Marked as Resolved At": "Marcada como resolvida em",
+  "More ways to resolve": "Mais formas de resolver",
+  "No release is recorded for it.": "Nenhuma versão está registrada para ela.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Ocorrências de {{release}} não a reabrirão. Uma de qualquer outra versão sim.",
+  "Regressed": "Regressão",
+  "Regressed At": "Regressão em",
+  "Resolve in next release": "Resolver na próxima versão",
+  "Resolved in Release After": "Resolvida na versão após",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolvida na próxima versão: ocorrências de {{release}} não a reabrem."
 }

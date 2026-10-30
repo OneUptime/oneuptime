@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "پرریسک‌ترین مسائل باز، با امتیاز 0 تا 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "آنچه برچسب‌ها و اسکن‌های آن همیشه نمی‌توانند تشخیص دهند. هر کدام نتیجه بررسی‌های آن را تغییر می‌دهد.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "اینکه آیا نمونه‌هایی از محتوای آن برای یافتن داده‌های حساس خوانده می‌شود و اسکن‌ها چه چیزهایی را نادیده می‌گیرند.",
-  "{{confidence}} confidence": "اطمینان: {{confidence}}"
+  "{{confidence}} confidence": "اطمینان: {{confidence}}",
+  "First seen in the last 24 hours.": "نخستین بار در ۲۴ ساعت گذشته دیده شد.",
+  "It came back after it was resolved.": "پس از برطرف‌شدن دوباره رخ داد.",
+  "It came back {{time}}, after it was resolved.": "{{time}}، پس از برطرف‌شدن، دوباره رخ داد.",
+  "Marked as Archived At": "زمان بایگانی",
+  "Marked as Resolved At": "زمان برطرف‌شدن",
+  "More ways to resolve": "راه‌های دیگر برای رفع",
+  "No release is recorded for it.": "هیچ نسخه‌ای برای آن ثبت نشده است.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "رخدادهای {{release}} آن را دوباره باز نمی‌کنند. رخدادی از هر نسخهٔ دیگری باز می‌کند.",
+  "Regressed": "بازگشته",
+  "Regressed At": "زمان بازگشت",
+  "Resolve in next release": "رفع در نسخهٔ بعدی",
+  "Resolved in Release After": "برطرف‌شده در نسخهٔ پس از",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "در نسخهٔ بعدی برطرف شد: رخدادهای {{release}} آن را دوباره باز نمی‌کنند."
 }

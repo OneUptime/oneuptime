@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "De riskantste openstaande problemen, gescoord van 0 tot 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Wat de tags en scans niet altijd kunnen vertellen. Elk ervan verandert wat de controles vinden.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Of voorbeelden van de inhoud worden gelezen om gevoelige gegevens te vinden, en wat de scans overslaan.",
-  "{{confidence}} confidence": "Betrouwbaarheid: {{confidence}}"
+  "{{confidence}} confidence": "Betrouwbaarheid: {{confidence}}",
+  "First seen in the last 24 hours.": "Voor het eerst gezien in de afgelopen 24 uur.",
+  "It came back after it was resolved.": "Ze kwam terug nadat ze was opgelost.",
+  "It came back {{time}}, after it was resolved.": "Ze kwam {{time}} terug, nadat ze was opgelost.",
+  "Marked as Archived At": "Gemarkeerd als gearchiveerd op",
+  "Marked as Resolved At": "Gemarkeerd als opgelost op",
+  "More ways to resolve": "Meer manieren om op te lossen",
+  "No release is recorded for it.": "Er is geen release voor vastgelegd.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Voorvallen uit {{release}} heropenen haar niet. Een voorval uit elke andere release wel.",
+  "Regressed": "Regressie",
+  "Regressed At": "Regressie op",
+  "Resolve in next release": "Oplossen in volgende release",
+  "Resolved in Release After": "Opgelost in release na",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Opgelost in de volgende release: voorvallen uit {{release}} heropenen haar niet."
 }

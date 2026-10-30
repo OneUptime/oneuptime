@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "風險最高的開啟中問題，以 0 到 100 評分。",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "其標籤和掃描不一定能判斷的資訊。每一項都會改變其檢查結果。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "是否讀取其內容樣本以找出敏感資料，以及掃描會略過哪些內容。",
-  "{{confidence}} confidence": "信賴度：{{confidence}}"
+  "{{confidence}} confidence": "信賴度：{{confidence}}",
+  "First seen in the last 24 hours.": "在過去 24 小時內首次出現。",
+  "It came back after it was resolved.": "解決後再次出現。",
+  "It came back {{time}}, after it was resolved.": "解決後於{{time}}再次出現。",
+  "Marked as Archived At": "封存時間",
+  "Marked as Resolved At": "標記為已解決的時間",
+  "More ways to resolve": "更多解決方式",
+  "No release is recorded for it.": "未記錄版本。",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "來自 {{release}} 的發生不會重新開啟它。來自其他任何版本的發生會重新開啟它。",
+  "Regressed": "回歸",
+  "Regressed At": "回歸時間",
+  "Resolve in next release": "在下一版本中解決",
+  "Resolved in Release After": "在此版本之後的版本中解決",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "已在下一版本中解決：來自 {{release}} 的發生不會重新開啟它。"
 }

@@ -2316,6 +2316,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
+      # Exceptions: the exception group upsert's ON CONFLICT branch, which is
+      # all of regression detection - an occurrence after the resolve
+      # reopens it as Regressed, a late one from before does not, and one
+      # resolved in the next release waits out the release it was resolved
+      # after. Clones the migrated TelemetryException into an isolated
+      # schema.
+      - name: Test exception regressions on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EXCEPTION_REGRESSION_TESTS: "true"
+          EXCEPTION_REGRESSION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_REGRESSION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_REGRESSION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ExceptionRegressionPostgres.test.ts --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when

@@ -38687,5 +38687,18 @@
   "The riskiest open issues, scored from 0 to 100.": "위험도가 가장 높은 열린 이슈로, 0에서 100까지 점수가 매겨집니다.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "태그와 스캔만으로는 항상 알 수 없는 정보입니다. 각 항목에 따라 검사 결과가 달라집니다.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "민감한 데이터를 찾기 위해 콘텐츠 샘플을 읽을지 여부와 스캔에서 건너뛸 항목입니다.",
-  "{{confidence}} confidence": "신뢰도: {{confidence}}"
+  "{{confidence}} confidence": "신뢰도: {{confidence}}",
+  "First seen in the last 24 hours.": "최근 24시간 이내에 처음 확인되었습니다.",
+  "It came back after it was resolved.": "해결된 후 다시 발생했습니다.",
+  "It came back {{time}}, after it was resolved.": "해결된 후 {{time}} 다시 발생했습니다.",
+  "Marked as Archived At": "보관 처리 일시",
+  "Marked as Resolved At": "해결 처리 일시",
+  "More ways to resolve": "다른 해결 방법",
+  "No release is recorded for it.": "기록된 릴리스가 없습니다.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "{{release}}의 발생으로는 다시 열리지 않습니다. 다른 릴리스의 발생으로는 다시 열립니다.",
+  "Regressed": "재발",
+  "Regressed At": "재발 일시",
+  "Resolve in next release": "다음 릴리스에서 해결",
+  "Resolved in Release After": "해결 기준 릴리스",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "다음 릴리스에서 해결됨: {{release}}의 발생으로는 다시 열리지 않습니다."
 }
