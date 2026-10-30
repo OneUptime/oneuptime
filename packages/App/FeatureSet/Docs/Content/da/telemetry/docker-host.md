@@ -4,18 +4,18 @@ OneUptime Docker-agenten er én container, du kører på en Docker-vært. Den l�
 
 :::cards
 - [Installer agenten](#installer-agenten): To containere, med `docker run` eller Docker Compose.
-- [Hvad agenten indsamler](#hvad-agenten-indsamler): Metrikker, logs og et inventar over hver container.
+- [Hvad agenten indsamler](#hvad-agenten-indsamler): Hver containers metrikker og logs.
 - [Containerlogs kræver json-file](#containerlogs-kræver-logdriveren-json-file): Kontrollér og skift en containers logdriver.
 - [Fejlfinding](#fejlfinding): Genstartsløkker, manglende metrikker, manglende logs.
 :::
 
 ## Sådan virker det
 
-Agenten er en OpenTelemetry Collector med OneUptimes konfiguration indbygget. Gennem Docker-socketen læser den hver containers statistik hvert 30. sekund og lister hver container, hvert image, hvert netværk og hver volumen hvert 5. minut. Den følger containernes logfiler og sender alt til din OneUptime-URL over OTLP med den indtagelsesnøgle, du giver den.
+Agenten er en OpenTelemetry Collector med OneUptimes konfiguration indbygget. Gennem Docker-socketen læser den hver containers statistik hvert 30. sekund. Den følger containernes logfiler og sender alt til din OneUptime-URL over OTLP med den indtagelsesnøgle, du giver den.
 
 ```mermaid title="To containere på din Docker-vært"
 flowchart TB
-    containers["Dine containere"] -->|"statistik, logfiler,<br/>inventar"| agent["Docker-agent"]
+    containers["Dine containere"] -->|"statistik og<br/>logfiler"| agent["Docker-agent"]
     agent -->|"OTLP over HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"undersøger en hændelse<br/>eller advarsel"| ai["Docker-AI-agent"]
     ai -->|"skrivebeskyttede<br/>docker-kommandoer"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find værten i OneUptime
 
-Åbn **Produkter → Infrastruktur → Docker → Alle værter**. Værten vises under sit `DOCKER_HOST_NAME` inden for et minuts tid, med sine containere, metrikker og logs. AI-agenten vises som forbundet på værtens side **AI-agent** og nederst på dens **Oversigt**. Værtens side **Topologi** tegner dens Compose-projekter, containere, images, netværk og volumes på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
+Åbn **Produkter → Infrastruktur → Docker → Alle værter**. Værten vises under sit `DOCKER_HOST_NAME` inden for et minuts tid, med sine containere, metrikker og logs. AI-agenten vises som forbundet på værtens side **AI-agent** og nederst på dens **Oversigt**. Værtens side **Topologi** tegner dens Compose-projekter og containere på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Miljøvariabler
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, såsom `https://oneuptime.com` eller din selvhostede instans. Brug `http://` og dens port, hvis instansen kun bruger HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `DOCKER_HOST_NAME` | Nej | Værtens navn i OneUptime. Standard er `docker-host`, så giv hver vært sit eget. |
-| `DOCKER_API_VERSION` | Nej | Den Docker Engine API-version, agenten taler. Standard er `1.44`. Sænk den på en ældre daemon, eller sæt den til en tom værdi for at forhandle den med daemonen (se [Fejlfinding](#fejlfinding)). |
+| `DOCKER_API_VERSION` | Nej | Den Docker Engine API-version, agenten taler. Tom som standard: agenten forhandler den med daemonen, så enhver Docker Engine fra 20.10 og frem virker. Sæt den kun for at fastlåse en version (se [Fejlfinding](#fejlfinding)). |
 
 For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Docker CLI) eller redigere `docker-compose.yml` og køre `docker compose up -d` (Docker Compose).
 
@@ -149,7 +149,6 @@ For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Dock
 | --- | --- |
 | Containermetrikker | CPU (forbrug, procent, throttling), hukommelse (forbrug, limit, procent), netværks- og blok-I/O, oppetid, genstarter og antal processer, pr. container, hvert 30. sekund. |
 | Containerlogs | stdout og stderr fra hver container, fra dens `json-file`-logfil. |
-| Inventar | Hver container i enhver tilstand samt hvert image, netværk og volumen, hvert 5. minut. |
 
 Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter containeren. Hver loglinje får en alvorlighed ud fra det niveau, den nævner, såsom `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje, der ikke nævner noget, får sin strøms: stderr er `ERROR`, stdout er `INFO`. Linjer, der starter med mellemrum eller en lukkende parentes, sættes sammen med linjen før, så en stack trace ankommer som én post. Agentens egne logs udelades.
 
@@ -254,19 +253,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-En daemon afviser en klient, der er nyere end dens eget maksimum, så receiveren starter aldrig, og collectoren afslutter med den. Find daemonens maksimum:
+En daemon afviser en klient, der er nyere end dens eget maksimum, så receiveren starter aldrig, og collectoren afslutter med den. Agenten forhandler versionen med daemonen (ét `HEAD /_ping`, derefter daemonens eget maksimum), medmindre `DOCKER_API_VERSION` angiver en, og et ældre image af agenten fastlåste `1.44`, som Docker Engine 20.10 til 24 afviser. [Opgradér agenten](#opgradering-af-agenten), og start den uden `-e DOCKER_API_VERSION` (eller fjern `DOCKER_API_VERSION` fra Compose).
+
+For alligevel at fastlåse en version skal du højst bruge daemonens maksimum:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
 Tilføj derefter `-e DOCKER_API_VERSION=1.41` (eller den værdi, du fik) til `docker run`, eller sæt `DOCKER_API_VERSION` i Compose. Nyere daemoner betjener stadig ældre API-versioner, så indstillingen forbliver gyldig efter en opgradering.
-
-Vil du hellere ikke slå tallet op? Sæt `DOCKER_API_VERSION` til den tomme streng. Agenten forhandler så versionen med daemonen (ét `HEAD /_ping`, derefter daemonens eget maksimum), hvilket virker mod både gamle og nye daemoner:
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Adgang nægtet til Docker-socket

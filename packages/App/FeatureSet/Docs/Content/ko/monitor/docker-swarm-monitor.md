@@ -4,14 +4,14 @@ Docker Swarm 모니터는 Swarm 클러스터의 서비스 작업 뒤에 있는 �
 
 :::cards
 - [모니터 만들기](#docker-swarm-모니터-만들기): 대시보드에서 6단계.
-- [템플릿](#미리-만들어진-알림-템플릿): 작업마다 인시던트 하나를 여는 4개의 미리 만들어진 알림.
+- [템플릿](#미리-만들어진-알림-템플릿): 작업마다 인시던트 하나를 여는 5개의 미리 만들어진 알림.
 - [메트릭](#수집되는-메트릭): 알림에 쓸 수 있는 컨테이너 메트릭.
 - [필터](#모니터-설정): 모니터를 서비스, 작업, 이미지로 좁힙니다.
 :::
 
 ## 작동 방식
 
-OneUptime Docker Swarm 에이전트는 매니저 노드에서 실행됩니다. 그 수집기는 30초마다 해당 노드의 Docker 데몬에서 컨테이너 통계를 읽고, 각 배치에 클러스터 이름 `docker.swarm.cluster.name`을 찍습니다. 옆에서 실행되는 작은 인벤토리 폴러는 5분마다 Swarm API에서 클러스터의 노드, 서비스, 작업을 읽습니다. 첫 데이터가 클러스터를 OneUptime에 등록합니다.
+OneUptime Docker Swarm 에이전트는 매니저 노드에서 실행됩니다. 그 수집기는 30초마다 해당 노드의 Docker 데몬에서 컨테이너 통계를 읽고, 각 배치에 클러스터 이름 `docker.swarm.cluster.name`을 찍으며, 각 작업의 메트릭에는 그 작업의 서비스와 노드를 찍습니다. 옆에서 실행되는 작은 인벤토리 폴러는 5분마다 Swarm API에서 클러스터의 노드, 서비스, 작업을 읽습니다. 첫 데이터가 클러스터를 OneUptime에 등록합니다.
 
 수집기는 자신이 실행되는 노드의 컨테이너만 봅니다. 모든 노드의 메트릭을 받으려면 같은 `DOCKER_SWARM_CLUSTER_NAME`으로 각 노드에서 수집기를 실행하세요.
 
@@ -77,33 +77,37 @@ flowchart TB
 
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 모두 | 필수. 모든 쿼리를 `resource.docker.swarm.cluster.name`으로 한정합니다. 에이전트가 찍는 리소스 속성은 이것뿐이므로, 모니터는 `container.runtime`이나 `host.name` 필터를 추가하지 않습니다. |
-| **서비스 이름** | Custom Metric, 고급 | 선택 사항. `docker.swarm.service.name`과 정확히 일치. 예: `web`. |
-| **노드 이름** | Custom Metric, 고급 | 선택 사항. `docker.swarm.node.name`과 정확히 일치. 예: `swarm-node-1`. |
+| **Docker Swarm Cluster** | 모두 | 필수. 모든 쿼리를 `resource.docker.swarm.cluster.name`으로 한정합니다. 작업의 메트릭에는 Docker 호스트의 메트릭처럼 `container.runtime=docker`가 붙고, 에이전트는 `host.name`을 절대 찍지 않으므로, 모니터는 둘 중 어느 것으로도 필터링하지 않습니다. |
+| **서비스 이름** | Custom Metric, 고급 | 선택 사항. `resource.docker.swarm.service.name`과 정확히 일치. `docker service ls`에 표시되는 서비스 이름입니다. 예: `web`(스택에서는 `<stack>_web`). |
+| **노드 이름** | Custom Metric, 고급 | 선택 사항. `resource.docker.swarm.node.name`과 정확히 일치. `docker node ls`에 표시되는 노드의 호스트 이름입니다. 예: `swarm-node-1`. 그 노드의 에이전트가 `DOCKER_SWARM_NODE_NAME`에서 이 값을 찍습니다. |
 | **컨테이너 이름** | Custom Metric, 고급 | 선택 사항. `resource.container.name`과 정확히 일치. 작업의 컨테이너 이름은 `<service>.<slot>.<taskid>`이며, 예는 `web.1.abc123`입니다. |
-| **컨테이너 이미지** | Custom Metric, 고급 | 선택 사항. `resource.container.image.name`과 정확히 일치. 예: `nginx:latest`. |
+| **컨테이너 이미지** | Custom Metric, 고급 | 선택 사항. Swarm이 이미지에 고정하는 다이제스트가 있든 없든 `resource.container.image.name`과 일치합니다. `nginx:latest`는 `nginx:latest@sha256:…`와도 일치하고, 입력한 다이제스트는 빼고 비교하며, 태그가 없는 이름은 `:latest`를 뜻합니다. |
 | **Docker Swarm Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. |
 | **집계** | Custom Metric | 샘플을 합치는 방식: **평균**, **최대**, **최소**, **합계**, **개수**. 메트릭의 일반적인 집계에서 시작합니다. |
 | **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **Past 1 Minute** 에서 시작하고, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 결합하는 **메트릭 추가** 와 **수식 추가**. |
 
-> [!WARNING]
-> 함께 제공되는 에이전트는 아직 `docker.swarm.service.name`이나 `docker.swarm.node.name`을 설정하지 않으므로, **서비스 이름** 이나 **노드 이름** 을 채운 모니터는 데이터를 찾지 못합니다. 대신 **컨테이너 이미지** 로 좁히거나 `resource.container.name`으로 그룹화하세요.
+> [!NOTE]
+> **서비스 이름** 과 **노드 이름** 에는 버전 0.161.2 이상의 에이전트 파일이 필요합니다. 그보다 오래된 파일은 서비스도 노드도 보내지 않습니다. 에이전트가 실행되는 모든 노드에서 [에이전트를 업그레이드하세요](/docs/telemetry/docker-swarm#에이전트-업그레이드).
 
 ## 미리 만들어진 알림 템플릿
 
-**Quick Setup** 에는 템플릿이 4개 있습니다. 각각 완전한 모니터를 만듭니다. `resource.container.name`으로 그룹화한 쿼리, 작동하는 기준, 회복하는 기준입니다. 작업은 하나씩 판단되며 각자 인시던트와 알림을 받고, 그 근본 원인에는 영향받은 작업과 그 값이 나열됩니다. 임계값은 출발점이므로 편집할 수 있습니다.
+**Quick Setup** 에는 템플릿이 5개 있습니다. 각각 완전한 모니터를 만듭니다. 쿼리, 작동하는 기준, 회복하는 기준입니다. **Cluster Stopped Reporting** 을 제외한 모든 템플릿은 쿼리를 `resource.container.name`으로 그룹화하므로, 작업은 하나씩 판단되며 각자 인시던트와 알림을 받고, 그 근본 원인에는 영향받은 작업과 그 값이 나열됩니다. 임계값은 출발점이므로 편집할 수 있습니다.
 
 표에 달리 적혀 있지 않으면, 기준은 기간의 매분 조건이 유지될 때만 작동하고 임계값에서 10% 지난 지점에서 회복하므로 경계 근처를 오가는 값 때문에 깜빡이지 않습니다.
 
 | 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 심각 | `container.memory.percent`, 클러스터의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | Task Down (Low Uptime) | 심각 | `container.uptime`, 작업별 Min, 최근 1분 | 값 중 하나가 60초 미만 | 모든 값이 66초 이상 |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, 작업별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Task Memory Usage | Warning | `container.memory.percent`, 작업별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
-| High Task Process Count | Warning | `container.pids.count`, 작업별 Max, 최근 5분 | 500 초과 | 450 이하 |
+| High Task Process Count | Warning | `container.pids.count`, 작업별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** 템플릿은 클러스터에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트를 실행하는 노드가 다운되었거나, 에이전트가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소된 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다. 에이전트는 컨테이너로 실행되며 자기 컨테이너도 보고하므로, 작업이 없는 노드도 계속 보고합니다.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** 템플릿은 재시작이 수준이 아니라 이벤트이므로 새로 생긴 샘플 하나에도 작동합니다. Swarm은 대체 작업에 새 컨테이너, 즉 새 계열을 주므로, 템플릿은 0이 아니라 1분 미만의 가동 시간을 찾습니다. 배포나 확장도 이것을 작동시키며, 새 작업들의 가동 시간이 1분을 넘으면 해제됩니다. 종료되고 대체되지 않은 작업은 아무것도 보내지 않으므로 잡히지 않습니다.
@@ -136,10 +140,10 @@ flowchart TB
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
-| `container.pids.count` | 개수 | 작업 컨테이너 안의 프로세스. 갑자기 늘면 포크 폭탄이나 누수일 수 있습니다. |
+| `container.pids.count` | 개수 | 작업 컨테이너 안의 태스크 수입니다. cgroup pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. 갑작스러운 증가는 포크 폭탄이나 스레드 누수를 뜻할 수 있습니다. |
 | `container.uptime` | 초 | 작업 컨테이너가 실행된 시간. 다시 예약되거나 다시 시작된 작업은 새 컨테이너를 0부터 시작합니다. |
 
-각 계열은 컨테이너의 신원을 리소스 속성으로 가집니다: `resource.container.name`(`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.cluster.name`.
+각 계열은 컨테이너의 신원을 리소스 속성으로 가집니다: `resource.container.name`(`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name`(에이전트가 노드 이름을 알 때), `resource.docker.swarm.cluster.name`.
 
 ## 모니터링 기준
 
@@ -149,7 +153,7 @@ flowchart TB
 | --- | --- |
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로 지정). |
 | **집계** | 기간 안의 값을 하나의 답으로 만드는 방식: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(기간 전체에서 모든 값이 일치해야 함), **Any Value**(하나면 충분). |
-| **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건 **Anomalously High**, **Anomalously Low**, **Anomalous**. |
+| **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건 **Anomalously High**, **Anomalously Low**, **Anomalous**. **데이터 없음**은 창 안에서 쿼리가 아무것도 반환하지 않았을 때, **데이터 있음**은 무언가 반환했을 때 일치합니다. |
 | **임계값** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건 전용. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |
 | **기준선 기간** | 이상 조건 전용. 기록 14일(기본값), 28일, 60일, 90일. |
@@ -165,11 +169,11 @@ flowchart TB
 
 | 순서 | 기준 | 일치하는 경우 | 결과 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 첫 번째 쿼리의 값 중 하나가 `0` | 모니터를 **오프라인** 으로 표시하고 인시던트 "_monitor name_ is offline"을 선언합니다. 모니터가 회복하면 스스로 해결됩니다. |
-| 2 | Check if _monitor name_ is online | 값 중 하나가 `0`보다 큼 | 모니터를 **정상 작동** 으로 표시합니다. |
+| 1 | Check if _monitor name_ is offline | 첫 번째 쿼리에 창 전체 동안 데이터가 없음 | 모니터를 **오프라인** 으로 표시하고 인시던트 "_monitor name_ is offline"을 선언합니다. 모니터가 회복하면 스스로 해결됩니다. |
+| 2 | Check if _monitor name_ is online | 첫 번째 쿼리에 데이터가 있음 | 모니터를 **정상 작동** 으로 표시합니다. |
 
 > [!IMPORTANT]
-> 무응답은 어느 기준과도 일치하지 않습니다. 데이터를 보내지 않게 된 클러스터는 모니터를 원래 상태 그대로 둡니다. 데이터가 멈출 때 알림을 받으려면 기준에서 **데이터가 없는 경우** 를 **트리거** 로 설정하세요. OneUptime 자체가 데이터를 받지 못한 시간은 절대 데이터 없음으로 취급되지 않습니다. 그런 시간이 포함된 기간의 확인은 대신 기다리며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
+> `0` 값도 데이터입니다. 재시작이나 오류처럼 자주 0인 메트릭 때문에 모니터가 오프라인이 되지는 않습니다. 값에 대해 알림을 받으려면 템플릿에서 시작하거나 임계값이 있는 기준을 추가하세요. 데이터가 전혀 오지 않고 어떤 기준도 일치하지 않는 동안 모니터는 상태를 유지하고 열린 인시던트도 열린 채로 남습니다. 침묵은 복구가 아닙니다. OneUptime 자체가 데이터를 받지 못한 시간은 데이터 없음으로 보지 않습니다. 그 시간이 들어 있는 창의 검사는 대신 기다리며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
 
 ## 문제 해결
 
@@ -182,7 +186,7 @@ flowchart TB
 :::
 
 :::details 서비스나 노드로 필터링한 모니터가 데이터를 찾지 못함
-**서비스 이름** 과 **노드 이름** 은 `docker.swarm.service.name`과 `docker.swarm.node.name`에 맞추는데, 함께 제공되는 에이전트는 이것들을 설정하지 않습니다. 비우고 **컨테이너 이미지** 로 좁히거나, `resource.container.name`으로 그룹화하세요.
+**서비스 이름** 과 **노드 이름** 은 `resource.docker.swarm.service.name`과 `resource.docker.swarm.node.name`에 맞추는데, 에이전트는 파일 버전 0.161.2부터 이것들을 보냅니다. [에이전트를 업그레이드하세요](/docs/telemetry/docker-swarm#에이전트-업그레이드). 노드 이름은 각 노드의 `.env`에 있는 `DOCKER_SWARM_NODE_NAME`에서 오며, 설치 스크립트가 이 값을 씁니다. 다른 방법으로 설정한 노드라면 거기에 직접 추가하세요.
 :::
 
 :::details 모든 작업이 하나의 계열로 보임

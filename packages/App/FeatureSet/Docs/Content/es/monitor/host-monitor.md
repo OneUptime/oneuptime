@@ -4,7 +4,7 @@ Un monitor de host vigila una máquina – su CPU, su memoria, sus discos, su ca
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-host): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cinco alertas listas para usar para CPU, memoria, disco, carga y procesos.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Seis alertas listas para usar para un host silencioso, CPU, memoria, disco, carga y procesos.
 - [Métricas](#métricas-recopiladas): Las métricas de host sobre las que puede alertar, y sus unidades.
 - [¿Host o servidor / VM?](#monitor-de-host-o-monitor-de-servidor-vm): Cuál de los dos monitores de máquinas usar.
 :::
@@ -95,12 +95,13 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `system.memory.usage`, Count, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | High CPU Utilization | Advertencia | `system.cpu.utilization` para los estados `user` y `system`, sumados y mostrados como porcentaje, últimos 5 minutos | Por encima del 80 % | En el 72 % o menos |
 | High Memory Utilization | Advertencia | `system.memory.utilization` para el estado `used`, como porcentaje, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
 | High Filesystem Usage | Crítico | `system.filesystem.utilization`, Max por `mountpoint` y `device`, como porcentaje, últimos 5 minutos | Por encima del 90 % | En el 81 % o menos |
@@ -109,6 +110,7 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
+- **Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: la máquina está caída o inaccesible, o su colector se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **CPU** es el tiempo ocupado (`user` más `system`), la misma cifra que grafica la **Vista general** del host. La espera de E/S y el steal quedan fuera.
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
 - **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %; exclúyalos en el scraper `filesystem` del colector.
@@ -173,7 +175,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (cada valor debe coincidir, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. |
 | **Umbral** | El valor con el que comparar. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
@@ -189,11 +191,11 @@ Un monitor que no crea a partir de una plantilla empieza con dos criterios:
 
 | Orden | Criterio | Coincide cuando | Entonces |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Cualquier valor de la primera consulta es `0` | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
-| 2 | Check if _monitor name_ is online | Cualquier valor está por encima de `0` | Marca el monitor como **Operativo**. |
+| 1 | Check if _monitor name_ is offline | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
+| 2 | Check if _monitor name_ is online | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
 
 > [!IMPORTANT]
-> El silencio no coincide con ninguno de los dos criterios: un host que deja de enviar datos deja el monitor como estaba. Para que se le avise cuando el host se quede en silencio, ponga **Si no hay datos** en **Disparador** en un criterio. El tiempo en que el propio OneUptime no estaba recibiendo nunca cuenta como falta de datos: una comprobación cuya ventana lo contiene espera en su lugar, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valor de `0` son datos, así que una métrica que suele valer cero, como los reinicios o los errores, no deja el monitor fuera de línea. Para recibir alertas sobre un valor, empiece con una plantilla o añada un criterio con un umbral. Cuando no llega ningún dato y no se cumple ningún criterio, el monitor conserva su estado y los incidentes abiertos siguen abiertos: el silencio no es una recuperación. El tiempo en que OneUptime no recibía datos nunca cuenta como falta de datos: una comprobación cuya ventana lo incluye espera, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solución de problemas
 

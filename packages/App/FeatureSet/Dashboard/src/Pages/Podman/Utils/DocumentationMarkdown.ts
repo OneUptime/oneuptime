@@ -40,8 +40,13 @@ export const PODMAN_EXAMPLE_HOST_NAME: string = "my-podman-host";
  */
 export const PODMAN_DEFAULT_HOST_NAME: string = "podman-host";
 
-// The Docker API version the agent speaks to the socket unless told otherwise.
-export const PODMAN_DEFAULT_API_VERSION: string = "1.44";
+/*
+ * The Docker API version the agent speaks to the socket unless told
+ * otherwise: none. The image's DOCKER_API_VERSION is empty, so the agent
+ * negotiates the version with the socket. It used to be 1.44, which a
+ * server that enforces its maximum refuses as "too new".
+ */
+export const PODMAN_DEFAULT_API_VERSION: string = "";
 
 // Rootful Podman's Docker-compatible API socket, which the collector reads.
 export const PODMAN_SOCKET_PATH: string = "/run/podman/podman.sock";
@@ -370,7 +375,7 @@ function getAdvancedTopics(data: GuideData): Array<SetupGuideTopic> {
 | \`ONEUPTIME_URL\` | Yes | Your OneUptime instance URL (e.g. \`${data.oneuptimeUrl}\`) |
 | \`ONEUPTIME_SERVICE_TOKEN\` | Yes | The telemetry ingestion key from step 1 |
 | \`PODMAN_HOST_NAME\` | No | Friendly name for this host. Defaults to \`${PODMAN_DEFAULT_HOST_NAME}\` |
-| \`DOCKER_API_VERSION\` | No | Docker API version the agent speaks to the Podman socket. Defaults to \`${PODMAN_DEFAULT_API_VERSION}\`; set it to the socket's maximum on older hosts, or to an empty value to negotiate it (see Troubleshooting) |
+| \`DOCKER_API_VERSION\` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |
 
 ${
   cli
@@ -526,7 +531,7 @@ function getTroubleshootingTopics(data: GuideData): Array<SetupGuideTopic> {
 
 ${codeBlock("bash", "sudo systemctl enable --now podman.socket")}
 
-That is rootful Podman's socket, the one the agent reads. Running Podman rootless? Its socket is \`/run/user/<uid>/podman/podman.sock\` instead (turn it on with \`systemctl --user enable --now podman.socket\`) — see the Podman agent documentation.`,
+That is rootful Podman's socket, the one the agent reads. Running Podman rootless? Its socket is \`/run/user/<uid>/podman/podman.sock\` (turn it on with \`systemctl --user enable --now podman.socket\`) and its storage \`~/.local/share/containers/storage\`: mount those at \`${PODMAN_SOCKET_PATH}\` and \`${PODMAN_STORAGE_PATH}\` in the agent's container instead — see the Podman agent documentation.`,
     },
     {
       title: 'Agent restarts with "client version is too new"',
@@ -539,7 +544,13 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41`,
 )}
 
-The agent speaks a pinned Docker API version to the socket (\`${PODMAN_DEFAULT_API_VERSION}\` by default). A server that enforces a maximum refuses a newer client, the collector exits with it, and the container restart-loops. Find the version the socket reports:
+A server that enforces a maximum refuses a newer client, the collector exits with it, and the container restart-loops. The agent pins a Docker API version only when \`DOCKER_API_VERSION\` names one, and an older agent image pinned \`1.44\`. ${
+        cli
+          ? `Remove the agent (\`podman rm -f ${name}\`), pull the latest image (\`podman pull ${PODMAN_AGENT_IMAGE}\`) and run the command from step 2 again, without \`-e DOCKER_API_VERSION\`.`
+          : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list, then run `podman compose pull` and `podman compose up -d`."
+      } The agent then negotiates the version with the socket.
+
+To pin a version anyway, use no more than the version the socket reports:
 
 ${codeBlock(
   "bash",
@@ -548,13 +559,9 @@ ${codeBlock(
 
 ${
   cli
-    ? `Then remove the agent (\`podman rm -f ${name}\`) and run the command from step 2 again with that version added, e.g. \`-e DOCKER_API_VERSION=1.41\`.`
-    : "Then add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `podman compose up -d`."
-} Newer servers still serve older API versions, so the setting keeps working after an upgrade.
-
-Rather not look the number up? Set \`DOCKER_API_VERSION\` to an empty value (${
-        cli ? "`-e DOCKER_API_VERSION=`" : "`- DOCKER_API_VERSION=`"
-      }) and the agent negotiates the version with the socket.`,
+    ? "Add it to the command, e.g. `-e DOCKER_API_VERSION=1.41`."
+    : "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `podman compose up -d`."
+} Newer servers still serve older API versions, so a pinned version keeps working after an upgrade.`,
     },
     {
       title: 'Host shows as "Disconnected"',

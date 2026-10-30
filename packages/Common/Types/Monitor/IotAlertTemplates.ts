@@ -630,3 +630,14 @@ export function getIoTAlertTemplateById(
     return template.id === id;
   });
 }
+
+/*
+ * The template a NEW IoT monitor starts on: Device Offline. It is already
+ * the fleet's "stopped reporting" template - a registered device that sends
+ * nothing is seeded as an empty series and read as down
+ * (MonitorTelemetryMonitor.injectExpectedAbsentIoTDeviceSeries) - so the IoT
+ * Device type has no separate Stopped Reporting template.
+ */
+export function getIoTDefaultAlertTemplateId(): string {
+  return deviceOfflineTemplate.id;
+}

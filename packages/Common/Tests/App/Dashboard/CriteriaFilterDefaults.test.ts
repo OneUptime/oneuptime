@@ -365,6 +365,35 @@ describe("Criteria filter defaults", () => {
 
   describe("getFilterTypeOptionsByCheckOn", () => {
     /*
+     * An infrastructure monitor's out-of-the-box criteria ask whether its
+     * agent sends anything at all (FilterType.IsEmpty / IsNotEmpty on the
+     * metric), so the Condition dropdown offers both, in a metric's words,
+     * after the comparisons people pick most - and nowhere else changes.
+     */
+    test("a metric offers Has No Data and Has Data last, in those words", () => {
+      const options: Array<DropdownOption> =
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(CheckOn.MetricValue);
+
+      expect(options.slice(-2)).toEqual([
+        { label: "Has No Data", value: FilterType.IsEmpty },
+        { label: "Has Data", value: FilterType.IsNotEmpty },
+      ]);
+      expect(
+        CriteriaFilterUtil.getDefaultFilterTypeByCheckOn(CheckOn.MetricValue),
+      ).not.toBe(FilterType.IsEmpty);
+    });
+
+    test.each([CheckOn.LogCount, CheckOn.SpanCount])(
+      "%s does not offer the metric's data-presence conditions",
+      (checkOn: CheckOn) => {
+        expect(filterTypeOptionsFor(checkOn)).not.toContain(FilterType.IsEmpty);
+        expect(filterTypeOptionsFor(checkOn)).not.toContain(
+          FilterType.IsNotEmpty,
+        );
+      },
+    );
+
+    /*
      * Offering a condition the server does not decide on is the mirror image
      * of #3412 and just as quiet: the dropdown draws fine, the criteria saves
      * fine, and then the comparator it lands in does not recognise the filter

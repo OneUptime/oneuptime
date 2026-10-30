@@ -131,13 +131,31 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
 import {
+  getExceptionAssignBulkAction,
+  getExceptionAssignmentRowActions,
   getExceptionBulkActions,
   getExceptionId,
   getExceptionName,
   getExceptionRowActions,
+  runExceptionAssignment,
 } from "./ExceptionRowActions";
+import ExceptionAssignModal from "./ExceptionAssignModal";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BulkActionButtonSchema,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import UserUtil from "Common/UI/Utils/User";
+import {
+  DEFAULT_EXCEPTION_LIST_SORT,
+  EXCEPTION_LIST_SORT_LABELS,
+  ExceptionAssignmentWrite,
+  ExceptionListSort,
+  getExceptionListSortOrder,
+  readExceptionListSort,
+} from "../../Utils/ExceptionAssignment";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -161,7 +179,11 @@ import {
 } from "../../Utils/ExceptionsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -338,6 +360,10 @@ interface InitialUrlState {
   pageSize: number;
   status: ExceptionStatus | null;
   classScope: ExceptionClassScope | null;
+  // `assigned=me`: only the exceptions assigned to the reader.
+  assignedToMe: boolean;
+  // `sort=`: the list's order (ExceptionListSort), last seen by default.
+  sort: ExceptionListSort;
 }
 
 /*
@@ -436,7 +462,20 @@ function readInitialUrlState(): InitialUrlState {
       ? (classRaw as ExceptionClassScope)
       : null;
 
-  return { search, filters, timeRange, page, pageSize, status, classScope };
+  const assignedToMe: boolean = params.get("assigned") === "me";
+  const sort: ExceptionListSort = readExceptionListSort(params.get("sort"));
+
+  return {
+    search,
+    filters,
+    timeRange,
+    page,
+    pageSize,
+    status,
+    classScope,
+    assignedToMe,
+    sort,
+  };
 }
 
 export interface ExceptionsViewerProps {
@@ -574,6 +613,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         pageSize: props.limit || DEFAULT_PAGE_SIZE,
         status: null,
         classScope: null,
+        assignedToMe: false,
+        sort: DEFAULT_EXCEPTION_LIST_SORT,
       };
     }
 
@@ -597,6 +638,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       props.defaultClassScope ||
       DEFAULT_EXCEPTION_CLASS_SCOPE,
   );
+
+  const [assignedToMe, setAssignedToMe] = useState<boolean>(
+    initialUrlState.assignedToMe,
+  );
+  const [sort, setSort] = useState<ExceptionListSort>(initialUrlState.sort);
+  /*
+   * Assign to…, from Bulk Actions, while its dialog is open: the selection
+   * the run is for.
+   */
+  const [assignDialog, setAssignDialog] =
+    useState<BulkActionOnClickProps<TelemetryException> | null>(null);
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -782,6 +834,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     writeTelemetryViewerUrlState({
       ...Object.fromEntries(params.entries()),
       class: classScope === DEFAULT_EXCEPTION_CLASS_SCOPE ? null : classScope,
+      // As `class`: written only off its default, and cleared explicitly.
+      assigned: assignedToMe ? "me" : null,
+      sort: sort === DEFAULT_EXCEPTION_LIST_SORT ? null : sort,
     });
   }, [
     hostOwnsView,
@@ -793,6 +848,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     status,
     defaultStatus,
     classScope,
+    assignedToMe,
+    sort,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -1392,6 +1449,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.primaryEntityId = primaryEntityId;
     }
 
+    // Assigned to me: the reader's own, the ones assigned to them by name.
+    if (assignedToMe) {
+      q.assignToUserId = UserUtil.getUserId();
+    }
+
     if (status === "unresolved") {
       q.isResolved = false;
       q.isArchived = false;
@@ -1496,6 +1558,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, [
     primaryEntityId,
     status,
+    assignedToMe,
     columnLiterals,
     errorClassClause,
     resourceIds,
@@ -1534,8 +1597,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             unhandled: true,
             // Resolve in next release, in the row's menu and Bulk Actions.
             lastSeenInRelease: true,
+            // Who owns it: the row's chip and Assign to me.
+            assignToUserId: true,
+            assignToTeamId: true,
+            assignToUser: { name: true, email: true },
+            assignToTeam: { name: true },
           },
-          sort: { lastSeenAt: SortOrder.Descending },
+          sort: getExceptionListSortOrder(sort) as never,
         });
       setExceptions(result.data || []);
       setTotalCount(result.count);
@@ -1545,7 +1613,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [query, page, pageSize]);
+  }, [query, page, pageSize, sort]);
 
   useEffect(() => {
     if (holdsReads) {
@@ -2339,10 +2407,66 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * Two independent lenses on the same list — status and fault class — so
    * they read as two groups rather than one seven-button row.
    */
+  /*
+   * Assigned to me: one click to the reader's own exceptions, beside the
+   * lenses, and the list's order. Both ride in the address bar.
+   */
+  const assignedToMeToggle: ReactElement = (
+    <button
+      type="button"
+      aria-pressed={assignedToMe}
+      data-testid="exceptions-assigned-to-me"
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+        assignedToMe
+          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+          : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
+      }`}
+      onClick={() => {
+        setAssignedToMe(!assignedToMe);
+        setPage(1);
+      }}
+    >
+      {translator.translateText("Assigned to me")}
+    </button>
+  );
+
+  const sortMenu: ReactElement = (
+    <MoreMenu
+      text={translator.translateTemplate("Sort: {{order}}", {
+        order: translatableTerm(EXCEPTION_LIST_SORT_LABELS[sort]),
+      })}
+      menuIcon={IconProp.ArrowUpDown}
+      dataTestId="exceptions-sort"
+      isMenuLeftAligned={true}
+      isMenuPortaled={true}
+    >
+      {Object.values(ExceptionListSort).map(
+        (option: ExceptionListSort): ReactElement => {
+          return (
+            <MoreMenuItem
+              key={option}
+              text={EXCEPTION_LIST_SORT_LABELS[option]}
+              icon={option === sort ? IconProp.Check : undefined}
+              isIconSpaceReserved={true}
+              isChecked={option === sort}
+              dataTestId={`exceptions-sort-${option}`}
+              onClick={() => {
+                setSort(option);
+                setPage(1);
+              }}
+            />
+          );
+        },
+      )}
+    </MoreMenu>
+  );
+
   const leadingActions: ReactElement = (
     <div className="flex flex-wrap items-center gap-2">
       {statusPills}
       {classPills}
+      {assignedToMeToggle}
+      {sortMenu}
     </div>
   );
 
@@ -2351,13 +2475,21 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * exception's page offers them; the list and its chart are read again
    * after each.
    */
-  const exceptionRowActions: Array<ActionButtonSchema<TelemetryException>> =
-    getExceptionRowActions({
+  const exceptionRowActions: Array<ActionButtonSchema<TelemetryException>> = [
+    ...getExceptionRowActions({
       onChanged: (): void => {
         void fetchExceptions();
         void fetchHistogram();
       },
-    });
+    }),
+    // Assign to me, when it is not the reader's already.
+    ...getExceptionAssignmentRowActions({
+      currentUserId: UserUtil.getUserId(),
+      onChanged: (): void => {
+        void fetchExceptions();
+      },
+    }),
+  ];
 
   /*
    * The same four on the rows a person ticks (Bulk Actions), the list and
@@ -2365,9 +2497,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    */
   const exceptionBulkActions: Array<
     BulkActionButtonSchema<TelemetryException>
-  > = getExceptionBulkActions();
+  > = [
+    ...getExceptionBulkActions(),
+    // Assign to…: opens its dialog, which starts the run.
+    getExceptionAssignBulkAction({
+      onOpen: (actionProps: BulkActionOnClickProps<TelemetryException>) => {
+        setAssignDialog(actionProps);
+      },
+    }),
+  ];
 
-  return (
+  const viewer: ReactElement = (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
       isLoading={isLoading || holdsReads}
@@ -2606,6 +2746,29 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setPage(1);
       }}
     />
+  );
+
+  return (
+    <>
+      {viewer}
+      {assignDialog ? (
+        <ExceptionAssignModal
+          count={assignDialog.items.length}
+          onClose={() => {
+            setAssignDialog(null);
+          }}
+          onSubmit={(write: ExceptionAssignmentWrite) => {
+            const actionProps: BulkActionOnClickProps<TelemetryException> =
+              assignDialog;
+            // The run's progress dialog takes over from here.
+            setAssignDialog(null);
+            void runExceptionAssignment(actionProps, write);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+    </>
   );
 };
 

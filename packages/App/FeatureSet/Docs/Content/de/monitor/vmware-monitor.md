@@ -4,7 +4,7 @@ Ein VMware-Monitor beobachtet ein vCenter - seine Rechenzentren, Cluster, ESXi-H
 
 :::cards
 - [Den Monitor erstellen](#einen-vmware-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Dreiundzwanzig fertige Warnungen, ein Vorfall pro Host, VM oder Datenspeicher.
+- [Vorlagen](#fertige-warnungsvorlagen): Vierundzwanzig fertige Warnungen, ein Vorfall pro Host, VM oder Datenspeicher.
 - [Identitätsattribute](#identitätsattribute): Wie Sie gezielt einen Host, eine VM oder einen Datenspeicher auswählen.
 - [Metriken](#erfasste-metriken): Jede `vcenter.*`-Serie, auf die der Monitor warnen kann.
 :::
@@ -106,12 +106,13 @@ In Monitorfiltern und Gruppierungsschlüsseln beginnen Ressourcenattribute mit `
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 23 Vorlagen für häufige VMware-Probleme, und **Quick Setup** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 24 Vorlagen für häufige VMware-Probleme, und **Quick Setup** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung für jede Minute seines Fensters gilt, und ein Schwellenwertkriterium erholt sich erst 10 % jenseits seines Schwellenwerts, sodass ein Wert, der um die Linie pendelt, nicht flattert.
 
 | Template | Kategorie | Schweregrad | Beobachtet | Löst aus, wenn | Erholt sich, wenn |
 | --- | --- | --- | --- | --- | --- |
+| vCenter Stopped Reporting | Verfügbarkeit | Kritisch | `vcenter.datacenter.cpu.limit`, Count über das gesamte vCenter, **letzte 10 Minuten** | Keine Daten im gesamten Fenster: Der Agent oder die Probe läuft nicht mehr, oder das vCenter antwortet nicht mehr | Daten treffen wieder ein |
 | Host CPU Saturation | Host | Warnung | `vcenter.host.cpu.utilization`, Avg pro `resource.vcenter.host.name` | Über 90 %: Jede VM auf dem Host konkurriert um Kerne und zeigt CPU-Ready-Zeit | Bei 81 % oder darunter |
 | Host Memory Saturation | Host | Warnung | `vcenter.host.memory.utilization`, Avg pro Host | Über 90 %: Der Host beginnt, Arbeitsspeicher durch Ballooning, Komprimierung und Swapping zurückzuholen | Bei 81 % oder darunter |
 | Host Disk Latency High | Host | Warnung | `vcenter.host.disk.latency.max`, Max pro Host | Über 50 ms: Jede VM, deren Datenträger auf diesem Pfad liegen, wartet auf den Speicher. Braucht Leistungszählerstufe 3 | Bei 45 ms oder darunter |
@@ -141,7 +142,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 - **Auslastungsvorlagen verwenden Avg:** Der Receiver meldet für jedes Objekt einen echten Prozentsatz von 0 bis 100, sodass der Durchschnitt in einer Minute die anhaltende Auslastung ist.
 - **Latenzvorlagen verwenden Max:** Die Metrik ist bereits die schlechteste Latenz über die Datenträger des Objekts, sodass ihre höchste Stichprobe die ehrliche ist.
 - **Zähl- und Zustandsvorlagen verwenden Max**, sodass eine einzige Erfassung, die den Zustand zeigt, sie auslöst: Paketfehler, Ballooning, Swapping, roter und gelber Status, Hosts, die nicht effektiv sind, Überlastung.
-- **Jede Vorlage gruppiert nach dem eigenen Identitätsattribut des Objekts**, sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt.
+- **Jede Vorlage gruppiert nach dem eigenen Identitätsattribut des Objekts**, sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt. Die Ausnahme ist **vCenter Stopped Reporting**, die das gesamte vCenter überwacht: Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Schwellenwerte sind an ihre Einheit gebunden** (`%`, `ms`, `us`), sodass sie ihre Bedeutung behalten, egal welche Einheit ein Diagramm zeigt.
 
 ## Erfasste Metriken
@@ -270,7 +271,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Fenster) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -292,11 +293,11 @@ Ein Monitor, den Sie nicht aus einer Vorlage bauen, beginnt mit zwei Kriterien:
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Ein beliebiger Wert der ersten Abfrage `0` ist | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
-| 2 | Check if _monitor name_ is online | Ein beliebiger Wert über `0` liegt | Markiert den Monitor als **Betriebsbereit**. |
+| 1 | Check if _monitor name_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
+| 2 | Check if _monitor name_ is online | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
 
 > [!IMPORTANT]
-> Stille trifft auf keines der Kriterien zu: Ein vCenter, das keine Daten mehr sendet, lässt den Monitor, wie er war. Um benachrichtigt zu werden, wenn Daten ausbleiben, setzen Sie **Bei keinen Daten** bei einem Kriterium auf **Auslöser**. Zeit, in der OneUptime selbst nichts empfangen hat, gilt nie als fehlende Daten: Eine Prüfung, deren Fenster sie enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
+> Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ## Terraform
 

@@ -5,7 +5,7 @@ Um monitor de Kubernetes alerta com base nas métricas que o agente de Kubernete
 :::cards
 - [Instalar o agente](/docs/monitor/kubernetes-agent): Um único comando do Helm coloca o cluster no OneUptime.
 - [Criar o monitor](#criar-um-monitor-de-kubernetes): Escolher o cluster e depois um modelo, uma métrica ou uma consulta.
-- [Modelos de alerta](#modelos-de-alerta-prontos): Dezessete alertas prontos, de CrashLoopBackOff a etcd.
+- [Modelos de alerta](#modelos-de-alerta-prontos): Dezoito alertas prontos, de um cluster silencioso a etcd.
 - [Critérios](#critérios-de-monitoramento): Limites estáticos e detecção de anomalias.
 :::
 
@@ -65,7 +65,7 @@ Conclua o formulário e salve. O monitor aparece em **Monitores**, e seu status 
 | --- | --- | --- |
 | Cluster | O cluster inteiro | — |
 | Namespace | Os recursos de um namespace | **Namespace** |
-| Carga de trabalho | Um deployment, statefulset, daemonset, job ou cronjob | **Namespace**, **Nome da Carga de Trabalho** |
+| Carga de trabalho | Um deployment, statefulset, daemonset, job ou cronjob | **Namespace**, **Tipo de Carga de Trabalho**, **Nome da Carga de Trabalho** |
 | Nó | Um nó do cluster | **Nome do nó** |
 | Pod | Um pod | **Namespace**, **Nome do Pod** |
 
@@ -84,14 +84,14 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 | Categoria | Métricas |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nó | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nó | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Contêiner | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Carga de trabalho | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plano de controle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem: `0.18` é 0,18 de um núcleo. **Pod Phase (Code)** é um código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agregue-o com Máximo ou Mínimo, nunca com Soma. As métricas do plano de controle só chegam quando a coleta do plano de controle pelo agente está ativada.
+> **Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem: `0.18` é 0,18 de um núcleo. **Pod Phase (Code)** é um código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agregue-o com Máximo ou Mínimo, nunca com Soma. As métricas do plano de controle só chegam quando a coleta do plano de controle pelo agente está ativada. **Node Ready Condition** vale 1 em Ready, 0 em NotReady e -1 em Unknown, que é o que um nó que caiu informa: alerte abaixo de 1.
 
 ## Critérios de monitoramento
 
@@ -112,7 +112,7 @@ Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de mé
 
 ### Condições
 
-Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**.
+Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo.
 
 A detecção de anomalias por linha de base não precisa de limite. Escolha uma destas condições, e o formulário mostra **Sensibilidade** e **Janela de linha de base** no lugar:
 
@@ -132,13 +132,14 @@ A aba **Quick Setup** lista estes modelos, agrupados por categoria. Cada um pree
 
 | Modelo | Categoria | Dispara quando | Gravidade |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | Carga de trabalho | Um contêiner reiniciou mais de 5 vezes desde que seu pod foi criado | Crítico |
+| Cluster Stopped Reporting | Disponibilidade | Nenhum dado chega do agente do cluster por 10 minutos | Crítico |
+| CrashLoopBackOff Detection | Carga de trabalho | Um contêiner reiniciou em 15 minutos e ficou pronto menos da metade desse tempo | Crítico |
 | Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Warning |
-| Node Not Ready | Nó | Um nó informa NotReady | Crítico |
+| Node Not Ready | Nó | Um nó informa NotReady ou para de informar seu status (Unknown) | Crítico |
 | High Node CPU Utilization | Nó | O uso médio de CPU de um nó passa de 90% da CPU alocável | Warning |
-| High Node Memory Utilization | Nó | O uso médio de memória de um nó passa de 85% da memória alocável | Warning |
+| High Node Memory Utilization | Nó | O working set médio de memória de um nó passa de 85% da memória alocável | Warning |
 | Deployment Replica Mismatch | Carga de trabalho | Um deployment tem menos réplicas disponíveis do que o desejado por 15 minutos | Warning |
-| Job Failures | Carga de trabalho | Um job tem pods com falha | Warning |
+| Job Failures | Carga de trabalho | Um pod de um job falhou em 15 minutos | Warning |
 | etcd No Leader | Plano de controle | O etcd não tem líder eleito | Crítico |
 | API Server Request Saturation | Plano de controle | O servidor de API mantém 200 ou mais requisições em andamento durante toda a janela | Crítico |
 | Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Warning |
@@ -146,14 +147,16 @@ A aba **Quick Setup** lista estes modelos, agrupados por categoria. Cada um pree
 | DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Warning |
 | High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Warning |
 | High Node Memory Request Commitment | Nó | A soma das requisições de memória dos contêineres de um nó passa de 90% da memória alocável | Warning |
-| HPA Saturated at Max Replicas | Carga de trabalho | Um HPA opera em 90% ou mais do seu `maxReplicas` | Crítico |
+| HPA Saturated at Max Replicas | Carga de trabalho | Um HPA escalado acima do seu `minReplicas` opera em 90% ou mais do seu `maxReplicas` | Crítico |
 | Pod Memory Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de memória dos seus contêineres | Crítico |
 | Pod CPU Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de CPU dos seus contêineres | Warning |
 
 Os modelos baseados em métricas por objeto avaliam cada nó, pod, deployment, job, DaemonSet ou HPA separadamente, então um cluster com vários pods com problema recebe um incidente por pod em vez de um único para o cluster inteiro.
 
+**Cluster Stopped Reporting** dispara quando nada chega do agente do cluster por dez minutos: o agente foi desinstalado ou falha repetidamente, sua chave de API foi revogada, ele perdeu a rota até o OneUptime ou o servidor de API do cluster parou de responder a ele. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** lê a contagem de reinícios do contêiner ao longo da vida do pod atual, não uma taxa. Um contêiner que entrou em loop de falhas e depois se recuperou mantém o alerta aberto até que o pod seja substituído.
+> **CrashLoopBackOff Detection** e **Job Failures** contam quanto um contador de reinícios ou de pods com falha cresceu na janela, não o contador em si, então se resolvem sozinhos quando os reinícios ou falhas param. O crescimento só é visto entre duas amostras do mesmo minuto: no intervalo de 30 segundos do agente, isso é cerca de metade. Um crash loop reinicia de novo e de novo e é detectado; um único reinício pode passar despercebido.
 
 ### Pegar as causas, não só os sintomas
 
@@ -181,8 +184,8 @@ Os clusters se registram sozinhos a partir dos dados do agente, com o `clusterNa
 **Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem, então um limite de `80` significa 80 núcleos. Defina o limite em núcleos, ou comece por **High Node CPU Utilization** ou **Pod CPU Saturating Container Limit**, que comparam uma porcentagem.
 :::
 
-:::details CrashLoopBackOff Detection continua aberto depois que o pod se recuperou
-O modelo lê a contagem de reinícios do contêiner ao longo da vida do pod atual, então a contagem não volta a cair depois de passar de 5. O alerta é resolvido quando o pod é substituído, por exemplo por uma nova implantação, uma remoção do pod ou o esvaziamento de um nó.
+:::details CrashLoopBackOff Detection não disparou com um reinício
+O modelo dispara quando o contador de reinícios de um contêiner cresce em 15 minutos enquanto o contêiner ficou pronto menos da metade desse tempo, então um contêiner que reiniciou uma vez e voltou logo não alerta. O crescimento só é visto entre duas amostras do mesmo minuto, então um único reinício pode passar despercebido; um crash loop reinicia a cada poucos minutos e é detectado.
 :::
 
 ## Próximos passos

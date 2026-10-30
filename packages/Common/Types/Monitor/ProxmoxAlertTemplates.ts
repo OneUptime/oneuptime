@@ -4,7 +4,9 @@ import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
   AdditionalCriteriaFilterSpec,
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import FilterCondition from "../Filter/FilterCondition";
@@ -356,6 +358,52 @@ export function buildProxmoxRatioMonitorConfig(args: {
 }
 
 // --- Template Definitions ---
+
+const clusterStoppedReportingTemplate: ProxmoxAlertTemplate = {
+  id: "pve-cluster-stopped-reporting",
+  name: "Cluster Stopped Reporting",
+  summary: "The cluster sends no data for 10 minutes.",
+  description:
+    "Alert when the Proxmox cluster sends no data for ten minutes: the Proxmox Agent or its pve-exporter stopped, lost its route to OneUptime or had its token revoked, the Proxmox API stopped answering it, or - on the Proxmox VE native OpenTelemetry push - every node went quiet. Reads pve_up, which both ways of reporting send on every scrape or push while they run. One incident for the whole cluster.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * The heartbeat. pve-exporter reports pve_up for the cluster, every
+         * node, guest and storage on every scrape, whatever their state; the
+         * native push maps each storage's `proxmox_storage_active` onto it
+         * (ProxmoxNativePush), and every node has storage. So the series is
+         * never empty while either way of reporting runs. Ungrouped and
+         * counted, with no `pve.scope` filter: only a window with no row at
+         * all is the breach.
+         */
+        metricName: "pve_up",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Proxmox cluster",
+        incidentTitle: `[Proxmox] Cluster Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no data from this Proxmox cluster for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the machine running the Proxmox Agent is up and its containers are running (the collector and pve-exporter logs name the error), whether pve-exporter can still log in to the Proxmox API, and whether the agent can reach OneUptime with its token. On the native OpenTelemetry push, check the nodes' metric server settings instead. The incident resolves on its own once data arrives again.`,
+        criteriaName: "Cluster Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the cluster sends no pve_up data for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const nodeOfflineTemplate: ProxmoxAlertTemplate = {
   id: "pve-node-offline",
@@ -1000,6 +1048,7 @@ const replicationFailingTemplate: ProxmoxAlertTemplate = {
 
 export function getAllProxmoxAlertTemplates(): Array<ProxmoxAlertTemplate> {
   return [
+    clusterStoppedReportingTemplate,
     nodeOfflineTemplate,
     guestDownTemplate,
     quorumRiskTemplate,
@@ -1032,4 +1081,13 @@ export function getProxmoxAlertTemplateById(
       return template.id === id;
     },
   );
+}
+
+/*
+ * The template a NEW Proxmox monitor starts on: the cluster going silent. It
+ * is the one template that still speaks when every other one has stopped
+ * being evaluated, and it has no threshold to tune.
+ */
+export function getProxmoxDefaultAlertTemplateId(): string {
+  return clusterStoppedReportingTemplate.id;
 }

@@ -311,7 +311,7 @@ describe("Kubernetes ratio-template email: High Node Memory Utilization", () => 
     expect(rootCause).toContain("- Metric: Node Memory Utilization (%)");
     expect(rootCause).toContain("- Formula: `(used_mem / alloc_mem) * 100`");
     expect(rootCause).toContain("`used_mem` = ");
-    expect(rootCause).toContain("(`k8s.node.memory.usage`)");
+    expect(rootCause).toContain("(`k8s.node.memory.working_set`)");
     expect(rootCause).toContain("`alloc_mem` = ");
     expect(rootCause).not.toContain(
       "- Metric: k8s.node.allocatable_memory (`k8s.node.allocatable_memory`)",

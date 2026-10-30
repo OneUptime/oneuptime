@@ -89,6 +89,47 @@ interface CephTemplateExpectation {
 
 const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
   {
+    /*
+     * The heartbeat: ceph_health_status is exported once per scrape whatever
+     * the health, so the count is only 0 when nothing arrives - the only way
+     * the `< 0` criteria can fire (Trigger no-data policy).
+     */
+    id: "ceph-cluster-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Count,
+    queries: [
+      {
+        alias: "samples_received",
+        metricName: "ceph_health_status",
+        attributes: {},
+      },
+    ],
+    groupBy: null,
+    formula: null,
+    fireCriteria: [
+      [
+        {
+          alias: "samples_received",
+          filterType: FilterType.LessThan,
+          value: 0,
+        },
+      ],
+    ],
+    recover: {
+      filters: [
+        {
+          alias: "samples_received",
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 0,
+        },
+      ],
+      condition: FilterCondition.Any,
+      treatNoDataAsZero: false,
+    },
+  },
+  {
     id: "ceph-health-error",
     category: "Cluster Health",
     severity: "Critical",

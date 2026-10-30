@@ -4,7 +4,7 @@ Um monitor de Proxmox acompanha um cluster Proxmox VE – seus nós, VMs e cont�
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-proxmox): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Onze alertas prontos, um incidente por nó, convidado ou volume.
+- [Modelos](#modelos-de-alerta-prontos): Doze alertas prontos, um incidente por nó, convidado ou volume.
 - [Identidade dos recursos](#identidade-dos-recursos): Como mirar um único nó, convidado ou volume de armazenamento.
 - [Métricas](#métricas-coletadas): Todas as séries `pve_*` com que o monitor pode alertar.
 :::
@@ -109,12 +109,13 @@ Filtre por `pve.scope` ou `pve.type` para um tipo de recurso, por `pve.id` ou `i
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 11 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece 12 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério de limite se recupera 10% além do seu limite para que um valor oscilando na linha não fique mudando de estado.
 
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `pve_up`, Count sobre o cluster inteiro, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | Node Offline | Crítico | `pve_up` para `pve.scope = node`, Min por `id` | Abaixo de 1 | Em 1 |
 | Guest Down | Warning | `pve_up` e `pve_onboot_status` para `pve.scope = guest`, Min por `id` | `pve_up` está abaixo de 1 enquanto `pve_onboot_status` é 1 | `pve_up` volta a 1, ou a inicialização no boot é desativada |
 | Cluster Quorum at Risk | Crítico | `pve_up` ÷ `pve_node_info` × 100 para `pve.scope = node` (ambos Soma): a parcela de nós online | 50% ou menos | Acima de 55% |
@@ -129,6 +130,7 @@ Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. U
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 
+- **Cluster Stopped Reporting** dispara quando nada chega do cluster por dez minutos: o agente Proxmox ou o pve-exporter dele parou, perdeu a rota até o OneUptime ou teve o token revogado, a API do Proxmox parou de responder a ele, ou todos os nós de um envio nativo ficaram em silêncio. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 - **Os modelos de queda usam Mínimo**, então uma única coleta em que o recurso estava fora do ar já os dispara, em vez de ficar escondida pelas coletas em que ele estava no ar.
 - **Guest Down** só olha os convidados configurados para iniciar no boot, então um convidado que você parou de propósito nunca aciona ninguém.
 - **Cluster Quorum at Risk** é uma aproximação: o pve-exporter não tem métrica de corosync, então o modelo conta os nós online.
@@ -223,7 +225,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder, na janela inteira) ou **Any Value** (basta um). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
@@ -239,11 +241,11 @@ Um monitor que você não cria a partir de um modelo começa com dois critérios
 
 | Ordem | Critério | Corresponde quando | Então |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Qualquer valor da primeira consulta é `0` | Marca o monitor como **Offline** e declara o incidente "_monitor name_ is offline", que se resolve sozinho quando o monitor se recupera. |
-| 2 | Check if _monitor name_ is online | Qualquer valor está acima de `0` | Marca o monitor como **Operacional**. |
+| 1 | Check if _monitor name_ is offline | A primeira consulta não tem dados em toda a janela | Marca o monitor como **Offline** e declara o incidente "_monitor name_ is offline", que se resolve sozinho quando o monitor se recupera. |
+| 2 | Check if _monitor name_ is online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
-> O silêncio não corresponde a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> Um valor de `0` é um dado, então uma métrica que costuma ser zero, como reinícios ou erros, não deixa o monitor offline. Para receber alertas sobre um valor, comece por um modelo ou adicione um critério com um limite. Quando nenhum dado chega e nenhum critério corresponde, o monitor mantém o status e os incidentes abertos continuam abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não recebia dados nunca conta como falta de dados: uma verificação cuja janela o inclui espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solução de problemas
 

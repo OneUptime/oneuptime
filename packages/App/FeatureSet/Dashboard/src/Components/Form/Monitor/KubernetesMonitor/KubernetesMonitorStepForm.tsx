@@ -1,4 +1,6 @@
 import MonitorStepKubernetesMonitor, {
+  DEFAULT_KUBERNETES_WORKLOAD_KIND,
+  KUBERNETES_WORKLOAD_KINDS,
   MonitorStepKubernetesMonitorUtil,
   KubernetesResourceScope,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
@@ -79,6 +81,14 @@ const resourceScopeOptions: Array<DropdownOption> = [
     value: KubernetesResourceScope.Pod,
   },
 ];
+
+// The kinds of workload a Workload Name can name; Deployment first.
+const workloadKindOptions: Array<DropdownOption> =
+  KUBERNETES_WORKLOAD_KINDS.map(
+    (kind: { label: string; value: string }): DropdownOption => {
+      return { label: kind.label, value: kind.value };
+    },
+  );
 
 const aggregationOptions: Array<DropdownOption> = [
   { label: "Average", value: MetricsAggregationType.Avg },
@@ -360,6 +370,36 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showWorkloadFilter && (
           <div className="mt-3">
+            <FieldLabelElement title="Workload Kind" required={false} />
+            <Dropdown
+              options={workloadKindOptions}
+              value={workloadKindOptions.find((option: DropdownOption) => {
+                return (
+                  option.value ===
+                  (
+                    monitorStepKubernetesMonitor.resourceFilters.workloadType ||
+                    DEFAULT_KUBERNETES_WORKLOAD_KIND
+                  ).toLowerCase()
+                );
+              })}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                props.onChange({
+                  ...monitorStepKubernetesMonitor,
+                  resourceFilters: {
+                    ...monitorStepKubernetesMonitor.resourceFilters,
+                    workloadType:
+                      (value as string) || DEFAULT_KUBERNETES_WORKLOAD_KIND,
+                  },
+                });
+              }}
+            />
+          </div>
+        )}
+
+        {showWorkloadFilter && (
+          <div className="mt-3">
             <FieldLabelElement title="Workload Name" required={false} />
             <Input
               value={
@@ -371,6 +411,13 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                   resourceFilters: {
                     ...monitorStepKubernetesMonitor.resourceFilters,
                     workloadName: value || undefined,
+                    /*
+                     * The kind travels with the name: the worker reads a
+                     * name as the kind's (Deployment unless picked).
+                     */
+                    workloadType:
+                      monitorStepKubernetesMonitor.resourceFilters
+                        .workloadType || DEFAULT_KUBERNETES_WORKLOAD_KIND,
                   },
                 });
               }}

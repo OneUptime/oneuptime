@@ -4,7 +4,7 @@ A Podman monitor watches the containers on one Podman host and tells you when a 
 
 :::cards
 - [Create the monitor](#create-a-podman-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Five ready-made alerts, one incident per container.
+- [Templates](#pre-built-alert-templates): Six ready-made alerts, one incident per container.
 - [Metrics](#collected-metrics): What the agent collects, and what each metric means.
 - [Logs](#collected-logs): Container logs, and the log driver they need.
 :::
@@ -84,27 +84,30 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers five templates. Each builds a complete monitor: a query grouped by `resource.container.name`, a criteria that fires and one that recovers. Every container is judged on its own and gets its own incident and alert. Thresholds are starting points you can edit.
+**Quick Setup** offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Host Stopped Reporting** groups its query by `resource.container.name`, so every container is judged on its own and gets its own incident and alert. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critical | `container.memory.percent`, Count over every container on the host, past 10 minutes | No data for the whole window | Data arrives again |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, past 5 minutes | Above 85% | At or below 76.5% |
-| High Container Restart Count | Critical | `container.restarts`, Max per container, past 5 minutes | Above 5 restarts in total | 4.5 or fewer |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, past 5 minutes | Above 500 | At or below 450 |
+| Container Restart Loop | Critical | Growth of `container.restarts` per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
+| High Container Process Count | Warning | `container.pids.count`, Max per container, past 5 minutes | Above 2000 | At or below 1800 |
 | Container Restarted (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Below 120 seconds | At or above 132 seconds |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
-The two percentage templates use **Average**: their metrics are already per-container percentages, so the average of a minute is the sustained reading. Restart count and process count use **Maximum**, where one breaching sample is the signal.
+**Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the host is down, or the agent stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you. A host with no other containers still reports, because the agent runs as a container and reports its own.
+
+The two percentage templates use **Average**: their metrics are already per-container percentages, so the average of a minute is the sustained reading. Process count uses **Maximum**, where one breaching sample is the signal.
 
 > [!NOTE]
 > `container.cpu.utilization` is the number `podman stats` prints, averaged over the agent's 30-second interval: 100% is one full CPU core, not the container's whole CPU allowance. A container given several cores reads well above 100 while healthy, so raise the threshold for those.
 
 > [!NOTE]
-> `container.restarts` is a running total kept by Podman, not a count of restarts in the window. **High Container Restart Count** therefore stays open until the container is recreated, which resets the count.
+> `container.restarts` is a running total kept by Podman, so **Container Restart Loop** alerts on how much it grew in the window, as on Docker: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half of the restarts, and the threshold already allows for it. A container that exits the moment it starts is rarely sampled at all: **Container Restarted (Low Uptime)** fires on every restart the agent does see.
 
 > [!CAUTION]
 > `container.uptime` exists only for running containers. A container that stops and stays stopped sends no data, so **Container Restarted (Low Uptime)** catches restarts and redeploys, not a permanent shutdown. A container meant to run for less than two minutes stays in the alerting state for its whole life.
@@ -143,8 +146,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver pointed at Podman's Doc
 
 | Metric | Description |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes read from block devices. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes written to block devices. |
+| `container.blockio.io_service_bytes_recursive` | Bytes read and written on each block device since the container started, split by `operation` (`read`, `write`). A lifetime counter. The list offers it filtered to reads and to writes. |
 
 ### Container
 
@@ -154,7 +156,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver pointed at Podman's Doc
 | `container.restarts` | Times the container has restarted. A running total. |
 | `container.pids.count` | Tasks in the container. The cgroup pids controller counts threads as well as processes. |
 
-The **Podman Metric** list also offers `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` and the network packet counters. The shipped agent configuration does not turn these on, so check the host's **Metrics** page before you build on them. `container.cpu.throttling_data.throttled_periods` is not in the list; query it from **Advanced**.
+`container.cpu.throttling_data.throttled_periods` is not in the **Podman Metric** list; query it from **Advanced**.
 
 ## Monitoring criteria
 
@@ -164,7 +166,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -180,11 +182,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a host that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Collected logs
 

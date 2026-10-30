@@ -7,7 +7,7 @@ The agent is published as a container image — `oneuptime/podman-agent` — tha
 ## Prerequisites
 
 - Podman 4.0+
-- The Podman Docker-API compatible socket enabled at `/run/podman/podman.sock`. Enable it with `sudo systemctl enable --now podman.socket` (rootful) or `systemctl --user enable --now podman.socket` (rootless). The `docker_stats` metrics receiver and the inventory poller both speak the Docker API against this socket.
+- The Podman Docker-API compatible socket enabled: at `/run/podman/podman.sock` for rootful Podman (`sudo systemctl enable --now podman.socket`), or `$XDG_RUNTIME_DIR/podman/podman.sock` for rootless Podman (`systemctl --user enable --now podman.socket`). The `docker_stats` metrics receiver speaks the Docker API against this socket. `install.sh` mounts the socket and container storage of the Podman it runs as: run it with `sudo` for rootful Podman, or as the user whose rootless containers you want to watch (it then mounts that user's socket and `~/.local/share/containers/storage`). It stops with the command to run if the socket is not on.
 - Containers you want to collect logs from must use a file-based log driver — **`k8s-file`** (or `json-file`). Podman's default driver is **`journald`**, which the agent's filelog receiver cannot read. The agent tails `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` (the k8s-file driver's location) via the OpenTelemetry filelog receiver. See [Log Driver Requirement](#log-driver-requirement) below.
 
 ## Quick Start — `podman run`
@@ -26,6 +26,13 @@ podman run -d \
 ```
 
 That's it. The host will appear automatically in the Podman section of OneUptime.
+
+These are rootful Podman's paths. For **rootless** Podman, mount that user's socket and
+storage at the same paths inside the container instead:
+`-v "$XDG_RUNTIME_DIR/podman/podman.sock:/run/podman/podman.sock:ro"` and
+`-v "$HOME/.local/share/containers/storage:/var/lib/containers/storage:ro"` (`podman info
+--format '{{.Host.RemoteSocket.Path}}'` and `--format '{{.Store.GraphRoot}}'` print them).
+`install.sh`, run as that user, does this for you.
 
 ## Quick Start — Compose
 
@@ -50,7 +57,7 @@ podman compose up -d
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | Telemetry ingestion service token (Settings → API Keys) |
 | `PODMAN_HOST_NAME` | No | Friendly name for this host (default: `podman-host`) |
-| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks (default: `1.44`). Set it to the socket's maximum on older hosts, or to the empty string to auto-negotiate |
+| `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the socket. Empty by default: the agent negotiates it with the socket. Set it only to pin one |
 
 ## Image Tags
 
@@ -125,7 +132,7 @@ log_size_max = 104857600
 
 Then recreate (not just restart) the affected containers — the log driver is baked in at container create time, so an existing container will keep its old driver until it is removed and recreated.
 
-> **Note:** If you must keep `journald`, the agent can still collect **metrics** and **inventory** (both go through the Docker-API socket); only the container **logs** pipeline depends on the file-based driver. Alternatively, point the filelog receiver at your journald export if you forward it to a file.
+> **Note:** If you must keep `journald`, the agent can still collect **metrics** (they go through the Docker-API socket); only the container **logs** pipeline depends on the file-based driver. Alternatively, point the filelog receiver at your journald export if you forward it to a file.
 
 ## AI agent
 
@@ -188,7 +195,7 @@ podman build -f ./agents/PodmanAgent/Dockerfile -t oneuptime/podman-agent:local 
 
 ### Podman Socket Permission Denied
 
-The agent must run as root (`--user 0:0`) to access `/run/podman/podman.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present, and that the Podman socket is enabled (`systemctl enable --now podman.socket`).
+The agent must run as root (`--user 0:0`) to access `/run/podman/podman.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present, and that the Podman socket is enabled (`sudo systemctl enable --now podman.socket`). For rootless Podman, the socket is the user's own (`systemctl --user enable --now podman.socket`), mounted at `/run/podman/podman.sock` as [above](#quick-start--podman-run); root in the container is that user on the host.
 
 ### Container Exits With "client version is too new"
 
@@ -198,27 +205,31 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-The `docker_stats` receiver speaks a pinned Docker API version to the socket
-(`DOCKER_API_VERSION`, default `1.44`). A Docker-API server that enforces a maximum
-client version refuses a newer one — Docker Engine reports it as above — so the
-receiver fails to start, the collector exits with it, and the container restart-loops.
-Set `DOCKER_API_VERSION` to the version the socket reports:
+A Docker-API server that enforces a maximum client version refuses a newer one —
+Docker Engine reports it as above — so the receiver fails to start, the collector exits
+with it, and the container restart-loops. The image's `DOCKER_API_VERSION` is
+**empty**, and empty negotiates the version with the socket (one `HEAD /_ping`, then
+the maximum the socket reports). So this means a version is pinned: by
+`-e DOCKER_API_VERSION=...` (or the Compose `environment:` list), or by an older image,
+which pinned `1.44`. Pull the latest image and start the agent again without the
+variable:
+
+```bash
+podman pull oneuptime/podman-agent:release
+podman rm -f oneuptime-podman-agent
+# Re-run the `podman run` command above, without -e DOCKER_API_VERSION
+```
+
+To pin a version anyway, use no more than the version the socket reports:
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 podman run -d ... -e DOCKER_API_VERSION=1.41 ...   # or set it in Compose
 ```
 
-The value keeps working after an upgrade, since newer servers still serve older API
-versions, so it can be removed on its own schedule.
-
-If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
-string**. The agent then negotiates the version with the socket (one `HEAD /_ping`,
-then the maximum the socket reports) instead of pinning one:
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
+`install.sh` passes `DOCKER_API_VERSION` on to the agent when you run it with one set.
+Newer servers still serve older API versions, so a pinned value keeps working after an
+upgrade.
 
 ### No Container Logs in the Dashboard
 
