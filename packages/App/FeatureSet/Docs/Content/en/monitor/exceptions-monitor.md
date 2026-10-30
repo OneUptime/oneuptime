@@ -41,7 +41,7 @@ Under **Monitor Type**, click **More monitor types** and pick **Exceptions** und
 
 ### Pick what the monitor tells you about
 
-Under **What should this monitor tell you about?**, pick **Any exception** or **Too many exceptions**. Each fills in the rule, which you can change below. Pick **Something else** to set it up yourself.
+Under **What should this monitor tell you about?**, pick **Any exception** or **Too many exceptions**. Each fills in the rule, which you can change below. Pick **Something else** to set it up yourself. **A new exception**, **A resolved exception comes back** and **Exceptions spike** alert on an exception seen for the first time, on one that came back after you resolved it, and on a rise to well above the usual.
 
 ### Choose the exceptions to count
 
@@ -53,7 +53,7 @@ Open **More fields** to filter by telemetry service or infrastructure entity, or
 
 ### Say when to alert
 
-In **When to alert**, pick a **Condition**, the **Number of exceptions** and a **Time window**. The sentence under them says the rule back in plain words. The chart under it counts the matching exceptions in each window over the last hours, draws the rule's number as a line, and says how often the rule would have alerted. Its button offers a number the rule would not have passed in that time.
+In **When to alert**, pick a **Condition**, the **Number of exceptions** and a **Time window**. The sentence under them says the rule back in plain words. The chart under it counts the matching exceptions in each window over the last hours, draws the rule's number as a line, and says how often the rule would have alerted. Its button offers a number the rule would not have passed in that time. **Alert on** picks what the rule compares: **Exceptions**, **New exceptions**, **Exceptions that came back** or **A rise over the usual**. The chart is drawn for **Exceptions** only.
 
 ### Choose what happens
 
@@ -116,7 +116,7 @@ Each status change, with the reason for it, is recorded on the monitor's **Statu
 
 ## Criteria
 
-An Exceptions monitor's criteria have one **Filter Type**: **Exception Count**, the number of exceptions that matched in the window. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most** or **Exactly**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
+An Exceptions monitor's criteria have four kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions** and **Exception Increase (in %)**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most** or **Exactly**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
 
 | Filter Condition | Matches when the exception count is… |
 | --- | --- |
@@ -135,6 +135,9 @@ An Exceptions monitor made in Create Monitor starts on the rule of what you pick
 | --- | --- | --- |
 | **Any exception** | **More than** `0` in **Last 5 minutes** | Creates an alert, which resolves itself |
 | **Too many exceptions** | **More than** `20` in **Last 5 minutes** | Creates an alert, which resolves itself |
+| **A new exception** | **New exceptions**: **More than** `0` in **Last 10 minutes** | Creates an alert, which resolves itself |
+| **A resolved exception comes back** | **Exceptions that came back**: **More than** `0` in **Last 10 minutes** | Creates an alert, which resolves itself |
+| **Exceptions spike** | **A rise over the usual**: **More than** `200` in **Last 15 minutes** | Creates an alert, which resolves itself |
 
 An Exceptions monitor created through the API or Terraform without criteria starts with these criteria:
 
@@ -142,6 +145,18 @@ An Exceptions monitor created through the API or Terraform without criteria star
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Greater Than** `0` | Marks the monitor offline and declares an incident, resolved automatically |
 | Check if … has no exceptions | **Exception Count** **Equal To** `0` | Marks the monitor online |
+
+## New, regressed and spiking exceptions
+
+Besides how many exceptions happened, an Exceptions monitor can alert on what an error tracker leads with. Each is read only when a criteria checks it.
+
+| Filter Type | What it counts in the window |
+| --- | --- |
+| **New Exceptions** | Matching exceptions seen for the first time that are not resolved or archived. |
+| **Regressed Exceptions** | Matching exceptions you resolved that came back, and are still open. |
+| **Exception Increase (in %)** | How far the number of matching exceptions is above the usual one: the day before the window, per window of its length, taken as at least one. Ten exceptions after a quiet day read 900%. |
+
+New and regressed exceptions are matched by service, exception type, environment and message; the infrastructure entity filter applies to the other two only.
 
 ## Worked example: production exceptions only
 

@@ -74,16 +74,23 @@ export const getLegacyTitles: (monitorName: string) => Array<string> = (
 
 const getRuleName: (
   monitorType: MonitorType,
-  rule: Pick<TelemetryAlertRule, "filterType" | "threshold" | "metricAlias">,
+  rule: Pick<
+    TelemetryAlertRule,
+    "filterType" | "threshold" | "metricAlias" | "measure"
+  >,
 ) => string = (
   monitorType: MonitorType,
-  rule: Pick<TelemetryAlertRule, "filterType" | "threshold" | "metricAlias">,
+  rule: Pick<
+    TelemetryAlertRule,
+    "filterType" | "threshold" | "metricAlias" | "measure"
+  >,
 ): string => {
   return getRuleNameFromFilter({
     monitorType,
     filterType: rule.filterType,
     threshold: rule.threshold,
     metricAlias: rule.metricAlias,
+    measure: rule.measure,
   });
 };
 
@@ -96,7 +103,7 @@ export const getGeneratedTitle: (data: {
   monitorType: MonitorType;
   rule: Pick<
     TelemetryAlertRule,
-    "filterType" | "threshold" | "windowInSeconds" | "metricAlias"
+    "filterType" | "threshold" | "windowInSeconds" | "metricAlias" | "measure"
   >;
   monitorName: string;
   translator: Translator;
@@ -104,7 +111,7 @@ export const getGeneratedTitle: (data: {
   monitorType: MonitorType;
   rule: Pick<
     TelemetryAlertRule,
-    "filterType" | "threshold" | "windowInSeconds" | "metricAlias"
+    "filterType" | "threshold" | "windowInSeconds" | "metricAlias" | "measure"
   >;
   monitorName: string;
   translator: Translator;
@@ -113,6 +120,15 @@ export const getGeneratedTitle: (data: {
     data.monitorType,
   ).find((candidate: TelemetryRuleRecipe): boolean => {
     return (
+      // The same measure: a new exception is not "too many exceptions".
+      TelemetryAlertRuleUtil.getRuleMeasure({
+        monitorType: data.monitorType,
+        rule: candidate,
+      }) ===
+        TelemetryAlertRuleUtil.getRuleMeasure({
+          monitorType: data.monitorType,
+          rule: data.rule,
+        }) &&
       candidate.filterType === data.rule.filterType &&
       candidate.threshold === data.rule.threshold &&
       candidate.windowInSeconds === data.rule.windowInSeconds
@@ -137,6 +153,30 @@ export const getGeneratedTitle: (data: {
  * one; unusual. A recipe's title holds while this does.
  */
 export const getRuleKind: (data: {
+  monitorType: MonitorType;
+  rule: Pick<TelemetryAlertRule, "filterType" | "threshold" | "measure">;
+}) => string = (data: {
+  monitorType: MonitorType;
+  rule: Pick<TelemetryAlertRule, "filterType" | "threshold" | "measure">;
+}): string => {
+  /*
+   * Another measure is another kind of rule: "a new exception" is not
+   * "too many exceptions", so the titles written for one are not kept for
+   * the other.
+   */
+  const measure: string | null = TelemetryAlertRuleUtil.getRuleMeasure({
+    monitorType: data.monitorType,
+    rule: data.rule,
+  });
+  const kind: string = getComparisonKind(data);
+
+  return measure &&
+    measure !== TelemetryAlertRuleUtil.getMeasureCheckOn(data.monitorType)
+    ? `${measure}: ${kind}`
+    : kind;
+};
+
+const getComparisonKind: (data: {
   monitorType: MonitorType;
   rule: Pick<TelemetryAlertRule, "filterType" | "threshold">;
 }) => string = (data: {
