@@ -71,7 +71,7 @@ The page's side menu groups what you do with an exception:
 
 | Page | What it shows |
 | --- | --- |
-| **Overview** | The message, the service, how often it happened and when it was first and last seen, its trend over time, and its latest occurrence: the release, environment, span, trace and user session. |
+| **Overview** | The message, the service, how often it happened and when it was first and last seen, its trend over time, and its latest occurrence: the release, environment, span, trace and user session. At the top, OneUptime AI's explanation of what happened, when AI is on. |
 | **Stack Trace** | The frames of the stack. For browser code, the original files and lines, once you upload [Source Maps](/docs/telemetry/source-maps) for the release. |
 | **Occurrences** | Every occurrence, with its time, its message and the trace it happened in. |
 | **Context** | The latest occurrence's attributes, its session replay when one was recorded, and the steps that led up to it. |
@@ -110,6 +110,22 @@ Every exception has an error class, which says whose problem it is. OneUptime AI
 | `expected-denial` | A check doing its job, such as a refused login. | No |
 
 With **Archive exceptions that are expected** on, in the settings of AI Insights, exceptions the triage finds to be expected denials are archived for you.
+
+## Explain it with AI
+
+At the top of an exception's **Overview**, **Explain with OneUptime AI** asks OneUptime AI what went wrong. It reads the stack trace, the trace and logs of the latest occurrence, and the deploys of the service around the time the exception started, and answers in the **What happened** card:
+
+| Part | What it says |
+| --- | --- |
+| **What happened** | A sentence or two, how sure OneUptime AI is, and where the fault lies: the code, a dependency, the infrastructure, bad input or the configuration. |
+| **Likely root cause** | The cause, and the frame, span, log line or deploy that shows it. |
+| **Suggested fix** | What to change. |
+| **Where to look** | The frames of the stack trace to open first. |
+| **Next steps** | At most three steps to confirm or fix it. |
+
+The explanation is kept on the exception, so the next person who opens it reads it at once, and **Explain again** asks for a new one. **Open a fix pull request** opens the exception's **AI Assistance** page, and **Ask a follow-up** opens Ask AI on the exception.
+
+IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent. The explanation uses the project's LLM provider and AI credits, and is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.
 
 ## Fix it with AI
 
