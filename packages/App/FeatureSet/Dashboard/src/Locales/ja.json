@@ -38837,5 +38837,8 @@
   "This can take up to a minute.": "最大 1 分ほどかかることがあります。",
   "Where to look": "確認する箇所",
   "Written by OneUptime AI {{time}}.": "OneUptime AI が{{time}}に作成しました。",
-  "Written by OneUptime AI.": "OneUptime AI が作成しました。"
+  "Written by OneUptime AI.": "OneUptime AI が作成しました。",
+  "Split by": "分割基準",
+  "Top": "上位",
+  "then by": "次に"
 }
