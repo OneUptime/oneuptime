@@ -21,7 +21,12 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Select from "../../../Types/BaseDatabase/Select";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  RecordNumberColumns,
+  getRecordNumberColumns,
+} from "../../../Utils/Project/RecordNumber";
 import {
   translateNamedAction,
   Translator,
@@ -124,11 +129,26 @@ const ModelDelete: <TBaseModel extends BaseModel>(
     let isCurrent: boolean = true;
     const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
+    /*
+     * A numbered record is named by its number too - "Permanently delete
+     * INC-18 Manually declared." - read with its name, which whoever reads
+     * the one may read (Utils/Project/RecordNumber).
+     */
+    const numberColumns: RecordNumberColumns | null =
+      getRecordNumberColumns(model);
+
+    const select: JSONObject = { [nameColumn]: true };
+
+    if (numberColumns) {
+      select[numberColumns.numberColumn] = true;
+      select[numberColumns.numberWithPrefixColumn] = true;
+    }
+
     modelAPI
       .getItem<TBaseModel>({
         modelType: props.modelType,
         id: props.modelId,
-        select: { [nameColumn]: true } as Select<TBaseModel>,
+        select: select as Select<TBaseModel>,
         requestOptions: {},
       })
       .then((item: TBaseModel | null) => {

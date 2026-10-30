@@ -257,9 +257,11 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     {
       type: AIChatPageContextType.Incident,
       modelType: Incident,
+      // Its number with the prefix it was given too (Utils/Project/RecordNumber).
       select: {
         title: true,
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
         currentIncidentStateId: true,
       },
       json: {
@@ -273,7 +275,12 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     {
       type: AIChatPageContextType.Alert,
       modelType: Alert,
-      select: { title: true, alertNumber: true, currentAlertStateId: true },
+      select: {
+        title: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        currentAlertStateId: true,
+      },
       json: {
         title: "Elevated errors",
         alertNumber: 7,
@@ -299,7 +306,12 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     {
       type: AIChatPageContextType.ScheduledMaintenanceEvent,
       modelType: ScheduledMaintenance,
-      select: { title: true, currentScheduledMaintenanceStateId: true },
+      select: {
+        title: true,
+        scheduledMaintenanceNumber: true,
+        scheduledMaintenanceNumberWithPrefix: true,
+        currentScheduledMaintenanceStateId: true,
+      },
       json: {
         title: "Database upgrade",
         currentScheduledMaintenanceStateId: CONFIRMED_STATE_ID,

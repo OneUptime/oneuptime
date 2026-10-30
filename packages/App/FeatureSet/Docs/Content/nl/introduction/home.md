@@ -133,6 +133,7 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 
 - **Lijsten houden zichzelf bij.** Wanneer ergens een incident of waarschuwing wordt aangemaakt, bevestigd of opgelost, tonen de lijsten met incidenten, waarschuwingen en episodes dat binnen enkele seconden, zonder te vernieuwen. Terwijl u op een lijst midden in iets zit, zoals aangevinkte rijen of een open dialoogvenster, wacht de lijst en haalt ze alles in zodra u klaar bent.
 - **Op een telefoon klappen de filterchips weg** achter **Filter**, zodat de lijst hoger begint. De chips die u hebt ingesteld blijven in beeld, met **Alles wissen**. Druk op **Filter** om alle chips te zien, en nogmaals om ze weer in te klappen.
+- **De pagina's van een incident beginnen met zijn nummer.** De kop, zijn stap in het pad en het browsertabblad tonen `INC-42 Checkout is down`, net als de dialoogvensters die het noemen, zodat incidenten met dezelfde titel uit elkaar te houden zijn. Waarschuwingen, geplande onderhoudsgebeurtenissen en episodes doen hetzelfde.
 
 ## Zoeken naar een pagina, een instelling of een actie
 
@@ -141,7 +142,7 @@ Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpic
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Gevarenzone, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
 - **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
-- **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam.
+- **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
 
 Zoeken leest wat u typt zoals u het bedoelt:
 

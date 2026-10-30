@@ -1,6 +1,6 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import Page from "./Page";
+import Page, { PageRecordHeading } from "./Page";
 import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
@@ -10,6 +10,11 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  RecordNumberColumns,
+  getRecordNumber,
+  getRecordNumberColumns,
+} from "../../../Utils/Project/RecordNumber";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -50,6 +55,11 @@ interface LoadedModelHeader {
   recordName?: string | undefined;
   // The record's name as the heading shows it, once read.
   headingName?: string | undefined;
+  /*
+   * A numbered record's number, "INC-18" (Utils/Project/RecordNumber):
+   * before its name in the heading, the trail and the browser tab.
+   */
+  recordNumber?: string | undefined;
   labels: Array<Label>;
   error: string;
 }
@@ -166,6 +176,20 @@ const ModelPage: <TBaseModel extends BaseModel>(
         } as Select<TBaseModel>;
       }
 
+      /*
+       * A record its project numbers - an incident, an alert, a scheduled
+       * maintenance event, an episode - is headed by its number too, read
+       * with its name: whoever may read the one may read the other
+       * (RecordNumberColumnsReadLikeTheirName).
+       */
+      const numberColumns: RecordNumberColumns | null =
+        getRecordNumberColumns(modelInstance);
+
+      if (numberColumns) {
+        select[numberColumns.numberColumn] = true;
+        select[numberColumns.numberWithPrefixColumn] = true;
+      }
+
       const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
       const item: TBaseModel | null = await modelAPI.getItem({
@@ -206,6 +230,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
           labels: loadedLabels,
           headingName: `${recordName as string}`,
           recordName: typeof recordName === "string" ? recordName : undefined,
+          recordNumber: getRecordNumber(item, numberColumns),
         };
       }
     } catch (err) {
@@ -289,18 +314,34 @@ const ModelPage: <TBaseModel extends BaseModel>(
     });
   };
 
+  const shownHeader: LoadedModelHeader | null =
+    isCurrentModelLoaded && !loadedHeader!.error ? loadedHeader : null;
+
+  /*
+   * "INC-18 Manually declared": a numbered record's page is headed by its
+   * number and its name, the number first, in place of "Incident -
+   * Manually declared" - two incidents can share a title, never a number.
+   * Without a number (a record from before numbers) it reads as before.
+   */
+  const recordHeading: PageRecordHeading | undefined =
+    shownHeader &&
+    shownHeader.recordNumber &&
+    shownHeader.recordName &&
+    shownHeader.recordName.trim()
+      ? { number: shownHeader.recordNumber, name: shownHeader.recordName }
+      : undefined;
+
   /*
    * "Project > Monitors > Website: acme.com", not "> View Monitor": the crumb
    * that stands for this record, and the browser tab, name it once it is
-   * read (RecordNameInTrail).
+   * read (RecordNameInTrail) - a numbered record by its number and its name,
+   * "Project > Incidents > INC-18 Manually declared".
    */
   const breadcrumbLinks: Array<Link> | undefined = nameRecordInTrail({
     links: props.breadcrumbLinks,
     recordId: modelIdString,
-    recordName:
-      isCurrentModelLoaded && !loadedHeader!.error
-        ? loadedHeader!.recordName
-        : undefined,
+    recordName: shownHeader ? shownHeader.recordName : undefined,
+    recordNumber: shownHeader ? shownHeader.recordNumber : undefined,
   });
 
   return (
@@ -311,6 +352,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
       isLoading={!isCurrentModelLoaded}
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}
       title={isCurrentModelLoaded ? getLoadedTitle(loadedHeader!) : props.title}
+      recordHeading={recordHeading}
     />
   );
 };

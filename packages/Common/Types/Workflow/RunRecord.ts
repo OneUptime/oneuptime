@@ -27,8 +27,12 @@
  */
 
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { TableColumnMetadata, getTableColumns } from "../Database/TableColumn";
-import TableColumnType from "../Database/TableColumnType";
+import {
+  NUMBER_WITH_PREFIX_SUFFIX,
+  RecordNumberColumns,
+  formatRecordNumber,
+  getRecordNumberColumns,
+} from "../../Utils/Project/RecordNumber";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -64,22 +68,13 @@ export const RUN_RECORD_SEARCH_MAX_WORDS: number = 12;
  */
 export const MAX_RUN_RECORD_NUMBER: number = 2147483647;
 
-// The suffix that names the column holding a record's number with its prefix.
-export const NUMBER_WITH_PREFIX_SUFFIX: string = "WithPrefix";
-
-const NUMERIC_COLUMN_TYPES: Array<TableColumnType> = [
-  TableColumnType.Number,
-  TableColumnType.SmallNumber,
-  TableColumnType.BigNumber,
-  TableColumnType.PositiveNumber,
-  TableColumnType.SmallPositiveNumber,
-  TableColumnType.BigPositiveNumber,
-];
-
-const TEXT_COLUMN_TYPES: Array<TableColumnType> = [
-  TableColumnType.ShortText,
-  TableColumnType.LongText,
-];
+/*
+ * Which columns number a model's records, and how a number is shown, are
+ * the product's one rule for every place that names a numbered record
+ * (Utils/Project/RecordNumber); a run looks records up by the same columns.
+ */
+export { NUMBER_WITH_PREFIX_SUFFIX, getRecordNumberColumns };
+export type { RecordNumberColumns };
 
 export enum RunRecordReferenceKind {
   // Nothing typed: the newest records are listed.
@@ -208,48 +203,6 @@ export const isRunRecordNumberMatch: IsRunRecordNumberMatchFunction = (data: {
   );
 };
 
-export interface RecordNumberColumns {
-  // The record's number: incidentNumber.
-  numberColumn: string;
-  // The number with the prefix it was given: incidentNumberWithPrefix.
-  numberWithPrefixColumn: string;
-}
-
-type GetRecordNumberColumnsFunction = (
-  model: BaseModel,
-) => RecordNumberColumns | null;
-
-/**
- * The columns that hold a record's number, or null for a model whose records
- * have none: a numeric column with a "<column>WithPrefix" text column beside
- * it.
- */
-export const getRecordNumberColumns: GetRecordNumberColumnsFunction = (
-  model: BaseModel,
-): RecordNumberColumns | null => {
-  const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-
-  for (const columnId of Object.keys(columns)) {
-    const column: TableColumnMetadata | undefined = columns[columnId];
-
-    if (!column || !NUMERIC_COLUMN_TYPES.includes(column.type)) {
-      continue;
-    }
-
-    const withPrefixId: string = `${columnId}${NUMBER_WITH_PREFIX_SUFFIX}`;
-    const withPrefix: TableColumnMetadata | undefined = columns[withPrefixId];
-
-    if (withPrefix && TEXT_COLUMN_TYPES.includes(withPrefix.type)) {
-      return {
-        numberColumn: columnId,
-        numberWithPrefixColumn: withPrefixId,
-      };
-    }
-  }
-
-  return null;
-};
-
 export interface RunRecordColumns {
   number: RecordNumberColumns | null;
   // The column that names a record - an incident's title - or null.
@@ -363,23 +316,15 @@ type FormatRunRecordNumberFunction = (data: {
   numberWithPrefix: unknown;
 }) => string | undefined;
 
-/** "INC-8" as stored, else "#8", else nothing. */
+/*
+ * "INC-8" as stored, else "#8", else nothing: a record's number as every
+ * page shows it (RecordNumber's formatRecordNumber).
+ */
 export const formatRunRecordNumber: FormatRunRecordNumberFunction = (data: {
   number: unknown;
   numberWithPrefix: unknown;
 }): string | undefined => {
-  if (
-    typeof data.numberWithPrefix === "string" &&
-    data.numberWithPrefix.trim() !== ""
-  ) {
-    return data.numberWithPrefix.trim();
-  }
-
-  if (typeof data.number === "number" && Number.isFinite(data.number)) {
-    return `#${data.number}`;
-  }
-
-  return undefined;
+  return formatRecordNumber(data);
 };
 
 type GetRunRecordSearchWordsFunction = (text: string) => Array<string>;

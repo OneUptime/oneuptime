@@ -133,6 +133,7 @@ Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstilli
 
 - **Listene holder seg oppdatert selv.** Når en hendelse eller et varsel opprettes, bekreftes eller løses hvor som helst, viser listene over hendelser, varsler og episoder det i løpet av sekunder, uten å laste inn på nytt. Mens du er midt i noe på en liste, for eksempel med rader avkrysset eller en dialog åpen, venter den og tar igjen alt når du er ferdig.
 - **På en telefon foldes filterbrikkene sammen** bak **Filter**, så listen starter høyere opp. Brikkene du har satt, blir stående synlige, med **Tøm alt**. Trykk på **Filter** for å se alle brikkene, og en gang til for å folde dem sammen igjen.
+- **Sidene til en hendelse begynner med nummeret.** Overskriften, trinnet i sporet og nettleserfanen viser `INC-42 Checkout is down`, og det samme gjør dialogene som nevner den, så hendelser med samme tittel kan skilles fra hverandre. Varsler, planlagte vedlikeholdshendelser og episoder gjør det samme.
 
 ## Søk etter en side, en innstilling eller en handling
 
@@ -141,7 +142,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 - **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Faresone, Vaktplaner, Hendelsesalvor, dine egne Varselmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
 - **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Varslingskanaler* finner Varselinnstillinger. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
-- **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn.
+- **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
 
 Søket leser det du skriver slik du mener det:
 

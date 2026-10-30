@@ -15,7 +15,7 @@ export interface ComponentProps {
 /*
  * The composer's page-context pill: the page Ask AI was opened from, kept
  * in view as what the question is about. Attached, it says so ("This
- * incident · #42 Payment API down") with a remove button; removed, Ask AI
+ * incident · INC-42 Payment API down") with a remove button; removed, Ask AI
  * answers about the whole project, and the pill becomes a quiet way to
  * bring the page back ("+ This incident"), so a misclick is never final.
  * Both read the page's own words ("This incident", "Logs"), worded whole
@@ -50,7 +50,7 @@ const PageContextChip: FunctionComponent<ComponentProps> = (
 
   /*
    * The record's title as it was written, isolated so it reads its own
-   * way: an English title on a Persian page keeps its "#42" at its start.
+   * way: an English title on a Persian page keeps its "INC-42" at its start.
    */
   return (
     <div
