@@ -11,7 +11,7 @@ Weten wat een opslag bevat, is de helft. Gegevensbeveiliging zoekt ook uit waar 
 ## Gegevensstromen
 
 ```mermaid title="De vier soorten stromen"
-flowchart TB
+flowchart LR
     service["Een service"] -->|"Gebruikt"| db["Een database"]
     service -->|"AI-provider"| ai["Een AI-provider"]
     service -->|"Externe host"| host["Een externe host"]

@@ -136,13 +136,13 @@ stateDiagram-v2
     state "Aceptado" as Accepted
     state "Resuelto" as Resolved
     state "No es un problema" as NotAnIssue
-    [*] --> Open: Falla una comprobación
-    Open --> Resolved: La comprobación se supera
-    Open --> Accepted: Alguien acepta el riesgo
-    Open --> NotAnIssue: Alguien dice que no es un problema
-    Accepted --> Open: La aceptación caduca
-    Accepted --> Resolved: La comprobación se supera
-    Resolved --> Open: La comprobación vuelve a fallar
+    [*] --> Open: Falla una<br/>comprobación
+    Open --> Resolved: La comprobación<br/>se supera
+    Open --> Accepted: Alguien acepta<br/>el riesgo
+    Open --> NotAnIssue: Alguien dice que<br/>no es un problema
+    Accepted --> Open: La aceptación<br/>caduca
+    Accepted --> Resolved: La comprobación<br/>se supera
+    Resolved --> Open: La comprobación<br/>vuelve a fallar
 ```
 
 OneUptime abre, actualiza y resuelve problemas a medida que se ejecutan las comprobaciones. Lo que una persona hace con un problema es decidir qué pasa después:
