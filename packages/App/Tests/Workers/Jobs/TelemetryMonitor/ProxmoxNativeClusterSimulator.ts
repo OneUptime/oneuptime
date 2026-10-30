@@ -599,9 +599,10 @@ export class SimulatedMetricTable {
    * MetricService.aggregateBy: one row per time bucket - and, grouped by
    * attribute keys, per series too, with an `attributes` map of those keys,
    * each '' where a row lacks it (a Map(String, String) lookup). With
-   * includeSampleAttributes, as a monitor's read asks, the map is the
-   * bucket's newest row's whole map with the grouped keys laid over it
-   * (mapUpdate(argMax(attributes, time), map(...))). A model-column
+   * includeSampleAttributes, as a monitor's read asks, every row of a
+   * series carries one map: the series' newest row's in the window, with
+   * the grouped keys laid over it (MetricService's whole-window read,
+   * mapUpdate(argMax(attributes, time), map(...))). A model-column
    * groupBy is not what a monitor sends, so the stand-in refuses one.
    */
   public aggregateBy(args: SimulatedAggregateByArgs): AggregatedResult {
@@ -640,10 +641,12 @@ export class SimulatedMetricTable {
       {
         bucketMs: number;
         labels: JSONObject;
+        seriesKey: string;
         values: Array<number>;
-        newest: SimulatedMetricRow;
       }
     > = new Map();
+    // Each series' newest row in the window, whose map a sample read returns.
+    const newestBySeries: Map<string, SimulatedMetricRow> = new Map();
     for (const row of this.selectRows(args.query)) {
       const bucketMs: number =
         Math.floor(row.time.getTime() / MINUTE_MS) * MINUTE_MS;
@@ -654,42 +657,57 @@ export class SimulatedMetricTable {
         labels[key] =
           stored === undefined || stored === null ? "" : String(stored);
       }
-      const bucketKey: string = `${bucketMs}|${JSON.stringify(
+      const seriesKey: string = JSON.stringify(
         attributeKeys.map((key: string) => {
           return labels[key];
         }),
-      )}`;
+      );
+      const bucketKey: string = `${bucketMs}|${seriesKey}`;
       let bucket:
         | {
             bucketMs: number;
             labels: JSONObject;
+            seriesKey: string;
             values: Array<number>;
-            newest: SimulatedMetricRow;
           }
         | undefined = buckets.get(bucketKey);
       if (!bucket) {
         bucket = {
           bucketMs: bucketMs,
           labels: labels,
+          seriesKey: seriesKey,
           values: [],
-          newest: row,
         };
         buckets.set(bucketKey, bucket);
       }
       bucket.values.push(row.value);
-      if (row.time.getTime() > bucket.newest.time.getTime()) {
-        bucket.newest = row;
+      const newest: SimulatedMetricRow | undefined =
+        newestBySeries.get(seriesKey);
+      if (!newest || row.time.getTime() > newest.time.getTime()) {
+        newestBySeries.set(seriesKey, row);
       }
     }
 
+    // One map a series, shared by its rows, as MetricService hands it out.
+    const sampleBySeries: Map<string, JSONObject> = new Map();
+
     const data: Array<AggregatedModel> = [];
     for (const bucket of buckets.values()) {
-      const attributes: JSONObject = withSample
-        ? {
-            ...(bucket.newest.attributes as JSONObject),
+      let attributes: JSONObject = bucket.labels;
+      if (withSample) {
+        let sample: JSONObject | undefined = sampleBySeries.get(
+          bucket.seriesKey,
+        );
+        if (!sample) {
+          sample = {
+            ...(newestBySeries.get(bucket.seriesKey)!
+              .attributes as JSONObject),
             ...bucket.labels,
-          }
-        : bucket.labels;
+          };
+          sampleBySeries.set(bucket.seriesKey, sample);
+        }
+        attributes = sample;
+      }
 
       data.push({
         timestamp: new Date(bucket.bucketMs),

@@ -16,6 +16,7 @@ import AggregationType, {
 } from "../../Types/BaseDatabase/AggregationType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -178,6 +179,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   public override async aggregateBy(
     aggregateBy: AggregateBy<Metric>,
   ): Promise<AggregatedResult> {
+    if (
+      aggregateBy.includeSampleAttributes === true &&
+      this.getSanitizedGroupByAttributeKeys(aggregateBy).length > 0
+    ) {
+      return await this.aggregateByWithSeriesSamples(aggregateBy);
+    }
+
     /*
      * Only scalar aggregations over `value` need the point type — the
      * percentile path is already distribution-aware via the bucket
@@ -628,9 +636,92 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   }
 
   /**
+   * A grouped read whose rows carry each series' context
+   * (includeSampleAttributes): the buckets as any grouped read returns
+   * them - the grouped keys alone on each - and, beside it, a whole-window
+   * read (Total) of one row per series whose map is its newest
+   * datapoint's, the grouped keys laid over it. Every row of a series then
+   * takes that one map, so a read of fifty thousand buckets carries a map
+   * a series, never a map a bucket: a series' context is the same in every
+   * bucket, and a bucket's map would make the read ten times the size.
+   * The two reads run side by side; a series the whole-window read did not
+   * return (past its limit) keeps the grouped keys alone.
+   */
+  private async aggregateByWithSeriesSamples(
+    aggregateBy: AggregateBy<Metric>,
+  ): Promise<AggregatedResult> {
+    const attributeKeys: Array<string> =
+      this.getSanitizedGroupByAttributeKeys(aggregateBy);
+    const columnKeys: Array<string> = Object.keys(
+      aggregateBy.groupBy || {},
+    ).filter((key: string): boolean => {
+      return key !== "attributes" && Boolean(this.model.getTableColumn(key));
+    });
+
+    // Which series a row is of: its grouped keys' values, then its columns'.
+    const seriesKeyOf: (row: AggregatedModel) => string = (
+      row: AggregatedModel,
+    ): string => {
+      const attributes: JSONObject = (row["attributes"] as JSONObject) || {};
+
+      return JSON.stringify([
+        ...attributeKeys.map((key: string): string => {
+          const value: unknown = attributes[key];
+          return value === undefined || value === null ? "" : String(value);
+        }),
+        ...columnKeys.map((key: string): string => {
+          const value: unknown = row[key];
+          return value === undefined || value === null ? "" : String(value);
+        }),
+      ]);
+    };
+
+    const [buckets, samples]: [AggregatedResult, AggregatedResult] =
+      await Promise.all([
+        super.aggregateBy({
+          ...aggregateBy,
+          includeSampleAttributes: false,
+        }),
+        super.aggregateBy({
+          ...aggregateBy,
+          // The value is not read: the cheapest fold of the window.
+          aggregationType: AggregationType.Count,
+          aggregationInterval: AggregationInterval.Total,
+          includeSampleAttributes: true,
+          sort: undefined,
+          skip: 0,
+        }),
+      ]);
+
+    const sampleBySeries: Map<string, JSONObject> = new Map();
+
+    for (const row of samples.data) {
+      const attributes: unknown = row["attributes"];
+
+      if (attributes && typeof attributes === "object") {
+        sampleBySeries.set(seriesKeyOf(row), attributes as JSONObject);
+      }
+    }
+
+    for (const row of buckets.data) {
+      const sample: JSONObject | undefined = sampleBySeries.get(
+        seriesKeyOf(row),
+      );
+
+      if (sample) {
+        row["attributes"] = sample as AggregatedModel[string];
+      }
+    }
+
+    return buckets;
+  }
+
+  /**
    * Whether a grouped read's rows carry the attributes of a datapoint of
    * their bucket besides the grouped keys (AggregateBy's
-   * includeSampleAttributes): only when grouped by attribute keys.
+   * includeSampleAttributes): only when grouped by attribute keys. Only
+   * the whole-window read of aggregateByWithSeriesSamples asks for it, a
+   * row a series.
    */
   private wantsSampleAttributes(
     aggregateBy: AggregateBy<Metric>,

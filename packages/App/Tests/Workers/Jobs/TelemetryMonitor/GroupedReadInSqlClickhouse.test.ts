@@ -47,10 +47,11 @@ import {
  * What a mock cannot show is what ClickHouse makes of that SQL: that it
  * returns rows at all (a GROUP BY on the whole attributes Map once returned
  * none through the client's parameter binding), that each row's attributes
- * hold the bucket's newest data point's attributes with the grouped key
- * laid over them - what Affected Resources names a pod's node from, as it
- * did from the raw rows (includeSampleAttributes) - while a chart's read
- * still gets the grouped keys alone, that every aggregation folds a
+ * hold the series' newest data point's attributes with the grouped key
+ * laid over them, one map a series - what Affected Resources names a pod's
+ * node from, as it did from the raw rows (includeSampleAttributes) - while
+ * a chart's read still gets the grouped keys alone, that every aggregation
+ * folds a
  * series' minute as the evaluator expects, that the read is whole where
  * the raw read was cut, and that a read past its limit keeps the newest
  * buckets and says where it is complete. So this suite loads a window of
@@ -290,27 +291,23 @@ function restartPoints(): Array<Point> {
 }
 
 /*
- * The newest data point of each metric's pod and minute among the rows a
- * monitor's query reads, worked out once from the points.
+ * The newest data point of each metric's pod in the window, among the rows
+ * a monitor's query reads, worked out once from the points.
  */
 let newestPoints: Map<string, Point> | undefined = undefined;
 
-function newestPointKey(
-  metricName: string,
-  pod: string,
-  minuteMs: number,
-): string {
-  return `${metricName}|${pod}|${minuteMs}`;
+function newestPointKey(metricName: string, pod: string): string {
+  return `${metricName}|${pod}`;
 }
 
 /*
- * The attributes a sample read gives a pod's minute: those of its newest
- * data point - the one at :40 - with the grouped key as grouped.
+ * The attributes a sample read gives every minute of a pod: those of its
+ * newest data point in the window - its last minute's, at :40 - with the
+ * grouped key as grouped.
  */
 function newestAttributes(
   metricName: string,
   pod: string,
-  minuteMs: number,
 ): Record<string, string> {
   if (!newestPoints) {
     newestPoints = new Map();
@@ -328,7 +325,6 @@ function newestAttributes(
       const key: string = newestPointKey(
         point.name,
         point.attributes[POD_KEY] || "",
-        Math.floor(point.timeMs / MINUTE) * MINUTE,
       );
       const newest: Point | undefined = newestPoints.get(key);
 
@@ -339,7 +335,7 @@ function newestAttributes(
   }
 
   const newest: Point | undefined = newestPoints.get(
-    newestPointKey(metricName, pod, minuteMs),
+    newestPointKey(metricName, pod),
   );
 
   expect(newest).toBeDefined();
@@ -622,6 +618,7 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
       expect(rows).toHaveLength(PODS * WINDOW_MINUTES);
 
       const seen: Set<string> = new Set();
+      const mapOfPod: Map<string, unknown> = new Map();
 
       for (const row of rows) {
         const key: string = bucketKey(row);
@@ -631,18 +628,22 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
 
         /*
          * The minute's start, and the attributes of the pod's newest data
-         * point of that minute - its uid of :40, its node - with its name.
+         * point in the window - its last minute's uid, of :40, and its
+         * node - with its name: one map, the same for each of its minutes.
          */
         const minuteMs: number = new Date(row.timestamp).getTime();
         const pod: string = String((row["attributes"] as JSONObject)[POD_KEY]);
 
         expect(minuteMs % MINUTE).toBe(0);
-        expect(row["attributes"]).toEqual(
-          newestAttributes(CPU, pod, minuteMs),
-        );
+        expect(row["attributes"]).toEqual(newestAttributes(CPU, pod));
         expect((row["attributes"] as JSONObject)["resource.k8s.pod.uid"]).toBe(
-          `uid-${Number(pod.slice(9))}-${(minuteMs - WINDOW_START_MS) / MINUTE}-40`,
+          `uid-${Number(pod.slice(9))}-${WINDOW_MINUTES - 1}-40`,
         );
+        if (mapOfPod.has(pod)) {
+          expect(row["attributes"]).toBe(mapOfPod.get(pod));
+        } else {
+          mapOfPod.set(pod, row["attributes"]);
+        }
         expect(expected.has(key)).toBe(true);
         expect(Number(row.value)).toBeCloseTo(expected.get(key)!, 6);
       }
@@ -742,7 +743,7 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
       const pod: string = String(attributes[POD_KEY]);
       const minute: number = (minuteMs - WINDOW_START_MS) / MINUTE;
 
-      expect(attributes).toEqual(newestAttributes(RESTARTS, pod, minuteMs));
+      expect(attributes).toEqual(newestAttributes(RESTARTS, pod));
 
       if (pod === "") {
         expect(attributes["exporter.name"]).toBe("kube-state-metrics");
@@ -772,9 +773,8 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
           (row["attributes"] as JSONObject)[POD_KEY],
         );
 
-        expect(row["attributes"]).toEqual(
-          newestAttributes(CPU, pod, minuteMs),
-        );
+        expect(row["attributes"]).toEqual(newestAttributes(CPU, pod));
+        expect(minuteMs % MINUTE).toBe(0);
       }
     },
   );

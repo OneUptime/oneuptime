@@ -332,6 +332,189 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).not.toContain("__sample_attrs");
       expect(query).not.toContain("mapUpdate");
     });
+
+    /*
+     * aggregateBy itself: the buckets as any grouped read returns them, and
+     * a whole-window read of a row a series whose map every row of that
+     * series then shares - a map a series, never a map a bucket.
+     */
+    describe("aggregateBy: one map a series, shared by its rows", () => {
+      const NEWEST_TIME: string = "2026-07-09 19:12:00";
+
+      // The rows ClickHouse answers each statement with, and the statements.
+      const answer: (
+        bucketRows: Array<Record<string, unknown>>,
+        sampleRows: Array<Record<string, unknown>>,
+      ) => Array<string> = (
+        bucketRows: Array<Record<string, unknown>>,
+        sampleRows: Array<Record<string, unknown>>,
+      ): Array<string> => {
+        const statements: Array<string> = [];
+
+        (
+          service as unknown as {
+            executeQuery: (statement: Statement) => Promise<unknown>;
+          }
+        ).executeQuery = async (statement: Statement): Promise<unknown> => {
+          statements.push(statement.query);
+          const isSampleRead: boolean =
+            statement.query.includes("__sample_attrs");
+
+          return {
+            json: async (): Promise<{
+              data: Array<Record<string, unknown>>;
+            }> => {
+              return { data: isSampleRead ? sampleRows : bucketRows };
+            },
+          };
+        };
+
+        return statements;
+      };
+
+      const podRow: (
+        time: string,
+        value: number,
+        pod: string,
+      ) => Record<string, unknown> = (
+        time: string,
+        value: number,
+        pod: string,
+      ): Record<string, unknown> => {
+        return {
+          value: value,
+          time: time,
+          attributes: { "resource.k8s.pod.name": pod },
+        };
+      };
+
+      it("reads the buckets without a map, and the window's newest map once a series", async () => {
+        const statements: Array<string> = answer(
+          [
+            podRow("2026-07-09 19:12:00", 4, "checkout-1"),
+            podRow("2026-07-09 19:12:00", 9, "checkout-2"),
+            podRow("2026-07-09 19:11:00", 3, "checkout-1"),
+            podRow("2026-07-09 19:11:00", 8, "checkout-2"),
+          ],
+          [
+            {
+              value: 2,
+              time: NEWEST_TIME,
+              attributes: {
+                "resource.k8s.pod.name": "checkout-1",
+                "resource.k8s.node.name": "node-a",
+              },
+            },
+            {
+              value: 2,
+              time: NEWEST_TIME,
+              attributes: {
+                "resource.k8s.pod.name": "checkout-2",
+                "resource.k8s.node.name": "node-b",
+              },
+            },
+          ],
+        );
+
+        const result: AggregatedResult = await service.aggregateBy(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+            includeSampleAttributes: true,
+          }),
+        );
+
+        // Two reads: the buckets, compact; and a row a series over the window.
+        expect(statements).toHaveLength(2);
+        const bucketRead: string = statements.find((query: string) => {
+          return !query.includes("__sample_attrs");
+        })!;
+        const sampleRead: string = statements.find((query: string) => {
+          return query.includes("__sample_attrs");
+        })!;
+        expect(bucketRead).toContain("GROUP BY time, __attr_grp_0");
+        expect(bucketRead).not.toContain("mapUpdate");
+        expect(sampleRead).toContain("GROUP BY __attr_grp_0");
+        expect(sampleRead).not.toContain("GROUP BY time");
+        expect(sampleRead).toMatch(SAMPLE_MAP);
+
+        // Every bucket, its value as read, its series' map.
+        expect(result.data).toHaveLength(4);
+        const nodes: Array<unknown> = result.data.map(
+          (row: AggregatedResult["data"][number]): unknown => {
+            return (row["attributes"] as Record<string, unknown>)[
+              "resource.k8s.node.name"
+            ];
+          },
+        );
+        expect(nodes).toEqual(["node-a", "node-b", "node-a", "node-b"]);
+        expect(
+          result.data.map((row: AggregatedResult["data"][number]) => {
+            return row.value;
+          }),
+        ).toEqual([4, 9, 3, 8]);
+
+        // One object a series: the read never holds a map a bucket.
+        expect(result.data[0]!["attributes"]).toBe(
+          result.data[2]!["attributes"],
+        );
+        expect(result.data[1]!["attributes"]).toBe(
+          result.data[3]!["attributes"],
+        );
+      });
+
+      it("leaves a series the whole-window read did not return with its keys alone", async () => {
+        answer(
+          [
+            podRow("2026-07-09 19:12:00", 4, "checkout-1"),
+            podRow("2026-07-09 19:12:00", 7, ""),
+          ],
+          [
+            {
+              value: 1,
+              time: NEWEST_TIME,
+              attributes: {
+                "resource.k8s.pod.name": "checkout-1",
+                "resource.k8s.node.name": "node-a",
+              },
+            },
+          ],
+        );
+
+        const result: AggregatedResult = await service.aggregateBy(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+            includeSampleAttributes: true,
+          }),
+        );
+
+        expect(result.data[0]!["attributes"]).toEqual({
+          "resource.k8s.pod.name": "checkout-1",
+          "resource.k8s.node.name": "node-a",
+        });
+        expect(result.data[1]!["attributes"]).toEqual({
+          "resource.k8s.pod.name": "",
+        });
+      });
+
+      it("is one read, as before, when nothing asks for the map", async () => {
+        const statements: Array<string> = answer(
+          [podRow("2026-07-09 19:12:00", 4, "checkout-1")],
+          [],
+        );
+
+        const result: AggregatedResult = await service.aggregateBy(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+          }),
+        );
+
+        expect(statements).toHaveLength(1);
+        expect(statements[0]).not.toContain("__sample_attrs");
+        expect(result.data[0]!["attributes"]).toEqual({
+          "resource.k8s.pod.name": "checkout-1",
+        });
+      });
+    });
   });
 
   /*

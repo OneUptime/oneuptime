@@ -9,8 +9,9 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
  * keys, each '' where a row lacks it, as ClickHouse GROUPs BY
  * `attributes['k']` on a Map(String, String). Asked for sample attributes
  * (includeSampleAttributes, as every infrastructure monitor's read asks),
- * the map is the bucket's newest row's whole map with the grouped keys
- * laid over it - `mapUpdate(argMax(attributes, time), map(...))`. Every
+ * every row of a series carries one map: its newest row's in the window,
+ * with the grouped keys laid over it - as MetricService's whole-window
+ * read gives it (`mapUpdate(argMax(attributes, time), map(...))`). Every
  * grouped read of a monitor is this SQL read (#5281); the suites' raw rows
  * feed the breakdown scans (findBy) as before.
  *
@@ -32,10 +33,10 @@ export interface FoldedReadArgs {
 
 interface FoldedBucket {
   timestamp: Date;
+  // The grouped keys' values, which name the bucket's series.
   attributes: JSONObject;
+  seriesKey: string;
   values: Array<number>;
-  // The bucket's newest row, whose whole map a sample read returns.
-  newest: StoredMetricRow;
 }
 
 const MINUTE_MS: number = 60_000;
@@ -74,6 +75,8 @@ export function foldRowsAsSqlRead(
   const withSample: boolean =
     args.includeSampleAttributes === true && keys.length > 0;
   const buckets: Map<string, FoldedBucket> = new Map();
+  // Each series' newest row in the window, whose map a sample read returns.
+  const newestBySeries: Map<string, StoredMetricRow> = new Map();
 
   for (const stored of rows) {
     const minuteMs: number =
@@ -86,22 +89,39 @@ export function foldRowsAsSqlRead(
         value === undefined || value === null ? "" : String(value);
     }
 
-    const bucketKey: string = `${minuteMs}|${JSON.stringify(attributes)}`;
+    const seriesKey: string = JSON.stringify(attributes);
+    const bucketKey: string = `${minuteMs}|${seriesKey}`;
     const bucket: FoldedBucket | undefined = buckets.get(bucketKey);
 
     if (bucket) {
       bucket.values.push(stored.value);
-
-      if (stored.time.getTime() > bucket.newest.time.getTime()) {
-        bucket.newest = stored;
-      }
     } else {
       buckets.set(bucketKey, {
         timestamp: new Date(minuteMs),
         attributes: attributes,
+        seriesKey: seriesKey,
         values: [stored.value],
-        newest: stored,
       });
+    }
+
+    const newest: StoredMetricRow | undefined = newestBySeries.get(seriesKey);
+
+    if (!newest || stored.time.getTime() > newest.time.getTime()) {
+      newestBySeries.set(seriesKey, stored);
+    }
+  }
+
+  // One map a series, shared by its rows, as MetricService hands it out.
+  const sampleBySeries: Map<string, JSONObject> = new Map();
+
+  if (withSample) {
+    for (const bucket of buckets.values()) {
+      if (!sampleBySeries.has(bucket.seriesKey)) {
+        sampleBySeries.set(bucket.seriesKey, {
+          ...newestBySeries.get(bucket.seriesKey)!.attributes,
+          ...bucket.attributes,
+        });
+      }
     }
   }
 
@@ -112,9 +132,8 @@ export function foldRowsAsSqlRead(
         return b.timestamp.getTime() - a.timestamp.getTime();
       })
       .map((bucket: FoldedBucket): JSONObject => {
-        const attributes: JSONObject = withSample
-          ? { ...bucket.newest.attributes, ...bucket.attributes }
-          : bucket.attributes;
+        const attributes: JSONObject =
+          sampleBySeries.get(bucket.seriesKey) || bucket.attributes;
 
         return {
           timestamp: bucket.timestamp,
