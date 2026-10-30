@@ -9,9 +9,11 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * A fix OneUptime AI made, or proposes, through the project's external MCP
- * servers (an AutoRemediationSuggestion of type McpToolCalls), on the
- * Remediation card: each change in the order it is made - the server and
- * the tool, what it is sent, and once it was sent, what the server answered.
+ * servers (an AutoRemediationSuggestion of type McpToolCalls), on the AI
+ * card's Remediation step: each change in the order it is made - the server
+ * and the tool, what it is sent, and once it was sent, what the server
+ * answered. Each change is a line with a rule beside it, as a command of a
+ * plan is: the AI card is the only frame (block 43).
  *
  * Approving makes exactly these calls, in this order, under the approver's
  * name. Tools that only read are not here: they were part of working the
@@ -122,7 +124,7 @@ const McpToolCallList: FunctionComponent<ComponentProps> = (
         return (
           <li
             key={`${props.suggestionId}:mcp:${call.sequence}`}
-            className="rounded-md border border-gray-100 bg-gray-50 p-3"
+            className="border-l-2 border-gray-200 pl-3"
             data-testid="remediation-mcp-tool-call"
             data-status={call.status}
           >

@@ -84,6 +84,10 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const SUGGESTION_ID: string = "da1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b02";
 const SERVER_ID: string = "da1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b03";
 
+// A box's classes: a frame, a tinted background, rounded corners, a shadow.
+const MCP_ROW_BOX_CLASS_NAME: RegExp =
+  /(^|\s)(border(-\d+)?|rounded(-\w+)?|bg-[a-z]+-\d+|shadow(-\w+)?)(\s|$)/;
+
 function call(
   sequence: number,
   status: ExternalMcpToolCallStatus,
@@ -229,6 +233,15 @@ describe("the Remediation card", () => {
     expect(rows[1]).toHaveTextContent("Failed");
     expect(rows[1]).toHaveTextContent("quota exceeded");
     expect(rows[2]).toHaveTextContent("Not sent");
+
+    /*
+     * Each change is a line with a rule beside it, as a command of a plan
+     * is: on the AI card, the card is the only frame (block 43).
+     */
+    for (const row of rows) {
+      expect(row).toHaveClass("border-l-2", "pl-3");
+      expect(row.className).not.toMatch(MCP_ROW_BOX_CLASS_NAME);
+    }
 
     // The answer is folded until asked for.
     expect(screen.queryByText("restarted api")).not.toBeInTheDocument();

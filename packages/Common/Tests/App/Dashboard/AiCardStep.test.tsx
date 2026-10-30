@@ -18,6 +18,10 @@ afterEach(() => {
   cleanup();
 });
 
+// A box's classes: a frame on every side, a shadow, rounded corners.
+const BOX_CLASS_NAME: RegExp =
+  /(^|\s)(border|shadow(-\w+)?|rounded-(lg|xl|2xl))(\s|$)/;
+
 function renderStep(data: {
   number?: number;
   indicator?: InvestigationStatusIndicator;
@@ -134,10 +138,50 @@ describe("AiCardStep", () => {
     expect(
       screen.getByTestId("ai-card-step-investigation-rail"),
     ).toBeInTheDocument();
+    // Room under a step that another follows; none under the last.
+    expect(screen.getByTestId("ai-card-step-investigation-body")).toHaveClass(
+      "pb-8",
+    );
     cleanup();
 
     renderStep({ isLast: true });
     expect(screen.queryByTestId("ai-card-step-investigation-rail")).toBeNull();
+    expect(
+      screen.getByTestId("ai-card-step-investigation-body"),
+    ).not.toHaveClass("pb-8");
+  });
+
+  /*
+   * A report indented past the marks left a 320px phone some 200px of text
+   * and a verdict that did not fit: on a phone the body takes the card's
+   * width under the mark, as a message of the card's conversation does.
+   */
+  test("from sm up the body sits under the title, beside the rail; on a phone it takes the card's width, without the rail", () => {
+    renderStep({ isLast: false });
+
+    const body: HTMLElement = screen.getByTestId(
+      "ai-card-step-investigation-body",
+    );
+    expect(body).toHaveClass(
+      "col-span-2",
+      "col-start-1",
+      "row-start-2",
+      "sm:col-span-1",
+      "sm:col-start-2",
+    );
+    expect(within(body).getByText("What it found.")).toBeVisible();
+    // The mark's column reaches down beside the body from sm up only.
+    const markColumn: HTMLElement = screen.getByTestId(
+      "ai-card-step-investigation-mark",
+    ).parentElement as HTMLElement;
+    expect(markColumn).toHaveClass("row-start-1", "sm:row-end-3");
+    expect(screen.getByTestId("ai-card-step-investigation-rail")).toHaveClass(
+      "max-sm:hidden",
+    );
+    // A pill that wraps under its title keeps to the card's end edge.
+    expect(screen.getByTestId("ai-card-step-investigation-status")).toHaveClass(
+      "ms-auto",
+    );
   });
 
   test("draws no box of its own", () => {
@@ -148,9 +192,7 @@ describe("AiCardStep", () => {
       const className: string = element.getAttribute("class") || "";
       expect({
         className,
-        box: /(^|\s)(border|shadow(-\w+)?|rounded-(lg|xl|2xl))(\s|$)/.test(
-          className,
-        ),
+        box: BOX_CLASS_NAME.test(className),
       }).toEqual({
         className,
         box: false,

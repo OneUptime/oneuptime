@@ -106,9 +106,9 @@ export const STATUS_BADGE_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
 
 /*
- * The AI Investigation card's status, in the card header in every state.
- * Every state gets the same neutral pill; only the small mark in front of
- * the words carries colour. The card used to change the whole pill's colour
+ * A step's status on the AI card, beside the step's title in every state
+ * (AiCardStep). Every state gets the same neutral pill; only the small mark
+ * in front of the words carries colour. The card used to change the whole pill's colour
  * with the state (green, indigo, red, amber), which added one more tinted
  * shape to a card that already had several.
  *

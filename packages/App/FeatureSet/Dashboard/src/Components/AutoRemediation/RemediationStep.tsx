@@ -6,7 +6,6 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
-import { AutoRemediationDecisionStage } from "Common/Types/AutoRemediation/AutoRemediationDecision";
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -14,6 +13,7 @@ import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediati
 import {
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionReason,
+  AutoRemediationDecisionStage,
 } from "Common/Types/AutoRemediation/AutoRemediationDecision";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -2119,8 +2119,20 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const linesToDraw: Array<RemediationDecisionLine> = isWaiting
     ? waitingLines
     : decisionLines;
+  /*
+   * Nothing was ever decided about the record, no fix was proposed, and
+   * there is no fix in the code to speak of: a pull request being written
+   * or opened is OneUptime AI trying, and its own line says so.
+   */
+  const hasCodeFixLine: boolean = Boolean(
+    codeFix && codeFix.offer !== SuggestionOffer.None,
+  );
   const isNotTried: boolean =
-    isLoadedForSubject && !isWaiting && !decision && suggestions.length === 0;
+    isLoadedForSubject &&
+    !isWaiting &&
+    !decision &&
+    suggestions.length === 0 &&
+    !hasCodeFixLine;
 
   return (
     <AiCardStep

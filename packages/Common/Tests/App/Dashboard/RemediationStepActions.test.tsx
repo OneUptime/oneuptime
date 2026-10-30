@@ -654,6 +654,34 @@ describe("the fix in the code the investigation recommends", () => {
     expect(posts("/ai-investigation/code-fix-suggestion")).toHaveLength(3);
   });
 
+  /*
+   * A record from before decisions were recorded says it was not tried -
+   * unless the fix in the code says otherwise: a pull request being written
+   * is OneUptime AI trying.
+   */
+  test("a pull request opened for a record nothing else was decided for: no 'not tried'", async () => {
+    serve({ suggestions: [], decisions: [] });
+    answerCodeFix([
+      {
+        offer: SuggestionOffer.Done,
+        aiRunId: AI_RUN_ID,
+        isAutomatic: true,
+        fixOutcome: "Fixed",
+      },
+    ]);
+
+    renderStep({
+      codeFix: { isRecommended: true, investigationRunId: RUN_ID },
+    });
+
+    expect(await screen.findByTestId("remediation-code-fix")).toHaveAttribute(
+      "data-offer",
+      SuggestionOffer.Done,
+    );
+    expect(screen.queryByTestId("remediation-step-not-tried")).toBeNull();
+    expect(statusPill()).toHaveTextContent("Pull request opened");
+  });
+
   test("not asked about when the investigation recommends nothing in the code", async () => {
     serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
 

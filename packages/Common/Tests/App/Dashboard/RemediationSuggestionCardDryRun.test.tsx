@@ -213,6 +213,36 @@ describe("CloudDryRunNote", () => {
     );
   });
 
+  /*
+   * The note sits on the AI card's Remediation step, and the card is the
+   * only frame (block 43): words and a tinted mark, never a box.
+   */
+  const BOX_CLASS_NAME: RegExp =
+    /(^|\s)(border(-\d+)?|rounded(-\w+)?|bg-[a-z]+-\d+|shadow(-\w+)?)(\s|$)/;
+
+  test.each<[AiRemediationDryRunStatus]>([
+    [AiRemediationDryRunStatus.WouldRun],
+    [AiRemediationDryRunStatus.WouldBeRefused],
+    [AiRemediationDryRunStatus.Failed],
+  ])(
+    "a %s note draws no box of its own",
+    (status: AiRemediationDryRunStatus) => {
+      const note: HTMLElement = renderNote({
+        status,
+        checkedAt: NOW.toISOString(),
+        summary: "What the agent said.",
+      });
+
+      for (const element of [note, ...Array.from(note.querySelectorAll("*"))]) {
+        const className: string = element.getAttribute("class") || "";
+        expect({
+          className,
+          box: BOX_CLASS_NAME.test(className),
+        }).toEqual({ className, box: false });
+      }
+    },
+  );
+
   test("could not finish: says so, with why", () => {
     const note: HTMLElement = renderNote({
       status: AiRemediationDryRunStatus.Failed,

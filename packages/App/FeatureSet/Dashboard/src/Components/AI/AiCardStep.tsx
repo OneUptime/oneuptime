@@ -24,6 +24,12 @@ import React, {
  * the mark says how the step went at a glance: a check once it is done, its
  * number otherwise, tinted while it moves, needs the reader or failed.
  *
+ * From sm up the body sits under the title, beside the rail. On a phone it
+ * takes the card's whole width under the mark, as a message of the card's
+ * conversation does, and the rail is left out: a report indented past the
+ * marks left a 320px phone some 200px of text, and a verdict that did not
+ * fit.
+ *
  * Nothing here is a box: the card is the only frame (the One AI card's
  * rule), the marks are marks.
  */
@@ -77,10 +83,16 @@ const AiCardStep: FunctionComponent<ComponentProps> = (
       data-testid={props.testId}
       data-step={props.number}
       data-indicator={indicator}
-      className="flex gap-x-3 sm:gap-x-4"
+      className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 sm:gap-x-4"
     >
-      {/* The rail: the step's mark, and the line down to the next one. */}
-      <div aria-hidden="true" className="flex flex-none flex-col items-center">
+      {/*
+        The step's mark, and from sm up the rail down to the next one, beside
+        the body.
+      */}
+      <div
+        aria-hidden="true"
+        className="col-start-1 row-start-1 flex flex-col items-center sm:row-end-3"
+      >
         <div
           data-testid={`${props.testId}-mark`}
           className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset ${AI_CARD_STEP_MARK_CLASS_NAMES[indicator]}`}
@@ -96,32 +108,42 @@ const AiCardStep: FunctionComponent<ComponentProps> = (
         ) : (
           <div
             data-testid={`${props.testId}-rail`}
-            className="mt-2 w-px flex-1 bg-gray-200"
+            className="mt-2 w-px flex-1 bg-gray-200 max-sm:hidden"
           />
         )}
       </div>
 
-      <div className={`min-w-0 flex-1 ${props.isLast ? "" : "pb-8"}`}>
-        {/*
-          The title sits level with the mark's middle, and the pill on its
-          line while both fit - under it on a narrow card.
-        */}
-        <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-          <h3
-            id={headingId}
-            className="text-sm font-semibold leading-7 text-gray-900"
-          >
-            {translator.translateText(props.title)}
-          </h3>
-          <div data-testid={`${props.testId}-status`} className="flex-none">
-            <InvestigationStatusBadge
-              text={props.status.text}
-              indicator={indicator}
-              ariaLabel={props.statusLabel}
-            />
-          </div>
+      {/*
+        The title sits level with the mark's middle, and the pill on its
+        line while both fit - under it on a narrow card, still at the card's
+        end edge, as a card header's actions go.
+      */}
+      <div className="col-start-2 row-start-1 flex min-h-7 min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <h3
+          id={headingId}
+          className="text-sm font-semibold leading-7 text-gray-900"
+        >
+          {translator.translateText(props.title)}
+        </h3>
+        <div
+          data-testid={`${props.testId}-status`}
+          className="ms-auto flex-none"
+        >
+          <InvestigationStatusBadge
+            text={props.status.text}
+            indicator={indicator}
+            ariaLabel={props.statusLabel}
+          />
         </div>
-        <div className="mt-3 space-y-5">{props.children}</div>
+      </div>
+
+      <div
+        data-testid={`${props.testId}-body`}
+        className={`col-span-2 col-start-1 row-start-2 mt-3 min-w-0 space-y-5 sm:col-span-1 sm:col-start-2 ${
+          props.isLast ? "" : "pb-8"
+        }`}
+      >
+        {props.children}
       </div>
     </section>
   );
