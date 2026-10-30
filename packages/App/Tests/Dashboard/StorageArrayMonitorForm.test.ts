@@ -340,7 +340,7 @@ describe("StorageArrayMonitorStepForm array selection", () => {
     );
     expect(dense(stepFormSource)).toContain("onChange={changeResource}");
     expect(dense(stepFormSource)).toContain(
-      "constchangeResource:(arrayIdentifier:string)=>void",
+      "constchangeResource:(arrayIdentifier:string,",
     );
   });
 
@@ -349,7 +349,10 @@ describe("StorageArrayMonitorStepForm array selection", () => {
       "select:{_id:true,lastSeenAt:true,name:true,storageSystem:true,}",
     );
     expect(dense(stepFormSource)).toContain(
-      "storageSystem:storageSystemByArray[arrayIdentifier]||undefined,",
+      "constarrayStorageSystem:string|undefined=addedArrayStorageSystem||storageSystemByArray[arrayIdentifier]||undefined;",
+    );
+    expect(dense(stepFormSource)).toContain(
+      "arrayIdentifier:arrayIdentifier,storageSystem:arrayStorageSystem,",
     );
   });
 

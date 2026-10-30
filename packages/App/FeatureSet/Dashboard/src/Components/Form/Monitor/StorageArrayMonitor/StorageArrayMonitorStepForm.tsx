@@ -312,13 +312,27 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (
-    template: StorageArrayAlertTemplate,
-    arrayIdentifier: string,
-  ) => void = (
-    template: StorageArrayAlertTemplate,
-    arrayIdentifier: string,
-  ): void => {
+  const applyTemplate: (data: {
+    template: StorageArrayAlertTemplate;
+    arrayIdentifier: string;
+    // The picked array's platform, when it is not the step's yet.
+    arrayStorageSystem?: string | undefined;
+    /*
+     * The default alert, applied before any array is picked: it leaves the
+     * platform open, so every platform's templates stay on offer.
+     */
+    leavePlatformOpen?: boolean | undefined;
+  }) => void = (data: {
+    template: StorageArrayAlertTemplate;
+    arrayIdentifier: string;
+    arrayStorageSystem?: string | undefined;
+    leavePlatformOpen?: boolean | undefined;
+  }): void => {
+    const template: StorageArrayAlertTemplate = data.template;
+    const arrayIdentifier: string = data.arrayIdentifier;
+    const platform: string | undefined =
+      data.arrayStorageSystem || storageSystem;
+
     templateAppliedWithoutResourceRef.current = !arrayIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
@@ -348,7 +362,10 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         ...templateStep.data.storageArrayMonitor,
         arrayIdentifier: arrayIdentifier || "",
         storageSystem:
-          storageSystem || templateStep.data.storageArrayMonitor.storageSystem,
+          platform ||
+          (data.leavePlatformOpen
+            ? undefined
+            : templateStep.data.storageArrayMonitor.storageSystem),
       });
     }
 
@@ -360,7 +377,10 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
   const handleTemplateSelection: (
     template: StorageArrayAlertTemplate,
   ) => void = (template: StorageArrayAlertTemplate): void => {
-    applyTemplate(template, monitorStepStorageArrayMonitor.arrayIdentifier);
+    applyTemplate({
+      template,
+      arrayIdentifier: monitorStepStorageArrayMonitor.arrayIdentifier,
+    });
   };
 
   // A new monitor starts on the alert most people want first.
@@ -377,30 +397,60 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
       );
 
     if (template) {
-      applyTemplate(template, monitorStepStorageArrayMonitor.arrayIdentifier);
+      applyTemplate({
+        template,
+        arrayIdentifier: monitorStepStorageArrayMonitor.arrayIdentifier,
+        leavePlatformOpen: true,
+      });
     }
   }, []);
 
-  const changeResource: (arrayIdentifier: string) => void = (
+  const changeResource: (
     arrayIdentifier: string,
+    // An array just added is not in the list this render drew.
+    addedArrayStorageSystem?: string | undefined,
+  ) => void = (
+    arrayIdentifier: string,
+    addedArrayStorageSystem?: string | undefined,
   ): void => {
-    const template: StorageArrayAlertTemplate | undefined = selectedTemplateId
+    const arrayStorageSystem: string | undefined =
+      addedArrayStorageSystem ||
+      storageSystemByArray[arrayIdentifier] ||
+      undefined;
+
+    let template: StorageArrayAlertTemplate | undefined = selectedTemplateId
       ? getStorageArrayAlertTemplateById(selectedTemplateId)
       : undefined;
 
+    /*
+     * A template of the other platform reads series this array never sends:
+     * it gives way to this platform's default alert.
+     */
+    const isOtherPlatform: boolean = Boolean(
+      template &&
+        StorageSystemUtil.isKnownSystem(arrayStorageSystem) &&
+        !template.storageSystems.includes(arrayStorageSystem as StorageSystem),
+    );
+
+    if (isOtherPlatform) {
+      template = getStorageArrayAlertTemplateById(
+        getStorageArrayDefaultAlertTemplateId(arrayStorageSystem),
+      );
+    }
+
     if (
       template &&
-      templateAppliedWithoutResourceRef.current &&
-      arrayIdentifier
+      arrayIdentifier &&
+      (templateAppliedWithoutResourceRef.current || isOtherPlatform)
     ) {
-      applyTemplate(template, arrayIdentifier);
+      applyTemplate({ template, arrayIdentifier, arrayStorageSystem });
       return;
     }
 
     props.onChange({
       ...monitorStepStorageArrayMonitor,
       arrayIdentifier: arrayIdentifier,
-      storageSystem: storageSystemByArray[arrayIdentifier] || undefined,
+      storageSystem: arrayStorageSystem,
     });
   };
 
@@ -509,8 +559,17 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         onResourceAdded={(arrayIdentifier: string) => {
           resources
             .reload()
-            .then(() => {
-              changeResource(arrayIdentifier);
+            .then((records: Array<StorageArray>) => {
+              const added: StorageArray | undefined = records.find(
+                (record: StorageArray) => {
+                  return record.name === arrayIdentifier;
+                },
+              );
+
+              changeResource(
+                arrayIdentifier,
+                added?.storageSystem || undefined,
+              );
             })
             .catch(() => {
               // The list keeps what it had; the new one can be picked from it.

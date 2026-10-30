@@ -23,6 +23,11 @@ import MonitorStepHostMonitor, {
 } from "../../../Types/Monitor/MonitorStepHostMonitor";
 import { MonitorStepKubernetesMonitorUtil } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepVMwareMonitorUtil } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepStorageArrayMonitor, {
+  MonitorStepStorageArrayMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
+import { getStorageArrayAlertTemplateById } from "../../../Types/Monitor/StorageArrayAlertTemplates";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import {
   getHostAlertTemplateById,
   getHostDefaultAlertTemplateId,
@@ -39,6 +44,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const getListMock: MockFunction = getJestMockFunction();
 const navigateMock: MockFunction = getJestMockFunction();
+// What the add dialog hands back once the resource connects.
+let mockConnectedRecord: Record<string, unknown> = {
+  clusterIdentifier: "prod-east",
+};
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -110,14 +119,14 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: {
-        onConnected: (record: { clusterIdentifier: string }) => void;
+        onConnected: (record: Record<string, unknown>) => void;
       }): React.ReactElement => {
         return React.createElement(
           "button",
           {
             "data-testid": "add-resource-modal-connected",
             onClick: () => {
-              props.onConnected({ clusterIdentifier: "prod-east" });
+              props.onConnected(mockConnectedRecord);
             },
           },
           "connected",
@@ -130,6 +139,7 @@ jest.mock(
 import HostMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/HostMonitor/HostMonitorStepForm";
 import KubernetesMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/KubernetesMonitor/KubernetesMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
+import StorageArrayMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMonitorStepForm";
 import {
   InfrastructureWatchWay,
   ResourceDataState,
@@ -178,10 +188,47 @@ function hostTemplateView(
   }).data!.hostMonitor!;
 }
 
+function storageArrayMetricName(config: MonitorStepStorageArrayMonitor): string {
+  return config.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+    .metricName as string;
+}
+
+// Holds the step the way the monitor form does, so each change is drawn.
+function StorageArrayHarness(props: {
+  initial: MonitorStepStorageArrayMonitor;
+  onChange: (config: MonitorStepStorageArrayMonitor) => void;
+}): React.ReactElement {
+  const [step, setStep] = React.useState<MonitorStepStorageArrayMonitor>(
+    props.initial,
+  );
+
+  return (
+    <StorageArrayMonitorStepForm
+      monitorStepStorageArrayMonitor={step}
+      onChange={(config: MonitorStepStorageArrayMonitor) => {
+        setStep(config);
+        props.onChange(config);
+      }}
+      onMonitorCriteriaChange={getJestMockFunction()}
+    />
+  );
+}
+
+async function addStorageArray(record: Record<string, unknown>): Promise<void> {
+  mockConnectedRecord = { name: record["name"] };
+  listOf([record]);
+  fireEvent.click(screen.getByTestId("infrastructure-resource-add"));
+  await settle();
+  fireEvent.click(screen.getByTestId("add-resource-modal-connected"));
+  await settle();
+  await settle();
+}
+
 beforeEach(() => {
   getListMock.mockReset();
   navigateMock.mockReset();
   listOf([]);
+  mockConnectedRecord = { clusterIdentifier: "prod-east" };
 });
 
 afterEach(() => {
@@ -274,6 +321,91 @@ describe("what to watch: nothing sending yet", () => {
 
     fireEvent.click(screen.getByTestId("infrastructure-resource-add"));
     expect(navigateMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a storage array's default alert follows the array's platform", () => {
+  test("before any array is picked every platform stays on offer; a FlashBlade added then gets FlashBlade's alert", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    render(
+      <StorageArrayHarness
+        initial={MonitorStepStorageArrayMonitorUtil.getDefault()}
+        onChange={onChange}
+      />,
+    );
+    await settle();
+
+    /*
+     * The default is FlashArray's, as no platform is known, but it leaves the
+     * platform open: FlashBlade's templates stay on offer.
+     */
+    let config: MonitorStepStorageArrayMonitor =
+      lastOf<MonitorStepStorageArrayMonitor>(onChange);
+    expect(config.storageSystem).toBeUndefined();
+    expect(storageArrayMetricName(config)).toBe("purefa_info");
+    expect(screen.getByTestId("alert-template-picked-name")).toHaveTextContent(
+      "Array Stopped Reporting (FlashArray)",
+    );
+
+    // purefa_info never comes from a FlashBlade: it would never stop firing.
+    await addStorageArray({
+      name: "fb-01",
+      storageSystem: StorageSystem.PureStorageFlashBlade,
+      lastSeenAt: new Date(),
+    });
+
+    config = lastOf<MonitorStepStorageArrayMonitor>(onChange);
+    expect(config.arrayIdentifier).toBe("fb-01");
+    expect(config.storageSystem).toBe(StorageSystem.PureStorageFlashBlade);
+    expect(storageArrayMetricName(config)).toBe("purefb_info");
+    expect(screen.getByTestId("alert-template-picked-name")).toHaveTextContent(
+      /^Array Stopped Reporting$/,
+    );
+  });
+
+  test("a template of one platform gives way to the other platform's default when its array is picked", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    listOf([
+      {
+        name: "fa-01",
+        storageSystem: StorageSystem.PureStorageFlashArray,
+        lastSeenAt: new Date(),
+      },
+    ]);
+
+    const savedOnFlashArray: MonitorStepStorageArrayMonitor =
+      getStorageArrayAlertTemplateById("purefa-critical-alerts")!.getMonitorStep(
+        {
+          arrayIdentifier: "fa-01",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "fa-01",
+        },
+      ).data!.storageArrayMonitor!;
+
+    render(
+      <StorageArrayHarness initial={savedOnFlashArray} onChange={onChange} />,
+    );
+    await settle();
+
+    // A saved step is not rebuilt.
+    expect(onChange).not.toHaveBeenCalled();
+
+    await addStorageArray({
+      name: "fb-01",
+      storageSystem: StorageSystem.PureStorageFlashBlade,
+      lastSeenAt: new Date(),
+    });
+
+    const config: MonitorStepStorageArrayMonitor =
+      lastOf<MonitorStepStorageArrayMonitor>(onChange);
+    expect(config.arrayIdentifier).toBe("fb-01");
+    expect(config.storageSystem).toBe(StorageSystem.PureStorageFlashBlade);
+    expect(storageArrayMetricName(config)).toBe("purefb_info");
   });
 });
 
