@@ -26,8 +26,10 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
-import { REMEDIATION_DECISION_STATUS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
+import RemediationStep, {
+  REMEDIATION_APPROVAL_NOTE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
+import { REMEDIATION_STEP_STATUS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -38,10 +40,11 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * The Remediation card in the reader's language, from the shipped locale
- * files: the status pill, the sentence of each line, the "Why" and "What to
- * do" of a blocked path, the links and the heading above fixes. Japanese,
- * which translates the card's sentences and labels.
+ * The AI card's Remediation step in the reader's language, from the shipped
+ * locale files: its title, its status pill and the pill's name, the
+ * sentence of each line, the "Why" and "What to do" of a blocked path, the
+ * links, what approving a fix does and where each fix stands. Japanese,
+ * which translates the step's sentences and labels.
  *
  * The expected words are read from ja.json, so a translator rewording one
  * does not break this; what breaks it is a word on the card that is not
@@ -136,7 +139,12 @@ afterAll(async () => {
   });
 });
 
-describe("the Remediation card in Japanese", () => {
+// The step's pill, by its name as the reader's language words it.
+function statusPill(): HTMLElement {
+  return screen.getByLabelText(japanese("Remediation status"));
+}
+
+describe("the Remediation step in Japanese", () => {
   test("the screenshot's card: every sentence and link is the reader's, and the pill is looked up", async () => {
     serve({
       suggestions: [],
@@ -144,27 +152,30 @@ describe("the Remediation card in Japanese", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     const line: HTMLElement = await screen.findByTestId(
       "remediation-decision-line",
     );
 
-    expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
-      japanese("Remediation"),
-    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: japanese("Remediation") }),
+    ).toBeInTheDocument();
     expect(
       within(line).getByTestId("remediation-decision-text"),
     ).toHaveTextContent(japanese(REMEDIATION_OFF_SENTENCE));
     expect(
       within(line).getByRole("link", {
-        name: japanese("Incident AI settings"),
+        name: japanese("Turn on for incidents"),
       }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/incidents/ai/settings`);
     // Whatever ja.json holds for it: the pill's words are looked up.
-    expect(screen.getByTestId("remediation-decision-status")).toHaveTextContent(
-      JA[REMEDIATION_DECISION_STATUS_TEXT.info]!,
+    expect(statusPill()).toHaveTextContent(
+      japanese(REMEDIATION_STEP_STATUS_TEXT.off),
     );
   });
 
@@ -190,15 +201,18 @@ describe("the Remediation card in Japanese", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     const line: HTMLElement = await screen.findByTestId(
       "remediation-decision-line",
     );
 
-    expect(screen.getByTestId("remediation-decision-status")).toHaveTextContent(
-      japanese(REMEDIATION_DECISION_STATUS_TEXT.attention),
+    expect(statusPill()).toHaveTextContent(
+      japanese(REMEDIATION_STEP_STATUS_TEXT.needsAttention),
     );
     expect(
       within(line).getByTestId("remediation-decision-why").querySelector("dt"),
@@ -222,7 +236,7 @@ describe("the Remediation card in Japanese", () => {
     );
   });
 
-  test("above fixes, the lines' heading is looked up too", async () => {
+  test("with a fix, what approving it does, where it stands and the pill that asks for approval are looked up too", async () => {
     serve({
       suggestions: [
         Object.assign(new AutoRemediationSuggestion(), {
@@ -244,15 +258,25 @@ describe("the Remediation card in Japanese", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
-    const heading: HTMLElement = await screen.findByTestId(
-      "remediation-decision-heading",
-    );
-    expect(heading).toHaveTextContent(JA["What auto-remediation did"]!);
     expect(
-      screen.queryByTestId("remediation-decision-status"),
+      await screen.findByTestId("remediation-approval-note"),
+    ).toHaveTextContent(japanese(REMEDIATION_APPROVAL_NOTE));
+    // Where the fix stands: words with a dot, in Japanese too.
+    expect(screen.getByTestId("remediation-fix-status")).toHaveTextContent(
+      japanese("Waiting for approval"),
+    );
+    expect(statusPill()).toHaveTextContent(
+      japanese(REMEDIATION_STEP_STATUS_TEXT.needsApproval),
+    );
+    // The step's title heads the lines and the fixes: no heading of its own.
+    expect(
+      screen.queryByTestId("remediation-decision-heading"),
     ).not.toBeInTheDocument();
   });
 });

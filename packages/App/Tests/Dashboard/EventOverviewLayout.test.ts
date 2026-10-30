@@ -485,7 +485,6 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
       "<TelemetryCompanionSignalTabs",
       "<MonitorSummarySnapshotCard",
       page.affectedResourcesElement,
-      "<RemediationSuggestionCard",
       "<EntityRunbooks",
       page.feedElement,
     ].map((needle: string) => {
@@ -497,6 +496,17 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
         return a - b;
       }),
     ).toEqual(order);
+  });
+
+  /*
+   * Block 43: what OneUptime AI is doing to fix it is the AI card's second
+   * step, up top. It was a card of its own down here, under the telemetry
+   * and the affected resources, and easy to miss entirely.
+   */
+  test("draws no Remediation card of its own: remediation is the AI card's second step", () => {
+    expect(page.view).not.toContain("<RemediationSuggestionCard");
+    expect(page.view).not.toContain("<RemediationStep");
+    expect(page.view).not.toContain("useAiCardFold");
   });
 
   test("the right column opens on what it affects, then details, then custom fields last", () => {

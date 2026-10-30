@@ -247,10 +247,16 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
           {/*
             The TL;DR is AI-written prose about the report below it: always
             plain text, never markdown, and simply absent for older runs. It
-            is the one line set larger, because it is the answer.
+            is the one line set larger, because it is the answer. It reads
+            in its own direction (dir="auto"), as the folded card's summary
+            does: an English answer on a Persian page put its full stop at
+            the start of its line.
           */}
           {tldr ? (
-            <p className="mt-1 break-words text-base font-semibold leading-7 text-gray-900">
+            <p
+              dir="auto"
+              className="mt-1 break-words text-base font-semibold leading-7 text-gray-900"
+            >
               {tldr}
             </p>
           ) : (

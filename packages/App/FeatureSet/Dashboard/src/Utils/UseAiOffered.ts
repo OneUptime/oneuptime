@@ -54,15 +54,33 @@ export const isAiOfferedForSelectedProject: () => boolean = (): boolean => {
   return isAiOffered(readSelectedProject());
 };
 
-const useAiOffered: () => boolean = (): boolean => {
+// The selected project's Enable AI as it was read, or undefined if it was not.
+const readSelectedEnableAi: () => boolean | undefined = ():
+  | boolean
+  | undefined => {
+  const enableAi: unknown = readSelectedProject()?.enableAi;
+
+  return typeof enableAi === "boolean" ? enableAi : undefined;
+};
+
+/*
+ * The selected project's Enable AI itself, following every save of it:
+ * undefined while it is not known - a project not loaded yet, or loaded
+ * without the switch. For a sentence about the switch ("Enable AI was off
+ * ... It is on now"), which must never say it of a switch nobody read: an
+ * AI action asks useAiOffered, which reads an unknown value as on.
+ */
+export const useAiSwitchState: () => boolean | undefined = ():
+  | boolean
+  | undefined => {
   const projectId: string = readSelectedProjectId();
 
-  const [isOffered, setIsOffered] = useState<boolean>(() => {
-    return isAiOffered(readSelectedProject());
+  const [state, setState] = useState<boolean | undefined>(() => {
+    return readSelectedEnableAi();
   });
 
   useEffect(() => {
-    setIsOffered(isAiOffered(readSelectedProject()));
+    setState(readSelectedEnableAi());
 
     if (!projectId || !ObjectID.isValidUUID(projectId)) {
       return;
@@ -73,12 +91,16 @@ const useAiOffered: () => boolean = (): boolean => {
       modelId: new ObjectID(projectId),
       column: ENABLE_AI_COLUMN,
       onSaved: (stored: boolean): void => {
-        setIsOffered(isAiOffered({ enableAi: stored }));
+        setState(stored);
       },
     });
   }, [projectId]);
 
-  return isOffered;
+  return state;
+};
+
+const useAiOffered: () => boolean = (): boolean => {
+  return isAiOffered({ enableAi: useAiSwitchState() });
 };
 
 export default useAiOffered;

@@ -37,7 +37,7 @@ En mode **Lecture seule**, les actions ne sont jamais proposées au modèle : la
 
 Demander à l'IA s'ouvre au milieu de l'écran, par-dessus la page où vous étiez, et occupe tout l'écran sur un téléphone. Appuyez sur `Esc`, ou cliquez à côté, pour revenir à la page. La conversation reste où vous l'avez laissée : rouvrez Demander à l'IA pour la poursuivre. Si vous le fermez pendant qu'il répond encore, un rappel dans le coin indique quand la réponse est prête, et l'ouvre.
 
-Sur un incident ou une alerte, la carte **Investigation IA** a sa propre conversation, **Ask OneUptime AI**, partagée avec tous ceux qui voient cet incident ou cette alerte : voir [Parler de l'incident avec OneUptime AI](/docs/ai/ai-sre#parler-de-lincident-avec-oneuptime-ai).
+Sur un incident ou une alerte, la carte **OneUptime AI** a sa propre conversation, **Ask OneUptime AI**, partagée avec tous ceux qui voient cet incident ou cette alerte : voir [Parler de l'incident avec OneUptime AI](/docs/ai/ai-sre#parler-de-lincident-avec-oneuptime-ai).
 
 ## Ce qu'il voit
 
