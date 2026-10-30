@@ -38853,6 +38853,10 @@
   "Pick someone": "Pick someone",
   "Search people and teams": "Search people and teams",
   "Sort: {{order}}": "Sort: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI tasks work in this exception's repository, so starting one takes permission to edit it.",
+  "Checking for tasks that are already running.": "Checking for tasks that are already running.",
+  "Finish the setup checklist above to start AI tasks.": "Finish the setup checklist above to start AI tasks.",
+  "Reopen and unarchive this exception to start AI tasks.": "Reopen and unarchive this exception to start AI tasks.",
   "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
   "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Who it pages is kept on its Page step, where you can change it later in the Builder.",
   "Pick who to page.": "Pick who to page."

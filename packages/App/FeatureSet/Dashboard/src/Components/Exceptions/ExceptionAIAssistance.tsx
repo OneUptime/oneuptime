@@ -24,14 +24,21 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
+  AI_TASKS_NOT_ALLOWED_SENTENCE,
   AIAgentTaskInfo,
   AIReadinessProgress,
   AITaskCardState,
@@ -85,6 +92,24 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
   const exceptionId: string = props.telemetryExceptionId.toString();
+  /*
+   * A task works in the exception's repository, so starting one takes
+   * permission to edit repositories - what the server asks. A person who
+   * may only read sees the tasks and why they cannot start one.
+   */
+  const startGate: PermissionGateResult = useMemo((): PermissionGateResult => {
+    return PermissionGate.checkPermissions(
+      PermissionGate.getModelPermissions(
+        new CodeRepository(),
+        ModelAction.Update,
+      ),
+      { sentence: AI_TASKS_NOT_ALLOWED_SENTENCE },
+    );
+  }, []);
+  const startRefusedReason: string | undefined = startGate.isAllowed
+    ? undefined
+    : startGate.disabledReason ||
+      translator.translateText(AI_TASKS_NOT_ALLOWED_SENTENCE);
   const [tasks, setTasks] = useState<Array<AIAgentTaskInfo>>([]);
   const [hasLoadedTasks, setHasLoadedTasks] = useState<boolean>(false);
   const [isTasksLoading, setIsTasksLoading] = useState<boolean>(true);
@@ -421,6 +446,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
       isArchived: props.isArchived,
       isTasksLoading,
       isBlockedBySetup,
+      startRefusedReason,
     });
     const startedAgo: string | null = task
       ? formatRelativeTime(task.createdAt)

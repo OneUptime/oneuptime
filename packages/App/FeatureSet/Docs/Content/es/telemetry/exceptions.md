@@ -139,7 +139,7 @@ La página **Asistencia de IA** ofrece tres tareas. Cada una se ejecuta como una
 | **Generar prueba de regresión** | Añade una prueba que falla hasta que se corrija el error. |
 | **Mejorar el manejo de errores** | Para errores esperados: valida antes la entrada, mantiene los datos de usuario fuera de los mensajes y marca el error como gestionado. |
 
-La IA necesita antes tres cosas: un proveedor de LLM, un repositorio conectado (en GitHub, GitLab, Forgejo o Gitea, o en cualquier servidor Git) y un agente de IA en línea que ejecute la tarea. La página comprueba cada una y enlaza a lo que falte. Las tareas se pausan mientras la excepción está resuelta o archivada. Consulte [Código](/docs/ai/ai-agent).
+La IA necesita antes tres cosas: un proveedor de LLM, un repositorio conectado (en GitHub, GitLab, Forgejo o Gitea, o en cualquier servidor Git) y un agente de IA en línea que ejecute la tarea. La página comprueba cada una y enlaza a lo que falte. Las tareas se pausan mientras la excepción está resuelta o archivada. Consulte [Código](/docs/ai/ai-agent). Iniciar una tarea requiere permiso para editar el repositorio en el que trabaja: quien solo puede leer la excepción ve sus tareas, pero no puede iniciar ninguna.
 
 ## Encontrar y corregir excepciones nuevas o en aumento con IA
 

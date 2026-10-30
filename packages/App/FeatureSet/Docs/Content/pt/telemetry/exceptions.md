@@ -139,7 +139,7 @@ A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa
 | **Generate Regression Test** | Adiciona um teste que falha até o bug ser corrigido. |
 | **Melhorar o tratamento de erros** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
 
-Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conectado (no GitHub, GitLab, Forgejo ou Gitea, ou em qualquer servidor Git) e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent).
+Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conectado (no GitHub, GitLab, Forgejo ou Gitea, ou em qualquer servidor Git) e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent). Iniciar uma tarefa exige permissão para editar o repositório em que ela trabalha: quem só pode ler a exceção vê as tarefas dela, mas não pode iniciar nenhuma.
 
 ## Encontrar e corrigir exceções novas ou em alta com IA
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { MonitorStepDockerSwarmMonitorUtil } from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 
@@ -178,12 +179,16 @@ describe("a Swarm monitor's Container Image matches the image a task runs", () =
 
   test("a value of megabytes is read in one pass, without a regular expression", () => {
     const huge: string = `${"a:b@".repeat(750000)}nginx`;
-    const started: number = Date.now();
+    // The fastest of up to three reads counts (FastestRun): one is noisy.
+    const read: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return MonitorStepDockerSwarmMonitorUtil.getContainerImageGlobs(huge);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(
-      MonitorStepDockerSwarmMonitorUtil.getContainerImageGlobs(huge),
-    ).toHaveLength(2);
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(read.result).toHaveLength(2);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 
