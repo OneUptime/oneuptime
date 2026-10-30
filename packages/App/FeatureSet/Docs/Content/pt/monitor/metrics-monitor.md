@@ -128,6 +128,8 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 | **Anomalously High** | acima da faixa esperada para esta hora da semana |
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
+| **Sem dados** | ausente: a consulta não enviou nada na janela |
+| **Com dados** | presente: a consulta enviou algo na janela |
 
 As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a linha de base da mesma hora da semana, construída a partir dessa janela. Até que essa hora da semana tenha histórico suficiente, o critério ainda está aprendendo e não gera alertas.
 

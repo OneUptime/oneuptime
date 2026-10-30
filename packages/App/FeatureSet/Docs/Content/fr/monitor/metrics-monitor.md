@@ -128,6 +128,8 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de 
 | **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
+| **Aucune donnée** | absente, car la requête n'a rien envoyé dans la fenêtre |
+| **Données reçues** | présente, car la requête a envoyé quelque chose dans la fenêtre |
 
 Les conditions d'anomalie n'ont pas de seuil. **Quand alerter** affiche à la place **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé –, et les critères personnalisés aussi une **Fenêtre de référence** – 14 jours (la valeur par défaut), 28, 60 ou 90 –, et chaque point de données est comparé à la référence de la même heure de la semaine construite sur cette fenêtre. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne produit aucune alerte.
 
