@@ -216,6 +216,8 @@ Datasikkerheds indstillinger er ét sæt pr. projekt i sektionen **Indstillinger
 | **Åbn sikkerhedssager** | Til | Åbner en sikkerhedssag, grupperet efter datalager, når et kritisk problem åbnes. |
 | **Udløs advarsler** | Fra | Udløser en advarsel, som tilkalder den, der har vagt, når et kritisk problem åbnes. |
 | **Advarselsalvor** | Tom | Alvorligheden af disse advarsler. Tom betyder projektets mest alvorlige. |
+| **Erklær hændelser** | Fra | Erklærer en hændelse, som din hændelsesproces håndterer, når et kritisk problem åbnes. |
+| **Hændelsesalvor** | Tom | Alvorligheden af disse hændelser. Tom betyder projektets mest alvorlige. |
 | **Underret ejere** | Til | Sender e-mail til et datalagers ejere, når et problem åbnes på det. |
 | **Objekter pr. scanning** | 2.000 | Det højeste antal objekter, én scanning af en bucket læser, fra 10 til 50.000. |
 | **Byte pr. objekt** | 65.536 (64 KB) | Det højeste antal byte, der læses fra ét objekt, fra 1.024 til 4.194.304. |

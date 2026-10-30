@@ -1,10 +1,11 @@
 # Integrações da Segurança de dados
 
-A Segurança de dados não tem um sistema de acionamento nem uma fila de segurança próprios. Ela entrega o que encontra às partes do OneUptime que já fazem isso: um problema Crítico vira um caso de segurança, ela pode acionar quem estiver de plantão, e todo problema novo é enviado por e-mail aos proprietários do repositório. Fluxos de trabalho, o OneUptime AI, a API, o Terraform e o servidor MCP alcançam tudo o que ela guarda.
+A Segurança de dados não tem um sistema de acionamento nem uma fila de segurança próprios. Ela entrega o que encontra às partes do OneUptime que já fazem isso: um problema Crítico vira um caso de segurança, ela pode acionar quem estiver de plantão ou declarar um incidente, e todo problema novo é enviado por e-mail aos proprietários do repositório. Fluxos de trabalho, o OneUptime AI, a API, o Terraform e o servidor MCP alcançam tudo o que ela guarda.
 
 :::cards
 - [Security Operations](#security-operations): Um caso de segurança para cada repositório com um problema Crítico.
 - [Alertas e plantão](#alertas-e-plantão): Acione quem estiver de plantão quando um problema Crítico abrir.
+- [Incidentes](#incidentes): Declare um incidente para uma violação que o seu processo de incidentes deve tratar.
 - [Proprietários](#proprietários): Quem é proprietário de cada repositório, definido manualmente ou por regras, e o e-mail que recebem.
 - [OneUptime AI](#oneuptime-ai): Explique um problema, abra um pull request que o corrige, ou pergunte sobre os seus dados no Pergunte à IA.
 - [Fechar uma exposição](#fechar-uma-exposição): Bloqueie o acesso público ou pare de compartilhar, a partir de um problema ou de um playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Um problema abre,<br/>ou abre de novo"] --> critical{"Ele é Crítico?"}
     critical -->|"Sim"| soc["Um caso de segurança<br/>sobre o repositório"]
     critical -->|"Sim, com alertas ativados"| alert["Um alerta que aciona<br/>quem estiver de plantão"]
+    critical -->|"Sim, com incidentes ativados"| incident["Um incidente que o seu<br/>processo conduz"]
     issue --> owners["Um e-mail aos proprietários<br/>do repositório"]
     issue --> flows["Fluxos de trabalho que<br/>observam problemas"]
 ```
 
-Cada um deles roda quando uma avaliação abre um problema, ou o abre de novo. Cada um é de melhor esforço: o problema já está aberto e na linha do tempo dele, então uma integração que falha é registrada em log e ignorada, nunca repetida a ponto de gerar um segundo caso ou um segundo acionamento. O que cada um fez é gravado na **Linha do tempo** do problema.
+Cada um deles roda quando uma avaliação abre um problema, ou o abre de novo. Cada um é de melhor esforço: o problema já está aberto e na linha do tempo dele, então uma integração que falha é registrada em log e ignorada, nunca repetida a ponto de gerar um segundo caso ou um segundo acionamento. O que cada um fez é gravado na **Linha do tempo** do problema, e a página do problema tem links para o caso, o alerta e o incidente que ele originou.
 
 | Configuração | Padrão | O que faz |
 | --- | --- | --- |
 | **Abrir casos de segurança** | Ativado | Um problema Crítico abre um caso de segurança, agrupado por repositório. |
 | **Gerar alertas** | Desativado | Um problema Crítico gera um alerta, que aciona quem estiver de plantão. |
 | **Severidade do alerta** | Vazio | A severidade desses alertas. Vazio é a mais grave do projeto. |
+| **Declarar incidentes** | Desativado | Um problema Crítico declara um incidente, que o seu processo de incidentes conduz. |
+| **Severidade do incidente** | Vazio | A severidade desses incidentes. Vazio é a mais grave do projeto. |
 | **Notificar proprietários** | Ativado | Todo problema novo é enviado por e-mail aos proprietários do repositório dele. |
 
 ## Security Operations
@@ -44,7 +48,15 @@ A partir daí o caso é tratado como qualquer outro: atribuído, anotado, fechad
 
 Com **Gerar alertas** ativado, um problema Crítico gera um alerta, chamado "Data Security:" seguido do título do problema e do repositório. O alerta aciona quem estiver de plantão pelas próprias regras dele, como qualquer outro alerta (veja [Alertas](/docs/alerts/index) e [Plantão](/docs/on-call/index)). Um problema tem no máximo um alerta aberto por vez, por mais que seja avaliado. **Severidade do alerta** define a severidade do alerta; deixada vazia, é a mais grave do projeto.
 
+Um alerta termina junto com o problema dele: assim que o problema deixa de estar aberto - a verificação dele passa, ou uma pessoa o marca como resolvido, aceita o risco dele ou diz que não é um problema - o alerta é resolvido, e a **Linha do tempo** do problema registra isso. Um problema que abre de novo gera um novo alerta.
+
 Os alertas vêm desativados por padrão porque um caso de segurança é onde a maioria das equipes quer ver primeiro uma descoberta de segurança de dados. Ative-os quando um bucket público de números de cartão deve acordar alguém.
+
+## Incidentes
+
+Com **Declarar incidentes** ativado, um problema Crítico declara um incidente, chamado como o alerta dele, para uma violação que o seu processo de incidentes deve tratar: plantão, canais do workspace, páginas de status e um postmortem (veja [Incidentes](/docs/incidents/index)). Um problema tem no máximo um incidente aberto por vez. **Severidade do incidente** define a severidade do incidente; deixada vazia, é a mais grave do projeto.
+
+A Segurança de dados nunca resolve um incidente, mesmo depois que o problema dele é resolvido: um incidente pode ter uma página de status e um postmortem, então quem o conduz é quem o fecha. Um caso de segurança é o outro caminho para um incidente: **Declarar incidente** no caso abre um incidente vinculado a ele (veja [Declarar um incidente](/docs/telemetry/security-cases#declarar-um-incidente)).
 
 ## Proprietários
 

@@ -85,7 +85,7 @@ Klicken Sie auf **Bereinigen**. OneUptime erstellt eine Bereinigungsregel für L
 Die Regel maskiert neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
 :::
 
-Die Regel wird nach dem benannt, was sie verbirgt, etwa „Datensicherheit: E-Mail-Adresse in attributes.user.email“, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist eine der folgenden:
+Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in attributes.user.email“, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist eine der folgenden:
 
 | Fund | Regel, die Bereinigen erstellt |
 | --- | --- |

@@ -216,6 +216,8 @@ Les paramètres de Sécurité des données forment un seul ensemble par projet, 
 | **Ouvrir des dossiers de sécurité** | Activé | Ouvre un dossier de sécurité, regroupé par magasin de données, quand un problème Critique s'ouvre. |
 | **Déclencher des alertes** | Désactivé | Déclenche une alerte, qui prévient la personne d'astreinte, quand un problème Critique s'ouvre. |
 | **Gravité de l'alerte** | Vide | La gravité de ces alertes. Vide correspond à la plus élevée du projet. |
+| **Déclarer des incidents** | Désactivé | Déclare un incident, que votre processus de gestion des incidents prend en charge, quand un problème Critique s'ouvre. |
+| **Gravité de l'incident** | Vide | La gravité de ces incidents. Vide correspond à la plus élevée du projet. |
 | **Notifier les propriétaires** | Activé | Envoie un e-mail aux propriétaires d'un magasin de données quand un problème s'y ouvre. |
 | **Objets par analyse** | 2 000 | Le nombre maximal d'objets que lit une analyse d'un bucket, de 10 à 50 000. |
 | **Octets par objet** | 65 536 (64 Ko) | Le nombre maximal d'octets lus dans un objet, de 1 024 à 4 194 304. |

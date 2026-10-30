@@ -1,10 +1,11 @@
 # Integrazioni di Sicurezza dei dati
 
-Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza propri. Passa ciò che trova alle parti di OneUptime che lo fanno già: un problema Critico diventa un caso di sicurezza, può chiamare chi è di reperibilità, e ogni nuovo problema viene inviato via email ai proprietari dell'archivio. I workflow, OneUptime AI, l'API, Terraform e il server MCP raggiungono tutto ciò che conserva.
+Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza propri. Passa ciò che trova alle parti di OneUptime che lo fanno già: un problema Critico diventa un caso di sicurezza, può chiamare chi è di reperibilità o dichiarare un incidente, e ogni nuovo problema viene inviato via email ai proprietari dell'archivio. I workflow, OneUptime AI, l'API, Terraform e il server MCP raggiungono tutto ciò che conserva.
 
 :::cards
 - [Security Operations](#security-operations): Un caso di sicurezza per ogni archivio con un problema Critico.
 - [Avvisi e reperibilità](#avvisi-e-reperibilità): Chiama chi è di reperibilità quando si apre un problema Critico.
+- [Incidenti](#incidenti): Dichiara un incidente per una violazione di cui deve occuparsi il tuo processo di gestione degli incidenti.
 - [Proprietari](#proprietari): Chi possiede ogni archivio, impostato a mano o tramite regole, e l'email che riceve.
 - [OneUptime AI](#oneuptime-ai): Spiega un problema, apri una pull request che lo corregge, o fai domande sui tuoi dati a Chiedi all'IA.
 - [Chiudere un'esposizione](#chiudere-unesposizione): Blocca l'accesso pubblico o interrompi la condivisione, da un problema o da un playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Si apre un problema,<br/>o si riapre"] --> critical{"È Critico?"}
     critical -->|"Sì"| soc["Un caso di sicurezza<br/>sull'archivio"]
     critical -->|"Sì, se gli avvisi sono attivi"| alert["Un avviso che chiama<br/>chi è di reperibilità"]
+    critical -->|"Sì, se gli incidenti sono attivi"| incident["Un incidente gestito<br/>dal tuo processo"]
     issue --> owners["Un'email ai proprietari<br/>dell'archivio"]
     issue --> flows["I workflow che<br/>osservano i problemi"]
 ```
 
-Ognuna di queste viene eseguita quando una valutazione apre un problema, o lo riapre. Ognuna è best effort: il problema è già aperto e nella sua cronologia, quindi un'integrazione non riuscita viene registrata e saltata, mai ritentata fino a creare un secondo caso o una seconda chiamata. Ciò che ha fatto ognuna viene scritto nella **Cronologia** del problema.
+Ognuna di queste viene eseguita quando una valutazione apre un problema, o lo riapre. Ognuna è best effort: il problema è già aperto e nella sua cronologia, quindi un'integrazione non riuscita viene registrata e saltata, mai ritentata fino a creare un secondo caso o una seconda chiamata. Ciò che ha fatto ognuna viene scritto nella **Cronologia** del problema, e la pagina del problema rimanda al caso, all'avviso e all'incidente che ha avviato.
 
 | Impostazione | Predefinito | Cosa fa |
 | --- | --- | --- |
 | **Apri casi di sicurezza** | Attivo | Un problema Critico apre un caso di sicurezza, raggruppato per archivio. |
 | **Genera avvisi** | Disattivato | Un problema Critico genera un avviso, che chiama chi è di reperibilità. |
 | **Gravità avviso** | Vuoto | La gravità di quegli avvisi. Se è vuota, è la più grave del progetto. |
+| **Dichiara incidenti** | Disattivato | Un problema Critico dichiara un incidente, preso in carico dal tuo processo di gestione degli incidenti. |
+| **Gravità incidente** | Vuoto | La gravità di quegli incidenti. Se è vuota, è la più grave del progetto. |
 | **Notifica ai proprietari** | Attivo | Ogni nuovo problema viene inviato via email ai proprietari del suo archivio. |
 
 ## Security Operations
@@ -42,15 +46,23 @@ Da lì il caso si gestisce come qualsiasi altro: viene assegnato, annotato e chi
 
 ## Avvisi e reperibilità
 
-Con **Genera avvisi** attivo, un problema Critico genera un avviso, intitolato «Sicurezza dei dati:» seguito dal titolo e dall'archivio del problema. L'avviso chiama chi è di reperibilità tramite le proprie regole, come qualsiasi altro avviso (vedi [Avvisi](/docs/alerts/index) e [Reperibilità](/docs/on-call/index)). Un problema ha al massimo un avviso aperto alla volta, per quanto spesso venga valutato. **Gravità avviso** imposta la gravità dell'avviso; se resta vuota, è la più grave del progetto.
+Con **Genera avvisi** attivo, un problema Critico genera un avviso, intitolato «Data Security:» seguito dal titolo e dall'archivio del problema. L'avviso chiama chi è di reperibilità tramite le proprie regole, come qualsiasi altro avviso (vedi [Avvisi](/docs/alerts/index) e [Reperibilità](/docs/on-call/index)). Un problema ha al massimo un avviso aperto alla volta, per quanto spesso venga valutato. **Gravità avviso** imposta la gravità dell'avviso; se resta vuota, è la più grave del progetto.
+
+Un avviso termina insieme al suo problema: quando il problema non è più aperto - il suo controllo viene superato, oppure una persona lo segna come risolto, ne accetta il rischio o dice che non è un problema - l'avviso viene risolto, e la **Cronologia** del problema lo riporta. Un problema che si riapre genera un nuovo avviso.
 
 Gli avvisi sono disattivati per impostazione predefinita perché la maggior parte dei team vuole vedere un risultato di sicurezza dei dati prima di tutto in un caso di sicurezza. Attivali quando un bucket pubblico di numeri di carta deve svegliare qualcuno.
+
+## Incidenti
+
+Con **Dichiara incidenti** attivo, un problema Critico dichiara un incidente, intitolato come il suo avviso, per una violazione di cui deve occuparsi il tuo processo di gestione degli incidenti: reperibilità, canali del workspace, pagine di stato e un postmortem (vedi [Incidenti](/docs/incidents/index)). Un problema ha al massimo un incidente aperto alla volta. **Gravità incidente** imposta la gravità dell'incidente; se resta vuota, è la più grave del progetto.
+
+Sicurezza dei dati non risolve mai un incidente, nemmeno quando il suo problema è stato risolto: un incidente può avere una pagina di stato e un postmortem, quindi lo chiude chi lo gestisce. Un caso di sicurezza è l'altra via per arrivare a un incidente: **Dichiara incidente** sul caso ne apre uno a esso collegato (vedi [Dichiarare un incidente](/docs/telemetry/security-cases#dichiarare-un-incidente)).
 
 ## Proprietari
 
 I proprietari di un archivio sono persone e team, nella pagina **Proprietari** dell'archivio. Sono i destinatari di un problema: ricevono l'email, e **Questo archivio sensibile non ha un proprietario** non viene superato su un archivio sensibile che non ne ha.
 
-Con **Notifica ai proprietari** attivo, ogni valutazione che apre problemi su un archivio invia ai suoi proprietari un'unica email - alle persone che lo possiedono, e ai membri dei team che lo possiedono, fino a 50 - intitolata con il numero di nuovi problemi dell'archivio, come «Sicurezza dei dati: 2 nuovi problemi su orders-db». Elenca la gravità e il titolo di ogni nuovo problema e la sensibilità dell'archivio, e rimanda all'archivio. Non contiene mai un campione.
+Con **Notifica ai proprietari** attivo, ogni valutazione che apre problemi su un archivio invia ai suoi proprietari un'unica email - alle persone che lo possiedono, e ai membri dei team che lo possiedono, fino a 50 - intitolata con il numero di nuovi problemi dell'archivio, come «Data Security: 2 new issues on orders-db». Elenca la gravità e il titolo di ogni nuovo problema e la sensibilità dell'archivio, e rimanda all'archivio. Non contiene mai un campione.
 
 ### Regole del proprietario e regole etichette
 

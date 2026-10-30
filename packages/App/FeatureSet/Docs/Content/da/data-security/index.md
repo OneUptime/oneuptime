@@ -73,7 +73,7 @@ Under **Flere felter** sætter du **Datasikkerhed** til **Kun konfiguration** fo
 
 Hvert datalager får de kontroller, der gælder for dets type. Et datalager, hvis indhold der ikke kan tages prøver af, kontrolleres stadig: en offentlig bucket eller en ukrypteret database er et problem, uanset hvad den indeholder.
 
-Et datalager arkiveres med sin historik, når dets kilde ikke længere viser det: **Arkiverede datalagre**, nederst i Datasikkerheds menu, gemmer det. Det kommer tilbage af sig selv, hvis kilden viser det igen.
+Et datalager arkiveres med sin historik, når dets kilde ikke længere viser det, og dets åbne problemer løses: **Arkiverede datalagre**, nederst i Datasikkerheds menu, gemmer det. Det kommer tilbage af sig selv, hvis kilden viser det igen, og et problem, hvis kontrol stadig fejler, åbnes igen.
 
 Et datalagers **Tidslinje** fortæller, hvad der er sket med det, og hvem der gjorde det: hvornår det blev fundet eller tilføjet, hver ændring af dets indstillinger og ejere, hvornår det blev arkiveret eller kom tilbage, og hver eksponering, der blev lukket fra et problem eller en playbook.
 

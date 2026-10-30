@@ -1,10 +1,11 @@
 # Integrationen der Datensicherheit
 
-Datensicherheit betreibt keinen eigenen Pager und keine eigene Sicherheitswarteschlange. Sie übergibt, was sie findet, an die Teile von OneUptime, die das bereits tun: Ein kritisches Problem wird zu einem Sicherheitsfall, es kann alarmieren, wer gerade Bereitschaft hat, und jedes neue Problem wird per E-Mail an die Eigentümer des Datenspeichers geschickt. Workflows, OneUptime AI, die API, Terraform und der MCP-Server erreichen alles, was sie aufbewahrt.
+Datensicherheit betreibt keinen eigenen Pager und keine eigene Sicherheitswarteschlange. Sie übergibt, was sie findet, an die Teile von OneUptime, die das bereits tun: Ein kritisches Problem wird zu einem Sicherheitsfall, es kann alarmieren, wer gerade Bereitschaft hat, oder einen Vorfall melden, und jedes neue Problem wird per E-Mail an die Eigentümer des Datenspeichers geschickt. Workflows, OneUptime AI, die API, Terraform und der MCP-Server erreichen alles, was sie aufbewahrt.
 
 :::cards
 - [Security Operations](#security-operations): Ein Sicherheitsfall für jeden Datenspeicher mit einem kritischen Problem.
 - [Warnungen und Bereitschaft](#warnungen-und-bereitschaft): Alarmieren, wer gerade Bereitschaft hat, wenn sich ein kritisches Problem öffnet.
+- [Vorfälle](#vorfälle): Einen Vorfall für eine Datenpanne melden, die Ihren Vorfallsprozess durchlaufen soll.
 - [Eigentümer](#eigentümer): Wem jeder Datenspeicher gehört, von Hand oder per Regel festgelegt, und die E-Mail, die die Eigentümer erhalten.
 - [OneUptime AI](#oneuptime-ai): Ein Problem erklären, einen Pull Request öffnen, der es behebt, oder „KI fragen“ nach Ihren Daten fragen.
 - [Eine Exponierung schließen](#eine-exponierung-schließen): Öffentlichen Zugriff sperren oder eine Freigabe beenden, aus einem Problem oder einem Playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Ein Problem öffnet sich<br/>oder öffnet sich erneut"] --> critical{"Ist es Kritisch?"}
     critical -->|"Ja"| soc["Ein Sicherheitsfall<br/>zum Datenspeicher"]
     critical -->|"Ja, wenn Warnungen an sind"| alert["Eine Warnung, die alarmiert,<br/>wer Bereitschaft hat"]
+    critical -->|"Ja, wenn Vorfälle an sind"| incident["Ein Vorfall, der Ihren<br/>Prozess durchläuft"]
     issue --> owners["Eine E-Mail an die Eigentümer<br/>des Datenspeichers"]
     issue --> flows["Workflows, die<br/>Probleme beobachten"]
 ```
 
-Jede davon läuft, wenn eine Auswertung ein Problem eröffnet oder erneut öffnet. Jede arbeitet nach bestem Bemühen: Das Problem ist bereits offen und steht auf seiner Zeitachse, also wird eine fehlgeschlagene Integration protokolliert und übersprungen, nie erneut versucht, sodass kein zweiter Fall und keine zweite Alarmierung entsteht. Was jede getan hat, wird in die **Zeitachse** des Problems geschrieben.
+Jede davon läuft, wenn eine Auswertung ein Problem eröffnet oder erneut öffnet. Jede arbeitet nach bestem Bemühen: Das Problem ist bereits offen und steht auf seiner Zeitachse, also wird eine fehlgeschlagene Integration protokolliert und übersprungen, nie erneut versucht, sodass kein zweiter Fall und keine zweite Alarmierung entsteht. Was jede getan hat, wird in die **Zeitachse** des Problems geschrieben, und die Seite des Problems verlinkt den Fall, die Warnung und den Vorfall, die es ausgelöst hat.
 
 | Einstellung | Standard | Was sie tut |
 | --- | --- | --- |
 | **Sicherheitsfälle eröffnen** | An | Ein kritisches Problem eröffnet einen Sicherheitsfall, gruppiert nach Datenspeicher. |
 | **Warnungen auslösen** | Aus | Ein kritisches Problem löst eine Warnung aus, die alarmiert, wer gerade Bereitschaft hat. |
 | **Warnungsschweregrad** | Leer | Der Schweregrad dieser Warnungen. Leer ist der höchste des Projekts. |
+| **Vorfälle melden** | Aus | Ein kritisches Problem meldet einen Vorfall, der Ihren Vorfallsprozess durchläuft. |
+| **Vorfallsschweregrad** | Leer | Der Schweregrad dieser Vorfälle. Leer ist der höchste des Projekts. |
 | **Eigentümer benachrichtigen** | An | Jedes neue Problem wird per E-Mail an die Eigentümer seines Datenspeichers geschickt. |
 
 ## Security Operations
@@ -42,15 +46,23 @@ Von da an wird der Fall wie jeder andere bearbeitet: zugewiesen, kommentiert, ge
 
 ## Warnungen und Bereitschaft
 
-Ist **Warnungen auslösen** eingeschaltet, löst ein kritisches Problem eine Warnung aus, benannt mit „Datensicherheit:“ sowie dem Titel und dem Datenspeicher des Problems. Die Warnung alarmiert über ihre eigenen Regeln, wer gerade Bereitschaft hat, wie jede andere Warnung (siehe [Warnungen](/docs/alerts/index) und [Bereitschaft](/docs/on-call/index)). Ein Problem hat höchstens eine offene Warnung gleichzeitig, egal wie oft es ausgewertet wird. **Warnungsschweregrad** legt den Schweregrad der Warnung fest; bleibt er leer, ist es der höchste des Projekts.
+Ist **Warnungen auslösen** eingeschaltet, löst ein kritisches Problem eine Warnung aus, benannt mit „Data Security:“ sowie dem Titel und dem Datenspeicher des Problems. Die Warnung alarmiert über ihre eigenen Regeln, wer gerade Bereitschaft hat, wie jede andere Warnung (siehe [Warnungen](/docs/alerts/index) und [Bereitschaft](/docs/on-call/index)). Ein Problem hat höchstens eine offene Warnung gleichzeitig, egal wie oft es ausgewertet wird. **Warnungsschweregrad** legt den Schweregrad der Warnung fest; bleibt er leer, ist es der höchste des Projekts.
+
+Eine Warnung endet mit ihrem Problem: Sobald das Problem nicht mehr offen ist - seine Prüfung besteht, oder jemand markiert es als behoben, akzeptiert sein Risiko oder sagt, es sei kein Problem -, wird die Warnung behoben, und die **Zeitachse** des Problems vermerkt das. Ein Problem, das sich erneut öffnet, löst eine neue Warnung aus.
 
 Warnungen sind standardmäßig aus, weil die meisten Teams einen Fund der Datensicherheit zuerst in einem Sicherheitsfall sehen wollen. Schalten Sie sie ein, wenn ein öffentlicher Bucket mit Kartennummern jemanden wecken soll.
+
+## Vorfälle
+
+Ist **Vorfälle melden** eingeschaltet, meldet ein kritisches Problem einen Vorfall, benannt wie seine Warnung, für eine Datenpanne, die Ihren Vorfallsprozess durchlaufen soll: Bereitschaft, Workspace-Kanäle, Statusseiten und ein Postmortem (siehe [Vorfälle](/docs/incidents/index)). Ein Problem hat höchstens einen offenen Vorfall gleichzeitig. **Vorfallsschweregrad** legt den Schweregrad des Vorfalls fest; bleibt er leer, ist es der höchste des Projekts.
+
+Datensicherheit behebt nie einen Vorfall, auch nicht, wenn sein Problem behoben ist: Ein Vorfall kann eine Statusseite und ein Postmortem haben, also schließt ihn, wer ihn leitet. Ein Sicherheitsfall ist der andere Weg zu einem Vorfall: **Vorfall melden** am Fall eröffnet einen, der mit ihm verknüpft ist (siehe [Einen Vorfall melden](/docs/telemetry/security-cases#einen-vorfall-melden)).
 
 ## Eigentümer
 
 Die Eigentümer eines Datenspeichers sind Personen und Teams, auf der Seite **Eigentümer** des Datenspeichers. Für sie ist ein Problem gedacht: Sie erhalten die E-Mail, und **Dieser sensible Datenspeicher hat keinen Eigentümer** schlägt an einem sensiblen Datenspeicher fehl, der keinen hat.
 
-Ist **Eigentümer benachrichtigen** eingeschaltet, schickt jede Auswertung, die an einem Datenspeicher Probleme eröffnet, seinen Eigentümern eine E-Mail - den Personen, denen er gehört, und den Mitgliedern der Teams, denen er gehört, bis zu 50 -, betitelt mit der Zahl der neuen Probleme des Datenspeichers, etwa „Datensicherheit: 2 neue Probleme an orders-db“. Sie listet Schweregrad und Titel jedes neuen Problems und die Sensibilität des Datenspeichers auf und verlinkt den Datenspeicher. Sie enthält nie eine Stichprobe.
+Ist **Eigentümer benachrichtigen** eingeschaltet, schickt jede Auswertung, die an einem Datenspeicher Probleme eröffnet, seinen Eigentümern eine E-Mail - den Personen, denen er gehört, und den Mitgliedern der Teams, denen er gehört, bis zu 50 -, betitelt mit der Zahl der neuen Probleme des Datenspeichers, etwa „Data Security: 2 new issues on orders-db“. Sie listet Schweregrad und Titel jedes neuen Problems und die Sensibilität des Datenspeichers auf und verlinkt den Datenspeicher. Sie enthält nie eine Stichprobe.
 
 ### Eigentümerregeln und Beschriftungsregeln
 

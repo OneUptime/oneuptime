@@ -150,7 +150,7 @@ OneUptime åbner, opdaterer og løser problemer, efterhånden som kontrollerne k
 | Status | Hvordan det kommer dertil | Hvad der følger |
 | --- | --- | --- |
 | **Åben** | Dets kontrol fejler på datalageret nu. | Det tæller med på oversigten, i datalagerets resumé og i compliance-opgørelsen, indtil kontrollen består. |
-| **Løst** | Dets kontrol bestod ved en senere kørsel, gælder ikke længere eller blev slået fra. Et menneske kan også vælge **Markér som løst**: datalageret kontrolleres så igen med det samme. | Det åbnes igen, hvis kontrollen fejler igen, og problemet tæller, hvor ofte det er blevet genåbnet. |
+| **Løst** | Dets kontrol bestod ved en senere kørsel, gælder ikke længere eller blev slået fra, eller dets datalager blev arkiveret. Et menneske kan også vælge **Markér som løst**: datalageret kontrolleres så igen med det samme. | Det åbnes igen, hvis kontrollen fejler igen, og problemet tæller, hvor ofte det er blevet genåbnet. |
 | **Accepteret** | Et menneske valgte **Accepter risiko** med en **Årsag** og en dato i **Accepteret indtil**, højst et år ude i fremtiden. | Det forbliver lukket indtil den dato og åbnes derefter igen, hvis kontrollen stadig fejler. Acceptér det så igen, hvis begrundelsen stadig holder. |
 | **Ikke et problem** | Et menneske valgte **Ikke et problem**: fundet var forkert. | Det forbliver lukket, også mens kontrollen fejler. **Genåbn** sætter det tilbage til Åben. |
 

@@ -1,10 +1,11 @@
 # Datasikkerhedsintegrationer
 
-Datasikkerhed har ingen personsøger eller sikkerhedskø af sin egen. Den giver det, den finder, videre til de dele af OneUptime, der allerede har det: et kritisk problem bliver til en sikkerhedssag, det kan tilkalde den, der har vagt, og hvert nyt problem sendes på e-mail til datalagerets ejere. Workflows, OneUptime AI, API'et, Terraform og MCP-serveren når alt, hvad den gemmer.
+Datasikkerhed har ingen personsøger eller sikkerhedskø af sin egen. Den giver det, den finder, videre til de dele af OneUptime, der allerede har det: et kritisk problem bliver til en sikkerhedssag, det kan tilkalde den, der har vagt, eller erklære en hændelse, og hvert nyt problem sendes på e-mail til datalagerets ejere. Workflows, OneUptime AI, API'et, Terraform og MCP-serveren når alt, hvad den gemmer.
 
 :::cards
 - [Security Operations](#security-operations): En sikkerhedssag for hvert datalager med et kritisk problem.
 - [Advarsler og vagtordning](#advarsler-og-vagtordning): Tilkald den, der har vagt, når et kritisk problem åbnes.
+- [Hændelser](#hændelser): Erklær en hændelse for et sikkerhedsbrud, som din hændelsesproces skal håndtere.
 - [Ejere](#ejere): Hvem der ejer hvert datalager, angivet manuelt eller af regler, og den e-mail, de får.
 - [OneUptime AI](#oneuptime-ai): Forklar et problem, åbn en pull request, der retter det, eller spørg Spørg AI om dine data.
 - [Luk en eksponering](#luk-en-eksponering): Bloker offentlig adgang, eller stop deling, fra et problem eller en playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Et problem åbnes<br/>eller genåbnes"] --> critical{"Er det kritisk?"}
     critical -->|"Ja"| soc["En sikkerhedssag<br/>om datalageret"]
     critical -->|"Ja, hvis advarsler er slået til"| alert["En advarsel, der tilkalder<br/>den, der har vagt"]
+    critical -->|"Ja, hvis hændelser er slået til"| incident["En hændelse, som din<br/>proces håndterer"]
     issue --> owners["En e-mail til<br/>datalagerets ejere"]
     issue --> flows["Workflows, der<br/>holder øje med problemer"]
 ```
 
-Hver af disse kører, når en evaluering åbner et problem eller åbner det igen. Hver af dem er best effort: problemet er allerede åbent og står på sin tidslinje, så en integration, der fejler, logges og springes over i stedet for at blive forsøgt igen og give en ekstra sag eller en ekstra tilkaldelse. Det, hver af dem gjorde, skrives på problemets **Tidslinje**.
+Hver af disse kører, når en evaluering åbner et problem eller åbner det igen. Hver af dem er best effort: problemet er allerede åbent og står på sin tidslinje, så en integration, der fejler, logges og springes over i stedet for at blive forsøgt igen og give en ekstra sag eller en ekstra tilkaldelse. Det, hver af dem gjorde, skrives på problemets **Tidslinje**, og problemets side linker til den sag, den advarsel og den hændelse, det startede.
 
 | Indstilling | Standard | Hvad den gør |
 | --- | --- | --- |
 | **Åbn sikkerhedssager** | Til | Et kritisk problem åbner en sikkerhedssag, grupperet efter datalager. |
 | **Udløs advarsler** | Fra | Et kritisk problem udløser en advarsel, som tilkalder den, der har vagt. |
 | **Advarselsalvor** | Tom | Alvorligheden af de advarsler. Tom er projektets mest alvorlige. |
+| **Erklær hændelser** | Fra | Et kritisk problem erklærer en hændelse, som din hændelsesproces håndterer. |
+| **Hændelsesalvor** | Tom | Alvorligheden af de hændelser. Tom er projektets mest alvorlige. |
 | **Underret ejere** | Til | Hvert nyt problem sendes på e-mail til datalagerets ejere. |
 
 ## Security Operations
@@ -42,15 +46,23 @@ Derfra behandles sagen som enhver anden: den tildeles, får noter, lukkes og bes
 
 ## Advarsler og vagtordning
 
-Med **Udløs advarsler** slået til udløser et kritisk problem en advarsel, der er navngivet "Datasikkerhed:" efterfulgt af problemets titel og datalager. Advarslen tilkalder den, der har vagt, via sine egne regler, ligesom enhver anden advarsel (se [Advarsler](/docs/alerts/index) og [Vagtordning](/docs/on-call/index)). Et problem har højst én åben advarsel ad gangen, uanset hvor ofte det evalueres. **Advarselsalvor** angiver advarslens alvorlighed; står den tom, er det projektets mest alvorlige.
+Med **Udløs advarsler** slået til udløser et kritisk problem en advarsel, der er navngivet "Data Security:" efterfulgt af problemets titel og datalager. Advarslen tilkalder den, der har vagt, via sine egne regler, ligesom enhver anden advarsel (se [Advarsler](/docs/alerts/index) og [Vagtordning](/docs/on-call/index)). Et problem har højst én åben advarsel ad gangen, uanset hvor ofte det evalueres. **Advarselsalvor** angiver advarslens alvorlighed; står den tom, er det projektets mest alvorlige.
+
+En advarsel slutter sammen med sit problem: når problemet ikke længere er åbent - dets kontrol består, eller en person markerer det som løst, accepterer dets risiko eller siger, at det ikke er et problem - løses advarslen, og det står på problemets **Tidslinje**. Et problem, der åbnes igen, udløser en ny advarsel.
 
 Advarsler er slået fra som standard, fordi de fleste teams helst vil se et datasikkerhedsfund i en sikkerhedssag først. Slå dem til, når en offentlig bucket med kortnumre skal vække nogen.
+
+## Hændelser
+
+Med **Erklær hændelser** slået til erklærer et kritisk problem en hændelse, navngivet ligesom dets advarsel, for et sikkerhedsbrud, som din hændelsesproces skal håndtere: vagtordning, workspace-kanaler, statussider og en postmortem (se [Hændelser](/docs/incidents/index)). Et problem har højst én åben hændelse ad gangen. **Hændelsesalvor** angiver hændelsens alvorlighed; står den tom, er det projektets mest alvorlige.
+
+Datasikkerhed løser aldrig en hændelse, heller ikke når dens problem er løst: en hændelse kan have en statusside og en postmortem, så den, der håndterer den, lukker den. En sikkerhedssag er den anden vej til en hændelse: **Erklær hændelse** på sagen åbner én, der er knyttet til den (se [Erklær en hændelse](/docs/telemetry/security-cases#erklær-en-hændelse)).
 
 ## Ejere
 
 Et datalagers ejere er personer og teams, på datalagerets side **Ejere**. Det er dem, et problem er til: de får e-mailen, og **Ingen ejer dette følsomme datalager** fejler på et følsomt datalager, der ikke har nogen.
 
-Med **Underret ejere** slået til sender hver evaluering, der åbner problemer på et datalager, én e-mail til dets ejere - de personer, der ejer det, og medlemmerne af de teams, der gør, op til 50 - med en titel, der siger, hvor mange nye problemer datalageret har, f.eks. "Datasikkerhed: 2 nye problemer på orders-db". Den viser hvert nyt problems alvorlighed og titel og datalagerets følsomhed og linker til datalageret. Den indeholder aldrig en prøve.
+Med **Underret ejere** slået til sender hver evaluering, der åbner problemer på et datalager, én e-mail til dets ejere - de personer, der ejer det, og medlemmerne af de teams, der gør, op til 50 - med en titel, der siger, hvor mange nye problemer datalageret har, f.eks. "Data Security: 2 new issues on orders-db". Den viser hvert nyt problems alvorlighed og titel og datalagerets følsomhed og linker til datalageret. Den indeholder aldrig en prøve.
 
 ### Ejerregler og etiketregler
 

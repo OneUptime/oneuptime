@@ -150,7 +150,7 @@ O OneUptime abre, atualiza e resolve problemas à medida que as verificações r
 | Status | Como chega lá | O que vem depois |
 | --- | --- | --- |
 | **Aberto** | A verificação dele falha no repositório agora. | Ele conta na Visão geral, no resumo do repositório e na conformidade, até a verificação passar. |
-| **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
+| **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada, ou o repositório dele foi arquivado. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
 | **Aceito** | Uma pessoa escolheu **Aceitar o risco**, com um **Motivo** e uma data em **Aceito até**, no máximo daqui a um ano. | Ele fica fechado até essa data e depois abre de novo se a verificação ainda falhar. Aceite-o de novo então, se o motivo ainda for válido. |
 | **Não é um problema** | Uma pessoa escolheu **Não é um problema**: a descoberta estava errada. | Ele fica fechado, mesmo enquanto a verificação falha. **Reabrir** o devolve para Aberto. |
 

@@ -150,7 +150,7 @@ OneUptime abre, actualiza y resuelve problemas a medida que se ejecutan las comp
 | Estado | Cómo llega ahí | Qué sigue |
 | --- | --- | --- |
 | **Abierto** | Su comprobación falla ahora en el almacén. | Cuenta en la Vista general, en el resumen del almacén y en el cumplimiento, hasta que la comprobación se supera. |
-| **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
+| **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó, o se archivó su almacén. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
 | **Aceptado** | Una persona eligió **Aceptar el riesgo**, con un **Motivo** y una fecha en **Aceptado hasta**, como máximo a un año. | Sigue cerrado hasta esa fecha, y después se vuelve a abrir si la comprobación sigue fallando. Acéptalo de nuevo entonces si el motivo sigue siendo válido. |
 | **No es un problema** | Una persona eligió **No es un problema**: el hallazgo era erróneo. | Sigue cerrado, aunque la comprobación falle. **Reabrir** lo devuelve a Abierto. |
 

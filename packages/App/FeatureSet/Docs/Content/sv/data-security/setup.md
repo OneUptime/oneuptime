@@ -216,6 +216,8 @@ Inställningarna för Datasäkerhet är en uppsättning per projekt, i avsnittet
 | **Öppna säkerhetsärenden** | På | Öppnar ett säkerhetsärende, grupperat per datalager, när ett kritiskt problem öppnas. |
 | **Skapa larm** | Av | Skapar ett larm, som når den som har jour, när ett kritiskt problem öppnas. |
 | **Larmallvar** | Tom | Allvarlighetsgraden för de larmen. Tom betyder projektets allvarligaste. |
+| **Deklarera incidenter** | Av | Deklarerar en incident, som din incidentprocess hanterar, när ett kritiskt problem öppnas. |
+| **Incidentallvar** | Tom | Allvarlighetsgraden för de incidenterna. Tom betyder projektets allvarligaste. |
 | **Avisera ägare** | På | Skickar e-post till ett datalagers ägare när ett problem öppnas på det. |
 | **Objekt per skanning** | 2 000 | Det högsta antalet objekt som en skanning av en bucket läser, från 10 till 50 000. |
 | **Byte per objekt** | 65 536 (64 KB) | Det högsta antalet byte som läses från ett objekt, från 1 024 till 4 194 304. |

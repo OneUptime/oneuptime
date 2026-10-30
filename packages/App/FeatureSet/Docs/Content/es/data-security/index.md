@@ -73,7 +73,7 @@ Abre **Seguridad de datos**. Los almacenes aparecen en **Almacenes de datos** a 
 
 Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cuyo contenido no se puede muestrear se comprueba igualmente: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga.
 
-Un almacén se archiva, con su historial, cuando su fuente deja de incluirlo: **Almacenes archivados**, al final del menú de Seguridad de datos, lo conserva. Vuelve por sí solo si su fuente lo vuelve a incluir.
+Un almacén se archiva, con su historial, cuando su fuente deja de incluirlo, y sus problemas abiertos se resuelven: **Almacenes archivados**, al final del menú de Seguridad de datos, lo conserva. Vuelve por sí solo si su fuente lo vuelve a incluir, y un problema cuya comprobación sigue fallando se vuelve a abrir.
 
 La **Cronología** de un almacén dice qué le ha pasado y quién lo hizo: cuándo se encontró o se añadió, cada cambio en sus ajustes y propietarios, cuándo se archivó o volvió, y cada exposición cerrada desde un problema o un playbook.
 

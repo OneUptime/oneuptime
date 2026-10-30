@@ -85,7 +85,7 @@ Fai clic su **Ripulisci**. OneUptime crea una regola di pulizia dei log per i lo
 La regola maschera i nuovi dati prima che vengano conservati. I dati già conservati restano fino alla fine della loro conservazione, quindi correggi il codice che li scrive: il risultato indica il servizio e l'attributo.
 :::
 
-La regola prende il nome da ciò che nasconde, come «Sicurezza dei dati: Indirizzo email in attributes.user.email», ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È una di queste:
+La regola prende il nome da ciò che nasconde, come «Data Security: Email address in attributes.user.email», ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È una di queste:
 
 | Risultato | Regola creata da Ripulisci |
 | --- | --- |

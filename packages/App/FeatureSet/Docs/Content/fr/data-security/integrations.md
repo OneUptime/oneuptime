@@ -1,10 +1,11 @@
 # Intégrations de Sécurité des données
 
-Sécurité des données n'a pas son propre système d'astreinte ni sa propre file de sécurité. Elle confie ce qu'elle trouve aux parties de OneUptime qui en ont déjà : un problème Critique devient un dossier de sécurité, il peut prévenir la personne d'astreinte, et chaque nouveau problème est envoyé par e-mail aux propriétaires du magasin de données. Les workflows, OneUptime AI, l'API, Terraform et le serveur MCP accèdent à tout ce qu'elle conserve.
+Sécurité des données n'a pas son propre système d'astreinte ni sa propre file de sécurité. Elle confie ce qu'elle trouve aux parties de OneUptime qui en ont déjà : un problème Critique devient un dossier de sécurité, il peut prévenir la personne d'astreinte ou déclarer un incident, et chaque nouveau problème est envoyé par e-mail aux propriétaires du magasin de données. Les workflows, OneUptime AI, l'API, Terraform et le serveur MCP accèdent à tout ce qu'elle conserve.
 
 :::cards
 - [Opérations de sécurité](#opérations-de-sécurité): Un dossier de sécurité pour chaque magasin de données qui a un problème Critique.
 - [Alertes et astreinte](#alertes-et-astreinte): Prévenir la personne d'astreinte quand un problème Critique s'ouvre.
+- [Incidents](#incidents): Déclarer un incident pour une violation de données que votre processus de gestion des incidents doit prendre en charge.
 - [Propriétaires](#propriétaires): Qui possède chaque magasin de données, défini à la main ou par des règles, et l'e-mail qu'ils reçoivent.
 - [OneUptime AI](#oneuptime-ai): Expliquer un problème, ouvrir une pull request qui le corrige, ou interroger Demander à l'IA sur vos données.
 - [Fermer une exposition](#fermer-une-exposition): Bloquer l'accès public ou cesser le partage, depuis un problème ou un playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Un problème s'ouvre,<br/>ou s'ouvre à nouveau"] --> critical{"Est-il Critique ?"}
     critical -->|"Oui"| soc["Un dossier de sécurité<br/>sur le magasin de données"]
     critical -->|"Oui, si les alertes sont activées"| alert["Une alerte qui prévient<br/>la personne d'astreinte"]
+    critical -->|"Oui, si les incidents sont activés"| incident["Un incident géré par<br/>votre processus"]
     issue --> owners["Un e-mail aux propriétaires<br/>du magasin de données"]
     issue --> flows["Les workflows qui<br/>surveillent les problèmes"]
 ```
 
-Chacune de ces actions s'exécute quand une évaluation ouvre un problème, ou le rouvre. Chacune est faite au mieux : le problème est déjà ouvert et dans sa chronologie, donc une intégration qui échoue est journalisée et ignorée, jamais relancée au risque d'ouvrir un deuxième dossier ou de prévenir l'astreinte une deuxième fois. Ce que chacune a fait est écrit dans la **Chronologie** du problème.
+Chacune de ces actions s'exécute quand une évaluation ouvre un problème, ou le rouvre. Chacune est faite au mieux : le problème est déjà ouvert et dans sa chronologie, donc une intégration qui échoue est journalisée et ignorée, jamais relancée au risque d'ouvrir un deuxième dossier ou de prévenir l'astreinte une deuxième fois. Ce que chacune a fait est écrit dans la **Chronologie** du problème, et la page du problème renvoie vers le dossier, l'alerte et l'incident qu'il a déclenchés.
 
 | Paramètre | Par défaut | Ce qu'il fait |
 | --- | --- | --- |
 | **Ouvrir des dossiers de sécurité** | Activé | Un problème Critique ouvre un dossier de sécurité, regroupé par magasin de données. |
 | **Déclencher des alertes** | Désactivé | Un problème Critique déclenche une alerte, qui prévient la personne d'astreinte. |
 | **Gravité de l'alerte** | Vide | La gravité de ces alertes. Vide correspond à la plus élevée du projet. |
+| **Déclarer des incidents** | Désactivé | Un problème Critique déclare un incident, que votre processus de gestion des incidents prend en charge. |
+| **Gravité de l'incident** | Vide | La gravité de ces incidents. Vide correspond à la plus élevée du projet. |
 | **Notifier les propriétaires** | Activé | Chaque nouveau problème est envoyé par e-mail aux propriétaires de son magasin de données. |
 
 ## Opérations de sécurité
@@ -44,7 +48,15 @@ Le dossier est ensuite traité comme n'importe quel autre : attribué, annoté, 
 
 Avec **Déclencher des alertes** activé, un problème Critique déclenche une alerte, nommée « Data Security: » suivi du titre du problème et du magasin de données. L'alerte prévient la personne d'astreinte selon ses propres règles, comme n'importe quelle autre alerte (voir [Alertes](/docs/alerts/index) et [Astreinte](/docs/on-call/index)). Un problème a au plus une alerte ouverte à la fois, quelle que soit la fréquence de son évaluation. **Gravité de l'alerte** fixe la gravité de l'alerte ; laissée vide, c'est la plus élevée du projet.
 
+Une alerte prend fin avec son problème : dès que le problème n'est plus ouvert - son contrôle réussit, ou une personne le marque comme résolu, accepte son risque ou dit que ce n'est pas un problème - l'alerte est résolue, et la **Chronologie** du problème l'indique. Un problème qui s'ouvre à nouveau déclenche une nouvelle alerte.
+
 Les alertes sont désactivées par défaut, car c'est dans un dossier de sécurité que la plupart des équipes veulent d'abord voir une détection de sécurité des données. Activez-les quand un bucket public de numéros de carte doit réveiller quelqu'un.
+
+## Incidents
+
+Avec **Déclarer des incidents** activé, un problème Critique déclare un incident, nommé comme son alerte, pour une violation de données que votre processus de gestion des incidents doit prendre en charge : l'astreinte, les canaux de l'espace de travail, les pages de statut et un post-mortem (voir [Incidents](/docs/incidents/index)). Un problème a au plus un incident ouvert à la fois. **Gravité de l'incident** fixe la gravité de l'incident ; laissée vide, c'est la plus élevée du projet.
+
+Sécurité des données ne résout jamais un incident, même une fois son problème résolu : un incident peut comporter une page de statut et un post-mortem, c'est donc la personne qui le gère qui le ferme. Un dossier de sécurité est l'autre voie vers un incident : **Déclarer un incident** sur le dossier en ouvre un qui lui est lié (voir [Déclarer un incident](/docs/telemetry/security-cases#déclarer-un-incident)).
 
 ## Propriétaires
 

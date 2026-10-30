@@ -73,7 +73,7 @@ Ouvrez **Sécurité des données**. Les magasins de données apparaissent sous *
 
 Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne.
 
-Un magasin de données est archivé, avec son historique, dès que sa source ne le liste plus : **Magasins de données archivés**, à la fin du menu de Sécurité des données, le conserve. Il revient de lui-même si sa source le liste à nouveau.
+Un magasin de données est archivé, avec son historique, dès que sa source ne le liste plus, et ses problèmes ouverts sont résolus : **Magasins de données archivés**, à la fin du menu de Sécurité des données, le conserve. Il revient de lui-même si sa source le liste à nouveau, et un problème dont le contrôle échoue toujours s'ouvre à nouveau.
 
 La **Chronologie** d'un magasin de données indique ce qui lui est arrivé, et qui l'a fait : quand il a été trouvé ou ajouté, chaque modification de ses paramètres et de ses propriétaires, quand il a été archivé ou est revenu, et chaque exposition fermée depuis un problème ou un playbook.
 

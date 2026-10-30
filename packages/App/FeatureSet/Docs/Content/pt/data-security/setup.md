@@ -216,6 +216,8 @@ As configurações da Segurança de dados são um único conjunto por projeto, n
 | **Abrir casos de segurança** | Ativado | Abre um caso de segurança, agrupado por repositório, quando um problema Crítico abre. |
 | **Gerar alertas** | Desativado | Gera um alerta, que aciona quem estiver de plantão, quando um problema Crítico abre. |
 | **Severidade do alerta** | Vazio | A severidade desses alertas. Vazio é a mais grave do projeto. |
+| **Declarar incidentes** | Desativado | Declara um incidente, que o seu processo de incidentes conduz, quando um problema Crítico abre. |
+| **Severidade do incidente** | Vazio | A severidade desses incidentes. Vazio é a mais grave do projeto. |
 | **Notificar proprietários** | Ativado | Envia e-mail aos proprietários de um repositório quando um problema abre nele. |
 | **Objetos por varredura** | 2.000 | O máximo de objetos que uma varredura de um bucket lê, de 10 a 50.000. |
 | **Bytes por objeto** | 65.536 (64 KB) | O máximo de bytes lidos de um objeto, de 1.024 a 4.194.304. |

@@ -85,7 +85,7 @@ Klik på **Rens**. OneUptime opretter en logrensningsregel for logs og en RUM-ap
 Reglen maskerer nye data, før de gemmes. Data, der allerede er gemt, bliver liggende, indtil deres opbevaring udløber, så ret den kode, der skriver dem: fundet nævner tjenesten og attributten.
 :::
 
-Reglen er opkaldt efter det, den skjuler, f.eks. "Datasikkerhed: E-mailadresse i attributes.user.email", og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er en af disse:
+Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address in attributes.user.email", og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er en af disse:
 
 | Fund | Regel, som Rens opretter |
 | --- | --- |

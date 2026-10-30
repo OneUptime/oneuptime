@@ -216,6 +216,8 @@ De instellingen van Gegevensbeveiliging zijn één set per project, in de sectie
 | **Beveiligingszaken openen** | Aan | Opent een beveiligingszaak, gegroepeerd per opslag, wanneer een kritiek probleem opent. |
 | **Waarschuwingen aanmaken** | Uit | Maakt een waarschuwing aan, die de dienstdoende oproept, wanneer een kritiek probleem opent. |
 | **Ernst van waarschuwing** | Leeg | De ernst van die waarschuwingen. Leeg is de zwaarste ernst van het project. |
+| **Incidenten melden** | Uit | Meldt een incident, dat je incidentproces afhandelt, wanneer een kritiek probleem opent. |
+| **Ernst van incident** | Leeg | De ernst van die incidenten. Leeg is de zwaarste ernst van het project. |
 | **Eigenaren op de hoogte stellen** | Aan | Mailt de eigenaren van een opslag wanneer er een probleem op opent. |
 | **Objecten per scan** | 2.000 | Het maximale aantal objecten dat één scan van een bucket leest, van 10 tot 50.000. |
 | **Bytes per object** | 65.536 (64 KB) | Het maximale aantal bytes dat uit één object wordt gelezen, van 1.024 tot 4.194.304. |

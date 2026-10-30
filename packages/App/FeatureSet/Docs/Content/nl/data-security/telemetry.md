@@ -85,7 +85,7 @@ Klik op **Opschonen**. OneUptime maakt voor logs, en de logs van een RUM-applica
 De regel maskeert nieuwe gegevens voordat ze worden opgeslagen. Gegevens die al zijn opgeslagen, blijven staan tot hun bewaartermijn afloopt, dus herstel de code die ze schrijft: de bevinding noemt de service en het attribuut.
 :::
 
-De regel wordt genoemd naar wat hij verbergt, zoals "Gegevensbeveiliging: E-mailadres in attributes.user.email", en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is een van deze:
+De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email address in attributes.user.email", en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is een van deze:
 
 | Bevinding | Regel die Opschonen maakt |
 | --- | --- |

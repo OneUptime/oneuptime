@@ -150,7 +150,7 @@ OneUptime apre, aggiorna e risolve i problemi man mano che i controlli vengono e
 | Stato | Come ci arriva | Cosa segue |
 | --- | --- | --- |
 | **Aperto** | Il suo controllo ora non viene superato sull'archivio. | Conta nella Panoramica, nel riepilogo dell'archivio e nella conformità, finché il controllo non viene superato. |
-| **Risolto** | Il suo controllo è stato superato in un'esecuzione successiva, non si applica più, o è stato disattivato. Una persona può anche scegliere **Segna come risolto**: l'archivio viene subito controllato di nuovo. | Si riapre se il controllo non viene di nuovo superato, e il problema conta quante volte si è riaperto. |
+| **Risolto** | Il suo controllo è stato superato in un'esecuzione successiva, non si applica più o è stato disattivato, oppure il suo archivio è stato archiviato. Una persona può anche scegliere **Segna come risolto**: l'archivio viene subito controllato di nuovo. | Si riapre se il controllo non viene di nuovo superato, e il problema conta quante volte si è riaperto. |
 | **Accettato** | Una persona ha scelto **Accetta il rischio**, con un **Motivo** e una data in **Accettato fino al**, al massimo a un anno di distanza. | Resta chiuso fino a quella data, poi si riapre se il controllo continua a non essere superato. Accettalo di nuovo allora, se il motivo vale ancora. |
 | **Non è un problema** | Una persona ha scelto **Non è un problema**: il risultato era sbagliato. | Resta chiuso, anche mentre il controllo non viene superato. **Riapri** lo riporta ad Aperto. |
 

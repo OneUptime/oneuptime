@@ -150,7 +150,7 @@ OneUptime öppnar, uppdaterar och löser problem när kontrollerna körs. Det en
 | Status | Hur det hamnar där | Vad som följer |
 | --- | --- | --- |
 | **Öppen** | Dess kontroll underkänns på datalagret nu. | Det räknas i Översikt, i datalagrets sammanfattning och i efterlevnaden, tills kontrollen godkänns. |
-| **Löst** | Dess kontroll godkändes vid en senare körning, gäller inte längre eller stängdes av. En person kan också välja **Markera som löst**: datalagret kontrolleras då igen direkt. | Det öppnas igen om kontrollen underkänns igen, och problemet räknar hur ofta det har öppnats igen. |
+| **Löst** | Dess kontroll godkändes vid en senare körning, gäller inte längre eller stängdes av, eller så arkiverades dess datalager. En person kan också välja **Markera som löst**: datalagret kontrolleras då igen direkt. | Det öppnas igen om kontrollen underkänns igen, och problemet räknar hur ofta det har öppnats igen. |
 | **Accepterat** | En person valde **Acceptera risk**, med en **Orsak** och ett datum i **Accepterat till**, högst ett år framåt. | Det förblir stängt till det datumet och öppnas sedan igen om kontrollen fortfarande underkänns. Acceptera det då igen om orsaken fortfarande gäller. |
 | **Inte ett problem** | En person valde **Inte ett problem**: fyndet var fel. | Det förblir stängt, även när kontrollen underkänns. **Öppna igen** sätter tillbaka det till Öppen. |
 

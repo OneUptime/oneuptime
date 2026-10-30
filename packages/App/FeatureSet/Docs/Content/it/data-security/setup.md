@@ -216,6 +216,8 @@ Le impostazioni di Sicurezza dei dati sono un unico insieme per progetto, nella 
 | **Apri casi di sicurezza** | Attivo | Apre un caso di sicurezza, raggruppato per archivio, quando si apre un problema Critico. |
 | **Genera avvisi** | Disattivato | Genera un avviso, che chiama chi è di reperibilità, quando si apre un problema Critico. |
 | **Gravità avviso** | Vuoto | La gravità di quegli avvisi. Se è vuota, è la più grave del progetto. |
+| **Dichiara incidenti** | Disattivato | Dichiara un incidente, preso in carico dal tuo processo di gestione degli incidenti, quando si apre un problema Critico. |
+| **Gravità incidente** | Vuoto | La gravità di quegli incidenti. Se è vuota, è la più grave del progetto. |
 | **Notifica ai proprietari** | Attivo | Invia un'email ai proprietari di un archivio quando si apre un problema su di esso. |
 | **Oggetti per scansione** | 2.000 | Il numero massimo di oggetti che legge una scansione di un bucket, da 10 a 50.000. |
 | **Byte per oggetto** | 65.536 (64 KB) | Il numero massimo di byte letti da un oggetto, da 1.024 a 4.194.304. |

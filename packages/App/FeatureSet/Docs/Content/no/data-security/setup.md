@@ -216,6 +216,8 @@ Innstillingene for Datasikkerhet er ett sett per prosjekt, i seksjonen **Innstil
 | **Åpne sikkerhetssaker** | På | Åpner en sikkerhetssak, gruppert etter datalager, når et kritisk problem åpnes. |
 | **Opprett varsler** | Av | Oppretter et varsel, som tilkaller den som har vakt, når et kritisk problem åpnes. |
 | **Varselsalvor** | Tom | Alvorlighetsgraden til disse varslene. Tom betyr prosjektets mest alvorlige. |
+| **Erklær hendelser** | Av | Erklærer en hendelse, som hendelsesprosessen din håndterer, når et kritisk problem åpnes. |
+| **Hendelsesalvor** | Tom | Alvorlighetsgraden til disse hendelsene. Tom betyr prosjektets mest alvorlige. |
 | **Varsle eiere** | På | Sender e-post til eierne av et datalager når et problem åpnes på det. |
 | **Objekter per skanning** | 2 000 | Det høyeste antallet objekter én skanning av en bucket leser, fra 10 til 50 000. |
 | **Byte per objekt** | 65 536 (64 KB) | Det høyeste antallet byte som leses fra ett objekt, fra 1 024 til 4 194 304. |

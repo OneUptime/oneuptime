@@ -73,7 +73,7 @@ Open **Gegevensbeveiliging**. Opslagen verschijnen onder **Gegevensopslagen** zo
 
 Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat.
 
-Een opslag wordt met zijn geschiedenis gearchiveerd zodra zijn bron hem niet meer vermeldt: **Gearchiveerde opslagen**, aan het eind van het menu van Gegevensbeveiliging, bewaart hem. Hij komt vanzelf terug als zijn bron hem weer vermeldt.
+Een opslag wordt met zijn geschiedenis gearchiveerd zodra zijn bron hem niet meer vermeldt, en zijn openstaande problemen worden opgelost: **Gearchiveerde opslagen**, aan het eind van het menu van Gegevensbeveiliging, bewaart hem. Hij komt vanzelf terug als zijn bron hem weer vermeldt, en een probleem waarvan de controle nog steeds faalt, opent opnieuw.
 
 De **Tijdlijn** van een opslag zegt wat ermee gebeurde, en wie het deed: wanneer hij werd gevonden of toegevoegd, elke wijziging aan zijn instellingen en eigenaren, wanneer hij werd gearchiveerd of terugkwam, en elke blootstelling die vanuit een probleem of een playbook werd gesloten.
 

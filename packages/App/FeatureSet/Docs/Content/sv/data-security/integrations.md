@@ -1,10 +1,11 @@
 # Integrationer för Datasäkerhet
 
-Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det den hittar till de delar av OneUptime som redan har det: ett kritiskt problem blir ett säkerhetsärende, det kan larma den som har jour, och varje nytt problem skickas med e-post till datalagrets ägare. Arbetsflöden, OneUptime AI, API:t, Terraform och MCP-servern når allt som den sparar.
+Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det den hittar till de delar av OneUptime som redan har det: ett kritiskt problem blir ett säkerhetsärende, det kan larma den som har jour eller deklarera en incident, och varje nytt problem skickas med e-post till datalagrets ägare. Arbetsflöden, OneUptime AI, API:t, Terraform och MCP-servern når allt som den sparar.
 
 :::cards
 - [Security Operations](#security-operations): Ett säkerhetsärende för varje datalager med ett kritiskt problem.
 - [Larm och jour](#larm-och-jour): Larma den som har jour när ett kritiskt problem öppnas.
+- [Incidenter](#incidenter): Deklarera en incident för ett intrång som din incidentprocess ska hantera.
 - [Ägare](#ägare): Vem som äger varje datalager, angivet för hand eller via regler, och e-postmeddelandet de får.
 - [OneUptime AI](#oneuptime-ai): Förklara ett problem, öppna en pull request som åtgärdar det, eller ställ frågor om dina data till Fråga AI.
 - [Stäng en exponering](#stäng-en-exponering): Blockera offentlig åtkomst eller sluta dela, från ett problem eller en playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Ett problem öppnas,<br/>eller öppnas igen"] --> critical{"Är det kritiskt?"}
     critical -->|"Ja"| soc["Ett säkerhetsärende<br/>om datalagret"]
     critical -->|"Ja, om larm är på"| alert["Ett larm som når<br/>den som har jour"]
+    critical -->|"Ja, om incidenter är på"| incident["En incident som din<br/>process hanterar"]
     issue --> owners["Ett e-postmeddelande<br/>till datalagrets ägare"]
     issue --> flows["Arbetsflöden som<br/>bevakar problem"]
 ```
 
-Var och en av dessa körs när en utvärdering öppnar ett problem, eller öppnar ett igen. Var och en görs i mån av möjlighet: problemet är redan öppet och finns redan på sin tidslinje, så en integration som misslyckas loggas och hoppas över, och görs aldrig om så att den blir ett andra ärende eller ett andra larm. Det som var och en gjorde skrivs till problemets **Tidslinje**.
+Var och en av dessa körs när en utvärdering öppnar ett problem, eller öppnar ett igen. Var och en görs i mån av möjlighet: problemet är redan öppet och finns redan på sin tidslinje, så en integration som misslyckas loggas och hoppas över, och görs aldrig om så att den blir ett andra ärende eller ett andra larm. Det som var och en gjorde skrivs till problemets **Tidslinje**, och problemets sida länkar till ärendet, larmet och incidenten som det startade.
 
 | Inställning | Standard | Vad den gör |
 | --- | --- | --- |
 | **Öppna säkerhetsärenden** | På | Ett kritiskt problem öppnar ett säkerhetsärende, grupperat efter datalager. |
 | **Skapa larm** | Av | Ett kritiskt problem skapar ett larm, som larmar den som har jour. |
 | **Larmallvar** | Tom | Allvarlighetsgraden för de larmen. Tom är projektets allvarligaste. |
+| **Deklarera incidenter** | Av | Ett kritiskt problem deklarerar en incident, som din incidentprocess hanterar. |
+| **Incidentallvar** | Tom | Allvarlighetsgraden för de incidenterna. Tom är projektets allvarligaste. |
 | **Avisera ägare** | På | Varje nytt problem skickas med e-post till datalagrets ägare. |
 
 ## Security Operations
@@ -44,7 +48,15 @@ Därifrån hanteras ärendet som vilket annat som helst: det tilldelas, får ant
 
 Med **Skapa larm** påslaget skapar ett kritiskt problem ett larm, med namnet ”Data Security:” följt av problemets titel och datalagret. Larmet når den som har jour via sina egna regler, som vilket annat larm som helst (se [Larm](/docs/alerts/index) och [Jour](/docs/on-call/index)). Ett problem har högst ett öppet larm åt gången, hur ofta det än utvärderas. **Larmallvar** anger larmets allvarlighetsgrad; lämnas den tom är det projektets allvarligaste.
 
+Ett larm avslutas tillsammans med sitt problem: när problemet inte längre är öppet – dess kontroll godkänns, eller en person markerar det som löst, accepterar dess risk eller säger att det inte är ett problem – löses larmet, och problemets **Tidslinje** anger det. Ett problem som öppnas igen skapar ett nytt larm.
+
 Larm är avstängda som standard eftersom de flesta team vill se ett fynd från datasäkerheten i ett säkerhetsärende först. Slå på dem när en offentlig bucket med kortnummer ska väcka någon.
+
+## Incidenter
+
+Med **Deklarera incidenter** påslaget deklarerar ett kritiskt problem en incident, namngiven på samma sätt som problemets larm, för ett intrång som din incidentprocess ska hantera: jour, kanaler i arbetsytan, statussidor och en postmortem (se [Incidenter](/docs/incidents/index)). Ett problem har högst en öppen incident åt gången. **Incidentallvar** anger incidentens allvarlighetsgrad; lämnas den tom är det projektets allvarligaste.
+
+Datasäkerhet löser aldrig en incident, inte ens när dess problem har lösts: en incident kan ha en statussida och en postmortem, så den som hanterar den stänger den. Ett säkerhetsärende är den andra vägen till en incident: **Deklarera incident** på ärendet öppnar en som är länkad till det (se [Deklarera en incident](/docs/telemetry/security-cases#deklarera-en-incident)).
 
 ## Ägare
 

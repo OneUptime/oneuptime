@@ -150,7 +150,7 @@ OneUptime ouvre, met à jour et résout les problèmes au fil de l'exécution de
 | Statut | Comment il y arrive | Ce qui suit |
 | --- | --- | --- |
 | **Ouvert** | Son contrôle échoue actuellement sur le magasin de données. | Il compte dans la Vue d'ensemble, dans le résumé du magasin de données et dans la conformité, jusqu'à ce que le contrôle réussisse. |
-| **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
+| **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé, ou son magasin de données a été archivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
 | **Accepté** | Une personne a choisi **Accepter le risque**, avec un **Motif** et une date dans **Accepté jusqu'au**, au plus un an plus tard. | Il reste fermé jusqu'à cette date, puis s'ouvre à nouveau si le contrôle échoue toujours. Acceptez-le alors de nouveau si le motif tient toujours. |
 | **Pas un problème** | Une personne a choisi **Pas un problème** : la détection était erronée. | Il reste fermé, même tant que le contrôle échoue. **Rouvrir** le remet à Ouvert. |
 

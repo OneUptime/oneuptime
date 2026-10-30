@@ -73,7 +73,7 @@ Setzen Sie unter **Weitere Felder** die Option **Datensicherheit** auf **Nur Kon
 
 Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt.
 
-Ein Datenspeicher wird mit seinem Verlauf archiviert, sobald seine Quelle ihn nicht mehr aufführt: **Archivierte Datenspeicher**, am Ende des Menüs der Datensicherheit, bewahrt ihn auf. Er kehrt von selbst zurück, wenn seine Quelle ihn wieder aufführt.
+Ein Datenspeicher wird mit seinem Verlauf archiviert, sobald seine Quelle ihn nicht mehr aufführt, und seine offenen Probleme werden behoben: **Archivierte Datenspeicher**, am Ende des Menüs der Datensicherheit, bewahrt ihn auf. Er kehrt von selbst zurück, wenn seine Quelle ihn wieder aufführt, und ein Problem, dessen Prüfung noch fehlschlägt, öffnet sich erneut.
 
 Die **Zeitachse** eines Datenspeichers sagt, was mit ihm geschah und wer es getan hat: wann er gefunden oder hinzugefügt wurde, jede Änderung seiner Einstellungen und Eigentümer, wann er archiviert wurde oder zurückkam, und jede Exponierung, die über ein Problem oder ein Playbook geschlossen wurde.
 

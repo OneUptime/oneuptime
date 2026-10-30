@@ -150,7 +150,7 @@ OneUptime opent, werkt bij en lost problemen op terwijl de controles draaien. Wa
 | Status | Hoe het daar komt | Wat er volgt |
 | --- | --- | --- |
 | **Openstaand** | De controle faalt nu op de opslag. | Het telt mee in het Overzicht, in de samenvatting van de opslag en in compliance, tot de controle slaagt. |
-| **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing, of is uitgezet. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
+| **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing of is uitgezet, of de opslag is gearchiveerd. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
 | **Geaccepteerd** | Een mens koos **Risico accepteren**, met een **Reden** en een datum in **Geaccepteerd tot**, hoogstens een jaar vooruit. | Het blijft gesloten tot die datum, en opent daarna opnieuw als de controle nog steeds faalt. Accepteer het dan opnieuw als de reden nog geldt. |
 | **Geen probleem** | Een mens koos **Geen probleem**: de bevinding was onjuist. | Het blijft gesloten, ook terwijl de controle faalt. **Heropenen** zet het terug op Openstaand. |
 

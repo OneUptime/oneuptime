@@ -73,7 +73,7 @@ Abra **Segurança de dados**. Os repositórios aparecem em **Repositórios de da
 
 Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha.
 
-Um repositório é arquivado, com o seu histórico, assim que a origem dele deixa de listá-lo: **Repositórios arquivados**, no fim do menu da Segurança de dados, o guarda. Ele volta sozinho se a origem voltar a listá-lo.
+Um repositório é arquivado, com o seu histórico, assim que a origem dele deixa de listá-lo, e os problemas abertos dele são resolvidos: **Repositórios arquivados**, no fim do menu da Segurança de dados, o guarda. Ele volta sozinho se a origem voltar a listá-lo, e um problema cuja verificação ainda falha abre de novo.
 
 A **Linha do tempo** de um repositório diz o que aconteceu com ele, e quem fez: quando foi encontrado ou adicionado, cada mudança nas suas configurações e nos seus proprietários, quando foi arquivado ou voltou, e cada exposição fechada a partir de um problema ou de um playbook.
 

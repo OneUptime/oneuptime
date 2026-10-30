@@ -216,6 +216,8 @@ Die Einstellungen der Datensicherheit gibt es einmal pro Projekt, im Abschnitt *
 | **Sicherheitsfälle eröffnen** | An | Eröffnet einen Sicherheitsfall, gruppiert nach Datenspeicher, wenn sich ein kritisches Problem öffnet. |
 | **Warnungen auslösen** | Aus | Löst eine Warnung aus, die alarmiert, wer gerade Bereitschaft hat, wenn sich ein kritisches Problem öffnet. |
 | **Warnungsschweregrad** | Leer | Der Schweregrad dieser Warnungen. Leer ist der höchste des Projekts. |
+| **Vorfälle melden** | Aus | Meldet einen Vorfall, der Ihren Vorfallsprozess durchläuft, wenn sich ein kritisches Problem öffnet. |
+| **Vorfallsschweregrad** | Leer | Der Schweregrad dieser Vorfälle. Leer ist der höchste des Projekts. |
 | **Eigentümer benachrichtigen** | An | Schickt den Eigentümern eines Datenspeichers eine E-Mail, wenn sich an ihm ein Problem öffnet. |
 | **Objekte pro Scan** | 2.000 | Höchstzahl der Objekte, die ein Scan eines Buckets liest, von 10 bis 50.000. |
 | **Bytes pro Objekt** | 65.536 (64 KB) | Höchstzahl der Bytes, die aus einem Objekt gelesen werden, von 1.024 bis 4.194.304. |

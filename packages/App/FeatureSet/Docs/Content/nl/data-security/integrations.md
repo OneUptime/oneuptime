@@ -1,10 +1,11 @@
 # Integraties van Gegevensbeveiliging
 
-Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het geeft wat het vindt door aan de delen van OneUptime die dat al hebben: een kritiek probleem wordt een beveiligingszaak, het kan de dienstdoende oproepen, en elk nieuw probleem wordt gemaild aan de eigenaren van de opslag. Workflows, OneUptime AI, de API, Terraform en de MCP-server bereiken alles wat het bewaart.
+Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het geeft wat het vindt door aan de delen van OneUptime die dat al hebben: een kritiek probleem wordt een beveiligingszaak, het kan de dienstdoende oproepen of een incident melden, en elk nieuw probleem wordt gemaild aan de eigenaren van de opslag. Workflows, OneUptime AI, de API, Terraform en de MCP-server bereiken alles wat het bewaart.
 
 :::cards
 - [Security Operations](#security-operations): Een beveiligingszaak voor elke opslag met een kritiek probleem.
 - [Waarschuwingen en on-call](#waarschuwingen-en-on-call): De dienstdoende oproepen wanneer er een kritiek probleem opent.
+- [Incidenten](#incidenten): Een incident melden voor een inbreuk die je incidentproces moet afhandelen.
 - [Eigenaren](#eigenaren): Wie eigenaar is van elke opslag, met de hand of door regels ingesteld, en de e-mail die ze krijgen.
 - [OneUptime AI](#oneuptime-ai): Een probleem laten uitleggen, een pull request openen die het oplost, of AI vragen gebruiken om vragen over je gegevens te stellen.
 - [Een blootstelling sluiten](#een-blootstelling-sluiten): Openbare toegang blokkeren of het delen stoppen, vanuit een probleem of een playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["Een probleem opent,<br/>of opent opnieuw"] --> critical{"Is het kritiek?"}
     critical -->|"Ja"| soc["Een beveiligingszaak<br/>over de opslag"]
     critical -->|"Ja, als waarschuwingen aan staan"| alert["Een waarschuwing die<br/>de dienstdoende oproept"]
+    critical -->|"Ja, als incidenten aan staan"| incident["Een incident dat je<br/>proces afhandelt"]
     issue --> owners["Een e-mail aan de<br/>eigenaren van de opslag"]
     issue --> flows["Workflows die<br/>problemen volgen"]
 ```
 
-Elk hiervan draait wanneer een evaluatie een probleem opent, of opnieuw opent. Elk gebeurt naar beste vermogen: het probleem is al open en staat al op zijn tijdlijn, dus een integratie die mislukt, wordt gelogd en overgeslagen, en nooit opnieuw geprobeerd tot een tweede zaak of een tweede oproep. Wat elk ervan deed, wordt in de **Tijdlijn** van het probleem geschreven.
+Elk hiervan draait wanneer een evaluatie een probleem opent, of opnieuw opent. Elk gebeurt naar beste vermogen: het probleem is al open en staat al op zijn tijdlijn, dus een integratie die mislukt, wordt gelogd en overgeslagen, en nooit opnieuw geprobeerd tot een tweede zaak of een tweede oproep. Wat elk ervan deed, wordt in de **Tijdlijn** van het probleem geschreven, en de pagina van het probleem linkt naar de zaak, de waarschuwing en het incident die erdoor zijn gestart.
 
 | Instelling | Standaard | Wat het doet |
 | --- | --- | --- |
 | **Beveiligingszaken openen** | Aan | Een kritiek probleem opent een beveiligingszaak, gegroepeerd per opslag. |
 | **Waarschuwingen aanmaken** | Uit | Een kritiek probleem maakt een waarschuwing aan, die de dienstdoende oproept. |
 | **Ernst van waarschuwing** | Leeg | De ernst van die waarschuwingen. Leeg is de zwaarste ernst van het project. |
+| **Incidenten melden** | Uit | Een kritiek probleem meldt een incident, dat je incidentproces afhandelt. |
+| **Ernst van incident** | Leeg | De ernst van die incidenten. Leeg is de zwaarste ernst van het project. |
 | **Eigenaren op de hoogte stellen** | Aan | Elk nieuw probleem wordt gemaild aan de eigenaren van zijn opslag. |
 
 ## Security Operations
@@ -42,15 +46,23 @@ Vanaf daar wordt de zaak afgehandeld zoals elke andere: toegewezen, van notities
 
 ## Waarschuwingen en on-call
 
-Met **Waarschuwingen aanmaken** aan maakt een kritiek probleem een waarschuwing aan, genoemd naar "Gegevensbeveiliging:" en de titel en de opslag van het probleem. De waarschuwing roept de dienstdoende op via haar eigen regels, net als elke andere waarschuwing (zie [Waarschuwingen](/docs/alerts/index) en [Bereikbaarheid](/docs/on-call/index)). Een probleem heeft hoogstens één open waarschuwing tegelijk, hoe vaak het ook wordt geëvalueerd. **Ernst van waarschuwing** bepaalt de ernst van de waarschuwing; leeg gelaten is het de zwaarste ernst van het project.
+Met **Waarschuwingen aanmaken** aan maakt een kritiek probleem een waarschuwing aan, genoemd naar "Data Security:" en de titel en de opslag van het probleem. De waarschuwing roept de dienstdoende op via haar eigen regels, net als elke andere waarschuwing (zie [Waarschuwingen](/docs/alerts/index) en [Bereikbaarheid](/docs/on-call/index)). Een probleem heeft hoogstens één open waarschuwing tegelijk, hoe vaak het ook wordt geëvalueerd. **Ernst van waarschuwing** bepaalt de ernst van de waarschuwing; leeg gelaten is het de zwaarste ernst van het project.
+
+Een waarschuwing eindigt samen met haar probleem: zodra het probleem niet meer openstaat - de controle slaagt, of een persoon markeert het als opgelost, accepteert het risico of zegt dat het geen probleem is - wordt de waarschuwing opgelost, en de **Tijdlijn** van het probleem vermeldt dat. Een probleem dat opnieuw opent, maakt een nieuwe waarschuwing aan.
 
 Waarschuwingen staan standaard uit, omdat de meeste teams een bevinding van gegevensbeveiliging eerst in een beveiligingszaak willen zien. Zet ze aan als een openbare bucket met kaartnummers iemand wakker moet maken.
+
+## Incidenten
+
+Met **Incidenten melden** aan meldt een kritiek probleem een incident, genoemd zoals zijn waarschuwing, voor een inbreuk die je incidentproces moet afhandelen: on-call, werkruimtekanalen, statuspagina's en een postmortem (zie [Incidenten](/docs/incidents/index)). Een probleem heeft hoogstens één open incident tegelijk. **Ernst van incident** bepaalt de ernst van het incident; leeg gelaten is het de zwaarste ernst van het project.
+
+Gegevensbeveiliging lost een incident nooit op, ook niet zodra zijn probleem is opgelost: een incident kan een statuspagina en een postmortem hebben, dus wie het afhandelt, sluit het. Een beveiligingszaak is de andere weg naar een incident: **Incident melden** op de zaak opent een incident dat eraan is gekoppeld (zie [Een incident melden](/docs/telemetry/security-cases#een-incident-melden)).
 
 ## Eigenaren
 
 De eigenaren van een opslag zijn personen en teams, op de pagina **Eigenaren** van de opslag. Voor hen is een probleem bedoeld: zij krijgen de e-mail, en **Niemand is eigenaar van deze gevoelige opslag** faalt op een gevoelige opslag die er geen heeft.
 
-Met **Eigenaren op de hoogte stellen** aan stuurt elke evaluatie die problemen op een opslag opent, zijn eigenaren één e-mail - de personen die eigenaar zijn, en de leden van de teams die eigenaar zijn, tot 50 - met als titel hoeveel nieuwe problemen de opslag heeft, zoals "Gegevensbeveiliging: 2 nieuwe problemen op orders-db". De e-mail somt de ernst en de titel van elk nieuw probleem en de gevoeligheid van de opslag op, en linkt naar de opslag. Hij bevat nooit een voorbeeld.
+Met **Eigenaren op de hoogte stellen** aan stuurt elke evaluatie die problemen op een opslag opent, zijn eigenaren één e-mail - de personen die eigenaar zijn, en de leden van de teams die eigenaar zijn, tot 50 - met als titel hoeveel nieuwe problemen de opslag heeft, zoals "Data Security: 2 new issues on orders-db". De e-mail somt de ernst en de titel van elk nieuw probleem en de gevoeligheid van de opslag op, en linkt naar de opslag. Hij bevat nooit een voorbeeld.
 
 ### Eigenaarsregels en labelregels
 

@@ -216,6 +216,8 @@ Los ajustes de Seguridad de datos son un único conjunto por proyecto, en la sec
 | **Abrir casos de seguridad** | Activado | Abre un caso de seguridad, agrupado por almacén, cuando se abre un problema crítico. |
 | **Generar alertas** | Desactivado | Genera una alerta, que avisa a quien esté de guardia, cuando se abre un problema crítico. |
 | **Gravedad de la alerta** | Vacío | La gravedad de esas alertas. Vacío es la más grave del proyecto. |
+| **Declarar incidentes** | Desactivado | Declara un incidente, que se gestiona con tu proceso de incidentes, cuando se abre un problema crítico. |
+| **Gravedad del incidente** | Vacío | La gravedad de esos incidentes. Vacío es la más grave del proyecto. |
 | **Notificar a los propietarios** | Activado | Envía un correo a los propietarios de un almacén cuando se abre un problema en él. |
 | **Objetos por escaneo** | 2.000 | El máximo de objetos que lee un escaneo de un bucket, de 10 a 50.000. |
 | **Bytes por objeto** | 65.536 (64 KB) | El máximo de bytes que se leen de un objeto, de 1.024 a 4.194.304. |

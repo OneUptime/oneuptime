@@ -73,7 +73,7 @@ Apri **Sicurezza dei dati**. Gli archivi compaiono in **Archivi dati** man mano 
 
 Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cui contenuto non può essere campionato viene comunque controllato: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga.
 
-Un archivio viene archiviato, con la sua cronologia, quando la sua origine non lo elenca più: **Archivi dati archiviati**, in fondo al menu di Sicurezza dei dati, lo conserva. Torna da solo se la sua origine lo elenca di nuovo.
+Un archivio viene archiviato, con la sua cronologia, quando la sua origine non lo elenca più, e i suoi problemi aperti vengono risolti: **Archivi dati archiviati**, in fondo al menu di Sicurezza dei dati, lo conserva. Torna da solo se la sua origine lo elenca di nuovo, e un problema il cui controllo continua a non essere superato si riapre.
 
 La **Cronologia** di un archivio dice cosa gli è successo, e chi l'ha fatto: quando è stato trovato o aggiunto, ogni modifica alle sue impostazioni e ai suoi proprietari, quando è stato archiviato o è tornato, e ogni esposizione chiusa da un problema o da un playbook.
 
