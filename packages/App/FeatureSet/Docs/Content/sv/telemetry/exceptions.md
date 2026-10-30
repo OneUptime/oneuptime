@@ -183,6 +183,8 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 Fliken **Insikter** räknar dina undantag under **Olöst**, **Löst** och **Arkiverad** och din lösningsgrad, och visar de vanligaste undantagen, tjänsterna de påverkar och de som setts senast.
 
+**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas inte, använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+
 ## Felsökning
 
 :::details Ett undantag som jag just kastade finns inte i listan
