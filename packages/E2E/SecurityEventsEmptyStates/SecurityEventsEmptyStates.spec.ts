@@ -299,8 +299,11 @@ interface OpenOptions {
   tools?: "none" | "rows" | undefined;
   // One event in the window, so its drawer can be opened.
   events?: "none" | "one" | undefined;
-  // Your logs on already (checked two minutes ago), or a read that fails.
-  logs?: "off" | "on" | "check-failed" | "fail" | undefined;
+  /*
+   * Your logs on already (checked two minutes ago), on with its kinds found
+   * now, before and never, its last check failed, or a read that fails.
+   */
+  logs?: "off" | "on" | "found" | "check-failed" | "fail" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -2030,12 +2033,25 @@ test.describe("connections: your logs and your SIEM", () => {
     await screenshot(page, "connections-cards-phone");
   });
 
+  function logsCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Your logs",
+        exact: true,
+      }),
+    });
+  }
+
   /*
-   * Your logs lists its ten kinds by where they come from, in columns the
-   * card's own width allows: beside the side menu the card is about 370px
-   * wide at a 768 window, where two columns squeezed each kind's sentence
-   * to a few words a line. A group fills its rows in order, every kind
-   * inside the card.
+   * Your logs lists its ten kinds by where they come from: each group one
+   * list, a kind a row, as Your OneUptime data lists its sources under it.
+   * The groups pair up side by side - Servers beside Cloud, Security
+   * devices beside Applications - where the card itself is 44rem wide, and
+   * stack below that: beside the side menu at a 768 window the card is
+   * about 370px wide, whatever the window says. Ten bordered tiles in rows
+   * of three left an empty third in two of the groups and made the card the
+   * longest on the page.
    */
   const LOG_KIND_GROUPS: ReadonlyArray<{ id: string; kinds: number }> = [
     { id: "servers", kinds: 3 },
@@ -2044,14 +2060,55 @@ test.describe("connections: your logs and your SIEM", () => {
     { id: "applications", kinds: 2 },
   ];
   const LOG_KIND_LAYOUTS: ReadonlyArray<{ width: number; columns: number }> = [
-    { width: 1280, columns: 3 },
-    { width: 1024, columns: 2 },
+    { width: 1440, columns: 2 },
+    { width: 1280, columns: 2 },
+    { width: 1024, columns: 1 },
     { width: 768, columns: 1 },
     { width: 390, columns: 1 },
   ];
 
+  interface LogKindGroupLayout {
+    id: string;
+    group: Box;
+    list: Box;
+    kinds: Array<Box>;
+  }
+
+  // Every group's box, its list's and its kinds', read in one frame.
+  async function logKindGroupLayouts(
+    page: Page,
+  ): Promise<Array<LogKindGroupLayout>> {
+    return page
+      .getByTestId("security-log-format-groups")
+      .evaluate((root: Element): Array<LogKindGroupLayout> => {
+        const box: (element: Element) => Box = (element: Element): Box => {
+          const rect: DOMRect = element.getBoundingClientRect();
+          return {
+            x: rect.left + window.scrollX,
+            y: rect.top + window.scrollY,
+            width: rect.width,
+            height: rect.height,
+          };
+        };
+        return Array.from(root.children).map(
+          (group: Element): LogKindGroupLayout => {
+            const list: Element = group.querySelector("ul") as Element;
+            return {
+              id: (group.getAttribute("data-testid") || "").replace(
+                "security-log-format-group-",
+                "",
+              ),
+              group: box(group),
+              list: box(list),
+              kinds: Array.from(list.children).map(box),
+            };
+          },
+        );
+      });
+  }
+
   for (const layout of LOG_KIND_LAYOUTS) {
-    test(`${layout.width}: Your logs lists its kinds by group, ${layout.columns} a row`, async ({
+    test(`${layout.width}: Your logs' groups sit ${layout.columns} side by side, each kind a row of its group's list`, async ({
       page,
     }: {
       page: Page;
@@ -2059,32 +2116,82 @@ test.describe("connections: your logs and your SIEM", () => {
       await openConnections(page, { width: layout.width, height: 1000 });
       await expectNoHorizontalOverflow(page);
 
-      const card: Locator = page.getByTestId("security-logs-source");
-      for (const group of LOG_KIND_GROUPS) {
-        const kinds: Locator = page
-          .getByTestId(`security-log-format-group-${group.id}-kinds`)
-          .locator(":scope > li");
-        await expect(kinds).toHaveCount(group.kinds);
+      const groups: Array<LogKindGroupLayout> = await logKindGroupLayouts(page);
 
-        const tops: Array<number> = await kinds.evaluateAll(
-          (elements: Array<Element>): Array<number> => {
-            return elements.map((element: Element): number => {
-              return Math.round(element.getBoundingClientRect().top);
-            });
-          },
-        );
-        const perRow: Array<number> = Array.from(new Set(tops)).map(
-          (top: number): number => {
-            return tops.filter((value: number): boolean => {
-              return value === top;
-            }).length;
-          },
-        );
-        expect(perRow, `${group.id} at ${layout.width}`).toEqual(
-          rowLengths(group.kinds, layout.columns),
-        );
+      // The groups, in order, in rows of the layout's columns.
+      expect(
+        groups.map((group: LogKindGroupLayout): string => {
+          return group.id;
+        }),
+      ).toEqual(
+        LOG_KIND_GROUPS.map((group: { id: string }): string => {
+          return group.id;
+        }),
+      );
+      const tops: Array<number> = groups.map(
+        (group: LogKindGroupLayout): number => {
+          return Math.round(group.group.y);
+        },
+      );
+      const perRow: Array<number> = Array.from(new Set(tops)).map(
+        (top: number): number => {
+          return tops.filter((value: number): boolean => {
+            return value === top;
+          }).length;
+        },
+      );
+      expect(perRow, `groups a row at ${layout.width}`).toEqual(
+        rowLengths(LOG_KIND_GROUPS.length, layout.columns),
+      );
+
+      for (let index: number = 1; index < groups.length; index++) {
+        const group: LogKindGroupLayout = groups[index] as LogKindGroupLayout;
+        const previous: LogKindGroupLayout = groups[
+          index - 1
+        ] as LogKindGroupLayout;
+        if (layout.columns === 2 && index % 2 === 1) {
+          // Beside its pair, the two as wide as each other.
+          expect(group.group.x).toBeGreaterThan(
+            previous.group.x + previous.group.width,
+          );
+          expect(
+            Math.abs(group.group.width - previous.group.width),
+          ).toBeLessThanOrEqual(1);
+        } else {
+          // Under every group before it.
+          for (const above of groups.slice(0, index)) {
+            expect(
+              group.group.y,
+              `${group.id} under ${above.id} at ${layout.width}`,
+            ).toBeGreaterThanOrEqual(above.group.y + above.group.height);
+          }
+          expect(
+            Math.abs(group.group.x - (groups[0] as LogKindGroupLayout).group.x),
+          ).toBeLessThanOrEqual(1);
+        }
       }
 
+      // A kind a row: the list's whole width, each under the one before.
+      for (const group of groups) {
+        const expected: number = (
+          LOG_KIND_GROUPS.find((item: { id: string }): boolean => {
+            return item.id === group.id;
+          }) as { kinds: number }
+        ).kinds;
+        expect(group.kinds, group.id).toHaveLength(expected);
+        group.kinds.forEach((kind: Box, index: number): void => {
+          expect(Math.abs(kind.x - group.list.x)).toBeLessThanOrEqual(1.5);
+          expect(Math.abs(kind.width - group.list.width)).toBeLessThanOrEqual(
+            3,
+          );
+          if (index > 0) {
+            const above: Box = group.kinds[index - 1] as Box;
+            expect(kind.y).toBeGreaterThanOrEqual(above.y + above.height - 1);
+          }
+        });
+      }
+
+      const card: Locator = logsCard(page);
       const allKinds: Locator = card.locator(
         "li[data-testid^='security-log-format-']",
       );
@@ -2098,6 +2205,408 @@ test.describe("connections: your logs and your SIEM", () => {
       }
     });
   }
+
+  /*
+   * Once Your logs is on, each kind says what the checks found of it, behind
+   * a dot that reads down the list at a glance: green while the last check
+   * found some, grey once some were found before, an empty ring while none
+   * has been. ?logs=found has every state: Windows events and CEF found by
+   * the last check, SSH sign-ins, AWS CloudTrail and Azure before, the rest
+   * never.
+   */
+  const KIND_HEALTH: ReadonlyArray<{
+    kind: string;
+    health: "found-now" | "found-before" | "not-yet";
+    text: string;
+  }> = [
+    {
+      kind: "ssh-sign-in",
+      health: "found-before",
+      text: "Last found 3 hours ago",
+    },
+    { kind: "sudo", health: "not-yet", text: "None found yet" },
+    {
+      kind: "windows-events",
+      health: "found-now",
+      text: "Found in the last check: 12",
+    },
+    {
+      kind: "aws-cloudtrail",
+      health: "found-before",
+      text: "Last found 2 days ago",
+    },
+    { kind: "google-cloud-audit", health: "not-yet", text: "None found yet" },
+    {
+      kind: "azure-activity",
+      health: "found-before",
+      text: "Last found 9 days ago",
+    },
+    { kind: "cef", health: "found-now", text: "Found in the last check: 3" },
+    { kind: "leef", health: "not-yet", text: "None found yet" },
+    { kind: "kubernetes-audit", health: "not-yet", text: "None found yet" },
+    { kind: "web-attack", health: "not-yet", text: "None found yet" },
+  ];
+
+  for (const theme of ["light", "dark"] as const) {
+    test(`${theme}: each kind says its health behind a dot, every word readable`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConnections(page, { logs: "found", theme, width: 1280 });
+
+      await expect(page.getByTestId("security-logs-source-status")).toHaveText(
+        "Checked 2 minutes ago. Last security event found 2 minutes ago.",
+      );
+
+      for (const item of KIND_HEALTH) {
+        const line: Locator = page.getByTestId(
+          `security-log-format-health-${item.kind}`,
+        );
+        await expect(line).toHaveText(item.text);
+        await expect(line).toHaveAttribute("data-health", item.health);
+
+        const dot: Locator = page.getByTestId(
+          `security-log-format-health-dot-${item.kind}`,
+        );
+        const paint: { background: string; border: string; size: number } =
+          await dot.evaluate(
+            (
+              element: Element,
+            ): { background: string; border: string; size: number } => {
+              const style: CSSStyleDeclaration = getComputedStyle(element);
+              return {
+                background: style.backgroundColor,
+                border: style.borderTopWidth,
+                size: Math.round(element.getBoundingClientRect().width),
+              };
+            },
+          );
+        expect(paint.size, `${item.kind} dot`).toBe(8);
+        if (item.health === "found-now") {
+          // Emerald 500, the same in both themes.
+          expect(paint.background, item.kind).toBe("rgb(16, 185, 129)");
+        } else if (item.health === "found-before") {
+          expect(paint.background, item.kind).not.toBe(TRANSPARENT);
+          expect(paint.border, item.kind).toBe("0px");
+        } else {
+          // An empty ring.
+          expect(paint.background, item.kind).toBe(TRANSPARENT);
+          expect(paint.border, item.kind).toBe("1px");
+        }
+      }
+
+      expect(
+        await lowContrastText(
+          page.getByTestId("security-log-format-groups"),
+          MIN_CONTRAST,
+        ),
+        `low-contrast text in ${theme}`,
+      ).toEqual([]);
+
+      await screenshot(page, `connections-your-logs-found-${theme}`, {
+        clip: logsCard(page),
+      });
+    });
+  }
+
+  // The folded section's header, named by its title.
+  const CHECK_A_LOG_LINE: RegExp = /Check a log line/;
+
+  function lineCheck(page: Page): Locator {
+    return page.getByTestId("security-log-line-check");
+  }
+
+  /*
+   * Opens the section and brings its box to the middle of the screen, so a
+   * menu opened from it has room to hang below its trigger.
+   */
+  async function openLineCheck(page: Page): Promise<void> {
+    await page.getByRole("button", { name: CHECK_A_LOG_LINE }).click();
+    await expect(lineCheck(page)).toBeVisible();
+    await lineCheck(page)
+      .getByRole("textbox", { name: "Log line" })
+      .evaluate((element: Element): void => {
+        element.scrollIntoView({ block: "center" });
+      });
+  }
+
+  function examplesTrigger(page: Page): Locator {
+    return page.getByTestId("security-log-line-check-examples");
+  }
+
+  // What every kind is called, as Your logs and the menu name it, in order.
+  const LOG_KIND_TITLES: ReadonlyArray<string> = [
+    "SSH sign-ins",
+    "sudo",
+    "Windows events",
+    "AWS CloudTrail",
+    "Google Cloud audit logs",
+    "Azure activity and Entra ID logs",
+    "CEF",
+    "LEEF",
+    "Kubernetes audit logs",
+    "Web attacks",
+  ];
+
+  // label: value, for each field a checked event shows.
+  async function checkedFields(page: Page): Promise<Array<string>> {
+    return lineCheck(page)
+      .getByTestId("security-log-line-check-field")
+      .evaluateAll((fields: Array<Element>): Array<string> => {
+        return fields.map((field: Element): string => {
+          return `${field.querySelector("dt")?.textContent}: ${
+            field.querySelector("dd")?.textContent
+          }`;
+        });
+      });
+  }
+
+  /*
+   * Check a log line runs the scan's own parsers in the browser. Its
+   * examples are one menu at the end of the box's label row, as a form
+   * field keeps its setup guide link there; a pick fills the box and checks
+   * it at once. Nothing is saved or sent: the page asks the server for
+   * nothing while a line is checked.
+   */
+  test("Check a log line: Try an example checks a line of each kind in the browser, and sends nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", width: 1280 });
+    await openLineCheck(page);
+
+    const input: Locator = lineCheck(page).getByRole("textbox", {
+      name: "Log line",
+    });
+    await expect(input).toHaveAccessibleDescription(
+      "The line is read here, in your browser: nothing is saved or sent.",
+    );
+    await expect(
+      lineCheck(page).getByTestId("security-log-line-check-run"),
+    ).toBeDisabled();
+
+    // The menu's trigger ends the label's row, level with the label.
+    const label: Box = await documentBox(
+      lineCheck(page).getByText("Log line", { exact: true }),
+    );
+    const trigger: Box = await documentBox(examplesTrigger(page));
+    const box: Box = await documentBox(input);
+    expect(
+      Math.abs(trigger.x + trigger.width - (box.x + box.width)),
+    ).toBeLessThanOrEqual(6);
+    expect(trigger.y).toBeLessThan(label.y + label.height);
+    expect(trigger.y + trigger.height).toBeGreaterThan(label.y);
+
+    const before: FixtureState = await fixture(page);
+
+    await examplesTrigger(page).click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("menuitem")).toHaveText([...LOG_KIND_TITLES]);
+
+    // It hangs from the trigger's right edge, under it, on screen.
+    const menuBox: Box = await viewportBox(menu);
+    const triggerOnScreen: Box = await viewportBox(examplesTrigger(page));
+    expect(
+      Math.abs(
+        menuBox.x + menuBox.width - (triggerOnScreen.x + triggerOnScreen.width),
+      ),
+    ).toBeLessThanOrEqual(2);
+    expect(menuBox.y).toBeGreaterThan(triggerOnScreen.y);
+    expect(menuBox.x).toBeGreaterThanOrEqual(0);
+    await screenshot(page, "connections-check-a-log-line-examples", {
+      clip: lineCheck(page),
+    });
+
+    await menu.getByRole("menuitem", { name: "CEF", exact: true }).click();
+    await expect(menu).toBeHidden();
+    await expect(input).toHaveValue(
+      "CEF:0|Imperva Inc.|SecureSphere|15.0|Protocol|SQL injection|High|act=block src=203.0.113.7 dst=10.0.0.5 dpt=443 request=/item?id\\=1' or 1\\=1",
+    );
+
+    const result: Locator = lineCheck(page).getByTestId(
+      "security-log-line-check-result",
+    );
+    await expect(result).toContainText(
+      "OneUptime makes 1 security event of this:",
+    );
+    await expect(
+      result.getByTestId("security-log-line-check-format"),
+    ).toHaveText("CEF");
+    await expect(
+      result.getByTestId("security-log-line-check-message"),
+    ).toHaveText("SQL injection from 203.0.113.7 to 10.0.0.5:443 (block)");
+    expect(await checkedFields(page)).toEqual([
+      "Event Class: Detection Finding",
+      "Activity: Create",
+      "Status: Blocked",
+      "Vendor: Imperva Inc.",
+      "Product: SecureSphere",
+      "Detection Rule: SQL injection",
+      "Principal IP: 203.0.113.7",
+      "Target IP: 10.0.0.5",
+      "Target Port: 443",
+      "Target Resource: /item?id=1' or 1=1",
+    ]);
+
+    // At 1280 the event's box holds three columns, label over value.
+    const fieldTops: Array<number> = await lineCheck(page)
+      .getByTestId("security-log-line-check-field")
+      .evaluateAll((fields: Array<Element>): Array<number> => {
+        return fields.map((field: Element): number => {
+          return Math.round(field.getBoundingClientRect().top);
+        });
+      });
+    expect(fieldTops[0]).toBe(fieldTops[1]);
+    expect(fieldTops[1]).toBe(fieldTops[2]);
+    expect(fieldTops[3]).toBeGreaterThan(fieldTops[2] as number);
+
+    // Every other kind becomes an event of its kind.
+    for (const title of LOG_KIND_TITLES) {
+      await examplesTrigger(page).click();
+      await page
+        .getByRole("menu")
+        .getByRole("menuitem", { name: title, exact: true })
+        .click();
+      await expect(
+        result.getByTestId("security-log-line-check-format"),
+      ).toHaveText(title);
+    }
+
+    // The checks asked the server for nothing.
+    const after: FixtureState = await fixture(page);
+    expect(after.apiRequests).toEqual(before.apiRequests);
+    expect(after.listRequests).toEqual(before.listRequests);
+    expect(after.creates).toEqual([]);
+
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("Check a log line: an everyday line stays a log", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", width: 1280 });
+    await openLineCheck(page);
+
+    await lineCheck(page)
+      .getByRole("textbox", { name: "Log line" })
+      .fill(
+        '10.0.0.4 - - [22/Sep/2026:11:58:00 +0000] "GET /index.html HTTP/1.1" 200 512',
+      );
+    await lineCheck(page).getByTestId("security-log-line-check-run").click();
+
+    await expect(
+      lineCheck(page).getByTestId("security-log-line-check-none"),
+    ).toContainText("OneUptime makes no security event of this.");
+    await expect(
+      lineCheck(page).getByTestId("security-log-line-check-result"),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * On a phone the menu stays on screen under its trigger, and a checked
+   * event's fields are one line each, the label beside the value, instead
+   * of a label over every value down the screen.
+   */
+  test("390: Check a log line keeps its menu on screen, and each field is one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", width: 390, height: 844 });
+    await openLineCheck(page);
+
+    await examplesTrigger(page).click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    const menuBox: Box = await viewportBox(menu);
+    expect(menuBox.x).toBeGreaterThanOrEqual(0);
+    expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(390);
+
+    await menu
+      .getByRole("menuitem", { name: "Windows events", exact: true })
+      .click();
+    await expect(
+      lineCheck(page).getByTestId("security-log-line-check-message"),
+    ).toHaveText(
+      "Failed sign-in for alice to WIN-01 over the network from 203.0.113.7: wrong password",
+    );
+
+    const rows: Array<{ label: Box; value: Box }> = await lineCheck(page)
+      .getByTestId("security-log-line-check-field")
+      .evaluateAll(
+        (fields: Array<Element>): Array<{ label: Box; value: Box }> => {
+          const box: (element: Element) => Box = (element: Element): Box => {
+            const rect: DOMRect = element.getBoundingClientRect();
+            return {
+              x: rect.left,
+              y: rect.top,
+              width: rect.width,
+              height: rect.height,
+            };
+          };
+          return fields.map((field: Element): { label: Box; value: Box } => {
+            return {
+              label: box(field.querySelector("dt") as Element),
+              value: box(field.querySelector("dd") as Element),
+            };
+          });
+        },
+      );
+    expect(rows.length).toBeGreaterThan(4);
+    for (const row of rows) {
+      // Beside each other, on one line.
+      expect(row.value.x).toBeGreaterThan(row.label.x + row.label.width - 1);
+      expect(Math.abs(row.value.y - row.label.y)).toBeLessThanOrEqual(4);
+    }
+
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "connections-check-a-log-line-phone", {
+      clip: lineCheck(page),
+    });
+  });
+
+  test("dark: Check a log line's result is readable", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", theme: "dark", width: 1280 });
+    await openLineCheck(page);
+
+    await examplesTrigger(page).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "LEEF", exact: true })
+      .click();
+    await expect(
+      lineCheck(page).getByTestId("security-log-line-check-format"),
+    ).toHaveText("LEEF");
+
+    expect(
+      await lowContrastText(
+        lineCheck(page).getByTestId("security-log-line-check-result"),
+        MIN_CONTRAST,
+      ),
+    ).toEqual([]);
+    // No light surface left in the dark.
+    expect(
+      (
+        await paintOf(
+          lineCheck(page).getByTestId("security-log-line-check-result"),
+        )
+      ).filter((paint: Paint): boolean => {
+        return paint.background === WHITE_RGB;
+      }),
+    ).toEqual([]);
+    await screenshot(page, "connections-check-a-log-line-dark", {
+      clip: lineCheck(page),
+    });
+  });
 });
 
 test.describe("connections empty state accessibility", () => {
@@ -2711,6 +3220,65 @@ test.describe("connections empty state layout", () => {
       ).toBe(fit!.textWidth > fit!.columnWidth);
     }
   });
+
+  /*
+   * What you'll need sits side by side only where the card has room for
+   * both, taken from the card's own width as the tiles take theirs: beside
+   * the side menu at a 768 window the card is about 370px wide, where a
+   * window-keyed two columns squeezed each sentence to a word or two a line.
+   */
+  const REQUIREMENT_LAYOUTS: ReadonlyArray<{
+    width: number;
+    sideBySide: boolean;
+  }> = [
+    { width: 1440, sideBySide: true },
+    { width: 1280, sideBySide: true },
+    { width: 768, sideBySide: false },
+    { width: 390, sideBySide: false },
+  ];
+
+  for (const layout of REQUIREMENT_LAYOUTS) {
+    test(`${layout.width}: what you'll need sits ${
+      layout.sideBySide ? "side by side" : "one under the other"
+    }, each sentence with room to read`, async ({ page }: { page: Page }) => {
+      await openConnections(page, { width: layout.width, height: 1000 });
+
+      const boxes: Array<Box> = [];
+      for (const requirement of REQUIREMENTS) {
+        boxes.push(
+          await documentBox(
+            page.getByTestId(`${CONNECTIONS_ID}-requirement-${requirement.id}`),
+          ),
+        );
+      }
+      const [first, second] = boxes as [Box, Box];
+
+      if (layout.sideBySide) {
+        expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1);
+        expect(second.x).toBeGreaterThan(first.x + first.width);
+      } else {
+        expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+        expect(Math.abs(second.x - first.x)).toBeLessThanOrEqual(1);
+      }
+
+      // Never squeezed: each requirement is at least 18rem, or the card's width.
+      const listWidth: number = (
+        await documentBox(
+          requirementsSection(page).getByRole("list", {
+            name: "What you'll need",
+          }),
+        )
+      ).width;
+      for (const box of boxes) {
+        expect(box.width).toBeGreaterThanOrEqual(Math.min(288, listWidth) - 1);
+      }
+      await expectInside(
+        requirementsSection(page),
+        connectionsCard(page),
+        "what you'll need",
+      );
+    });
+  }
 });
 
 /*

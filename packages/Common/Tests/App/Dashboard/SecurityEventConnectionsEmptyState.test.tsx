@@ -52,6 +52,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const ID: string = SECURITY_EVENT_CONNECTIONS_EMPTY_STATE_ID;
 
+// A column count keyed to the window's width (sm:, md:, lg:, xl:, 2xl:).
+const WINDOW_GRID_COLUMNS: RegExp = /(?:^|\s)(?:sm|md|lg|xl|2xl):grid-cols-/;
+
 const DISABLED_REASON: string =
   "You do not have permission to create security event connections.";
 
@@ -908,12 +911,25 @@ describe("SecurityEventConnectionsEmptyState", () => {
       }
     });
 
-    test("stack on narrow screens and sit side by side from md up", () => {
+    /*
+     * Side by side only where each has 18rem of the card's own width, as
+     * the tiles above take theirs: beside the side menu at a 768 window
+     * the card is about 370px wide, where a window-keyed md:grid-cols-2
+     * squeezed each sentence to a word or two a line. The browser suite
+     * measures them at 1440, 768 and 390.
+     */
+    test("sit side by side only where the card has room for both, never by the window's width", () => {
       renderEmptyState();
 
-      expect(
-        screen.getByRole("list", { name: "What you'll need" }),
-      ).toHaveClass("grid", "grid-cols-1", "md:grid-cols-2");
+      const list: HTMLElement = screen.getByRole("list", {
+        name: "What you'll need",
+      });
+
+      expect(list).toHaveClass(
+        "grid",
+        "grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]",
+      );
+      expect(list.className).not.toMatch(WINDOW_GRID_COLUMNS);
     });
 
     test("are shown to members who cannot create connections too", () => {

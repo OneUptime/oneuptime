@@ -30787,7 +30787,6 @@
   "Ask for changes, add context, or ask a question…": "変更の依頼、コンテキストの追加、または質問…",
   "Asked by {{name}}": "依頼者: {{name}}",
   "Back to the conversation": "会話に戻る",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.": "すでにお使いのセキュリティツールからアラートとイベントを取り込みます: Microsoft Sentinel、Defender XDR、CrowdStrike Falcon、Splunk、Elastic Security、AWS Security Hub、Okta、Google SecOps。",
   "Change where and what is sent. The key stays unless you paste a new one.": "送信先と送信内容を変更します。新しいキーを貼り付けない限り、キーはそのまま残ります。",
   "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.": "クラスターへの変更、Pod で開かれたシェル、読み取られたシークレット、拒否されたリクエスト。",
   "Changes you ask for are pushed to pull request #{{number}}.": "依頼した変更はプルリクエスト #{{number}} にプッシュされます。",
@@ -34002,9 +34001,6 @@
   "Add {{count}} rules?_one": "{{count}} 件のルールを追加しますか？",
   "Added as {{name}}": "{{name}} として追加済み",
   "Connect Okta to read its System Log.": "Okta を接続して System Log を読み取ります。",
-  "Connect Okta, Microsoft Sentinel, Google SecOps or another source, or find SSH sign-ins in the logs you send.": "Okta、Microsoft Sentinel、Google SecOps などのソースを接続するか、送信しているログから SSH サインインを見つけます。",
-  "Connect Okta, or another source that sends account changes.": "Okta、またはアカウントの変更を送信する別のソースを接続します。",
-  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.": "CrowdStrike Falcon や Microsoft Defender XDR などの EDR を接続します。Linux サーバーでは、ログからセキュリティイベントを見つける機能が sudo で実行されたコマンドを読み取ります。",
   "Could not check which events this project sends.": "このプロジェクトが送信しているイベントを確認できませんでした。",
   "Data": "データ",
   "Events of this kind arrived in the last 7 days.": "過去 7 日間にこの種類のイベントが届いています。",
@@ -37312,7 +37308,6 @@
   "OneUptime makes {{count}} security events of this:": "OneUptime はここから {{count}} 件のセキュリティイベントを作ります:",
   "OneUptime makes {{count}} security events of this:_one": "OneUptime はここから {{count}} 件のセキュリティイベントを作ります:",
   "Only the lines that matter for security become events: sign-ins, changes, refusals and threats. An everyday line, such as a page served or a connection allowed, stays a log.": "イベントになるのは、セキュリティにとって意味のある行だけです。サインイン、変更、拒否、脅威などです。ページの配信や許可された接続のような日常的な行は、ログのままです。",
-  "Or try an example:": "または例を試す:",
   "Paste a line from your logs to see the security event OneUptime makes of it.": "ログの 1 行を貼り付けると、OneUptime がそこから作るセキュリティイベントを確認できます。",
   "Security devices": "セキュリティ機器",
   "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.": "診断設定を使って Azure アクティビティ ログを OneUptime に送信し、ログからセキュリティイベントを見つけます。",
@@ -37323,5 +37318,11 @@
   "The line is read here, in your browser: nothing is saved or sent.": "この行はブラウザー内で読み取られます。何も保存・送信されません。",
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "IBM QRadar 向けに多くの製品が行うように、Log Event Extended Format を送信する製品からの同じ内容。",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Common Event Format を送信するファイアウォール、IDS、WAF などのセキュリティ製品からの脅威、ブロックされた接続、サインイン。",
-  "Windows events": "Windows イベント"
+  "Windows events": "Windows イベント",
+  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "すでにお使いのセキュリティツールからアラートとイベントを取り込みます: Microsoft Sentinel、Defender XDR、CrowdStrike Falcon、Splunk、Elastic Security、AWS Security Hub、Okta、Microsoft Entra ID、Google Workspace、Google SecOps。",
+  "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Microsoft Entra ID、Google Workspace、Okta のいずれかを接続するか、送信しているログから Windows のアカウント変更を見つけます。",
+  "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Microsoft Entra ID、Google Workspace、Okta などのソースを接続するか、送信しているログから SSH と Windows のサインインを見つけます。",
+  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "CrowdStrike Falcon や Microsoft Defender XDR などの EDR を接続するか、送信しているログから Windows と Sysmon が起動したプロセスと sudo で実行されたコマンドを見つけます。",
+  "Showing the first {{count}}.": "最初の {{count}} 件を表示しています。",
+  "Try an example": "例を試す"
 }

@@ -76,10 +76,10 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
  */
 export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.SignIns]: translationKey(
-    "Connect Okta, Microsoft Sentinel, Google SecOps or another source, or find SSH sign-ins in the logs you send.",
+    "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.",
   ),
   [DetectionRuleDataKind.AccountChanges]: translationKey(
-    "Connect Okta, or another source that sends account changes.",
+    "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.",
   ),
   [DetectionRuleDataKind.OktaSystemLog]: translationKey(
     "Connect Okta to read its System Log.",
@@ -94,7 +94,7 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
     "Send your Windows machines' event logs to OneUptime and find security events in your logs.",
   ),
   [DetectionRuleDataKind.ProcessEvents]: translationKey(
-    "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.",
+    "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.",
   ),
   [DetectionRuleDataKind.SudoLogs]: translationKey(
     "Send your servers' auth logs to OneUptime and find security events in your logs.",

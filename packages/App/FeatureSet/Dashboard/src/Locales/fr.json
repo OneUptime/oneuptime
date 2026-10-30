@@ -30787,7 +30787,6 @@
   "Ask for changes, add context, or ask a question…": "Demandez des modifications, ajoutez du contexte ou posez une question…",
   "Asked by {{name}}": "Demandé par {{name}}",
   "Back to the conversation": "Retour à la conversation",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.": "Importez les alertes et les événements des outils de sécurité que vous utilisez déjà : Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta et Google SecOps.",
   "Change where and what is sent. The key stays unless you paste a new one.": "Modifiez la destination et ce qui est envoyé. La clé reste la même tant que vous n'en collez pas une nouvelle.",
   "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.": "Modifications du cluster, shells ouverts dans des pods, secrets lus et requêtes refusées.",
   "Changes you ask for are pushed to pull request #{{number}}.": "Les modifications que vous demandez sont poussées dans la demande de tirage n° {{number}}.",
@@ -34002,9 +34001,6 @@
   "Add {{count}} rules?_one": "Ajouter {{count}} règle ?",
   "Added as {{name}}": "Ajoutée sous le nom {{name}}",
   "Connect Okta to read its System Log.": "Connectez Okta pour lire son System Log.",
-  "Connect Okta, Microsoft Sentinel, Google SecOps or another source, or find SSH sign-ins in the logs you send.": "Connectez Okta, Microsoft Sentinel, Google SecOps ou une autre source, ou trouvez les connexions SSH dans les journaux que vous envoyez.",
-  "Connect Okta, or another source that sends account changes.": "Connectez Okta, ou une autre source qui envoie les modifications de comptes.",
-  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.": "Connectez un EDR comme CrowdStrike Falcon ou Microsoft Defender XDR. Sur les serveurs Linux, la recherche d'événements de sécurité dans vos journaux lit les commandes exécutées avec sudo.",
   "Could not check which events this project sends.": "Impossible de vérifier quels événements ce projet envoie.",
   "Data": "Données",
   "Events of this kind arrived in the last 7 days.": "Des événements de ce type sont arrivés ces 7 derniers jours.",
@@ -37312,7 +37308,6 @@
   "OneUptime makes {{count}} security events of this:": "OneUptime en fait {{count}} événements de sécurité :",
   "OneUptime makes {{count}} security events of this:_one": "OneUptime en fait {{count}} événement de sécurité :",
   "Only the lines that matter for security become events: sign-ins, changes, refusals and threats. An everyday line, such as a page served or a connection allowed, stays a log.": "Seules les lignes qui comptent pour la sécurité deviennent des événements : connexions, modifications, refus et menaces. Une ligne ordinaire, comme une page servie ou une connexion autorisée, reste un journal.",
-  "Or try an example:": "Ou essayez un exemple :",
   "Paste a line from your logs to see the security event OneUptime makes of it.": "Collez une ligne de vos journaux pour voir l'événement de sécurité qu'en fait OneUptime.",
   "Security devices": "Équipements de sécurité",
   "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.": "Envoyez votre journal d'activité Azure à OneUptime via un paramètre de diagnostic et trouvez les événements de sécurité dans vos journaux.",
@@ -37323,5 +37318,11 @@
   "The line is read here, in your browser: nothing is saved or sent.": "La ligne est lue ici, dans votre navigateur : rien n'est enregistré ni envoyé.",
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "La même chose depuis les produits qui envoient le Log Event Extended Format, comme beaucoup le font pour IBM QRadar.",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Menaces, connexions bloquées et authentifications depuis les pare-feu, IDS, WAF et autres produits de sécurité qui envoient le Common Event Format.",
-  "Windows events": "Événements Windows"
+  "Windows events": "Événements Windows",
+  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "Importez les alertes et les événements des outils de sécurité que vous utilisez déjà : Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace et Google SecOps.",
+  "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Connectez Microsoft Entra ID, Google Workspace ou Okta, ou trouvez les modifications de comptes Windows dans les journaux que vous envoyez.",
+  "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Connectez Microsoft Entra ID, Google Workspace, Okta ou une autre source, ou trouvez les connexions SSH et Windows dans les journaux que vous envoyez.",
+  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "Connectez un EDR comme CrowdStrike Falcon ou Microsoft Defender XDR, ou trouvez les processus lancés par Windows et Sysmon et les commandes exécutées avec sudo dans les journaux que vous envoyez.",
+  "Showing the first {{count}}.": "Les {{count}} premiers sont affichés.",
+  "Try an example": "Essayer un exemple"
 }

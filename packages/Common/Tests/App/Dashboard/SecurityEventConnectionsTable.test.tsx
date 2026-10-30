@@ -52,7 +52,9 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import { SecurityEventConnectionRunResult } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
-import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import SecurityEventConnectorProvider, {
+  AllSecurityEventConnectorProviders,
+} from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ModelColumn from "../../../UI/Components/ModelTable/Column";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
@@ -589,14 +591,41 @@ describe("SecurityEventConnectionsTable", () => {
     }
   });
 
-  test("the card names every provider, Google SecOps included", (): void => {
+  /*
+   * Once a project has a connection the tiles are gone, and the card's
+   * description is what still says which products OneUptime connects to:
+   * it names every one, as a security team calls it. It missed Microsoft
+   * Entra ID and Google Workspace when they joined the catalog, so a
+   * provider the catalog gains fails here until the sentence names it.
+   */
+  test("the card names every provider in the catalog, Entra ID and Workspace included", (): void => {
     renderTable([]);
 
     const props: ModelTableProps<BaseModel> = tableProps();
     expect(props.cardProps?.title).toBe("Your security tools");
     expect(props.cardProps?.description).toBe(
-      "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
+      "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.",
     );
+
+    const NAMED_AS: Record<SecurityEventConnectorProvider, string> = {
+      [SecurityEventConnectorProvider.MicrosoftSentinel]: "Microsoft Sentinel",
+      [SecurityEventConnectorProvider.MicrosoftDefenderXdr]: "Defender XDR",
+      [SecurityEventConnectorProvider.CrowdStrikeFalcon]: "CrowdStrike Falcon",
+      [SecurityEventConnectorProvider.SplunkEnterpriseSecurity]: "Splunk",
+      [SecurityEventConnectorProvider.ElasticSecurity]: "Elastic Security",
+      [SecurityEventConnectorProvider.AwsSecurityHub]: "AWS Security Hub",
+      [SecurityEventConnectorProvider.OktaSystemLog]: "Okta",
+      [SecurityEventConnectorProvider.MicrosoftEntraId]: "Microsoft Entra ID",
+      [SecurityEventConnectorProvider.GoogleWorkspace]: "Google Workspace",
+      [SecurityEventConnectorProvider.GoogleSecOps]: "Google SecOps",
+    };
+
+    for (const provider of AllSecurityEventConnectorProviders) {
+      expect([provider, props.cardProps?.description]).toEqual([
+        provider,
+        expect.stringContaining(NAMED_AS[provider]),
+      ]);
+    }
   });
 
   /*

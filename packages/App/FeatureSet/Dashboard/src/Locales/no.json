@@ -30787,7 +30787,6 @@
   "Ask for changes, add context, or ask a question…": "Be om endringer, legg til kontekst eller still et spørsmål…",
   "Asked by {{name}}": "Bedt om av {{name}}",
   "Back to the conversation": "Tilbake til samtalen",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.": "Hent varsler og hendelser fra sikkerhetsverktøyene du allerede bruker: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta og Google SecOps.",
   "Change where and what is sent. The key stays unless you paste a new one.": "Endre hvor og hva som sendes. Nøkkelen beholdes med mindre du limer inn en ny.",
   "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.": "Endringer i klyngen, skall åpnet i poder, leste secrets og avviste forespørsler.",
   "Changes you ask for are pushed to pull request #{{number}}.": "Endringer du ber om, pushes til pull-forespørsel #{{number}}.",
@@ -34002,9 +34001,6 @@
   "Add {{count}} rules?_one": "Legge til {{count}} regel?",
   "Added as {{name}}": "Lagt til som {{name}}",
   "Connect Okta to read its System Log.": "Koble til Okta for å lese System Log.",
-  "Connect Okta, Microsoft Sentinel, Google SecOps or another source, or find SSH sign-ins in the logs you send.": "Koble til Okta, Microsoft Sentinel, Google SecOps eller en annen kilde, eller finn SSH-pålogginger i loggene du sender.",
-  "Connect Okta, or another source that sends account changes.": "Koble til Okta eller en annen kilde som sender kontoendringer.",
-  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.": "Koble til en EDR som CrowdStrike Falcon eller Microsoft Defender XDR. På Linux-servere leser søket etter sikkerhetshendelser i loggene dine kommandoene som kjøres med sudo.",
   "Could not check which events this project sends.": "Kunne ikke sjekke hvilke hendelser dette prosjektet sender.",
   "Data": "Data",
   "Events of this kind arrived in the last 7 days.": "Det kom hendelser av denne typen de siste 7 dagene.",
@@ -37312,7 +37308,6 @@
   "OneUptime makes {{count}} security events of this:": "OneUptime lager {{count}} sikkerhetshendelser av dette:",
   "OneUptime makes {{count}} security events of this:_one": "OneUptime lager {{count}} sikkerhetshendelse av dette:",
   "Only the lines that matter for security become events: sign-ins, changes, refusals and threats. An everyday line, such as a page served or a connection allowed, stays a log.": "Bare linjene som betyr noe for sikkerheten, blir hendelser: pålogginger, endringer, avvisninger og trusler. En hverdagslig linje, som en side som ble levert eller en tilkobling som ble tillatt, forblir en logg.",
-  "Or try an example:": "Eller prøv et eksempel:",
   "Paste a line from your logs to see the security event OneUptime makes of it.": "Lim inn en linje fra loggene dine for å se sikkerhetshendelsen OneUptime lager av den.",
   "Security devices": "Sikkerhetsenheter",
   "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.": "Send Azure-aktivitetsloggen din til OneUptime via en diagnoseinnstilling, og finn sikkerhetshendelser i loggene dine.",
@@ -37323,5 +37318,11 @@
   "The line is read here, in your browser: nothing is saved or sent.": "Linjen leses her, i nettleseren din: ingenting lagres eller sendes.",
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "Det samme fra produkter som sender Log Event Extended Format, slik mange gjør for IBM QRadar.",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Trusler, blokkerte tilkoblinger og pålogginger fra brannmurer, IDS, WAF-er og andre sikkerhetsprodukter som sender Common Event Format.",
-  "Windows events": "Windows-hendelser"
+  "Windows events": "Windows-hendelser",
+  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "Hent varsler og hendelser fra sikkerhetsverktøyene du allerede bruker: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace og Google SecOps.",
+  "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Koble til Microsoft Entra ID, Google Workspace eller Okta, eller finn endringer i Windows-kontoer i loggene du sender.",
+  "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Koble til Microsoft Entra ID, Google Workspace, Okta eller en annen kilde, eller finn SSH- og Windows-pålogginger i loggene du sender.",
+  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "Koble til en EDR som CrowdStrike Falcon eller Microsoft Defender XDR, eller finn prosessene Windows og Sysmon starter og kommandoene som kjøres med sudo, i loggene du sender.",
+  "Showing the first {{count}}.": "Viser de første {{count}}.",
+  "Try an example": "Prøv et eksempel"
 }

@@ -63,6 +63,24 @@ export type SecurityLogFormatHealth =
   | { kind: "found-before"; at: Date }
   | { kind: "not-yet" };
 
+// The dot in front of each health line: filled green, filled grey, a ring.
+export const SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES: Record<
+  SecurityLogFormatHealth["kind"],
+  string
+> = {
+  "found-now": "bg-emerald-500",
+  "found-before": "bg-gray-300",
+  "not-yet": "border border-gray-300",
+};
+
+/*
+ * The four groups' lists: one column, two from 44rem of the card's own
+ * width (the card at 1280 beside the side menu is about 820px wide; at
+ * 1024 about 570px, where two columns would squeeze each kind's sentence).
+ */
+export const SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME: string =
+  "grid grid-cols-1 items-start gap-4 [@container(min-width:44rem)]:grid-cols-2";
+
 export function getSecurityLogFormatHealth(data: {
   format: SecurityLogFormat;
   foundByFormat: Record<string, number>;
@@ -319,6 +337,11 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * A kind's health, behind a dot that reads at a glance down the list:
+   * green while the last check found some, a grey dot once it found some
+   * before, an empty ring while none has been found.
+   */
   const renderHealth: (format: SecurityLogFormat) => ReactElement = (
     format: SecurityLogFormat,
   ): ReactElement => {
@@ -328,38 +351,42 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
       lastFoundAtByFormat,
     });
 
-    if (health.kind === "found-now") {
-      return (
-        <p
-          className="mt-1 text-xs font-medium text-emerald-700"
-          data-testid={`security-log-format-health-${format}`}
-        >
-          {translator.translateTemplate("Found in the last check: {{count}}", {
-            count: translator.formatNumber(health.count),
-          })}
-        </p>
-      );
-    }
-
-    if (health.kind === "found-before") {
-      return (
-        <p
-          className="mt-1 text-xs text-gray-600"
-          data-testid={`security-log-format-health-${format}`}
-        >
-          {translator.translateTemplate("Last found {{time}}", {
-            time: timeAgo(health.at),
-          })}
-        </p>
-      );
-    }
+    const look: { line: string; dot: string; text: string } =
+      health.kind === "found-now"
+        ? {
+            line: "font-medium text-emerald-700",
+            dot: SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES["found-now"],
+            text: translator.translateTemplate(
+              "Found in the last check: {{count}}",
+              { count: translator.formatNumber(health.count) },
+            ),
+          }
+        : health.kind === "found-before"
+          ? {
+              line: "text-gray-600",
+              dot: SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES["found-before"],
+              text: translator.translateTemplate("Last found {{time}}", {
+                time: timeAgo(health.at),
+              }),
+            }
+          : {
+              line: "text-gray-500",
+              dot: SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES["not-yet"],
+              text: translator.translateText("None found yet") || "",
+            };
 
     return (
       <p
-        className="mt-1 text-xs text-gray-400"
+        className={`mt-1 flex items-center gap-1.5 text-xs ${look.line}`}
         data-testid={`security-log-format-health-${format}`}
+        data-health={health.kind}
       >
-        {translator.translateText("None found yet")}
+        <span
+          aria-hidden="true"
+          data-testid={`security-log-format-health-dot-${format}`}
+          className={`h-2 w-2 shrink-0 rounded-full ${look.dot}`}
+        />
+        <span className="min-w-0">{look.text}</span>
       </p>
     );
   };
@@ -469,74 +496,85 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
             {translator.translateText("What OneUptime recognizes")}
           </h3>
           {/*
-           * Columns from the card's own width, not the window's: beside the
-           * side menu the card is about 370px wide at a 768 window, where
-           * two columns squeezed each kind's sentence to a few words a line.
-           * One column there and on a phone, two from 30rem, three from 46rem.
+           * Each group is one list, its kinds a row each, as Your OneUptime
+           * data lists its sources under this card. The groups pair up side
+           * by side once the card itself is wide enough for two readable
+           * columns - Servers beside Cloud, Security devices beside
+           * Applications, three kinds and two each - and stack below that:
+           * beside the side menu the card is about 370px wide at a 768
+           * window, whatever the window says.
            */}
-          <div className="mt-2 space-y-4 [container-type:inline-size]">
-            {SECURITY_LOG_FORMAT_GROUPS.map(
-              (group: SecurityLogFormatGroup): ReactElement => {
-                const headingId: string = `security-log-format-group-${group}-title`;
+          <div className="mt-2 [container-type:inline-size]">
+            <div
+              data-testid="security-log-format-groups"
+              className={SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME}
+            >
+              {SECURITY_LOG_FORMAT_GROUPS.map(
+                (group: SecurityLogFormatGroup): ReactElement => {
+                  const headingId: string = `security-log-format-group-${group}-title`;
 
-                return (
-                  <section
-                    key={group}
-                    aria-labelledby={headingId}
-                    data-testid={`security-log-format-group-${group}`}
-                  >
-                    <h4
-                      id={headingId}
-                      className="text-xs font-medium text-gray-500"
+                  return (
+                    <section
+                      key={group}
+                      aria-labelledby={headingId}
+                      data-testid={`security-log-format-group-${group}`}
+                      className="min-w-0"
                     >
-                      {translator.translateText(
-                        SECURITY_LOG_FORMAT_GROUP_TEXTS[group],
-                      )}
-                    </h4>
-                    <ul
-                      data-testid={`security-log-format-group-${group}-kinds`}
-                      className="mt-1.5 grid grid-cols-1 gap-2 sm:gap-3 [@container(min-width:30rem)]:grid-cols-2 [@container(min-width:46rem)]:grid-cols-3"
-                    >
-                      {getSecurityLogFormatsInGroup(group).map(
-                        (format: SecurityLogFormatDefinition): ReactElement => {
-                          return (
-                            <li
-                              key={format.format}
-                              data-testid={`security-log-format-${format.format}`}
-                              className="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5"
-                            >
-                              <div className="mt-0.5 flex-shrink-0 text-gray-400">
-                                <Icon
-                                  icon={
-                                    SECURITY_LOG_FORMAT_ICONS[format.format]
-                                  }
-                                  className="h-4 w-4"
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {translator.translateText(
-                                    SECURITY_LOG_FORMAT_TEXTS[format.format]
-                                      .title,
-                                  )}
-                                </p>
-                                <p className="mt-0.5 text-xs text-gray-500 max-sm:hidden">
-                                  {translator.translateText(
-                                    SECURITY_LOG_FORMAT_TEXTS[format.format]
-                                      .description,
-                                  )}
-                                </p>
-                                {isOn ? renderHealth(format.format) : <></>}
-                              </div>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
-                  </section>
-                );
-              },
-            )}
+                      <h4
+                        id={headingId}
+                        className="text-xs font-medium text-gray-500"
+                      >
+                        {translator.translateText(
+                          SECURITY_LOG_FORMAT_GROUP_TEXTS[group],
+                        )}
+                      </h4>
+                      <ul
+                        data-testid={`security-log-format-group-${group}-kinds`}
+                        className="mt-1.5 divide-y divide-gray-100 rounded-lg border border-gray-200"
+                      >
+                        {getSecurityLogFormatsInGroup(group).map(
+                          (
+                            format: SecurityLogFormatDefinition,
+                          ): ReactElement => {
+                            return (
+                              <li
+                                key={format.format}
+                                data-testid={`security-log-format-${format.format}`}
+                                className="flex items-start gap-3 px-3 py-2.5"
+                              >
+                                <div className="mt-0.5 flex-shrink-0 text-gray-400">
+                                  <Icon
+                                    icon={
+                                      SECURITY_LOG_FORMAT_ICONS[format.format]
+                                    }
+                                    className="h-4 w-4"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {translator.translateText(
+                                      SECURITY_LOG_FORMAT_TEXTS[format.format]
+                                        .title,
+                                    )}
+                                  </p>
+                                  <p className="mt-0.5 text-xs text-gray-500 max-sm:hidden">
+                                    {translator.translateText(
+                                      SECURITY_LOG_FORMAT_TEXTS[format.format]
+                                        .description,
+                                    )}
+                                  </p>
+                                  {isOn ? renderHealth(format.format) : <></>}
+                                </div>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    </section>
+                  );
+                },
+              )}
+            </div>
           </div>
         </div>
 

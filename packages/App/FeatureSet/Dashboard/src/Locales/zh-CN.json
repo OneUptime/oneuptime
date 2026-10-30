@@ -30787,7 +30787,6 @@
   "Ask for changes, add context, or ask a question…": "提出修改要求、添加上下文或提问…",
   "Asked by {{name}}": "由 {{name}} 请求",
   "Back to the conversation": "返回对话",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.": "从你已在使用的安全工具导入警报和事件：Microsoft Sentinel、Defender XDR、CrowdStrike Falcon、Splunk、Elastic Security、AWS Security Hub、Okta 和 Google SecOps。",
   "Change where and what is sent. The key stays unless you paste a new one.": "更改发送目标和发送内容。除非你粘贴新密钥，否则密钥保持不变。",
   "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.": "对集群的更改、在 Pod 中打开的 Shell、被读取的 Secret 以及被拒绝的请求。",
   "Changes you ask for are pushed to pull request #{{number}}.": "你要求的更改会推送到拉取请求 #{{number}}。",
@@ -34002,9 +34001,6 @@
   "Add {{count}} rules?_one": "添加 {{count}} 条规则？",
   "Added as {{name}}": "已添加为 {{name}}",
   "Connect Okta to read its System Log.": "连接 Okta 以读取其 System Log。",
-  "Connect Okta, Microsoft Sentinel, Google SecOps or another source, or find SSH sign-ins in the logs you send.": "连接 Okta、Microsoft Sentinel、Google SecOps 或其他来源，或在你发送的日志中查找 SSH 登录。",
-  "Connect Okta, or another source that sends account changes.": "连接 Okta 或其他发送账户变更的来源。",
-  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.": "连接 CrowdStrike Falcon 或 Microsoft Defender XDR 等 EDR。在 Linux 服务器上，在日志中查找安全事件会读取用 sudo 运行的命令。",
   "Could not check which events this project sends.": "无法检查此项目发送了哪些事件。",
   "Data": "数据",
   "Events of this kind arrived in the last 7 days.": "过去 7 天内收到了此类事件。",
@@ -37312,7 +37308,6 @@
   "OneUptime makes {{count}} security events of this:": "OneUptime 从中生成 {{count}} 个安全事件：",
   "OneUptime makes {{count}} security events of this:_one": "OneUptime 从中生成 {{count}} 个安全事件：",
   "Only the lines that matter for security become events: sign-ins, changes, refusals and threats. An everyday line, such as a page served or a connection allowed, stays a log.": "只有对安全有意义的行才会成为事件：登录、更改、拒绝和威胁。日常的行，例如已提供的页面或已允许的连接，仍然只是日志。",
-  "Or try an example:": "或试试示例：",
   "Paste a line from your logs to see the security event OneUptime makes of it.": "粘贴一行日志，查看 OneUptime 会将其生成什么安全事件。",
   "Security devices": "安全设备",
   "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.": "通过诊断设置将 Azure 活动日志发送到 OneUptime，并在日志中查找安全事件。",
@@ -37323,5 +37318,11 @@
   "The line is read here, in your browser: nothing is saved or sent.": "这一行在你的浏览器中读取：不会保存或发送任何内容。",
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "来自发送 Log Event Extended Format 的产品的同类内容，许多产品为 IBM QRadar 这样发送。",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "来自发送 Common Event Format 的防火墙、IDS、WAF 和其他安全产品的威胁、被阻止的连接和登录。",
-  "Windows events": "Windows 事件"
+  "Windows events": "Windows 事件",
+  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "从你已在使用的安全工具导入警报和事件：Microsoft Sentinel、Defender XDR、CrowdStrike Falcon、Splunk、Elastic Security、AWS Security Hub、Okta、Microsoft Entra ID、Google Workspace 和 Google SecOps。",
+  "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "连接 Microsoft Entra ID、Google Workspace 或 Okta，或在你发送的日志中查找 Windows 账户变更。",
+  "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "连接 Microsoft Entra ID、Google Workspace、Okta 或其他来源，或在你发送的日志中查找 SSH 和 Windows 登录。",
+  "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "连接 CrowdStrike Falcon 或 Microsoft Defender XDR 等 EDR，或在你发送的日志中查找 Windows 和 Sysmon 启动的进程以及用 sudo 运行的命令。",
+  "Showing the first {{count}}.": "仅显示前 {{count}} 个。",
+  "Try an example": "试试示例"
 }

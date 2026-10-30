@@ -217,7 +217,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         cardProps={{
           title: "Your security tools",
           description:
-            "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
+            "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.",
           buttons: [
             {
               title: "Add connection",
