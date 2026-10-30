@@ -166,6 +166,8 @@ const READY_CHECKS: Array<JSONObject> = [
 
 beforeEach(() => {
   state = { ready: true, checks: READY_CHECKS, tasks: [] };
+  // A project member: they may edit the repositories AI tasks work in.
+  grant([Permission.ProjectUser, Permission.ProjectMember]);
   getMock.mockReset();
   postMock.mockReset();
   navigateMock.mockReset();
@@ -736,6 +738,45 @@ describe("ExceptionAIAssistance", () => {
         return call[0].url.toString().includes("/get-ai-agent-task/");
       }),
     ).toHaveLength(1);
+  });
+
+  /*
+   * A task works in the exception's repository, and the server refuses a
+   * person who may not edit it: the card says so before they try. They
+   * still see the tasks.
+   */
+  test("someone who may only read sees the tasks and cannot start one", async () => {
+    grant([Permission.ProjectUser, Permission.Viewer]);
+    state.tasks = [task("FixException", "Completed")];
+    await renderAssistance();
+
+    for (const taskType of ["FixException", "WriteRegressionTest"]) {
+      expect(
+        within(card(taskType)).getByTestId("exception-ai-task-start"),
+      ).toBeDisabled();
+      // Locked, with its reason on hover or a press.
+      expect(
+        within(card(taskType)).getByTestId(
+          "exception-ai-task-start-disabled-wrapper",
+        ),
+      ).toBeInTheDocument();
+    }
+    expect(
+      within(card("FixException")).getByTestId("exception-ai-task-view"),
+    ).toBeInTheDocument();
+  });
+
+  test("Edit Code Repository is enough to start one", async () => {
+    grant([
+      Permission.ProjectUser,
+      Permission.Viewer,
+      Permission.EditCodeRepository,
+    ]);
+    await renderAssistance();
+
+    expect(
+      within(card("FixException")).getByTestId("exception-ai-task-start"),
+    ).not.toBeDisabled();
   });
 
   test("an archived exception is paused too", async () => {

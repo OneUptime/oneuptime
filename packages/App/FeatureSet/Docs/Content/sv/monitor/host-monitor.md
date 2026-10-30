@@ -113,7 +113,7 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 - **Host Stopped Reporting** utlöses när ingenting kommer från värden på tio minuter: maskinen är nere eller onåbar, eller dess collector har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **CPU** är upptagen tid (`user` plus `system`), samma siffra som värdens **Översikt** visar i diagram. Iowait och steal är utelämnade.
 - **Minne** utesluter buffertar och sidcache, så att en värd som mest innehåller cache inte utlöser den.
-- **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla; uteslut dem i collectorns skrapa `filesystem`.
+- **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla: OneUptimes collector-konfigurationer utelämnar dem från skrapan `filesystem` med `exclude_fs_types`, och en egen konfiguration behöver detsamma.
 - **Belastningsmedelvärde** är en rå längd på körkön, inte delad med antalet kärnor: 4 är mättnad på en värd med 2 kärnor och rutin på en med 32, så höj den på stora värdar.
 - **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Processkrapan rapporterar bara på Linux.
 
@@ -212,7 +212,7 @@ Monitorn begränsar varje fråga med `resource.host.name` lika med värden du va
 :::
 
 :::details High Filesystem Usage utlöses för en montering som alltid är full
-Skrivskyddade pseudofilsystem, som snap-loopmonteringar av typen `squashfs` under `/snap` eller `devfs` på macOS, är 100 % fulla med avsikt och återhämtar sig aldrig. Uteslut dem från collectorns skrapa `filesystem`.
+Skrivskyddade pseudofilsystem, som snap-loopmonteringar av typen `squashfs` under `/snap` eller `devfs` på macOS, är 100 % fulla med avsikt och återhämtar sig aldrig. Konfigurationerna som OneUptime kör och delar ut utelämnar dem med `exclude_fs_types`; en egen konfiguration, eller en Insamlarkonfiguration som skapades innan de gjorde det, behöver detsamma: kopiera det från [Värdmätvärden](/docs/telemetry/host-otel-collector#värdmätvärden). Utelämna en annan montering som alltid är full, till exempel en monterad `.dmg`, med `exclude_mount_points`.
 :::
 
 ## Nästa steg

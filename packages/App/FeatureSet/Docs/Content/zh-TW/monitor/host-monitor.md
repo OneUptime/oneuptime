@@ -113,7 +113,7 @@ OneUptime 有兩種用於機器的監測器。它們可以在同一台主機上�
 - **Host Stopped Reporting** 會在主機 10 分鐘內沒有任何資料送達時觸發：機器當機或無法連線，或者它的 Collector 已停止、失去通往 OneUptime 的路由或權杖被撤銷。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 - **CPU** 是忙碌時間（`user` 加 `system`），與主機 **概覽** 圖表中的數字相同。不包括 iowait 和 steal。
 - **記憶體** 不計緩衝區和頁面快取，所以大部分被快取占用的主機不會觸發它。
-- **檔案系統** 會為每個掛接點開啟一個事件。唯讀的虛擬檔案系統（例如 snap 的 `squashfs` 掛接或 macOS 的 `devfs`）永遠是 100% 已滿；請在 Collector 的 `filesystem` 擷取器中排除它們。
+- **檔案系統** 會為每個掛接點開啟一個事件。唯讀的虛擬檔案系統（例如 snap 的 `squashfs` 掛接或 macOS 的 `devfs`）永遠是 100% 已滿：OneUptime 的 Collector 設定用 `exclude_fs_types` 把它們排除在 `filesystem` 擷取器之外，你自己的設定也需要這樣做。
 - **平均負載** 是原始的執行佇列長度，沒有除以核心數：4 在 2 核心主機上代表飽和，在 32 核心主機上則很平常，所以在大型主機上請調高它。
 - **處理程序數** 比較的是最大的單一處理程序狀態（`running`、`sleeping`、…），而不是主機的總數，因此它與處理程序清單對不起來。處理程序擷取器只在 Linux 上回報。
 
@@ -212,7 +212,7 @@ OneUptime 有兩種用於機器的監測器。它們可以在同一台主機上�
 :::
 
 :::details High Filesystem Usage 在一個永遠是滿的掛接點上觸發
-唯讀的虛擬檔案系統（例如 `/snap` 下 snap 的 `squashfs` 迴圈掛接，或 macOS 的 `devfs`）在設計上就是 100% 已滿，永遠不會恢復。請把它們從 Collector 的 `filesystem` 擷取器中排除。
+唯讀的虛擬檔案系統（例如 `/snap` 下 snap 的 `squashfs` 迴圈掛接，或 macOS 的 `devfs`）在設計上就是 100% 已滿，永遠不會恢復。OneUptime 執行和提供的設定用 `exclude_fs_types` 把它們排除在外；你自己的設定，或在此之前建立的收集器設定，也需要同樣的排除：請從 [主機指標](/docs/telemetry/host-otel-collector#主機指標) 複製。其他永遠是滿的掛接點（例如已掛接的 `.dmg`）請用 `exclude_mount_points` 排除。
 :::
 
 ## 後續步驟

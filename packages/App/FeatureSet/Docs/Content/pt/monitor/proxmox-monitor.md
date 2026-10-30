@@ -11,7 +11,7 @@ Um monitor de Proxmox acompanha um cluster Proxmox VE – seus nós, VMs e cont�
 
 ## Como funciona
 
-O agente Proxmox do OneUptime é executado em uma máquina que alcança a API do Proxmox VE. A cada 30 segundos, ele consulta o prometheus-pve-exporter com os coletores de cluster e de nó, rotula cada série com o recurso que ela descreve e envia as métricas para o OneUptime via OTLP, marcadas com o nome do cluster, `proxmox.cluster.name`. Os primeiros dados registram o cluster. O Proxmox VE 9 e versões posteriores podem, em vez disso, enviar métricas nativamente, sem instalar nada; consulte [o envio nativo](#o-envio-nativo-do-proxmox-ve).
+O agente Proxmox do OneUptime é executado em uma máquina que alcança a API do Proxmox VE. A cada 30 segundos, ele consulta os coletores de cluster do prometheus-pve-exporter uma vez e os coletores de nó dele uma vez para cada nó, rotula cada série com o recurso que ela descreve e envia as métricas para o OneUptime via OTLP, marcadas com o nome do cluster, `proxmox.cluster.name`. Os primeiros dados registram o cluster. O Proxmox VE 9 e versões posteriores podem, em vez disso, enviar métricas nativamente, sem instalar nada; consulte [o envio nativo](#o-envio-nativo-do-proxmox-ve).
 
 Um monitor de Proxmox está vinculado a um cluster. A cada minuto, ele executa sua consulta sobre as métricas desse cluster e compara o resultado com seus critérios.
 
@@ -148,7 +148,7 @@ O Proxmox VE 9 e versões posteriores podem enviar métricas pelo servidor de m�
 
 ## Métricas coletadas
 
-O agente consulta o prometheus-pve-exporter a cada 30 segundos com os coletores de cluster e de nó, o que também cobre os coletores `backup-info` e `replication` do exportador (ambos ativados por padrão).
+O agente consulta o prometheus-pve-exporter a cada 30 segundos: os coletores de cluster dele uma vez, em `PVE_HOST`, e os coletores de nó dele uma vez para cada nó em `PVE_NODES`, porque eles leem só o nó que o exportador consulta. Os coletores de nó são `config` (inicialização no boot) e `replication`; os coletores `backup-info` (cluster) e `replication` do exportador vêm ativados por padrão.
 
 ### Disponibilidade
 
@@ -206,7 +206,7 @@ Vêm do coletor `backup-info` do exportador, no nível do cluster. Elas informam
 
 ### Replicação
 
-Vêm do coletor `replication` do exportador, no nível do nó. As séries só existem quando o cluster tem jobs de replicação, e trazem o id do job em `id`:
+Vêm do coletor `replication` do exportador, no nível do nó, lido de cada nó em `PVE_NODES`. As séries só existem quando o cluster tem jobs de replicação, e trazem o id do job em `id`:
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ No envio nativo do Proxmox VE, um nó retirado do cluster parece igual a um que 
 :::
 
 :::details Faltam as métricas de backup ou de replicação
-`pve_not_backed_up_*` vem do coletor `backup-info` do exportador e `pve_replication_*` do coletor `replication` dele. Os dois vêm ativados por padrão e são cobertos pelos parâmetros de coleta `cluster=1` e `node=1` da configuração distribuída. Se você roda seu próprio exportador, verifique se não os desativou. `pve_replication_*` só existe quando o cluster tem jobs de replicação do armazenamento.
+`pve_not_backed_up_*` vem do coletor `backup-info` do exportador e `pve_replication_*` do coletor `replication` dele. Os dois vêm ativados por padrão e são cobertos pela configuração distribuída: `cluster=1` uma vez, e `node=1` para cada nó em `PVE_NODES`. Um nó que falte em `PVE_NODES` não envia jobs de replicação, nem os convidados dele marcações de inicialização no boot, então o **Guest Down** nunca dispara para eles. Se você roda seu próprio exportador, verifique se não os desativou. `pve_replication_*` só existe quando o cluster tem jobs de replicação do armazenamento.
 :::
 
 :::details Contadores como pve_network_receive_bytes só crescem

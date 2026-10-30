@@ -11,7 +11,7 @@ Un moniteur Proxmox surveille un cluster Proxmox VE – ses nœuds, ses VM et co
 
 ## Fonctionnement
 
-L'agent Proxmox de OneUptime s'exécute sur une machine qui peut joindre l'API de Proxmox VE. Toutes les 30 secondes, il interroge prometheus-pve-exporter avec les collecteurs de cluster et de nœud, étiquette chaque série avec la ressource qu'elle décrit et envoie les métriques à OneUptime via OTLP, marquées du nom du cluster, `proxmox.cluster.name`. Les premières données enregistrent le cluster. Proxmox VE 9 et les versions ultérieures peuvent aussi pousser les métriques nativement, sans rien installer ; voir [l'envoi natif](#lenvoi-natif-de-proxmox-ve).
+L'agent Proxmox de OneUptime s'exécute sur une machine qui peut joindre l'API de Proxmox VE. Toutes les 30 secondes, il interroge les collecteurs de cluster de prometheus-pve-exporter une fois et ses collecteurs de nœud une fois pour chaque nœud, étiquette chaque série avec la ressource qu'elle décrit et envoie les métriques à OneUptime via OTLP, marquées du nom du cluster, `proxmox.cluster.name`. Les premières données enregistrent le cluster. Proxmox VE 9 et les versions ultérieures peuvent aussi pousser les métriques nativement, sans rien installer ; voir [l'envoi natif](#lenvoi-natif-de-proxmox-ve).
 
 Un moniteur Proxmox est lié à un cluster. Chaque minute, il exécute sa requête sur les métriques de ce cluster et compare le résultat à ses critères.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 et les versions ultérieures peuvent pousser les métriques via leu
 
 ## Métriques collectées
 
-L'agent interroge prometheus-pve-exporter toutes les 30 secondes avec les collecteurs de cluster et de nœud, ce qui couvre aussi les collecteurs `backup-info` et `replication` de l'exportateur (tous deux activés par défaut).
+L'agent interroge prometheus-pve-exporter toutes les 30 secondes : ses collecteurs de cluster une fois, sur `PVE_HOST`, et ses collecteurs de nœud une fois pour chaque nœud de `PVE_NODES`, car ils ne lisent que le nœud que l'exportateur interroge. Les collecteurs de nœud sont `config` (démarrage au boot) et `replication` ; les collecteurs `backup-info` (cluster) et `replication` de l'exportateur sont tous deux activés par défaut.
 
 ### Disponibilité
 
@@ -206,7 +206,7 @@ Proviennent du collecteur `backup-info` de l'exportateur, au niveau du cluster. 
 
 ### Réplication
 
-Proviennent du collecteur `replication` de l'exportateur, au niveau des nœuds. Les séries n'existent que si le cluster a des tâches de réplication, et portent l'identifiant de la tâche dans `id` :
+Proviennent du collecteur `replication` de l'exportateur, au niveau des nœuds, lu sur chaque nœud de `PVE_NODES`. Les séries n'existent que si le cluster a des tâches de réplication, et portent l'identifiant de la tâche dans `id` :
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Avec l'envoi natif de Proxmox VE, un nœud retiré du cluster ressemble à un n�
 :::
 
 :::details Les métriques de sauvegarde ou de réplication manquent
-`pve_not_backed_up_*` provient du collecteur `backup-info` de l'exportateur et `pve_replication_*` de son collecteur `replication`. Les deux sont activés par défaut et couverts par les paramètres de collecte `cluster=1` et `node=1` de la configuration fournie. Si vous exécutez votre propre exportateur, vérifiez que vous ne les avez pas désactivés. `pve_replication_*` n'existe que si le cluster a des tâches de réplication du stockage.
+`pve_not_backed_up_*` provient du collecteur `backup-info` de l'exportateur et `pve_replication_*` de son collecteur `replication`. Les deux sont activés par défaut et couverts par la configuration fournie : `cluster=1` une fois, et `node=1` pour chaque nœud de `PVE_NODES`. Un nœud absent de `PVE_NODES` n'envoie aucune tâche de réplication, et ses invités aucun indicateur de démarrage au boot, donc **Guest Down** ne se déclenche jamais pour eux. Si vous exécutez votre propre exportateur, vérifiez que vous ne les avez pas désactivés. `pve_replication_*` n'existe que si le cluster a des tâches de réplication du stockage.
 :::
 
 :::details Les compteurs comme pve_network_receive_bytes ne font que croître

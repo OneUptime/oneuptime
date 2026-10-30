@@ -11,7 +11,7 @@ Ein Proxmox-Monitor überwacht einen Proxmox-VE-Cluster – seine Knoten, VMs un
 
 ## So funktioniert es
 
-Der OneUptime-Proxmox-Agent läuft auf einem Rechner, der die Proxmox-VE-API erreicht. Alle 30 Sekunden fragt er prometheus-pve-exporter mit den Cluster- und Knoten-Kollektoren ab, versieht jede Reihe mit der Ressource, die sie beschreibt, und sendet die Metriken über OTLP an OneUptime, versehen mit dem Namen des Clusters, `proxmox.cluster.name`. Die ersten Daten registrieren den Cluster. Proxmox VE 9 und neuer kann Metriken stattdessen nativ übertragen, ohne dass etwas installiert werden muss; siehe [die native Übertragung](#die-native-übertragung-von-proxmox-ve).
+Der OneUptime-Proxmox-Agent läuft auf einem Rechner, der die Proxmox-VE-API erreicht. Alle 30 Sekunden fragt er die Cluster-Kollektoren von prometheus-pve-exporter einmal und seine Knoten-Kollektoren einmal für jeden Knoten ab, versieht jede Reihe mit der Ressource, die sie beschreibt, und sendet die Metriken über OTLP an OneUptime, versehen mit dem Namen des Clusters, `proxmox.cluster.name`. Die ersten Daten registrieren den Cluster. Proxmox VE 9 und neuer kann Metriken stattdessen nativ übertragen, ohne dass etwas installiert werden muss; siehe [die native Übertragung](#die-native-übertragung-von-proxmox-ve).
 
 Ein Proxmox-Monitor ist an einen Cluster gebunden. Jede Minute führt er seine Abfrage über die Metriken dieses Clusters aus und vergleicht das Ergebnis mit seinen Kriterien.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 und neuer kann Metriken über seinen eingebauten OpenTelemetry-Metr
 
 ## Erfasste Metriken
 
-Der Agent fragt prometheus-pve-exporter alle 30 Sekunden mit den Cluster- und den Knoten-Kollektoren ab, was auch die Kollektoren `backup-info` und `replication` des Exporters abdeckt (beide standardmäßig eingeschaltet).
+Der Agent fragt prometheus-pve-exporter alle 30 Sekunden ab: seine Cluster-Kollektoren einmal, bei `PVE_HOST`, und seine Knoten-Kollektoren einmal für jeden Knoten in `PVE_NODES`, weil sie nur den Knoten lesen, den der Exporter abfragt. Die Knoten-Kollektoren sind `config` (Start beim Booten) und `replication`; die Kollektoren `backup-info` (Cluster) und `replication` des Exporters sind beide standardmäßig eingeschaltet.
 
 ### Verfügbarkeit
 
@@ -206,7 +206,7 @@ Aus dem clusterweiten Kollektor `backup-info` des Exporters. Sie melden nur die 
 
 ### Replikation
 
-Aus dem knotenbezogenen Kollektor `replication` des Exporters. Die Reihen gibt es nur, wenn der Cluster Replikationsjobs hat, und sie tragen die Job-ID in `id`:
+Aus dem knotenbezogenen Kollektor `replication` des Exporters, von jedem Knoten in `PVE_NODES` gelesen. Die Reihen gibt es nur, wenn der Cluster Replikationsjobs hat, und sie tragen die Job-ID in `id`:
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Bei der nativen Übertragung von Proxmox VE sieht ein aus dem Cluster genommener
 :::
 
 :::details Backup- oder Replikationsmetriken fehlen
-`pve_not_backed_up_*` kommt vom Kollektor `backup-info` des Exporters und `pve_replication_*` von seinem Kollektor `replication`. Beide sind standardmäßig eingeschaltet und durch die Abfrageparameter `cluster=1` und `node=1` der mitgelieferten Konfiguration abgedeckt. Wenn Sie Ihren eigenen Exporter betreiben, prüfen Sie, dass Sie sie nicht ausgeschaltet haben. `pve_replication_*` gibt es nur, wenn der Cluster Speicherreplikationsjobs hat.
+`pve_not_backed_up_*` kommt vom Kollektor `backup-info` des Exporters und `pve_replication_*` von seinem Kollektor `replication`. Beide sind standardmäßig eingeschaltet und durch die mitgelieferte Konfiguration abgedeckt: `cluster=1` einmal und `node=1` für jeden Knoten in `PVE_NODES`. Ein Knoten, der in `PVE_NODES` fehlt, sendet keine Replikationsjobs und seine Gäste keine Start-beim-Booten-Flags, daher löst **Guest Down** für sie nie aus. Wenn Sie Ihren eigenen Exporter betreiben, prüfen Sie, dass Sie sie nicht ausgeschaltet haben. `pve_replication_*` gibt es nur, wenn der Cluster Speicherreplikationsjobs hat.
 :::
 
 :::details Zähler wie pve_network_receive_bytes wachsen nur

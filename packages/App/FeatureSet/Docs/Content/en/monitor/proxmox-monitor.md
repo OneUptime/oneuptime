@@ -11,7 +11,7 @@ A Proxmox monitor watches one Proxmox VE cluster — its nodes, VMs and LXC cont
 
 ## How it works
 
-The OneUptime Proxmox Agent runs on a machine that can reach the Proxmox VE API. Every 30 seconds it scrapes prometheus-pve-exporter with the cluster and node collectors, labels each series with the resource it describes, and sends the metrics to OneUptime over OTLP, stamped with the cluster's name, `proxmox.cluster.name`. The first data registers the cluster. Proxmox VE 9 and later can instead push metrics natively, with nothing to install; see [the native push](#the-proxmox-ve-native-push).
+The OneUptime Proxmox Agent runs on a machine that can reach the Proxmox VE API. Every 30 seconds it scrapes prometheus-pve-exporter's cluster collectors once and its node collectors once for each node, labels each series with the resource it describes, and sends the metrics to OneUptime over OTLP, stamped with the cluster's name, `proxmox.cluster.name`. The first data registers the cluster. Proxmox VE 9 and later can instead push metrics natively, with nothing to install; see [the native push](#the-proxmox-ve-native-push).
 
 A Proxmox monitor is tied to one cluster. Every minute it runs its query over that cluster's metrics and compares the result with its criteria.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 and later can push metrics through its built-in OpenTelemetry metri
 
 ## Collected Metrics
 
-The agent scrapes prometheus-pve-exporter every 30 seconds with both the cluster and the node collectors, which also covers the exporter's `backup-info` and `replication` collectors (both on by default).
+The agent scrapes prometheus-pve-exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`, because they read only the node the exporter asks. The node collectors are `config` (start-on-boot) and `replication`; the exporter's `backup-info` (cluster) and `replication` collectors are both on by default.
 
 ### Availability
 
@@ -206,7 +206,7 @@ From the exporter's cluster-level `backup-info` collector. They report backup-**
 
 ### Replication
 
-From the exporter's node-level `replication` collector. The series exist only when the cluster has replication jobs, and carry the job id in `id`:
+From the exporter's node-level `replication` collector, read from every node in `PVE_NODES`. The series exist only when the cluster has replication jobs, and carry the job id in `id`:
 
 | Metric | Unit | Description |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ On the Proxmox VE native push, a node taken out of the cluster looks the same as
 :::
 
 :::details Backup or replication metrics are missing
-`pve_not_backed_up_*` comes from the exporter's `backup-info` collector and `pve_replication_*` from its `replication` collector. Both are on by default and covered by the shipped configuration's `cluster=1` and `node=1` scrape parameters. If you run your own exporter, check you have not turned them off. `pve_replication_*` only exists when the cluster has storage replication jobs.
+`pve_not_backed_up_*` comes from the exporter's `backup-info` collector and `pve_replication_*` from its `replication` collector. Both are on by default and covered by the shipped configuration: `cluster=1` once, and `node=1` for each node in `PVE_NODES`. A node missing from `PVE_NODES` sends no replication jobs, and its guests no start-on-boot flags, so **Guest Down** never fires for them. If you run your own exporter, check you have not turned them off. `pve_replication_*` only exists when the cluster has storage replication jobs.
 :::
 
 :::details Counters like pve_network_receive_bytes only ever grow

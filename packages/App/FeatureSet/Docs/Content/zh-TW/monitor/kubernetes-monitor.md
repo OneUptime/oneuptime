@@ -23,7 +23,7 @@ flowchart TB
 ## 開始之前
 
 - 叢集中正在執行 OneUptime Kubernetes 代理程式。請參閱 [Kubernetes 代理程式(Helm 安裝)](/docs/monitor/kubernetes-agent)；安裝後幾分鐘，叢集就會出現在 **Kubernetes** 下。
-- 控制平面範本（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）需要代理程式的控制平面擷取，也就是 `controlPlane.enabled`。代管叢集（EKS、GKE、AKS）不公開這些端點，因此在那裡這些監測器永遠收不到資料。
+- 控制平面範本（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）需要代理程式的控制平面擷取，也就是 `controlPlane.enabled`，它開箱即可讀取 API 伺服器；etcd 和排程器還需要列出它們的端點（請參閱 [啟用控制平面監控](/docs/telemetry/kubernetes-agent#啟用控制平面監控)）。代管叢集（EKS、GKE、AKS）不公開這些端點，因此在那裡這些監測器永遠收不到資料。
 
 ## 建立 Kubernetes 監測器
 
@@ -177,7 +177,7 @@ flowchart TB
 :::
 
 :::details 控制平面範本從不觸發
-**etcd No Leader**、**API Server Request Saturation** 和 **Scheduler Backlog** 讀取的指標只有代理程式的控制平面擷取才會收集。請在代理程式的 Helm 值中開啟 `controlPlane.enabled`；它預設是關閉的。代管叢集（EKS、GKE、AKS）不公開這些端點，因此在這些叢集上，這些監測器永遠收不到資料。
+**etcd No Leader**、**API Server Request Saturation** 和 **Scheduler Backlog** 讀取的指標只有代理程式的控制平面擷取才會收集。請在代理程式的 Helm 值中開啟 `controlPlane.enabled`；它預設是關閉的。這樣會讀取 API 伺服器。etcd 和排程器執行在控制平面節點上，因此 **etcd No Leader** 和 **Scheduler Backlog** 還需要將 `controlPlane.etcd.endpoints` 和 `controlPlane.scheduler.endpoints` 設定為代理程式的 Pod 能連線的位址（請參閱 [啟用控制平面監控](/docs/telemetry/kubernetes-agent#啟用控制平面監控)）。代管叢集（EKS、GKE、AKS）不公開這些端點，因此在這些叢集上，這些監測器永遠收不到資料。
 :::
 
 :::details CPU 閾值從不觸發

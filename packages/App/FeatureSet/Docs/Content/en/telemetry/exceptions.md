@@ -139,7 +139,7 @@ The **AI Assistance** page offers three tasks. Each runs as an AI task that open
 | **Generate Regression Test** | Adds a test that fails until the bug is fixed. |
 | **Improve Error Handling** | For expected errors: validates input earlier, keeps user data out of messages, and marks the error as handled. |
 
-AI needs three things first: an LLM provider, a connected repository (on GitHub, GitLab, Forgejo or Gitea, or any Git server), and an AI agent online to run the task. The page checks each one and links to what is missing. The tasks pause while the exception is resolved or archived. See [Code](/docs/ai/ai-agent).
+AI needs three things first: an LLM provider, a connected repository (on GitHub, GitLab, Forgejo or Gitea, or any Git server), and an AI agent online to run the task. The page checks each one and links to what is missing. The tasks pause while the exception is resolved or archived. See [Code](/docs/ai/ai-agent). Starting a task takes permission to edit the repository it works in: someone who can only read the exception sees its tasks but cannot start one.
 
 ## Find and fix new and rising exceptions with AI
 
@@ -182,6 +182,8 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ## Exceptions Insights
 
 The **Insights** tab counts your **Unresolved**, **Resolved** and **Archived** exceptions and your resolution rate, and lists the most frequent exceptions, the services they affect and the ones seen most recently.
+
+**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception. It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.
 
 ## Troubleshooting
 

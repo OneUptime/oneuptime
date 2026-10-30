@@ -11,7 +11,7 @@ Proxmox 모니터는 Proxmox VE 클러스터 하나(노드, VM과 LXC 컨테이�
 
 ## 작동 방식
 
-OneUptime Proxmox 에이전트는 Proxmox VE API에 닿을 수 있는 머신에서 실행됩니다. 30초마다 클러스터 및 노드 수집기로 prometheus-pve-exporter를 수집하고, 각 계열에 그것이 설명하는 리소스 레이블을 붙인 뒤, 클러스터 이름 `proxmox.cluster.name`을 찍어 OTLP로 OneUptime에 메트릭을 보냅니다. 첫 데이터가 클러스터를 등록합니다. Proxmox VE 9 이상은 대신 아무것도 설치하지 않고 메트릭을 직접 푸시할 수 있습니다. [기본 푸시](#proxmox-ve-기본-푸시)를 참고하세요.
+OneUptime Proxmox 에이전트는 Proxmox VE API에 닿을 수 있는 머신에서 실행됩니다. 30초마다 prometheus-pve-exporter의 클러스터 수집기를 한 번, 노드 수집기를 노드마다 한 번 수집하고, 각 계열에 그것이 설명하는 리소스 레이블을 붙인 뒤, 클러스터 이름 `proxmox.cluster.name`을 찍어 OTLP로 OneUptime에 메트릭을 보냅니다. 첫 데이터가 클러스터를 등록합니다. Proxmox VE 9 이상은 대신 아무것도 설치하지 않고 메트릭을 직접 푸시할 수 있습니다. [기본 푸시](#proxmox-ve-기본-푸시)를 참고하세요.
 
 Proxmox 모니터는 클러스터 하나에 연결됩니다. 매분 그 클러스터의 메트릭에 쿼리를 실행하고 결과를 기준과 비교합니다.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 이상은 내장 OpenTelemetry 메트릭 서버로 아무것도 설
 
 ## 수집되는 메트릭
 
-에이전트는 클러스터와 노드 수집기 모두로 30초마다 prometheus-pve-exporter를 수집하며, 여기에는 익스포터의 `backup-info`와 `replication` 수집기(둘 다 기본적으로 켜짐)도 포함됩니다.
+에이전트는 30초마다 prometheus-pve-exporter를 수집합니다. 클러스터 수집기는 `PVE_HOST`에서 한 번, 노드 수집기는 `PVE_NODES`의 각 노드마다 한 번인데, 노드 수집기는 익스포터가 묻는 노드만 읽기 때문입니다. 노드 수집기는 `config`(부팅 시 시작)와 `replication`이며, 익스포터의 `backup-info`(클러스터)와 `replication` 수집기는 둘 다 기본적으로 켜져 있습니다.
 
 ### 가용성
 
@@ -206,7 +206,7 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 
 ### 복제
 
-익스포터의 노드 수준 `replication` 수집기에서 옵니다. 계열은 클러스터에 복제 작업이 있을 때만 존재하며, `id`에 작업 ID를 가집니다.
+익스포터의 노드 수준 `replication` 수집기에서, `PVE_NODES`의 각 노드로부터 옵니다. 계열은 클러스터에 복제 작업이 있을 때만 존재하며, `id`에 작업 ID를 가집니다.
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Proxmox VE 기본 푸시에서는 클러스터에서 뺀 노드가 다운된 노
 :::
 
 :::details 백업이나 복제 메트릭이 없음
-`pve_not_backed_up_*`는 익스포터의 `backup-info` 수집기에서, `pve_replication_*`는 `replication` 수집기에서 옵니다. 둘 다 기본적으로 켜져 있으며, 함께 제공되는 구성의 수집 매개변수 `cluster=1`과 `node=1`이 다룹니다. 직접 익스포터를 운영한다면 이것들을 끄지 않았는지 확인하세요. `pve_replication_*`는 클러스터에 스토리지 복제 작업이 있을 때만 존재합니다.
+`pve_not_backed_up_*`는 익스포터의 `backup-info` 수집기에서, `pve_replication_*`는 `replication` 수집기에서 옵니다. 둘 다 기본적으로 켜져 있으며, 함께 제공되는 구성이 다룹니다. `cluster=1`은 한 번, `node=1`은 `PVE_NODES`의 각 노드마다입니다. `PVE_NODES`에 없는 노드는 복제 작업을 보내지 않고 그 게스트는 부팅 시 시작 플래그를 보내지 않으므로, 그 게스트에 대해서는 **Guest Down**이 발생하지 않습니다. 직접 익스포터를 운영한다면 이것들을 끄지 않았는지 확인하세요. `pve_replication_*`는 클러스터에 스토리지 복제 작업이 있을 때만 존재합니다.
 :::
 
 :::details pve_network_receive_bytes 같은 카운터가 늘기만 함

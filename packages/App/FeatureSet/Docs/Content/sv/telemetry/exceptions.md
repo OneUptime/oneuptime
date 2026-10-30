@@ -139,7 +139,7 @@ Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgi
 | **Generate Regression Test** | Lägger till ett test som misslyckas tills felet är rättat. |
 | **Förbättra felhantering** | För förväntade fel: validerar indata tidigare, håller användardata utanför meddelanden och markerar felet som hanterat. |
 
-AI behöver tre saker först: en LLM-leverantör, ett anslutet förråd (på GitHub, GitLab, Forgejo eller Gitea, eller valfri Git-server), och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent).
+AI behöver tre saker först: en LLM-leverantör, ett anslutet förråd (på GitHub, GitLab, Forgejo eller Gitea, eller valfri Git-server), och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent). Att starta en uppgift kräver behörighet att redigera förrådet den arbetar i: Den som bara får läsa undantaget ser dess uppgifter men kan inte starta någon.
 
 ## Hitta och åtgärda nya och ökande undantag med AI
 
@@ -182,6 +182,8 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ## Insikter i undantag
 
 Fliken **Insikter** räknar dina undantag under **Olöst**, **Löst** och **Arkiverad** och din lösningsgrad, och visar de vanligaste undantagen, tjänsterna de påverkar och de som setts senast.
+
+**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas inte, använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
 
 ## Felsökning
 

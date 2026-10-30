@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Dicas nos gráficos
 
-A maioria dos gráficos com zoom indica o gesto acima da área de plotagem, **Arraste para ampliar** ou **Clique ou arraste para ampliar**, e, enquanto um zoom está ativo, acrescenta o lembrete **double-click to reset**. Os cartões de métricas, o explorador de métricas e os gráficos de volume dos exploradores sempre mostram a dica. Nos cartões de gráficos das visões gerais de recursos e dos SLOs, e em alguns widgets de painel, ela só aparece enquanto você aponta para o cartão ou entra nele com a tecla Tab.
+A maioria dos gráficos com zoom indica o gesto acima da área de plotagem, **Arraste para ampliar** ou **Clique ou arraste para ampliar**, e, enquanto um zoom está ativo, acrescenta o lembrete **clique duas vezes para redefinir**. Os cartões de métricas, o explorador de métricas e os gráficos de volume dos exploradores sempre mostram a dica. Nos cartões de gráficos das visões gerais de recursos e dos SLOs, e em alguns widgets de painel, ela só aparece enquanto você aponta para o cartão ou entra nele com a tecla Tab.
 
 ## Onde funciona
 

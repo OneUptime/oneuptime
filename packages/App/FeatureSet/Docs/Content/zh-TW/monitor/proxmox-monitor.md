@@ -11,7 +11,7 @@ Proxmox 監測器監控一個 Proxmox VE 叢集（它的節點、虛擬機器與
 
 ## 運作方式
 
-OneUptime Proxmox 代理程式在一台能連到 Proxmox VE API 的機器上執行。它每 30 秒使用叢集和節點收集器擷取 prometheus-pve-exporter，替每個序列標上它所描述的資源，並透過 OTLP 把指標傳送到 OneUptime，同時加上叢集名稱 `proxmox.cluster.name`。第一批資料會註冊該叢集。Proxmox VE 9 以上版本也可以改為原生推送指標，不需安裝任何東西；請參閱 [原生推送](#proxmox-ve-原生推送)。
+OneUptime Proxmox 代理程式在一台能連到 Proxmox VE API 的機器上執行。它每 30 秒擷取一次 prometheus-pve-exporter 的叢集收集器，並對每個節點各擷取一次其節點收集器，替每個序列標上它所描述的資源，並透過 OTLP 把指標傳送到 OneUptime，同時加上叢集名稱 `proxmox.cluster.name`。第一批資料會註冊該叢集。Proxmox VE 9 以上版本也可以改為原生推送指標，不需安裝任何東西；請參閱 [原生推送](#proxmox-ve-原生推送)。
 
 Proxmox 監測器綁定到一個叢集。它每分鐘對這個叢集的指標執行查詢，並把結果與條件比較。
 
@@ -148,7 +148,7 @@ Proxmox VE 9 以上版本可以透過內建的 OpenTelemetry 指標伺服器推�
 
 ## 收集的指標
 
-代理程式每 30 秒使用叢集和節點兩類收集器擷取 prometheus-pve-exporter，這也涵蓋了匯出器的 `backup-info` 和 `replication` 收集器（兩者預設都開啟）。
+代理程式每 30 秒擷取 prometheus-pve-exporter：其叢集收集器在 `PVE_HOST` 上擷取一次，其節點收集器對 `PVE_NODES` 中的每個節點各擷取一次，因為節點收集器只讀取匯出器所詢問的節點。節點收集器是 `config`（開機自動啟動）和 `replication`；匯出器的 `backup-info`（叢集）和 `replication` 收集器預設都開啟。
 
 ### 可用性
 
@@ -206,7 +206,7 @@ CPU 和記憶體序列也會針對每個客體回報，使用 `qemu/*` 和 `lxc/
 
 ### 複寫
 
-來自匯出器的節點層級 `replication` 收集器。只有當叢集有複寫工作時這些序列才存在，並在 `id` 中攜帶工作 ID：
+來自匯出器的節點層級 `replication` 收集器，從 `PVE_NODES` 中的每個節點讀取。只有當叢集有複寫工作時這些序列才存在，並在 `id` 中攜帶工作 ID：
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ CPU 和記憶體序列也會針對每個客體回報，使用 `qemu/*` 和 `lxc/
 :::
 
 :::details 缺少備份或複寫指標
-`pve_not_backed_up_*` 來自匯出器的 `backup-info` 收集器，`pve_replication_*` 來自它的 `replication` 收集器。兩者預設都開啟，並由隨附設定的擷取參數 `cluster=1` 和 `node=1` 涵蓋。如果你執行自己的匯出器，請確認沒有關閉它們。只有當叢集有儲存複寫工作時，`pve_replication_*` 才存在。
+`pve_not_backed_up_*` 來自匯出器的 `backup-info` 收集器，`pve_replication_*` 來自它的 `replication` 收集器。兩者預設都開啟，並由隨附設定涵蓋：`cluster=1` 擷取一次，`node=1` 對 `PVE_NODES` 中的每個節點各擷取一次。`PVE_NODES` 中缺少的節點不會傳送複寫工作，其客體也不會傳送開機自動啟動旗標，因此 **Guest Down** 對它們從不觸發。如果你執行自己的匯出器，請確認沒有關閉它們。只有當叢集有儲存複寫工作時，`pve_replication_*` 才存在。
 :::
 
 :::details 像 pve_network_receive_bytes 這樣的計數器只增不減

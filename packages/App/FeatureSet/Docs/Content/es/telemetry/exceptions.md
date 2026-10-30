@@ -139,7 +139,7 @@ La página **Asistencia de IA** ofrece tres tareas. Cada una se ejecuta como una
 | **Generar prueba de regresión** | Añade una prueba que falla hasta que se corrija el error. |
 | **Mejorar el manejo de errores** | Para errores esperados: valida antes la entrada, mantiene los datos de usuario fuera de los mensajes y marca el error como gestionado. |
 
-La IA necesita antes tres cosas: un proveedor de LLM, un repositorio conectado (en GitHub, GitLab, Forgejo o Gitea, o en cualquier servidor Git) y un agente de IA en línea que ejecute la tarea. La página comprueba cada una y enlaza a lo que falte. Las tareas se pausan mientras la excepción está resuelta o archivada. Consulte [Código](/docs/ai/ai-agent).
+La IA necesita antes tres cosas: un proveedor de LLM, un repositorio conectado (en GitHub, GitLab, Forgejo o Gitea, o en cualquier servidor Git) y un agente de IA en línea que ejecute la tarea. La página comprueba cada una y enlaza a lo que falte. Las tareas se pausan mientras la excepción está resuelta o archivada. Consulte [Código](/docs/ai/ai-agent). Iniciar una tarea requiere permiso para editar el repositorio en el que trabaja: quien solo puede leer la excepción ve sus tareas, pero no puede iniciar ninguna.
 
 ## Encontrar y corregir excepciones nuevas o en aumento con IA
 
@@ -182,6 +182,8 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 ## Análisis de excepciones
 
 La pestaña **Análisis** cuenta sus excepciones **Sin resolver**, **Resuelto** y **Archivado** y su tasa de resolución, y enumera las excepciones más frecuentes, los servicios a los que afectan y las vistas más recientemente.
+
+**Novedades**, en la parte superior de la pestaña, pide a OneUptime AI, con **Resumir con OneUptime AI**, que resuma las excepciones vistas por primera vez en las últimas 24 horas y las que volvieron después de resolverse: unas frases sobre todas, luego cada una en una línea, la más urgente primero, con un enlace a la excepción. Se escribe cuando lo pide y no se guarda, usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado.
 
 ## Solución de problemas
 

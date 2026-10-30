@@ -39,14 +39,14 @@ Skabelonerne **HA Resource in Error State**, **Guest Down**, **Guest Not Backed 
 
 ## Før du begynder
 
-- Docker Engine 20.10 eller nyere med pluginnet Docker Compose v2, på en maskine, der kan nå Proxmox VE API'et på port 8006.
+- Docker Engine 20.10 eller nyere med pluginnet Docker Compose v2, på en maskine, der kan nå Proxmox VE API'et på hver node på port 8006.
 - En root-shell på en hvilken som helst Proxmox VE-node eller Proxmox' webbrugerflade til at oprette et API-token.
 - En indtagelsesnøgle. Opret en under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og kopiér dens værdi.
 - Udgående HTTPS fra den maskine til din OneUptime-URL.
 
 ### Hvor agenten skal køre
 
-Agenten forespørger Proxmox VE API'et over netværket, så den behøver ikke at bo på en klyngenode, og det bør den ikke: kør den på en maskine, der overlever et nodenedbrud (en lille overvågnings-VM på separat hardware, en administrationsvært), eller peg `PVE_HOST` på en virtuel IP eller et round-robin-DNS-navn i stedet for én nodes adresse. Hvis agentens API-mål er den node, der lige er gået ned, går din overvågning ned med den. Den ene undtagelse er den valgfrie journald-logpipeline, som skal køre på en Proxmox VE-node (se [Send Proxmox' tjenestelogs](#valgfrit-send-proxmox-tjenestelogs)).
+Agenten forespørger Proxmox VE API'et over netværket, så den behøver ikke at bo på en klyngenode, og det bør den ikke: kør den på en maskine, der overlever et nodenedbrud (en lille overvågnings-VM på separat hardware, en administrationsvært), eller peg `PVE_HOST` på en virtuel IP eller et round-robin-DNS-navn i stedet for én nodes adresse. Hvis agentens API-mål er den node, der lige er gået ned, går din overvågning ned med den. `PVE_NODES` er anderledes: den angiver hver node med dens egen adresse, aldrig en virtuel IP (se [Hvad agenten indsamler](#hvad-agenten-indsamler)). Den ene undtagelse er den valgfrie journald-logpipeline, som skal køre på en Proxmox VE-node (se [Send Proxmox' tjenestelogs](#valgfrit-send-proxmox-tjenestelogs)).
 
 ## Installer agenten
 
@@ -87,7 +87,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-Scriptet spørger efter din OneUptime-URL, indtagelsesnøglen, et navn til klyngen, Proxmox VE API-værten, om den medfølgende exporter skal køre, og token-id'et og secretet — og om [AI-agenten](#ai-agent) må anvende rettelser, og i så fald efter et token for sig og de gæster, den aldrig må ændre. Det installerer til `/opt/oneuptime-proxmox-agent`, skriver en `.env`-fil med `0600` og starter agenten med Docker Compose. Kører du scriptet igen, genbruger det alt i den `.env` i stedet for at spørge igen, og det er sådan, du [opgraderer agenten](#opgradering-af-agenten).
+Scriptet spørger efter din OneUptime-URL, indtagelsesnøglen, et navn til klyngen, Proxmox VE API-værten, om den medfølgende exporter skal køre, token-id'et og secretet og hver nodes adresse (det tilbyder klyngens egen liste, så snart det har tokenet) — og om [AI-agenten](#ai-agent) må anvende rettelser, og i så fald efter et token for sig og de gæster, den aldrig må ændre. Det installerer til `/opt/oneuptime-proxmox-agent`, skriver en `.env`-fil med `0600` og starter agenten med Docker Compose. Kører du scriptet igen, genbruger det alt i den `.env` i stedet for at spørge igen, og det er sådan, du [opgraderer agenten](#opgradering-af-agenten).
 @tab Docker Compose
 Hent `docker-compose.yml` og `otel-collector-config.yaml` fra [ProxmoxAgent-mappen](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) ind i en ny mappe:
 
@@ -104,12 +104,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
 ```
 
-`COMPOSE_PROFILES=pve-exporter` starter også den medfølgende exporter. Start agenten:
+`PVE_NODES` angiver hver node med dens egen adresse i firkantede parenteser, og `COMPOSE_PROFILES=pve-exporter` starter også den medfølgende exporter. Start agenten:
 
 ```bash
 docker compose up -d
@@ -149,7 +150,8 @@ Installationsscriptet skriver disse til `/opt/oneuptime-proxmox-agent/.env`; en 
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, såsom `https://oneuptime.com` eller din selvhostede instans. Brug `http://` og dens port, hvis instansen kun bruger HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `PROXMOX_CLUSTER_NAME` | Ja | Klyngens navn i OneUptime, stemplet på hver metrik som ressourceattributten `proxmox.cluster.name`. Hold det stabilt: at ændre det senere registrerer en anden klynge. Standard er `proxmox-cluster`. |
-| `PVE_HOST` | Ja | Proxmox VE API-værten (en hvilken som helst node i klyngen), som exporteren og AI-agenten forespørger, såsom `192.168.1.10`. |
+| `PVE_HOST` | Ja | Proxmox VE API-værten, som exporteren læser klyngen fra, og som AI-agenten forespørger: en hvilken som helst node eller en virtuel IP, der skifter mellem dem, såsom `192.168.1.10`. |
+| `PVE_NODES` | I en klynge | Hver nodes egen API-adresse, kommasepareret i firkantede parenteser, såsom `[192.168.1.10,192.168.1.11,192.168.1.12]`. Exporteren læser start ved opstart, replikering og abonnementet kun for den node, den spørger, så hver node spørges efter tur. Standard er `PVE_HOST` alene, hvilket er nok til en enkelt node. |
 | `PVE_EXPORTER_URL` | Nej | Adressen (`host:port`, intet skema) på prometheus-pve-exporter. Standard er den medfølgende exporter, `pve-exporter:9221`. |
 | `PVE_API_TOKEN_ID` | Medfølgende exporter eller AI-agent | Det fulde id for Proxmox-API-tokenet, såsom `monitoring@pam!oneuptime`. AI-agenten læser API'et med det, medmindre den har sit eget token (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`). |
 | `PVE_API_TOKEN_SECRET` | Medfølgende exporter eller AI-agent | Proxmox-API-tokenets secret. |
@@ -158,7 +160,7 @@ Installationsscriptet skriver disse til `/opt/oneuptime-proxmox-agent/.env`; en 
 
 ## Hvad agenten indsamler
 
-Collectoren scraper exporteren hvert 30. sekund med både dens klynge- og node-collectors slået til, hvilket også dækker exporterens som standard aktive collectors `backup-info` (klyngeniveau) og `replication` (nodeniveau). Hver serie bærer en `id`-etiket, der navngiver ressourcen: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` eller `storage/<node>/<storage>`.
+Collectoren scraper exporteren hvert 30. sekund: dens klynge-collectors én gang, på `PVE_HOST`, og dens node-collectors én gang for hver node i `PVE_NODES`. Enhver node besvarer klynge-collectorerne, heriblandt `backup-info`, der er aktiv som standard, for hele klyngen. Node-collectorerne (`config`, for start ved opstart, og `replication`) læser kun den node, exporteren spørger, så en node, der mangler i `PVE_NODES`, sender hverken sine gæsters flag for start ved opstart, som **Guest Down** har brug for, eller sine replikeringsjob. Hver serie bærer en `id`-etiket, der navngiver ressourcen: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` eller `storage/<node>/<storage>`.
 
 | Kategori | Metrikker |
 | --- | --- |
@@ -168,6 +170,7 @@ Collectoren scraper exporteren hvert 30. sekund med både dens klynge- og node-c
 | Lager | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
 | Backupdækning | `pve_not_backed_up_total` (de gæster, intet backupjob dækker; én serie på klyngeniveau, ingen `id`-etiket) og `pve_not_backed_up_info` (én serie pr. udækket gæst, med dens `id`). Dækket betyder, at mindst ét job vælger gæsten: om backups kørte for nylig eller lykkedes, eksponeres ikke af exporteren. |
+| Start ved opstart | `pve_onboot_status`, én serie pr. gæst: 1, når gæsten er sat til at starte ved opstart. **Guest Down** alarmerer kun for disse gæster. |
 | Replikering | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, pr. lagerreplikeringsjob. Deres `id`-etiket er jobbets id (såsom `100-0`), ikke en ressource. |
 
 Monitorkriterier og attributfiltre matcher på lighed, ikke på et præfiks, så collectorens processor `transform/pve-identity` deler også `id` op i tre attributter. De indbyggede Proxmox-advarselsskabeloner filtrerer på dem, så behold processoren, hvis du tilpasser konfigurationen:
@@ -297,7 +300,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 Agenten rapporterer den collector-version, dens filer fastlåser, som sin **Agentversion**. Når den er ældre end den version, denne OneUptime-udgivelse fastlåser, vises et advarselstegn ved siden af den på klyngens **Oversigt**. Vælg det for at se disse kommandoer. En agent, der blev installeret, før dens filer rapporterede en version, viser ingen, indtil den opgraderes på denne måde.
 
-Collector-imaget er fastlåst i `docker-compose.yml`, og dens konfiguration er en fil ved siden af, så et pull alene flytter ikke agenten frem. Kør `install.sh` igen: det genbruger hver værdi i din eksisterende `.env` (der spørges ikke om noget igen), fornyer `docker-compose.yml` og `otel-collector-config.yaml` (en fil, du har redigeret, beholdes som `<file>.bak.<timestamp>`), henter imagene og genopretter agenten, så collectoren læser sin nye konfiguration.
+Collector-imaget er fastlåst i `docker-compose.yml`, og dens konfiguration er en fil ved siden af, så et pull alene flytter ikke agenten frem. Kør `install.sh` igen: det genbruger hver værdi i din eksisterende `.env` (der spørges ikke om noget igen), fornyer `docker-compose.yml` og `otel-collector-config.yaml` (en fil, du har redigeret, beholdes som `<file>.bak.<timestamp>`), henter imagene og genopretter agenten, så collectoren læser sin nye konfiguration. En `.env` fra før `PVE_NODES` bliver ved med kun at læse `PVE_HOST`, og scriptet nævner de noder, der skal tilføjes.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
@@ -359,6 +362,10 @@ API-tokenet er forkert eller mangler tilladelser. Kontrollér token-id'ets forma
 
 :::details Kun nodemetrikker, ingen gæstemetrikker
 Gæsteserier (`qemu/*`- og `lxc/*`-id'er) kommer fra exporterens klynge-collector, som den medfølgende konfiguration slår til med scrape-parameteren `cluster=1`. Hvis du har tilpasset `otel-collector-config.yaml`, så sæt parameteren `cluster: ["1"]` tilbage.
+:::
+
+:::details Guest Down eller Replication Failing udløses aldrig for nogle gæster
+Deres flag for start ved opstart og deres replikeringsjob kommer fra den node, de kører på, og agenten læser kun noderne i `PVE_NODES`. Angiv hver nodes egen adresse der, såsom `PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`, og kør `docker compose up -d`. Hvis collectoren holder op med at starte, efter du har redigeret den, har listen mistet sine firkantede parenteser. Diagnosescriptet tjekker hver node på listen.
 :::
 
 :::details Metrikker lander under den forkerte klynge

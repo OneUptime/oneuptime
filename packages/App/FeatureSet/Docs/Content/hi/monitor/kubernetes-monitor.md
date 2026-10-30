@@ -23,7 +23,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - क्लस्टर में OneUptime Kubernetes एजेंट चल रहा हो। [Kubernetes एजेंट (Helm स्थापना)](/docs/monitor/kubernetes-agent) देखें; इंस्टॉल के कुछ मिनट बाद क्लस्टर **Kubernetes** के अंतर्गत दिखने लगता है।
-- कंट्रोल प्लेन टेम्पलेट (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**) के लिए: एजेंट का कंट्रोल प्लेन स्क्रेप, `controlPlane.enabled`। प्रबंधित क्लस्टर (EKS, GKE, AKS) ये एंडपॉइंट उपलब्ध नहीं कराते, इसलिए वहाँ इन मॉनिटरों को कभी डेटा नहीं मिलता।
+- कंट्रोल प्लेन टेम्पलेट (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**) के लिए: एजेंट का कंट्रोल प्लेन स्क्रेप, `controlPlane.enabled`, जो API सर्वर को सीधे पढ़ लेता है; etcd और शेड्यूलर के लिए उनके एंडपॉइंट भी देने होते हैं (देखें [कंट्रोल प्लेन निगरानी चालू करें](/docs/telemetry/kubernetes-agent#कंट्रोल-प्लेन-निगरानी-चालू-करें))। प्रबंधित क्लस्टर (EKS, GKE, AKS) ये एंडपॉइंट उपलब्ध नहीं कराते, इसलिए वहाँ इन मॉनिटरों को कभी डेटा नहीं मिलता।
 
 ## Kubernetes मॉनिटर बनाएं
 
@@ -177,7 +177,7 @@ flowchart TB
 :::
 
 :::details कंट्रोल प्लेन टेम्पलेट कभी ट्रिगर नहीं होता
-**etcd No Leader**, **API Server Request Saturation** और **Scheduler Backlog** ऐसे मेट्रिक्स पढ़ते हैं जिन्हें सिर्फ़ एजेंट का कंट्रोल प्लेन स्क्रेप इकट्ठा करता है। एजेंट के Helm मानों में `controlPlane.enabled` चालू करें; यह डिफ़ॉल्ट रूप से बंद है। प्रबंधित क्लस्टर (EKS, GKE, AKS) ये एंडपॉइंट उपलब्ध नहीं कराते, इसलिए उन पर इन मॉनिटरों को कभी डेटा नहीं मिलता।
+**etcd No Leader**, **API Server Request Saturation** और **Scheduler Backlog** ऐसे मेट्रिक्स पढ़ते हैं जिन्हें सिर्फ़ एजेंट का कंट्रोल प्लेन स्क्रेप इकट्ठा करता है। एजेंट के Helm मानों में `controlPlane.enabled` चालू करें; यह डिफ़ॉल्ट रूप से बंद है। इससे API सर्वर पढ़ा जाता है। etcd और शेड्यूलर कंट्रोल-प्लेन नोड पर चलते हैं, इसलिए **etcd No Leader** और **Scheduler Backlog** को `controlPlane.etcd.endpoints` और `controlPlane.scheduler.endpoints` भी चाहिए, जो ऐसे पतों पर सेट हों जिन तक एजेंट का पॉड पहुँच सके (देखें [कंट्रोल प्लेन निगरानी चालू करें](/docs/telemetry/kubernetes-agent#कंट्रोल-प्लेन-निगरानी-चालू-करें))। प्रबंधित क्लस्टर (EKS, GKE, AKS) ये एंडपॉइंट उपलब्ध नहीं कराते, इसलिए उन पर इन मॉनिटरों को कभी डेटा नहीं मिलता।
 :::
 
 :::details CPU थ्रेशोल्ड कभी ट्रिगर नहीं होता

@@ -51,7 +51,9 @@ function runUnoptimized(script: string): Report {
 
         const built = esbuild.buildSync({
           stdin: {
-            contents: 'export * from "./Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt";',
+            contents:
+              'export * from "./Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt";\n' +
+              'export * from "./Server/Utils/AI/TelemetryAi/ExceptionDigestPrompt";',
             resolveDir: process.cwd(),
             loader: "ts",
             sourcefile: "explanation-huge-text.ts",
@@ -195,5 +197,77 @@ describe("Sixteen megabytes of an exception, where V8 compiles regular expressio
     expect(report.regexpOnItsOwn).toBe(false);
     expectEveryCheckPassed(report);
     expect(Object.keys(report.results)).toHaveLength(9);
+  }, 600000);
+
+  /*
+   * The day's digest (ExceptionDigestPrompt) is built from the same values,
+   * twenty exceptions at a time: each is cut before it is scrubbed, and the
+   * stack trace before its top frame is read.
+   */
+  test("the digest's prompt is built, bounded, from twenty long exceptions, and a long answer is read", () => {
+    const report: Report = runUnoptimized(String.raw`
+      const exceptionOf = (overrides) => ({
+        telemetryExceptionId: "id",
+        kind: "new",
+        exceptionType: "Error",
+        message: "",
+        stackTrace: "",
+        occurrenceCount: 1,
+        unhandled: false,
+        ...overrides,
+      });
+
+      const shapes = {
+        "messages of one line of letters": () => exceptionOf({ message: line("ab") }),
+        "messages of emails": () => exceptionOf({ message: line("priya@example.com ") }),
+        "stack traces of one line": () => exceptionOf({ stackTrace: line("x") }),
+        "stack traces of many frames": () =>
+          exceptionOf({ stackTrace: "Error: x\n" + repeatTo("    at f (/app/src/a.ts:1:1)\n", SIZE) }),
+        "types, services and releases of one line": () =>
+          exceptionOf({
+            exceptionType: line("Type"),
+            resourceName: line("svc "),
+            environment: line("prod "),
+            release: line("1.2.3."),
+          }),
+      };
+
+      for (const [name, exceptionFor] of Object.entries(shapes)) {
+        attempt(name, () => {
+          const one = exceptionFor();
+          const exceptions = Array.from({ length: 20 }, (_, index) => ({
+            ...one,
+            telemetryExceptionId: "id-" + index,
+          }));
+          const started = Date.now();
+          const prompt = lib.buildExceptionDigestPrompt(exceptions);
+
+          return {
+            "is bounded": prompt.length < 64 * 1024,
+            "took under ten seconds": Date.now() - started < 10000,
+          };
+        });
+      }
+
+      attempt("a digest answer of sixteen megabytes", () => {
+        const started = Date.now();
+        const given = [exceptionOf({ message: line("ab") })];
+        const answer =
+          '{"headline": "' + repeatTo("h", 1000) + '", "items": [{"ref": "E1", "summary": "s"}]}' +
+          line("{ab}");
+        lib.parseExceptionDigestResponse(answer, given);
+        const unclosed = "{" + line('"a": ');
+        const nothing = lib.parseExceptionDigestResponse(unclosed, given);
+
+        return {
+          "an unclosed answer is none": nothing === null,
+          "took under ten seconds": Date.now() - started < 10000,
+        };
+      });
+    `);
+
+    expect(report.regexpOnItsOwn).toBe(false);
+    expectEveryCheckPassed(report);
+    expect(Object.keys(report.results)).toHaveLength(6);
   }, 600000);
 });

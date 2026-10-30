@@ -23,7 +23,7 @@ flowchart TB
 ## 始める前に
 
 - クラスター内で OneUptime の Kubernetes エージェントが動作していること。[Kubernetes エージェント (Helm インストール)](/docs/monitor/kubernetes-agent) を参照してください。インストールから数分後にクラスターが **Kubernetes** に表示されます。
-- コントロールプレーンのテンプレート（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）には、エージェントのコントロールプレーンのスクレイプ（`controlPlane.enabled`）が必要です。マネージドクラスター（EKS、GKE、AKS）はこれらのエンドポイントを公開しないため、そこではこれらのモニターにデータが届きません。
+- コントロールプレーンのテンプレート（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）には、エージェントのコントロールプレーンのスクレイプ（`controlPlane.enabled`）が必要です。これで API サーバーはそのまま読み取れますが、etcd とスケジューラーにはエンドポイントの指定も必要です（[コントロールプレーンの監視を有効にする](/docs/telemetry/kubernetes-agent#コントロールプレーンの監視を有効にする) を参照）。マネージドクラスター（EKS、GKE、AKS）はこれらのエンドポイントを公開しないため、そこではこれらのモニターにデータが届きません。
 
 ## Kubernetes モニターを作成する
 
@@ -177,7 +177,7 @@ flowchart TB
 :::
 
 :::details コントロールプレーンのテンプレートが発火しない
-**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog** は、エージェントのコントロールプレーンのスクレイプでのみ収集されるメトリクスを読み取ります。エージェントの Helm の値で `controlPlane.enabled` を有効にしてください。既定では無効です。マネージドクラスター（EKS、GKE、AKS）はこれらのエンドポイントを公開しないため、そこではこれらのモニターにデータが届きません。
+**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog** は、エージェントのコントロールプレーンのスクレイプでのみ収集されるメトリクスを読み取ります。エージェントの Helm の値で `controlPlane.enabled` を有効にしてください。既定では無効です。これで API サーバーが読み取られます。etcd とスケジューラーはコントロールプレーンのノードで動作するため、**etcd No Leader** と **Scheduler Backlog** には、エージェントの Pod から到達できるアドレスを設定した `controlPlane.etcd.endpoints` と `controlPlane.scheduler.endpoints` も必要です（[コントロールプレーンの監視を有効にする](/docs/telemetry/kubernetes-agent#コントロールプレーンの監視を有効にする) を参照）。マネージドクラスター（EKS、GKE、AKS）はこれらのエンドポイントを公開しないため、そこではこれらのモニターにデータが届きません。
 :::
 
 :::details CPU のしきい値が発火しない

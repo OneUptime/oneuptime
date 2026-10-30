@@ -50,6 +50,7 @@ import ErrorClass, {
   isNonActionableErrorClass,
 } from "Common/Types/Telemetry/ErrorClass";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
 import {
   CORE_LOGS_TABLE_COLUMN_OPTIONS,
   DEFAULT_LOGS_TABLE_COLUMNS,
@@ -2255,6 +2256,46 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
     expect(page).toContain(
       "The tasks pause while the exception is resolved or archived.",
+    );
+
+    /*
+     * Who may start one: the server asks what asking AI to work in the
+     * repository asks (assertMayAskForFix), and the card locks its buttons
+     * for anyone who may not edit repositories.
+     */
+    expect(
+      readCommonSource("Server/Services/TelemetryExceptionService.ts"),
+    ).toContain("mayAsk = await CodeTaskAccess.canAskInRepository({");
+    expect(
+      readDashboardSource("Components/Exceptions/ExceptionAIAssistance.tsx"),
+    ).toContain("new CodeRepository(),");
+    expect(page).toContain(
+      "Starting a task takes permission to edit the repository it works in: someone who can only read the exception sees its tasks but cannot start one.",
+    );
+  });
+
+  /*
+   * What's new on Insights: OneUptime AI's digest of the last day's new and
+   * regressed exceptions, on request, not while AI is off.
+   */
+  it("offers What's new on Insights, a digest of the last day's new and regressed exceptions", () => {
+    const insights: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsDashboard.tsx",
+    );
+    const digest: string = readDashboardSource(
+      "Components/Exceptions/ExceptionAIDigest.tsx",
+    );
+
+    expect(insights).toContain("<ExceptionAIDigest />");
+    expect(digest).toContain('title="What\'s new"');
+    expect(digest).toContain(': "Summarize with OneUptime AI"');
+    expect(digest).toContain("const isAiOffered: boolean = useAiOffered();");
+    expect(EXCEPTION_DIGEST_WINDOW_HOURS).toBe(24);
+    expect(page).toContain(
+      "**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception.",
+    );
+    expect(page).toContain(
+      "It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.",
     );
   });
 

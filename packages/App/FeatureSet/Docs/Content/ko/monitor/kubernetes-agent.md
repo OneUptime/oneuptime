@@ -60,8 +60,8 @@ helm repo update
 URL을 내 OneUptime URL로, 두 자리표시자를 수집 키와 클러스터 이름으로 바꾸세요.
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -73,7 +73,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ### 파드 실행 확인
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
+kubectl get pods -n oneuptime-agent
 ```
 
 1~2분 안에 모든 파드가 `Running` 상태가 되어야 합니다.
@@ -100,16 +100,16 @@ GKE Autopilot과 EKS Fargate는 eBPF 계측과 프로파일링에 필요한 특�
 :::tabs
 @tab Standard
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
 @tab GKE Autopilot
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
@@ -117,8 +117,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ```
 @tab EKS Fargate
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
@@ -131,8 +131,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 설치할 때 전달한 레이블은 클러스터와, 이 에이전트가 보고하는 서비스와 호스트에 붙습니다. `--set oneuptime.labels.<key>=<value>` 는 `<key>:<value>` 라는 이름의 프로젝트 레이블이 됩니다.
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -156,8 +156,8 @@ clusterName: prod
 ```
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   -f values.yaml
 ```
 
@@ -182,8 +182,8 @@ Windows 노드에서는 에이전트 파드가 실행되지 않습니다. 그래
 Windows 노드의 파드 로그도 수집하려면 하이브리드 모드를 켜세요.
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -240,8 +240,8 @@ OBI는 호출을 넘어 트레이스를 이어 가기도 합니다. 파드 A가 
 - **그 밖의 로그 줄** 은 연결 없이 그대로 수집됩니다. 다만 `ebpf.logEnricher.plainText=true`도 설정하면 OBI가 그 줄 끝에 ` trace_id=… span_id=…`를 덧붙이고, 노드 컬렉터가 ID를 로그 레코드로 옮기고 줄에서 제거하므로 OneUptime에는 앱이 쓴 그대로 표시됩니다. `kubectl logs`가 출력하는 컨테이너 로그 파일의 줄에는 덧붙인 내용이 그대로 남습니다.
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=true
 ```
 
@@ -310,8 +310,8 @@ ebpf:
 OBI가 실행 중이고 트래픽을 보고 있는지 확인하려면 다음을 실행합니다.
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl get pods -n oneuptime-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 ## 지속적인 CPU 프로파일링
@@ -338,14 +338,14 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 | 옵션 | 기본값 | 추가하는 것 |
 | --- | --- | --- |
 | `hostMetrics.enabled` | 켜짐 | `/proc` 와 `/sys` 에서 가져오는 각 노드의 OS 메트릭: 디스크 I/O 큐, 파일 시스템 inode, 네트워크 인터페이스 오류, 페이징, 로드 평균. 노드 컬렉터 안에서 실행되며 추가 파드가 없습니다. |
-| `kubeletstats.utilizationMetrics.enabled` | 켜짐 | 컨테이너와 파드의 CPU 및 메모리를 request와 limit 대비 백분율로. CPU 및 메모리 포화 모니터가 이를 읽습니다. request나 limit이 없는 파드에서는 항상 0입니다. |
-| `kubeletstats.volumeMetrics.enabled` | 켜짐 | 각 PVC의 여유 공간과 전체 공간(`k8s.volume.available`, `k8s.volume.capacity`). PVC Low Disk Space 모니터가 이를 읽습니다. 파드당 PVC당 시리즈 하나입니다. |
+| `kubeletstats.utilizationMetrics.enabled` | 켜짐 | 컨테이너와 파드의 CPU 및 메모리를 request와 limit 대비 백분율로. Pod CPU Saturating Container Limit 및 Pod Memory Saturating Container Limit 템플릿이 이를 읽습니다. limit(또는 request)이 없는 컨테이너에는 이 시리즈가 없으며, 파드에는 모든 컨테이너에 있을 때만 있습니다. |
+| `kubeletstats.volumeMetrics.enabled` | 켜짐 | 각 PVC의 여유 공간과 전체 공간(`k8s.volume.available`, `k8s.volume.capacity`). 직접 만드는 차트와 메트릭 모니터용이며, 기본 제공 템플릿은 이를 읽지 않습니다. 파드당 PVC당 시리즈 하나입니다. |
 | `cadvisor.enabled` | 켜짐 | 각 kubelet의 `/metrics/cadvisor` 에서 가져오는 CPU 스로틀링과 OOM 종료: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`, `container_oom_events_total` 만 수집합니다. |
 | `kubeStateMetrics.enabled` | 꺼짐 | kube-state-metrics에서 가져오는 파드 단계(Pending, Terminating), 스케줄할 수 없는 파드, 컨테이너 대기 사유(CrashLoopBackOff, ImagePullBackOff), 리소스 쿼터 사용량. `kubeStateMetrics.mode: bundled`(기본값)는 작은 kube-state-metrics를 대신 실행하고, `external` 은 이미 실행 중인 것을 `kubeStateMetrics.endpoint` 에서 읽습니다. |
 | `auditLogs.enabled` | 꺼짐 | Kubernetes 감사 로그 `/var/log/kubernetes/audit.log`: API에 대한 모든 요청과 누가 무엇에 요청했는지. 자체 관리형 클러스터만 해당합니다. 관리형 클러스터(EKS, GKE, AKS, DOKS)는 이를 클라우드 공급자에게 보냅니다. |
 | `csi.enabled` | 꺼짐 | `app=csi-driver` 또는 `app.kubernetes.io/component=csi-driver` 레이블이 붙은 파드에서 가져오는 CSI 스토리지 드라이버 메트릭: 볼륨 연결 및 분리 시간, 프로비저닝 실패, IOPS. |
 | `coreDns.enabled` | 꺼짐 | `:9153/metrics` 의 CoreDNS 메트릭: 쿼리 속도, 지연 시간, 캐시 적중, 오류. |
-| `controlPlane.enabled` | 꺼짐 | etcd, API 서버, 스케줄러, 컨트롤러 관리자. 자체 관리형 클러스터만 해당하며, 관리형 클러스터는 이를 노출하지 않습니다. |
+| `controlPlane.enabled` | 꺼짐 | 클러스터 안의 주소에 있는 API 서버, 그리고 지정한 엔드포인트에 있는 etcd, 스케줄러, 컨트롤러 관리자([컨트롤 플레인 모니터링 활성화](/docs/telemetry/kubernetes-agent#컨트롤-플레인-모니터링-활성화)). 자체 관리형 클러스터만 해당하며, 관리형 클러스터는 이를 노출하지 않습니다. |
 | `cost.enabled` | 꺼짐 | 각 워크로드의 비용. [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)를 참고하세요. |
 
 ## 주요 옵션
@@ -376,8 +376,8 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values
 ```
 
@@ -385,9 +385,9 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm repo update
-helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
-  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent -f values.yaml
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
 ```
 
 `--reuse-values` 로 업그레이드하지 마세요. 업그레이드 전 차트의 기본값까지 유지하므로, 새 차트의 기본값(eBPF 이미지 포함)이 적용되지 않습니다. 릴리스가 이전 차트의 기본값으로 실행 중이면, 설치나 업그레이드 뒤 Helm이 출력하는 노트 끝에 경고와 이를 고치는 명령이 표시됩니다.
@@ -398,8 +398,8 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
 ## 제거
 
 ```bash
-helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
-kubectl delete namespace oneuptime-kubernetes-agent
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
 ```
 
 ## 문제 해결
@@ -409,7 +409,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
-  | bash -s -- -n oneuptime-kubernetes-agent
+  | bash -s -- -n oneuptime-agent
 ```
 
 흔한 원인은, 특히 다시 설치한 뒤라면, 잘못되었거나 취소된 수집 키입니다. OneUptime이 키를 거부하고, 컬렉터는 파드가 `Running` 인 채로 모든 배치를 버립니다.
@@ -420,8 +420,8 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set preset=gke-autopilot
 ```
@@ -437,8 +437,8 @@ EKS Fargate에서는 `--set preset=eks-fargate` 를 사용하세요.
 에이전트의 파드와 그 로그를 확인하세요.
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
-kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
+kubectl get pods -n oneuptime-agent
+kubectl logs -n oneuptime-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
 `api` 모드에서는 로그 테일러가 포트 13133의 `/healthz` 에서 내보내기 상태를 알려 줍니다. `kubectl port-forward` 로 접근하세요.
@@ -448,7 +448,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptim
 OBI의 로그를 읽으세요.
 
 ```bash
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 - **커널이 너무 오래되었거나 BTF가 없습니다.** OBI에는 BTF가 있는 Linux 5.8 이상이 필요합니다. 노드에서 `uname -r` 로 확인하세요. 업그레이드할 수 없다면 `--set ebpf.enabled=false` 로 eBPF를 끄세요.
@@ -468,7 +468,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 네임스페이스를 여러 릴리스로 나누고, 각 릴리스를 자체 네임스페이스 규칙으로 설치하세요.
 
 ```bash
-helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
+helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
   --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...

@@ -4,6 +4,8 @@ import {
   TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES,
   TIME_RANGE_ZOOM_HINT_TEXT,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { DashboardWidgetTimeRangeZoomHandlers } from "../Utils/DashboardWidgetTimeRangeZoom";
 
 export const DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID: string =
@@ -29,11 +31,14 @@ export interface ComponentProps {
  * group, TIME_RANGE_ZOOM_HINT_GROUP_CLASS), so a board of small widgets stays
  * uncluttered, and it names only a gesture the widget has there and then:
  * the drag while a chart is drawn, the reset while the board is zoomed, and
- * nothing at all in edit mode or on a surface that owns no time range.
+ * nothing at all in edit mode or on a surface that owns no time range - in
+ * the reader's language, the whole line one string of the locales ("Drag to
+ * zoom · double-click to reset"), as the chart panels say it.
  */
 const DashboardWidgetZoomHint: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const canDrag: boolean =
     props.isChartShown && Boolean(props.zoom.onTimeRangeSelect);
   const canReset: boolean = Boolean(props.zoom.onTimeRangeReset);
@@ -62,7 +67,7 @@ const DashboardWidgetZoomHint: FunctionComponent<ComponentProps> = (
        */
       className={`pointer-events-none shrink-0 whitespace-nowrap text-[10px] text-gray-400 ${TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES} ${props.className || ""}`}
     >
-      {text}
+      {translator.translateText(text)}
     </span>
   );
 };

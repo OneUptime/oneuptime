@@ -113,7 +113,7 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 - **Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de machine is uitgevallen of onbereikbaar, of de collector is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **CPU** is bezette tijd (`user` plus `system`), hetzelfde cijfer dat het **Overzicht** van de host in grafieken toont. Iowait en steal tellen niet mee.
 - **Geheugen** sluit buffers en paginacache uit, zodat een host die grotendeels cache bevat het sjabloon niet laat afgaan.
-- **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol; sluit ze uit in de scraper `filesystem` van de collector.
+- **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol: de collectorconfiguraties van OneUptime laten ze met `exclude_fs_types` buiten de scraper `filesystem`, en een eigen configuratie heeft hetzelfde nodig.
 - **Belastingsgemiddelde** is een ruwe lengte van de uitvoerwachtrij, niet gedeeld door het aantal kernen: 4 is verzadiging op een host met 2 kernen en routine op een host met 32; verhoog de drempel daarom op grote hosts.
 - **Aantal processen** vergelijkt de grootste afzonderlijke procestoestand (`running`, `sleeping`, …), niet het totaal van de host, en komt dus niet overeen met een proceslijst. De processcraper rapporteert alleen op Linux.
 
@@ -212,7 +212,7 @@ De monitor beperkt elke query met `resource.host.name` gelijk aan de host die u 
 :::
 
 :::details High Filesystem Usage gaat af voor een mount die altijd vol is
-Alleen-lezen pseudobestandssystemen, zoals snap-loopmounts van het type `squashfs` onder `/snap` of `devfs` op macOS, zijn bewust 100% vol en herstellen nooit. Sluit ze uit in de scraper `filesystem` van de collector.
+Alleen-lezen pseudobestandssystemen, zoals snap-loopmounts van het type `squashfs` onder `/snap` of `devfs` op macOS, zijn bewust 100% vol en herstellen nooit. De configuraties die OneUptime draait en uitdeelt, laten ze weg met `exclude_fs_types`; een eigen configuratie, of een Collectorconfiguratie die daarvoor is gemaakt, heeft hetzelfde nodig: kopieer het uit [Hostmetrics](/docs/telemetry/host-otel-collector#hostmetrics). Laat een andere mount die altijd vol is, zoals een gemounte `.dmg`, weg met `exclude_mount_points`.
 :::
 
 ## Volgende stappen
