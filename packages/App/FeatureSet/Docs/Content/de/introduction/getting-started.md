@@ -64,6 +64,7 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 - [Cloud](/docs/telemetry/cloud-environments): ECS, Cloud Run, Azure Container Apps und andere verwaltete Plattformen beobachten.
 - [KI-Observability](/docs/telemetry/ai-llm-observability): Den Gesprächen Ihrer KI folgen und erfahren, wenn sie schlecht antwortet.
 - [Sicherheit](/docs/telemetry/security-events): Sicherheitsereignisse und Bedrohungsinformationen sammeln.
+- [Datensicherheit](/docs/data-security/index): Die sensiblen Daten in Ihren Buckets, Datenbanken und Ihrer Telemetrie finden und beheben, wie sie aufbewahrt werden.
 - [Real User Monitoring](/docs/rum/index): Messen, was echte Nutzer erleben, mit Core Web Vitals und Session Replay.
 - [Dashboards](/docs/dashboards/index): Dashboards aus Ihren Metriken, Logs und Monitoren bauen.
 - [Inventar](/docs/inventory/overview): Jeden Dienst, Host und jedes Gerät sehen, das OneUptime kennt.

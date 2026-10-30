@@ -112,11 +112,7 @@ import {
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
-import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
-import useAiCardFold, {
-  AiCardFoldWiring,
-} from "../../../Components/AI/useAiCardFold";
 import AlertAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
@@ -214,14 +210,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
-  /*
-   * The AI card folds into one line - "AI investigation is off", and why -
-   * when OneUptime AI neither investigated nor fixed this alert because
-   * something was off for it. The Remediation card tells it whether fixing
-   * did anything, and it tells the Remediation card when the line says
-   * "nothing was fixed" for both (useAiCardFold).
-   */
-  const aiCardFold: AiCardFoldWiring = useAiCardFold(modelIdString);
 
   const [alertStateTimeline, setAlertStateTimeline] = useState<
     AlertStateTimeline[]
@@ -1142,8 +1130,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
-            remediationState={aiCardFold.remediationState}
-            onCardFoldChange={aiCardFold.onFoldChange}
+            // Nothing is tried again on a resolved alert.
+            isRecordResolved={standing === EventStanding.Resolved}
             renderConversation={(slot: InvestigationConversationSlot) => {
               return (
                 <InvestigationConversation
@@ -1310,13 +1298,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <AlertAffectedResources
             alertId={modelId}
             seriesLabels={seriesLabels}
-          />
-
-          <RemediationSuggestionCard
-            alertId={modelId}
-            hideIfEmpty={true}
-            onFoldStateChange={aiCardFold.onRemediationStateChange}
-            aiCardFold={aiCardFold.fold}
           />
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />

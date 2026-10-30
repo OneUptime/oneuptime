@@ -65,7 +65,7 @@ Termine el formulario y guarde. El monitor aparece en **Monitores**, y su estado
 | --- | --- | --- |
 | Clúster | Todo el clúster | — |
 | Espacio de nombres | Los recursos de un espacio de nombres | **Espacio de nombres** |
-| Carga de trabajo | Un deployment, statefulset, daemonset, job o cronjob | **Espacio de nombres**, **Nombre de la carga de trabajo** |
+| Carga de trabajo | Un deployment, statefulset, daemonset, job o cronjob | **Espacio de nombres**, **Tipo de carga de trabajo**, **Nombre de la carga de trabajo** |
 | Nodo | Un nodo del clúster | **Nombre del nodo** |
 | Pod | Un pod | **Espacio de nombres**, **Nombre del pod** |
 
@@ -112,7 +112,7 @@ Estos monitores siempre evalúan el **Metric Value**: el valor de la consulta de
 
 ### Condiciones
 
-Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** e **Igual a**.
+Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** e **Igual a**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo.
 
 La detección de anomalías frente a una referencia no necesita umbral. Elija una de estas condiciones, y el formulario muestra **Sensibilidad** y **Ventana de referencia** en su lugar:
 

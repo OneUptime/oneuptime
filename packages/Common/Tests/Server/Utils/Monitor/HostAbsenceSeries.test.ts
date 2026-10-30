@@ -105,6 +105,33 @@ describe("HostAbsenceSeries.getHostAbsenceGroupByKey", () => {
 });
 
 describe("HostAbsenceSeries.monitorStepOptsIntoNoDataDetection", () => {
+  /*
+   * An infrastructure monitor's out-of-the-box offline criteria is Has No
+   * Data (FilterType.IsEmpty): a question about silence as plain as a
+   * Trigger policy, so absent hosts and devices are seeded for it too.
+   */
+  test("true when a metric-value filter asks Has No Data, with no policy set", () => {
+    const step: MonitorStep = stepWithFilters([
+      {
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.IsEmpty,
+        metricMonitorOptions: {},
+      } as CriteriaFilter,
+    ]);
+    expect(monitorStepOptsIntoNoDataDetection(step)).toBe(true);
+  });
+
+  test("false when a metric-value filter asks Has Data", () => {
+    const step: MonitorStep = stepWithFilters([
+      {
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.IsNotEmpty,
+        metricMonitorOptions: {},
+      } as CriteriaFilter,
+    ]);
+    expect(monitorStepOptsIntoNoDataDetection(step)).toBe(false);
+  });
+
   test("true when a metric-value filter uses NoDataPolicy.Trigger", () => {
     const step: MonitorStep = stepWithFilters([
       metricFilter(NoDataPolicy.Trigger),

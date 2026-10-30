@@ -58,6 +58,8 @@ flowchart TB
 | [Elastic Security](/docs/integrations/elastic-security) | هر دو | هشدارهای تشخیص Elastic Security را به رویدادهای امنیتی می‌آورد و آنچه OneUptime پیدا می‌کند را به Elastic Security می‌فرستد. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | ورودی | یافته‌های AWS Security Hub را به رویدادهای امنیتی می‌آورد. |
 | [Okta System Log](/docs/integrations/okta) | ورودی | ورودهای Okta، تغییرات حساب و تشخیص تهدیدها را به رویدادهای امنیتی می‌آورد. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | ورودی | ورودها و تغییرات دایرکتوری Microsoft Entra ID و لاگ ممیزی Microsoft 365 را به رویدادهای امنیتی می‌آورد. |
+| [Google Workspace](/docs/integrations/google-workspace) | ورودی | ورودها، تغییرات مدیران و تشخیص‌های خود Google در Google Workspace را به رویدادهای امنیتی می‌آورد. |
 
 ### تیکت و مدیریت خدمات فناوری اطلاعات
 

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"oneuptime-infrastructure-agent/model"
 
-	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 func GetMemoryMetrics() *model.MemoryMetrics {

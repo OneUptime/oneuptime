@@ -229,7 +229,7 @@ Per pubblicare in un canale, aggiungi una regola in **Prodotti → Security Even
 | Priorità del caso di sicurezza | Una delle priorità dei casi del progetto, come Critico o High |
 | Titolo del caso di sicurezza, Descrizione del caso di sicurezza | Un testo che il titolo o la descrizione del caso contiene, con cui inizia o con cui finisce |
 | Stato del caso di sicurezza | Uno degli stati dei casi del progetto, come Nuovo o Chiuso |
-| Origine del caso di sicurezza | Detection Rule, Threat Intel, Connected Product, Rischio delle entità o Manual |
+| Origine del caso di sicurezza | Detection Rule, Threat Intel, Connected Product, Rischio delle entità, Sicurezza dei dati o Manual |
 | Etichette del caso di sicurezza | Le etichette del caso |
 
 Ogni notifica, tranne quella di un'attività, viene pubblicata nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **Alto** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
@@ -268,6 +268,7 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Indagine | Look up entity activity | Conta gli eventi di sicurezza di ogni entità in una finestra recente, e lo annota sul caso |
 | Indagine | Preserve the evidence | Conserva le registrazioni delle sessioni delle richieste dietro il caso, e annota sul caso le loro tracce ed eccezioni |
 | Notifica | Email people | Invia per email a utenti e team un riepilogo del caso, con un link al caso |
+| Notifica | Notify data store owners | Invia per email ai proprietari di ogni archivio dati del caso un link al caso |
 | Notifica | Post to Slack | Pubblica un riepilogo del caso in un canale Slack |
 | Notifica | Post to Microsoft Teams | Pubblica un riepilogo del caso in un canale Microsoft Teams |
 | Notifica | Post a status page announcement | Pubblica un annuncio scritto da te sulle pagine di stato che scegli |
@@ -280,6 +281,8 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Contenimento | Unsuspend the user in Okta | Revoca in Okta la sospensione dell'utente di cui tratta il caso |
 | Contenimento | Lift containment in CrowdStrike | Rimuove il contenimento di rete di CrowdStrike Falcon dall'host di cui tratta il caso |
 | Contenimento | Release the device in Microsoft Defender | Rilascia dall'isolamento in Microsoft Defender for Endpoint l'host di cui tratta il caso |
+| Contenimento | Blocca l'accesso pubblico agli archivi dati | Blocca l'accesso pubblico a ogni bucket o account di archiviazione di cui tratta il caso, tramite la sua connessione cloud |
+| Contenimento | Revoca la condivisione degli archivi dati | Interrompe la condivisione al di fuori dei tuoi account degli snapshot di ogni database di cui tratta il caso, tramite la sua connessione cloud |
 | Automazione | Send a webhook | Invia il caso come JSON a un URL |
 | Automazione | Run a workflow | Avvia un flusso di lavoro di OneUptime con il caso come input |
 | Automazione | Run a runbook | Avvia uno dei tuoi runbook di OneUptime con il caso come input |
@@ -287,7 +290,7 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 
 Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando il precedente è terminato. Ogni passo può anche:
 
-- **Richiede approvazione**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. I quattro passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi. **Run a runbook** e **Post a status page announcement** partono con l'approvazione attiva, perché uno esegue comandi sui tuoi sistemi e l'altro parla ai tuoi clienti; chi aggiunge il passo può disattivarla.
+- **Richiede approvazione**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. I quattro passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi. **Run a runbook**, **Post a status page announcement** e i due passi degli archivi dati partono con l'approvazione attiva, perché eseguono comandi sui tuoi sistemi, parlano ai tuoi clienti o cambiano le impostazioni di un cloud; chi aggiunge il passo può disattivarla.
 - **Solo se la threat intel ha trovato corrispondenze**: saltare il passo a meno che un precedente passo **Controlla le entità nella threat intel** della stessa esecuzione non abbia trovato un indicatore noto.
 - **Continua se fallisce**: eseguire il passo successivo anche se questo non riesce. Se è disattivato, un passo non riuscito ferma l'esecuzione.
 
@@ -302,20 +305,23 @@ Quattro passi agiscono attraverso il resto di OneUptime anziché tramite un prod
 
 ### Contenimento
 
-I passi di contenimento agiscono tramite una [connessione di eventi di sicurezza](/docs/telemetry/security-events#collegare-un-prodotto-di-sicurezza) al prodotto, che deve avere più del solo accesso in lettura:
+I passi di contenimento agiscono tramite una connessione che deve avere più del solo accesso in lettura: una [connessione di eventi di sicurezza](/docs/telemetry/security-events#collegare-un-prodotto-di-sicurezza) al prodotto, oppure la [connessione cloud](/docs/telemetry/cloud-accounts) dell'archivio dati:
 
 | Passo | Connessione | Serve |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un token API autorizzato a gestire gli utenti |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un client API con lo scope Hosts in scrittura |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Un'app con il permesso Machine.Isolate |
+| Blocca l'accesso pubblico agli archivi dati, Revoca la condivisione degli archivi dati | La connessione cloud dell'archivio | **Risposta di sicurezza dei dati** attivata, e il suo comando di configurazione eseguito di nuovo |
 
-Un passo di contenimento agisce solo sugli utenti o sugli host di cui tratta il caso, mai su tutti quelli che il caso nomina:
+Un passo su utenti o host agisce solo sugli utenti o sugli host di cui tratta il caso, mai su tutti quelli che il caso nomina:
 
 - Il valore in base al quale è raggruppato un rilevamento del caso, come l'account per cui raggruppa una regola sui viaggi impossibili, o l'host nominato dall'avviso di un prodotto collegato.
 - Un utente o un host del caso che la tua threat intelligence conosce come indicatore.
 
 Un caso raggruppato in base a un indirizzo, come un attacco a forza bruta contro la tua VPN, non riguarda né l'uno né l'altro: i suoi passi di contenimento vengono saltati, e l'account che ha preso di mira e il gateway che ha colpito restano intatti. Un passo agisce al massimo su 10 utenti o host. Cerca ciascuno nel prodotto per nome, e riporta sull'esecuzione cosa ha fatto con ognuno: fatto, già fatto, non trovato, rifiutato o protetto.
+
+I due passi degli archivi dati agiscono sugli archivi dati di cui tratta il caso, al massimo 10: quelli dei problemi di Sicurezza dei dati che ha accolto, e quelli in base ai quali lo ha raggruppato un rilevamento. Lasciano intatto un archivio contrassegnato come **Pubblico per scelta**, cambiano il modo in cui un archivio è condiviso ma mai i suoi dati, e riportano sull'esecuzione cosa hanno fatto con ogni archivio (vedi [Chiudere un'esposizione](/docs/data-security/integrations#chiudere-unesposizione)).
 
 #### Entità protette
 

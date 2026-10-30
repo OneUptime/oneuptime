@@ -131,7 +131,7 @@ La scheda **Informazioni** mostra che cosa hanno registrato i vostri servizi in 
 | **Top errors** | I messaggi distinti registrati con gravità Error o Fatal, prima i più frequenti. |
 | **Sources reporting logs** | Il volume e il segnale di errore di ogni servizio, host o altra sorgente. |
 
-Selezionate un errore principale per vedere che cosa succedeva intorno: quando è accaduto, che cosa hanno in comune le sue occorrenze, dove si verifica, le tracce che lo riportano e le sue righe più recenti. **Open matching logs** li apre nel **Visualizzatore**, e **Explain with AI** apre [Chiedi all'IA](/docs/ai/ask-ai) con l'errore e le sue prove come prompt modificabile.
+Selezionate un errore principale per vedere che cosa succedeva intorno: quando è accaduto, che cosa hanno in comune le sue occorrenze, dove si verifica, le tracce che lo riportano e le sue righe più recenti. **Open matching logs** li apre nel **Visualizzatore**, e **Spiega con l'IA** apre [Chiedi all'IA](/docs/ai/ask-ai) con l'errore e le sue prove come prompt modificabile.
 
 ## Trovare e correggere con l'IA i log di errore, mancanti o rumorosi
 

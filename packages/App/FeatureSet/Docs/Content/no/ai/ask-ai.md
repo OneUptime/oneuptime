@@ -32,12 +32,12 @@ I modusen **Skrivebeskyttet** tilbys modellen aldri handlingene, så samtalen ba
 | --- | --- |
 | Hvilken som helst side | Klikk **Spør AI** i toppfeltet, eller trykk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en redigerer, forblir tastene redigererens snarvei for kursiv. |
 | Kommandopaletten | Trykk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og velg **Spør AI**. |
-| Et feilmønster i loggene, eller funnene i et diagram | Klikk **Explain with AI**: Spør AI åpnes med bevisene som et spørsmål du kan redigere før du sender det. |
+| Et feilmønster i loggene, eller funnene i et diagram | Klikk **Forklar med AI**: Spør AI åpnes med bevisene som et spørsmål du kan redigere før du sender det. |
 | Produktmenyen | Åpne **Produkter → AI → Chat**. Spør AI åpnes over siden du var på. Hver samtale har sin egen adresse, så du kan bokmerke den og komme tilbake til den. |
 
 Spør AI åpnes midt på skjermen, over siden du var på, og på en telefon fyller den hele skjermen. Trykk `Esc`, eller klikk ved siden av, for å gå tilbake til siden. Samtalen blir der du forlot den: åpne Spør AI igjen for å fortsette. Lukker du den mens den fortsatt svarer, sier en påminnelse i hjørnet når svaret er klart, og åpner det.
 
-På en hendelse eller et varsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
+På en hendelse eller et varsel har kortet **OneUptime AI** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
 
 ## Hva den kan se
 

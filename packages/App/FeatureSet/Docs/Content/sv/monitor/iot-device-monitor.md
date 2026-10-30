@@ -77,7 +77,6 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
 | **IoT Fleet** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
-| **Resursomfattning** | Custom Metric, Avancerad | Valfritt. **Enhet** eller **Fleet**: en exakt träff på attributet `iot.scope`. Att välja ett mätvärde sätter det till **Enhet**. |
 | **Device ID** | Custom Metric, Avancerad | Valfritt. En enhet, via `device.id`, som `sensor-001`. |
 | **Device Type** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
@@ -124,7 +123,7 @@ En registrerad enhet behålls också som offline i flottans inventarium, medan e
 
 ## Insamlade mätvärden
 
-Varje serie bär enhetens etikett `device.id` och attributen `iot.scope`, `iot.device.type` och `iot.device.kind`.
+Varje serie bär enhetens etikett `device.id` och attributen `iot.device.type` och `iot.device.kind`.
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
@@ -145,7 +144,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Filtertyp** | Alltid **Metric Value**, den enda kontrollen som den här monitorn erbjuder. |
 | **Select Metric Variable** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
 | **Tröskel** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -159,11 +158,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Vilket värde som helst i den första frågan är `0` | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Vilket värde som helst är över `0` | Markerar monitorn som **Fungerar**. |
+| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Tystnad matchar inget av kriterierna: en flotta som slutar skicka data lämnar monitorn som den var. För att få veta när data uteblir sätter du **Om ingen data** till **Utlösare** på ett kriterium. Tid då OneUptime själv inte tog emot något räknas aldrig som saknade data: en kontroll vars fönster innehåller den tiden väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Terraform
 

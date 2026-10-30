@@ -29,6 +29,13 @@ export interface NetworkDeviceAlertPackContext {
   // Status to move the monitor to when a pack criteria matches (offline/degraded).
   downMonitorStatusId?: ObjectID | undefined;
   /*
+   * The severity each item's incident or alert starts on. Left out, the
+   * item still gets its incident or alert - titled, auto-resolving - and
+   * the monitor form asks for the severity before the monitor is saved.
+   */
+  incidentSeverityId?: ObjectID | undefined;
+  alertSeverityId?: ObjectID | undefined;
+  /*
    * The device's effective SNMP tables. Every table that declares what a
    * healthy row looks like adds one criteria to the pack, alerting once per
    * unhealthy row - a tunnel down, a fan failed, a fabric neighbour lost.
@@ -302,8 +309,37 @@ export default class NetworkDeviceAlertPackUtil {
           monitorStatusId: context?.downMonitorStatusId,
           filterCondition: FilterCondition.All,
           filters: item.filters,
-          incidents: [],
-          alerts: [],
+          /*
+           * One incident for an item that declares incidents, one alert for
+           * one that raises alerts. They used to be left empty for the user
+           * to fill in, but the form gave an empty list no row to fill in
+           * and saving checked nothing in it - so "Device unreachable" and
+           * "Interface down" changed the monitor's status and paged nobody.
+           */
+          incidents: item.createIncidents
+            ? [
+                {
+                  id: ObjectID.generate().toString(),
+                  title: item.name,
+                  description: item.description,
+                  incidentSeverityId: context?.incidentSeverityId,
+                  autoResolveIncident: true,
+                  onCallPolicyIds: [],
+                },
+              ]
+            : [],
+          alerts: item.createAlerts
+            ? [
+                {
+                  id: ObjectID.generate().toString(),
+                  title: item.name,
+                  description: item.description,
+                  alertSeverityId: context?.alertSeverityId,
+                  autoResolveAlert: true,
+                  onCallPolicyIds: [],
+                },
+              ]
+            : [],
           createAlerts: item.createAlerts,
           createIncidents: item.createIncidents,
           /*

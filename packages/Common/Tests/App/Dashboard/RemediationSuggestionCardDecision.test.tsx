@@ -27,8 +27,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
-import { REMEDIATION_DECISION_CARD_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
+import RemediationStep from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -40,19 +39,20 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * The incident's and alert's Remediation card, now that the engine writes
- * down what it did with every signal:
+ * The Remediation step of an incident's or alert's AI card (block 43), now
+ * that the engine writes down what it did with every signal:
  *
- * - a signal nothing was proposed for still shows the card, saying why -
- *   the card used to hide itself, so "fixes are off on that cluster", "this
- *   incident is linked to no cluster" and "no rule matched" all read the
- *   same: nothing at all;
- * - an older signal, with neither a decision nor a suggestion, still shows
- *   nothing;
+ * - a signal nothing was proposed for still shows the step, saying why -
+ *   the Remediation card used to hide itself, so "fixes are off on that
+ *   cluster", "this incident is linked to no cluster" and "no rule
+ *   matched" all read the same: nothing at all;
+ * - an older signal, with neither a decision nor a suggestion, says
+ *   OneUptime AI has not tried to fix it - the step is always there;
  * - the decision is read beside the suggestions, for the same subject, and
  *   a failed read of it never hides the suggestions;
- * - while remediation waits for the AI investigation, the card says so and
- *   keeps reading until the evaluation lands.
+ * - while remediation waits for the AI investigation, the step says so and
+ *   keeps reading until the evaluation lands;
+ * - the step's pill says where fixing stands, whatever the step holds.
  */
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -106,14 +106,9 @@ function suggestion(): AutoRemediationSuggestion {
   });
 }
 
-/*
- * The status pill, where Card puts what a card offers: in the header, at
- * its right edge.
- */
+// The step's status pill, beside its title.
 function statusPill(): HTMLElement {
-  return within(screen.getByTestId("card-header-actions")).getByTestId(
-    "remediation-decision-status",
-  );
+  return screen.getByLabelText("Remediation status");
 }
 
 function evaluatedDecision(entries: Array<JSONObject>): JSONObject {
@@ -153,25 +148,26 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("RemediationSuggestionCard with a recorded decision", () => {
+describe("RemediationStep with a recorded decision", () => {
   test("says why nothing was fixed when nothing was proposed", async () => {
     serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     const decision: HTMLElement = await screen.findByTestId(
       "remediation-decision",
     );
-    expect(screen.getByText("Remediation")).toBeInTheDocument();
+    // Step 2 of the AI card, titled, with no card of its own around it.
     expect(
-      screen.getByText(REMEDIATION_DECISION_CARD_DESCRIPTION),
+      screen.getByRole("heading", { level: 3, name: "Remediation" }),
     ).toBeInTheDocument();
-    /*
-     * The card's description already says what the lines are: no heading
-     * under it saying it again.
-     */
+    expect(screen.queryByTestId("card")).not.toBeInTheDocument();
+    // The step's title says what the lines are: no heading repeats it.
     expect(
       within(decision).queryByText("What auto-remediation did"),
     ).not.toBeInTheDocument();
@@ -179,9 +175,9 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
       within(decision).queryByTestId("remediation-decision-heading"),
     ).not.toBeInTheDocument();
 
-    // The header says where things stand before a sentence is read.
+    // The pill says where things stand before a sentence is read.
     expect(statusPill()).toHaveTextContent("Needs attention");
-    expect(statusPill()).toHaveAttribute("data-tone", "attention");
+    expect(statusPill()).toHaveAttribute("data-indicator", "attention");
 
     const lines: Array<HTMLElement> = within(decision).getAllByTestId(
       "remediation-decision-line",
@@ -215,7 +211,9 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
   test("reads the decision of the card's own subject, newest first", async () => {
     serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
 
-    render(<RemediationSuggestionCard alertId={ALERT_ID} hideIfEmpty={true} />);
+    render(
+      <RemediationStep investigationStage="reported" alertId={ALERT_ID} />,
+    );
     await screen.findByTestId("remediation-decision");
 
     const decisionCall: {
@@ -251,17 +249,25 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     ).toBe(AutoRemediationSuggestion);
   });
 
-  test("shows nothing for an older signal with neither a decision nor a suggestion", async () => {
+  test("an older signal with neither a decision nor a suggestion says it was not tried", async () => {
     serve({ suggestions: [], decisions: [] });
 
-    const { container } = render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
-    await waitFor(() => {
-      expect(getListSpy).toHaveBeenCalledTimes(2);
-    });
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      await screen.findByTestId("remediation-step-not-tried"),
+    ).toHaveTextContent("OneUptime AI has not tried to fix this incident.");
+    expect(statusPill()).toHaveTextContent("Not tried");
+    expect(statusPill()).toHaveAttribute("data-indicator", "idle");
+    expect(getListSpy).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByTestId("remediation-decision"),
+    ).not.toBeInTheDocument();
   });
 
   test("shows the decision above the suggestions it produced", async () => {
@@ -284,7 +290,10 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     const decision: HTMLElement = await screen.findByTestId(
@@ -301,22 +310,19 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
       within(decision).getByTestId("remediation-decision-line"),
     ).toHaveAttribute("data-tone", "acted");
 
-    /*
-     * Above fixes, the lines have a heading of their own: the card's
-     * description now speaks of the fixes.
-     */
+    // The step's title heads both: no heading of their own above the lines.
     expect(
-      within(decision).getByRole("heading", {
-        level: 3,
-        name: "What auto-remediation did",
-      }),
-    ).toBeVisible();
-    expect(decision.firstElementChild?.getAttribute("data-testid")).toBe(
-      "remediation-decision-heading",
-    );
+      within(decision).queryByTestId("remediation-decision-heading"),
+    ).not.toBeInTheDocument();
+    // The fixes come right after, as one list of their own.
+    expect(
+      decision.compareDocumentPosition(
+        screen.getByTestId("remediation-fixes"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
-  test("leaves the status to each fix's own pill once there are fixes", async () => {
+  test("a fix waiting for approval is what the pill says, whatever the decision said", async () => {
     serve({
       suggestions: [suggestion()],
       decisions: [
@@ -328,37 +334,45 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     await screen.findByTestId("remediation-decision");
-    expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("remediation-fix")).getByText(
+        "Waiting for approval",
+      ),
+    ).toBeInTheDocument();
     /*
-     * The decision was written when the signal was evaluated; the fix's pill
-     * follows the fix. A pill from the decision would sit above it saying
-     * something older.
+     * The decision was written when the signal was evaluated; the fix
+     * follows the fix. The step's pill says what needs the reader now - an
+     * approval - not what the older decision found.
      */
+    expect(statusPill()).toHaveTextContent("Needs your approval");
+    expect(statusPill()).toHaveAttribute("data-indicator", "attention");
     expect(
       screen.queryByTestId("remediation-decision-status"),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
   });
 
   test.each([
     [
       "incident",
       '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.',
-      "Incident AI settings",
+      "Turn on for incidents",
       "incidents",
     ],
     [
       "alert",
       '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
-      "Alert AI settings",
+      "Turn on for alerts",
       "alerts",
     ],
   ])(
-    "with fixing new %ss off, says no action was taken and links to the switch",
+    "with fixing new %ss off, says fixing is off and links to the switch",
     async (signal: string, text: string, linkName: string, path: string) => {
       serve({
         suggestions: [],
@@ -369,20 +383,20 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
 
       render(
         signal === "incident" ? (
-          <RemediationSuggestionCard
+          <RemediationStep
+            investigationStage="reported"
             incidentId={INCIDENT_ID}
-            hideIfEmpty={true}
           />
         ) : (
-          <RemediationSuggestionCard alertId={ALERT_ID} hideIfEmpty={true} />
+          <RemediationStep investigationStage="reported" alertId={ALERT_ID} />
         ),
       );
 
       const line: HTMLElement = await screen.findByTestId(
         "remediation-decision-line",
       );
-      expect(statusPill()).toHaveTextContent("No action taken");
-      expect(statusPill()).toHaveAttribute("data-tone", "info");
+      expect(statusPill()).toHaveTextContent("Off");
+      expect(statusPill()).toHaveAttribute("data-indicator", "idle");
       expect(line).toHaveAttribute("data-tone", "info");
       expect(
         within(line).getByTestId("remediation-decision-text"),
@@ -419,12 +433,15 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     await screen.findByTestId("remediation-decision");
-    expect(statusPill()).toHaveTextContent("Action taken");
-    expect(statusPill()).toHaveAttribute("data-tone", "acted");
+    expect(statusPill()).toHaveTextContent("Fixing…");
+    expect(statusPill()).toHaveAttribute("data-indicator", "live");
     expect(
       screen
         .getAllByTestId("remediation-decision-line")
@@ -459,7 +476,10 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     const line: HTMLElement = await screen.findByTestId(
@@ -490,7 +510,10 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     serve({ suggestions: [suggestion()], decisions: new Error("no route") });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     expect(
@@ -517,7 +540,10 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     });
 
     render(
-      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
     );
 
     await act(async () => {
@@ -529,12 +555,11 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
         "waiting",
       );
     });
-    expect(statusPill()).toHaveTextContent("Waiting for investigation");
-    expect(statusPill()).toHaveAttribute("data-tone", "waiting");
-    // Its mark pulses, like an investigation that is still running.
-    expect(statusPill().querySelector(".motion-safe\\:animate-ping")).not.toBe(
-      null,
+    expect(screen.getByTestId("remediation-decision-line")).toHaveTextContent(
+      "OneUptime AI decides how to fix this incident once the investigation is done, so it can act on the root cause.",
     );
+    expect(statusPill()).toHaveTextContent("Waiting");
+    expect(statusPill()).toHaveAttribute("data-indicator", "waiting");
     const readsBefore: number = getListSpy.mock.calls.length;
 
     serve({
@@ -566,9 +591,6 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     });
     // The pill follows: the wait is over, and what it found needs attention.
     expect(statusPill()).toHaveTextContent("Needs attention");
-    expect(statusPill()).toHaveAttribute("data-tone", "attention");
-    expect(statusPill().querySelector(".motion-safe\\:animate-ping")).toBe(
-      null,
-    );
+    expect(statusPill()).toHaveAttribute("data-indicator", "attention");
   });
 });

@@ -29,6 +29,7 @@ import {
 import {
   ExceptionTriageAction,
   getExceptionTriageActions,
+  getResolveInNextReleaseAction,
 } from "../../../FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation";
 import { AI_INSIGHTS_SWITCHES } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -1771,7 +1772,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
-  it("reopens a resolved exception on a new occurrence, and leaves an archived one archived but counted", () => {
+  it("reopens a resolved exception on a later occurrence as Regressed, and leaves an archived one archived but counted", () => {
     // The statement itself, not the comment above it that names it.
     const update: string = between(
       exceptionUtil,
@@ -1779,7 +1780,18 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "`;",
     );
 
-    expect(update).toContain('"isResolved" = false');
+    /*
+     * Reopened only by an occurrence after the resolve (a late one from
+     * before does not), stamped Regressed as it is: the conditions
+     * themselves are run on Postgres by ExceptionRegressionPostgres.
+     */
+    expect(update).toContain('"isResolved" = ${STAYS_RESOLVED_SQL}');
+    expect(update).toContain(
+      '"regressedAt" = CASE\n            WHEN "TelemetryException"."isResolved" AND NOT ${STAYS_RESOLVED_SQL}\n              THEN now()',
+    );
+    expect(exceptionUtil).toContain(
+      'OR EXCLUDED."lastSeenAt" > "TelemetryException"."markedAsResolvedAt"',
+    );
     expect(update).toContain(
       '"occuranceCount" =\n            "TelemetryException"."occuranceCount" + EXCLUDED."occuranceCount"',
     );
@@ -1803,7 +1815,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     }
 
     expect(page).toContain(
-      "**A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold.",
+      "**A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold, and the exception is marked **Regressed**. An occurrence from before you resolved it that reaches OneUptime late does not reopen it.",
     );
     expect(page).toContain(
       "**An archived exception stays archived.** Its new occurrences are still counted, but they stop notifying.",
@@ -1939,9 +1951,31 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
     expect(labels(false, false)).toEqual(["Resolve", "Archive"]);
     expect(labels(true, true)).toEqual(["Reopen", "Unarchive"]);
+
+    // Beside Resolve, while the exception's occurrences name their release.
+    const nextRelease: ExceptionTriageAction | null =
+      getResolveInNextReleaseAction({
+        isResolved: false,
+        isArchived: false,
+        lastSeenInRelease: "2.3.1",
+      });
+
+    expect(nextRelease?.label).toBe("Resolve in next release");
+    expect(
+      getResolveInNextReleaseAction({ isResolved: false, isArchived: false }),
+    ).toBeNull();
     expect(
       firstColumn(section(page, "## Resolve, reopen and archive")),
-    ).toEqual(["Resolve", "Reopen", "Archive", "Unarchive"]);
+    ).toEqual([
+      "Resolve",
+      nextRelease!.label,
+      "Reopen",
+      "Archive",
+      "Unarchive",
+    ]);
+    expect(page).toContain(
+      "**Resolve in next release** is in the menu beside **Resolve**, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.",
+    );
 
     const settings: string = readDashboardSource(
       "Components/Exceptions/ExceptionSettings.tsx",
@@ -1997,8 +2031,97 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     // The same four, in the row's order, each saying why it left one alone.
     expect(actions).toContain("return EXCEPTION_ROW_TRIAGE_ORDER.map(");
     expect(actions).toContain(
-      "return bulkItemUnchanged(\n                  getGlobalTranslator().translateText(\n                    EXCEPTION_ALREADY_THERE[id],",
+      "return bulkItemUnchanged(\n                  getGlobalTranslator().translateText(reason) || reason,",
     );
+    expect(actions).toContain(": EXCEPTION_ALREADY_THERE[id];");
+  });
+
+  /*
+   * Explain it with AI: the Overview's What happened card, its parts and
+   * buttons as the card draws them, what OneUptime AI reads to write it, and
+   * what is held back from the model.
+   */
+  it("explains an exception with OneUptime AI on its Overview, from what the page names", () => {
+    const card: string = readDashboardSource(
+      "Components/Exceptions/ExceptionAIExplanation.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const explainer: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts",
+    );
+    const prompt: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt.ts",
+    );
+    const explain: string = section(page, "## Explain it with AI");
+
+    // At the top of the Overview, and only while AI is offered.
+    expect(
+      between(
+        explorer,
+        "props.section === ExceptionDetailSection.Overview && (",
+        "<ExceptionOccurrenceTrend",
+      ),
+    ).toContain("<ExceptionAIExplanation");
+    expect(card).toContain("const isAiOffered: boolean = useAiOffered();");
+
+    for (const label of [
+      '"Explain with OneUptime AI"',
+      'title="What happened"',
+      '"Likely root cause"',
+      '"Suggested fix"',
+      '"Where to look"',
+      '"Next steps"',
+      '"Explain again"',
+      'title="Open a fix pull request"',
+      'title="Ask a follow-up"',
+    ]) {
+      expect(card).toContain(label);
+    }
+
+    expect(firstColumn(explain)).toEqual([
+      "What happened",
+      "Likely root cause",
+      "Suggested fix",
+      "Where to look",
+      "Next steps",
+    ]);
+    expect(explain).toContain(
+      "At the top of an exception's **Overview**, **Explain with OneUptime AI** asks OneUptime AI what went wrong.",
+    );
+    expect(explain).toContain(
+      "**Open a fix pull request** opens the exception's **AI Assistance** page, and **Ask a follow-up** opens Ask AI on the exception.",
+    );
+
+    // What it reads: the latest occurrence, its trace and logs, the deploys.
+    for (const service of [
+      "ExceptionInstanceService.findBy",
+      "SpanService.findBy",
+      "LogService.findBy",
+      "ChangeEventService.findBy",
+    ]) {
+      expect(explainer).toContain(service);
+    }
+    expect(explain).toContain(
+      "It reads the stack trace, the trace and logs of the latest occurrence, and the deploys of the service around the time the exception started",
+    );
+
+    // What it holds back, and the switch and credits it honours.
+    expect(prompt).toContain('"http.route",');
+    expect(prompt).toContain('"http.status_code",');
+    expect(prompt).toContain("sanitizeExceptionMessage");
+    expect(explainer).toContain("AIService.assertProjectAIEnabled");
+    expect(explainer).toContain("AIService.executeWithLogging");
+    expect(explain).toContain(
+      "IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent.",
+    );
+    expect(explain).toContain(
+      "is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.",
+    );
+
+    // Its Markdown is the model's: shown in safe mode.
+    expect(card).toContain("safeMode={true}");
   });
 
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {

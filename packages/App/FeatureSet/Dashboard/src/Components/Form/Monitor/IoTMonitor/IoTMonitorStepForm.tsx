@@ -1,6 +1,5 @@
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
-  IoTResourceScope,
 } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
@@ -53,16 +52,6 @@ const aggregationOptions: Array<DropdownOption> = [
   { label: "Minimum", value: MetricsAggregationType.Min },
   { label: "Sum", value: MetricsAggregationType.Sum },
   { label: "Count", value: MetricsAggregationType.Count },
-];
-
-/*
- * Values are byte-equal to the `iot.scope` datapoint attribute stamped
- * by the IoT agent / gateway, so the monitor worker maps the filter to
- * attribute equality with no translation.
- */
-const scopeOptions: Array<DropdownOption> = [
-  { label: "Device", value: IoTResourceScope.Device },
-  { label: "Fleet", value: IoTResourceScope.Fleet },
 ];
 
 const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -210,17 +199,11 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     });
 
     /*
-     * Pre-fill the scope filter from the catalog's defaultResourceScope.
-     * Fleet means "spans the whole fleet; don't pre-filter" — leave the
-     * filter empty in that case.
+     * No Resource Scope filter: nothing stamps the `iot.scope` attribute it
+     * matched on (MQTT and OTLP ingest add `device.id` and the device's own
+     * attributes only), so picking a metric used to set Scope = Device and
+     * leave the monitor reading no data at all.
      */
-    if (metric.defaultResourceScope !== IoTResourceScope.Fleet) {
-      config.resourceFilters = {
-        ...config.resourceFilters,
-        scope: metric.defaultResourceScope,
-      };
-    }
-
     props.onChange(config);
   };
 
@@ -248,42 +231,14 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   /*
    * The worker (MonitorTelemetryMonitor.monitorIoT) turns every filter that
    * is set into its own equality on the datapoints, next to the fleet:
-   * Device ID on the raw `device.id` label, Device Type and Resource Scope on
-   * the `iot.device.type` / `iot.scope` attributes. So a datapoint must match
-   * every filter set. Nothing takes precedence: unlike the Proxmox form's
-   * guest ID, a Device ID does not set the other filters aside.
+   * Device ID on the raw `device.id` label, Device Type on the
+   * `iot.device.type` attribute. So a datapoint must match every filter
+   * set. Nothing takes precedence: unlike the Proxmox form's guest ID, a
+   * Device ID does not set the other filters aside.
    */
   const renderResourceFilters: () => ReactElement = (): ReactElement => {
     return (
       <>
-        <div className="mt-3">
-          <FieldLabelElement
-            title="Resource Scope"
-            description={
-              "Filter by resource type — the whole fleet or individual devices (optional)."
-            }
-            required={false}
-          />
-          <Dropdown
-            options={scopeOptions}
-            value={scopeOptions.find((option: DropdownOption) => {
-              return (
-                option.value === monitorStepIoTMonitor.resourceFilters.scope
-              );
-            })}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              props.onChange({
-                ...monitorStepIoTMonitor,
-                resourceFilters: {
-                  ...monitorStepIoTMonitor.resourceFilters,
-                  scope: (value as IoTResourceScope) || undefined,
-                },
-              });
-            }}
-            placeholder="All resource types"
-          />
-        </div>
-
         <div className="mt-3">
           <FieldLabelElement
             title="Device ID"

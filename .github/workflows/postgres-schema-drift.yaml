@@ -107,6 +107,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
 
+      # Block 43, "remediation never runs although it is on": the production
+      # rule engine writes down each reason fixing stopped (Enable AI, the
+      # record kind's switch, linked to nothing, AI rules), Try again decides
+      # an open record again with the settings of now - and refuses a
+      # resolved one, a wait for the investigation, a fix waiting for
+      # approval and a decision moments old - and the code fix a recommended
+      # investigation leads to says why it did not open on its own, all on
+      # structure-only copies of the migrated tables in a schema of their own.
+      - name: Test why AI remediation did not run, and Try again, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_REMEDIATION_TESTS: "true"
+          AI_REMEDIATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_REMEDIATION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_REMEDIATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/AiRemediationTryAgainPostgres.test.ts --forceExit
+
       # The daily AI limit's owner notice (one conditional UPDATE decides the
       # once-a-day email, even when servers race) and the catch-up that
       # investigates the incidents and alerts the limit skipped (its jsonb
@@ -2315,6 +2335,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
+
+      # Exceptions: the exception group upsert's ON CONFLICT branch, which is
+      # all of regression detection - an occurrence after the resolve
+      # reopens it as Regressed, a late one from before does not, and one
+      # resolved in the next release waits out the release it was resolved
+      # after. Clones the migrated TelemetryException into an isolated
+      # schema.
+      - name: Test exception regressions on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EXCEPTION_REGRESSION_TESTS: "true"
+          EXCEPTION_REGRESSION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_REGRESSION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_REGRESSION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ExceptionRegressionPostgres.test.ts --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out

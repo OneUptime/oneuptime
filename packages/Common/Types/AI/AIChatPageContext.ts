@@ -28,6 +28,9 @@ enum AIChatPageContextType {
   Exception = "Exception",
   // One security case's page.
   SecurityCase = "SecurityCase",
+  // One data store's pages, and one data security issue's (Data Security).
+  DataStore = "DataStore",
+  DataSecurityIssue = "DataSecurityIssue",
 
   // Area pages — no id; the user is browsing a list or an explorer.
   IncidentsList = "IncidentsList",
@@ -48,6 +51,8 @@ enum AIChatPageContextType {
    * detections and playbooks.
    */
   SecurityEvents = "SecurityEvents",
+  // Any other Data Security page: the overview, stores, issues, access.
+  DataSecurity = "DataSecurity",
 }
 
 export default AIChatPageContextType;
@@ -86,6 +91,8 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.Trace,
   AIChatPageContextType.Exception,
   AIChatPageContextType.SecurityCase,
+  AIChatPageContextType.DataStore,
+  AIChatPageContextType.DataSecurityIssue,
 ];
 
 export class AIChatPageContextHelper {

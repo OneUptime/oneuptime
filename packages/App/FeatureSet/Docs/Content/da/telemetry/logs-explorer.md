@@ -131,7 +131,7 @@ Fanen **Indsigter** viser, hvad dine tjenester har logget i et tidsinterval, og 
 | **Top errors** | De forskellige beskeder, der er logget med alvorligheden Error eller Fatal, de hyppigste først. |
 | **Sources reporting logs** | Volumen og fejlsignal for hver tjeneste, vært eller anden kilde. |
 
-Vælg en af de største fejl for at se, hvad der skete omkring den: hvornår den opstod, hvad dens forekomster har til fælles, hvor den opstår, de spor, der bærer den, og dens seneste linjer. **Open matching logs** åbner dem i **Seer**, og **Explain with AI** åbner [Spørg AI](/docs/ai/ask-ai) med fejlen og dens beviser som en prompt, du kan redigere.
+Vælg en af de største fejl for at se, hvad der skete omkring den: hvornår den opstod, hvad dens forekomster har til fælles, hvor den opstår, de spor, der bærer den, og dens seneste linjer. **Open matching logs** åbner dem i **Seer**, og **Forklar med AI** åbner [Spørg AI](/docs/ai/ask-ai) med fejlen og dens beviser som en prompt, du kan redigere.
 
 ## Find og ret fejllogs, manglende og støjende logs med AI
 

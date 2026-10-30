@@ -996,6 +996,8 @@ describe("A security case rule's conditions", () => {
         "Connected Product",
         "Manual",
         "Entity Risk",
+        // A case a Data Security issue opened (DataSecurityIntegrations).
+        "Data Security",
       ],
     ],
   ])(

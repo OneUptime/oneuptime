@@ -225,6 +225,12 @@ describe("which columns record a person doing something", () => {
    */
   test("every act is one OneUptime records", () => {
     const KNOWN_ACTS: ReadonlyArray<string> = [
+      /*
+       * DataSecurityIssue.acceptedByUserId: who accepted a data security
+       * issue's risk. The issue service stamps it from the caller as the
+       * status changes to Accepted; no request chooses it.
+       */
+      "accepted",
       "acknowledged",
       "added",
       "answered",

@@ -106,7 +106,7 @@ Hver kjøring holdes innenfor budsjetter som serveren håndhever: høyst **40 LL
 | Et unntaks side **AI Assistance** | **Fiks med AI** | Retter feilen bak unntaket. |
 | Et unntaks side **AI Assistance** | **Generate Regression Test** | Legger til en test som gjenskaper unntaket og feiler til feilen er rettet. |
 | Et unntaks side **AI Assistance** | **Forbedre feilhåndtering** | For en forventet feil, som ugyldig inndata: tar brukerdata ut av meldingen, validerer inndataene tidligere og merker feilen som håndtert, uten å endre oppførselen. |
-| En hendelses eller et varsels kort **AI Investigation** | **Open Fix PR from this analysis** | Retter rotårsaken undersøkelsen publiserte (se [Automatiske koderettinger fra undersøkelser](#automatiske-koderettinger-fra-undersøkelser)). |
+| Trinnet **Utbedring** på en hendelses eller et varsels kort **OneUptime AI** | **Åpne pull-forespørsel med retting** | Retter rotårsaken undersøkelsen publiserte (se [Automatiske koderettinger fra undersøkelser](#automatiske-koderettinger-fra-undersøkelser)). |
 | Et spor som er verdt å rette | **Fiks ytelsen med AI** | Retter det trege mønsteret som knappen nevner, som en N+1-spørring eller kall som kunne kjørt parallelt. |
 | En tjenestes side **Logger** | **Forbedre logging** | Gjør tjenestens logger strukturerte, med riktig alvorlighetsgrad og knyttet til sporene, uten å endre oppførselen. |
 | En tjenestes side **Spor** | **Forbedre sporing** | Legger til spans og attributter der tjenestens tracing mangler, uten å endre oppførselen. |
@@ -135,7 +135,7 @@ OneUptime har oversikt over hva koden din gjør i produksjon, så en retting tre
 | --- | --- |
 | **Fiks med AI** på et unntak | Hvor ofte det kastes nå og siden hvilken release, loggene og sporet til en forekomst. |
 | **Fiks ytelsen med AI** | Hvor travel og hvor treg operasjonen er på tvers av alle sporene sine, ikke bare det som ble analysert. Den endrer ingenting når operasjonen ikke lenger er treg. |
-| **Open Fix PR from this analysis**, og rettinger som åpnes automatisk fra undersøkelser | Utrullingene før hendelsen, feilene, loggene og de trege operasjonene i den, og om årsaken har slått til før. |
+| **Åpne pull-forespørsel med retting**, og rettinger som åpnes automatisk fra undersøkelser | Utrullingene før hendelsen, feilene, loggene og de trege operasjonene i den, og om årsaken har slått til før. |
 | `@oneuptime review` fra GitHub | Hva produksjonen sier om den endrede koden (se [Gjennomganger med produksjonskontekst](/docs/ai/github-app#gjennomganger-med-produksjonskontekst)). |
 
 Beskrivelsen av pull requesten sier hva agenten spurte etter, og hva det viste. Andre oppgaver, som regresjonstester og forbedringer av logging eller sporing, gjør ingen spørringer mot produksjonen.
@@ -305,7 +305,7 @@ Enhver måte å kjøre containeren på fungerer (Docker Compose, Kubernetes og s
 
 ## Automatiske koderettinger fra undersøkelser
 
-Når en [AI-undersøkelse](/docs/ai/ai-sre) publiserer en rotårsaksanalyse på en hendelse eller et varsel, og den nøye klassifiseringen anbefaler en endring i koden, tilbyr undersøkelseskortet **Open Fix PR from this analysis**: en rettingsoppgave der hele konteksten er den publiserte analysen. Knappen er skjult når løsningen er driftsmessig, bare gjelder infrastruktur, er ekstern, er en forventet avvisning, en brukerfeil eller uten konklusjon. Egnede rettinger skjer uten klikket så lenge **Rett nye hendelser automatisk** er på på **Hendelser → KI → Innstillinger** (og **Rett nye varsler automatisk** på **Varsler → KI → Innstillinger**). Rettingen starter av, også for nye prosjekter. Uten AI-regler åpnes hver egnet retting; med regler bare en for det en regel samsvarer med, når regelen har **Pull-forespørsler med rettinger** på (det har en ny regel), i koderepositoriene den nevner.
+Når en [AI-undersøkelse](/docs/ai/ai-sre) publiserer en rotårsaksanalyse på en hendelse eller et varsel, og den nøye klassifiseringen anbefaler en endring i koden, tilbyr trinnet **Utbedring** på kortet **OneUptime AI** knappen **Åpne pull-forespørsel med retting**: en rettingsoppgave der hele konteksten er den publiserte analysen. Den tilbys ikke når løsningen er driftsmessig, bare gjelder infrastruktur, er ekstern, er en forventet avvisning, en brukerfeil eller uten konklusjon. Egnede rettinger skjer uten klikket så lenge **Rett nye hendelser automatisk** er på på **Hendelser → KI → Innstillinger** (og **Rett nye varsler automatisk** på **Varsler → KI → Innstillinger**). Rettingen starter av, også for nye prosjekter. Uten AI-regler åpnes hver egnet retting; med regler bare en for det en regel samsvarer med, når regelen har **Pull-forespørsler med rettinger** på (det har en ny regel), i koderepositoriene den nevner.
 
 Mens rettingen er på, setter en undersøkelse som ender med en sikker, underbygd rotårsak som en kodeendring kan rette, den samme rettingsoppgaven i kø som knappen oppretter. Avgjørelsen er en avgrenset klassifisering som serveren kontrollerer, aldri et mønster som matches mot analysens tekst: bare en positiv dom om en koderetting åpner en pull request. Manglende belegg, en løsning utenfor koden og en mislykket klassifisering ender alle med at ingenting skjer.
 

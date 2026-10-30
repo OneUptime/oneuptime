@@ -178,7 +178,22 @@ Die Seite **Einrichtungsanleitung**, unter **Verbindungen**, hat diese Snippets 
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
-Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH-Anmeldung, jeder sudo-Befehl, jeder Kubernetes-Audit-Eintrag, jede AWS-CloudTrail-Änderung und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Kubernetes-Audit-Eintrag und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+
+Jede Art erreicht OneUptime als gewöhnliche Logs:
+
+| Art | Senden Sie sie von |
+| --- | --- |
+| SSH-Anmeldungen, sudo | Dem Journal oder Auth-Log eines Linux-Rechners, mit dem [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| Windows-Ereignisse | Dem Empfänger `windowseventlog` des Collectors auf dem Rechner, oder einem Weiterleiter, der jedes Ereignis als JSON schreibt, etwa NXLog oder Winlogbeat |
+| AWS CloudTrail | Einem Trail, der an CloudWatch Logs geliefert und vom Empfänger `awscloudwatch` des Collectors gelesen wird |
+| Google Cloud-Audit-Logs | Einer Log-Senke nach Pub/Sub, gelesen vom Empfänger `googlecloudpubsub` des Collectors mit `encoding: raw_text` |
+| Azure-Aktivitäts- und Entra-ID-Logs | Einer Diagnoseeinstellung, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw` |
+| CEF, LEEF | Dem Syslog des Produkts, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
+| Kubernetes-Audit-Logs | Der Audit-Log-Datei des API-Servers, gelesen vom Empfänger `filelog` des Collectors |
+| Webangriffe | Dem Zugriffslog eines Webservers, gelesen vom Empfänger `filelog` des Collectors |
+
+Auf **Ihre Protokolle** sagt jede Art, wann sie zuletzt gefunden wurde, und **Eine Protokollzeile prüfen** zeigt, was aus einer eingefügten Zeile wird, bevor eine ankommt.
 
 ### Ein Sicherheitsprodukt verbinden
 
@@ -194,6 +209,8 @@ Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie 
 | Elastic Security | Erkennungswarnungen, als Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, als Detection und Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Anmelde-, MFA-, Konto- und Richtlinienereignisse | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | Anmeldungen und Verzeichnisänderungen, und aus dem Microsoft 365-Audit-Protokoll Weiterleitungen von E-Mails, Freigaben und Phishing-Urteile | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | Anmeldungen, die eigenen Erkennungen von Google, Admin-Änderungen und App-Freigaben, und Freigaben in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Die eigenen Warnungen des Produkts ab der Stufe, die in **Open Cases From** eingestellt ist (**Hoch und höher**, sofern Sie keine andere Stufe wählen, oder **Nie**), eröffnen [Fälle](/docs/telemetry/security-cases), gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es jeweils geht.
 - Eine Verbindung liest Datensätze nach dem Zeitpunkt, zu dem das Produkt sie erstellt hat, nicht nach der Zeit der Aktivität, die sie beschreiben. Eine SIEM-Regel, die stündlich läuft, erstellt Erkennungen lange nach den Ereignissen, auf die sie passte, und diese werden trotzdem importiert.

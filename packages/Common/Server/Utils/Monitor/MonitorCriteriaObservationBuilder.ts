@@ -64,6 +64,8 @@ import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
 import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
+import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
+import PerEntityCriteriaFanOut from "./PerEntityCriteriaFanOut";
 
 // A sentence's closing period, dropped where it is quoted mid-sentence.
 const TRAILING_PERIOD: RegExp = /\.$/;
@@ -844,22 +846,30 @@ export default class MonitorCriteriaObservationBuilder {
     const diskPath: string =
       input.criteriaFilter.serverMonitorOptions?.diskPath || "/";
 
-    const diskMetric: BasicInfrastructureMetrics | undefined =
-      serverResponse.basicInfrastructureMetrics;
+    const diskMetrics: Array<BasicDiskMetrics> = (
+      serverResponse.basicInfrastructureMetrics?.diskMetrics || []
+    ).filter((disk: BasicDiskMetrics | null | undefined): boolean => {
+      return Boolean(disk);
+    });
 
-    if (!diskMetric || !diskMetric.diskMetrics?.length) {
+    if (diskMetrics.length === 0) {
       return `Disk metrics for path ${diskPath} were unavailable.`;
     }
 
+    // "*" names every disk: say how full the fullest one was.
+    if (PerEntityCriteriaFanOut.isWildcard(diskPath)) {
+      return MonitorCriteriaObservationBuilder.describeFullestDisk(diskMetrics);
+    }
+
+    // The disk the criteria judged: the one the path or device names.
     const matchedDisk: BasicDiskMetrics | undefined =
-      diskMetric.diskMetrics.find((disk: BasicDiskMetrics) => {
-        return (
-          disk.diskPath.trim().toLowerCase() === diskPath.trim().toLowerCase()
-        );
+      ServerMonitorCriteria.findDiskMetric({
+        diskMetrics: diskMetrics,
+        diskPath: diskPath,
       });
 
     if (!matchedDisk) {
-      return `Disk metrics did not include path ${diskPath}.`;
+      return `Disk metrics did not include path ${diskPath}: no disk the agent reported is mounted there or is that device. It reported ${MonitorCriteriaObservationBuilder.listDiskPaths(diskMetrics)}.`;
     }
 
     const percentUsedValue: number | null =
@@ -884,6 +894,62 @@ export default class MonitorCriteriaObservationBuilder {
     } (${used ?? "?"} used of ${total ?? "?"}, free ${free ?? "?"}).`;
   }
 
+  // The most disks an observation names before it says how many more.
+  private static readonly MAX_LISTED_DISKS: number = 10;
+
+  // The paths of the disks a report has, for an observation to name.
+  private static listDiskPaths(diskMetrics: Array<BasicDiskMetrics>): string {
+    const paths: Array<string> = diskMetrics.map(
+      (disk: BasicDiskMetrics): string => {
+        return disk.diskPath;
+      },
+    );
+    const listed: Array<string> = paths.slice(
+      0,
+      MonitorCriteriaObservationBuilder.MAX_LISTED_DISKS,
+    );
+    const more: number = paths.length - listed.length;
+
+    return more > 0
+      ? `${listed.join(", ")} and ${more} more`
+      : listed.join(", ");
+  }
+
+  // How full the fullest disk of a report was, for a "*" Disk Path.
+  private static describeFullestDisk(
+    diskMetrics: Array<BasicDiskMetrics>,
+  ): string {
+    let fullestDisk: BasicDiskMetrics | undefined = undefined;
+    let fullestUsage: number | null = null;
+
+    for (const disk of diskMetrics) {
+      const usage: number | null =
+        MonitorCriteriaMessageFormatter.computeDiskUsagePercent(disk);
+
+      if (usage !== null && (fullestUsage === null || usage > fullestUsage)) {
+        fullestDisk = disk;
+        fullestUsage = usage;
+      }
+    }
+
+    if (!fullestDisk || fullestUsage === null) {
+      return `Disk usage was unavailable for the ${diskMetrics.length} disk(s) the agent reported.`;
+    }
+
+    return `Disk Usage (in %) of the fullest of the ${diskMetrics.length} disk(s) the agent reported, ${fullestDisk.diskPath}, was ${
+      MonitorCriteriaMessageFormatter.formatPercentage(fullestUsage) ??
+      "unavailable"
+    }.`;
+  }
+
+  /*
+   * What a process criteria observed when the report had no process list:
+   * the agent could not list the processes, so nothing is known about any.
+   */
+  private static describeMissingProcesses(subject: string): string {
+    return `The agent's report had no process list, so whether ${subject} was running is not known.`;
+  }
+
   private static describeServerProcessNameObservation(input: {
     criteriaFilter: CriteriaFilter;
     dataToProcess: DataToProcess;
@@ -902,11 +968,18 @@ export default class MonitorCriteriaObservationBuilder {
       .trim()
       .toLowerCase();
 
-    const processes: Array<ServerProcess> = serverResponse.processes || [];
+    const processes: Array<ServerProcess> | undefined =
+      ServerMonitorCriteria.reportedProcesses(serverResponse);
+
+    if (!processes) {
+      return MonitorCriteriaObservationBuilder.describeMissingProcesses(
+        `process ${input.criteriaFilter.value}`,
+      );
+    }
 
     const matchingProcesses: Array<ServerProcess> = processes.filter(
       (process: ServerProcess) => {
-        return process.name.trim().toLowerCase() === thresholdName;
+        return (process.name || "").trim().toLowerCase() === thresholdName;
       },
     );
 
@@ -948,11 +1021,22 @@ export default class MonitorCriteriaObservationBuilder {
       .trim()
       .toLowerCase();
 
-    const processes: Array<ServerProcess> = serverResponse.processes || [];
+    const processes: Array<ServerProcess> | undefined =
+      ServerMonitorCriteria.reportedProcesses(serverResponse);
+
+    if (!processes) {
+      return MonitorCriteriaObservationBuilder.describeMissingProcesses(
+        `the process with PID ${input.criteriaFilter.value}`,
+      );
+    }
 
     const matchingProcesses: Array<ServerProcess> = processes.filter(
       (process: ServerProcess) => {
-        return process.pid.toString().trim().toLowerCase() === thresholdPid;
+        return (
+          String(process.pid ?? "")
+            .trim()
+            .toLowerCase() === thresholdPid
+        );
       },
     );
 
@@ -994,11 +1078,20 @@ export default class MonitorCriteriaObservationBuilder {
       .trim()
       .toLowerCase();
 
-    const processes: Array<ServerProcess> = serverResponse.processes || [];
+    const processes: Array<ServerProcess> | undefined =
+      ServerMonitorCriteria.reportedProcesses(serverResponse);
+
+    if (!processes) {
+      return MonitorCriteriaObservationBuilder.describeMissingProcesses(
+        `the process with command ${input.criteriaFilter.value}`,
+      );
+    }
 
     const matchingProcesses: Array<ServerProcess> = processes.filter(
       (process: ServerProcess) => {
-        return process.command.trim().toLowerCase() === thresholdCommand;
+        return (
+          (process.command || "").trim().toLowerCase() === thresholdCommand
+        );
       },
     );
 

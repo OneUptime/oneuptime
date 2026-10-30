@@ -1231,6 +1231,7 @@ describe(`${KUBERNETES}: the form`, () => {
 
     for (const filter of [
       "Namespace",
+      "Workload Kind",
       "Workload Name",
       "Node Name",
       "Pod Name",
@@ -1246,7 +1247,7 @@ describe(`${KUBERNETES}: the form`, () => {
     ).toEqual([
       "—",
       "**Namespace**",
-      "**Namespace**, **Workload Name**",
+      "**Namespace**, **Workload Kind**, **Workload Name**",
       "**Node Name**",
       "**Namespace**, **Pod Name**",
     ]);
@@ -1650,19 +1651,31 @@ describe("the criteria of the telemetry-backed monitors", () => {
         FilterType.AnomalouslyHigh,
         FilterType.AnomalouslyLow,
         FilterType.Anomalous,
+        FilterType.IsEmpty,
+        FilterType.IsNotEmpty,
       ].sort(),
     );
 
     const written: string =
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**.";
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
 
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
       expect(englishPage(page)).toContain(written);
     }
 
     expect(englishPage(KUBERNETES)).toContain(
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**.",
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
     );
+
+    // The words the Condition dropdown draws for the two data conditions.
+    const labels: Array<string> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(CheckOn.MetricValue).map(
+        (option: DropdownOption): string => {
+          return option.label;
+        },
+      );
+    expect(labels).toContain("Has No Data");
+    expect(labels).toContain("Has Data");
   });
 
   it("aggregate the window as the pages list", () => {
@@ -1792,11 +1805,14 @@ describe("the criteria of the telemetry-backed monitors", () => {
 
       expect(criteria.data!.monitorCriteriaInstanceArray).toHaveLength(2);
 
+      /*
+       * Has No Data / Has Data: whether the agent sends anything, never
+       * "0 is offline" - a metric that is healthy at zero used to open
+       * "is offline" on a healthy resource.
+       */
       expect(offline.data!.name).toBe("Check if Acme is offline");
-      expect(comparisonOf(primary(offline))).toEqual({
-        filterType: FilterType.EqualTo,
-        value: 0,
-      });
+      expect(primary(offline).filterType).toBe(FilterType.IsEmpty);
+      expect(primary(offline).value).toBeUndefined();
       expect(windowAggregationOf(primary(offline))).toBe(
         EvaluateOverTimeType.AnyValue,
       );
@@ -1806,10 +1822,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
       expect(offline.data!.incidents[0]!.autoResolveIncident).toBe(true);
 
       expect(online.data!.name).toBe("Check if Acme is online");
-      expect(comparisonOf(primary(online))).toEqual({
-        filterType: FilterType.GreaterThan,
-        value: 0,
-      });
+      expect(primary(online).filterType).toBe(FilterType.IsNotEmpty);
+      expect(primary(online).value).toBeUndefined();
       expect(online.data!.monitorStatusId).toEqual(IDS.onlineMonitorStatusId);
       expect(online.data!.createIncidents).toBe(false);
 
@@ -1817,13 +1831,13 @@ describe("the criteria of the telemetry-backed monitors", () => {
         [
           "1",
           "Check if _monitor name_ is offline",
-          "Any value of the first query is `0`",
+          "The first query has no data for the whole window",
           'Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers.',
         ],
         [
           "2",
           "Check if _monitor name_ is online",
-          "Any value is above `0`",
+          "The first query has data",
           "Marks the monitor **Operational**.",
         ],
       ]);
@@ -2368,8 +2382,57 @@ describe(`${SERVER}`, () => {
       'slog.Info("Metrics successfully pushed to OneUptime server"',
     );
     expect(page).toContain("logging `Secret key is invalid`");
+  });
+
+  /*
+   * The ingest answers 200 before the job that checks the secret key runs,
+   * so the agent's "pushed" line says only that OneUptime received the
+   * report. The page used to say it meant reports were getting through.
+   */
+  it("says the agent's pushed line means received, not accepted: ingest answers before it checks the key", () => {
+    const ingest: string = source(
+      "packages/App/FeatureSet/Telemetry/API/ServerMonitorIngest/ServerMonitor.ts",
+    );
+    const route: string = ingest.substring(
+      ingest.indexOf('"/server-monitor/response/ingest/:secretkey"'),
+    );
+
+    expect(
+      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
+    ).toBeGreaterThan(-1);
+    expect(
+      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
+    ).toBeLessThan(
+      route.indexOf("TelemetryQueueService.addServerMonitorIngestJob("),
+    );
     expect(page).toContain(
-      "A line `Metrics successfully pushed to OneUptime server` means reports are getting through.",
+      "A line `Metrics successfully pushed to OneUptime server` means OneUptime received a report, not that it accepted it: OneUptime answers before it checks the secret key.",
+    );
+    expect(page).not.toContain("means reports are getting through");
+  });
+
+  it("asks again about a key it could not verify, as often as the page says, and logs what it quotes", () => {
+    expect(agent).toContain("keyVerificationFirstRetry   = 5 * time.Second");
+    expect(agent).toContain("keyVerificationLongestRetry = 5 * time.Minute");
+    expect(agent).toContain(
+      'slog.Warn("The secret key could not be verified with OneUptime yet; asking again in "',
+    );
+    expect(page).toContain(
+      "While it cannot reach OneUptime, it keeps trying: again after 5 seconds, then twice as long each time, up to every 5 minutes.",
+    );
+    expect(page).toContain(
+      "the agent logs `The secret key could not be verified with OneUptime yet` and tries again.",
+    );
+  });
+
+  it("starts a failed service again, two minutes later on Windows as on Linux", () => {
+    expect(agentMain).toContain('const serviceRestartDelay = "2m"');
+    expect(agentMain).toContain('"OnFailure":              "restart",');
+    expect(agentMain).toContain(
+      '"OnFailureDelayDuration": serviceRestartDelay,',
+    );
+    expect(page).toContain(
+      "If the service stops on a failure, the service manager starts it again, after two minutes on Linux and Windows. A Windows service set up by an older agent's `configure` restarts only once you run `uninstall` and `configure` again.",
     );
   });
 
@@ -2415,9 +2478,18 @@ describe(`${SERVER}`, () => {
       "Service configuration not found. Please run 'oneuptime-infrastructure-agent configure' to configure the service.",
     );
     expect(agentMain).toContain('slog.Info("Service is running")');
+    // The commands' log lines reach the terminal: they went only to the log file.
+    expect(agentMain).toContain("utils.EchoToTerminal(os.Stdout, os.Stderr)");
+    expect(agentMain).toContain('return args[1] != "run" || interactive');
+    expect(logger).toContain(
+      "func EchoToTerminal(stdout io.Writer, stderr io.Writer) {",
+    );
     expect(agentMain).toContain('logFlags.Int("n", 100, ');
     expect(agentMain).toContain('logFlags.Bool("f", false, ');
     expect(page).toContain("it prints `Service is running`");
+    expect(page).toContain(
+      "Each command prints what it did, or why it failed, and writes the same to the agent's log.",
+    );
     expect(page).toContain(
       "Prints the last 100 lines of the agent's log. `-n <lines>` prints a different number of lines, and `-f` follows new ones.",
     );
@@ -2462,18 +2534,72 @@ describe(`${SERVER}`, () => {
     );
   });
 
-  it("installs into $HOME/bin, prints where, and takes -b", () => {
+  /*
+   * Under sudo the script used to install into $HOME/bin, /root/bin, which is
+   * not on sudo's path, so the next step was not found.
+   * InfrastructureAgentInstallScript runs the script.
+   */
+  it("installs into /usr/local/bin as root and $HOME/bin otherwise, prints where, and takes -b", () => {
     const script: string = source(
       "packages/App/FeatureSet/Docs/Static/scripts/infrastructure-agent/install.sh",
     );
 
+    expect(script).toContain(
+      'if [ "$(id -u)" = "0" ]; then\n  BINDIR=/usr/local/bin',
+    );
     expect(script).toContain("BINDIR=$HOME/bin");
     expect(script).toContain('echo "Installing to ${BINDIR}"');
     expect(script).toContain('while getopts "b:d" opt; do');
+    expect(script).toContain("if command -v curl > /dev/null 2>&1; then");
+    expect(script).not.toContain("apt-get");
     expect(page).toContain(
-      "puts the `oneuptime-infrastructure-agent` binary in `$HOME/bin`",
+      "Run with `sudo`, the install script puts the `oneuptime-infrastructure-agent` binary in `/usr/local/bin` (in `$HOME/bin` without `sudo`), and it downloads with `curl` or `wget`.",
     );
-    expect(page).toContain("| sudo bash -s -- -b /usr/local/bin");
+    expect(page).toContain(
+      "there, the script prints the commands with the agent's full path, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`",
+    );
+    expect(page).toContain("| sudo bash -s -- -b /usr/bin");
+  });
+
+  it("reports the disks that can fill up as df counts them, the CPU's time since the previous report, and the processes it cannot fully read", () => {
+    const disk: string = source("agents/InfrastructureAgent/utils/disk.go");
+    const cpu: string = source("agents/InfrastructureAgent/utils/cpu.go");
+    const procs: string = source("agents/InfrastructureAgent/utils/procs.go");
+
+    for (const fstype of ["squashfs", "iso9660", "devfs", "autofs"]) {
+      expect(disk).toContain(`"${fstype}":`);
+    }
+    expect(disk).toContain(
+      "percentUsed = float64(usageStat.Used) / float64(usable) * 100",
+    );
+    expect(cpu).toContain("return cpuTimeSharesBetween(*previous, *current)");
+    expect(procs).toContain('cmdline = ""');
+    expect(page).toContain(
+      "| Disks | For each mounted disk, except read-only images (snaps, ISOs) and `/dev`: mount path, device, file system, total, used and free space, usage % as `df` counts it,",
+    );
+    expect(page).toContain("IRQ and soft IRQ since the previous report |");
+    expect(page).toContain(
+      "a process whose command line cannot be read, such as a protected Windows process, without its command |",
+    );
+  });
+
+  it("matches nothing on a value, disk or process list the report does not have", () => {
+    const criteria: string = source(
+      "packages/Common/Server/Utils/Monitor/Criteria/ServerMonitorCriteria.ts",
+    );
+
+    expect(criteria).toContain(
+      "reading: ServerMonitorCriteria.reportedNumber(cpuMetrics?.percentUsed),",
+    );
+    expect(criteria).toContain(
+      "ServerMonitorCriteria.reportedProcesses(serverResponse);",
+    );
+    expect(page).toContain(
+      "a criteria on a value the report does not have is not met: a missing value is not 0.",
+    );
+    expect(page).toContain(
+      "When the agent cannot read the server's processes, its report has no process list, and no process filter matches, whether it checks that a process is executing or that it is not.",
+    );
   });
 
   /*
@@ -2604,6 +2730,22 @@ describe(`${SERVER}`, () => {
     expect(setupCard).toContain(
       "return <ServerMonitorDocumentation secretKey={secretKey} />;",
     );
+
+    // The card installs the way the page does, and sends people here for the other ways.
+    expect(documentation).toContain(
+      '"winget install --id OneUptime.InfrastructureAgent --exact --scope machine"',
+    );
+    expect(page).toContain(
+      "winget install --id OneUptime.InfrastructureAgent --exact --scope machine",
+    );
+    expect(documentation).toContain(
+      "/docs/static/scripts/infrastructure-agent/install.sh | sudo bash`",
+    );
+    expect(page).toContain(
+      "/docs/static/scripts/infrastructure-agent/install.sh | sudo bash\n",
+    );
+    expect(documentation).toContain("/docs/monitor/server-monitor`");
+    expect(documentation).not.toContain("uninstall");
     expect(setupCard).toContain(
       "The install command contains this monitor's secret key, so only people who can edit monitors can see it.",
     );
@@ -2696,8 +2838,16 @@ describe(`${SERVER}`, () => {
       'placeholder={"* or C:\\\\ or /mnt/data or /dev/sda1"}',
     );
     expect(criteria).toMatch(EMPTY_DISK_PATH_IS_ROOT);
+    // A device names the disk on it, and the window is read for that disk's own path.
+    expect(criteria).toContain(
+      "ServerMonitorCriteria.normalizeDiskPath(disk.device) === wanted",
+    );
+    expect(criteria).toContain("miscData: { diskPath: input.agentDiskPath },");
     expect(page).toContain(
       "**Disk Path** takes a mount point or device, such as `/`, `/mnt/data`, `C:\\` or `/dev/sda1`; it is `/` when left empty. Enter `*` to check every disk the agent reports",
+    );
+    expect(page).toContain(
+      "Case and a trailing `/` or `\\` do not matter, and a device stands for the disk mounted from it. A path that names no disk the agent reports does not match.",
     );
   });
 

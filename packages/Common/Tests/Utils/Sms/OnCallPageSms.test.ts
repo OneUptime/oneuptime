@@ -998,3 +998,118 @@ describe("a page again", () => {
     expect(sms.sent.encoding).toBe(SmsEncoding.Ucs2);
   });
 });
+
+describe("a page a person asked for", () => {
+  test("says who paged whom after the product, before what happened", () => {
+    expect(page({ lead: "Alice Kim paged Platform" }).text).toBe(
+      `OneUptime: Alice Kim paged Platform about Critical Incident INC-21033 in Acme Prod: API is down.${tail(CLOUD_LINK)}`,
+    );
+  });
+
+  test.each(KINDS)(
+    "says it of a %s too, in one part",
+    (kind: OnCallPageSmsKind) => {
+      const sms: OnCallPageSms = page({
+        kind: kind,
+        title: "Checkout API is offline",
+        lead: "Alice Kim paged you",
+      });
+
+      expect(sms.text).toBe(
+        `OneUptime: Alice Kim paged you about ${DEFAULTS[kind].what} ${DEFAULTS[kind].number} in Acme Prod: Checkout API is offline.${tail(CLOUD_LINK)}`,
+      );
+      expect(sms.sent.segments).toBe(1);
+    },
+  );
+
+  test("the docs' example is one part of GSM-7", () => {
+    const sms: OnCallPageSms = buildOnCallPageSms({
+      kind: OnCallPageSmsKind.Incident,
+      productName: "OneUptime",
+      severityName: "Critical Incident",
+      number: "INC-42",
+      projectName: "Acme Prod",
+      title: "Checkout API is down",
+      link: CLOUD_LINK,
+      lead: "Alice Kim paged Platform",
+    });
+
+    expect(sms.text).toBe(
+      "OneUptime: Alice Kim paged Platform about Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
+    );
+    expect(sms.sent).toEqual({
+      encoding: SmsEncoding.Gsm7,
+      length: 152,
+      segments: 1,
+    });
+  });
+
+  test("every other page reads exactly as before", () => {
+    const first: string = page({}).text;
+
+    expect(page({ lead: "" }).text).toBe(first);
+    expect(page({ lead: undefined }).text).toBe(first);
+    expect(page({ lead: null }).text).toBe(first);
+    expect(page({ lead: "   " }).text).toBe(first);
+    expect(first).not.toContain("paged");
+  });
+
+  test("who paged is never cut: the project goes first, then the title is cut, as on any page", () => {
+    const sms: OnCallPageSms = page({
+      lead: "Alice Kim paged Platform",
+      title:
+        "Checkout API is down for every customer in every region since the deploy of 10:42",
+    });
+    const head: string =
+      "OneUptime: Alice Kim paged Platform about Critical Incident INC-21033: ";
+
+    expect(sms.text.slice(0, head.length)).toBe(head);
+    expect(sms.isProjectLeftOut).toBe(true);
+    expect(sms.isTitleCut).toBe(true);
+    expect(sms.text).toContain(
+      `${ON_CALL_PAGE_SMS_CUT_MARK}${tail(CLOUD_LINK)}`,
+    );
+    expect(sms.sent.segments).toBe(1);
+  });
+
+  test("names are written in the characters an SMS carries cheaply, on one line", () => {
+    const sms: OnCallPageSms = page({
+      lead: "Ana \u{201C}Ops\u{201D} Mar\u{00E7}al \u{1F525}\npaged Platform",
+    });
+    const head: string = 'OneUptime: Ana "Ops" Marcal paged Platform about ';
+
+    expect(sms.text.slice(0, head.length)).toBe(head);
+    expect(sms.sent.encoding).toBe(SmsEncoding.Gsm7);
+  });
+
+  test("every GSM-7 title of up to 500 characters fits in one part on Cloud, and in two at most on a self-hosted address, never losing who paged", () => {
+    const head: string =
+      "OneUptime: Alice Kim paged Platform about Critical Incident INC-21033";
+
+    for (const link of LINKS) {
+      const most: number = link === CLOUD_LINK ? 1 : 2;
+
+      for (let length: number = 0; length <= 500; length++) {
+        const sms: OnCallPageSms = page({
+          title: "Checkout is down ".repeat(30).slice(0, length),
+          link: link,
+          lead: "Alice Kim paged Platform",
+        });
+
+        expect({
+          length,
+          link,
+          isWithin: sms.sent.segments <= most,
+          isSaid: sms.text.slice(0, head.length) === head,
+          isLinked: sms.text.endsWith(tail(link)),
+        }).toEqual({
+          length,
+          link,
+          isWithin: true,
+          isSaid: true,
+          isLinked: true,
+        });
+      }
+    }
+  });
+});

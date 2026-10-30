@@ -23,6 +23,18 @@ export const SCHEDULE_FINAL_SCHEDULE_TITLE: string =
   translationKey("Final Schedule");
 
 /*
+ * What the Final Schedule shows, under its title on the Overview and the
+ * Layers page (and over the layer form's preview). It used to say the
+ * timezone too ("Times are in this schedule's timezone, Europe/London."),
+ * three lines above the "View as" note that says it again beside the
+ * control that changes it - and above times that each carry their zone.
+ * The note is the one place now.
+ */
+export const SCHEDULE_FINAL_SCHEDULE_DESCRIPTION: string = translationKey(
+  "Who is on call and when, with every layer applied.",
+);
+
+/*
  * A schedule with no layers yet, on its Overview: one step - add the people
  * who take turns - where a red "No one is currently on call" banner, two
  * calendar cards and "No Layers in this On Call Schedule. Please go to

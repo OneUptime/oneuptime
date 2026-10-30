@@ -44,6 +44,15 @@ const KNOWN_FIELD_TYPES: Array<string> = [
   "json",
 ];
 
+// One or more lowercase words: the record name sits mid-sentence.
+const LOWERCASE_WORDS: RegExp = /^[a-z]+(?: [a-z]+)*$/;
+
+/*
+ * Endings whose plural is not the word and an "s": activity, process, box,
+ * search, flash, quiz. A vowel before a y is fine: key, keys.
+ */
+const IRREGULAR_PLURAL_ENDING: RegExp = /(?:[^aeiou]y|s|x|ch|sh|z)$/;
+
 const DEFINITION_CASES: Array<[string, SecurityEventConnectorDefinition]> =
   SecurityEventConnectorCatalog.map(
     (
@@ -149,6 +158,19 @@ describe.each(DEFINITION_CASES)(
       expect(definition.importedRecordName.trim()).not.toBe("");
       expect(SecurityEventConnectorCategories).toContain(definition.category);
       expect(typeof definition.supportsAlertingOnlyToggle).toBe("boolean");
+    });
+
+    /*
+     * The Diagnostics button and the poller's run name the records by
+     * adding an "s" to this name: Preview audit events, Read alerts from
+     * CrowdStrike Falcon. A name whose plural is not that, such as
+     * "activity", would read Preview activitys.
+     */
+    test("names one imported record so that an added s makes its plural", () => {
+      expect(definition.importedRecordName).toMatch(LOWERCASE_WORDS);
+      expect(definition.importedRecordName).not.toMatch(
+        IRREGULAR_PLURAL_ENDING,
+      );
     });
 
     test("uses a real IconProp value", () => {

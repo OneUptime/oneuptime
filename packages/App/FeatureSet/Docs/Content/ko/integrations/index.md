@@ -58,6 +58,8 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Elastic Security](/docs/integrations/elastic-security) | 양방향 | Elastic Security 탐지 알림을 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Elastic Security로 보냅니다. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 인바운드 | AWS Security Hub 검색 결과를 보안 이벤트로 가져옵니다. |
 | [Okta System Log](/docs/integrations/okta) | 인바운드 | Okta 로그인, 계정 변경, 위협 탐지를 보안 이벤트로 가져옵니다. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | 인바운드 | Microsoft Entra ID 로그인과 디렉터리 변경, Microsoft 365 감사 로그를 보안 이벤트로 가져옵니다. |
+| [Google Workspace](/docs/integrations/google-workspace) | 인바운드 | Google Workspace 로그인, 관리자 변경, Google 자체 탐지를 보안 이벤트로 가져옵니다. |
 
 ### 티켓 및 IT 서비스 관리
 

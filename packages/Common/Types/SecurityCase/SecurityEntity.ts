@@ -15,6 +15,8 @@ export enum SecurityEntityType {
   Url = "URL",
   FileHash = "File Hash",
   Process = "Process",
+  // A bucket, database or telemetry stream Data Security watches.
+  DataStore = "Data Store",
   Other = "Other",
 }
 
@@ -25,6 +27,40 @@ export interface SecurityEntity {
 
 // The most entities a case or detection keeps, so one noisy match cannot grow a row without bound.
 export const SECURITY_ENTITY_LIMIT: number = 50;
+
+/*
+ * A data store as Security Operations names it: "data-store:" and the
+ * store's key (Types/DataSecurity/DataStoreKey) - one name for the store
+ * whichever source speaks of it, so a Data Security issue, a detection
+ * rule grouped on the store and its criticality entry all mean one entity.
+ */
+export const DATA_STORE_ENTITY_PREFIX: string = "data-store:";
+
+export function getDataStoreEntityValue(storeKey: string): string {
+  return `${DATA_STORE_ENTITY_PREFIX}${(storeKey || "").trim()}`;
+}
+
+// Whether a value names a data store: the prefix, whatever its case, and a key after it.
+export function isDataStoreEntityValue(
+  value: string | undefined | null,
+): boolean {
+  const trimmed: string = (value || "").trim();
+
+  return (
+    trimmed.length > DATA_STORE_ENTITY_PREFIX.length &&
+    trimmed.slice(0, DATA_STORE_ENTITY_PREFIX.length).toLowerCase() ===
+      DATA_STORE_ENTITY_PREFIX
+  );
+}
+
+// The store's key in a data store's entity value, or "" for any other value.
+export function getDataStoreKeyOfEntityValue(
+  value: string | undefined | null,
+): string {
+  return isDataStoreEntityValue(value)
+    ? (value || "").trim().slice(DATA_STORE_ENTITY_PREFIX.length).trim()
+    : "";
+}
 
 /*
  * The typed security-event columns, and the entity each one holds. A value
@@ -129,12 +165,21 @@ export function isIpAddress(value: string): boolean {
  * An email address reads as a user (in security data it is almost always a
  * sign-in name); a dotted name as a domain; anything that matches nothing
  * is Other, never a guess.
+ *
+ * A data store's name is OneUptime's own ("data-store:" and its key), and
+ * is read first: a key holds an ARN, a Google Cloud resource name or a
+ * traced database's address, whose colons, slashes and "@" the shapes
+ * below would take for a URL, an address or a user.
  */
 export function inferSecurityEntityType(value: string): SecurityEntityType {
   const trimmed: string = (value || "").trim();
 
   if (!trimmed) {
     return SecurityEntityType.Other;
+  }
+
+  if (isDataStoreEntityValue(trimmed)) {
+    return SecurityEntityType.DataStore;
   }
 
   if (isIpAddress(trimmed)) {
@@ -249,6 +294,8 @@ export function getSecurityEntityIcon(
       return IconProp.Fingerprint;
     case SecurityEntityType.Process:
       return IconProp.Terminal;
+    case SecurityEntityType.DataStore:
+      return IconProp.Database;
     default:
       return IconProp.Tag;
   }

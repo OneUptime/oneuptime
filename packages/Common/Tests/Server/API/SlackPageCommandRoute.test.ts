@@ -49,6 +49,7 @@ import WorkspaceUserGroupService from "../../../Server/Services/WorkspaceUserGro
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import { WorkspaceEventType } from "../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestRecord,
@@ -57,6 +58,10 @@ import WorkspacePage, {
   WorkspacePageOutcome,
   WorkspacePagePlace,
 } from "../../../Server/Utils/Workspace/WorkspacePage";
+import WorkspacePageAbout, {
+  WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+  WorkspacePageSubject,
+} from "../../../Server/Utils/Workspace/WorkspacePageAbout";
 import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../Types/Workspace/ConnectCallback";
 
 /*
@@ -131,6 +136,10 @@ const ALERT_ID: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000b1");
 const RUN_ID: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000c1");
 
 const ALERT_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/alerts/${ALERT_ID.toString()}`;
+const INCIDENT_ID: ObjectID = new ObjectID(
+  "c4000000-0000-4000-8000-0000000000b2",
+);
+const INCIDENT_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID.toString()}`;
 
 const PROPS: DatabaseCommonInteractionProps = {
   userId: SIMON,
@@ -295,6 +304,8 @@ function slashCommand(text: string): Record<string, string> {
 function formSubmission(data: {
   picks: Array<string>;
   message: string;
+  // What the form carries of what it pages about: "" for something new.
+  value?: string | undefined;
 }): Record<string, string> {
   return {
     payload: JSON.stringify({
@@ -306,7 +317,7 @@ function formSubmission(data: {
         callback_id: "SubmitPageSomeone",
         private_metadata: JSON.stringify({
           oneuptime: 1,
-          value: "",
+          value: data.value || "",
           channelId: CHANNEL_ID,
         }),
         state: {
@@ -391,7 +402,16 @@ describe("POST /slack/command: /oneuptime page", () => {
     place: WorkspacePagePlace | undefined;
     props: DatabaseCommonInteractionProps;
     workspaceType: WorkspaceType;
+    about: WorkspacePageSubject | undefined;
   }>;
+  /*
+   * What a page in #ops is about (WorkspacePageAbout.read, its own suite's):
+   * something new, or the channel's incident, or a refusal to read it.
+   */
+  let channelAbout: WorkspacePageSubject | Error;
+  // What a submitted form's value reads as, again as the member.
+  let valueAbout: WorkspacePageSubject | Error;
+  let aboutReads: Array<{ kind: string; at: unknown; props: unknown }>;
   let outcome: () => Promise<WorkspacePageOutcome>;
   let schedules: Array<OnCallDutyPolicySchedule>;
   let viewsOpenError: string | null;
@@ -425,6 +445,9 @@ describe("POST /slack/command: /oneuptime page", () => {
       }),
     ];
     userGroupsAskedWith = [];
+    channelAbout = WORKSPACE_PAGE_NEW_ALERT_SUBJECT;
+    valueAbout = WORKSPACE_PAGE_NEW_ALERT_SUBJECT;
+    aboutReads = [];
     outcome = async (): Promise<WorkspacePageOutcome> => {
       return {
         result: pagedResult(),
@@ -594,8 +617,45 @@ describe("POST /slack/command: /oneuptime page", () => {
             place: data.place,
             props: data.props,
             workspaceType: data.workspaceType,
+            about: data.about,
           });
           return await outcome();
+        },
+      );
+    jest
+      .spyOn(WorkspacePageAbout, "read")
+      .mockImplementation(
+        async (data: {
+          channelId: string | undefined;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          aboutReads.push({
+            kind: "channel",
+            at: data.channelId,
+            props: data.props,
+          });
+
+          if (channelAbout instanceof Error) {
+            throw channelAbout;
+          }
+
+          return channelAbout;
+        },
+      );
+    jest
+      .spyOn(WorkspacePageAbout, "readValue")
+      .mockImplementation(
+        async (data: {
+          value: string | undefined;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          aboutReads.push({ kind: "value", at: data.value, props: data.props });
+
+          if (valueAbout instanceof Error) {
+            throw valueAbout;
+          }
+
+          return valueAbout;
         },
       );
     jest
@@ -690,6 +750,8 @@ describe("POST /slack/command: /oneuptime page", () => {
   function submit(data: {
     picks: Array<string>;
     message: string;
+    // What the form carries of what it pages about (formSubmission).
+    value?: string | undefined;
   }): Promise<RouteAnswer> {
     return postForm({
       port: app.port,
@@ -832,9 +894,15 @@ describe("POST /slack/command: /oneuptime page", () => {
       ).toEqual([RESPONSE_URL]);
       expect(calls[0]!.data["response_type"]).toBe("ephemeral");
       expect(textOf(calls[0]!.data["blocks"])).toBe(
-        "📟 Paging *Nawaz Dhandala*…\n",
+        "📟 Paging *Nawaz Dhandala* about a new alert…\n",
       );
-      expect(calls[0]!.data["text"]).toBe("Paging Nawaz Dhandala…");
+      expect(calls[0]!.data["text"]).toBe(
+        "Paging Nawaz Dhandala about a new alert…",
+      );
+      // Read where the command was run, as Simon.
+      expect(aboutReads).toEqual([
+        { kind: "channel", at: CHANNEL_ID, props: PROPS },
+      ]);
 
       // The page: Nawaz, the message as typed, as Simon, shown in #ops.
       expect(pages).toEqual([
@@ -849,6 +917,8 @@ describe("POST /slack/command: /oneuptime page", () => {
           },
           props: PROPS,
           workspaceType: WorkspaceType.Slack,
+          // #ops is no record's own channel: something new.
+          about: WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
         },
       ]);
     });
@@ -899,7 +969,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       expect(pages[0]!.targets).toEqual({ userIds: [NAWAZ, ANA] });
       expect(pages[0]!.message).toBe("replica is 10 minutes behind");
       expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
-        "📟 Paging *Nawaz Dhandala* and *Ana Ruiz*…\n",
+        "📟 Paging *Nawaz Dhandala* and *Ana Ruiz* about a new alert…\n",
       );
     });
 
@@ -948,9 +1018,11 @@ describe("POST /slack/command: /oneuptime page", () => {
         },
       ]);
       expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
-        "📟 Paging *@payments-oncall*…\n",
+        "📟 Paging *@payments-oncall* about a new alert…\n",
       );
-      expect(sentToSlack()[0]!.data["text"]).toBe("Paging @payments-oncall…");
+      expect(sentToSlack()[0]!.data["text"]).toBe(
+        "Paging @payments-oncall about a new alert…",
+      );
       expect(pages).toEqual([
         {
           targets: { userIds: [], onCallScheduleIds: [PRIMARY] },
@@ -963,6 +1035,7 @@ describe("POST /slack/command: /oneuptime page", () => {
           },
           props: PROPS,
           workspaceType: WorkspaceType.Slack,
+          about: WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
         },
       ]);
     });
@@ -979,7 +1052,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       });
       expect(pages[0]!.message).toBe("replica is behind");
       expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
-        "📟 Paging *Nawaz Dhandala* and *@payments-oncall*…\n",
+        "📟 Paging *Nawaz Dhandala* and *@payments-oncall* about a new alert…\n",
       );
     });
 
@@ -1305,14 +1378,19 @@ describe("POST /slack/command: /oneuptime page", () => {
       expect(pages).toEqual([]);
     });
 
-    test("somebody who may not create the alert a page is: told so, and nobody is paged", async () => {
+    test("somebody who may not create the alert a page here is: told so - that a page here creates one - and nobody is paged", async () => {
       mayCreateAlert = false;
 
       await post("page <@U0NAWAZ|nawaz> db down");
       const calls: Array<SlackCall> = await slackCallsAfter(1);
 
+      /*
+       * They may page in an incident's own channel, where nothing is
+       * created: "You do not have permission to page people" alone would
+       * not be true.
+       */
       expect(textOf(calls[0]!.data["blocks"])).toBe(
-        "You do not have permission to page people. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
+        "You do not have permission to page people here, where a page creates an alert. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
       );
       expect(pages).toEqual([]);
     });
@@ -1364,6 +1442,8 @@ describe("POST /slack/command: /oneuptime page", () => {
           },
           props: PROPS,
           workspaceType: WorkspaceType.Slack,
+          // A form that carries no record pages about something new.
+          about: WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
         },
       ]);
     });
@@ -1393,6 +1473,298 @@ describe("POST /slack/command: /oneuptime page", () => {
       await submit({ picks: [`user:${NAWAZ.toString()}`], message: "db" });
       await slackCallsAfter(1);
 
+      expect(pages).toEqual([]);
+    });
+  });
+
+  /*
+   * THE MAINTAINER'S ASK (block 31): "If I am paging someone from an
+   * incident channel, it's because of that incident. You should not create
+   * an alert for it." In #ops made into an incident's own channel - as
+   * WorkspacePageAbout.read says it is - the page is about the incident.
+   */
+  describe("in an incident's own channel: the page is about the incident, and nothing new is made", () => {
+    function incidentAbout(): WorkspacePageSubject {
+      return {
+        record: {
+          type: OnCallPageRecordType.Incident,
+          event: {
+            type: WorkspaceEventType.Incident,
+            id: INCIDENT_ID,
+            projectId: PROJECT_ID,
+            currentStateId: undefined,
+            number: 42,
+            numberWithPrefix: "INC-42",
+          },
+          name: { label: "Incident INC-42", link: INCIDENT_URL },
+          title: "Checkout is down",
+        },
+      };
+    }
+
+    function alertAbout(): WorkspacePageSubject {
+      return {
+        record: {
+          type: OnCallPageRecordType.Alert,
+          event: {
+            type: WorkspaceEventType.Alert,
+            id: ALERT_ID,
+            projectId: PROJECT_ID,
+            currentStateId: undefined,
+            number: 3,
+            numberWithPrefix: "ALT-3",
+          },
+          name: { label: "Alert ALT-3", link: ALERT_URL },
+          title: "Disk almost full",
+        },
+      };
+    }
+
+    test("@nawaz with no message pages at once - the incident says what it is about - and Simon is told it is about the incident", async () => {
+      channelAbout = incidentAbout();
+
+      await post("page <@U0NAWAZ|nawaz>");
+      await pagesAfter(1);
+
+      // Nobody is asked for a message, and no form opens.
+      expect(
+        sentToSlack().map((call: SlackCall): string => {
+          return call.url;
+        }),
+      ).toEqual([RESPONSE_URL]);
+      expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
+        "📟 Paging *Nawaz Dhandala* about Incident INC-42…\n",
+      );
+      expect(sentToSlack()[0]!.data["text"]).toBe(
+        "Paging Nawaz Dhandala about Incident INC-42…",
+      );
+      expect(pages).toEqual([
+        {
+          targets: { userIds: [NAWAZ] },
+          message: "",
+          place: {
+            workspaceType: WorkspaceType.Slack,
+            destinationType: WorkspaceLiveMessageDestinationType.Channel,
+            channelId: CHANNEL_ID,
+            channelName: "ops",
+          },
+          props: PROPS,
+          workspaceType: WorkspaceType.Slack,
+          about: incidentAbout(),
+        },
+      ]);
+    });
+
+    test("a message after @nawaz is the page's own message, passed on as typed", async () => {
+      channelAbout = incidentAbout();
+
+      await post("page <@U0NAWAZ|nawaz> Can you check the database?");
+      await pagesAfter(1);
+
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.message).toBe("Can you check the database?");
+      expect(pages[0]!.about).toEqual(incidentAbout());
+    });
+
+    test("in an alert's own channel, the page is about the alert", async () => {
+      channelAbout = alertAbout();
+
+      await post("page <@U0NAWAZ|nawaz>");
+      await pagesAfter(1);
+
+      expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
+        "📟 Paging *Nawaz Dhandala* about Alert ALT-3…\n",
+      );
+      expect(pages[0]!.about).toEqual(alertAbout());
+    });
+
+    test("/oneuptime page alone: the form opens with the incident, its message optional, and carries the incident", async () => {
+      channelAbout = incidentAbout();
+
+      await post("page");
+      const view: JSONObject = await openedForm();
+
+      // The incident first, as the incident's own forms open.
+      const heading: JSONObject = (view["blocks"] as Array<JSONObject>)[0]!;
+      expect(heading["type"]).toBe("section");
+      expect(
+        String((heading["text"] as JSONObject)["text"])
+          .split(ZERO_WIDTH_SPACE)
+          .join(""),
+      ).toBe(`🚨 *<${INCIDENT_URL}|INC-42>* Checkout is down\n`);
+
+      const message: JSONObject = inputOf(view, "pageMessage")!;
+      // Slack writes "(optional)" after the label: the hint does not say it again.
+      expect(message["optional"]).toBe(true);
+      expect(message["hint"]).toEqual({
+        type: "plain_text",
+        text: "The people you page see it with Incident INC-42.",
+      });
+      expect((message["element"] as JSONObject)["max_length"]).toBe(500);
+
+      // Its submission reads the incident again, from the form.
+      expect(
+        JSON.parse(view["private_metadata"] as string) as JSONObject,
+      ).toMatchObject({
+        value: `incident:${INCIDENT_ID.toString()}`,
+        channelId: CHANNEL_ID,
+      });
+      expect(pages).toEqual([]);
+    });
+
+    test("the form submitted with no message pages about the incident it carries, read again as Simon", async () => {
+      valueAbout = incidentAbout();
+
+      const answer: RouteAnswer = await submit({
+        picks: [`team:${PLATFORM.toString()}`],
+        message: "",
+        value: `incident:${INCIDENT_ID.toString()}`,
+      });
+
+      // No "Write what the page is about." for a page about an incident.
+      expect(answer.body).toEqual({ response_action: "clear" });
+
+      await pagesAfter(1);
+
+      expect(aboutReads).toEqual([
+        {
+          kind: "value",
+          at: `incident:${INCIDENT_ID.toString()}`,
+          props: PROPS,
+        },
+      ]);
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.targets).toEqual({
+        userIds: [],
+        teamIds: [PLATFORM],
+        onCallScheduleIds: [],
+        onCallDutyPolicyIds: [],
+      });
+      expect(pages[0]!.message).toBe("");
+      expect(pages[0]!.about).toEqual(incidentAbout());
+    });
+
+    test("a form whose incident was resolved after it opened pages nobody, and says why", async () => {
+      valueAbout = {
+        record: null,
+        resolvedRecord: { label: "Incident INC-42", link: INCIDENT_URL },
+      };
+
+      await submit({
+        picks: [`user:${NAWAZ.toString()}`],
+        message: "",
+        value: `incident:${INCIDENT_ID.toString()}`,
+      });
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+
+      expect(pages).toEqual([]);
+      expect(calls[0]!.url).toBe("https://slack.com/api/chat.postEphemeral");
+      expect(textOf(calls[0]!.data["blocks"])).toBe(
+        "Incident INC-42 was resolved after the form opened, so nobody was paged.\n",
+      );
+    });
+
+    test("the channel of an incident Simon may not read: told why, and nobody is paged, no form", async () => {
+      channelAbout = new NotAuthorizedException(
+        "You do not have permission to page someone about this incident: this incident is private, so only its owners and the people its private team names can see it.",
+      );
+
+      await post("page <@U0NAWAZ|nawaz> db down");
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+      await slackCallsAfter(2, 30);
+
+      expect(pages).toEqual([]);
+      expect(
+        sentToSlack().map((call: SlackCall): string => {
+          return call.url;
+        }),
+      ).toEqual([RESPONSE_URL]);
+      expect(textOf(calls[0]!.data["blocks"])).toBe(
+        "You do not have permission to page someone about this incident: this incident is private, so only its owners and the people its private team names can see it.\n",
+      );
+    });
+
+    test("a member who may not create alerts pages about the incident all the same: nothing is created, so no alert is asked for", async () => {
+      mayCreateAlert = false;
+      channelAbout = incidentAbout();
+
+      await post("page <@U0NAWAZ|nawaz> Can you check the database?");
+      await pagesAfter(1);
+
+      expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
+        "📟 Paging *Nawaz Dhandala* about Incident INC-42…\n",
+      );
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.about).toEqual(incidentAbout());
+    });
+
+    test("their form, submitted, pages about the incident it carries too", async () => {
+      mayCreateAlert = false;
+      valueAbout = incidentAbout();
+
+      const answer: RouteAnswer = await submit({
+        picks: [`user:${NAWAZ.toString()}`],
+        message: "",
+        value: `incident:${INCIDENT_ID.toString()}`,
+      });
+
+      expect(answer.body).toEqual({ response_action: "clear" });
+
+      await pagesAfter(1);
+
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.about).toEqual(incidentAbout());
+    });
+
+    test("in a resolved incident's channel the page is about something new: a member who may not create alerts is told so, and nobody is paged", async () => {
+      mayCreateAlert = false;
+      channelAbout = {
+        record: null,
+        resolvedRecord: { label: "Incident INC-42", link: INCIDENT_URL },
+      };
+
+      await post("page <@U0NAWAZ|nawaz> db down");
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+      await slackCallsAfter(2, 30);
+
+      expect(textOf(calls[0]!.data["blocks"])).toBe(
+        "You do not have permission to page people here, where a page creates an alert. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.\n",
+      );
+      expect(pages).toEqual([]);
+    });
+
+    test("somebody who may not start an on-call run is refused in the incident's channel too, before its incident is read", async () => {
+      mayPage = false;
+      channelAbout = incidentAbout();
+
+      await post("page <@U0NAWAZ|nawaz>");
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+
+      expect(textOf(calls[0]!.data["blocks"])).toBe(
+        "You do not have permission to page people. You do not have permissions to create On-Call Duty Policy Execution Log. You need one of these permissions: Project Owner, Project Admin, Project Member.\n",
+      );
+      expect(aboutReads).toEqual([]);
+      expect(pages).toEqual([]);
+    });
+
+    test("the channel of a resolved incident: a page about something new, and the form says why its message becomes a new alert's title", async () => {
+      channelAbout = {
+        record: null,
+        resolvedRecord: { label: "Incident INC-42", link: INCIDENT_URL },
+      };
+
+      await post("page <@U0NAWAZ|nawaz>");
+      const view: JSONObject = await openedForm();
+
+      // A new alert needs its title: the form asks for the message.
+      expect(inputOf(view, "pageMessage")!["optional"]).toBe(false);
+      expect(inputOf(view, "pageMessage")!["hint"]).toEqual({
+        type: "plain_text",
+        text: "Incident INC-42 is resolved, so the people you page get this as the title of a new alert.",
+      });
+      expect(
+        (JSON.parse(view["private_metadata"] as string) as JSONObject)["value"],
+      ).toBe("");
       expect(pages).toEqual([]);
     });
   });

@@ -32,6 +32,7 @@ import {
 import {
   ExceptionTriageAction,
   getExceptionTriageActions,
+  getResolveInNextReleaseAction,
 } from "../../Utils/ExceptionDetailPresentation";
 
 /*
@@ -43,18 +44,23 @@ import {
  * server records who turned it, and when. The list reads its rows again
  * afterwards, where a resolved exception leaves the Unresolved tab.
  *
- * The same four act on the rows a person ticks, from the list's Bulk
+ * Beside Resolve, Resolve in next release, for an unresolved exception
+ * whose occurrences name a release: its occurrences from that release do
+ * not reopen it, another release's do.
+ *
+ * The same five act on the rows a person ticks, from the list's Bulk
  * Actions (getExceptionBulkActions).
  */
 
 const TRIAGE_ICONS: Record<ExceptionTriageAction["id"], IconProp> = {
   resolve: IconProp.Check,
+  "resolve-next-release": IconProp.CheckCircle,
   unresolve: IconProp.Refresh,
   archive: IconProp.Archive,
   unarchive: IconProp.Unarchive,
 };
 
-// Which of the four a row is offered: the two its state leads to.
+// Which of the five a row is offered: the ones its state leads to.
 export const isExceptionTriageActionOffered: (
   exception: TelemetryException,
   id: ExceptionTriageAction["id"],
@@ -62,6 +68,16 @@ export const isExceptionTriageActionOffered: (
   exception: TelemetryException,
   id: ExceptionTriageAction["id"],
 ): boolean => {
+  if (id === "resolve-next-release") {
+    return (
+      getResolveInNextReleaseAction({
+        isResolved: Boolean(exception.isResolved),
+        isArchived: Boolean(exception.isArchived),
+        lastSeenInRelease: exception.lastSeenInRelease,
+      }) !== null
+    );
+  }
+
   return getExceptionTriageActions({
     isResolved: Boolean(exception.isResolved),
     isArchived: Boolean(exception.isArchived),
@@ -70,15 +86,37 @@ export const isExceptionTriageActionOffered: (
   });
 };
 
-// What a triage action writes: the one switch it turns.
+export type ExceptionTriageWrite =
+  | { isResolved: boolean }
+  | { isResolved: true; resolvedInReleaseAfter: string }
+  | { isArchived: boolean };
+
+/*
+ * What a triage action writes: the one switch it turns - and, to resolve in
+ * the next release, the release the exception is resolved after: the one its
+ * latest occurrence came from.
+ */
+export interface ExceptionReleaseHolder {
+  lastSeenInRelease?: string | undefined;
+}
+
 export const getExceptionTriageWrite: (
   id: ExceptionTriageAction["id"],
-) => { isResolved: boolean } | { isArchived: boolean } = (
+  exception?: ExceptionReleaseHolder | undefined,
+) => ExceptionTriageWrite = (
   id: ExceptionTriageAction["id"],
-): { isResolved: boolean } | { isArchived: boolean } => {
+  exception?: ExceptionReleaseHolder | undefined,
+): ExceptionTriageWrite => {
   switch (id) {
     case "resolve":
       return { isResolved: true };
+    case "resolve-next-release": {
+      const release: string = (exception?.lastSeenInRelease || "").trim();
+
+      return release
+        ? { isResolved: true, resolvedInReleaseAfter: release }
+        : { isResolved: true };
+    }
     case "unresolve":
       return { isResolved: false };
     case "archive":
@@ -90,6 +128,7 @@ export const getExceptionTriageWrite: (
 
 export const EXCEPTION_ROW_TRIAGE_ORDER: Array<ExceptionTriageAction["id"]> = [
   "resolve",
+  "resolve-next-release",
   "unresolve",
   "archive",
   "unarchive",
@@ -98,6 +137,7 @@ export const EXCEPTION_ROW_TRIAGE_ORDER: Array<ExceptionTriageAction["id"]> = [
 // The words of each action, as the exception's page says them.
 const TRIAGE_LABELS: Record<ExceptionTriageAction["id"], string> = {
   resolve: "Resolve",
+  "resolve-next-release": "Resolve in next release",
   unresolve: "Reopen",
   archive: "Archive",
   unarchive: "Unarchive",
@@ -149,10 +189,20 @@ export const EXCEPTION_ALREADY_THERE: Record<
   string
 > = {
   resolve: translationKey("Already resolved."),
+  "resolve-next-release": translationKey("Already resolved."),
   unresolve: translationKey("Not resolved."),
   archive: translationKey("Already archived."),
   unarchive: translationKey("Not archived."),
 };
+
+/*
+ * Why Resolve in next release left an unresolved exception alone: none of
+ * its occurrences said which release it came from, so there is no release
+ * for it to wait out.
+ */
+export const EXCEPTION_NO_RELEASE: string = translationKey(
+  "No release is recorded for it.",
+);
 
 /*
  * The result's words for what happened to each selected exception - "2
@@ -165,6 +215,16 @@ export const EXCEPTION_RESULT_LABELS: Record<
   { succeeded: PluralTemplate; failed: PluralTemplate }
 > = {
   resolve: {
+    succeeded: {
+      one: "{{count}} {{itemName}} resolved",
+      other: "{{count}} {{itemsName}} resolved",
+    },
+    failed: {
+      one: "{{count}} {{itemName}} not resolved",
+      other: "{{count}} {{itemsName}} not resolved",
+    },
+  },
+  "resolve-next-release": {
     succeeded: {
       one: "{{count}} {{itemName}} resolved",
       other: "{{count}} {{itemsName}} resolved",
@@ -266,10 +326,17 @@ export const getExceptionBulkActions: () => Array<
               exception: TelemetryException,
             ): Promise<BulkItemOutcome> => {
               if (!isExceptionTriageActionOffered(exception, id)) {
+                /*
+                 * Resolve in next release leaves an unresolved exception
+                 * alone only when no release is known for it.
+                 */
+                const reason: string =
+                  id === "resolve-next-release" && !exception.isResolved
+                    ? EXCEPTION_NO_RELEASE
+                    : EXCEPTION_ALREADY_THERE[id];
+
                 return bulkItemUnchanged(
-                  getGlobalTranslator().translateText(
-                    EXCEPTION_ALREADY_THERE[id],
-                  ) || EXCEPTION_ALREADY_THERE[id],
+                  getGlobalTranslator().translateText(reason) || reason,
                 );
               }
 
@@ -282,7 +349,7 @@ export const getExceptionBulkActions: () => Array<
               await ModelAPI.updateById<TelemetryException>({
                 id: new ObjectID(exceptionId),
                 modelType: TelemetryException,
-                data: getExceptionTriageWrite(id),
+                data: getExceptionTriageWrite(id, exception),
               });
 
               return BULK_ITEM_CHANGED;
@@ -336,7 +403,7 @@ export const getExceptionRowActions: (data: {
             await ModelAPI.updateById<TelemetryException>({
               id: new ObjectID(exceptionId),
               modelType: TelemetryException,
-              data: getExceptionTriageWrite(id),
+              data: getExceptionTriageWrite(id, exception),
             });
 
             data.onChanged();

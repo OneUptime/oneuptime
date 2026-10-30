@@ -58,8 +58,13 @@ Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installa
 | --- | --- |
 | SSH-inloggningar | Misslyckade och lyckade SSH-inloggningar från en servers auth-logg, journal eller syslog |
 | sudo | Kommandon som körs som en annan användare, fel sudo-lösenord och personer som inte får använda sudo |
-| Kubernetes granskningsloggar | Ändringar i klustret, skal som öppnas i poddar, lästa hemligheter och nekade förfrågningar |
+| Windows-händelser | Inloggningar, nya processer, ändrade konton och grupper, installerade tjänster och rensade loggar från Windows, Sysmon och Microsoft Defender |
 | AWS CloudTrail | Inloggningar i konsolen, ändringar i dina AWS-konton och anrop som AWS nekade |
+| Google Cloud-granskningsloggar | Ändringar i dina Google Cloud-projekt, anrop som Google nekade och inloggningar i Google Workspace som delas med Google Cloud |
+| Azure-aktivitetsloggar och Entra ID-loggar | Ändringar i dina Azure-prenumerationer, larm från Defender for Cloud, samt inloggningar och katalogändringar i Microsoft Entra ID |
+| CEF | Hot, blockerade anslutningar och inloggningar från brandväggar, IDS, WAF:ar och andra säkerhetsprodukter som skickar Common Event Format |
+| LEEF | Samma sak från produkter som skickar Log Event Extended Format, som många gör för IBM QRadar |
+| Kubernetes granskningsloggar | Ändringar i klustret, skal som öppnas i poddar, lästa hemligheter och nekade förfrågningar |
 | Webbattacker | Förfrågningar i en webbservers åtkomstlogg som försöker med SQL-injektion, path traversal eller Log4Shell |
 
 Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten blir händelser: aldrig varje sida som en webbserver har levererat, eller varje läsning av ett API.
@@ -83,7 +88,7 @@ Kortet nämner allt det inte kunde slå på och varför: din roll, din plan elle
 :::
 
 :::details Inga säkerhetshändelser kommer från mina loggar
-Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och att kortet **Dina loggar** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, gransknings-, CloudTrail- eller åtkomstloggar har inget att hitta.
+Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och att kortet **Dina loggar** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, Windows-, gransknings-, CEF-, LEEF- eller åtkomstloggar har inget att hitta. Klistra in en av dess rader i **Kontrollera en loggrad** på **Dina loggar** för att se om OneUptime läser den.
 :::
 
 :::details Översikt säger att den senaste säkerhetshändelsen kom för flera dagar sedan

@@ -219,7 +219,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
 | **Soglia** | Il valore di confronto. Accanto compare un elenco di unità quando la metrica ne ha una. Non visibile per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Basso** (4σ), **Medio** (3σ, predefinito) o **Alto** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (predefinito), 28, 60 o 90 giorni di storico. |
@@ -235,13 +235,11 @@ Un monitor che non costruisci da un modello parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _nome del monitor_ is offline | Un valore della prima query è `0` | Imposta il monitor su **Offline** e dichiara l'incidente "_nome del monitor_ is offline", che si risolve da solo quando il monitor si riprende. |
-| 2 | Check if _nome del monitor_ is online | Un valore è sopra `0` | Imposta il monitor su **Operativo**. |
-
-Questi valori predefiniti vanno bene per poche metriche Ceph: `ceph_health_status` vale 0 quando il cluster è sano. Scegli un modello o imposta criteri tuoi.
+| 1 | Check if _nome del monitor_ is offline | La prima query non ha dati per l'intera finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_nome del monitor_ is offline", che si risolve da solo quando il monitor si riprende. |
+| 2 | Check if _nome del monitor_ is online | La prima query ha dati | Imposta il monitor su **Operativo**. |
 
 > [!IMPORTANT]
-> Il silenzio non corrisponde a nessuno dei due criteri: un cluster che smette di inviare dati lascia il monitor com'era. Per sapere quando i dati si fermano, imposta **Se nessun dato** su **Trigger** in un criterio. Il tempo in cui OneUptime stesso non stava ricevendo non è mai assenza di dati: un controllo la cui finestra lo contiene attende invece, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valore di `0` è un dato: una metrica che spesso vale zero, come i riavvii o gli errori, non porta il monitor offline. Per ricevere un avviso su un valore, parti da un modello o aggiungi un criterio con una soglia. Quando non arriva alcun dato e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un ripristino. Il tempo in cui OneUptime stesso non riceveva dati non conta mai come assenza di dati: un controllo la cui finestra lo contiene attende, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Risoluzione dei problemi
 
