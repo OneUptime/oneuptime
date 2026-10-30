@@ -6,6 +6,7 @@ import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "Common/Server/API/BillingPaymentMethodAPI";
 import FileAPI from "Common/Server/API/FileAPI";
+import CustomFieldFileAPI from "Common/Server/API/CustomFieldFileAPI";
 import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
@@ -6080,6 +6081,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new WorkspaceNotificationSummaryAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
+    /*
+     * The files records' File and Multiple files custom fields hold, to the
+     * people who may read the records (CustomFieldFileAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CustomFieldFileAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MonitorGroupAPI().getRouter(),

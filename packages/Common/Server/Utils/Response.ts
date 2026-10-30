@@ -239,6 +239,15 @@ export default class Response {
     _req: ExpressRequest | ExpressRequest,
     res: ExpressResponse,
     file: FileModel,
+    options?: {
+      /*
+       * "attachment" for a file a person downloads and never sees in the
+       * page that asked for it, whatever its type - a file custom field's
+       * file. Left out, a raster image is shown inline (an <img> of a logo,
+       * an avatar) and everything else downloads.
+       */
+      disposition?: "attachment" | undefined;
+    },
   ): Promise<void> {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -272,7 +281,10 @@ export default class Response {
     oneUptimeResponse.set(
       "Content-Disposition",
       Response.getContentDisposition(
-        SAFE_IMAGE_MIME_TYPES.has(fileType) ? "inline" : "attachment",
+        options?.disposition !== "attachment" &&
+          SAFE_IMAGE_MIME_TYPES.has(fileType)
+          ? "inline"
+          : "attachment",
         file.name,
       ),
     );

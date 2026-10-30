@@ -1,3 +1,4 @@
+import { isCustomFieldFile } from "./CustomFieldFile";
 import { isCustomFieldValueEmpty } from "./CustomFieldValueMapping";
 
 /*
@@ -36,8 +37,9 @@ export type CustomFieldValueToTextFunction = (value: unknown) => string;
 
 /**
  * Plain text for a value of no particular type: a list joined with commas
- * (its empty entries left out), a Date as its ISO string, an object as JSON,
- * anything else as String() gives it. null and undefined are "".
+ * (its empty entries left out), a Date as its ISO string, a file a File or
+ * Multiple files field holds as its name (CustomFieldFile), any other object
+ * as JSON, anything else as String() gives it. null and undefined are "".
  */
 export const customFieldValueToText: CustomFieldValueToTextFunction = (
   value: unknown,
@@ -59,6 +61,11 @@ export const customFieldValueToText: CustomFieldValueToTextFunction = (
 
   if (value instanceof Date) {
     return isNaN(value.getTime()) ? "" : value.toISOString();
+  }
+
+  // A file is read by its name: never by its id, never as JSON.
+  if (isCustomFieldFile(value)) {
+    return value.name.trim() || value.fileId;
   }
 
   if (typeof value === "object") {

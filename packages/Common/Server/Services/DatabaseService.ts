@@ -169,6 +169,13 @@ import ListOrderMaintainer, {
 } from "../Utils/Database/ListOrderMaintainer";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import { toListOrderNumber } from "../../Utils/ListOrder";
+import CustomFieldFiles, {
+  CustomFieldFileQuery,
+  CustomFieldFileRow,
+  FileReferenceColumn as CustomFieldFileReferenceColumn,
+  PreparedCustomFieldFiles,
+} from "../Utils/CustomField/CustomFieldFiles";
+import { getCustomFieldRecordKind } from "../../Types/CustomField/CustomFieldRecordKinds";
 import FileOwnership, {
   FileReferenceCheck,
   FileReferenceColumn,
@@ -934,6 +941,189 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * refusal is the same for a file of another owner, of none, or one that
    * does not exist.
    */
+  /*
+   * The statements CustomFieldFiles runs, on this table's own connection.
+   */
+  private getCustomFieldFileQuery(): CustomFieldFileQuery {
+    return async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+      return await this.getRepository().manager.query(sql, parameters);
+    };
+  }
+
+  /*
+   * Whether this table's records hold custom field values: one of the kinds
+   * CustomFieldFiles looks after.
+   */
+  private holdsCustomFieldValues(): boolean {
+    return Boolean(
+      getCustomFieldRecordKind(this.model.tableName) &&
+        this.getModel().hasColumn("customFields"),
+    );
+  }
+
+  /*
+   * A record's file custom fields hold only files of its own project, of a
+   * kind and size they take, stored as the files say they are (see
+   * CustomFieldFiles). Asked of every create - root and hook-free ones too -
+   * once the caller is known to be allowed it.
+   */
+  private async prepareCustomFieldFilesOnCreate(
+    data: TBaseModel,
+  ): Promise<void> {
+    if (!this.holdsCustomFieldValues()) {
+      return;
+    }
+
+    const record: Dictionary<unknown> = data as unknown as Dictionary<unknown>;
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    const prepared: PreparedCustomFieldFiles | null =
+      await CustomFieldFiles.prepareWrite({
+        recordTableName: this.model.tableName!,
+        customFields: record["customFields"],
+        rows: [
+          {
+            projectId: tenantColumn
+              ? (record[tenantColumn] as ObjectID | string | null | undefined)
+              : null,
+            customFields: {},
+          },
+        ],
+        query: this.getCustomFieldFileQuery(),
+      });
+
+    if (prepared && prepared.customFields) {
+      record["customFields"] = prepared.customFields;
+    }
+  }
+
+  /*
+   * The update's half of prepareCustomFieldFilesOnCreate, on the rows the
+   * update is about to write, as they are: a file a row holds already is
+   * not checked again, and the files each row lets go of are handed back
+   * for deleteReleasedCustomFieldFiles once the write is done.
+   */
+  private async prepareCustomFieldFilesOnUpdate(data: {
+    data: PartialEntity<TBaseModel>;
+    rows: Array<TBaseModel>;
+  }): Promise<PreparedCustomFieldFiles | null> {
+    const written: Dictionary<unknown> =
+      data.data as unknown as Dictionary<unknown>;
+
+    if (
+      !this.holdsCustomFieldValues() ||
+      !Object.prototype.hasOwnProperty.call(written, "customFields") ||
+      written["customFields"] === undefined ||
+      data.rows.length === 0
+    ) {
+      return null;
+    }
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    const prepared: PreparedCustomFieldFiles | null =
+      await CustomFieldFiles.prepareWrite({
+        recordTableName: this.model.tableName!,
+        customFields: written["customFields"],
+        rows: data.rows.map((row: TBaseModel): CustomFieldFileRow => {
+          return {
+            projectId: tenantColumn
+              ? row.getValue<ObjectID>(tenantColumn) || null
+              : null,
+            customFields: row.getValue<JSONObject>("customFields"),
+          };
+        }),
+        query: this.getCustomFieldFileQuery(),
+      });
+
+    if (prepared && prepared.customFields) {
+      written["customFields"] = prepared.customFields;
+    }
+
+    return prepared;
+  }
+
+  /*
+   * Every column that points at a File, read once from the entity metadata:
+   * a file one of them points at is never deleted for a custom field.
+   */
+  private static customFieldFileReferenceColumns: Array<CustomFieldFileReferenceColumn> | null =
+    null;
+
+  private getCustomFieldFileReferenceColumns(): Array<CustomFieldFileReferenceColumn> {
+    if (!DatabaseService.customFieldFileReferenceColumns) {
+      DatabaseService.customFieldFileReferenceColumns =
+        CustomFieldFiles.getFileReferenceColumns(
+          this.getRepository().manager.connection
+            .entityMetadatas as unknown as Parameters<
+            typeof CustomFieldFiles.getFileReferenceColumns
+          >[0],
+        );
+    }
+
+    return DatabaseService.customFieldFileReferenceColumns;
+  }
+
+  /*
+   * The files a write or a delete let go of are deleted once nothing holds
+   * them (CustomFieldFiles.deleteUnheldFiles). Best-effort: a failure is
+   * logged, and never fails the write that is done already.
+   */
+  private async deleteReleasedCustomFieldFiles(
+    releasedFileIds: Map<string, Set<string>>,
+  ): Promise<void> {
+    if (releasedFileIds.size === 0) {
+      return;
+    }
+
+    try {
+      await CustomFieldFiles.deleteUnheldFiles({
+        releasedFileIds: releasedFileIds,
+        fileReferenceColumns: this.getCustomFieldFileReferenceColumns(),
+        query: this.getCustomFieldFileQuery(),
+      });
+    } catch (err) {
+      logger.error(
+        `Could not delete the custom field files ${this.model.tableName} records let go of: ${String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * The files deleted rows held in their custom fields. The rows must have
+   * been read with their tenant column and customFields (see
+   * addCustomFieldColumnsToDeleteSelect).
+   */
+  private getCustomFieldFilesOfDeletedRows(
+    rows: Array<TBaseModel>,
+  ): Map<string, Set<string>> {
+    if (!this.holdsCustomFieldValues()) {
+      return new Map();
+    }
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    return CustomFieldFiles.getReleasedFileIdsOfDeletedRows(
+      rows.map((row: TBaseModel): CustomFieldFileRow => {
+        return {
+          projectId: tenantColumn
+            ? row.getValue<ObjectID>(tenantColumn) || null
+            : null,
+          customFields: row.getValue<JSONObject>("customFields"),
+        };
+      }),
+    );
+  }
+
+  // A delete reads its rows' custom field values, for the files they let go of.
+  private addCustomFieldColumnsToDeleteSelect(
+    select: Dictionary<boolean>,
+  ): void {
+    if (this.holdsCustomFieldValues()) {
+      select["customFields"] = true;
+    }
+  }
+
   private async assertFileReferencesOwnedOnCreate(
     data: TBaseModel,
   ): Promise<void> {
@@ -5866,6 +6056,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
 
     /*
+     * Its file custom fields hold only files of its project, of a kind and
+     * size they take, written as the files say they are. See the helper.
+     */
+    await this.prepareCustomFieldFilesOnCreate(data);
+
+    /*
      * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
      * its list, or to the place the caller asked for. Planned after the
      * permission check, so a number the server picks is not held against the
@@ -7384,6 +7580,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         lookupSelect[column] = true;
       }
 
+      // The files the rows' custom fields hold, to let go of. See CustomFieldFiles.
+      this.addCustomFieldColumnsToDeleteSelect(lookupSelect);
+
       const items: Array<TBaseModel> = await this._findBy(
         {
           query: beforeDeleteBy.query,
@@ -7451,6 +7650,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           tableName: this.model.tableName,
           rows: items,
         });
+
+        /*
+         * The files their custom fields held go with them - a retention
+         * purge included - unless something still holds them. See
+         * CustomFieldFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(
+          this.getCustomFieldFilesOfDeletedRows(items),
+        );
       }
 
       if (!deleteBy.props.ignoreHooks) {
@@ -7678,6 +7886,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as Dictionary<unknown>)[column] = true;
       }
 
+      // The files the rows' custom fields hold, to let go of. See CustomFieldFiles.
+      this.addCustomFieldColumnsToDeleteSelect(
+        select as unknown as Dictionary<boolean>,
+      );
+
       /*
        * If audit logging on delete is enabled, fetch all scalar columns so we
        * can record a full snapshot of the record before it is deleted.
@@ -7784,6 +7997,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           tableName: this.model.tableName,
           rows: items,
         });
+
+        /*
+         * The files their custom fields held go with them, unless something
+         * still holds them. See CustomFieldFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(
+          this.getCustomFieldFilesOfDeletedRows(items),
+        );
       }
 
       // hit workflow.
@@ -9550,6 +9771,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       /*
+       * And its file custom fields, on the same rows: see the helper. What
+       * they let go of is deleted once the write is done, below.
+       */
+      const customFieldFiles: PreparedCustomFieldFiles | null =
+        await this.prepareCustomFieldFilesOnUpdate({ data: data, rows: items });
+
+      /*
        * save() has upsert semantics: if the located row is hard-deleted by a
        * concurrent request between the _findBy above and the write below,
        * save() INSERTs a resurrected "zombie" row carrying only the update's
@@ -9901,6 +10129,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         written: data,
         rowsAfter: rowsAsWritten,
       });
+
+      /*
+       * The files the write took out of file custom fields, unless something
+       * still holds them. See CustomFieldFiles.
+       */
+      if (customFieldFiles && affectedItems.length > 0) {
+        await this.deleteReleasedCustomFieldFiles(
+          customFieldFiles.releasedFileIds,
+        );
+      }
 
       /*
        * A status page that showed one of these records stops showing it at

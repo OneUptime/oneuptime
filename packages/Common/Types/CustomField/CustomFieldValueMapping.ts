@@ -1,4 +1,10 @@
 import { JSONObject } from "../JSON";
+import {
+  CUSTOM_FIELD_MAX_FILES,
+  CustomFieldFile,
+  getCustomFieldValueEntryKey,
+  readCustomFieldFiles,
+} from "./CustomFieldFile";
 import CustomFieldType from "./CustomFieldType";
 import {
   CustomFieldDropdownOption,
@@ -60,7 +66,9 @@ export const isCustomFieldValueEmpty: IsCustomFieldValueEmptyFunction = (
  * Canonical form used to decide whether two source values are "the same
  * answer". Arrays are order-insensitive because a MultiSelectDropdown holding
  * ["a","b"] and ["b","a"] is one value, and treating them as two would make an
- * incident's mapped field oscillate between syncs.
+ * incident's mapped field oscillate between syncs. A file is the file it
+ * names (getCustomFieldValueEntryKey): two lists of different files are two
+ * answers, however many files each holds.
  */
 type CanonicalizeFunction = (value: unknown) => string;
 
@@ -69,13 +77,49 @@ const canonicalize: CanonicalizeFunction = (value: unknown): string => {
     return JSON.stringify(
       [...value]
         .map((entry: unknown) => {
-          return String(entry);
+          return getCustomFieldValueEntryKey(entry);
         })
         .sort(),
     );
   }
 
+  if (value !== null && typeof value === "object" && !(value instanceof Date)) {
+    return JSON.stringify(getCustomFieldValueEntryKey(value));
+  }
+
   return JSON.stringify(value ?? null);
+};
+
+type UnionOfFilesFunction = (values: Array<unknown>) => Array<CustomFieldFile>;
+
+/*
+ * Every file the sources hold, each once, in a stable order - by name, then
+ * by id, since the sources come in no order - and no more than a Multiple
+ * files field holds.
+ */
+const unionOfFiles: UnionOfFilesFunction = (
+  values: Array<unknown>,
+): Array<CustomFieldFile> => {
+  const files: Map<string, CustomFieldFile> = new Map<
+    string,
+    CustomFieldFile
+  >();
+
+  for (const value of values) {
+    for (const file of readCustomFieldFiles(value)) {
+      if (!files.has(file.fileId)) {
+        files.set(file.fileId, file);
+      }
+    }
+  }
+
+  return [...files.values()]
+    .sort((a: CustomFieldFile, b: CustomFieldFile): number => {
+      return (
+        a.name.localeCompare(b.name) || a.fileId.localeCompare(b.fileId)
+      );
+    })
+    .slice(0, CUSTOM_FIELD_MAX_FILES);
 };
 
 export interface ResolvedCustomFieldValue {
@@ -105,7 +149,9 @@ export type ResolveMappedCustomFieldValueFunction = (data: {
  * - All non-empty sources agree -> that value.
  * - They disagree, and the target is multi-select -> the sorted union, which
  *   is the honest answer for a field that can hold several values and mirrors
- *   what IncidentLabelRuleEngineService does with labels.
+ *   what IncidentLabelRuleEngineService does with labels. A Multiple files
+ *   target gets every file they hold, the first CUSTOM_FIELD_MAX_FILES of
+ *   them by name.
  * - They disagree and the target holds one value -> write nothing. Picking a
  *   winner would be arbitrary, and an arbitrary winner over an unordered
  *   relation is a value that changes on its own.
@@ -137,6 +183,10 @@ export const resolveMappedCustomFieldValue: ResolveMappedCustomFieldValueFunctio
 
     if (distinct.size === 1) {
       return { hasValue: true, value: presentValues[0] };
+    }
+
+    if (data.targetFieldType === CustomFieldType.MultipleFiles) {
+      return { hasValue: true, value: unionOfFiles(presentValues) };
     }
 
     if (data.targetFieldType === CustomFieldType.MultiSelectDropdown) {
