@@ -434,7 +434,7 @@ describe("buildUpdateStatusResponse", () => {
       storedConfig({
         securityAdvisories: [
           SecurityAdvisoryUtil.toJSON({
-            ...(SecurityAdvisoryUtil.fromJSON(AFFECTING_EVERYTHING) as never),
+            ...SecurityAdvisoryUtil.fromJSON(AFFECTING_EVERYTHING)!,
             vulnerabilities: [
               { vulnerableVersionRange: "< 0.0.1", patchedVersions: "0.0.1" },
             ],

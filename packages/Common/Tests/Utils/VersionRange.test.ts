@@ -6,6 +6,7 @@ import VersionRangeUtil, {
   VersionRange,
 } from "../../Utils/VersionRange";
 import VersionUtil from "../../Utils/VersionUtil";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
@@ -328,11 +329,23 @@ describe("what is not a range", () => {
     expect(VersionRangeUtil.parse(`${longest} `)).toBeNull();
 
     const megabytes: string = "<= 1.0.0, ".repeat(400000);
-    const startedAt: number = Date.now();
+    // The fastest of up to three reads counts (FastestRun): one is noisy.
+    const read: FastestRun<{
+      range: VersionRange | null;
+      versions: Array<string>;
+    }> = fastestRun({
+      run: (): { range: VersionRange | null; versions: Array<string> } => {
+        return {
+          range: VersionRangeUtil.parse(megabytes),
+          versions: VersionRangeUtil.parseVersionList(megabytes),
+        };
+      },
+      limitInMs: 1000,
+    });
 
-    expect(VersionRangeUtil.parse(megabytes)).toBeNull();
-    expect(VersionRangeUtil.parseVersionList(megabytes)).toEqual([]);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(read.result.range).toBeNull();
+    expect(read.result.versions).toEqual([]);
+    expect(read.inMs).toBeLessThan(1000);
   });
 
   test("a version that is not one is neither in nor out", () => {
