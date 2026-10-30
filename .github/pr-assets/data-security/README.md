@@ -9,12 +9,12 @@ user, and each issue is one of the catalog's own checks, titled and scored as
 the server writes it.
 
 - `overview-laptop.png`: 1280 pixels, the Overview: the four figures, Fix These
-  First ranked by risk, stores by data category, the last 30 days and scan
-  coverage.
+  First ranked by risk, stores by category (each opening Sensitive Data), the
+  last 30 days and scan coverage.
 - `overview-dark-laptop.png`: the same page on the dark theme.
 - `store-overview-laptop.png`: a public S3 bucket's Overview: sensitivity,
   exposure, its two open issues and its risk (the worst open issue's), what is
-  inside it, its configuration checks, owners and where it lives.
+  inside it, its configuration checks, its owners by name and where it lives.
 - `store-timeline-laptop.png`: the store's new **Timeline**, with a person's
   change opened to show the settings it changed.
 - `store-timeline-german-laptop.png`: the same Timeline in German.
@@ -29,13 +29,20 @@ the server writes it.
   score included.
 - `issue-persian-dark-phone.png`: 390 pixels (the screen only), the issue's
   page in Persian, right to left, on the dark theme.
+- `stores-laptop.png`: 1280 pixels, the Data Stores list beside the side menu:
+  name (with its kind and region), sensitivity, exposure and risk - the other
+  columns a click away - fitting its card.
+- `stores-busy-german-laptop.png`: the same list in German with a busy project
+  (the screen only): long names cut at their end, kinds and regions whole.
 - `stores-phone.png`: 390 pixels (the screen only), the Data Stores list as
   cards, nothing running off the screen.
+- `overview-chart-persian-phone.png`: 390 pixels, the Overview's last 30 days
+  and scan coverage in Persian: a phone's chart keeps three dates.
 - `issue-links-laptop.png`: the header of a Critical issue's page, with the
   **Security case**, **Alert** and **Incident** it started.
 - `issue-links-persian-phone.png`: the same header at 390 pixels, in Persian,
   right to left.
-- `when-an-issue-opens-laptop.png`: Settings > Scanning > When an Issue Opens,
+- `when-an-issue-opens-laptop.png`: Settings > Scan Settings > When an Issue Opens,
   with **Declare incidents for Critical issues** and its **Incident Severity**
   beside the alerts' switch and severity.
 - `when-an-issue-opens-german-dark.png`: the same card in German, on the dark
