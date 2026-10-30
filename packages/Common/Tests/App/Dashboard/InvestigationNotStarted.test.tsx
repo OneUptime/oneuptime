@@ -19,6 +19,7 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import InvestigationPanel, {
+  AI_CARD_DESCRIPTION,
   InvestigationSubjectType,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
 import { AI_INVESTIGATION_PANEL_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
@@ -42,8 +43,24 @@ import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  resetRemediationStepStub,
+  setRemediationStepReads,
+} from "./RemediationStepStub";
 
 const postMock: MockFunction = getJestMockFunction();
+
+/*
+ * The card's Remediation step reads on its own (its own suites). Here it
+ * says fixing did something, so the card stays whole whatever the reason
+ * nothing was investigated: this suite is about the explanation.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep",
+  () => {
+    return jest.requireActual("./RemediationStepStub");
+  },
+);
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -65,6 +82,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getCommonHeaders: (): JSONObject => {
         return { tenantid: "33333333-3333-4333-8333-333333333333" };
+      },
+      // The record's switches, read while the card may still fold.
+      getItem: (): Promise<null> => {
+        return Promise.resolve(null);
       },
     },
   };
@@ -282,6 +303,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date(EVALUATED_AT));
   postMock.mockReset();
+  resetRemediationStepStub();
+  setRemediationStepReads({ kind: "on" });
   jest
     .spyOn(PermissionUtil, "getAllPermissions")
     .mockReturnValue([Permission.ProjectOwner]);
@@ -307,7 +330,7 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
         await flush();
 
         const panel: HTMLElement = screen.getByRole("region", {
-          name: "AI Investigation",
+          name: "OneUptime AI",
         });
         expect(panel).toHaveAttribute("id", AI_INVESTIGATION_PANEL_ID);
         expect(panel).toHaveAttribute("tabindex", "-1");
@@ -384,7 +407,7 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
         screen.queryByText("This monitor was recently investigated"),
       ).toBeNull();
       expect(
-        screen.getAllByRole("region", { name: "AI Investigation" }),
+        screen.getAllByRole("region", { name: "OneUptime AI" }),
       ).toHaveLength(1);
     });
   },
@@ -417,7 +440,7 @@ describe("investigation reason freshness and uncertainty", () => {
     renderPanel();
 
     expect(
-      screen.getByRole("region", { name: "AI Investigation" }),
+      screen.getByRole("region", { name: "OneUptime AI" }),
     ).toHaveAttribute("aria-busy", "true");
     expect(screen.getByText("Checking investigation status…")).toBeVisible();
     expect(screen.queryByText("Not investigated")).toBeNull();
@@ -1175,8 +1198,9 @@ describe("the card knows every reason the server can send", () => {
 /*
  * The not-started state used to be built differently from a run's panel: its
  * own icon tile and header, a tinted body, a second "What you can do" column
- * behind a rule and an amber retry box. It now uses the same card, header
- * and status pill as a run, with plain sections inside.
+ * behind a rule and an amber retry box. It now uses the same card, step and
+ * status pill as a run, with plain sections inside. The step's numbered mark
+ * and its pill are a mark and a pill, not panels.
  */
 describe("the not-started card's layout", () => {
   const PANEL_CLASS: RegExp =
@@ -1184,12 +1208,16 @@ describe("the not-started card's layout", () => {
 
   function panelsInsideTheCard(): Array<string> {
     const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
 
     return Array.from(region.querySelectorAll("*"))
       .filter((element: Element): boolean => {
-        if (element.closest("button") || element.closest("a")) {
+        if (
+          element.closest("button") ||
+          element.closest("a") ||
+          element.closest("[data-testid$='-mark'], [data-testid$='-status']")
+        ) {
           return false;
         }
 
@@ -1224,14 +1252,14 @@ describe("the not-started card's layout", () => {
     expect(
       within(cards[0]!).getByRole("heading", {
         level: 2,
-        name: "AI Investigation",
+        name: "OneUptime AI",
       }),
     ).toBeVisible();
     expect(cards[0]).toContainElement(
-      screen.getByRole("region", { name: "AI Investigation" }),
+      screen.getByRole("region", { name: "OneUptime AI" }),
     );
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "OneUptime AI's root-cause investigation for this alert.",
+      AI_CARD_DESCRIPTION,
     );
   });
 
@@ -1361,7 +1389,7 @@ describe("the not-started card's layout", () => {
     ).toBeVisible();
     expect(
       screen
-        .getByRole("region", { name: "AI Investigation" })
+        .getByRole("region", { name: "OneUptime AI" })
         .querySelectorAll("p div"),
     ).toHaveLength(0);
     expect(
@@ -1377,11 +1405,11 @@ describe("the not-started card's layout", () => {
 });
 
 /*
- * The explanation is the AI Investigation card's body, not a card. With no
- * run the page used to show two cards (this explanation in one, the
+ * The explanation is the AI card's investigation step's body, not a card.
+ * With no run the page used to show two cards (this explanation in one, the
  * conversation in a second under it); the panel now draws one card for every
  * state, so this component must never bring a header, a status pill or a
- * card of its own back.
+ * card of its own back: the step's title and pill are the step's.
  */
 describe("the not-started state is the card's body", () => {
   test.each([
@@ -1437,12 +1465,19 @@ describe("the not-started state is the card's body", () => {
     await flush();
 
     const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
     const body: HTMLElement = screen.getByTestId("investigation-not-started");
+    const step: HTMLElement = screen.getByTestId("ai-card-step-investigation");
 
-    expect(body.parentElement).toBe(region);
-    // The card's title and pill belong to the card, above the region.
+    expect(region).toContainElement(step);
+    expect(step).toContainElement(body);
+    // The step's title and pill belong to the step, above its body.
+    expect(
+      body.compareDocumentPosition(
+        screen.getByTestId("ai-card-step-investigation-status"),
+      ) & Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
     expect(within(body).queryByRole("heading", { level: 2 })).toBeNull();
     expect(within(body).queryByLabelText("Investigation status")).toBeNull();
     expect(within(body).queryByTestId("card")).toBeNull();
@@ -1463,7 +1498,7 @@ describe("the not-started state is the card's body", () => {
     await flush();
 
     const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
     expect(region).toHaveAttribute("aria-busy", "true");
     expect(screen.getByTestId("investigation-not-started")).toHaveAttribute(
@@ -1490,7 +1525,7 @@ describe("the not-started state is the card's body", () => {
 
     const card: HTMLElement = screen.getByTestId("card");
     const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
     expect(screen.getByTestId("investigation-not-started")).toBeVisible();
 
@@ -1498,7 +1533,7 @@ describe("the not-started state is the card's body", () => {
 
     // The same card and region elements, not a second pair.
     expect(screen.getByTestId("card")).toBe(card);
-    expect(screen.getByRole("region", { name: "AI Investigation" })).toBe(
+    expect(screen.getByRole("region", { name: "OneUptime AI" })).toBe(
       region,
     );
     expect(screen.queryByTestId("investigation-not-started")).toBeNull();

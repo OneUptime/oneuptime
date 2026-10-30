@@ -113,11 +113,13 @@ const AiCardStep: FunctionComponent<ComponentProps> = (
           >
             {translator.translateText(props.title)}
           </h3>
-          <InvestigationStatusBadge
-            text={props.status.text}
-            indicator={indicator}
-            ariaLabel={props.statusLabel}
-          />
+          <div data-testid={`${props.testId}-status`} className="flex-none">
+            <InvestigationStatusBadge
+              text={props.status.text}
+              indicator={indicator}
+              ariaLabel={props.statusLabel}
+            />
+          </div>
         </div>
         <div className="mt-3 space-y-5">{props.children}</div>
       </div>

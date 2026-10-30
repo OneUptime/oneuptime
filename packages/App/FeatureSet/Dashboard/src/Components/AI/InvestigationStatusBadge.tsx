@@ -98,9 +98,9 @@ export function renderInvestigationStatusIndicator(
 }
 
 /*
- * The neutral pill itself, shared with the Remediation card's status
- * (AutoRemediation/RemediationDecisionStatusBadge), which sits on the same
- * page and should read the same way.
+ * The neutral pill itself: each step of the AI card draws one
+ * (AiCardStep), so the investigation's and the remediation's read the same
+ * way.
  */
 export const STATUS_BADGE_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";

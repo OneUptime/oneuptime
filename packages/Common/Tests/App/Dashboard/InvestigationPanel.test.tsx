@@ -137,11 +137,30 @@ jest.mock(
   },
 );
 
+/*
+ * The card's second step, Remediation, reads and polls on its own (its
+ * suites are RemediationSuggestionCard*.test.tsx and RemediationCodeFix):
+ * here it is the slot the panel fills, and what the panel tells it.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep",
+  () => {
+    return jest.requireActual("./RemediationStepStub");
+  },
+);
+
 import InvestigationPanel, {
+  AI_CARD_DESCRIPTION,
   InvestigationConversationSlot,
   InvestigationSubjectType,
   VERDICT_QUESTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
+import type { ComponentProps as RemediationStepProps } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
+import { AI_INVESTIGATION_OPEN_REPORT_EVENT } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
+import {
+  lastRemediationStepProps,
+  resetRemediationStepStub,
+} from "./RemediationStepStub";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../../Models/DatabaseModels/Project";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -208,7 +227,6 @@ const MAX_RECOMMENDATION_POLL_RESPONSES: number = Math.ceil(
 const COMPLETED_AT: string = "2026-08-07T12:00:00.000Z";
 const OLD_COMPLETED_AT: string = "2026-08-07T11:56:59.000Z";
 const RUN_ID: string = "11111111-1111-4111-8111-111111111111";
-const FIX_RUN_ID: string = "22222222-2222-4222-8222-222222222222";
 const NEXT_RUN_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const INCIDENT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
@@ -338,6 +356,27 @@ function renderPanel(data?: {
   );
 }
 
+/*
+ * A finished investigation folds to its summary (block 43): its report, its
+ * working and the verdict are under "Show full report". This suite reads
+ * them, as a reader who opens the report does: once the requests settle, a
+ * folded report is opened. The fold itself is pinned with this off
+ * ("InvestigationPanel folds a finished investigation").
+ */
+let isReaderOpeningTheReport: boolean = true;
+
+function reportToggle(): HTMLElement | null {
+  return screen.queryByTestId("investigation-report-toggle");
+}
+
+function showFullReport(): void {
+  const toggle: HTMLElement | null = reportToggle();
+
+  if (toggle && toggle.getAttribute("aria-expanded") === "false") {
+    fireEvent.click(toggle);
+  }
+}
+
 /* Let the awaits inside fetchData and the following React effects settle. */
 async function flush(): Promise<void> {
   await act(async (): Promise<void> => {
@@ -346,6 +385,10 @@ async function flush(): Promise<void> {
     await Promise.resolve();
     await Promise.resolve();
   });
+
+  if (isReaderOpeningTheReport) {
+    showFullReport();
+  }
 }
 
 async function tick(milliseconds: number): Promise<void> {
@@ -356,6 +399,10 @@ async function tick(milliseconds: number): Promise<void> {
     await Promise.resolve();
     await Promise.resolve();
   });
+
+  if (isReaderOpeningTheReport) {
+    showFullReport();
+  }
 }
 
 async function advanceFastPolls(count: number = 1): Promise<void> {
@@ -375,6 +422,10 @@ async function resolveDeferred<T>(
     await Promise.resolve();
     await Promise.resolve();
   });
+
+  if (isReaderOpeningTheReport) {
+    showFullReport();
+  }
 }
 
 function postRequestAt(index: number): PostRequest {
@@ -385,10 +436,14 @@ function requestPath(index: number): string {
   return postRequestAt(index).url.toString();
 }
 
-function fixButton(): HTMLElement | null {
-  return screen.queryByRole("button", {
-    name: "Open Fix PR from this analysis",
-  });
+/*
+ * Whether the panel tells its Remediation step that the investigation on
+ * screen recommends a fix in the code: the step then reads what came of it
+ * and offers to open the pull request. "Open Fix PR from this analysis" was
+ * the investigation's own button.
+ */
+function isCodeFixHandedOn(): boolean {
+  return Boolean(lastRemediationStepProps().codeFix?.isRecommended);
 }
 
 function lastActivityProps(): ActivityFeedProps {
@@ -478,6 +533,8 @@ afterEach(() => {
   hasRenderableActivityMock.mockReset();
   countActivityStepsMock.mockReset();
   widgetRendererMock.mockReset();
+  resetRemediationStepStub();
+  isReaderOpeningTheReport = true;
 });
 
 describe("InvestigationPanel report lifecycle", () => {
@@ -584,7 +641,7 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(screen.getByLabelText("Model and tokens")).toHaveTextContent(
       "1,234 tokens",
     );
-    expect(fixButton()).toBeEnabled();
+    expect(isCodeFixHandedOn()).toBe(true);
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
@@ -743,7 +800,7 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
   });
 
-  test("shows the no-report outcome, disables the fix action and offers no rating", async () => {
+  test("shows the no-report outcome, hands no fix in the code on and offers no rating", async () => {
     postMock.mockResolvedValue(
       completedResponse({
         analysisMarkdown: null,
@@ -774,7 +831,8 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(screen.getByLabelText("Investigation usage")).toHaveTextContent(
       "0 telemetry queries",
     );
-    expect(fixButton()).toBeDisabled();
+    // The pull request is written from the report: none, so none is offered.
+    expect(isCodeFixHandedOn()).toBe(false);
     // There is no report to judge, so the rating row is left out entirely.
     expect(screen.queryByText("Was this analysis correct?")).toBeNull();
     expect(screen.queryByRole("button", { name: "Confirmed" })).toBeNull();
@@ -809,7 +867,7 @@ describe("InvestigationPanel report lifecycle", () => {
         showLiveIndicator: false,
       }),
     );
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(screen.queryByText("Was this analysis correct?")).toBeNull();
   });
 
@@ -1566,7 +1624,7 @@ describe("InvestigationPanel rating availability", () => {
     expectNoRating();
     // Nothing is decided yet, so no empty frame is drawn under the notice.
     expect(actionsFrame()).toBeNull();
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
 
     await tick(POLL_INTERVAL_MS);
 
@@ -1623,7 +1681,12 @@ describe("InvestigationPanel rating availability", () => {
     ).toEqual([]);
   });
 
-  test("keeps a Recommended fix action in its frame without a rating row beside it", async () => {
+  /*
+   * The fix in the code is the Remediation step's now, and its pull request
+   * is written from the report: a Recommended run that published none
+   * offers neither a rating nor a fix, so no frame is drawn either.
+   */
+  test("draws no frame for a Recommended run without a report, and hands no fix on", async () => {
     postMock.mockResolvedValue(
       completedResponse({
         analysisMarkdown: null,
@@ -1635,14 +1698,11 @@ describe("InvestigationPanel rating availability", () => {
     renderPanel();
     await flush();
 
-    const frame: HTMLElement | null = actionsFrame();
-    expect(frame).not.toBeNull();
+    expect(actionsFrame()).toBeNull();
     expect(
-      within(frame!).getByRole("heading", {
-        name: "Act on this investigation",
-      }),
-    ).toBeVisible();
-    expect(within(frame!).getAllByRole("heading")).toHaveLength(1);
+      screen.queryByRole("heading", { name: "Act on this investigation" }),
+    ).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expectNoRating();
   });
 
@@ -1703,7 +1763,7 @@ describe("InvestigationPanel rating availability", () => {
       expect(screen.getByLabelText("Investigation status")).toBeVisible();
       expectNoRating();
       expect(actionsFrame()).toBeNull();
-      expect(fixButton()).toBeNull();
+      expect(isCodeFixHandedOn()).toBe(false);
     },
   );
 
@@ -2006,12 +2066,10 @@ describe("InvestigationPanel rating availability", () => {
       expect(ratingGroup() !== null).toBe(scenario.offersRating);
       expect(disabledVerdictAnswers()).toEqual([]);
       /*
-       * The frame is drawn exactly when it holds a row: the rating, the
-       * fix action, or both.
+       * The frame is drawn exactly when it holds the rating: the fix in the
+       * code is the Remediation step's.
        */
-      expect(actionsFrame() !== null).toBe(
-        scenario.offersRating || fixButton() !== null,
-      );
+      expect(actionsFrame() !== null).toBe(scenario.offersRating);
     },
   );
 
@@ -2038,19 +2096,37 @@ describe("InvestigationPanel rating availability", () => {
   });
 });
 
+/*
+ * The server-authored recommendation decides whether a completed
+ * investigation's fix in the code is offered. The offer is the Remediation
+ * step's now (block 43: a pull request is a fix), so the panel hands it on:
+ * that the investigation on screen recommends one, and which run it is.
+ */
 describe("InvestigationPanel code-fix recommendation", () => {
-  test("shows the fix action only for an explicit Recommended decision", async () => {
+  test("hands the fix in the code on only for an explicit Recommended decision", async () => {
     postMock.mockResolvedValue(completedResponse() as never);
 
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeEnabled();
-    expect(screen.getByText("Act on this investigation")).toBeVisible();
+    expect(lastRemediationStepProps().codeFix).toEqual({
+      isRecommended: true,
+      investigationRunId: RUN_ID,
+    });
+    // The investigation draws no fix action of its own.
+    expect(screen.queryByText("Act on this investigation")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Open Fix PR from this analysis" }),
+    ).toBeNull();
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
   });
 
-  test("with the project's AI switched off, offers no fix action, and keeps the rating", async () => {
+  /*
+   * With AI off the step asks nothing about the fix (its suite), and the
+   * server would answer nothing: the recommendation itself is a fact of the
+   * report, and the rating stays.
+   */
+  test("with the project's AI switched off, keeps the rating and still says what the report recommends", async () => {
     const projectSpy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ProjectUtil, "getCurrentProject")
       .mockReturnValue(
@@ -2062,7 +2138,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
       renderPanel();
       await flush();
 
-      expect(fixButton()).toBeNull();
+      expect(isCodeFixHandedOn()).toBe(true);
       expect(screen.queryByText("Act on this investigation")).toBeNull();
       expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     } finally {
@@ -2070,7 +2146,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     }
   });
 
-  test("hides every fix-task element for NotRecommended but retains verdict controls", async () => {
+  test("hands no fix on for NotRecommended but retains verdict controls", async () => {
     postMock.mockResolvedValue(
       completedResponse({
         codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
@@ -2080,9 +2156,11 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
+    expect(lastRemediationStepProps().codeFix?.investigationRunId).toBe(
+      RUN_ID,
+    );
     expect(screen.queryByText("Act on this investigation")).toBeNull();
-    expect(screen.queryByText(/Fix task created/)).toBeNull();
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
@@ -2099,7 +2177,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(jest.getTimerCount()).toBe(1);
 
@@ -2118,14 +2196,14 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(jest.getTimerCount()).toBe(1);
 
     await advanceFastPolls(4);
     expect(postMock).toHaveBeenCalledTimes(1);
   });
 
-  test("polls a recent missing decision and reveals the action when it settles", async () => {
+  test("polls a recent missing decision and hands the fix on when it settles", async () => {
     postMock
       .mockResolvedValueOnce(
         completedResponse({ codeFixRecommendation: undefined }) as never,
@@ -2135,14 +2213,14 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(jest.getTimerCount()).toBe(2);
 
     await advanceFastPolls();
 
     expect(postMock).toHaveBeenCalledTimes(2);
-    expect(fixButton()).toBeEnabled();
+    expect(isCodeFixHandedOn()).toBe(true);
     expect(jest.getTimerCount()).toBe(1);
   });
 
@@ -2159,14 +2237,14 @@ describe("InvestigationPanel code-fix recommendation", () => {
     await flush();
 
     expect(screen.getByText("Completed")).toBeVisible();
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(postMock).toHaveBeenCalledTimes(1);
     expect(jest.getTimerCount()).toBe(2);
 
     await advanceFastPolls();
 
     expect(postMock).toHaveBeenCalledTimes(2);
-    expect(fixButton()).toBeEnabled();
+    expect(isCodeFixHandedOn()).toBe(true);
     expect(jest.getTimerCount()).toBe(1);
   });
 
@@ -2185,7 +2263,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     expect(
       document.querySelector('[class~="motion-safe:animate-ping"]'),
     ).toBeNull();
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
   });
 
   test("tolerates a browser clock behind the server while Pending settles", async () => {
@@ -2200,10 +2278,10 @@ describe("InvestigationPanel code-fix recommendation", () => {
 
     renderPanel();
     await flush();
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
 
     await advanceFastPolls();
-    expect(fixButton()).toBeEnabled();
+    expect(isCodeFixHandedOn()).toBe(true);
   });
 
   test("tolerates a browser clock ahead of the server for explicit Pending", async () => {
@@ -2218,10 +2296,10 @@ describe("InvestigationPanel code-fix recommendation", () => {
 
     renderPanel();
     await flush();
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
 
     await advanceFastPolls();
-    expect(fixButton()).toBeEnabled();
+    expect(isCodeFixHandedOn()).toBe(true);
   });
 
   test("bounds a permanently Pending decision by time and response count", async () => {
@@ -2234,7 +2312,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(jest.getTimerCount()).toBe(2);
 
     await advanceFastPolls(MAX_RECOMMENDATION_POLL_RESPONSES);
@@ -2244,7 +2322,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     expect(callsAtSettlement).toBeLessThanOrEqual(
       MAX_RECOMMENDATION_POLL_RESPONSES + 1,
     );
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(jest.getTimerCount()).toBe(1);
 
@@ -2280,7 +2358,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     await advanceFastPolls();
 
     expect(postMock).toHaveBeenCalledTimes(3);
-    expect(fixButton()).toBeEnabled();
+    expect(isCodeFixHandedOn()).toBe(true);
   });
 
   test("stops failed Pending polls at the independent deadline", async () => {
@@ -2303,7 +2381,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
 
     const callsAtDeadline: number = postMock.mock.calls.length;
     expect(callsAtDeadline).toBeGreaterThan(1);
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(screen.queryByRole("alert")).toBeNull();
 
     await advanceFastPolls(4);
@@ -2326,7 +2404,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     expect(postMock).toHaveBeenCalledTimes(2);
 
     await tick(RECOMMENDATION_SETTLEMENT_MAX_AGE_MS);
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(postMock).toHaveBeenCalledTimes(2);
 
     /* Settled cadence must reuse the still-hung request, not overlap it. */
@@ -2335,124 +2413,86 @@ describe("InvestigationPanel code-fix recommendation", () => {
   });
 });
 
+/*
+ * Opening the fix pull request is the Remediation step's now (its suite,
+ * RemediationCodeFix); the panel hands it the record and the run the pull
+ * request is written from, afresh for every record and every run.
+ */
 describe("InvestigationPanel completed actions", () => {
-  test("creates a run-bound fix task and replaces the action with success", async () => {
-    postMock
-      .mockResolvedValueOnce(completedResponse() as never)
-      .mockResolvedValueOnce(
-        successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
-      );
+  test("hands the step the incident, the investigation's stage and its run", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
 
-    renderPanel();
-    await flush();
-    fireEvent.click(fixButton()!);
+    render(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        isRecordResolved={true}
+      />,
+    );
     await flush();
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Fix task created");
-    expect(fixButton()).toBeNull();
-    expect(requestPath(1)).toContain("/ai-investigation/create-fix-task");
-    expect(postRequestAt(1).data).toEqual({
-      subjectType: "incident",
-      subjectId: INCIDENT_ID.toString(),
+    const props: RemediationStepProps = lastRemediationStepProps();
+    expect(props.incidentId?.toString()).toBe(INCIDENT_ID.toString());
+    expect(props.alertId).toBeUndefined();
+    expect(props.investigationStage).toBe("reported");
+    expect(props.isRecordResolved).toBe(true);
+    expect(props.codeFix).toEqual({
+      isRecommended: true,
       investigationRunId: RUN_ID,
     });
-    expect(screen.getByText("View task progress")).toBeVisible();
+    expect(props.aiCardFold).toBe("full");
+    // The step is drawn under the investigation, inside the one card.
+    expect(screen.getByTestId("ai-card-steps")).toContainElement(
+      screen.getByTestId("remediation-step"),
+    );
   });
 
-  test("keeps the Recommended action and shows a friendly task error", async () => {
-    postMock
-      .mockResolvedValueOnce(completedResponse() as never)
-      .mockResolvedValueOnce(
-        new HTTPErrorResponse(
-          400,
-          { message: "No connected repository exists." },
-          {},
-        ) as never,
-      );
-
-    renderPanel();
-    await flush();
-    fireEvent.click(fixButton()!);
-    await flush();
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Could not create the fix task",
-    );
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "No connected repository exists",
-    );
-    expect(fixButton()).toBeEnabled();
-  });
-
-  test("clears settled fix-task state after subject navigation", async () => {
+  test("hands the next subject's run on after navigation, never the last one's", async () => {
     const nextAnalysis: string =
       "## Alert root cause\n\nA deployment removed the required credential.";
+    const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
     postMock
       .mockResolvedValueOnce(completedResponse() as never)
-      .mockResolvedValueOnce(
-        successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
-      )
-      .mockResolvedValueOnce(
-        completedResponse({
-          runId: NEXT_RUN_ID,
-          analysisMarkdown: nextAnalysis,
-        }) as never,
-      );
+      .mockReturnValueOnce(nextSubject.promise as never);
 
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
-    fireEvent.click(fixButton()!);
-    await flush();
-    expect(screen.getByRole("alert")).toHaveTextContent("Fix task created");
+    expect(lastRemediationStepProps().codeFix?.investigationRunId).toBe(RUN_ID);
 
     view.rerender(
       <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
     );
     await flush();
 
-    expect(screen.queryByText(/Fix task created/)).toBeNull();
+    // The alert's investigation is not read yet: no run of the incident's.
+    expect(lastRemediationStepProps().alertId?.toString()).toBe(
+      ALERT_ID.toString(),
+    );
+    expect(lastRemediationStepProps().incidentId).toBeUndefined();
+    expect(isCodeFixHandedOn()).toBe(false);
+
+    await resolveDeferred(
+      nextSubject,
+      completedResponse({
+        runId: NEXT_RUN_ID,
+        analysisMarkdown: nextAnalysis,
+      }),
+    );
+
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "A deployment removed the required credential.",
     );
-    expect(fixButton()).toBeEnabled();
+    expect(lastRemediationStepProps().codeFix).toEqual({
+      isRecommended: true,
+      investigationRunId: NEXT_RUN_ID,
+    });
   });
 
-  test("ignores a fix-task result that resolves on another subject", async () => {
-    const staleTask: Deferred<ApiResponse> = createDeferred<ApiResponse>();
-    postMock
-      .mockResolvedValueOnce(completedResponse() as never)
-      .mockReturnValueOnce(staleTask.promise as never)
-      .mockResolvedValueOnce(
-        completedResponse({ runId: NEXT_RUN_ID }) as never,
-      );
-
-    const view: ReturnType<typeof render> = renderPanel();
-    await flush();
-    fireEvent.click(fixButton()!);
-    await flush();
-
-    view.rerender(
-      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
-    );
-    await flush();
-    await resolveDeferred(
-      staleTask,
-      successfulResponse({ aiRunId: FIX_RUN_ID }),
-    );
-
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(fixButton()).toBeEnabled();
-    expect(screen.getByText("Completed")).toBeVisible();
-  });
-
-  test("resets fix-task and verdict state when the same subject gets a new run", async () => {
+  test("resets the verdict and hands the new run on when the same subject gets a new run", async () => {
     const nextAnalysis: string =
       "## New root cause\n\nA later investigation found a certificate rollover.";
     postMock
       .mockResolvedValueOnce(completedResponse() as never)
-      .mockResolvedValueOnce(
-        successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
-      )
       .mockResolvedValueOnce(successfulResponse({}) as never)
       .mockResolvedValueOnce(
         completedResponse({
@@ -2463,12 +2503,9 @@ describe("InvestigationPanel completed actions", () => {
 
     renderPanel();
     await flush();
-    fireEvent.click(fixButton()!);
-    await flush();
     fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
     await flush();
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Fix task created");
     expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
 
     await tick(SETTLED_POLL_INTERVAL_MS);
@@ -2476,9 +2513,11 @@ describe("InvestigationPanel completed actions", () => {
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "A later investigation found a certificate rollover.",
     );
-    expect(screen.queryByText(/Fix task created/)).toBeNull();
     expect(screen.queryByText(/You confirmed this analysis/)).toBeNull();
-    expect(fixButton()).toBeEnabled();
+    expect(lastRemediationStepProps().codeFix).toEqual({
+      isRecommended: true,
+      investigationRunId: NEXT_RUN_ID,
+    });
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
   });
 
@@ -2517,7 +2556,7 @@ describe("InvestigationPanel completed actions", () => {
     renderPanel();
     await flush();
 
-    expect(fixButton()).toBeNull();
+    expect(isCodeFixHandedOn()).toBe(false);
     expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
     expect(screen.getByText("Change")).toBeVisible();
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
@@ -3431,18 +3470,19 @@ describe("InvestigationPanel structured report", () => {
     expect(screen.queryByLabelText("Model and tokens")).toBeNull();
   });
 
-  test("titles the act and rate blocks with headings instead of icon-in-paragraph", async () => {
+  test("titles the rating with a heading instead of icon-in-paragraph", async () => {
     postMock.mockResolvedValue(completedResponse() as never);
 
     const { container } = renderPanel();
     await flush();
 
     expect(
-      screen.getByRole("heading", { name: "Act on this investigation" }),
-    ).toBeVisible();
-    expect(
       screen.getByRole("heading", { name: "Was this analysis correct?" }),
     ).toBeVisible();
+    // Acting on it is the Remediation step's: no block of the report's own.
+    expect(
+      screen.queryByRole("heading", { name: "Act on this investigation" }),
+    ).toBeNull();
     expect(container.querySelectorAll("p div")).toHaveLength(0);
   });
 });
@@ -4370,8 +4410,12 @@ describe("InvestigationPanel as one flat card", () => {
    */
   const PANEL_CLASS: RegExp =
     /^(rounded-xl|rounded-2xl|shadow|shadow-(sm|md|lg)|bg-gradient-to-[a-z]+|bg-(indigo|amber|emerald|red|green|rose|violet)-50(\/\d+)?|bg-gray-50(\/\d+)?)$/;
+  /*
+   * The steps' numbered marks and status pills (AiCardStep) are a mark and
+   * a pill on each step's title line, not panels.
+   */
   const CONTROL_SELECTOR: string =
-    "button, a, [role='tab'], [role='group'], [data-testid='investigation-markdown']";
+    "button, a, [role='tab'], [role='group'], [data-testid='investigation-markdown'], [data-testid$='-mark'], [data-testid$='-status']";
 
   function classTokens(element: Element): Array<string> {
     return (element.getAttribute("class") || "").split(/\s+/);
@@ -4379,7 +4423,7 @@ describe("InvestigationPanel as one flat card", () => {
 
   function panelsInsideTheCard(): Array<string> {
     const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
 
     return Array.from(region.querySelectorAll("*"))
@@ -4566,7 +4610,7 @@ describe("InvestigationPanel as one flat card", () => {
       },
     ],
   ])(
-    'names the state "%s" in the neutral header pill, marked %s',
+    'names the state "%s" in the investigation step\'s neutral pill, marked %s',
     async (text: string, indicator: string, response: () => ApiResponse) => {
       postMock.mockResolvedValue(response() as never);
 
@@ -4581,10 +4625,19 @@ describe("InvestigationPanel as one flat card", () => {
       expect(badge.className).not.toMatch(
         /(^|\s)(bg|text|ring)-(green|indigo|red|amber|rose|emerald)-/,
       );
-      // It sits in the card's header, not in the body with the report.
+      /*
+       * It sits on step 1's title line (block 43: each step has its own
+       * pill), and the step's mark says the same at a glance.
+       */
+      const step: HTMLElement = screen.getByTestId(
+        "ai-card-step-investigation",
+      );
       expect(
-        screen.getByRole("region", { name: "AI Investigation" }),
-      ).not.toContainElement(badge);
+        screen.getByTestId("ai-card-step-investigation-status"),
+      ).toContainElement(badge);
+      expect(step).toContainElement(badge);
+      expect(step).toHaveAttribute("data-indicator", indicator);
+      expect(step).toHaveAccessibleName("Investigation");
     },
   );
 
@@ -4609,13 +4662,20 @@ describe("InvestigationPanel as one flat card", () => {
       ).toBeTruthy();
     }
 
-    // The report comes first: nothing about clusters stands above the answer.
-    const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
-    });
-    expect(region.firstElementChild).toBe(
+    /*
+     * The report comes first: nothing about clusters stands above the
+     * answer. The open report starts with it, and fixing comes after all
+     * of it, in step 2.
+     */
+    const open: HTMLElement = screen.getByTestId("investigation-report-open");
+    expect(open.firstElementChild).toContainElement(
       screen.getByRole("region", { name: "Investigation summary" }),
     );
+    expect(
+      screen.getByTestId("investigation-actions").compareDocumentPosition(
+        screen.getByTestId("remediation-step"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("separates the report from its working and its actions with hairlines, not boxes", async () => {
@@ -4629,7 +4689,7 @@ describe("InvestigationPanel as one flat card", () => {
     expect(runDetails().className).not.toMatch(/rounded|shadow|bg-/);
 
     const actions: HTMLElement = screen.getByTestId("investigation-actions");
-    expect(actions).toHaveClass("border-t", "border-gray-200", "divide-y");
+    expect(actions).toHaveClass("border-t", "border-gray-200", "pt-5");
     expect(classTokens(actions)).not.toContain("border");
     expect(actions.className).not.toMatch(/rounded|shadow|bg-/);
   });
@@ -4641,19 +4701,20 @@ describe("InvestigationPanel as one flat card", () => {
     await flush();
 
     const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
     const headings: Array<HTMLElement> = within(region).getAllByRole("heading");
+    // The step's title, then the report's own (Remediation is step 2's).
     expect(
       headings.map((heading: HTMLElement): string => {
         return heading.textContent || "";
       }),
     ).toEqual([
+      "Investigation",
       "Summary",
       "Most likely root cause",
       "Suggested next steps",
       "Evidence and activity",
-      "Act on this investigation",
       VERDICT_QUESTION,
     ]);
 
@@ -4686,7 +4747,12 @@ describe("InvestigationPanel as one flat card", () => {
     ).toEqual(["Confirmed", "Rejected"]);
   });
 
-  test("describes only a queued or running investigation as live", async () => {
+  /*
+   * The card says what it holds the same way in every state - what OneUptime
+   * AI found, and what it is doing about it - and each step's pill says how
+   * that step stands: only a queued or running investigation is live.
+   */
+  test("describes the card the same way in every state; only the pill says a run is live", async () => {
     postMock.mockResolvedValue(
       successfulResponse(
         investigationPayload({ status: AIRunStatus.Running }),
@@ -4696,7 +4762,11 @@ describe("InvestigationPanel as one flat card", () => {
     await flush();
 
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "OneUptime AI's live root-cause investigation for this incident.",
+      AI_CARD_DESCRIPTION,
+    );
+    expect(screen.getByLabelText("Investigation status")).toHaveAttribute(
+      "data-indicator",
+      "live",
     );
     view.unmount();
 
@@ -4714,10 +4784,11 @@ describe("InvestigationPanel as one flat card", () => {
 
     // A run that stopped is not live any more.
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "OneUptime AI's root-cause investigation for this incident.",
+      AI_CARD_DESCRIPTION,
     );
-    expect(screen.getByTestId("card-description")).not.toHaveTextContent(
-      "live",
+    expect(screen.getByLabelText("Investigation status")).toHaveAttribute(
+      "data-indicator",
+      "failed",
     );
   });
 
@@ -4745,10 +4816,10 @@ describe("InvestigationPanel as one flat card", () => {
       }),
     ).toBeVisible();
     expect(live).toContainElement(screen.getByTestId("investigation-activity"));
-    // The header's pulsing badge says the run is moving; no hairline bar.
+    // The step's pulsing pill says the run is moving; no hairline bar.
     expect(
       screen
-        .getByRole("region", { name: "AI Investigation" })
+        .getByRole("region", { name: "OneUptime AI" })
         .querySelector(".h-0\\.5"),
     ).toBeNull();
   });
@@ -4855,7 +4926,7 @@ describe("InvestigationPanel as one flat card", () => {
 
 /*
  * The conversation with OneUptime AI is supplied by the page and placed by
- * the panel, which closes the AI Investigation card with it in every state.
+ * the panel, which closes the AI card with it in every state.
  * With no run the page used to show two cards: the explanation of why
  * nothing was investigated, and the conversation in a card of its own under
  * it. There is one AI card now, whatever OneUptime AI did.
@@ -5026,11 +5097,11 @@ describe("InvestigationPanel conversation slot", () => {
       const cards: Array<HTMLElement> = screen.getAllByTestId("card");
       expect(cards).toHaveLength(1);
       expect(
-        screen.getAllByRole("heading", { level: 2, name: "AI Investigation" }),
+        screen.getAllByRole("heading", { level: 2, name: "OneUptime AI" }),
       ).toHaveLength(1);
 
       const region: HTMLElement = screen.getByRole("region", {
-        name: "AI Investigation",
+        name: "OneUptime AI",
       });
       const conversation: HTMLElement = screen.getByTestId("conversation");
 
@@ -5256,17 +5327,26 @@ describe("InvestigationPanel conversation slot", () => {
 
     expect(screen.queryByTestId("conversation")).toBeNull();
     expect(screen.getAllByTestId("card")).toHaveLength(1);
+    // The two steps close the card: the investigation, then remediation.
+    const steps: HTMLElement = screen.getByTestId("ai-card-steps");
     expect(
-      screen.getByRole("region", { name: "AI Investigation" }).lastElementChild,
-    ).toBe(screen.getByTestId("investigation-not-started"));
+      screen.getByRole("region", { name: "OneUptime AI" }).lastElementChild,
+    ).toBe(steps);
+    expect(screen.getByTestId("ai-card-step-investigation")).toContainElement(
+      screen.getByTestId("investigation-not-started"),
+    );
+    expect(steps.lastElementChild).toBe(
+      screen.getByTestId("remediation-step"),
+    );
   });
 });
 
 /*
- * What came of pressing a button in the card (a fix task, a verdict) is said
- * the way the card says everything else: a mark, a sentence and a quieter
- * line. They were green and red alert boxes, the loudest things in a card
- * that draws no boxes.
+ * What came of pressing a button in the card (a verdict) is said the way
+ * the card says everything else: a mark, a sentence and a quieter line.
+ * They were green and red alert boxes, the loudest things in a card that
+ * draws no boxes. A fix pull request's are the Remediation step's
+ * (RemediationCodeFix's suite).
  */
 describe("InvestigationPanel says what happened in a notice, not a box", () => {
   const BOX_CLASS: RegExp =
@@ -5281,67 +5361,6 @@ describe("InvestigationPanel says what happened in a notice, not a box", () => {
         return `<${node.tagName.toLowerCase()} class="${node.getAttribute("class")}">`;
       });
   }
-
-  test("a created fix task is a line with a green mark and a link to the task", async () => {
-    postMock
-      .mockResolvedValueOnce(completedResponse() as never)
-      .mockResolvedValueOnce(
-        successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
-      );
-
-    renderPanel();
-    await flush();
-    fireEvent.click(fixButton()!);
-    await flush();
-
-    const notice: HTMLElement = screen.getByTestId(
-      "investigation-fix-task-created",
-    );
-    expect(notice).toHaveAttribute("role", "alert");
-    expect(notice).toHaveTextContent(
-      "Fix task createdAI will open a pull request from this analysis. View task progress.",
-    );
-    expect(boxesInside(notice)).toEqual([]);
-    expect(notice.querySelector("svg")).not.toBeNull();
-    expect(notice.querySelector(".text-emerald-600")).not.toBeNull();
-    expect(
-      within(notice).getByRole("link", { name: "View task progress" }),
-    ).toHaveAttribute("href", expect.stringContaining(FIX_RUN_ID));
-    // It sits in the action's own row of the card.
-    expect(screen.getByTestId("investigation-actions")).toContainElement(
-      notice,
-    );
-  });
-
-  test("a fix task that could not be created is a line with a red mark", async () => {
-    postMock
-      .mockResolvedValueOnce(completedResponse() as never)
-      .mockResolvedValueOnce(
-        new HTTPErrorResponse(
-          400,
-          { message: "No connected repository exists." },
-          {},
-        ) as never,
-      );
-
-    renderPanel();
-    await flush();
-    fireEvent.click(fixButton()!);
-    await flush();
-
-    const notice: HTMLElement = screen.getByTestId(
-      "investigation-fix-task-error",
-    );
-    expect(notice).toHaveAttribute("role", "alert");
-    expect(notice).toHaveTextContent(
-      "Could not create the fix taskNo connected repository exists. Open Code.",
-    );
-    expect(boxesInside(notice)).toEqual([]);
-    expect(notice.querySelector(".text-red-600")).not.toBeNull();
-    expect(
-      within(notice).getByRole("link", { name: "Open Code" }),
-    ).toBeVisible();
-  });
 
   test("a verdict that could not be saved is a line with a red mark", async () => {
     postMock
@@ -5402,27 +5421,18 @@ describe("InvestigationPanel says what happened in a notice, not a box", () => {
       postMock
         .mockResolvedValueOnce(completedResponse() as never)
         .mockResolvedValueOnce(
-          new HTTPErrorResponse(
-            400,
-            { message: "No repository." },
-            {},
-          ) as never,
-        )
-        .mockResolvedValueOnce(
           new HTTPErrorResponse(500, { message: "No storage." }, {}) as never,
         );
 
       renderPanel();
       await flush();
-      fireEvent.click(fixButton()!);
-      await flush();
       fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
       await flush();
 
-      expect(screen.getAllByRole("alert")).toHaveLength(2);
+      expect(screen.getAllByRole("alert")).toHaveLength(1);
       expect(
         screen
-          .getByRole("region", { name: "AI Investigation" })
+          .getByRole("region", { name: "OneUptime AI" })
           .querySelectorAll("p div"),
       ).toHaveLength(0);
       expect(
@@ -5437,5 +5447,272 @@ describe("InvestigationPanel says what happened in a notice, not a box", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+/*
+ * BLOCK 43: "Investigation would basically fold into one step. Remediation
+ * would show as well." A finished investigation shows its answer - the
+ * TL;DR, or the report's own Summary - with "Show full report"; the report,
+ * its working and the verdict are one press away, and "View full report"
+ * in the page's header opens them. A new run, or another record, starts
+ * folded again. The reader of this suite does not open it on their own.
+ */
+describe("InvestigationPanel folds a finished investigation", () => {
+  beforeEach(() => {
+    isReaderOpeningTheReport = false;
+  });
+
+  function toggle(): HTMLElement {
+    return screen.getByTestId("investigation-report-toggle");
+  }
+
+  test("to its TL;DR and Show full report: the report, its working and the verdict wait under it", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const folded: HTMLElement = screen.getByTestId(
+      "investigation-report-folded",
+    );
+    const summary: HTMLElement = screen.getByTestId(
+      "investigation-report-summary",
+    );
+    expect(folded).toContainElement(summary);
+    expect(summary.tagName).toBe("P");
+    expect(summary).toHaveTextContent(TLDR);
+    expect(summary).toHaveClass("text-base", "font-semibold");
+
+    expect(toggle()).toHaveTextContent("Show full report");
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(toggle()).toHaveAttribute("aria-controls", folded.id);
+    expect(folded.id).not.toBe("");
+
+    // None of the rest is drawn: the report, its working, the rating.
+    expect(screen.queryByLabelText("Investigation report")).toBeNull();
+    expect(screen.queryByTestId("investigation-details")).toBeNull();
+    expect(screen.queryByText(VERDICT_QUESTION)).toBeNull();
+    expect(markdownViewerMock).not.toHaveBeenCalled();
+
+    // The step says it is done, and step 2 follows it.
+    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+      "Completed",
+    );
+    expect(
+      screen
+        .getByTestId("ai-card-step-investigation")
+        .compareDocumentPosition(screen.getByTestId("remediation-step")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("to the report's own Summary when it has no TL;DR, as plain text", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const summary: HTMLElement = screen.getByTestId(
+      "investigation-report-summary",
+    );
+    expect(summary).toHaveTextContent(REPORT_SUMMARY);
+    expect(summary).toHaveClass("text-sm", "text-gray-700");
+    expect(summary).not.toHaveClass("font-semibold");
+    // Never as markdown: no chip, no link, nothing the report's viewer drew.
+    expect(summary.querySelector("button, a")).toBeNull();
+    expect(markdownViewerMock).not.toHaveBeenCalled();
+  });
+
+  test("a report with nothing to fold to is shown whole, with no toggle", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByTestId("investigation-report-open")).toBeVisible();
+    expect(screen.getByLabelText("Investigation report")).toBeInTheDocument();
+    expect(screen.queryByTestId("investigation-report-toggle")).toBeNull();
+    expect(screen.getByText(VERDICT_QUESTION)).toBeVisible();
+  });
+
+  test("Show full report opens the report, its working and the verdict; Show less folds it back", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    fireEvent.click(toggle());
+
+    const open: HTMLElement = screen.getByTestId("investigation-report-open");
+    expect(open).toContainElement(
+      screen.getByLabelText("Investigation report"),
+    );
+    expect(open).toContainElement(screen.getByTestId("investigation-details"));
+    expect(open).toContainElement(screen.getByTestId("investigation-actions"));
+    expect(screen.queryByTestId("investigation-report-summary")).toBeNull();
+    // The report's own summary leads it, as before.
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      TLDR,
+    );
+
+    // The toggle closes the report it opened, at its end.
+    expect(toggle()).toHaveTextContent("Show less");
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    expect(open.lastElementChild).toBe(toggle());
+
+    fireEvent.click(toggle());
+
+    expect(screen.getByTestId("investigation-report-folded")).toBeVisible();
+    expect(screen.queryByLabelText("Investigation report")).toBeNull();
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("stays open across polls of the same run", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(toggle());
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId("investigation-report-open")).toBeVisible();
+  });
+
+  test("a new run on the same record, or another record, starts folded again", async () => {
+    const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(completedResponse({ analysisTldr: TLDR }) as never)
+      .mockResolvedValueOnce(
+        completedResponse({
+          runId: NEXT_RUN_ID,
+          analysisTldr: "A second, different cause.",
+        }) as never,
+      )
+      .mockReturnValueOnce(nextSubject.promise as never);
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    fireEvent.click(toggle());
+    expect(screen.getByTestId("investigation-report-open")).toBeVisible();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(screen.getByTestId("investigation-report-summary")).toHaveTextContent(
+      "A second, different cause.",
+    );
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle());
+    view.rerender(
+      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+    );
+    await flush();
+    await resolveDeferred(
+      nextSubject,
+      completedResponse({
+        runId: NEXT_RUN_ID,
+        analysisTldr: "The alert cleared on its own.",
+      }),
+    );
+
+    expect(screen.getByTestId("investigation-report-summary")).toHaveTextContent(
+      "The alert cleared on its own.",
+    );
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  /*
+   * "View full report" in the event's header jumps to the card
+   * (scrollToAIInvestigationPanel), which announces it: a report the
+   * header points at is never left folded under the reader.
+   */
+  test("the header's View full report opens it", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel();
+    await flush();
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+
+    act(() => {
+      window.dispatchEvent(new Event(AI_INVESTIGATION_OPEN_REPORT_EVENT));
+    });
+
+    expect(screen.getByTestId("investigation-report-open")).toBeVisible();
+    expect(screen.getByLabelText("Investigation report")).toBeInTheDocument();
+  });
+
+  test("stops listening for it once the card is gone", async () => {
+    const removeSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      window,
+      "removeEventListener",
+    );
+    postMock.mockResolvedValue(noInvestigationResponse() as never);
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    view.unmount();
+
+    expect(
+      removeSpy.mock.calls.some((call: Array<unknown>): boolean => {
+        return call[0] === AI_INVESTIGATION_OPEN_REPORT_EVENT;
+      }),
+    ).toBe(true);
+    removeSpy.mockRestore();
+  });
+
+  /*
+   * The two steps share a rail: step 1's line runs down to step 2's mark
+   * while both are drawn, and the mark says how the step went - a check
+   * once it is done, its number otherwise.
+   */
+  test("draws the investigation as step 1 of 2, its mark a check once it reports", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        successfulResponse(
+          investigationPayload({ status: AIRunStatus.Running }),
+        ) as never,
+      )
+      .mockResolvedValue(completedResponse({ analysisTldr: TLDR }) as never);
+
+    renderPanel();
+    await flush();
+
+    const step: HTMLElement = screen.getByTestId("ai-card-step-investigation");
+    expect(step).toHaveAttribute("data-step", "1");
+    expect(step).toHaveAttribute("data-indicator", "live");
+    expect(
+      screen.getByTestId("ai-card-step-investigation-mark"),
+    ).toHaveTextContent("1");
+    expect(
+      screen.getByTestId("ai-card-step-investigation-rail"),
+    ).toBeInTheDocument();
+    expect(step).toHaveAccessibleName("Investigation");
+    // While it runs, the Remediation step is told it waits.
+    expect(lastRemediationStepProps().investigationStage).toBe("underway");
+
+    await advanceFastPolls();
+
+    expect(step).toHaveAttribute("data-indicator", "done");
+    expect(
+      screen.getByTestId("ai-card-step-investigation-mark"),
+    ).not.toHaveTextContent("1");
+    expect(
+      screen
+        .getByTestId("ai-card-step-investigation-mark")
+        .querySelector("svg"),
+    ).not.toBeNull();
+    expect(lastRemediationStepProps().investigationStage).toBe("reported");
   });
 });

@@ -269,6 +269,8 @@ describe("the AI Investigation card in the dark theme", () => {
         "InvestigationReport/InvestigationReportView.tsx",
         "InvestigationReport/InvestigationRunDetails.tsx",
         "InvestigationStatusBadge.tsx",
+        // Each of the card's two steps: its numbered mark, title and pill.
+        "AiCardStep.tsx",
       ]),
     );
     // The file the not-started state lived in while it was a card of its own.
@@ -317,8 +319,12 @@ describe("the AI Investigation card in the dark theme", () => {
         // The sections' headings and bodies, and the hairlines between them.
         "text-gray-900",
         "border-gray-200",
-        "divide-gray-200",
         "divide-gray-100",
+        // A step's mark: done, moving, or needing the reader.
+        "bg-emerald-50",
+        "bg-indigo-50",
+        "bg-amber-50",
+        "ring-gray-300",
         // The evidence rows' hover and a chip's highlight on ::before.
         "hover:bg-gray-50",
         "before:bg-indigo-50/70",

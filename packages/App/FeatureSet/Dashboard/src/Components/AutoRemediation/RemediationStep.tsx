@@ -66,8 +66,7 @@ import {
   parseInvestigationCodeFixSuggestion,
 } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
-import useAiOffered from "../../Utils/UseAiOffered";
-import ProjectUtil from "Common/UI/Utils/Project";
+import { useAiSwitchState } from "../../Utils/UseAiOffered";
 import AiCardStep from "../AI/AiCardStep";
 import InvestigationNotice, {
   noticeFailedIcon,
@@ -992,15 +991,6 @@ const STEP_TONE_INDICATOR: Record<
 // How often the fix in the code is read again while it is being written.
 const CODE_FIX_POLL_INTERVAL_MS: number = 15 * 1000;
 
-// Whether the selected project's Enable AI is known (it carries the column).
-function isEnableAiReadable(): boolean {
-  try {
-    return typeof ProjectUtil.getCurrentProject()?.enableAi === "boolean";
-  } catch {
-    return false;
-  }
-}
-
 /*
  * THE REMEDIATION STEP OF THE AI CARD (block 43): step 2, under the
  * investigation - what OneUptime AI is doing to fix the incident or alert,
@@ -1080,7 +1070,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     useRef<string>(subjectIdString);
   currentSubjectIdRef.current = subjectIdString;
 
-  const isCodeFixRecommended: boolean = Boolean(props.codeFix?.isRecommended);
+  /*
+   * Enable AI as the selected project holds it now - followed live when it
+   * is switched - or unknown while the project is not loaded: never "it is
+   * on now" of a switch nobody read. With AI off, the fix in the code is
+   * not asked about: nothing new can start, and the server says nothing.
+   */
+  const isAiOnNow: boolean | undefined = useAiSwitchState();
+  const isCodeFixRecommended: boolean =
+    Boolean(props.codeFix?.isRecommended) && isAiOnNow !== false;
   const codeFixKey: string = `${subjectIdString}:${
     props.codeFix?.investigationRunId || ""
   }`;
@@ -1526,17 +1524,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     subjectType: signal,
     isEnabled: isRemediationOffEntry,
   });
-  /*
-   * Enable AI as the selected project holds it now - followed live when it
-   * is switched - or unknown while the project is not loaded:
-   * useAiOffered fails open (an unknown value reads as on, so it never
-   * hides an AI action), which here would say "it is on now" of a switch
-   * nobody read.
-   */
-  const isAiOffered: boolean = useAiOffered();
-  const isAiOnKnown: boolean = isEnableAiReadable();
   const switchesNow: RemediationSwitchesNow = {
-    isAiOn: isAiOnKnown ? isAiOffered : undefined,
+    isAiOn: isAiOnNow,
     isFixingOn: laneSwitches.states.fix,
   };
 
@@ -2222,6 +2211,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
       {codeFix && codeFix.offer !== SuggestionOffer.None ? (
         <RemediationCodeFix
+          key={codeFixKey}
           signal={signal}
           subjectId={subjectIdString}
           investigationRunId={props.codeFix?.investigationRunId || null}

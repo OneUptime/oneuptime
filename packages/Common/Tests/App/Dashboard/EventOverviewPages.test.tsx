@@ -245,12 +245,6 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep",
-  () => {
-    return stubModule("Remediation");
-  },
-);
-jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentMemberRoleAssignment",
   () => {
     return stubModule("Roles");
@@ -693,7 +687,6 @@ const INCIDENT_CASE: PageCase = {
     "stub-InvestigationPanel",
     "stub-MonitorSummary",
     "stub-SeriesResource",
-    "stub-Remediation",
     "stub-Runbooks",
     "stub-Feed",
   ],
@@ -780,7 +773,6 @@ const ALERT_CASE: PageCase = {
     "stub-InvestigationPanel",
     "stub-MonitorSummary",
     "stub-SeriesResource",
-    "stub-Remediation",
     "stub-Runbooks",
     "stub-Feed",
   ],
@@ -1496,6 +1488,46 @@ describe.each([
       await waitForPage();
 
       expectInDocumentOrder(pageCase.leftColumnOrder);
+    });
+
+    /*
+     * Block 43: what OneUptime AI does to fix it is the AI card's second
+     * step, up top - it was a card of its own far down the page, under the
+     * telemetry, and easy to miss. The page tells the card when the record
+     * is resolved, so it does not offer to try fixing it again.
+     */
+    test("draws no Remediation card of its own, and tells the AI card whether the record is resolved", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(screen.queryByTestId("stub-Remediation")).toBeNull();
+      expect(screen.queryByText("What auto-remediation did")).toBeNull();
+      expect(
+        latestProps<{ isRecordResolved?: boolean }>("InvestigationPanel")
+          .isRecordResolved,
+      ).toBe(false);
+
+      serve(pageCase, {
+        timeline: [...REOPENED_TIMELINE, [RESOLVED_STATE_ID, 100]],
+        title: "Checkout slow (resolved)",
+      });
+
+      act(() => {
+        latestProps<ChangeStateProps>(
+          pageCase.changeStateKey,
+        ).onActionComplete();
+      });
+
+      await waitFor(() => {
+        expect(
+          latestProps<{ isRecordResolved?: boolean }>("InvestigationPanel")
+            .isRecordResolved,
+        ).toBe(true);
+      });
+      // The same card, told the record is resolved: never unmounted.
+      expect(mountCounts["InvestigationPanel"]).toBe(1);
     });
 
     test("What happened shows the event's own description and root cause, and a save refreshes in place", async () => {

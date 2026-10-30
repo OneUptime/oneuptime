@@ -421,10 +421,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   // What the report's toggle opens and closes.
   const reportRegionId: string = useId();
   /*
-   * What the Remediation step read, and how the card is drawn, passed
-   * between the two halves of the card (useAiCardFold): the card folds into
-   * one line only when fixing did nothing for a reason the project chose
-   * too, and the step leaves saying so to that line.
+   * What the Remediation step read about this record (useAiCardFold): the
+   * card folds into one line only when fixing did nothing for a reason the
+   * project chose too. The step is handed how the card is drawn, and leaves
+   * saying so to that line.
    */
   const aiCardFold: AiCardFoldWiring = useAiCardFold(subjectKey);
 
@@ -1167,12 +1167,6 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isWaiting: boolean =
     !hasRun && !isCheckingStatus && Boolean(waitingInvestigation);
 
-  // The Remediation step reads how the card is drawn.
-  const onFoldChange: (fold: AiCardFold) => void = aiCardFold.onFoldChange;
-  useEffect(() => {
-    onFoldChange(cardFold);
-  }, [cardFold, onFoldChange, subjectKey]);
-
   /*
    * "View full report" in the page's header opens the report it jumps to
    * (scrollToAIInvestigationPanel announces it).
@@ -1342,10 +1336,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    * reads what came of it - a pull request OneUptime AI opened on its own,
    * or why it did not - and offers to open it. It was a row of the
    * investigation's own ("Act on this investigation"), but a pull request
-   * is a fix, so it is told with the fixes.
+   * is a fix, so it is told with the fixes. The pull request is written
+   * from the report, so only once there is one (the button was disabled
+   * without it).
    */
   const isCodeFixRecommended: boolean =
-    runStatus === AIRunStatus.Completed &&
+    isShowingReport &&
     codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
   /*
    * A verdict judges the report on screen, so the rating row only exists
@@ -1414,9 +1410,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     >
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="min-w-[12rem] flex-1">
-          <h4 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-gray-900">
             {translator.translateText(VERDICT_QUESTION)}
-          </h4>
+          </h3>
           <p className="mt-1 text-xs leading-5 text-gray-500">
             {translator.translateText(
               "Your verdict helps measure OneUptime AI's public accuracy.",
@@ -1528,28 +1524,51 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     <></>
   );
 
+  /*
+   * A report folds to its summary. One with nothing to fold to - neither a
+   * TL;DR nor a Summary of its own, as an older report may be - is shown
+   * whole: a fold that hid all of it would leave only a button.
+   */
+  const canFoldReport: boolean = Boolean(reportSummary);
+  const isFullReportShown: boolean = isReportOpen || !canFoldReport;
+
+  /*
+   * A report shown whole for want of a summary stays whole when a later
+   * poll brings one: the reader is not folded out of what they are
+   * reading. A new run, or another record, starts folded again.
+   */
+  const isWholeForWantOfSummary: boolean =
+    isShowingReport && Boolean(parsedReport) && !canFoldReport;
+  useEffect(() => {
+    if (isWholeForWantOfSummary) {
+      setIsReportOpen(true);
+    }
+  }, [isWholeForWantOfSummary, runId, subjectKey]);
+
   // Shows the whole report, or folds it back to its summary.
-  const reportToggle: ReactElement = (
+  const reportToggle: ReactElement = canFoldReport ? (
     <button
       type="button"
       data-testid="investigation-report-toggle"
-      aria-expanded={isReportOpen}
+      aria-expanded={isFullReportShown}
       aria-controls={reportRegionId}
       onClick={() => {
-        setIsReportOpen(!isReportOpen);
+        setIsReportOpen(!isFullReportShown);
       }}
       className="inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
     >
       <span>
         {translator.translateText(
-          isReportOpen ? HIDE_FULL_REPORT : SHOW_FULL_REPORT,
+          isFullReportShown ? HIDE_FULL_REPORT : SHOW_FULL_REPORT,
         )}
       </span>
       <Icon
-        icon={isReportOpen ? IconProp.ChevronUp : IconProp.ChevronDown}
+        icon={isFullReportShown ? IconProp.ChevronUp : IconProp.ChevronDown}
         className="h-4 w-4 flex-shrink-0"
       />
     </button>
+  ) : (
+    <></>
   );
 
   /*
@@ -1585,101 +1604,64 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (
-      runStatus === AIRunStatus.Completed &&
-      analysisMarkdown &&
-      parsedReport
-    ) {
+    if (runStatus === AIRunStatus.Completed) {
+      /*
+       * One run finished, with or without a report: the same slots in the
+       * same order whatever it holds, so the run's details keep their state
+       * (open, on which tab) when a report comes or goes on a later poll.
+       */
+      const report: ParsedInvestigationReport | null =
+        analysisMarkdown && parsedReport ? parsedReport : null;
+      const isFoldedToSummary: boolean = Boolean(report) && !isFullReportShown;
+      const isReportDrawn: boolean = Boolean(report) && isFullReportShown;
+
       return (
         <div
           id={reportRegionId}
           data-testid={
-            isReportOpen
-              ? "investigation-report-open"
-              : "investigation-report-folded"
+            !report
+              ? "investigation-report-none"
+              : isFullReportShown
+                ? "investigation-report-open"
+                : "investigation-report-folded"
           }
           className="space-y-6"
         >
-          {isReportOpen ? (
-            <>
-              <InvestigationReportView
-                analysisMarkdown={analysisMarkdown}
-                report={parsedReport}
-                analysisTldr={analysisTldr}
-                evidence={evidence}
-                references={references}
-                subjectType={subjectType}
-                onCitationActivate={focusCitation}
-              />
-
-              {logStallNotice}
-
-              {/*
-                How the run reached the clusters, and whether it can now:
-                context for trusting the report, so it follows it.
-              */}
-              <ClusterAccessNotice
-                clusterAccess={clusterAccess}
-                isRunFinished={true}
-                kubectlActivity={kubectlActivity}
-              />
-
-              {/*
-                Evidence, activity and usage share one collapsed section:
-                the report above is the answer, this is its working.
-              */}
-              <InvestigationRunDetails
-                evidence={evidence}
-                legacyEntries={parsedReport.evidenceChecked}
-                events={events}
-                usage={stats}
-                kubectlActivity={kubectlActivity}
-                modelName={modelName}
-                subjectType={subjectType}
-                subjectId={subjectIdString}
-                runId={runId}
-                focusRequest={evidenceFocusRequest}
-              />
-
-              {verdictRow}
-
-              {reportToggle}
-            </>
+          {/*
+            Folded, the answer comes first: the AI-written TL;DR, set larger,
+            or the report's own Summary when there is none. Plain text, never
+            markdown, like the event header's.
+          */}
+          {isFoldedToSummary && reportSummary ? (
+            <p
+              data-testid="investigation-report-summary"
+              className={
+                analysisTldr
+                  ? "break-words text-base font-semibold leading-7 text-gray-900"
+                  : "break-words text-sm leading-6 text-gray-700"
+              }
+            >
+              {reportSummary}
+            </p>
           ) : (
-            <>
-              {/*
-                The answer, first: the AI-written TL;DR, set larger, or the
-                report's own Summary when there is none. Plain text, never
-                markdown, like the event header's.
-              */}
-              {reportSummary ? (
-                <p
-                  data-testid="investigation-report-summary"
-                  className={
-                    analysisTldr
-                      ? "break-words text-base font-semibold leading-7 text-gray-900"
-                      : "break-words text-sm leading-6 text-gray-700"
-                  }
-                >
-                  {reportSummary}
-                </p>
-              ) : (
-                <></>
-              )}
-
-              {logStallNotice}
-
-              {reportToggle}
-            </>
+            <></>
           )}
-        </div>
-      );
-    }
 
-    if (runStatus === AIRunStatus.Completed) {
-      return (
-        <>
-          {isAnalysisPending ? (
+          {isReportDrawn && report && analysisMarkdown ? (
+            <InvestigationReportView
+              analysisMarkdown={analysisMarkdown}
+              report={report}
+              analysisTldr={analysisTldr}
+              evidence={evidence}
+              references={references}
+              subjectType={subjectType}
+              onCitationActivate={focusCitation}
+            />
+          ) : (
+            <></>
+          )}
+
+          {!report && isAnalysisPending ? (
             <InvestigationNotice
               role="status"
               indicator={
@@ -1692,6 +1674,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               )}
             </InvestigationNotice>
           ) : (
+            <></>
+          )}
+
+          {!report && !isAnalysisPending ? (
             <InvestigationNotice
               indicator={
                 <Icon
@@ -1709,27 +1695,55 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     "The run finished without a final analysis.",
                   )}
             </InvestigationNotice>
+          ) : (
+            <></>
           )}
 
-          <ClusterAccessNotice
-            clusterAccess={clusterAccess}
-            isRunFinished={true}
-            kubectlActivity={kubectlActivity}
-          />
+          {/*
+            The investigation could not tell the cause for lack of logs:
+            what stood in its way, and the way forward - folded or not, since
+            it is something to act on.
+          */}
+          {logStallNotice}
 
-          <InvestigationRunDetails
-            evidence={[]}
-            legacyEntries={[]}
-            events={events}
-            usage={stats}
-            kubectlActivity={kubectlActivity}
-            modelName={modelName}
-            subjectType={subjectType}
-            subjectId={subjectIdString}
-            runId={runId}
-            focusRequest={evidenceFocusRequest}
-          />
-        </>
+          {/*
+            How the run reached the clusters, and whether it can now: context
+            for trusting the report, so it follows it. Evidence, activity and
+            usage share one collapsed section: the report above is the
+            answer, this is its working. Evidence only ever describes the
+            report it came with. Both wait with the report while it is folded.
+          */}
+          {!isFoldedToSummary ? (
+            <ClusterAccessNotice
+              clusterAccess={clusterAccess}
+              isRunFinished={true}
+              kubectlActivity={kubectlActivity}
+            />
+          ) : (
+            <></>
+          )}
+
+          {!isFoldedToSummary ? (
+            <InvestigationRunDetails
+              evidence={report ? evidence : []}
+              legacyEntries={report ? report.evidenceChecked : []}
+              events={events}
+              usage={stats}
+              kubectlActivity={kubectlActivity}
+              modelName={modelName}
+              subjectType={subjectType}
+              subjectId={subjectIdString}
+              runId={runId}
+              focusRequest={evidenceFocusRequest}
+            />
+          ) : (
+            <></>
+          )}
+
+          {isReportDrawn ? verdictRow : <></>}
+
+          {report ? reportToggle : <></>}
+        </div>
       );
     }
 
@@ -1748,7 +1762,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         className="space-y-4"
       >
         <div>
-          <h4 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-gray-900">
             {translator.translateText(
               isFailed
                 ? "What the investigation got through"
@@ -1756,7 +1770,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                   ? "OneUptime AI is checking again"
                   : "OneUptime AI is investigating",
             )}
-          </h4>
+          </h3>
           <p className="mt-1 text-sm leading-6 text-gray-500">
             {translator.translateText(
               isFailed

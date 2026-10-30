@@ -1,5 +1,4 @@
 import {
-  REMEDIATION_DECISION_HEADING,
   RemediationDecisionLine,
   RemediationDecisionLink,
   RemediationDecisionPlace,
@@ -18,13 +17,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  lines: Array<RemediationDecisionLine>;
   /*
-   * A heading of its own, for a card that lists fixes under the lines. When
-   * the lines are all the card holds, the card's description already says
-   * what they are, and a heading under it would only say it again.
+   * The lines, under the Remediation step's title: the title says what
+   * they are, so the list has no heading of its own.
    */
-  showHeading?: boolean | undefined;
+  lines: Array<RemediationDecisionLine>;
 }
 
 export interface RemediationDecisionToneMark {
@@ -84,8 +81,8 @@ export function goToPagePlace(
  * path, from RemediationDecisionLines, divided by hairlines. Each line is
  * its sentence; the readiness gap's "why" and "what to do" under it, set
  * off by a rule; and the pages that change it, as links that say where they
- * go. Drawn at the top of the Remediation card, above the suggestions it
- * may have produced.
+ * go. Drawn at the top of the AI card's Remediation step, above the fixes
+ * it may have produced.
  */
 const RemediationDecisionList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -98,16 +95,6 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="remediation-decision">
-      {props.showHeading ? (
-        <h3
-          data-testid="remediation-decision-heading"
-          className="mb-4 text-sm font-semibold text-gray-900"
-        >
-          {translator.translateText(REMEDIATION_DECISION_HEADING)}
-        </h3>
-      ) : (
-        <></>
-      )}
       <ul role="list" className="divide-y divide-gray-100">
         {props.lines.map((line: RemediationDecisionLine): ReactElement => {
           const mark: RemediationDecisionToneMark =
