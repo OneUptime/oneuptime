@@ -71,12 +71,14 @@ export const ZABBIX_UPDATE_ARGUMENT_IDS: {
   readonly eventId: string;
   readonly whatToDo: string;
   readonly message: string;
+  readonly zabbix60: string;
 } = {
   zabbixUrl: "zabbix-url",
   apiToken: "api-token",
   eventId: "event-id",
   whatToDo: "what-to-do",
   message: "message",
+  zabbix60: "zabbix-6-0",
 };
 
 export type ReadZabbixProblemUpdateFunction = (
@@ -134,13 +136,23 @@ export const getZabbixApiUrl: ZabbixApiUrlFunction = (
 export type ZabbixRequestBodyFunction = (
   method: string,
   params: JSONObject,
+  auth?: string | undefined,
 ) => JSONObject;
 
-// A JSON-RPC 2.0 request, as Zabbix's API takes one.
+/*
+ * A JSON-RPC 2.0 request, as Zabbix's API takes one. Zabbix 6.0 reads the
+ * API token from the request's auth member, right after jsonrpc; 6.4 and
+ * later read it from the Authorization header, and 7.2 refuses auth.
+ */
 export const getZabbixRequestBody: ZabbixRequestBodyFunction = (
   method: string,
   params: JSONObject,
+  auth?: string | undefined,
 ): JSONObject => {
+  if (auth) {
+    return { jsonrpc: "2.0", auth: auth, method: method, params: params, id: 1 };
+  }
+
   return { jsonrpc: "2.0", method: method, params: params, id: 1 };
 };
 
@@ -400,6 +412,15 @@ const components: Array<ComponentMetadata> = [
         description: `The message Zabbix keeps on the problem, at most ${ZABBIX_MESSAGE_MAX_LENGTH} characters.`,
         type: ComponentInputType.LongText,
         required: false,
+      },
+      {
+        id: ZABBIX_UPDATE_ARGUMENT_IDS.zabbix60,
+        name: "Zabbix 6.0",
+        description:
+          "On for Zabbix 6.0, which reads the API token from the request body. Zabbix 6.4 and later read it from a header.",
+        type: ComponentInputType.Boolean,
+        required: false,
+        isAdvanced: true,
       },
     ],
     returnValues: [

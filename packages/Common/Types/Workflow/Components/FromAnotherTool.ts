@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import { JSONObject } from "../../JSON";
 import { getAffectedResourcesArgument } from "../AffectedResourcesSetting";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
@@ -33,10 +34,19 @@ import ComponentMetadata, {
  *   note         adds the Note as a private note.
  *
  * A record only ever moves forward, by the rule every template moved by: a
- * record at the state or past it is left as it is. The Note is why on the
- * record's timeline when it moves, and a private note when What Happened is
- * note. The tool's own words work too - problem, firing, triggered,
- * recovery, ok, comment-added - so most tools need no script in between.
+ * record at the state or past it, or resolved, is left as it is. The Note
+ * is why on the record's timeline when it moves, and a private note when
+ * What Happened is note. With a Reason as well, the Reason is why and the
+ * Note is added as a private note beside the move: Zabbix sends one update
+ * that acknowledges a problem and says something about it. The tool's own
+ * words work too - problem, firing, triggered, recovery, ok, comment-added
+ * - so most tools need no script in between.
+ *
+ * A new record's severity is named by its ID or its name, or by where it
+ * sits among the project's severities - most severe, middle, least severe -
+ * which is how a tool with levels of its own (Zabbix's six, Jira's
+ * priorities) is spread over severities the project named itself, without
+ * a step to read them first.
  *
  * The record keeps the ID in one of its custom fields (Outside ID Field),
  * which is how the next event finds it, and how the templates that write
@@ -220,6 +230,158 @@ export const readOutsideIdField: ReadOutsideIdFieldFunction = (
   return OUTSIDE_ID_FIELD_PATTERN.test(given) ? given : null;
 };
 
+/*
+ * Where a severity sits among the project's, in words, for a tool whose
+ * levels are its own: the most severe, the one in the middle, the least
+ * severe. Matched as What Happened is - in any case, with spaces, dashes and
+ * underscores between words read as one space - and only when no severity
+ * of the project's has that name.
+ */
+export enum SeverityPosition {
+  MostSevere = "most severe",
+  Middle = "middle",
+  LeastSevere = "least severe",
+}
+
+export const SEVERITY_POSITIONS: ReadonlyArray<SeverityPosition> = [
+  SeverityPosition.MostSevere,
+  SeverityPosition.Middle,
+  SeverityPosition.LeastSevere,
+];
+
+// A value as one lower-case phrase: "Most-Severe" and "most_severe" read "most severe".
+const asPhrase: (value: string) => string = (value: string): string => {
+  let phrase: string = "";
+  let lastWasSpace: boolean = false;
+
+  for (const character of value.slice(0, MAX_WHAT_HAPPENED_LENGTH)) {
+    const isSpace: boolean =
+      character === " " ||
+      character === "-" ||
+      character === "_" ||
+      character === "\t";
+
+    if (isSpace) {
+      lastWasSpace = phrase.length > 0;
+      continue;
+    }
+
+    if (lastWasSpace) {
+      phrase += " ";
+      lastWasSpace = false;
+    }
+
+    phrase += character.toLowerCase();
+  }
+
+  return phrase;
+};
+
+export interface SeverityChoice {
+  // The chosen severity's place in the list, most severe first.
+  index: number;
+  // How the setting named it; "none" is the most severe, for a setting that named none.
+  namedBy: "id" | "name" | "position" | "none";
+}
+
+export type PickSeverityIndexFunction = (data: {
+  given: string;
+  // The project's severities, most severe first.
+  severities: ReadonlyArray<{ id: string; name: string }>;
+}) => SeverityChoice;
+
+/*
+ * Which of the project's severities a setting names: by its ID, by its
+ * name, in any case, or by its place (SeverityPosition). The middle one of
+ * an even number is the less severe of the two in the middle, as the
+ * templates have always spread three levels over a project's severities:
+ * Math.round((rank / 2) * (count - 1)). A setting that names none of them
+ * is the most severe: a problem nobody is told about is worse than one that
+ * wakes somebody.
+ */
+export const pickSeverityIndex: PickSeverityIndexFunction = (data: {
+  given: string;
+  severities: ReadonlyArray<{ id: string; name: string }>;
+}): SeverityChoice => {
+  const given: string = data.given.trim().toLowerCase();
+  const count: number = data.severities.length;
+
+  if (given && count > 0) {
+    const byId: number = data.severities.findIndex(
+      (severity: { id: string; name: string }): boolean => {
+        return severity.id.toLowerCase() === given;
+      },
+    );
+
+    if (byId !== -1) {
+      return { index: byId, namedBy: "id" };
+    }
+
+    const byName: number = data.severities.findIndex(
+      (severity: { id: string; name: string }): boolean => {
+        return severity.name.trim().toLowerCase() === given;
+      },
+    );
+
+    if (byName !== -1) {
+      return { index: byName, namedBy: "name" };
+    }
+
+    const rank: number = SEVERITY_POSITIONS.indexOf(
+      asPhrase(data.given) as SeverityPosition,
+    );
+
+    if (rank !== -1) {
+      return {
+        index: Math.round((rank / 2) * (count - 1)),
+        namedBy: "position",
+      };
+    }
+  }
+
+  return { index: 0, namedBy: "none" };
+};
+
+export type ReadCustomFieldsFunction = (
+  value: unknown,
+) => { fields: JSONObject } | { error: string };
+
+/*
+ * The Custom Fields setting: a JSON object, as the runner hands it, or the
+ * JSON text of one. Empty is no fields. Anything else is refused, rather
+ * than a record opened without what the workflow meant it to keep.
+ */
+export const CUSTOM_FIELDS_REFUSAL: string =
+  'Custom Fields must be a JSON object, such as {"caseNumber": "CAS-1"}.';
+
+export const readCustomFields: ReadCustomFieldsFunction = (
+  value: unknown,
+): { fields: JSONObject } | { error: string } => {
+  if (value === undefined || value === null) {
+    return { fields: {} };
+  }
+
+  let parsed: unknown = value;
+
+  if (typeof value === "string") {
+    if (!value.trim()) {
+      return { fields: {} };
+    }
+
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return { error: CUSTOM_FIELDS_REFUSAL };
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { error: CUSTOM_FIELDS_REFUSAL };
+  }
+
+  return { fields: parsed as JSONObject };
+};
+
 export type ReadOutsideIdFunction = (value: unknown) => string;
 
 // The outside ID, as text, trimmed: an ID can come as a number.
@@ -245,8 +407,10 @@ export const FROM_ANOTHER_TOOL_ARGUMENT_IDS: {
   readonly description: string;
   readonly severity: string;
   readonly note: string;
+  readonly reason: string;
   readonly recordId: string;
   readonly outsideIdField: string;
+  readonly customFields: string;
   readonly labels: string;
   readonly showOnStatusPages: string;
   readonly noteInsteadOfResolving: string;
@@ -257,8 +421,10 @@ export const FROM_ANOTHER_TOOL_ARGUMENT_IDS: {
   description: "description",
   severity: "severity",
   note: "note",
+  reason: "reason",
   recordId: "record-id",
   outsideIdField: "outside-id-field",
+  customFields: "custom-fields",
   labels: "labels",
   showOnStatusPages: "show-on-status-pages",
   noteInsteadOfResolving: "note-instead-of-resolving",
@@ -380,7 +546,7 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
     {
       id: ids.severity,
       name: "Severity",
-      description: `The name or ID of one of your ${n} severities. Empty, or naming none of them, it is your most severe.`,
+      description: `A new ${n}'s severity: one of yours by name or ID, or most severe, middle or least severe. Otherwise your most severe.`,
       type: ComponentInputType.Text,
       required: false,
       placeholder: kind.hasStatusPages ? "Critical Incident" : "High",
@@ -391,6 +557,14 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
       description: `Markdown about the event: why, on the timeline, when the ${n} changes state, or a private note when What Happened is note.`,
       type: ComponentInputType.Markdown,
       required: false,
+    },
+    {
+      id: ids.reason,
+      name: "Reason",
+      description: `Why the ${n} changes state, on its timeline. When set, the Note is added as a private note as well.`,
+      type: ComponentInputType.Markdown,
+      required: false,
+      isAdvanced: true,
     },
     {
       id: ids.recordId,
@@ -408,6 +582,15 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
       required: false,
       isAdvanced: true,
       placeholder: DEFAULT_OUTSIDE_ID_FIELD,
+    },
+    {
+      id: ids.customFields,
+      name: "Custom Fields",
+      description: `More custom fields a new ${n} gets, as a JSON object. The Outside ID is added to them.`,
+      type: ComponentInputType.JSON,
+      required: false,
+      isAdvanced: true,
+      placeholder: '{"caseNumber": "CAS-1"}',
     },
     ...(affectedResources ? [{ ...affectedResources, isAdvanced: true }] : []),
     {

@@ -56,6 +56,8 @@ interface SentRequest {
   params: JSONObject;
   headers: JSONObject;
   doNotFollowRedirects: boolean | undefined;
+  // The whole JSON-RPC request, as it is sent.
+  body: JSONObject;
 }
 
 let sent: Array<SentRequest> = [];
@@ -87,6 +89,7 @@ function zabbixWith(
       params: request.data["params"] as JSONObject,
       headers: request.headers,
       doNotFollowRedirects: request.options.doNotFollowRedirects,
+      body: request.data,
     });
 
     if (request.data["method"] === "event.get") {
@@ -333,6 +336,72 @@ describe("Update Zabbix Problem", () => {
       expect(request.headers).toEqual({ Authorization: `Bearer ${TOKEN}` });
       expect(request.doNotFollowRedirects).toBe(true);
     }
+  });
+
+  test("without Zabbix 6.0, no request carries the token in its body", async () => {
+    zabbixWith({});
+
+    await run({ "what-to-do": "close", message: "Done" });
+
+    expect(sent).toHaveLength(2);
+
+    for (const request of sent) {
+      expect(Object.keys(request.body)).toEqual([
+        "jsonrpc",
+        "method",
+        "params",
+        "id",
+      ]);
+    }
+  });
+
+  test.each([[true], ["true"]])(
+    "Zabbix 6.0 (%p) sends the token as auth, right after jsonrpc, and no Authorization header",
+    async (zabbix60: boolean | string) => {
+      zabbixWith({});
+
+      const { result } = await run({
+        "what-to-do": "close",
+        message: "Done",
+        "zabbix-6-0": zabbix60,
+      });
+
+      expect(result.executePort?.id).toBe("updated");
+      expect(sent.map((request: SentRequest) => request.method)).toEqual([
+        "event.get",
+        "event.acknowledge",
+      ]);
+
+      for (const request of sent) {
+        expect(request.headers).toEqual({});
+        expect(Object.keys(request.body)).toEqual([
+          "jsonrpc",
+          "auth",
+          "method",
+          "params",
+          "id",
+        ]);
+        expect(request.body["auth"]).toBe(TOKEN);
+        expect(request.doNotFollowRedirects).toBe(true);
+      }
+    },
+  );
+
+  test("Zabbix 6.0 is an advanced switch, off unless turned on", () => {
+    const metadata: ComponentMetadata | undefined = Components.find(
+      (component: ComponentMetadata) => {
+        return component.id === ComponentID.ZabbixUpdateProblem;
+      },
+    );
+    const switchSetting: Argument | undefined = metadata?.arguments.find(
+      (argument: Argument) => {
+        return argument.id === "zabbix-6-0";
+      },
+    );
+
+    expect(switchSetting?.name).toBe("Zabbix 6.0");
+    expect(switchSetting?.isAdvanced).toBe(true);
+    expect(switchSetting?.required).toBe(false);
   });
 
   test("acknowledge acknowledges with the message", async () => {

@@ -6,7 +6,10 @@ import { ZABBIX_MESSAGE_MAX_LENGTH } from "../Components/Zabbix";
 import ComponentDocumentation, {
   ComponentDocumentationNoteType,
 } from "./ComponentDocumentation";
-import { ComponentDocumentationContext } from "./DocumentationContext";
+import {
+  ComponentDocumentationContext,
+  ownReference,
+} from "./DocumentationContext";
 import { WorkflowDocsPaths, docsLink } from "./DocumentationLinks";
 
 export type ZabbixDocumentationFunction = (
@@ -14,7 +17,7 @@ export type ZabbixDocumentationFunction = (
 ) => ComponentDocumentation;
 
 export const getZabbixUpdateProblemDocumentation: ZabbixDocumentationFunction =
-  (_context: ComponentDocumentationContext): ComponentDocumentation => {
+  (context: ComponentDocumentationContext): ComponentDocumentation => {
     return {
       summary:
         "Acknowledges or closes a problem in Zabbix, or adds a message to it, through Zabbix's API.",
@@ -38,6 +41,7 @@ export const getZabbixUpdateProblemDocumentation: ZabbixDocumentationFunction =
               value: "Resolved in OneUptime.",
             },
           ],
+          description: `With an On Update Incident trigger called incident-on-update-1. A later step reads what it did with \`${ownReference(context, "summary")}\`.`,
         },
       ],
       notes: [
@@ -56,6 +60,12 @@ export const getZabbixUpdateProblemDocumentation: ZabbixDocumentationFunction =
           paragraphs: [
             `To acknowledge or close, it reads the problem with event.get first, then sends event.acknowledge with the message. Zabbix keeps at most ${ZABBIX_MESSAGE_MAX_LENGTH} characters of a message, so a longer one is cut.`,
             "Zabbix answers a refused request with a success status and the reason in its answer: the step reads it, and goes on by **Error** with Zabbix's reason.",
+          ],
+        },
+        {
+          title: "On Zabbix 6.0",
+          paragraphs: [
+            "Zabbix 6.0 reads the API token from the request body, not from a header. Turn on **Zabbix 6.0**, under the advanced settings. Turn it off again when you upgrade: Zabbix 7.2 and later refuse a token in the body.",
           ],
         },
       ],

@@ -123,7 +123,7 @@ export const getApiGetByIdDocumentation: APIDocumentationFunction = (
               "{{local.components.webhook-1.returnValues.request-body.issue.key}}",
           },
         ],
-        description: `A later step reads the issue's labels with \`${ownReference(
+        description: `With a Webhook trigger called webhook-1 that Jira calls. A later step reads the issue's labels with \`${ownReference(
           context,
           "response-body",
           ["fields", "labels"],

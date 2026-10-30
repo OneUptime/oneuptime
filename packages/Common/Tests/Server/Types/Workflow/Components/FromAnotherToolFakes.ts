@@ -24,8 +24,10 @@ import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import {
+  ALERT_RECORD_MODEL,
   FromAnotherToolRecordModel,
   FromAnotherToolServices,
+  INCIDENT_RECORD_MODEL,
 } from "../../../../../Server/Types/Workflow/Components/FromAnotherTool/RecordFromAnotherTool";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -51,7 +53,16 @@ export interface FakeCall {
   query?: JSONObject | undefined;
   data?: JSONObject | undefined;
   props: unknown;
+  // When it was made, across every table: which of two calls came first.
+  sequence: number;
 }
+
+let callSequence: number = 0;
+
+const nextCallSequence: () => number = (): number => {
+  callSequence++;
+  return callSequence;
+};
 
 type ModelType = { new (): BaseModel };
 
@@ -126,6 +137,7 @@ export class FakeTable {
       method: "findOneBy",
       query: findBy.query,
       props: findBy.props,
+      sequence: nextCallSequence(),
     });
     this.failIfAsked();
 
@@ -145,6 +157,7 @@ export class FakeTable {
       method: "findBy",
       query: findBy.query,
       props: findBy.props,
+      sequence: nextCallSequence(),
     });
     this.failIfAsked();
 
@@ -167,6 +180,7 @@ export class FakeTable {
       method: "create",
       data: BaseModel.toJSON(createBy.data, this.modelType),
       props: createBy.props,
+      sequence: nextCallSequence(),
     });
     this.failIfAsked();
 
@@ -221,19 +235,7 @@ export const INCIDENT_SPEC: KindSpec = {
   timeline: IncidentStateTimeline,
   note: IncidentInternalNote,
   prefix: "INC-",
-  model: {
-    severityIdColumn: "incidentSeverityId",
-    severityRelation: "incidentSeverity",
-    stateRelation: "currentIncidentState",
-    numberWithPrefixColumn: "incidentNumberWithPrefix",
-    numberColumn: "incidentNumber",
-    recordIdColumn: "incidentId",
-    timelineStateIdColumn: "incidentStateId",
-    statusPageColumns: [
-      "isVisibleOnStatusPage",
-      "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
-    ],
-  },
+  model: INCIDENT_RECORD_MODEL,
 };
 
 export const ALERT_SPEC: KindSpec = {
@@ -243,16 +245,7 @@ export const ALERT_SPEC: KindSpec = {
   timeline: AlertStateTimeline,
   note: AlertInternalNote,
   prefix: "ALT-",
-  model: {
-    severityIdColumn: "alertSeverityId",
-    severityRelation: "alertSeverity",
-    stateRelation: "currentAlertState",
-    numberWithPrefixColumn: "alertNumberWithPrefix",
-    numberColumn: "alertNumber",
-    recordIdColumn: "alertId",
-    timelineStateIdColumn: "alertStateId",
-    statusPageColumns: [],
-  },
+  model: ALERT_RECORD_MODEL,
 };
 
 export const DEFAULT_INCIDENT_STATES: Array<StateSpec> = [

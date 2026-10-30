@@ -20,7 +20,10 @@ import FromAnotherToolComponents, {
   FromAnotherToolAction,
   FromAnotherToolKind,
   MAX_OUTSIDE_ID_LENGTH,
+  SeverityChoice,
   WhatHappened,
+  pickSeverityIndex,
+  readCustomFields,
   readOutsideId,
   readOutsideIdField,
   readWhatHappened,
@@ -61,6 +64,33 @@ export interface FromAnotherToolRecordModel {
   // Incident only: the columns that keep it off status pages.
   statusPageColumns: Array<string>;
 }
+
+// The columns of an incident, as Incident From Another Tool reads and writes them.
+export const INCIDENT_RECORD_MODEL: FromAnotherToolRecordModel = {
+  severityIdColumn: "incidentSeverityId",
+  severityRelation: "incidentSeverity",
+  stateRelation: "currentIncidentState",
+  numberWithPrefixColumn: "incidentNumberWithPrefix",
+  numberColumn: "incidentNumber",
+  recordIdColumn: "incidentId",
+  timelineStateIdColumn: "incidentStateId",
+  statusPageColumns: [
+    "isVisibleOnStatusPage",
+    "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
+  ],
+};
+
+// The columns of an alert, as Alert From Another Tool reads and writes them.
+export const ALERT_RECORD_MODEL: FromAnotherToolRecordModel = {
+  severityIdColumn: "alertSeverityId",
+  severityRelation: "alertSeverity",
+  stateRelation: "currentAlertState",
+  numberWithPrefixColumn: "alertNumberWithPrefix",
+  numberColumn: "alertNumber",
+  recordIdColumn: "alertId",
+  timelineStateIdColumn: "alertStateId",
+  statusPageColumns: [],
+};
 
 interface StateRow {
   id: string;
@@ -492,13 +522,43 @@ export default class RecordFromAnotherTool extends ComponentCode {
       };
     }
 
-    return await this.move({
+    /*
+     * With a Reason, the Reason is why on the timeline and the Note is a
+     * private note beside the move, added first - whether the record then
+     * moves or not, as the update it came with is worth keeping either way.
+     * Without one, the Note is why.
+     */
+    const reason: string = readText(
+      data.args[FROM_ANOTHER_TOOL_ARGUMENT_IDS.reason],
+    );
+    const addsNote: boolean = Boolean(reason) && Boolean(note);
+
+    if (addsNote) {
+      await this.addNote({
+        record: record,
+        note: note,
+        props: data.props,
+        projectId: data.projectId,
+      });
+    }
+
+    const moved: Outcome = await this.move({
       record: record,
-      note: note,
+      reason: reason || note,
       whatHappened: data.whatHappened,
       props: data.props,
       projectId: data.projectId,
     });
+
+    if (!addsNote) {
+      return moved;
+    }
+
+    return {
+      port: FROM_ANOTHER_TOOL_PORT_IDS.updated,
+      summary: `Added the note to ${this.numberOf(record)}. ${moved.summary}`,
+      record: moved.record,
+    };
   }
 
   private async open(data: {
@@ -543,6 +603,13 @@ export default class RecordFromAnotherTool extends ComponentCode {
       log: data.options.log,
     });
 
+    const customFields: { fields: JSONObject } | { error: string } =
+      readCustomFields(data.args[ids.customFields]);
+
+    if ("error" in customFields) {
+      throw new BadDataException(`${customFields.error} No ${noun} was ${opened}.`);
+    }
+
     const json: JSONObject = {
       title: title,
       [this.model.severityIdColumn]: severity.id!.toString(),
@@ -555,8 +622,13 @@ export default class RecordFromAnotherTool extends ComponentCode {
       json["description"] = description;
     }
 
-    if (data.outsideId) {
-      json["customFields"] = { [data.field]: data.outsideId };
+    // The Outside ID last, so no other field can take its place.
+    const fields: JSONObject = data.outsideId
+      ? { ...customFields.fields, [data.field]: data.outsideId }
+      : customFields.fields;
+
+    if (Object.keys(fields).length > 0) {
+      json["customFields"] = fields;
     }
 
     const labels: { ids: Array<string>; notIds: number } = readIds(
@@ -616,7 +688,8 @@ export default class RecordFromAnotherTool extends ComponentCode {
 
   /*
    * The severity a new record opens at: the one the setting names, by ID or
-   * by name, in any case. One that names none of them - a tool's own word,
+   * by name, in any case, or by its place among the project's (most severe,
+   * middle, least severe). One that names none of them - a tool's own word,
    * or a severity this project renamed - is the most severe, and the run
    * log says so.
    */
@@ -625,34 +698,31 @@ export default class RecordFromAnotherTool extends ComponentCode {
     given: string;
     log: RunOptions["log"];
   }): BaseModel {
-    const given: string = data.given.toLowerCase();
-
-    if (given) {
-      const found: BaseModel | undefined = data.severities.find(
-        (severity: BaseModel): boolean => {
+    const choice: SeverityChoice = pickSeverityIndex({
+      given: data.given,
+      severities: data.severities.map(
+        (severity: BaseModel): { id: string; name: string } => {
           const name: unknown = severity.getColumnValue("name");
 
-          return (
-            severity.id?.toString().toLowerCase() === given ||
-            (typeof name === "string" && name.trim().toLowerCase() === given)
-          );
+          return {
+            id: severity.id?.toString() || "",
+            name: typeof name === "string" ? name : "",
+          };
         },
-      );
+      ),
+    });
 
-      if (found) {
-        return found;
-      }
+    const picked: BaseModel = data.severities[choice.index] as BaseModel;
+
+    if (choice.namedBy === "none") {
+      data.log(
+        data.given
+          ? `Severity "${quoted(data.given)}" names none of this project's ${this.kind.noun} severities, so it is ${String(picked.getColumnValue("name"))}, the most severe.`
+          : `Severity is empty, so it is ${String(picked.getColumnValue("name"))}, the most severe.`,
+      );
     }
 
-    const mostSevere: BaseModel = data.severities[0] as BaseModel;
-
-    data.log(
-      given
-        ? `Severity "${quoted(data.given)}" names none of this project's ${this.kind.noun} severities, so it is ${String(mostSevere.getColumnValue("name"))}, the most severe.`
-        : `Severity is empty, so it is ${String(mostSevere.getColumnValue("name"))}, the most severe.`,
-    );
-
-    return mostSevere;
+    return picked;
   }
 
   private async addNote(data: {
@@ -708,12 +778,12 @@ export default class RecordFromAnotherTool extends ComponentCode {
    * Acknowledge, resolve or a state's name: the record moves forward to the
    * state, by the rule every template moved records by - the first state
    * from the top flagged acknowledged or resolved, or the one named - and a
-   * record at it or past it is left as it is. The Note is why, on its
-   * timeline.
+   * record at it or past it, or resolved, is left as it is. The reason is
+   * why, on its timeline.
    */
   private async move(data: {
     record: BaseModel;
-    note: string;
+    reason: string;
     whatHappened: WhatHappened;
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID;
@@ -751,7 +821,7 @@ export default class RecordFromAnotherTool extends ComponentCode {
       if (!target) {
         return {
           port: FROM_ANOTHER_TOOL_PORT_IDS.unchanged,
-          summary: `"${quoted(data.whatHappened.given)}" is not open, acknowledge, resolve or note, nor one of this project's ${noun} states, so nothing changed.`,
+          summary: `"${quoted(data.whatHappened.given)}" is not open, acknowledge, resolve or note, nor one of this project's ${noun} states, so its state did not change.`,
           record: data.record,
         };
       }
@@ -768,9 +838,12 @@ export default class RecordFromAnotherTool extends ComponentCode {
       current instanceof BaseModel
         ? Number(current.getColumnValue("order"))
         : Number.NaN;
+    const isResolved: boolean =
+      current instanceof BaseModel &&
+      current.getColumnValue("isResolvedState") === true;
 
-    // A record never moves back: one at the state or past it stays.
-    if (Number.isFinite(currentOrder) && currentOrder >= target.order) {
+    // A record never moves back: one at the state or past it, or resolved, stays.
+    if (isResolved || (Number.isFinite(currentOrder) && currentOrder >= target.order)) {
       return {
         port: FROM_ANOTHER_TOOL_PORT_IDS.unchanged,
         summary: `${this.numberAtStart(data.record)} is already ${quoted(currentName || "past " + target.name)}, so it was left as it is.`,
@@ -784,8 +857,8 @@ export default class RecordFromAnotherTool extends ComponentCode {
       projectId: data.projectId.toString(),
     };
 
-    if (data.note) {
-      timeline["rootCause"] = data.note;
+    if (data.reason) {
+      timeline["rootCause"] = data.reason;
     }
 
     await this.services.timeline.create({

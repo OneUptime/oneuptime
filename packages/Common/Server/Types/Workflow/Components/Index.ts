@@ -23,7 +23,10 @@ import IfElse from "./Conditions/IfElse";
 import Switch from "./Conditions/Switch";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
-import RecordFromAnotherTool from "./FromAnotherTool/RecordFromAnotherTool";
+import RecordFromAnotherTool, {
+  ALERT_RECORD_MODEL,
+  INCIDENT_RECORD_MODEL,
+} from "./FromAnotherTool/RecordFromAnotherTool";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentStateService from "../../../Services/IncidentStateService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
@@ -111,19 +114,7 @@ const Components: Dictionary<ComponentCode> = {
       timeline: IncidentStateTimelineService,
       note: IncidentInternalNoteService,
     },
-    model: {
-      severityIdColumn: "incidentSeverityId",
-      severityRelation: "incidentSeverity",
-      stateRelation: "currentIncidentState",
-      numberWithPrefixColumn: "incidentNumberWithPrefix",
-      numberColumn: "incidentNumber",
-      recordIdColumn: "incidentId",
-      timelineStateIdColumn: "incidentStateId",
-      statusPageColumns: [
-        "isVisibleOnStatusPage",
-        "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
-      ],
-    },
+    model: INCIDENT_RECORD_MODEL,
   }),
   [ComponentID.AlertFromAnotherTool]: new RecordFromAnotherTool({
     kind: ALERT_FROM_ANOTHER_TOOL,
@@ -134,16 +125,7 @@ const Components: Dictionary<ComponentCode> = {
       timeline: AlertStateTimelineService,
       note: AlertInternalNoteService,
     },
-    model: {
-      severityIdColumn: "alertSeverityId",
-      severityRelation: "alertSeverity",
-      stateRelation: "currentAlertState",
-      numberWithPrefixColumn: "alertNumberWithPrefix",
-      numberColumn: "alertNumber",
-      recordIdColumn: "alertId",
-      timelineStateIdColumn: "alertStateId",
-      statusPageColumns: [],
-    },
+    model: ALERT_RECORD_MODEL,
   }),
   // The Page steps: one runtime, told which of the four it is.
   [ComponentID.PageUsers]: new Page(ComponentID.PageUsers),

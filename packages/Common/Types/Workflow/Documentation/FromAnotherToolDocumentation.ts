@@ -33,7 +33,7 @@ const getFromAnotherToolDocumentation: GetFromAnotherToolDocumentationFunction =
 
     return (context: ComponentDocumentationContext): ComponentDocumentation => {
       return {
-        summary: `Keeps one ${n} for each problem in another tool: ${kind.opens} it, acknowledges or resolves it, and adds notes to it, by the tool's ID for the problem.`,
+        summary: `Keeps one ${n} per problem in another tool, by the tool's ID: ${kind.opens}, acknowledges or resolves it, or adds a note.`,
         steps: [
           "Put the event's kind in **What Happened**, usually a value from the trigger, and the tool's ID for the problem in **Outside ID**.",
           `Fill in **Title**, **Description** and **Severity** for when the step ${kind.opens} the ${n}, and **Note** for what it adds later.`,
@@ -59,7 +59,7 @@ const getFromAnotherToolDocumentation: GetFromAnotherToolDocumentationFunction =
                   "{{local.components.webhook-1.returnValues.request-body.commonLabels.alertname}}",
               },
             ],
-            description: `firing ${kind.opens} the ${n}, and resolved resolves it. A Page step reads the new ${n}'s ID with \`${ownReference(
+            description: `With a Webhook trigger called webhook-1 that Grafana or Alertmanager calls: firing ${kind.opens} the ${n}, and resolved resolves it. A Page step reads the new ${n}'s ID with \`${ownReference(
               context,
               "record",
               ["_id"],
@@ -88,13 +88,20 @@ const getFromAnotherToolDocumentation: GetFromAnotherToolDocumentationFunction =
             title: "Where the ID is kept",
             paragraphs: [
               `The ${n} keeps the Outside ID in the custom field **Outside ID Field** names, ${DEFAULT_OUTSIDE_ID_FIELD} unless you change it. Only that field is written, so the ${n}'s other custom fields are kept.`,
-              `To act on an ${n} the other tool knows by its ${kind.Noun} ID instead, put that in **${kind.Noun} ID**, under the advanced settings.`,
+              `To act on an ${n} the other tool knows by its ${kind.Noun} ID instead, put that in **${kind.Noun} ID**, under the advanced settings. **Custom Fields** gives a new ${n} more custom fields, such as the tool's own number for the problem.`,
             ],
           },
           {
             title: "Severity",
             paragraphs: [
-              `**Severity** is the name or the ID of one of your ${n} severities, in any case. Empty, or naming none of them, the ${n} is ${opened} at your most severe, and the run log says so.`,
+              `**Severity** is the name or the ID of one of your ${n} severities, in any case, or where it sits among them: most severe, middle or least severe. A tool with levels of its own is spread over yours that way, whatever you named them.`,
+              `Empty, or naming none of them, the ${n} is ${opened} at your most severe, and the run log says so.`,
+            ],
+          },
+          {
+            title: "A note and a state change at once",
+            paragraphs: [
+              `Some tools say something as they acknowledge or resolve a problem. Put why in **Reason**, under the advanced settings, and what the tool said in **Note**: the step adds the **Note** as a private note, then moves the ${n} with the **Reason** on its timeline.`,
             ],
           },
         ],

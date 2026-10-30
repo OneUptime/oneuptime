@@ -87,14 +87,22 @@ export default class ZabbixUpdateProblem extends ComponentCode {
   private async call(data: {
     url: URL;
     token: string;
+    tokenInBody: boolean;
     method: string;
     params: JSONObject;
   }): Promise<ZabbixAnswer> {
+    // Zabbix 6.0 reads the token from the body; 6.4 and later from the header.
     const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
         url: data.url,
-        data: getZabbixRequestBody(data.method, data.params),
-        headers: { Authorization: `Bearer ${data.token}` },
+        data: getZabbixRequestBody(
+          data.method,
+          data.params,
+          data.tokenInBody ? data.token : undefined,
+        ),
+        headers: data.tokenInBody
+          ? {}
+          : { Authorization: `Bearer ${data.token}` },
         options: ApiComponentUtils.requestOptions,
       });
 
@@ -175,6 +183,8 @@ export default class ZabbixUpdateProblem extends ComponentCode {
         : "";
 
     const apiUrl: string = getZabbixApiUrl(zabbixUrl);
+    const tokenInBody: boolean =
+      args[ids.zabbix60] === true || args[ids.zabbix60] === "true";
 
     /*
      * The address is held to the API steps' rules: checked as it was typed,
@@ -224,6 +234,7 @@ export default class ZabbixUpdateProblem extends ComponentCode {
         const read: ZabbixAnswer = await this.call({
           url: url,
           token: token,
+          tokenInBody: tokenInBody,
           method: "event.get",
           params: {
             eventids: [eventIdText],
@@ -270,6 +281,7 @@ export default class ZabbixUpdateProblem extends ComponentCode {
       const sent: ZabbixAnswer = await this.call({
         url: url,
         token: token,
+        tokenInBody: tokenInBody,
         method: "event.acknowledge",
         params: params,
       });

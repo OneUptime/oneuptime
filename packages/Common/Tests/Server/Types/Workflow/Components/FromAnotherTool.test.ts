@@ -10,6 +10,7 @@
  * simulations.
  */
 
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import RecordFromAnotherTool from "../../../../../Server/Types/Workflow/Components/FromAnotherTool/RecordFromAnotherTool";
 import {
@@ -37,6 +38,12 @@ import {
   FromAnotherToolAction,
   INCIDENT_FROM_ANOTHER_TOOL,
   MAX_OUTSIDE_ID_LENGTH,
+  CUSTOM_FIELDS_REFUSAL,
+  SEVERITY_POSITIONS,
+  SeverityChoice,
+  SeverityPosition,
+  pickSeverityIndex,
+  readCustomFields,
   readOutsideId,
   readOutsideIdField,
   readWhatHappened,
@@ -229,6 +236,162 @@ describe("readOutsideIdField and readOutsideId", () => {
     expect(readOutsideId(" OPS-12 ")).toBe("OPS-12");
     expect(readOutsideId(null)).toBe("");
   });
+});
+
+/*
+ * Where a severity sits among a project's, as the templates that read
+ * another tool's levels (Zabbix's six, Jira's priorities, Dynamics 365's
+ * three) name it, without a step to read the severities first.
+ */
+describe("pickSeverityIndex", () => {
+  const named: (
+    names: Array<string>,
+  ) => Array<{ id: string; name: string }> = (
+    names: Array<string>,
+  ): Array<{ id: string; name: string }> => {
+    return names.map((name: string, index: number) => {
+      return { id: `aaaaaaaa-0000-4000-8000-00000000000${index}`, name: name };
+    });
+  };
+
+  const DEFAULT: Array<{ id: string; name: string }> = named([
+    "Critical Incident",
+    "Major Incident",
+    "Minor Incident",
+  ]);
+
+  test("by ID, in any case", () => {
+    expect(
+      pickSeverityIndex({
+        given: DEFAULT[2]!.id.toUpperCase(),
+        severities: DEFAULT,
+      }),
+    ).toEqual({ index: 2, namedBy: "id" });
+  });
+
+  test("by name, in any case, trimmed", () => {
+    expect(
+      pickSeverityIndex({ given: "  major incident ", severities: DEFAULT }),
+    ).toEqual({ index: 1, namedBy: "name" });
+  });
+
+  test.each([
+    ["most severe", 0],
+    ["Most Severe", 0],
+    ["most-severe", 0],
+    ["MOST_SEVERE", 0],
+    ["middle", 1],
+    ["Middle", 1],
+    ["least severe", 2],
+    ["least  severe", 2],
+  ])("%p is by place: %p of three", (given: string, index: number) => {
+    expect(pickSeverityIndex({ given, severities: DEFAULT })).toEqual({
+      index: index,
+      namedBy: "position",
+    });
+  });
+
+  test("a severity named like a place is that severity, not the place", () => {
+    const severities: Array<{ id: string; name: string }> = named([
+      "Sev 1",
+      "Sev 2",
+      "Sev 3",
+      "Middle",
+    ]);
+
+    expect(pickSeverityIndex({ given: "middle", severities })).toEqual({
+      index: 3,
+      namedBy: "name",
+    });
+  });
+
+  /*
+   * The rule every template spread three levels by: severities[Math.round(
+   * (rank / 2) * (count - 1))], rank 0 the most severe and 2 the least.
+   */
+  test("spreads the three places over any number of severities as the templates always did", () => {
+    for (let count: number = 1; count <= 12; count++) {
+      const severities: Array<{ id: string; name: string }> = named(
+        Array.from({ length: count }, (_value: unknown, index: number) => {
+          return `Level ${index + 1}`;
+        }),
+      );
+
+      SEVERITY_POSITIONS.forEach((position: SeverityPosition, rank: number) => {
+        expect({
+          count,
+          position,
+          index: pickSeverityIndex({ given: position, severities }).index,
+        }).toEqual({
+          count,
+          position,
+          index: Math.round((rank / 2) * (count - 1)),
+        });
+      });
+    }
+  });
+
+  test("the middle of two is the less severe; of four, the third", () => {
+    expect(
+      pickSeverityIndex({ given: "middle", severities: named(["H", "L"]) })
+        .index,
+    ).toBe(1);
+    expect(
+      pickSeverityIndex({
+        given: "middle",
+        severities: named(["A", "B", "C", "D"]),
+      }).index,
+    ).toBe(2);
+  });
+
+  test.each(["", "   ", "Disaster", "most", "severe", "the middle one"])(
+    "%p names none: the most severe",
+    (given: string) => {
+      const choice: SeverityChoice = pickSeverityIndex({
+        given,
+        severities: DEFAULT,
+      });
+
+      expect(choice).toEqual({ index: 0, namedBy: "none" });
+    },
+  );
+
+  test("reads a long value in time in line with its length", () => {
+    const timed: FastestRun<SeverityChoice> = fastestRun({
+      run: (): SeverityChoice => {
+        return pickSeverityIndex({
+          given: "- ".repeat(200000),
+          severities: DEFAULT,
+        });
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.result).toEqual({ index: 0, namedBy: "none" });
+    expect(timed.inMs).toBeLessThan(2000);
+  });
+});
+
+describe("readCustomFields", () => {
+  test("an object, or the JSON text of one, is taken as it is", () => {
+    expect(readCustomFields({ caseNumber: "CAS-1" })).toEqual({
+      fields: { caseNumber: "CAS-1" },
+    });
+    expect(readCustomFields('{"caseNumber": "CAS-1", "n": 2}')).toEqual({
+      fields: { caseNumber: "CAS-1", n: 2 },
+    });
+  });
+
+  test.each([undefined, null, "", "   "])("%p is no fields", (value: unknown) => {
+    expect(readCustomFields(value)).toEqual({ fields: {} });
+  });
+
+  test.each([["[1]"], ["7"], ["not json"], [[{ a: 1 }]], [5], [true]])(
+    "%p is refused",
+    (value: unknown) => {
+      expect(readCustomFields(value)).toEqual({ error: CUSTOM_FIELDS_REFUSAL });
+    },
+  );
 });
 
 describe("the steps' metadata", () => {
@@ -461,6 +624,74 @@ describe("Incident From Another Tool", () => {
       );
     });
 
+    test("a severity named by its place is that one, and the log says nothing about it", async () => {
+      const middle: Run = await run({
+        "what-happened": "open",
+        "outside-id": "1",
+        title: "Down",
+        severity: "middle",
+      });
+      const least: Run = await run({
+        "what-happened": "open",
+        "outside-id": "2",
+        title: "Down",
+        severity: "Least Severe",
+      });
+
+      expect(middle.result.executePortReason).toContain("at Major Incident");
+      expect(least.result.executePortReason).toContain("at Minor Incident");
+      expect(
+        [...middle.logs, ...least.logs].filter((line: string) => {
+          return line.startsWith("Severity");
+        }),
+      ).toEqual([]);
+    });
+
+    test("Custom Fields go on the new incident, with the Outside ID, which no field of theirs can take the place of", async () => {
+      await run({
+        "what-happened": "open",
+        "outside-id": "CAS-7-ID",
+        "outside-id-field": "dynamicsCaseId",
+        title: "Down",
+        "custom-fields": {
+          dynamicsCaseNumber: "CAS-01001",
+          dynamicsCaseId: "forged",
+        },
+      });
+
+      expect(project.records.creates()[0]!["customFields"]).toEqual({
+        dynamicsCaseNumber: "CAS-01001",
+        dynamicsCaseId: "CAS-7-ID",
+      });
+    });
+
+    test("Custom Fields as JSON text are read the same way", async () => {
+      await run({
+        "what-happened": "open",
+        "outside-id": "1",
+        title: "Down",
+        "custom-fields": '{"tool": "zabbix"}',
+      });
+
+      expect(project.records.creates()[0]!["customFields"]).toEqual({
+        tool: "zabbix",
+        externalId: "1",
+      });
+    });
+
+    test("Custom Fields that are not an object open nothing, and go down Error", async () => {
+      const { result } = await run({
+        "what-happened": "open",
+        "outside-id": "1",
+        title: "Down",
+        "custom-fields": "[1, 2]",
+      });
+
+      expect(result.executePort?.id).toBe("error");
+      expect(result.executePortReason).toContain(CUSTOM_FIELDS_REFUSAL);
+      expect(project.records.creates()).toHaveLength(0);
+    });
+
     test("a severity named by its ID is that one", async () => {
       const minor: string = project.severities.rows[2]!.id!.toString();
 
@@ -666,7 +897,7 @@ describe("Incident From Another Tool", () => {
 
       expect(result.executePort?.id).toBe("unchanged");
       expect(result.executePortReason).toBe(
-        '"silenced" is not open, acknowledge, resolve or note, nor one of this project\'s incident states, so nothing changed.',
+        '"silenced" is not open, acknowledge, resolve or note, nor one of this project\'s incident states, so its state did not change.',
       );
     });
 
@@ -689,6 +920,118 @@ describe("Incident From Another Tool", () => {
       expect(result.executePortReason).toContain(
         "This project has no resolved incident state.",
       );
+    });
+
+    test("with a Reason, the Note is added as a private note, then the incident moves with the Reason as why", async () => {
+      const existing: BaseModel = addRecord({
+        project,
+        spec: INCIDENT_SPEC,
+        customFields: { zabbixEventId: "7" },
+      });
+
+      const { result } = await run({
+        "what-happened": "acknowledge",
+        "outside-id": "7",
+        "outside-id-field": "zabbixEventId",
+        note: "Synced from Zabbix: Jane updated problem 7: Acknowledged.\n\nLooking.",
+        reason: "Synced from Zabbix: Jane acknowledged problem 7.",
+      });
+
+      expect(result.executePort?.id).toBe("updated");
+      expect(result.executePortReason).toBe(
+        "Added the note to INC-1. Moved INC-1 to Acknowledged.",
+      );
+      expect(project.stateOf(existing)).toBe("Acknowledged");
+      expect(project.notes.creates()).toEqual([
+        expect.objectContaining({
+          note: "Synced from Zabbix: Jane updated problem 7: Acknowledged.\n\nLooking.",
+        }),
+      ]);
+      expect(project.timeline.creates()).toEqual([
+        expect.objectContaining({
+          rootCause: "Synced from Zabbix: Jane acknowledged problem 7.",
+        }),
+      ]);
+      // The note first, then the move: the order the old templates kept.
+      expect(project.notes.calls[0]!.sequence).toBeLessThan(
+        project.timeline.calls[0]!.sequence,
+      );
+    });
+
+    test("with a Reason, the Note is kept even when the incident is past the state already", async () => {
+      addRecord({
+        project,
+        spec: INCIDENT_SPEC,
+        customFields: { externalId: "7" },
+        stateName: "Resolved",
+      });
+
+      const { result } = await run({
+        "what-happened": "acknowledge",
+        "outside-id": "7",
+        note: "Jane: on it",
+        reason: "Jane acknowledged it.",
+      });
+
+      expect(result.executePort?.id).toBe("updated");
+      expect(result.executePortReason).toBe(
+        "Added the note to INC-1. INC-1 is already Resolved, so it was left as it is.",
+      );
+      expect(project.notes.creates()).toHaveLength(1);
+      expect(project.timeline.creates()).toHaveLength(0);
+    });
+
+    test("with a Reason and no Note, only the move happens, with the Reason as why", async () => {
+      addRecord({
+        project,
+        spec: INCIDENT_SPEC,
+        customFields: { externalId: "7" },
+      });
+
+      const { result } = await run({
+        "what-happened": "resolve",
+        "outside-id": "7",
+        reason: "Recovered.",
+      });
+
+      expect(result.executePortReason).toBe("Moved INC-1 to Resolved.");
+      expect(project.notes.creates()).toHaveLength(0);
+      expect(project.timeline.creates()).toEqual([
+        expect.objectContaining({ rootCause: "Recovered." }),
+      ]);
+    });
+
+    test("a resolved incident never moves, even to a state ordered after its own", async () => {
+      project = makeFakeProject({
+        spec: INCIDENT_SPEC,
+        states: [
+          { name: "Identified", order: 1 },
+          { name: "Resolved", order: 2, isResolvedState: true },
+          { name: "Postmortem", order: 3 },
+        ],
+      });
+      step = new RecordFromAnotherTool({
+        kind: INCIDENT_FROM_ANOTHER_TOOL,
+        services: project.services,
+        model: project.model,
+      });
+      const existing: BaseModel = addRecord({
+        project,
+        spec: INCIDENT_SPEC,
+        customFields: { externalId: "7" },
+        stateName: "Resolved",
+      });
+
+      const { result } = await run({
+        "what-happened": "Postmortem",
+        "outside-id": "7",
+      });
+
+      expect(result.executePort?.id).toBe("unchanged");
+      expect(result.executePortReason).toBe(
+        "INC-1 is already Resolved, so it was left as it is.",
+      );
+      expect(project.stateOf(existing)).toBe("Resolved");
     });
 
     test("Note Instead Of Resolving adds the note and leaves the incident as it is", async () => {
