@@ -5,6 +5,7 @@ OneUptime conserva gli eventi di sicurezza accanto ai tuoi log, tracce e metrich
 :::cards
 - [Inviare eventi](#inviare-eventi-di-sicurezza): Un POST HTTPS, un output di Fluent Bit o una connessione a un prodotto di sicurezza.
 - [Cercare e correlare](#esplorare-gli-eventi-di-sicurezza): L'esploratore di eventi e il grafo di correlazione.
+- [Cacce](#cacce): Ricerche salvate che vengono eseguite secondo una pianificazione e avvisano le persone quando trovano qualcosa.
 - [Regole di rilevamento](#regole-di-rilevamento): Regole Sigma che aprono casi e avvisi.
 - [Monitor](#monitor-di-eventi-di-sicurezza): Conteggi su una finestra mobile, con uno stato che si ripristina.
 :::
@@ -36,6 +37,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Casi chiusi** | Casi di sicurezza | I casi chiusi con un esito, i più recenti per primi |
 | **Tutti i casi** | Casi di sicurezza | Ogni caso, aperto o chiuso |
 | **Eventi** | Eventi | Cercare e filtrare ogni evento, e aprirne uno per vedere tutti i suoi campi |
+| **Cacce** | Eventi | Ricerche salvate da Eventi, riaperte con un clic o eseguite secondo una pianificazione che avvisa le persone quando trovano qualcosa |
 | **Campaigns** | Eventi | Ogni indirizzo che ha inviato richieste di attacco, e se qualcuna delle sue richieste è passata |
 | **Rischio delle entità** | Eventi | Ogni utente, host e indirizzo, valutato in base a ciò che è stato trovato questa settimana, i più a rischio per primi |
 | **Correla** | Eventi | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
@@ -252,6 +254,45 @@ Un evento letto da una riga di log scritta all'interno di una richiesta tracciat
 ### Correla
 
 **Correla** disegna gli eventi intorno a un host, un utente o un indirizzo IP: le loro classi di eventi intorno a ciò che hai cercato, marcate con la gravità peggiore, e gli altri valori visti negli stessi eventi sull'anello esterno. Fai clic su una classe per elencarne gli eventi, o su un valore per correlare su di esso. Ogni observable nel pannello di un evento in **Eventi** apre **Correla** su di esso.
+
+## Cacce
+
+Una caccia è una ricerca sui tuoi eventi di sicurezza salvata con un nome: il testo della barra di ricerca, i filtri della barra laterale e fin dove guarda indietro. Riaprila con un clic, eseguila secondo una pianificazione che avvisa le persone quando trova qualcosa, e conserva su un caso gli eventi che trova.
+
+### Salvare una ricerca come caccia
+
+In **Eventi**, cerca e filtra finché l'elenco mostra ciò che cerchi, poi apri **Cacce** nella barra degli strumenti e scegli **Salva come caccia**. Dalle un nome, scegli se viene eseguita secondo una pianificazione, e si apre la sua pagina. **Eventi → Cacce** elenca le cacce del progetto, ciascuna con la sua ricerca, ogni quanto viene eseguita, chi avvisa e cosa ha trovato la sua ultima esecuzione; **Crea: Caccia** lì prende la ricerca come la scriveresti in **Eventi**. Un progetto conserva fino a 200 cacce.
+
+La pagina di una caccia è la sua ricerca, aperta nell'esploratore degli eventi. Cambia lì la ricerca o i filtri, e l'intestazione della caccia offre **Salva modifiche** e **Annulla modifiche**. **Modifica** cambia il suo nome, la sua ricerca, fin dove guarda indietro, la sua pianificazione e chi avvisa, e **Elimina caccia** è nel suo menu. Da Security Member in su si possono salvare, modificare ed eliminare cacce, e un Security Viewer può aprirle.
+
+### Eseguire una caccia secondo una pianificazione
+
+| Pianificazione | Viene eseguita |
+| --- | --- |
+| **Non pianificata** | Solo quando la apri |
+| **Ogni ora**, **Ogni 6 ore**, **Ogni giorno**, **Ogni settimana** | Da sola, con quella frequenza |
+
+Una caccia pianificata avvisa le persone e i team che scegli in **Notifica**: almeno uno, e al massimo 50 in tutto. Ogni esecuzione:
+
+- legge gli eventi il cui orario segue l'esecuzione precedente, fino a due minuti fa, così ogni evento viene cercato una volta. La prima esecuzione legge dal momento in cui è stata impostata la pianificazione o è stata cambiata la ricerca l'ultima volta, e dopo un'interruzione un'esecuzione recupera al massimo un giorno in più del suo intervallo.
+- conta gli eventi che la sua ricerca trova lì, esattamente come **Eventi** li elencherebbe, leggendo solo ciò che può leggere la persona con cui viene eseguita.
+- quando trova eventi, avvisa le persone che la caccia nomina, e i membri dei team che nomina, che possono leggere le cacce e gli eventi di sicurezza.
+
+Un'esecuzione non apre alcun caso e non solleva alcun avviso: scrivi ciò che deve aprire casi come una [regola di rilevamento](#regole-di-rilevamento). Un'esecuzione la cui ricerca impiega troppo tempo, o che non può leggere gli eventi, ne dice il motivo sulla caccia e viene ritentata entro un'ora, da dove si era fermata.
+
+Una caccia pianificata viene eseguita con la persona che per ultima ha impostato la sua pianificazione, cambiato la sua ricerca o l'ha salvata con **Modifica**. Una chiave API non può impostare una pianificazione. Quando quella persona lascia il progetto o non può più leggere gli eventi di sicurezza, la caccia lo segnala: apri **Modifica** e salvala per eseguirla a tuo nome.
+
+### Chi viene avvisato
+
+La notifica **Una caccia ha trovato eventi di sicurezza** nomina la caccia e la sua ricerca, quanti eventi ha trovato la sua esecuzione e la finestra che ha letto, e rimanda alla pagina della caccia su quegli eventi; non contiene alcuna parola degli eventi. Tutti la ricevono via email e push, e ne scelgono i canali in **Impostazioni utente → Impostazioni notifiche**. Come le altre email di routine, può essere trattenuta in un [riepilogo email](/docs/emails/notification-rollup).
+
+### Conservare eventi su un caso
+
+Seleziona eventi in **Eventi** o nella pagina di una caccia e scegli **Azioni di massa → Aggiungi al caso**, oppure apri un evento e scegli **Aggiungi al caso**. Scegli un caso aperto per numero o titolo. Fino a 100 eventi alla volta.
+
+OneUptime rilegge ogni evento come te e lo conserva com'era nella pagina **Prove** del caso, così il caso continua a mostrarlo quando la conservazione dell'evento termina. Un evento che non puoi leggere non viene conservato, e uno che il caso conserva già resta com'è. Un evento trovato da una caccia nomina la caccia, e **Visualizza evento** lo apre com'è stato conservato.
+
+Le cacce hanno la stessa API REST del resto di OneUptime, in `/security-hunt`, e `POST /security-case-evidence/add-events` conserva eventi su un caso. Vedi il [riferimento API](/docs/api-reference/api-reference).
 
 ## Regole di rilevamento
 

@@ -300,6 +300,86 @@ describe("InvestigationThread.describeIncident / describeAlert", () => {
   });
 });
 
+/*
+ * An alert's thread names it as its page does - by the number the project
+ * gave it, ALT-7, before its title - not by the bare #7 that every alert of
+ * a project with a prefix also shows on its page as ALT-7. An alert
+ * numbered before numbers kept their prefix is still #7.
+ */
+describe("InvestigationThread names an alert by its own number", () => {
+  function alertNumbered(withPrefix: string | undefined): Alert {
+    const alert: Alert = new Alert(ALERT_ID);
+    alert.title = "High error rate";
+    alert.alertNumber = 7;
+    if (withPrefix !== undefined) {
+      alert.alertNumberWithPrefix = withPrefix;
+    }
+    return alert;
+  }
+
+  test("the prefix the project numbered it with", () => {
+    const details: InvestigationThreadSubjectDetails =
+      InvestigationThread.describeAlert(alertNumbered("ALT-7"), ALERT_ID);
+
+    expect(details.label).toBe("Alert ALT-7");
+    expect(details.summary).toContain("# Alert ALT-7: High error rate");
+    expect(details.pageContext.entityTitle).toBe("ALT-7 High error rate");
+  });
+
+  test("an alert numbered before numbers kept their prefix: #7", () => {
+    const details: InvestigationThreadSubjectDetails =
+      InvestigationThread.describeAlert(alertNumbered(undefined), ALERT_ID);
+
+    expect(details.label).toBe("Alert #7");
+    expect(details.pageContext.entityTitle).toBe("#7 High error rate");
+  });
+
+  test("an alert without a number is just an alert", () => {
+    const alert: Alert = new Alert(ALERT_ID);
+    alert.title = "High error rate";
+
+    const details: InvestigationThreadSubjectDetails =
+      InvestigationThread.describeAlert(alert, ALERT_ID);
+
+    expect(details.label).toBe("Alert");
+    expect(details.pageContext.entityTitle).toBe("High error rate");
+  });
+
+  test("an incident's number reads the same way: its prefix, else #42", () => {
+    const prefixed: Incident = incident();
+    prefixed.incidentNumberWithPrefix = "INC-42";
+
+    expect(
+      InvestigationThread.describeIncident(prefixed, INCIDENT_ID).pageContext
+        .entityTitle,
+    ).toBe("INC-42 Node memory at 93%");
+    expect(
+      InvestigationThread.describeIncident(incident(), INCIDENT_ID).label,
+    ).toBe("Incident #42");
+  });
+
+  test("the alert's number with its prefix is read for the thread", async () => {
+    const findAlert: jest.SpyInstance = jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(alertNumbered("ALT-7") as never);
+
+    const details: InvestigationThreadSubjectDetails =
+      await InvestigationThread.getSubjectDetails({
+        projectId: PROJECT_ID,
+        subject: ALERT_SUBJECT,
+      });
+
+    const select: JSONObject = (
+      findAlert.mock.calls[0]![0] as { select: JSONObject }
+    ).select;
+    expect(select).toMatchObject({
+      alertNumber: true,
+      alertNumberWithPrefix: true,
+    });
+    expect(details.label).toBe("Alert ALT-7");
+  });
+});
+
 describe("InvestigationThread.buildInvestigationSection", () => {
   const base: InvestigationThreadLatestInvestigation = {
     status: null,

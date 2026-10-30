@@ -104,6 +104,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Eccezioni delle regole | `Rule Exception` |
 | Elenchi di controllo | `Watchlist` |
 | Valori dell'elenco di controllo | `Watchlist Value` |
+| Cacce | `Hunt` |
 | Attività e prove dei casi di sicurezza | `Security Case Task`, `Security Case Evidence` |
 | Gli archivi dati e i loro risultati, e i problemi, le impostazioni, le impostazioni dei controlli, i tipi di dati personalizzati e le regole di residenza di Sicurezza dei dati | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Esportazioni del registro di audit | `Audit Log Export` |

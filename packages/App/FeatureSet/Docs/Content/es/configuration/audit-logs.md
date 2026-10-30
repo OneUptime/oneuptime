@@ -104,6 +104,7 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | Excepciones de regla | `Rule Exception` |
 | Listas de seguimiento | `Watchlist` |
 | Valores de lista de seguimiento | `Watchlist Value` |
+| Cacerías | `Hunt` |
 | Tareas y evidencias de los casos de seguridad | `Security Case Task`, `Security Case Evidence` |
 | Los almacenes de datos y sus hallazgos, y los problemas, los ajustes, los ajustes de las comprobaciones, los tipos de datos personalizados y las reglas de residencia de Seguridad de datos | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exportaciones del registro de auditoría | `Audit Log Export` |

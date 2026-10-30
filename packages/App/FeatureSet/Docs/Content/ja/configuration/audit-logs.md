@@ -104,6 +104,7 @@ flowchart TB
 | ルールの例外 | `Rule Exception` |
 | ウォッチリスト | `Watchlist` |
 | ウォッチリストの値 | `Watchlist Value` |
+| ハント | `Hunt` |
 | セキュリティケースのタスクと証拠 | `Security Case Task`、`Security Case Evidence` |
 | データストアとその検出結果、データセキュリティの問題、設定、チェックの設定、カスタムデータタイプ、データ所在地ルール | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
 | 監査ログのエクスポート | `Audit Log Export` |

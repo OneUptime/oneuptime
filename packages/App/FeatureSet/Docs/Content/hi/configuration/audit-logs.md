@@ -104,6 +104,7 @@ flowchart TB
 | नियम अपवाद | `Rule Exception` |
 | वॉचलिस्ट | `Watchlist` |
 | वॉचलिस्ट मान | `Watchlist Value` |
+| हंट | `Hunt` |
 | सुरक्षा केस के कार्य और साक्ष्य | `Security Case Task`, `Security Case Evidence` |
 | डेटा स्टोर और उनके निष्कर्ष, और डेटा सुरक्षा की समस्याएं, सेटिंग्स, जांच सेटिंग्स, कस्टम डेटा प्रकार और डेटा रेजिडेंसी नियम | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | ऑडिट लॉग एक्सपोर्ट | `Audit Log Export` |

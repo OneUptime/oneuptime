@@ -1,5 +1,5 @@
-import { AddCodeRepositoryProductionReviewLlmProviderIndexAndKey1808340000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808340000000-AddCodeRepositoryProductionReviewLlmProviderIndexAndKey";
-import { AddDataSecurity1808400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808400000000-AddDataSecurity";
+import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity";
+import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -41,7 +41,7 @@ import { describe, expect, test } from "@jest/globals";
 type MigrationClass = new () => MigrationInterface;
 type ModelClass = new () => BaseModel;
 
-const MIGRATION_NAME: string = "AddDataSecurity1808400000000";
+const MIGRATION_NAME: string = "AddDataSecurity1808500000000";
 const MIGRATIONS_FOLDER: string = path.join(
   __dirname,
   "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
@@ -115,8 +115,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: AddDataSecurity1808400000000 =
-    new AddDataSecurity1808400000000();
+  const migration: AddDataSecurity1808500000000 =
+    new AddDataSecurity1808500000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -200,28 +200,26 @@ function foreignKeys(steps: Array<string>, pattern: RegExp): Array<ForeignKey> {
 
 describe("the Data Security migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddDataSecurity1808400000000().name).toBe(MIGRATION_NAME);
+    expect(new AddDataSecurity1808500000000().name).toBe(MIGRATION_NAME);
   });
 
-  test("is registered once, after AddCodeRepositoryProductionReviewLlmProviderIndexAndKey, above every migration before it", () => {
+  test("is registered once, after AddSecurityHunts, above every migration before it", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const at: number = registered.indexOf(AddDataSecurity1808400000000);
+    const at: number = registered.indexOf(AddDataSecurity1808500000000);
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddDataSecurity1808400000000;
+        return candidate === AddDataSecurity1808500000000;
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(
-      registered.indexOf(
-        AddCodeRepositoryProductionReviewLlmProviderIndexAndKey1808340000000,
-      ),
+      registered.indexOf(AddSecurityHunts1808450000000),
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddDataSecurity1808400000000),
+        timestampOf(AddDataSecurity1808500000000),
       );
     }
   });
@@ -229,14 +227,14 @@ describe("the Data Security migration", () => {
   test("is backed by exactly one file", () => {
     expect(
       fs.readdirSync(MIGRATIONS_FOLDER).filter((file: string): boolean => {
-        return file.startsWith(`${timestampOf(AddDataSecurity1808400000000)}-`);
+        return file.startsWith(`${timestampOf(AddDataSecurity1808500000000)}-`);
       }),
-    ).toEqual(["1808400000000-AddDataSecurity.ts"]);
+    ).toEqual(["1808500000000-AddDataSecurity.ts"]);
   });
 
   test("runs inside the migration's transaction: everything it builds is on a new, empty table", () => {
     expect(
-      (new AddDataSecurity1808400000000() as { transaction?: boolean })
+      (new AddDataSecurity1808500000000() as { transaction?: boolean })
         .transaction,
     ).toBeUndefined();
   });

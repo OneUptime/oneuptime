@@ -21,8 +21,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the migration's transaction.
  */
 
-export class AddDataSecurity1808400000000 implements MigrationInterface {
-  public name: string = "AddDataSecurity1808400000000";
+export class AddDataSecurity1808500000000 implements MigrationInterface {
+  public name: string = "AddDataSecurity1808500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

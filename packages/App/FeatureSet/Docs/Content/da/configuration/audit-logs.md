@@ -104,6 +104,7 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | Regelundtagelser | `Rule Exception` |
 | Overvågningslister | `Watchlist` |
 | Overvågningslisteværdier | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Sikkerhedssagers opgaver og beviser | `Security Case Task`, `Security Case Evidence` |
 | Datalagre og deres fund samt Datasikkerheds problemer, indstillinger, kontrolindstillinger, brugerdefinerede datatyper og residensregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Eksporter af auditloggen | `Audit Log Export` |

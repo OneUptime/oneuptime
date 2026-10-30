@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36935,
-    "untranslated": 13374
+    "keys": 37111,
+    "untranslated": 13367
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -94,6 +94,8 @@
     "Goroutines",
     "Hardware",
     "Hello world",
+    "Hunt",
+    "Hunts",
     "IBAN",
     "ICMP (ping)",
     "INP 120 ms",

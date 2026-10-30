@@ -291,6 +291,8 @@ import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";
 import "./Jobs/SecurityEvents/ScanTelemetryForSecurityEvents";
 import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/SecurityEvents/EntityRisk";
+import "./Jobs/SecurityEvents/RunScheduledHunts";
+import "./Jobs/SecurityEvents/SendSecurityHuntNotification";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";

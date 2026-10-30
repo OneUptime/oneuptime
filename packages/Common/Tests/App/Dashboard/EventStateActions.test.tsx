@@ -904,3 +904,53 @@ describe("the lock of a move (getEventStateActionLock)", () => {
     }
   });
 });
+
+/*
+ * A row carries its incident's number (IncidentsTable reads it for its
+ * Number column), and a dialog about one incident names it by its number
+ * first: two incidents in the list can share a title, and the dialog is
+ * where someone has to be sure which one it moves
+ * (Utils/Project/RecordNumber).
+ */
+describe("the dialogs of a numbered row name it by its number first", () => {
+  const numbered: (stateId: string) => Incident = (
+    stateId: string,
+  ): Incident => {
+    const row: Incident = incident({ stateId });
+    row.incidentNumber = 18;
+    row.incidentNumberWithPrefix = "INC-18";
+    return row;
+  };
+
+  test("Change State: Pick the next state for INC-18 Checkout API down.", async () => {
+    renderIncident(numbered(ACKNOWLEDGED));
+
+    const modal: HTMLElement = await clickMenuItem("Change State");
+
+    expect(modal).toHaveTextContent(
+      "Pick the next state for INC-18 Checkout API down.",
+    );
+  });
+
+  test("Acknowledge: the row's own line reads INC-18 Checkout API down", async () => {
+    renderIncident(numbered(IDENTIFIED));
+
+    const modal: HTMLElement = await clickMenuItem("Acknowledge");
+
+    expect(
+      within(modal).getByTestId("state-change-item-name"),
+    ).toHaveTextContent(/^INC-18 Checkout API down$/);
+  });
+
+  test("a row numbered before numbers kept their prefix: #18", async () => {
+    const row: Incident = incident({ stateId: ACKNOWLEDGED });
+    row.incidentNumber = 18;
+    renderIncident(row);
+
+    const modal: HTMLElement = await clickMenuItem("Change State");
+
+    expect(modal).toHaveTextContent(
+      "Pick the next state for #18 Checkout API down.",
+    );
+  });
+});

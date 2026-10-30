@@ -104,6 +104,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Regeluitzonderingen | `Rule Exception` |
 | Volglijsten | `Watchlist` |
 | Volglijstwaarden | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Taken en bewijs van beveiligingszaken | `Security Case Task`, `Security Case Evidence` |
 | Gegevensopslagen en hun bevindingen, en de problemen, instellingen, controle-instellingen, aangepaste gegevenstypen en residentieregels van Gegevensbeveiliging | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exports van het auditlogboek | `Audit Log Export` |

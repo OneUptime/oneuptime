@@ -104,6 +104,7 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Rule exceptions | `Rule Exception` |
 | Watchlists | `Watchlist` |
 | Watchlist values | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Security case tasks and evidence | `Security Case Task`, `Security Case Evidence` |
 | Data stores and their findings, and Data Security's issues, settings, check settings, custom data types and residency rules | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Audit log exports | `Audit Log Export` |

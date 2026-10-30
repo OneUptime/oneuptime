@@ -104,6 +104,7 @@ flowchart TB
 | Исключения правил | `Rule Exception` |
 | Списки отслеживания | `Watchlist` |
 | Значения списков отслеживания | `Watchlist Value` |
+| Поиск угроз | `Hunt` |
 | Задачи и доказательства кейсов безопасности | `Security Case Task`, `Security Case Evidence` |
 | Хранилища данных и их находки, а также проблемы, настройки, настройки проверок, пользовательские типы данных и правила размещения данных в Безопасности данных | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Экспорты журнала аудита | `Audit Log Export` |

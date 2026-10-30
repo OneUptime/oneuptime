@@ -104,6 +104,7 @@ flowchart TB
 | 規則例外 | `Rule Exception` |
 | 監看清單 | `Watchlist` |
 | 監看清單值 | `Watchlist Value` |
+| 獵捕 | `Hunt` |
 | 安全案件的任務和證據 | `Security Case Task`、`Security Case Evidence` |
 | 資料儲存區及其發現，以及資料安全的問題、設定、檢查設定、自訂資料類型和資料落地規則 | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
 | 稽核日誌匯出 | `Audit Log Export` |

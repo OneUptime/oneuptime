@@ -104,6 +104,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Regelausnahmen | `Rule Exception` |
 | Beobachtungslisten | `Watchlist` |
 | Beobachtungslistenwerte | `Watchlist Value` |
+| Bedrohungssuchen | `Hunt` |
 | Aufgaben und Belege von Sicherheitsfällen | `Security Case Task`, `Security Case Evidence` |
 | Datenspeicher und ihre Funde sowie die Probleme, Einstellungen, Prüfungseinstellungen, benutzerdefinierten Datentypen und Residenzregeln der Datensicherheit | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Audit-Protokoll-Exporte | `Audit Log Export` |

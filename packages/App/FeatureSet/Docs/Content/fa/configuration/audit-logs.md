@@ -104,6 +104,7 @@ flowchart TB
 | استثناهای قاعده | `Rule Exception` |
 | فهرست‌های پایش | `Watchlist` |
 | مقدارهای فهرست پایش | `Watchlist Value` |
+| شکارها | `Hunt` |
 | وظایف و شواهد پرونده‌های امنیتی | `Security Case Task`، `Security Case Evidence` |
 | مخازن داده و یافته‌هایشان، و مسائل، تنظیمات، تنظیمات بررسی، انواع داده سفارشی و قواعد محل نگهداری داده در امنیت داده | `Data Store`، `Data Store Finding`، `Data Security Issue`، `Data Security Setting`، `Check Setting`، `Custom Data Type`، `Residency Rule` |
 | خروجی‌های گزارش ممیزی | `Audit Log Export` |

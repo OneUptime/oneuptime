@@ -5,6 +5,7 @@ import {
   buildEntitySearchSort,
   buildNavigationCommandDescriptors,
   computeCreateActionGates,
+  getEntitySearchResultTitle,
   getEntitySearchSpecs,
   getVisibleActionIds,
   isRoutePathNavigable,
@@ -480,7 +481,7 @@ describe("entity search specs and query construction", () => {
     });
   });
 
-  test("select fetches only the id and the display column", () => {
+  test("select fetches only the id and the display column, and a numbered entity's number", () => {
     const monitorsSpec: PaletteEntitySearchSpec = getEntitySearchSpecs()[0]!;
     expect(buildEntitySearchSelect(monitorsSpec)).toEqual({
       _id: true,
@@ -491,6 +492,16 @@ describe("entity search specs and query construction", () => {
     expect(buildEntitySearchSelect(incidentsSpec)).toEqual({
       _id: true,
       title: true,
+      incidentNumber: true,
+      incidentNumberWithPrefix: true,
+    });
+
+    const alertsSpec: PaletteEntitySearchSpec = getEntitySearchSpecs()[2]!;
+    expect(buildEntitySearchSelect(alertsSpec)).toEqual({
+      _id: true,
+      title: true,
+      alertNumber: true,
+      alertNumberWithPrefix: true,
     });
   });
 
@@ -510,5 +521,148 @@ describe("entity search specs and query construction", () => {
     expect(PALETTE_RECENTS_STORAGE_KEY).toBe(
       "oneuptime-command-palette-recents",
     );
+  });
+});
+
+/*
+ * Two incidents can share a title - "Manually declared", or a monitor's
+ * "Checkout API p95 latency above 2s" each time it fails - and the palette
+ * listed them as two identical rows. A numbered entity's result leads with
+ * its number, as its page is headed ("INC-18 Manually declared"), and the
+ * number is searched: "INC-18" finds it.
+ */
+describe("a numbered entity's results lead with its number", () => {
+  const specById: (id: string) => PaletteEntitySearchSpec = (
+    id: string,
+  ): PaletteEntitySearchSpec => {
+    return getEntitySearchSpecs().find((spec: PaletteEntitySearchSpec) => {
+      return spec.id === id;
+    })!;
+  };
+
+  const incidentNumbered: (number: number) => Incident = (
+    number: number,
+  ): Incident => {
+    const incident: Incident = new Incident();
+    incident.title = "Manually declared";
+    incident.incidentNumber = number;
+    incident.incidentNumberWithPrefix = "INC-" + String(number);
+    return incident;
+  };
+
+  test("incidents and alerts are numbered by their models' own columns", () => {
+    expect(specById("incidents").numberFields).toEqual({
+      numberColumn: "incidentNumber",
+      numberWithPrefixColumn: "incidentNumberWithPrefix",
+    });
+    expect(specById("alerts").numberFields).toEqual({
+      numberColumn: "alertNumber",
+      numberWithPrefixColumn: "alertNumberWithPrefix",
+    });
+  });
+
+  test("the rest are not numbered", () => {
+    for (const id of ["monitors", "status-pages", "on-call-policies"]) {
+      expect({ id, numberFields: specById(id).numberFields }).toEqual({
+        id,
+        numberFields: undefined,
+      });
+    }
+  });
+
+  test("the number with its prefix is searched, so INC-18 finds it", () => {
+    expect(specById("incidents").searchFields).toEqual([
+      "title",
+      "description",
+      "incidentNumberWithPrefix",
+    ]);
+    expect(specById("alerts").searchFields).toEqual([
+      "title",
+      "description",
+      "alertNumberWithPrefix",
+    ]);
+
+    const query: JSONObject = buildEntitySearchQuery(
+      specById("incidents"),
+      " INC-18 ",
+    );
+    const operator: MultiSearch = query[
+      "_multiFieldSearch"
+    ] as unknown as MultiSearch;
+    expect(operator.fields).toContain("incidentNumberWithPrefix");
+    expect(operator.value).toBe("INC-18");
+  });
+
+  test("an incident's result is its number, then its title", () => {
+    expect(
+      getEntitySearchResultTitle(specById("incidents"), incidentNumbered(18)),
+    ).toBe("INC-18 Manually declared");
+  });
+
+  test("two incidents of one title are two results that read differently", () => {
+    expect(
+      [17, 18].map((number: number): string => {
+        return getEntitySearchResultTitle(
+          specById("incidents"),
+          incidentNumbered(number),
+        );
+      }),
+    ).toEqual(["INC-17 Manually declared", "INC-18 Manually declared"]);
+  });
+
+  test("a record keeps the prefix it was numbered with; one numbered before prefixes reads #7", () => {
+    const renamed: Alert = new Alert();
+    renamed.title = "CPU high on web-1";
+    renamed.alertNumber = 7;
+    renamed.alertNumberWithPrefix = "OPS/7";
+    expect(getEntitySearchResultTitle(specById("alerts"), renamed)).toBe(
+      "OPS/7 CPU high on web-1",
+    );
+
+    const old: Alert = new Alert();
+    old.title = "CPU high on web-1";
+    old.alertNumber = 7;
+    expect(getEntitySearchResultTitle(specById("alerts"), old)).toBe(
+      "#7 CPU high on web-1",
+    );
+  });
+
+  test("a record without a number is its title alone, as before", () => {
+    const incident: Incident = new Incident();
+    incident.title = "Manually declared";
+
+    expect(getEntitySearchResultTitle(specById("incidents"), incident)).toBe(
+      "Manually declared",
+    );
+  });
+
+  test("a row with no title is left out, whatever its number", () => {
+    const incident: Incident = incidentNumbered(18);
+    incident.title = "  ";
+
+    expect(getEntitySearchResultTitle(specById("incidents"), incident)).toBe(
+      "",
+    );
+    expect(getEntitySearchResultTitle(specById("incidents"), null)).toBe("");
+  });
+
+  test("a monitor's result is its name, with nothing before it", () => {
+    const monitor: Monitor = new Monitor();
+    monitor.name = "Website: acme.com";
+
+    expect(getEntitySearchResultTitle(specById("monitors"), monitor)).toBe(
+      "Website: acme.com",
+    );
+  });
+
+  test("a row read as JSON is named the same way", () => {
+    expect(
+      getEntitySearchResultTitle(specById("incidents"), {
+        _id: "5f8b9c1a-0000-4000-8000-000000000018",
+        title: "Manually declared",
+        incidentNumber: 18,
+        incidentNumberWithPrefix: "INC-18",
+      }),
+    ).toBe("INC-18 Manually declared");
   });
 });

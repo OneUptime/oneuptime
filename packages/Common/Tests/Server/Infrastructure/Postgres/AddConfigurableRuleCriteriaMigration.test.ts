@@ -41,7 +41,7 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   "AIInvestigationRule",
   // 1804200000000-AddAIPostmortemRules
   "AIPostmortemRule",
-  // 1808400000000-AddDataSecurity
+  // 1808500000000-AddDataSecurity
   "DataStoreLabelRule",
   "DataStoreOwnerRule",
 ];

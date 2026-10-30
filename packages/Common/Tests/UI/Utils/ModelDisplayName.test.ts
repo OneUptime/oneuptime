@@ -10,10 +10,12 @@ import {
   summarizeNames,
 } from "../../../UI/Utils/ModelDisplayName";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import EnterpriseLicense from "../../../Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "../../../Models/DatabaseModels/EnterpriseLicenseInstance";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
@@ -23,6 +25,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import Project from "../../../Models/DatabaseModels/Project";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
@@ -360,6 +364,184 @@ describe("getRecordDisplayName", () => {
         id: new ObjectID("11111111-1111-4111-8111-111111111111"),
       }),
     ).toBe("");
+  });
+});
+
+/*
+ * Two incidents can share a title, and a dialog about one of them is where
+ * someone has to be sure which: "Pick the next state for INC-18 Manually
+ * declared.", "Are you sure you want to delete ALT-7 CPU high?". A record
+ * its project numbers is named by its number first, whenever the record at
+ * hand carries it (Utils/Project/RecordNumber).
+ */
+describe("getRecordDisplayName names a numbered record by its number first", () => {
+  function incidentNumbered(
+    number: number | null,
+    withPrefix: string | null,
+  ): Incident {
+    const incident: Incident = new Incident();
+    incident.title = "Manually declared";
+    if (number !== null) {
+      incident.incidentNumber = number;
+    }
+    if (withPrefix !== null) {
+      incident.incidentNumberWithPrefix = withPrefix;
+    }
+    return incident;
+  }
+
+  test("an incident: INC-18 Manually declared", () => {
+    expect(
+      getRecordDisplayName(incidentNumbered(18, "INC-18"), {
+        model: new Incident(),
+      }),
+    ).toBe("INC-18 Manually declared");
+  });
+
+  test("without the model handed in, a record that is a model is still numbered", () => {
+    expect(getRecordDisplayName(incidentNumbered(18, "INC-18"))).toBe(
+      "INC-18 Manually declared",
+    );
+  });
+
+  test("a table's row as JSON is numbered by the model it belongs to", () => {
+    const row: Record<string, unknown> = {
+      _id: "11111111-1111-4111-8111-111111111111",
+      title: "CPU high on web-1",
+      alertNumber: 7,
+      alertNumberWithPrefix: "ALT-7",
+    };
+
+    expect(getRecordDisplayName(row, { model: new Alert() })).toBe(
+      "ALT-7 CPU high on web-1",
+    );
+    // A row alone says nothing of its model: its name, as before.
+    expect(getRecordDisplayName(row)).toBe("CPU high on web-1");
+  });
+
+  test.each([
+    [
+      "a scheduled maintenance event",
+      new ScheduledMaintenance(),
+      "scheduledMaintenanceNumber",
+      "SM-3",
+    ],
+    ["an incident episode", new IncidentEpisode(), "episodeNumber", "IE-2"],
+    ["an alert episode", new AlertEpisode(), "episodeNumber", "AE-4"],
+    ["a security case", new SecurityCase(), "caseNumber", "CASE-12"],
+  ])(
+    "%s is numbered the same way",
+    (_name: string, model: BaseModel, numberColumn: string, number: string) => {
+      const row: Record<string, unknown> = {
+        title: "Database failover",
+        [numberColumn]: 3,
+        [`${numberColumn}WithPrefix`]: number,
+      };
+
+      expect(getRecordDisplayName(row, { model })).toBe(
+        `${number} Database failover`,
+      );
+    },
+  );
+
+  test("a record numbered before numbers kept their prefix: #18", () => {
+    expect(
+      getRecordDisplayName(incidentNumbered(18, null), {
+        model: new Incident(),
+      }),
+    ).toBe("#18 Manually declared");
+  });
+
+  test("a record that does not carry its number is named by its title, as before", () => {
+    expect(
+      getRecordDisplayName(incidentNumbered(null, null), {
+        model: new Incident(),
+      }),
+    ).toBe("Manually declared");
+  });
+
+  test("a record with a number and no title is named by its number", () => {
+    const incident: Incident = new Incident();
+    incident.incidentNumber = 18;
+    incident.incidentNumberWithPrefix = "INC-18";
+
+    expect(getRecordDisplayName(incident, { model: new Incident() })).toBe(
+      "INC-18",
+    );
+  });
+
+  test("a model without numbers is named as before", () => {
+    const monitor: Monitor = new Monitor();
+    monitor.name = "Checkout API";
+
+    expect(getRecordDisplayName(monitor, { model: new Monitor() })).toBe(
+      "Checkout API",
+    );
+  });
+
+  test("a long title is shortened after its number, never the number", () => {
+    const long: string = "Checkout latency ".repeat(20).trim();
+    const name: string = getRecordDisplayName(incidentNumbered(18, "INC-18"), {
+      model: new Incident(),
+    });
+    expect(name).toBe("INC-18 Manually declared");
+
+    const incident: Incident = incidentNumbered(18, "INC-18");
+    incident.title = long;
+    const shortened: string = getRecordDisplayName(incident, {
+      model: new Incident(),
+    });
+
+    expect(shortened.startsWith("INC-18 Checkout latency")).toBe(true);
+    expect(Array.from(shortened)).toHaveLength(MAX_DISPLAY_NAME_LENGTH);
+    expect(shortened.endsWith("…")).toBe(true);
+    expect(
+      getRecordDisplayName(incident, { model: new Incident(), maxLength: 0 }),
+    ).toBe(`INC-18 ${long}`);
+  });
+
+  test("two incidents of one title are two names", () => {
+    expect(
+      getRecordDisplayName(incidentNumbered(17, "INC-17"), {
+        model: new Incident(),
+      }),
+    ).not.toBe(
+      getRecordDisplayName(incidentNumbered(18, "INC-18"), {
+        model: new Incident(),
+      }),
+    );
+  });
+
+  test("a bulk dialog lists them told apart", () => {
+    const summary: NameListSummary = summarizeNames({
+      names: [17, 18, 19].map((number: number): string => {
+        return getRecordDisplayName(incidentNumbered(number, `INC-${number}`), {
+          model: new Incident(),
+        });
+      }),
+      totalCount: 3,
+    });
+
+    expect(summary.shownNames).toEqual([
+      "INC-17 Manually declared",
+      "INC-18 Manually declared",
+      "INC-19 Manually declared",
+    ]);
+  });
+
+  test("an analytics model, which has only hasColumn, numbers nothing", () => {
+    const analyticsModel: DisplayNameModel = {
+      hasColumn: (column: string): boolean => {
+        return column === "title";
+      },
+    };
+
+    expect(
+      getRecordDisplayName(
+        { title: "Slow span", incidentNumber: 18 },
+        { model: analyticsModel },
+      ),
+    ).toBe("Slow span");
   });
 });
 

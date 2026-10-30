@@ -128,7 +128,7 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1798700000000-AddStorageArrayTables
   "StorageArrayOwnerTeam",
   "StorageArrayOwnerUser",
-  // 1808400000000-AddDataSecurity
+  // 1808500000000-AddDataSecurity
   "DataStoreOwnerTeam",
   "DataStoreOwnerUser",
 ];

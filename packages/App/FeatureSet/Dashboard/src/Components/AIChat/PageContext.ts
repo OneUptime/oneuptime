@@ -49,6 +49,10 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatRecordNumber,
+  getNumberedRecordName,
+} from "Common/Utils/Project/RecordNumber";
 
 /*
  * Detects what the user is looking at in the dashboard so Ask AI can offer
@@ -116,6 +120,25 @@ interface AreaPageRule {
 
 const isUuid: (id: string) => boolean = (id: string): boolean => {
   return ObjectID.isValidUUID(id);
+};
+
+/*
+ * A numbered record's title for the chip and the prompt: its number, then
+ * its title - "INC-18 Manually declared" - or null without a title, so the
+ * chip keeps its plain label ("This incident").
+ */
+const getNumberedEntityTitle: (data: {
+  title: string | null | undefined;
+  number: string | undefined;
+}) => string | null = (data: {
+  title: string | null | undefined;
+  number: string | undefined;
+}): string | null => {
+  if (!data.title || !data.title.trim()) {
+    return null;
+  }
+
+  return getNumberedRecordName({ number: data.number, name: data.title });
 };
 
 /*
@@ -431,6 +454,13 @@ export default class PageContextUtil {
           return PageContextUtil.titleOnly(
             await ResourcePageContextUtil.resolveTitle(context),
           );
+        /*
+         * An incident, an alert or a maintenance event is named by its
+         * number as the project numbered it, then its title - "INC-18
+         * Manually declared", as its page is headed - so the chip and the
+         * prompt name the one on screen, not one of several with that
+         * title (Utils/Project/RecordNumber).
+         */
         case AIChatPageContextType.Incident: {
           // The project's states, read beside the incident (a cached list).
           const states: Promise<Array<IncidentState> | null> =
@@ -445,17 +475,21 @@ export default class PageContextUtil {
             select: {
               title: true,
               incidentNumber: true,
+              incidentNumberWithPrefix: true,
               currentIncidentStateId: true,
             },
           });
           if (!item) {
             return null;
           }
-          const numberPart: string = item.incidentNumber
-            ? `#${item.incidentNumber} `
-            : "";
           return {
-            title: item.title ? `${numberPart}${item.title}` : null,
+            title: getNumberedEntityTitle({
+              title: item.title,
+              number: formatRecordNumber({
+                number: item.incidentNumber,
+                numberWithPrefix: item.incidentNumberWithPrefix,
+              }),
+            }),
             state: getResolvableEntityState(
               PageContextUtil.isResolvedIn({
                 list: StateListType.IncidentState,
@@ -478,17 +512,21 @@ export default class PageContextUtil {
             select: {
               title: true,
               alertNumber: true,
+              alertNumberWithPrefix: true,
               currentAlertStateId: true,
             },
           });
           if (!item) {
             return null;
           }
-          const numberPart: string = item.alertNumber
-            ? `#${item.alertNumber} `
-            : "";
           return {
-            title: item.title ? `${numberPart}${item.title}` : null,
+            title: getNumberedEntityTitle({
+              title: item.title,
+              number: formatRecordNumber({
+                number: item.alertNumber,
+                numberWithPrefix: item.alertNumberWithPrefix,
+              }),
+            }),
             state: getResolvableEntityState(
               PageContextUtil.isResolvedIn({
                 list: StateListType.AlertState,
@@ -533,13 +571,24 @@ export default class PageContextUtil {
             await ModelAPI.getItem<ScheduledMaintenance>({
               modelType: ScheduledMaintenance,
               id: id,
-              select: { title: true, currentScheduledMaintenanceStateId: true },
+              select: {
+                title: true,
+                scheduledMaintenanceNumber: true,
+                scheduledMaintenanceNumberWithPrefix: true,
+                currentScheduledMaintenanceStateId: true,
+              },
             });
           if (!item) {
             return null;
           }
           return {
-            title: item.title || null,
+            title: getNumberedEntityTitle({
+              title: item.title,
+              number: formatRecordNumber({
+                number: item.scheduledMaintenanceNumber,
+                numberWithPrefix: item.scheduledMaintenanceNumberWithPrefix,
+              }),
+            }),
             state: getScheduledMaintenanceEntityState(
               PageContextUtil.getMaintenancePhase({
                 states: await states,

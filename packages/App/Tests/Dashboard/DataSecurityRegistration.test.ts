@@ -65,12 +65,12 @@ describe("Data Security registry wiring", () => {
     );
 
     expect(migrations).toContain(
-      'import { AddDataSecurity1808400000000 } from "./1808400000000-AddDataSecurity";',
+      'import { AddDataSecurity1808500000000 } from "./1808500000000-AddDataSecurity";',
     );
-    expect(migrations).toContain("AddDataSecurity1808400000000,");
+    expect(migrations).toContain("AddDataSecurity1808500000000,");
 
     const migration: string = readSquashed(
-      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808400000000-AddDataSecurity.ts",
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity.ts",
     );
 
     for (const model of DATA_SECURITY_MODELS) {

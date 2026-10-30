@@ -5,6 +5,7 @@ OneUptime guarda los eventos de seguridad junto a tus registros, trazas y métri
 :::cards
 - [Enviar eventos](#enviar-eventos-de-seguridad): Un POST HTTPS, una salida de Fluent Bit o una conexión con un producto de seguridad.
 - [Buscar y correlacionar](#explorar-los-eventos-de-seguridad): El explorador de eventos y el grafo de correlación.
+- [Cacerías](#cacerías): Búsquedas guardadas que se ejecutan según una programación y avisan a personas cuando encuentran algo.
 - [Reglas de detección](#reglas-de-detección): Reglas Sigma que abren casos y alertas.
 - [Monitores](#monitores-de-eventos-de-seguridad): Recuentos sobre una ventana deslizante, con un estado que se recupera.
 :::
@@ -36,6 +37,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Casos cerrados** | Casos de seguridad | Los casos cerrados con un veredicto, los más recientes primero |
 | **Todos los casos** | Casos de seguridad | Cada caso, abierto o cerrado |
 | **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
+| **Cacerías** | Eventos | Búsquedas guardadas desde Eventos, abiertas de nuevo con un clic o ejecutadas según una programación que avisa a personas cuando encuentran algo |
 | **Campaigns** | Eventos | Cada dirección que envió solicitudes de ataque, y si alguna de sus solicitudes pasó |
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
@@ -252,6 +254,45 @@ Un evento leído de una línea de log escrita dentro de una solicitud trazada se
 ### Correlacionar
 
 **Correlacionar** dibuja los eventos alrededor de un host, un usuario o una dirección IP: sus clases de evento alrededor de lo que buscaste, marcadas con su peor gravedad, y los demás valores vistos en los mismos eventos en el anillo exterior. Haz clic en una clase para listar sus eventos, o en un valor para correlacionar a continuación sobre él. Cada observable del panel de un evento en **Eventos** abre **Correlacionar** sobre él.
+
+## Cacerías
+
+Una cacería es una búsqueda sobre tus eventos de seguridad guardada con un nombre: el texto de la barra de búsqueda, los filtros de la barra lateral y hasta dónde mira hacia atrás. Ábrela de nuevo con un clic, ejecútala según una programación que avise a personas cuando encuentre algo, y guarda en un caso los eventos que encuentre.
+
+### Guardar una búsqueda como cacería
+
+En **Eventos**, busca y filtra hasta que la lista muestre lo que buscas, luego abre **Cacerías** en la barra de herramientas y elige **Guardar como cacería**. Ponle un nombre, elige si se ejecuta según una programación, y se abre su página. **Eventos → Cacerías** lista las cacerías del proyecto, cada una con su búsqueda, con qué frecuencia se ejecuta, a quién avisa y qué encontró su última ejecución; **Crear Cacería** toma ahí la búsqueda tal como la escribirías en **Eventos**. Un proyecto guarda hasta 200 cacerías.
+
+La página de una cacería es su búsqueda, abierta en el explorador de eventos. Cambia ahí la búsqueda o los filtros, y la cabecera de la cacería ofrece **Guardar cambios** y **Descartar cambios**. **Editar** cambia su nombre, su búsqueda, hasta dónde mira hacia atrás, su programación y a quién avisa, y **Eliminar cacería** está en su menú. Desde Security Member se pueden guardar, cambiar y eliminar cacerías, y un Security Viewer puede abrirlas.
+
+### Ejecutar una cacería según una programación
+
+| Programación | Se ejecuta |
+| --- | --- |
+| **Sin programar** | Solo cuando la abres |
+| **Cada hora**, **Cada 6 horas**, **Cada día**, **Cada semana** | Por sí sola, con esa frecuencia |
+
+Una cacería programada avisa a las personas y equipos que eliges en **Notificar**: al menos uno, y como máximo 50 en total. Cada ejecución:
+
+- lee los eventos cuya hora es posterior a la ejecución anterior, hasta hace dos minutos, así que cada evento se busca una vez. La primera ejecución lee desde el momento en que se estableció la programación o se cambió la búsqueda por última vez, y tras una interrupción una ejecución recupera como máximo un día más que su intervalo.
+- cuenta los eventos que su búsqueda encuentra ahí, exactamente como **Eventos** los listaría, leyendo solo lo que puede leer la persona con la que se ejecuta.
+- cuando encuentra eventos, avisa a las personas que nombra la cacería, y a los miembros de los equipos que nombra, que pueden leer cacerías y eventos de seguridad.
+
+Una ejecución no abre ningún caso ni lanza ninguna alerta: escribe lo que debe abrir casos como una [regla de detección](#reglas-de-detección). Una ejecución cuya búsqueda tarda demasiado, o que no puede leer los eventos, dice por qué en la cacería y se reintenta en menos de una hora, desde donde se detuvo.
+
+Una cacería programada se ejecuta con la persona que por última vez estableció su programación, cambió su búsqueda o la guardó con **Editar**. Una clave de API no puede establecer una programación. Cuando esa persona deja el proyecto o ya no puede leer eventos de seguridad, la cacería lo indica: abre **Editar** y guárdala para que se ejecute contigo.
+
+### A quién se avisa
+
+La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y la ventana que leyó, y enlaza a la página de la cacería con esos eventos; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
+
+### Guardar eventos en un caso
+
+Selecciona eventos en **Eventos** o en la página de una cacería y elige **Acciones masivas → Añadir al caso**, o abre un evento y elige **Añadir al caso**. Elige un caso abierto por su número o su título. Van hasta 100 eventos a la vez.
+
+OneUptime vuelve a leer cada evento como tú y lo guarda tal como era en la página **Evidencias** del caso, así que el caso lo sigue mostrando cuando termina la retención del evento. Un evento que no puedes leer no se guarda, y uno que el caso ya guarda se deja como está. Un evento encontrado desde una cacería nombra la cacería, y **Ver evento** lo abre tal como se guardó.
+
+Las cacerías tienen la misma API REST que el resto de OneUptime, en `/security-hunt`, y `POST /security-case-evidence/add-events` guarda eventos en un caso. Consulta la [referencia de la API](/docs/api-reference/api-reference).
 
 ## Reglas de detección
 

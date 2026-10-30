@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36935,
-    "untranslated": 13364
+    "keys": 37111,
+    "untranslated": 13357
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -77,6 +77,8 @@
     "Google Spanner Instance",
     "Goroutines",
     "Hello world",
+    "Hunt",
+    "Hunts",
     "IBAN",
     "ICMP (ping)",
     "INP 120 ms",

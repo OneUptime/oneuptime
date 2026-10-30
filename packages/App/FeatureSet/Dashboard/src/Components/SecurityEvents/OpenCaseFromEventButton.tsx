@@ -28,17 +28,23 @@ import {
   SecurityCaseValueLists,
   getSecurityCaseValues,
 } from "../SecurityCase/SecurityCaseValues";
+import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
+import { getCaseEventReferences } from "./Hunts/AddToCaseModel";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
+  // The hunt the event was found by, when the list is a hunt's.
+  huntId?: ObjectID | undefined;
 }
 
 /*
  * Opens a security case about one event, for the thing an analyst spots
  * that no rule caught: the case names the event's users, hosts and
  * addresses, opens at the project's priority for its severity - whatever
- * the project calls it - and opens on its own page.
+ * the project calls it - keeps the event itself as its first evidence, and
+ * opens on its own page. A case that opened is opened even when the event
+ * could not be kept on it (its Evidence page then lacks it).
  */
 const OpenCaseFromEventButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -106,6 +112,16 @@ const OpenCaseFromEventButton: FunctionComponent<ComponentProps> = (
             };
 
             if (created?._id) {
+              try {
+                await SecurityCaseApi.addEventsToCase({
+                  caseId: new ObjectID(created._id),
+                  events: getCaseEventReferences([props.securityEvent]),
+                  huntId: props.huntId,
+                });
+              } catch {
+                // The case is open; the event not being kept on it must not hide that.
+              }
+
               Navigation.navigate(
                 RouteUtil.populateRouteParams(
                   RouteMap[PageMap.SECURITY_CASE_VIEW] as Route,

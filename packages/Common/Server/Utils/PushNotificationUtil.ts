@@ -626,6 +626,34 @@ export default class PushNotificationUtil {
     });
   }
 
+  /*
+   * A scheduled hunt found security events: opens the hunt's page on the
+   * window its run read. One per hunt: a newer run's replaces the older.
+   */
+  public static createSecurityHuntNotification(params: {
+    title: string;
+    body: string;
+    huntViewLink: string;
+    securityHuntId: string;
+    projectId: string;
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: params.title,
+      body: params.body,
+      clickAction: params.huntViewLink,
+      url: params.huntViewLink,
+      tag: `security-hunt-${params.securityHuntId}`,
+      requireInteraction: false,
+      data: {
+        type: "security-hunt-found",
+        entityType: "security-hunt",
+        entityId: params.securityHuntId,
+        projectId: params.projectId,
+        url: params.huntViewLink,
+      },
+    });
+  }
+
   public static createAIAgentStatusChangedNotification(params: {
     aiAgentName: string;
     projectName: string;
