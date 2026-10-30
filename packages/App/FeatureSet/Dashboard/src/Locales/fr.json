@@ -38869,5 +38869,14 @@
   "Summarize with OneUptime AI": "Résumer avec OneUptime AI",
   "Summarizing…": "Résumé en cours…",
   "What's new": "Quoi de neuf",
-  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Écrit par OneUptime AI {{time}}, à partir des exceptions vues pour la première fois ou revenues dans les dernières {{hours}} heures."
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Écrit par OneUptime AI {{time}}, à partir des exceptions vues pour la première fois ou revenues dans les dernières {{hours}} heures.",
+  "A different bug": "Un autre bug",
+  "A related bug": "Un bug lié",
+  "Check with OneUptime AI": "Vérifier avec OneUptime AI",
+  "Likely the same bug": "Probablement le même bug",
+  "Other exceptions that look like this one: the same message once the values are taken out, the same function of your code, or most of the same words.": "D'autres exceptions qui ressemblent à celle-ci : le même message une fois les valeurs retirées, la même fonction de votre code, ou la plupart des mêmes mots.",
+  "Same code location": "Même emplacement dans le code",
+  "Same message": "Même message",
+  "Similar exceptions": "Exceptions similaires",
+  "Similar message": "Message similaire"
 }

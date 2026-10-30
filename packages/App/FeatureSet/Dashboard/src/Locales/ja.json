@@ -21604,7 +21604,7 @@
   "{{count}} occurrences between {{start}} and {{end}}_one": "{{count}} occurrence between {{start}} and {{end}}",
   "{{count}} occurrences in the {{window}}": "{{window}}に {{count}} 回発生",
   "{{count}} occurrences in the {{window}}_one": "{{count}} occurrence in the {{window}}",
-  "{{count}} occurrences_one": "{{count}} occurrence",
+  "{{count}} occurrences_one": "{{count}} 回発生",
   "{{count}} people have asked in this conversation": "この会話では {{count}} 人が質問しています",
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} 件の電話番号がこのポリシーに通話をルーティングしています。",
@@ -38869,5 +38869,14 @@
   "Summarize with OneUptime AI": "OneUptime AI で要約",
   "Summarizing…": "要約しています…",
   "What's new": "新着",
-  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "OneUptime AI が {{time}} に、直近 {{hours}} 時間に初めて確認された例外と再発した例外から作成しました。"
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "OneUptime AI が {{time}} に、直近 {{hours}} 時間に初めて確認された例外と再発した例外から作成しました。",
+  "A different bug": "別のバグ",
+  "A related bug": "関連するバグ",
+  "Check with OneUptime AI": "OneUptime AI で確認",
+  "Likely the same bug": "同じバグの可能性が高い",
+  "Other exceptions that look like this one: the same message once the values are taken out, the same function of your code, or most of the same words.": "この例外に似たほかの例外です。値を取り除くと同じメッセージになるもの、コードの同じ関数のもの、ほとんど同じ語を含むものです。",
+  "Same code location": "同じコード位置",
+  "Same message": "同じメッセージ",
+  "Similar exceptions": "類似の例外",
+  "Similar message": "似たメッセージ"
 }
