@@ -6191,6 +6191,8 @@ ${incomingRequestGrouping.rootCauseNote}
       );
     } else if (
       metricName === "k8s.node.memory.usage" ||
+      // What High Node Memory Utilization reads: memory in use, without page cache.
+      metricName === "k8s.node.memory.working_set" ||
       // Node-scoped only — see the CPU branch above.
       (metricName.startsWith("k8s.node.") &&
         metricName.includes("memory") &&

@@ -1340,10 +1340,10 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   describe("k8s-node-not-ready", () => {
     const nodeNotReadyStep: MonitorStep = kubernetesStep("k8s-node-not-ready");
 
-    test("the real firing criteria is an incident-opening `= 0` on the metric value", () => {
+    test("the real firing criteria is an incident-opening `< 1` on the metric value", () => {
       /*
-       * Guards the fixture: if the template stops firing on `= 0`, the
-       * rest of this suite is testing nothing.
+       * Guards the fixture: if the template stops firing below 1 (NotReady
+       * 0, Unknown -1), the rest of this suite is testing nothing.
        */
       const criteria: MonitorCriteriaInstance =
         firingCriteria(nodeNotReadyStep);
@@ -1351,8 +1351,8 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
 
       expect(filters.length).toBeGreaterThan(0);
       expect(filters[0]!.checkOn).toBe(CheckOn.MetricValue);
-      expect(filters[0]!.filterType).toBe(FilterType.EqualTo);
-      expect(filters[0]!.value).toBe(0);
+      expect(filters[0]!.filterType).toBe(FilterType.LessThan);
+      expect(filters[0]!.value).toBe(1);
       expect(criteria.data?.createIncidents).toBe(true);
     });
 
@@ -1475,8 +1475,8 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a list of zeroes", async () => {
-    const jobStep: MonitorStep = kubernetesStep("k8s-job-failures");
-    const criteria: MonitorCriteriaInstance = recoveryCriteria(jobStep);
+    const daemonSetStep: MonitorStep = kubernetesStep("k8s-daemonset-unavailable");
+    const criteria: MonitorCriteriaInstance = recoveryCriteria(daemonSetStep);
 
     // Fixture guard: the real recovery is a non-incident `= 0`.
     expect(criteria.data?.filters[0]!.filterType).toBe(FilterType.EqualTo);
@@ -1485,12 +1485,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     expect(criteria.data?.createAlerts).toBe(false);
 
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.job.failed_pods",
-      monitorStep: jobStep,
+      metricName: "k8s.daemonset.misscheduled_nodes",
+      monitorStep: daemonSetStep,
       criteriaInstance: criteria,
       affectedResources: [
-        { workloadType: "Job", workloadName: "web", metricValue: 0 },
-        { workloadType: "Job", workloadName: "api", metricValue: 0 },
+        { workloadType: "DaemonSet", workloadName: "web", metricValue: 0 },
+        { workloadType: "DaemonSet", workloadName: "api", metricValue: 0 },
       ],
     });
 
@@ -1500,27 +1500,27 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("a `> 0` criteria renders exactly as the hardcoded filter did, on the highest sample", async () => {
-    const jobStep: MonitorStep = kubernetesStep("k8s-job-failures");
+    const daemonSetStep: MonitorStep = kubernetesStep("k8s-daemonset-unavailable");
 
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.job.failed_pods",
-      monitorStep: jobStep,
-      criteriaInstance: firingCriteria(jobStep),
+      metricName: "k8s.daemonset.misscheduled_nodes",
+      monitorStep: daemonSetStep,
+      criteriaInstance: firingCriteria(daemonSetStep),
       affectedResources: [
         {
-          workloadType: "Job",
+          workloadType: "DaemonSet",
           workloadName: "web",
           metricValue: 3,
           lowestMetricValue: 0,
         },
-        { workloadType: "Job", workloadName: "api", metricValue: 5 },
-        { workloadType: "Job", workloadName: "ok", metricValue: 0 },
+        { workloadType: "DaemonSet", workloadName: "api", metricValue: 5 },
+        { workloadType: "DaemonSet", workloadName: "ok", metricValue: 0 },
       ],
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
     expect(context).toContain(
-      ["1. **Job** `api` — **5**", "2. **Job** `web` — **3**"].join("\n"),
+      ["1. **DaemonSet** `api` — **5**", "2. **DaemonSet** `web` — **3**"].join("\n"),
     );
     expect(context).not.toContain("`ok`");
 
@@ -1529,7 +1529,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     const webIndex: number = context!.indexOf("`web`");
     expect(apiIndex).toBeGreaterThan(-1);
     expect(webIndex).toBeGreaterThan(apiIndex);
-    expect(context).toContain("Job `api` has **5** failed pod(s).");
+    expect(context).toContain("DaemonSet `api` has **5** misscheduled node(s).");
   });
 
   /*
