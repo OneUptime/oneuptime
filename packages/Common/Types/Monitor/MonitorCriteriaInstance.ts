@@ -377,6 +377,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                   ? arg.metricOptions.metricAliases[0]
                   : undefined,
             },
+            // No threshold: the condition asks whether there is data at all.
+            value: undefined,
           },
         ],
         incidents: [],
@@ -1716,6 +1718,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                   ? arg.metricOptions.metricAliases[0]
                   : undefined,
             },
+            // No threshold: the condition asks whether there is data at all.
+            value: undefined,
           },
         ],
         incidents: [
