@@ -883,7 +883,8 @@ export default class MicrosoftTeamsIncidentMoreActions {
       event: incident.event,
       targets: WorkspacePage.readTargets(picked),
       props: data.databaseProps,
-      message: message,
+      // The page's own message, when they wrote one.
+      ...(message.trim() ? { message: message } : {}),
     });
 
     await MicrosoftTeamsIncidentMoreActions.confirm(

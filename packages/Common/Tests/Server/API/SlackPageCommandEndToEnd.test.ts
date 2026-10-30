@@ -26,6 +26,8 @@ import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUser
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import AlertService from "../../../Server/Services/AlertService";
 import OnCallPageService, {
   OnCallPageRecordType,
   OnCallPageRequest,
@@ -419,6 +421,14 @@ beforeEach(() => {
     .mockReturnValue("OneUptime");
 
   /*
+   * #ops is no incident's or alert's own channel: no record lists it among
+   * its channels (WorkspacePageAbout.findChannelRecord asks, for real), so
+   * a page there is about something new.
+   */
+  jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+  jest.spyOn(AlertService, "findOneBy").mockResolvedValue(null);
+
+  /*
    * The page about something new: the world's alert, paged about directly,
    * as the person who asked - what OnCallPageService does once it has
    * created the alert.
@@ -476,13 +486,13 @@ describe("Jane: /oneuptime page @nitin The checkout API is throwing 500s, in #op
     await settled();
   });
 
-  test("first, only to Jane: 'Paging Nitin…'", () => {
+  test("first, only to Jane: 'Paging Nitin about a new alert…' - #ops is no record's own channel", () => {
     const first: SlackRequest = requests.find((request: SlackRequest) => {
       return request.url === RESPONSE_URL;
     })!;
 
-    expect(first.text.trim()).toBe("📟 Paging *Nitin*…");
-    expect(first.notification).toBe("Paging Nitin…");
+    expect(first.text.trim()).toBe("📟 Paging *Nitin* about a new alert…");
+    expect(first.notification).toBe("Paging Nitin about a new alert…");
   });
 
   test("the page is about a new alert titled by her message, paging Nitin, as Jane, waiting briefly for its channels", () => {

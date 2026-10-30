@@ -83,17 +83,28 @@ export const WORKSPACE_PAGE_NEW_ALERT_SUBJECT: WorkspacePageSubject = {
   record: null,
 };
 
-// What a form's value says the page is about: "incident:<id>", "alert:<id>".
-const VALUE_KINDS: Record<string, OnCallPageRecordType> = {
-  incident: OnCallPageRecordType.Incident,
-  alert: OnCallPageRecordType.Alert,
-};
+/*
+ * What a form's value says the page is about: "incident:<id>", "alert:<id>".
+ * Read when asked, never as this module loads: OnCallPageService, which
+ * names the kinds, loads it through the chats' own modules.
+ */
+function getValueKind(word: string): OnCallPageRecordType | null {
+  switch (word) {
+    case "incident":
+      return OnCallPageRecordType.Incident;
+    case "alert":
+      return OnCallPageRecordType.Alert;
+    default:
+      return null;
+  }
+}
 
 // The member's refusal, when they may not page about the record: "... page someone about this incident".
-const PAGE_ABOUT_ACTIONS: Record<OnCallPageRecordType, string> = {
-  [OnCallPageRecordType.Incident]: "page someone about this incident",
-  [OnCallPageRecordType.Alert]: "page someone about this alert",
-};
+function getPageAboutAction(type: OnCallPageRecordType): string {
+  return type === OnCallPageRecordType.Incident
+    ? "page someone about this incident"
+    : "page someone about this alert";
+}
 
 export default class WorkspacePageAbout {
   /*
@@ -254,8 +265,9 @@ export default class WorkspacePageAbout {
       return null;
     }
 
-    const type: OnCallPageRecordType | undefined =
-      VALUE_KINDS[text.substring(0, separator)];
+    const type: OnCallPageRecordType | null = getValueKind(
+      text.substring(0, separator),
+    );
     const id: string = text.substring(separator + 1).trim();
 
     if (!type || !ObjectID.isValidUUID(id)) {
@@ -334,7 +346,7 @@ export default class WorkspacePageAbout {
       select: {
         title: true,
       },
-      action: PAGE_ABOUT_ACTIONS[data.type],
+      action: getPageAboutAction(data.type),
     });
 
     const name: WorkspaceRecordName =

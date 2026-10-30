@@ -1314,6 +1314,8 @@ export default class QuietChannelsWorld {
   public async startDirectPage(data: {
     targets: Partial<OnCallDirectPageTargets>;
     startedBy?: OnCallDirectPageStartedBy | undefined;
+    // What the person who paged wrote (OnCallPersonPage).
+    pageMessage?: string | undefined;
   }): Promise<OnCallDirectPageRun> {
     const started: OnCallDirectPageRun =
       await OnCallDutyPolicyExecutionLogService.startDirectPage({
@@ -1330,6 +1332,7 @@ export default class QuietChannelsWorld {
           workflowId: PAGING_WORKFLOW_ID,
           workflowName: PAGING_WORKFLOW_NAME,
         },
+        ...(data.pageMessage ? { pageMessage: data.pageMessage } : {}),
       });
 
     await this.settle();
@@ -1932,7 +1935,8 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
     );
   }
 
-  private incidentStates(): Array<IncidentState> {
+  // The project's incident states, as the suites read them.
+  public incidentStates(): Array<IncidentState> {
     const make: (
       id: ObjectID,
       name: string,

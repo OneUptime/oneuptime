@@ -905,7 +905,8 @@ export default class SlackIncidentMoreActions {
             event: authorized.incident.event,
             targets: WorkspacePage.readTargets(picked),
             props: authorized.props,
-            message: message,
+            // The page's own message, when they wrote one.
+            ...(message.trim() ? { message: message } : {}),
           });
         },
       });
