@@ -54,6 +54,7 @@ import ExceptionLatestOccurrence from "./ExceptionLatestOccurrence";
 import ExceptionOccurrenceAttributes from "./ExceptionOccurrenceAttributes";
 import ExceptionLogs from "./ExceptionLogs";
 import ExceptionAIAssistance from "./ExceptionAIAssistance";
+import ExceptionAIExplanation from "./ExceptionAIExplanation";
 import ExceptionSettings from "./ExceptionSettings";
 import { getExceptionTriageWrite } from "./ExceptionRowActions";
 import {
@@ -364,6 +365,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             errorClass: true,
             regressedAt: true,
             resolvedInReleaseAfter: true,
+            ...(dataPlan.loadAiExplanation
+              ? { aiExplanation: true, aiExplanationGeneratedAt: true }
+              : {}),
             ...(dataPlan.loadTriageHistory
               ? {
                   markedAsResolvedAt: true,
@@ -576,6 +580,15 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
       {props.section === ExceptionDetailSection.Overview && (
         <>
+          {/*
+           * What happened, why and how to fix it, first: OneUptime AI's
+           * explanation, or the button that asks for one.
+           */}
+          <ExceptionAIExplanation
+            telemetryExceptionId={props.telemetryExceptionId}
+            aiExplanation={telemetryException.aiExplanation}
+            aiExplanationGeneratedAt={telemetryException.aiExplanationGeneratedAt}
+          />
           <ExceptionOccurrenceTrend
             fingerprint={telemetryException.fingerprint}
             primaryEntityId={telemetryException.primaryEntityId}
