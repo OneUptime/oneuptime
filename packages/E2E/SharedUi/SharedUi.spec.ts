@@ -429,6 +429,43 @@ test.describe("an outline button draws a border, a fill, a hover and a focus rin
 });
 
 /*
+ * A secondary link - Show More Details under a monitor's summary, and every
+ * other SECONDARY_LINK - was text-gray-400: 2.5:1 on a white card, read as
+ * a hint rather than something to press (#5281). It is text-gray-600 now,
+ * the body text's contrast, and darker still under the pointer.
+ */
+test.describe("a secondary link reads as a link that works", () => {
+  for (const theme of ["light", "dark"]) {
+    test(`its words are at least 4.5:1 on their card, and stronger under the pointer, in the ${theme} theme`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        `section=buttons${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+
+      const control: Locator = button(page, "button-SECONDARY_LINK");
+      const surface: Rgba = await cardBackground(control);
+      const atRest: number = contrast(
+        colourOf(await styleOf(control, "color")),
+        surface,
+      );
+
+      expect(atRest).toBeGreaterThanOrEqual(4.5);
+
+      await control.hover();
+      await expect
+        .poll(async (): Promise<number> => {
+          return contrast(colourOf(await styleOf(control, "color")), surface);
+        })
+        .toBeGreaterThan(atRest);
+    });
+  }
+});
+
+/*
  * The gap between a button's icon and its words, in pixels, on the words'
  * side: the icon's end to the words' start, whichever way the page reads.
  */
