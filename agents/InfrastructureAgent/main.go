@@ -137,21 +137,53 @@ func showLogs(maxLines int, follow bool) {
 	}
 }
 
+// serviceRestartDelay is how long after the agent's service fails it is
+// started again: the RestartSec of the systemd unit kardianos/service writes
+// on Linux, which restarts it always.
+const serviceRestartDelay = "2m"
+
+// newServiceConfig is how the agent is installed as a system service.
+func newServiceConfig() *service.Config {
+	return &service.Config{
+		Name:        "oneuptime-infrastructure-agent",
+		DisplayName: "OneUptime Infrastructure Agent",
+		Description: "The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to configure and use, and to be extensible.",
+		Arguments:   []string{"run"},
+		Option: service.KeyValue{
+			// Windows: start the service again when it fails, as systemd
+			// does on Linux and launchd on macOS. Without a recovery action
+			// a service that stopped on a failure stayed stopped until
+			// someone started it. (Read only on Windows.)
+			"OnFailure":              "restart",
+			"OnFailureDelayDuration": serviceRestartDelay,
+		},
+	}
+}
+
+// echoesToTerminal says whether a command's log lines also go to the
+// terminal. Every command's do: they are its result. The service itself
+// writes only to its log, unless it runs in a terminal.
+func echoesToTerminal(args []string, interactive bool) bool {
+	if len(args) < 2 {
+		return false
+	}
+	return args[1] != "run" || interactive
+}
+
 func main() {
 	// Initialize logging
 	utils.SetDefaultLogger()
 
 	slog.Info("OneUptime Infrastructure Agent")
 
+	if echoesToTerminal(os.Args, service.Interactive()) {
+		utils.EchoToTerminal(os.Stdout, os.Stderr)
+	}
+
 	config.WithOptions(config.WithTagName("json"))
 	cfgFile := newConfigFile()
 
-	svcConfig := &service.Config{
-		Name:        "oneuptime-infrastructure-agent",
-		DisplayName: "OneUptime Infrastructure Agent",
-		Description: "The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to configure and use, and to be extensible.",
-		Arguments:   []string{"run"},
-	}
+	svcConfig := newServiceConfig()
 
 	agentSvc := &agentService{
 		config: cfgFile,
