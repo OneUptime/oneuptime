@@ -61,8 +61,8 @@ export interface EquivalenceScenario {
   world?: TemplateWorldOptions | undefined;
   // What the trigger hands over, read from the project as it stands.
   trigger: (world: TemplateWorld) => JSONObject | Promise<JSONObject>;
-  // The other tool, made afresh for each run.
-  tool?: (() => OtherTool) | undefined;
+  // The other tool, made afresh for each run, once the project is set up.
+  tool?: ((world: TemplateWorld) => OtherTool) | undefined;
   // Who was picked to page, by the Page step's id: in the wizard now, in the Builder before.
   picks?: WhoToPagePicks | undefined;
   // Whether paging fails, as it does for a policy with no escalation rules.
@@ -108,8 +108,10 @@ const describePage: (
     id: ObjectID | undefined,
     alert: boolean,
   ): string => {
-    const rows: Array<{ id?: ObjectID | null; getColumnValue: (column: string) => unknown }> =
-      alert ? world.alerts.records.rows : world.incidents.records.rows;
+    const rows: Array<{
+      id?: ObjectID | null;
+      getColumnValue: (column: string) => unknown;
+    }> = alert ? world.alerts.records.rows : world.incidents.records.rows;
     const found: { getColumnValue: (column: string) => unknown } | undefined =
       rows.find((row: { id?: ObjectID | null }): boolean => {
         return row.id?.toString() === id?.toString();
@@ -173,6 +175,34 @@ const withPicksInBuilder: (
   return graph;
 };
 
+/*
+ * What the other tool holds, with each record's id written as its number:
+ * the two runs' projects give their records ids of their own, and a label
+ * or a link that names "INC-1" names the same record in both.
+ */
+const withRecordNumbers: (
+  value: JSONValue,
+  world: TemplateWorld,
+) => JSONValue = (value: JSONValue, world: TemplateWorld): JSONValue => {
+  let text: string = JSON.stringify(value);
+
+  for (const project of [world.incidents, world.alerts]) {
+    for (const record of project.records.rows) {
+      const id: string = record.id?.toString() || "";
+
+      if (id) {
+        text = text
+          .split(id)
+          .join(
+            `<${String(record.getColumnValue(project.model.numberWithPrefixColumn))}>`,
+          );
+      }
+    }
+  }
+
+  return JSON.parse(text) as JSONValue;
+};
+
 type RunOneFunction = (data: {
   scenario: EquivalenceScenario;
   graph: JSONObject;
@@ -199,7 +229,7 @@ const runOne: RunOneFunction = async (data: {
   }
 
   const tool: OtherTool | null = data.scenario.tool
-    ? data.scenario.tool()
+    ? data.scenario.tool(world)
     : null;
   const pages: Array<OnCallPageRequest> = [];
 
@@ -260,7 +290,7 @@ const runOne: RunOneFunction = async (data: {
     world: world,
     outcome: {
       world: world.snapshot(),
-      tool: tool ? tool.state() : null,
+      tool: tool ? withRecordNumbers(tool.state(), world) : null,
       pages: pages.map((request: OnCallPageRequest): JSONObject => {
         return describePage(request, world);
       }),
@@ -292,7 +322,11 @@ export const runNewTemplate: RunNewTemplateFunction = async (
 ): Promise<TemplateRun> => {
   const graph: JSONObject | null =
     scenario.newGraph ||
-    buildGraphForTemplate(scenario.templateId, generateId, scenario.picks || {});
+    buildGraphForTemplate(
+      scenario.templateId,
+      generateId,
+      scenario.picks || {},
+    );
 
   if (!graph) {
     throw new Error(`There is no template ${scenario.templateId}.`);
@@ -315,7 +349,11 @@ export const runOldAndNew: RunOldAndNewFunction = async (
   );
   const newGraph: JSONObject | null =
     scenario.newGraph ||
-    buildGraphForTemplate(scenario.templateId, generateId, scenario.picks || {});
+    buildGraphForTemplate(
+      scenario.templateId,
+      generateId,
+      scenario.picks || {},
+    );
 
   if (!newGraph) {
     throw new Error(`There is no template ${scenario.templateId} now.`);

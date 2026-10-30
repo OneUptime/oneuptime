@@ -138,6 +138,9 @@ export interface WhatHappened {
 // The longest What Happened that is read: a word or a state's name.
 export const MAX_WHAT_HAPPENED_LENGTH: number = 200;
 
+// What starts a What Happened that names a state, whatever the state is called.
+export const STATE_PREFIX: string = "state:";
+
 export type ReadWhatHappenedFunction = (value: unknown) => WhatHappened;
 
 /*
@@ -161,6 +164,19 @@ export const readWhatHappened: ReadWhatHappenedFunction = (
   }
 
   const clipped: string = given.slice(0, MAX_WHAT_HAPPENED_LENGTH);
+
+  /*
+   * "state: Open" always names a state, even one called like an action: a
+   * template that maps another tool's statuses onto states by name writes
+   * it so, and a state called Open or Resolved is still that state.
+   */
+  if (clipped.slice(0, STATE_PREFIX.length).toLowerCase() === STATE_PREFIX) {
+    const name: string = clipped.slice(STATE_PREFIX.length).trim();
+
+    return name
+      ? { action: FromAnotherToolAction.MoveToState, given: name }
+      : { action: FromAnotherToolAction.None, given: "" };
+  }
   let word: string = "";
   let lastWasSpace: boolean = false;
 

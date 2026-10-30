@@ -81,7 +81,7 @@ const getFromAnotherToolDocumentation: GetFromAnotherToolDocumentationFunction =
             title: "What What Happened can say",
             paragraphs: [
               `open, problem, firing, triggered or created ${kind.opens} an ${n}. acknowledge or acknowledged acknowledges it. resolve, resolved, recovery, ok or closed resolves it. note, update or comment adds the **Note** as a private note.`,
-              `Anything else is read as the name of one of your ${n} states, and moves the ${n} there. Empty, nothing happens.`,
+              `Anything else is read as the name of one of your ${n} states, and moves the ${n} there. Empty, nothing happens. To name a state called like one of these words, write state: before its name, such as state: Open.`,
             ],
           },
           {

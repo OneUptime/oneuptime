@@ -170,9 +170,12 @@ describe("readWhatHappened", () => {
     ["resolved", FromAnotherToolAction.Resolve],
     ["Alerting", FromAnotherToolAction.Open],
     ["OK", FromAnotherToolAction.Resolve],
-  ])("reads the tools' own %p as %s", (word: string, action: FromAnotherToolAction) => {
-    expect(readWhatHappened(word).action).toBe(action);
-  });
+  ])(
+    "reads the tools' own %p as %s",
+    (word: string, action: FromAnotherToolAction) => {
+      expect(readWhatHappened(word).action).toBe(action);
+    },
+  );
 
   test("reads any case, and spaces, dashes and underscores between words as one", () => {
     for (const word of [
@@ -203,6 +206,35 @@ describe("readWhatHappened", () => {
     expect(readWhatHappened(1)).toEqual({
       action: FromAnotherToolAction.MoveToState,
       given: "1",
+    });
+  });
+
+  test.each([
+    ["state: Open", "Open"],
+    ["State:Resolved", "Resolved"],
+    ["STATE:  In Review  ", "In Review"],
+    ["state: note", "note"],
+  ])(
+    "%p names a state, even one called like an action",
+    (value: string, name: string) => {
+      expect(readWhatHappened(value)).toEqual({
+        action: FromAnotherToolAction.MoveToState,
+        given: name,
+      });
+    },
+  );
+
+  test.each(["state:", "state:   "])(
+    "%p names no state: nothing to do",
+    (value: string) => {
+      expect(readWhatHappened(value).action).toBe(FromAnotherToolAction.None);
+    },
+  );
+
+  test("a word that only starts like it is no state's form: statement is a state's name as written", () => {
+    expect(readWhatHappened("statement")).toEqual({
+      action: FromAnotherToolAction.MoveToState,
+      given: "statement",
     });
   });
 
@@ -244,9 +276,7 @@ describe("readOutsideIdField and readOutsideId", () => {
  * three) name it, without a step to read the severities first.
  */
 describe("pickSeverityIndex", () => {
-  const named: (
-    names: Array<string>,
-  ) => Array<{ id: string; name: string }> = (
+  const named: (names: Array<string>) => Array<{ id: string; name: string }> = (
     names: Array<string>,
   ): Array<{ id: string; name: string }> => {
     return names.map((name: string, index: number) => {
@@ -382,9 +412,12 @@ describe("readCustomFields", () => {
     });
   });
 
-  test.each([undefined, null, "", "   "])("%p is no fields", (value: unknown) => {
-    expect(readCustomFields(value)).toEqual({ fields: {} });
-  });
+  test.each([undefined, null, "", "   "])(
+    "%p is no fields",
+    (value: unknown) => {
+      expect(readCustomFields(value)).toEqual({ fields: {} });
+    },
+  );
 
   test.each([["[1]"], ["7"], ["not json"], [[{ a: 1 }]], [5], [true]])(
     "%p is refused",
@@ -396,7 +429,11 @@ describe("readCustomFields", () => {
 
 describe("the steps' metadata", () => {
   test.each([
-    [ComponentID.IncidentFromAnotherTool, "Incident From Another Tool", "Opened"],
+    [
+      ComponentID.IncidentFromAnotherTool,
+      "Incident From Another Tool",
+      "Opened",
+    ],
     [ComponentID.AlertFromAnotherTool, "Alert From Another Tool", "Created"],
   ])(
     "%s is %s, with its four outputs",
@@ -551,7 +588,11 @@ describe("Incident From Another Tool", () => {
     });
 
     test("keeps the ID in externalId when no field is named", async () => {
-      await run({ "what-happened": "open", "outside-id": "a-1", title: "Down" });
+      await run({
+        "what-happened": "open",
+        "outside-id": "a-1",
+        title: "Down",
+      });
 
       expect(project.records.creates()[0]!["customFields"]).toEqual({
         externalId: "a-1",
@@ -839,6 +880,35 @@ describe("Incident From Another Tool", () => {
 
       expect(result.executePortReason).toBe("Moved INC-1 to Monitoring.");
       expect(project.stateOf(existing)).toBe("Monitoring");
+    });
+
+    test("a state called like an action is moved to by state: and its name", async () => {
+      project = makeFakeProject({
+        spec: INCIDENT_SPEC,
+        states: [
+          { name: "Identified", order: 1 },
+          { name: "Open", order: 2 },
+          { name: "Resolved", order: 3, isResolvedState: true },
+        ],
+      });
+      step = new RecordFromAnotherTool({
+        kind: INCIDENT_FROM_ANOTHER_TOOL,
+        services: project.services,
+        model: project.model,
+      });
+      const existing: BaseModel = addRecord({
+        project,
+        spec: INCIDENT_SPEC,
+        customFields: { externalId: "7" },
+      });
+
+      const { result } = await run({
+        "what-happened": "state: Open",
+        "outside-id": "7",
+      });
+
+      expect(result.executePortReason).toBe("Moved INC-1 to Open.");
+      expect(project.stateOf(existing)).toBe("Open");
     });
 
     test.each([

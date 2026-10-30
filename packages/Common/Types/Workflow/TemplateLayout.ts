@@ -58,7 +58,9 @@ const TRIGGER_OUTPUTS: Array<Port> = [
 const DATABASE_TRIGGER_ID: RegExp =
   /-on-(?:create|update|delete|create-or-update)$/;
 
-export type GetTemplateCardOutputsFunction = (metadataId: string) => Array<Port>;
+export type GetTemplateCardOutputsFunction = (
+  metadataId: string,
+) => Array<Port>;
 
 /*
  * A step's outputs, in the order its card draws them. A built-in step's are

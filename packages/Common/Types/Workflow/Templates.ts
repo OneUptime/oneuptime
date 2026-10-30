@@ -28,12 +28,7 @@ import ComponentID from "./ComponentID";
 import { ComponentType, NodeType } from "./Component";
 import { ConditionOperator, ConditionValueType } from "./Components/Condition";
 import { MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN } from "./Components/Mattermost";
-import {
-  PAGE_ARGUMENT_IDS,
-  PAGE_ERROR_PORT_ID,
-  PAGE_SUCCESS_PORT_ID,
-  PageAbout,
-} from "./Components/OnCallPageSettings";
+import { PAGE_ARGUMENT_IDS, PageAbout } from "./Components/OnCallPageSettings";
 import { SWITCH_DEFAULT_PORT_ID } from "./Components/Switch";
 import { HuntressTriggerValue } from "./HuntressTrigger";
 import { PageStepTarget, getPageStepTarget } from "./Components/OnCall";
@@ -42,8 +37,10 @@ import {
   FROM_ANOTHER_TOOL_ARGUMENT_IDS,
   FROM_ANOTHER_TOOL_PORT_IDS,
   FROM_ANOTHER_TOOL_RETURN_VALUE_IDS,
+  FromAnotherToolAction,
 } from "./Components/FromAnotherTool";
 import { JAVASCRIPT_CHECK_PORT_IDS } from "./Components/JavaScriptCheck";
+import { API_GET_BY_ID_PLACEHOLDER } from "./Components/ApiGetById";
 import {
   ZABBIX_ACTION_ACKNOWLEDGE,
   ZABBIX_ACTION_CLOSE,
@@ -510,6 +507,46 @@ export const buildTemplateGraph: BuildTemplateGraphFunction = (
 };
 
 type TemplateDefinition = WorkflowTemplate & { graph: TemplateGraphSpec };
+
+type ColumnGraphFunction = (
+  steps: Array<TemplateColumnStep>,
+) => TemplateGraphSpec;
+
+/*
+ * A template's steps, one under the other, in the order they run, each
+ * connected from the output of the step above it that `from` names
+ * (TemplateLayout.layOutTemplateColumn). Every template is four or five
+ * steps at most, trigger included (Templates.test.ts holds them to it).
+ */
+const columnGraph: ColumnGraphFunction = (
+  steps: Array<TemplateColumnStep>,
+): TemplateGraphSpec => {
+  const column: TemplateColumn = layOutTemplateColumn(steps);
+
+  return { nodes: column.nodes, edges: column.edges };
+};
+
+type FromAnotherToolStepIdFunction = (kind: TemplateRecordKind) => string;
+
+/*
+ * The From Another Tool step's id in a template: the id the Builder gives
+ * the first one added, "incident-from-another-tool-1".
+ */
+const fromAnotherToolStepId: FromAnotherToolStepIdFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return `${kind.noun}-from-another-tool-1`;
+};
+
+type FromAnotherToolMetadataIdFunction = (kind: TemplateRecordKind) => string;
+
+const fromAnotherToolMetadataId: FromAnotherToolMetadataIdFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return kind.noun === ALERT_KIND.noun
+    ? ComponentID.AlertFromAnotherTool
+    : ComponentID.IncidentFromAnotherTool;
+};
 
 /*
  * Shared variable definitions. Several templates ask for the same thing, and
@@ -1632,7 +1669,9 @@ return {
 
 /*
  * Jira -> OneUptime: turns a jira:issue_created webhook into the fields of a
- * new record, choosing a severity from the issue's priority.
+ * new record, choosing where its severity sits among the project's from the
+ * issue's priority - read beside the issue as Jira has it now (get-issue-1),
+ * whose labels decide whether it is linked already.
  */
 const jiraPrepareRecordScript: JiraKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -1643,10 +1682,11 @@ const jiraPrepareRecordScript: JiraKindScriptFunction = (
     kind,
     String.raw`
 // Turns a Jira "issue created" event into a OneUptime ${r}.
-// Jira priority to OneUptime severity: 0 is your most severe severity and 2 your
-// least, with the ones in between spread across the range. Priorities that are
-// not listed land in the middle.
+// Jira priority to OneUptime severity, by where it sits among your ${r} severities: 0 is your
+// most severe, 1 the middle one and 2 your least severe. Priorities that are not listed land in
+// the middle.
 const PRIORITY_RANK = { highest: 0, blocker: 0, critical: 0, high: 0, major: 1, medium: 1, low: 2, minor: 2, lowest: 2, trivial: 2 };
+const PLACES = ['most severe', 'middle', 'least severe'];
 
 const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
@@ -1664,16 +1704,17 @@ if (isLinked(fields.labels)) {
   return skip('Jira issue ' + issueKey + ' is already linked to OneUptime, so no ${r} was ${kind.created}.');
 }
 
-const found = readJson(args.severities);
-const severities = (Array.isArray(found) ? found : [])
-  .filter((severity) => severity && asText(severity._id))
-  .sort((a, b) => Number(a.order) - Number(b.order));
-if (!severities.length) return skip('This project has no ${r} severities to choose from.');
+// The webhook's word is not taken for whether the issue is linked: anyone holding this
+// workflow's URL can describe any issue. The issue as Jira has it now decides.
+const current = readJson(args.issue) || {};
+if (!ISSUE_KEY.test(asText(current.key))) return skip('Jira did not return the issue, so no ${r} was ${kind.created}.');
+if (isLinked(current.fields && current.fields.labels)) {
+  return skip('Jira issue ' + issueKey + ' is already linked to OneUptime, so no ${r} was ${kind.created}.');
+}
 
 const priority = fields.priority ? oneLine(fields.priority.name) : '';
 const rankValue = PRIORITY_RANK[priority.toLowerCase()];
 const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
-const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
 // What Jira users wrote - the summary, the priority's and the reporter's names, the description -
 // is placed as written (asWritten). The link to the issue is the template's own, on the site the
@@ -1688,8 +1729,7 @@ if (description) lines.push('', asWritten(description));
 return {
   proceed: true,
   issueKey: issueKey,
-  severityName: oneLine(severity.name),
-  ${kind.severityIdColumn}: asText(severity._id),
+  severity: PLACES[rank],
   title: limit(defuse(asWritten(oneLine(fields.summary)) || 'Jira issue ' + issueKey), 500),
   description: limit(defuse(lines.join('\n')), 20000),
 };
@@ -1698,32 +1738,11 @@ return {
 };
 
 /*
- * Jira -> OneUptime: the create template's second look at the issue, this
- * time as Jira has it rather than as the webhook described it.
- */
-const jiraConfirmUnlinkedScript: JiraKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  return jiraScript(
-    kind,
-    String.raw`
-// Checks the issue as Jira has it now, not as the webhook described it: anyone with
-// this workflow's URL can describe any issue, and a delivery Jira retries arrives
-// after the first one has already labelled the issue.
-const issue = readJson(args.issue) || {};
-const issueKey = asText(issue.key);
-if (!ISSUE_KEY.test(issueKey)) return skip('Jira did not return the issue, so no ${kind.noun} was ${kind.created}.');
-if (isLinked(issue.fields && issue.fields.labels)) {
-  return skip('Jira issue ' + issueKey + ' is already linked to OneUptime, so no ${kind.noun} was ${kind.created}.');
-}
-return { proceed: true, issueKey: issueKey };
-`,
-  );
-};
-
-/*
  * Jira -> OneUptime: keeps a jira:issue_updated webhook only when the issue's
- * status moved and the issue is linked to a record of this kind.
+ * status moved and the issue is linked to a record of this kind, and says
+ * what the move means for the record: a state's name, or acknowledge or
+ * resolve by the status's category. Incident or Alert From Another Tool
+ * moves the record, and only ever forward.
  */
 const jiraReadStatusChangeScript: JiraKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -1734,6 +1753,15 @@ const jiraReadStatusChangeScript: JiraKindScriptFunction = (
     kind,
     String.raw`
 // Reads a Jira "issue updated" event and keeps it only if the issue's status moved.
+// To map one Jira status to one ${r} state by name, list it here, for example
+// { 'In Review': 'Monitoring' }. Names listed here win over the categories below.
+const JIRA_STATUS_TO_STATE = {};
+// Otherwise the status category decides: In Progress acknowledges the ${r} and
+// Done resolves it. To Do maps to nothing, because an ${r} never moves backwards.
+const CATEGORY_TO_STATE_FLAG = { indeterminate: 'isAcknowledgedState', done: 'isResolvedState' };
+// What the next step does for each flag: moves the ${r} to the first state flagged so.
+const FLAG_TO_WHAT_HAPPENED = { isAcknowledgedState: 'acknowledge', isResolvedState: 'resolve' };
+
 const payload = readJson(args) || {};
 const event = asText(payload.webhookEvent);
 const issue = payload.issue || {};
@@ -1755,76 +1783,26 @@ if (!${r}Id) {
   return skip('Jira issue ' + issueKey + ' is not linked to an ${r}: it has no ' + ${kind.upper}_LABEL_PREFIX + '<id> label.');
 }
 
+// Names are Jira users' text: the status's, and whoever moved the issue.
 const status = fields.status || {};
+const statusName = defuse(oneLine(status.name));
+const jiraStatus = statusName || 'a new status';
+const named = oneLine(JIRA_STATUS_TO_STATE[statusName]);
+const category = status.statusCategory ? asText(status.statusCategory.key) : '';
+const whatHappened = named ? 'state: ' + named : asText(FLAG_TO_WHAT_HAPPENED[asText(CATEGORY_TO_STATE_FLAG[category])]);
+if (!whatHappened) {
+  return skip('Jira issue ' + issueKey + ' moved to ' + jiraStatus + ', which does not map to a OneUptime state.');
+}
+
+// Why, on the ${r}'s timeline. The status's name and the name of whoever moved the issue are
+// Jira's text, placed as written (asWritten).
+const changedBy = oneLine(defuse(oneLine(displayName(payload.user))));
 return {
   proceed: true,
   ${r}Id: ${r}Id,
   issueKey: issueKey,
-  // Names are Jira users' text, and the next script receives them quoted into its arguments.
-  jiraStatus: defuse(oneLine(status.name)),
-  jiraStatusCategory: status.statusCategory ? asText(status.statusCategory.key) : '',
-  changedBy: defuse(oneLine(displayName(payload.user))),
-};
-`,
-  );
-};
-
-/*
- * Jira -> OneUptime: maps the issue's new status onto a record state, and
- * only ever moves the record forward.
- */
-const jiraDecideStateScript: JiraKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  const r: string = kind.noun;
-
-  return jiraScript(
-    kind,
-    String.raw`
-// Maps the Jira issue's new status onto a OneUptime ${r} state.
-// To map one Jira status to one state by name, list it here, for example
-// { 'In Review': 'Monitoring' }. Names listed here win over the categories below.
-const JIRA_STATUS_TO_STATE = {};
-// Otherwise the status category decides: In Progress acknowledges the ${r} and
-// Done resolves it. To Do maps to nothing, because an ${r} never moves backwards.
-const CATEGORY_TO_STATE_FLAG = { indeterminate: 'isAcknowledgedState', done: 'isResolvedState' };
-
-const event = readJson(args.event) || {};
-const ${r} = readJson(args.${r});
-const states = readJson(args.states);
-if (!${r} || !asText(${r}._id)) {
-  return skip('No ${r} with id ' + asText(event.${r}Id) + ' exists in this project.');
-}
-
-const number = numbered(${r}.${kind.numberField}) || 'The ${r}';
-const jiraStatus = asText(event.jiraStatus) || 'a new status';
-const list = Array.isArray(states) ? states : [];
-const wantedName = oneLine(JIRA_STATUS_TO_STATE[asText(event.jiraStatus)]).toLowerCase();
-const flag = asText(CATEGORY_TO_STATE_FLAG[asText(event.jiraStatusCategory)]);
-const target = wantedName
-  ? list.find((state) => state && oneLine(state.name).toLowerCase() === wantedName)
-  : flag ? list.find((state) => state && state[flag] === true) : null;
-if (!target) {
-  return skip('Jira issue ' + asText(event.issueKey) + ' moved to ' + jiraStatus + ', which does not map to a OneUptime state.');
-}
-
-// An ${r} only moves forward, so an earlier or equal state changes nothing. This
-// is also what settles the echo after the OneUptime-to-Jira template moved the issue.
-const current = ${r}.${kind.stateRelation} || {};
-if (Number(target.order) <= Number(current.order)) {
-  return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Jira issue ' + asText(event.issueKey) + ' moving to ' + jiraStatus + ' changes nothing.');
-}
-
-// The status's name and the name of whoever moved the issue are Jira's text, placed as written
-// (asWritten). The issue key matched ISSUE_KEY when the event was read; it is placed here too, so
-// this step stays safe if that check is ever changed.
-const changedBy = oneLine(event.changedBy);
-return {
-  proceed: true,
-  ${r}Id: asText(${r}._id),
-  stateId: asText(target._id),
-  stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asWritten(asText(event.issueKey)) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
+  whatHappened: whatHappened,
+  reason: limit(defuse(FROM_JIRA + ': issue ' + asWritten(issueKey) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
@@ -1832,11 +1810,15 @@ return {
 
 /*
  * Jira -> OneUptime: turns a comment_created webhook into the text of a
- * private note.
+ * private note, on the record the issue is linked to. Comment webhooks
+ * carry the issue's summary and status but not its labels, so the template
+ * reads the issue first (get-issue-1), and the link comes from there.
  */
 const jiraReadCommentScript: JiraKindScriptFunction = (
   kind: TemplateRecordKind,
 ): string => {
+  const r: string = kind.noun;
+
   return jiraScript(
     kind,
     String.raw`
@@ -1863,39 +1845,22 @@ if (body.indexOf(FROM_ONEUPTIME) !== -1) {
   return skip('This comment was posted by OneUptime, so it was not copied back.');
 }
 
+// The ${r} the issue is linked to, from its ${kind.labelPrefix}<id> label, as Jira has it now.
+const current = readJson(args.issue) || {};
+const ${r}Id = ${r}IdFromLabels(current.fields && current.fields.labels);
+if (!${r}Id) {
+  return skip('Jira issue ' + issueKey + ' is not linked to an ${r}: it has no ' + ${kind.upper}_LABEL_PREFIX + '<id> label.');
+}
+
 // The author's name and the comment are Jira users' text, placed as written (asWritten). The link
 // to the issue is the template's own, on the site the workflow's Jira Site URL names.
 const author = asWritten(oneLine(displayName(comment.author))) || 'Someone';
 return {
   proceed: true,
+  ${r}Id: ${r}Id,
   issueKey: issueKey,
   note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + asWritten(body)), 30000),
 };
-`,
-  );
-};
-
-/*
- * Jira -> OneUptime: comment webhooks carry the issue's summary and status but
- * not its labels, so the comment template fetches the issue and reads the
- * link from the response.
- */
-const jiraFindLinkedRecordScript: JiraKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  const r: string = kind.noun;
-
-  return jiraScript(
-    kind,
-    String.raw`
-// Finds the ${r} a Jira issue is linked to, from its ${kind.labelPrefix}<id> label.
-const comment = readJson(args.comment) || {};
-const issue = readJson(args.issue) || {};
-const ${r}Id = ${r}IdFromLabels(issue.fields && issue.fields.labels);
-if (!${r}Id) {
-  return skip('Jira issue ' + asText(comment.issueKey) + ' is not linked to an ${r}: it has no ' + ${kind.upper}_LABEL_PREFIX + '<id> label.');
-}
-return { proceed: true, ${r}Id: ${r}Id };
 `,
   );
 };
@@ -1972,21 +1937,6 @@ return {
   );
 };
 
-type ProceedConditionFunction = (componentId: string) => JSONObject;
-
-/** The If / Else every Jira template uses to act on a script's decision. */
-const proceedCondition: ProceedConditionFunction = (
-  componentId: string,
-): JSONObject => {
-  return {
-    "input-1-type": ConditionValueType.Boolean,
-    "input-1": `{{local.components.${componentId}.returnValues.returnValue.proceed}}`,
-    operator: ConditionOperator.EqualTo,
-    "input-2-type": ConditionValueType.Boolean,
-    "input-2": true,
-  };
-};
-
 type JiraLinkingEventArgumentsFunction = (before?: JSONObject) => string;
 
 /*
@@ -2032,158 +1982,72 @@ const jiraCreateIssueTemplate: JiraTemplateFunction = (
       JIRA_ISSUE_TYPE,
       oneUptimeUrlVariable(kind, "the Jira issue"),
     ],
-    graph: {
-      nodes: [
-        {
-          componentId: trigger,
-          metadataId: `${r}-on-create`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            select: {
-              _id: true,
-              projectId: true,
-              title: true,
-              description: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              customFields: true,
-              rootCause: true,
-              remediationNotes: true,
-              [kind.severityRelation]: { name: true },
-              [kind.stateRelation]: { name: true },
+    graph: columnGraph([
+      {
+        componentId: trigger,
+        metadataId: `${r}-on-create`,
+        componentType: ComponentType.Trigger,
+        args: {
+          select: {
+            _id: true,
+            projectId: true,
+            title: true,
+            description: true,
+            [kind.numberField]: true,
+            isPrivate: true,
+            customFields: true,
+            rootCause: true,
+            remediationNotes: true,
+            [kind.severityRelation]: { name: true },
+            [kind.stateRelation]: { name: true },
+          },
+        },
+      },
+      {
+        componentId: "prepare-issue-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: jiraPrepareIssueScript(kind),
+          arguments: jsonText({
+            oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
+            [r]: `{{local.components.${trigger}.returnValues.model}}`,
+          }),
+        },
+      },
+      {
+        componentId: "create-issue-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue",
+          "request-headers": jiraHeaders(),
+          "request-body": jsonText({
+            fields: {
+              project: { key: "{{local.variables.jiraProjectKey}}" },
+              issuetype: { name: "{{local.variables.jiraIssueType}}" },
+              summary:
+                "{{local.components.prepare-issue-1.returnValues.returnValue.summary}}",
+              labels: [
+                JIRA_LINK_LABEL,
+                `{{local.components.prepare-issue-1.returnValues.returnValue.${r}Label}}`,
+              ],
+              description: adfDocument([
+                adfParagraph(
+                  "{{local.components.prepare-issue-1.returnValues.returnValue.description}}",
+                ),
+                adfParagraph(
+                  `Open this ${r} in OneUptime`,
+                  `{{local.components.prepare-issue-1.returnValues.returnValue.${r}Url}}`,
+                ),
+              ]),
             },
-          },
+          }),
         },
-        {
-          componentId: "prepare-issue-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: jiraPrepareIssueScript(kind),
-            arguments: jsonText({
-              oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
-              [r]: `{{local.components.${trigger}.returnValues.model}}`,
-            }),
-          },
-        },
-        {
-          componentId: "log-prepare-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not prepare the Jira issue: {{local.components.prepare-issue-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-create-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("prepare-issue-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.prepare-issue-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "create-issue-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue",
-            "request-headers": jiraHeaders(),
-            "request-body": jsonText({
-              fields: {
-                project: { key: "{{local.variables.jiraProjectKey}}" },
-                issuetype: { name: "{{local.variables.jiraIssueType}}" },
-                summary:
-                  "{{local.components.prepare-issue-1.returnValues.returnValue.summary}}",
-                labels: [
-                  JIRA_LINK_LABEL,
-                  `{{local.components.prepare-issue-1.returnValues.returnValue.${r}Label}}`,
-                ],
-                description: adfDocument([
-                  adfParagraph(
-                    "{{local.components.prepare-issue-1.returnValues.returnValue.description}}",
-                  ),
-                  adfParagraph(
-                    `Open this ${r} in OneUptime`,
-                    `{{local.components.prepare-issue-1.returnValues.returnValue.${r}Url}}`,
-                  ),
-                ]),
-              },
-            }),
-          },
-        },
-        {
-          componentId: "log-created",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            value: `✅ Created Jira issue {{local.components.create-issue-1.returnValues.response-body.key}} for {{local.components.${trigger}.returnValues.model.${kind.numberField}}}.`,
-          },
-        },
-        {
-          componentId: "log-create-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value:
-              "❌ Jira did not create the issue: {{local.components.create-issue-1.returnValues.error}}\nJira said: {{local.components.create-issue-1.returnValues.response-body}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: trigger,
-          toComponentId: "prepare-issue-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "prepare-issue-1",
-          toComponentId: "if-create-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "prepare-issue-1",
-          toComponentId: "log-prepare-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-create-1",
-          toComponentId: "create-issue-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-create-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "create-issue-1",
-          toComponentId: "log-created",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "create-issue-1",
-          toComponentId: "log-create-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
@@ -2204,181 +2068,75 @@ const jiraTransitionIssueTemplate: JiraTemplateFunction = (
     workflowName: `Sync ${r} state to Jira`,
     workflowDescription: `Transitions the linked Jira issue when the ${r}'s state changes. Edit the script to map custom states to Jira statuses.`,
     variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: trigger,
-          metadataId: `${r}-on-update`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            "listen-on": { [kind.stateIdColumn]: true },
-            select: {
-              _id: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              [kind.stateRelation]: {
-                name: true,
-                isAcknowledgedState: true,
-                isResolvedState: true,
-              },
+    graph: columnGraph([
+      {
+        componentId: trigger,
+        metadataId: `${r}-on-update`,
+        componentType: ComponentType.Trigger,
+        args: {
+          "listen-on": { [kind.stateIdColumn]: true },
+          select: {
+            _id: true,
+            [kind.numberField]: true,
+            isPrivate: true,
+            [kind.stateRelation]: {
+              name: true,
+              isAcknowledgedState: true,
+              isResolvedState: true,
             },
           },
         },
-        {
-          componentId: "find-issue-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/search/jql",
-            "request-headers": jiraHeaders(),
-            /*
-             * Asking for the transitions here saves a call: the search
-             * returns the ones available from the issue's current status.
-             */
-            "request-body": jiraSearchBody({
-              kind: kind,
-              idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
-              fields: ["key", "status"],
-              expandTransitions: true,
-            }),
-          },
+      },
+      {
+        componentId: "find-issue-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/search/jql",
+          "request-headers": jiraHeaders(),
+          /*
+           * Asking for the transitions here saves a call: the search
+           * returns the ones available from the issue's current status.
+           */
+          "request-body": jiraSearchBody({
+            kind: kind,
+            idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
+            fields: ["key", "status"],
+            expandTransitions: true,
+          }),
         },
-        {
-          componentId: "log-find-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not search Jira for the ${r}'s issue: {{local.components.find-issue-1.returnValues.error}}\nJira said: {{local.components.find-issue-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        componentId: "plan-transition-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: jiraPlanTransitionScript(kind),
+          arguments: jsonText({
+            [r]: `{{local.components.${trigger}.returnValues.model}}`,
+            search:
+              "{{local.components.find-issue-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "plan-transition-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: jiraPlanTransitionScript(kind),
-            arguments: jsonText({
-              [r]: `{{local.components.${trigger}.returnValues.model}}`,
-              search:
-                "{{local.components.find-issue-1.returnValues.response-body}}",
-            }),
-          },
+      },
+      {
+        componentId: "transition-issue-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.plan-transition-1.returnValues.returnValue.issueKey}}/transitions",
+          "request-headers": jiraHeaders(),
+          "request-body": jsonText({
+            transition: {
+              id: "{{local.components.plan-transition-1.returnValues.returnValue.transitionId}}",
+            },
+          }),
         },
-        {
-          componentId: "log-plan-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value:
-              "❌ Could not choose a Jira transition: {{local.components.plan-transition-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-transition-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: proceedCondition("plan-transition-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: {
-            value:
-              "ℹ️ {{local.components.plan-transition-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "transition-issue-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.plan-transition-1.returnValues.returnValue.issueKey}}/transitions",
-            "request-headers": jiraHeaders(),
-            "request-body": jsonText({
-              transition: {
-                id: "{{local.components.plan-transition-1.returnValues.returnValue.transitionId}}",
-              },
-            }),
-          },
-        },
-        {
-          componentId: "log-transitioned",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            value:
-              "✅ Moved Jira issue {{local.components.plan-transition-1.returnValues.returnValue.issueKey}} to {{local.components.plan-transition-1.returnValues.returnValue.jiraStatus}}. {{local.components.plan-transition-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "log-transition-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Jira did not move the issue: {{local.components.transition-issue-1.returnValues.error}}\nJira said: {{local.components.transition-issue-1.returnValues.response-body}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: trigger,
-          toComponentId: "find-issue-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-issue-1",
-          toComponentId: "plan-transition-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-issue-1",
-          toComponentId: "log-find-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "plan-transition-1",
-          toComponentId: "if-transition-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "plan-transition-1",
-          toComponentId: "log-plan-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-transition-1",
-          toComponentId: "transition-issue-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-transition-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "transition-issue-1",
-          toComponentId: "log-transitioned",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "transition-issue-1",
-          toComponentId: "log-transition-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
@@ -2433,168 +2191,62 @@ const jiraNoteToCommentTemplate: JiraNoteToCommentTemplateFunction = (props: {
     workflowName: `Copy ${r} ${props.visibility} notes to Jira`,
     workflowDescription: props.workflowDescription,
     variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "note-on-create-1",
-          metadataId: props.triggerMetadataId,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            select: {
-              _id: true,
-              note: true,
-              [kind.idColumn]: true,
-              [r]: { [kind.numberField]: true, isPrivate: true },
-              createdByUser: { name: true },
-            },
+    graph: columnGraph([
+      {
+        componentId: "note-on-create-1",
+        metadataId: props.triggerMetadataId,
+        componentType: ComponentType.Trigger,
+        args: {
+          select: {
+            _id: true,
+            note: true,
+            [kind.idColumn]: true,
+            [r]: { [kind.numberField]: true, isPrivate: true },
+            createdByUser: { name: true },
           },
         },
-        {
-          componentId: "find-issue-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/search/jql",
-            "request-headers": jiraHeaders(),
-            "request-body": jiraSearchBody({
-              kind: kind,
-              idReference: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
-              fields: ["key", "summary"],
-            }),
-          },
+      },
+      {
+        componentId: "find-issue-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/search/jql",
+          "request-headers": jiraHeaders(),
+          "request-body": jiraSearchBody({
+            kind: kind,
+            idReference: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
+            fields: ["key", "summary"],
+          }),
         },
-        {
-          componentId: "log-find-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not search Jira for the ${r}'s issue: {{local.components.find-issue-1.returnValues.error}}\nJira said: {{local.components.find-issue-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        componentId: "build-comment-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: jiraNoteCommentScript(kind, noteKind),
+          arguments: jsonText({
+            note: "{{local.components.note-on-create-1.returnValues.model}}",
+            search:
+              "{{local.components.find-issue-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "build-comment-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: jiraNoteCommentScript(kind, noteKind),
-            arguments: jsonText({
-              note: "{{local.components.note-on-create-1.returnValues.model}}",
-              search:
-                "{{local.components.find-issue-1.returnValues.response-body}}",
-            }),
-          },
+      },
+      {
+        componentId: "post-comment-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.build-comment-1.returnValues.returnValue.issueKey}}/comment",
+          "request-headers": jiraHeaders(),
+          "request-body": jsonText(commentBody),
         },
-        {
-          componentId: "log-build-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value:
-              "❌ Could not write the Jira comment: {{local.components.build-comment-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-post-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: proceedCondition("build-comment-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: {
-            value:
-              "ℹ️ {{local.components.build-comment-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "post-comment-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.build-comment-1.returnValues.returnValue.issueKey}}/comment",
-            "request-headers": jiraHeaders(),
-            "request-body": jsonText(commentBody),
-          },
-        },
-        {
-          componentId: "log-posted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            value:
-              "✅ Posted the note to Jira issue {{local.components.build-comment-1.returnValues.returnValue.issueKey}}.",
-          },
-        },
-        {
-          componentId: "log-post-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Jira did not accept the comment: {{local.components.post-comment-1.returnValues.error}}\nJira said: {{local.components.post-comment-1.returnValues.response-body}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "note-on-create-1",
-          toComponentId: "find-issue-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-issue-1",
-          toComponentId: "build-comment-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-issue-1",
-          toComponentId: "log-find-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "build-comment-1",
-          toComponentId: "if-post-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "build-comment-1",
-          toComponentId: "log-build-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "post-comment-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "post-comment-1",
-          toComponentId: "log-posted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "post-comment-1",
-          toComponentId: "log-post-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
@@ -2643,205 +2295,123 @@ const jiraUpdateCommentTemplate: JiraTemplateFunction = (
     workflowName: `Comment on Jira when ${r} changes`,
     workflowDescription: `When the ${r}'s ${kind.editedFieldsText} are edited, posts how the ${r} now stands to its linked Jira issue. Saving the ${r}'s details form counts, even when it only changed labels or the Private setting. State changes are left to the transition template.`,
     variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: trigger,
-          metadataId: `${r}-on-update`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            /*
-             * State changes are left out on purpose: the transition
-             * template handles those, and a comment for each would
-             * double up.
-             */
-            "listen-on": kind.editListenOn,
-            select: {
-              _id: true,
-              title: true,
-              description: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              rootCause: true,
-              remediationNotes: true,
-              [kind.severityRelation]: { name: true },
-              [kind.stateRelation]: { name: true },
-            },
+    graph: columnGraph([
+      {
+        componentId: trigger,
+        metadataId: `${r}-on-update`,
+        componentType: ComponentType.Trigger,
+        args: {
+          /*
+           * State changes are left out on purpose: the transition
+           * template handles those, and a comment for each would
+           * double up.
+           */
+          "listen-on": kind.editListenOn,
+          select: {
+            _id: true,
+            title: true,
+            description: true,
+            [kind.numberField]: true,
+            isPrivate: true,
+            rootCause: true,
+            remediationNotes: true,
+            [kind.severityRelation]: { name: true },
+            [kind.stateRelation]: { name: true },
           },
         },
-        {
-          componentId: "find-issue-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/search/jql",
-            "request-headers": jiraHeaders(),
-            "request-body": jiraSearchBody({
-              kind: kind,
-              idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
-              fields: ["key", "summary"],
-            }),
-          },
+      },
+      {
+        componentId: "find-issue-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/search/jql",
+          "request-headers": jiraHeaders(),
+          "request-body": jiraSearchBody({
+            kind: kind,
+            idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
+            fields: ["key", "summary"],
+          }),
         },
-        {
-          componentId: "log-find-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not search Jira for the ${r}'s issue: {{local.components.find-issue-1.returnValues.error}}\nJira said: {{local.components.find-issue-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        componentId: "build-comment-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: jiraUpdateCommentScript(kind),
+          arguments: jsonText({
+            [r]: `{{local.components.${trigger}.returnValues.model}}`,
+            search:
+              "{{local.components.find-issue-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "build-comment-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: jiraUpdateCommentScript(kind),
-            arguments: jsonText({
-              [r]: `{{local.components.${trigger}.returnValues.model}}`,
-              search:
-                "{{local.components.find-issue-1.returnValues.response-body}}",
-            }),
-          },
+      },
+      {
+        componentId: "post-comment-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.build-comment-1.returnValues.returnValue.issueKey}}/comment",
+          "request-headers": jiraHeaders(),
+          "request-body": jsonText({
+            body: adfDocument([
+              adfParagraph(
+                "{{local.components.build-comment-1.returnValues.returnValue.comment}}",
+              ),
+            ]),
+            // Root causes and remediation are for the team, not the customer.
+            properties: [JIRA_INTERNAL_COMMENT_PROPERTY],
+          }),
         },
-        {
-          componentId: "log-build-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value:
-              "❌ Could not write the Jira comment: {{local.components.build-comment-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-post-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: proceedCondition("build-comment-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: {
-            value:
-              "ℹ️ {{local.components.build-comment-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "post-comment-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.build-comment-1.returnValues.returnValue.issueKey}}/comment",
-            "request-headers": jiraHeaders(),
-            "request-body": jsonText({
-              body: adfDocument([
-                adfParagraph(
-                  "{{local.components.build-comment-1.returnValues.returnValue.comment}}",
-                ),
-              ]),
-              // Root causes and remediation are for the team, not the customer.
-              properties: [JIRA_INTERNAL_COMMENT_PROPERTY],
-            }),
-          },
-        },
-        {
-          componentId: "log-posted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            value: `✅ Posted the ${r}'s changes to Jira issue {{local.components.build-comment-1.returnValues.returnValue.issueKey}}.`,
-          },
-        },
-        {
-          componentId: "log-post-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Jira did not accept the comment: {{local.components.post-comment-1.returnValues.error}}\nJira said: {{local.components.post-comment-1.returnValues.response-body}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: trigger,
-          toComponentId: "find-issue-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-issue-1",
-          toComponentId: "build-comment-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-issue-1",
-          toComponentId: "log-find-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "build-comment-1",
-          toComponentId: "if-post-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "build-comment-1",
-          toComponentId: "log-build-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "post-comment-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "post-comment-1",
-          toComponentId: "log-posted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "post-comment-1",
-          toComponentId: "log-post-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
 /* ----------------------- Jira -> OneUptime ----------------------- */
 
+type FromAnotherToolArgsFunction = (values: JSONObject) => JSONObject;
+
+// Incident or Alert From Another Tool's settings, by their names in FROM_ANOTHER_TOOL_ARGUMENT_IDS.
+const fromAnotherToolArgs: FromAnotherToolArgsFunction = (
+  values: JSONObject,
+): JSONObject => {
+  const args: JSONObject = {};
+
+  for (const [key, value] of Object.entries(values)) {
+    const id: string | undefined = (
+      FROM_ANOTHER_TOOL_ARGUMENT_IDS as Record<string, string>
+    )[key];
+
+    if (!id) {
+      throw new Error(`From Another Tool has no setting ${key}.`);
+    }
+
+    args[id] = value;
+  }
+
+  return args;
+};
+
+/*
+ * Five steps: the Webhook Jira calls; the issue as Jira has it now, read by
+ * the key the event names (API Get By ID); the script that reads the event
+ * beside it and shapes the record; Incident or Alert From Another Tool,
+ * which opens it - once per issue key, whatever Jira sends again - and the
+ * request that labels the issue to link them.
+ */
 const jiraCreateRecordTemplate: JiraTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const prepare: string = `prepare-${r}-1`;
-  const create: string = `create-${r}-1`;
-
-  const createJson: JSONObject = {
-    [kind.severityIdColumn]: `{{local.components.${prepare}.returnValues.returnValue.${kind.severityIdColumn}}}`,
-    customFields: {
-      jiraIssueKey: `{{local.components.${prepare}.returnValues.returnValue.issueKey}}`,
-    },
-    ...kind.quietCreateFields,
-    title: `{{local.components.${prepare}.returnValues.returnValue.title}}`,
-    description: `{{local.components.${prepare}.returnValues.returnValue.description}}`,
+  const step: string = fromAnotherToolStepId(kind);
+  const prepared: (key: string) => string = (key: string): string => {
+    return `{{local.components.${prepare}.returnValues.returnValue.${key}}}`;
   };
 
   return {
@@ -2855,299 +2425,103 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
     workflowName: `${kind.Create} ${r} from Jira issue`,
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Jira issue created. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue created event. If you also create ${kind.otherPlural} from Jira, give the two webhooks JQL filters that never match the same issue, or each issue becomes both.`,
     variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        /*
+         * The webhook's word is not taken for whether the issue is already
+         * linked: anyone holding this workflow's URL can describe any issue,
+         * so the issue's labels are read from Jira. The key goes into the
+         * address only as a plain ID.
+         */
+        componentId: "get-issue-1",
+        metadataId: ComponentID.ApiGetById,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          url: `{{local.variables.jiraBaseUrl}}/rest/api/3/issue/${API_GET_BY_ID_PLACEHOLDER}?fields=labels`,
+          id: "{{local.components.webhook-1.returnValues.request-body.issue.key}}",
+          "request-headers": jiraHeaders(),
         },
-        {
-          componentId: "find-severities-1",
-          metadataId: `${r}-severity-find-many`,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            // Every row. Query cannot be left empty, so it asks for any id.
-            query: { _id: { _type: "NotNull", value: null } },
-            select: { _id: true, name: true, order: true },
-            limit: 50,
-          },
-        },
-        {
-          componentId: "log-severities-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not read this project's ${r} severities. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: prepare,
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: jiraPrepareRecordScript(kind),
-            /*
-             * The Jira payload goes last. Text Jira users wrote is only
-             * ever substituted after everything else in an argument.
-             */
-            arguments: jiraLinkingEventArguments({
-              severities:
-                "{{local.components.find-severities-1.returnValues.models}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-prepare-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value: `❌ Could not read the Jira event: {{local.components.${prepare}.returnValues.error}}`,
-          },
-        },
-        {
-          componentId: `if-${kind.create}-1`,
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: proceedCondition(prepare),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: {
-            value: `ℹ️ {{local.components.${prepare}.returnValues.returnValue.reason}}`,
-          },
-        },
-        {
+      },
+      {
+        componentId: prepare,
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: jiraPrepareRecordScript(kind),
           /*
-           * The webhook's word is not taken for whether the issue is already
-           * linked. Anyone holding this workflow's URL can describe any issue,
-           * and a delivery Jira retries arrives after the first one labelled
-           * the issue — so ask Jira what the labels are now.
+           * The Jira payload goes last. Text Jira users wrote is only ever
+           * substituted after everything else in an argument.
            */
-          componentId: "get-issue-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: `{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.${prepare}.returnValues.returnValue.issueKey}}?fields=labels`,
-            "request-headers": jiraHeaders(),
-          },
+          arguments: jiraLinkingEventArguments({
+            issue:
+              "{{local.components.get-issue-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "log-get-issue-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value: `❌ Could not read Jira issue {{local.components.${prepare}.returnValues.returnValue.issueKey}}, so no ${r} was ${kind.created}: {{local.components.get-issue-1.returnValues.error}}\nJira said: {{local.components.get-issue-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        /*
+         * customFields.jiraIssueKey is what stops the create-issue template
+         * filing this record back into Jira as a second issue, and what keeps
+         * an issue Jira sends again from opening a second record.
+         */
+        componentId: step,
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: FromAnotherToolAction.Open,
+          outsideId: prepared("issueKey"),
+          outsideIdField: "jiraIssueKey",
+          title: prepared("title"),
+          description: prepared("description"),
+          severity: prepared("severity"),
+        }),
+      },
+      {
+        componentId: "link-issue-1",
+        metadataId: ComponentID.ApiPut,
+        componentType: ComponentType.Component,
+        from: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+        args: {
+          url: `{{local.variables.jiraBaseUrl}}/rest/api/3/issue/${prepared("issueKey")}`,
+          "request-headers": jiraHeaders(),
+          "request-body": jsonText({
+            update: {
+              labels: [
+                { add: JIRA_LINK_LABEL },
+                {
+                  add: `${kind.labelPrefix}{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
+                },
+              ],
+            },
+          }),
         },
-        {
-          componentId: "confirm-unlinked-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            code: jiraConfirmUnlinkedScript(kind),
-            arguments: jsonText({
-              issue:
-                "{{local.components.get-issue-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-confirm-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1300 },
-          args: {
-            value:
-              "❌ Could not read the issue's labels: {{local.components.confirm-unlinked-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-unlinked-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1300 },
-          args: proceedCondition("confirm-unlinked-1"),
-        },
-        {
-          componentId: "log-already-linked",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1500 },
-          args: {
-            value:
-              "ℹ️ {{local.components.confirm-unlinked-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: create,
-          metadataId: `${r}-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1500 },
-          args: {
-            /*
-             * customFields.jiraIssueKey is what stops the create-issue
-             * template filing this record back into Jira as a second issue.
-             */
-            json: jsonText(createJson),
-          },
-        },
-        {
-          componentId: "log-create-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1700 },
-          args: {
-            value: `❌ Could not ${kind.create} the ${r} for Jira issue {{local.components.${prepare}.returnValues.returnValue.issueKey}}. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: "link-issue-1",
-          metadataId: ComponentID.ApiPut,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1700 },
-          args: {
-            url: `{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.${prepare}.returnValues.returnValue.issueKey}}`,
-            "request-headers": jiraHeaders(),
-            "request-body": jsonText({
-              update: {
-                labels: [
-                  { add: JIRA_LINK_LABEL },
-                  {
-                    add: `${kind.labelPrefix}{{local.components.${create}.returnValues.model._id}}`,
-                  },
-                ],
-              },
-            }),
-          },
-        },
-        {
-          componentId: "log-linked",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1900 },
-          args: {
-            value: `✅ ${kind.Created} an ${r} with severity {{local.components.${prepare}.returnValues.returnValue.severityName}} for Jira issue {{local.components.${prepare}.returnValues.returnValue.issueKey}}, and labelled the issue to link them.`,
-          },
-        },
-        {
-          componentId: "log-link-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1900 },
-          args: {
-            value: `⚠️ The ${r} was ${kind.created}, but Jira did not accept the link labels, so the other Jira templates cannot find it: {{local.components.link-issue-1.returnValues.error}}\nJira said: {{local.components.link-issue-1.returnValues.response-body}}`,
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "find-severities-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "find-severities-1",
-          toComponentId: prepare,
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-severities-1",
-          toComponentId: "log-severities-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: prepare,
-          toComponentId: `if-${kind.create}-1`,
-          fromPort: "success",
-        },
-        {
-          fromComponentId: prepare,
-          toComponentId: "log-prepare-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: `if-${kind.create}-1`,
-          toComponentId: "get-issue-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "get-issue-1",
-          toComponentId: "confirm-unlinked-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "get-issue-1",
-          toComponentId: "log-get-issue-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "confirm-unlinked-1",
-          toComponentId: "if-unlinked-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "confirm-unlinked-1",
-          toComponentId: "log-confirm-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-unlinked-1",
-          toComponentId: create,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-unlinked-1",
-          toComponentId: "log-already-linked",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: `if-${kind.create}-1`,
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: create,
-          toComponentId: "link-issue-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: create,
-          toComponentId: "log-create-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "link-issue-1",
-          toComponentId: "log-linked",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "link-issue-1",
-          toComponentId: "log-link-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
+/*
+ * Three steps: the Webhook Jira calls, the script that reads the status
+ * change and says what it means for the record, and Incident or Alert From
+ * Another Tool, which moves the record the issue is linked to - only ever
+ * forward, which also settles the echo after the OneUptime-to-Jira
+ * template moved the issue.
+ */
 const jiraStatusToStateTemplate: JiraTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
-  const find: string = `find-${r}-1`;
+  const read: (key: string) => string = (key: string): string => {
+    return `{{local.components.read-event-1.returnValues.returnValue.${key}}}`;
+  };
 
   return {
     id: `jira-status-to-${r}-state`,
@@ -3159,570 +2533,119 @@ const jiraStatusToStateTemplate: JiraTemplateFunction = (
     workflowName: `Sync Jira status to ${r}`,
     workflowDescription: `Changes the ${r}'s state when its linked Jira issue changes status. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue updated event.`,
     variables: [],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "read-event-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          code: jiraReadStatusChangeScript(kind),
+          arguments: "{{local.components.webhook-1.returnValues.request-body}}",
         },
-        {
-          componentId: "read-event-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: jiraReadStatusChangeScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
-          },
-        },
-        {
-          componentId: "log-read-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not read the Jira event: {{local.components.read-event-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-status-changed-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("read-event-1"),
-        },
-        {
-          componentId: "log-ignored",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: find,
-          metadataId: `${r}-find-one`,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            query: {
-              _id: `{{local.components.read-event-1.returnValues.returnValue.${r}Id}}`,
-            },
-            select: {
-              _id: true,
-              [kind.numberField]: true,
-              [kind.stateRelation]: { _id: true, name: true, order: true },
-            },
-          },
-        },
-        {
-          componentId: `log-find-${r}-failed`,
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: "find-states-1",
-          metadataId: `${r}-state-find-many`,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            // Every row. Query cannot be left empty, so it asks for any id.
-            query: { _id: { _type: "NotNull", value: null } },
-            select: {
-              _id: true,
-              name: true,
-              order: true,
-              isAcknowledgedState: true,
-              isResolvedState: true,
-            },
-            limit: 50,
-          },
-        },
-        {
-          componentId: "log-find-states-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value: `❌ Could not read this project's ${r} states. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: "decide-state-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            code: jiraDecideStateScript(kind),
-            /*
-             * The event goes last: its status and user names are Jira users'
-             * text, and text from the other system is only ever substituted
-             * after everything else in an argument.
-             */
-            arguments: jsonText({
-              [r]: `{{local.components.${find}.returnValues.model}}`,
-              states: "{{local.components.find-states-1.returnValues.models}}",
-              event:
-                "{{local.components.read-event-1.returnValues.returnValue}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-decide-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1300 },
-          args: {
-            value: `❌ Could not map the Jira status to an ${r} state: {{local.components.decide-state-1.returnValues.error}}`,
-          },
-        },
-        {
-          componentId: "if-change-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1300 },
-          args: proceedCondition("decide-state-1"),
-        },
-        {
-          componentId: "log-unchanged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1500 },
-          args: {
-            value:
-              "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          /*
-           * A state change is a new timeline row, not an edit to the
-           * record: the timeline is what records it, notifies, and refuses
-           * to move a record backwards.
-           */
-          componentId: "change-state-1",
-          metadataId: `${r}-state-timeline-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1500 },
-          args: {
-            json: jsonText({
-              [kind.idColumn]: `{{local.components.decide-state-1.returnValues.returnValue.${r}Id}}`,
-              [kind.timelineStateColumn]:
-                "{{local.components.decide-state-1.returnValues.returnValue.stateId}}",
-              rootCause:
-                "{{local.components.decide-state-1.returnValues.returnValue.rootCause}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-changed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1700 },
-          args: {
-            value: `✅ Moved {{local.components.${find}.returnValues.model.${kind.numberField}}} to {{local.components.decide-state-1.returnValues.returnValue.stateName}} because Jira issue {{local.components.read-event-1.returnValues.returnValue.issueKey}} is now {{local.components.read-event-1.returnValues.returnValue.jiraStatus}}.`,
-          },
-        },
-        {
-          componentId: "log-change-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1700 },
-          args: {
-            value: `❌ Could not change the ${r}'s state. The reason is in the run log above — an ${r} cannot move back to an earlier state.`,
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "read-event-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "if-status-changed-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "log-read-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-status-changed-1",
-          toComponentId: find,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-status-changed-1",
-          toComponentId: "log-ignored",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: "find-states-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: `log-find-${r}-failed`,
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "find-states-1",
-          toComponentId: "decide-state-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-states-1",
-          toComponentId: "log-find-states-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "decide-state-1",
-          toComponentId: "if-change-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "decide-state-1",
-          toComponentId: "log-decide-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-change-1",
-          toComponentId: "change-state-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-change-1",
-          toComponentId: "log-unchanged",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "change-state-1",
-          toComponentId: "log-changed",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "change-state-1",
-          toComponentId: "log-change-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+      {
+        componentId: fromAnotherToolStepId(kind),
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: read("whatHappened"),
+          recordId: read(`${r}Id`),
+          note: read("reason"),
+        }),
+      },
+    ]),
   };
 };
 
+/*
+ * Four steps: the Webhook Jira calls, the issue as Jira has it now (comment
+ * webhooks carry no labels, and the link is a label), the script that reads
+ * the comment and finds the linked record, and Incident or Alert From
+ * Another Tool adding it as a private note.
+ */
 const jiraCommentToNoteTemplate: JiraTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
-  const find: string = `find-${r}-1`;
+  const read: (key: string) => string = (key: string): string => {
+    return `{{local.components.read-comment-1.returnValues.returnValue.${key}}}`;
+  };
 
   return {
     id: `jira-comment-to-${r}-private-note`,
     name: `Add Jira comments to the ${r} as private notes`,
     description: `Copies each comment on the linked Jira issue onto the ${r} as a private note, so responders see the whole conversation in one place.`,
     teaches:
-      "How to follow a webhook with a lookup call when the payload does not carry everything you need.",
+      "How to read the item a webhook names from its API, when the webhook does not carry everything you need.",
     category: WorkflowTemplateCategory.Jira,
     icon: IconProp.ChatBubbleOvalLeftEllipsis,
     workflowName: `Copy Jira comments to ${r}`,
     workflowDescription: `Adds each comment on a linked Jira issue to the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Comment created event.`,
     variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "get-issue-1",
+        metadataId: ComponentID.ApiGetById,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          url: `{{local.variables.jiraBaseUrl}}/rest/api/3/issue/${API_GET_BY_ID_PLACEHOLDER}?fields=labels`,
+          id: "{{local.components.webhook-1.returnValues.request-body.issue.key}}",
+          "request-headers": jiraHeaders(),
         },
-        {
-          componentId: "read-comment-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: jiraReadCommentScript(kind),
-            arguments: jiraLinkingEventArguments(),
-          },
+      },
+      {
+        componentId: "read-comment-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: jiraReadCommentScript(kind),
+          arguments: jiraLinkingEventArguments({
+            issue:
+              "{{local.components.get-issue-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "log-read-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not read the Jira event: {{local.components.read-comment-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-comment-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("read-comment-1"),
-        },
-        {
-          componentId: "log-ignored",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-comment-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "get-issue-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            url: "{{local.variables.jiraBaseUrl}}/rest/api/3/issue/{{local.components.read-comment-1.returnValues.returnValue.issueKey}}?fields=labels",
-            "request-headers": jiraHeaders(),
-          },
-        },
-        {
-          componentId: "log-get-issue-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value:
-              "❌ Could not read Jira issue {{local.components.read-comment-1.returnValues.returnValue.issueKey}}: {{local.components.get-issue-1.returnValues.error}}\nJira said: {{local.components.get-issue-1.returnValues.response-body}}",
-          },
-        },
-        {
-          componentId: "find-link-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            code: jiraFindLinkedRecordScript(kind),
-            arguments: jsonText({
-              comment:
-                "{{local.components.read-comment-1.returnValues.returnValue}}",
-              issue:
-                "{{local.components.get-issue-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-find-link-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Could not read the issue's labels: {{local.components.find-link-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-linked-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: proceedCondition("find-link-1"),
-        },
-        {
-          componentId: "log-not-linked",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1300 },
-          args: {
-            value:
-              "ℹ️ {{local.components.find-link-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: find,
-          metadataId: `${r}-find-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1300 },
-          args: {
-            query: {
-              _id: `{{local.components.find-link-1.returnValues.returnValue.${r}Id}}`,
-            },
-            select: { _id: true, [kind.numberField]: true },
-          },
-        },
-        {
-          componentId: `log-find-${r}-failed`,
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1500 },
-          args: {
-            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
-          },
-        },
-        {
-          /*
-           * Find One answers "nothing matched" on its Success port, so this
-           * is what stops a label naming a record in another project — the
-           * lookup is scoped to this one — from being written to.
-           */
-          componentId: "if-found-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1500 },
-          args: {
-            "input-1-type": ConditionValueType.Text,
-            "input-1": `{{local.components.${find}.returnValues.model._id}}`,
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Text,
-            "input-2": `{{local.components.find-link-1.returnValues.returnValue.${r}Id}}`,
-          },
-        },
-        {
-          componentId: "log-not-found",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1700 },
-          args: {
-            value: `ℹ️ Jira issue {{local.components.read-comment-1.returnValues.returnValue.issueKey}} names ${r} {{local.components.find-link-1.returnValues.returnValue.${r}Id}}, which is not in this project.`,
-          },
-        },
-        {
-          componentId: "create-note-1",
-          metadataId: `${r}-internal-note-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -650, y: 1700 },
-          args: {
-            json: jsonText({
-              [kind.idColumn]: `{{local.components.${find}.returnValues.model._id}}`,
-              note: "{{local.components.read-comment-1.returnValues.returnValue.note}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-noted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -650, y: 1900 },
-          args: {
-            value: `✅ Added the Jira comment on {{local.components.read-comment-1.returnValues.returnValue.issueKey}} to {{local.components.${find}.returnValues.model.${kind.numberField}}} as a private note.`,
-          },
-        },
-        {
-          componentId: "log-note-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1900 },
-          args: {
-            value:
-              "❌ Could not add the private note. The database error is in the run log above.",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "read-comment-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "read-comment-1",
-          toComponentId: "if-comment-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-comment-1",
-          toComponentId: "log-read-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-comment-1",
-          toComponentId: "get-issue-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-comment-1",
-          toComponentId: "log-ignored",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "get-issue-1",
-          toComponentId: "find-link-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "get-issue-1",
-          toComponentId: "log-get-issue-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "find-link-1",
-          toComponentId: "if-linked-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-link-1",
-          toComponentId: "log-find-link-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: find,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: "log-not-linked",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: "if-found-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: `log-find-${r}-failed`,
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-found-1",
-          toComponentId: "create-note-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-found-1",
-          toComponentId: "log-not-found",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "create-note-1",
-          toComponentId: "log-noted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "create-note-1",
-          toComponentId: "log-note-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+      {
+        componentId: fromAnotherToolStepId(kind),
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: FromAnotherToolAction.Note,
+          recordId: read(`${r}Id`),
+          note: read("note"),
+        }),
+      },
+    ]),
   };
 };
 
+/*
+ * Three steps: the Webhook Jira calls, the script that lists what changed
+ * on the linked issue, and Incident or Alert From Another Tool adding it as
+ * a private note.
+ */
 const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
-  const find: string = `find-${r}-1`;
+  const read: (key: string) => string = (key: string): string => {
+    return `{{local.components.read-changes-1.returnValues.returnValue.${key}}}`;
+  };
 
   return {
     id: `jira-issue-changes-to-${r}-private-note`,
@@ -3735,184 +2658,34 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
     workflowName: `Copy Jira issue changes to ${r}`,
     workflowDescription: `Notes each change to a linked Jira issue on the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue updated event.`,
     variables: [JIRA_SITE_URL],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "read-changes-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          code: jiraReadIssueChangesScript(kind),
+          arguments: jiraLinkingEventArguments(),
         },
-        {
-          componentId: "read-changes-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: jiraReadIssueChangesScript(kind),
-            arguments: jiraLinkingEventArguments(),
-          },
-        },
-        {
-          componentId: "log-read-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not read the Jira event: {{local.components.read-changes-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-changed-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("read-changes-1"),
-        },
-        {
-          componentId: "log-ignored",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-changes-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: find,
-          metadataId: `${r}-find-one`,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            query: {
-              _id: `{{local.components.read-changes-1.returnValues.returnValue.${r}Id}}`,
-            },
-            select: { _id: true, [kind.numberField]: true },
-          },
-        },
-        {
-          componentId: `log-find-${r}-failed`,
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: "if-found-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            "input-1-type": ConditionValueType.Text,
-            "input-1": `{{local.components.${find}.returnValues.model._id}}`,
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Text,
-            "input-2": `{{local.components.read-changes-1.returnValues.returnValue.${r}Id}}`,
-          },
-        },
-        {
-          componentId: "log-not-found",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value: `ℹ️ Jira issue {{local.components.read-changes-1.returnValues.returnValue.issueKey}} names ${r} {{local.components.read-changes-1.returnValues.returnValue.${r}Id}}, which is not in this project.`,
-          },
-        },
-        {
-          componentId: "create-note-1",
-          metadataId: `${r}-internal-note-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1100 },
-          args: {
-            json: jsonText({
-              [kind.idColumn]: `{{local.components.${find}.returnValues.model._id}}`,
-              note: "{{local.components.read-changes-1.returnValues.returnValue.note}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-noted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1300 },
-          args: {
-            value: `✅ Noted the changes to Jira issue {{local.components.read-changes-1.returnValues.returnValue.issueKey}} on {{local.components.${find}.returnValues.model.${kind.numberField}}}.`,
-          },
-        },
-        {
-          componentId: "log-note-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1300 },
-          args: {
-            value:
-              "❌ Could not add the private note. The database error is in the run log above.",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "read-changes-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "read-changes-1",
-          toComponentId: "if-changed-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-changes-1",
-          toComponentId: "log-read-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-changed-1",
-          toComponentId: find,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-changed-1",
-          toComponentId: "log-ignored",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: "if-found-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: `log-find-${r}-failed`,
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-found-1",
-          toComponentId: "create-note-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-found-1",
-          toComponentId: "log-not-found",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "create-note-1",
-          toComponentId: "log-noted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "create-note-1",
-          toComponentId: "log-note-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+      {
+        componentId: fromAnotherToolStepId(kind),
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: FromAnotherToolAction.Note,
+          recordId: read(`${r}Id`),
+          note: read("note"),
+        }),
+      },
+    ]),
   };
 };
 
@@ -4300,7 +3073,8 @@ const eventOf = (payload, table, idColumn) => {
   const resolution = parameterOf(body.InputParameters, 'IncidentResolution');
   const resolved = resolution && typeof resolution === 'object' ? parameterOf(resolution.Attributes, 'incidentid') : null;
   if (!id && table === 'incident' && resolved && typeof resolved === 'object') id = guidOf(resolved.Id);
-  if (!id && !primaryTable) id = guidOf(body[idColumn]);
+  // A flow posts the row's id as its own id column, or as PrimaryEntityId, as a webhook names it.
+  if (!id && !primaryTable) id = guidOf(body[idColumn]) || guidOf(body.PrimaryEntityId);
   return { message: message, id: id, table: primaryTable || (id ? table : '') };
 };
 `;
@@ -4437,14 +3211,12 @@ const dynamicsPlanCaseScript: DynamicsKindScriptFunction = (
   return dynamicsScript(
     kind,
     String.raw`
-// Decides what the ${r}'s new state means for its Dynamics 365 case.
+// Decides whether the ${r}'s new state closes its Dynamics 365 case: a resolved ${r} does.
 // A resolved ${r} closes its case with RESOLVED_CASE_STATUS: 5 is Problem Solved and
 // 1000 Information Provided, or a resolved status of your own.
 const RESOLVED_CASE_STATUS = 5;
-// To move the case to another status when the ${r} reaches a state, list the state here by
-// name, with the status's value: for example { Acknowledged: 4 } for Researching. Dynamics 365's
-// own active statuses are 1 In Progress, 2 On Hold, 3 Waiting for Details and 4 Researching.
-// A resolved state listed here closes the case with the status it names.
+// To close the case with another resolved status at a resolved state of your own, list the state
+// here by name, with the status's value: for example { Closed: 1000 } for Information Provided.
 const STATE_TO_CASE_STATUS = {};
 // Private ${kind.plural} stay in OneUptime. Set this to true to sync them anyway.
 const SYNC_PRIVATE_${kind.pluralUpper} = false;
@@ -4456,60 +3228,41 @@ const search = readJson(args.search) || {};
 const state = ${r}.${kind.stateRelation} || {};
 const stateName = oneLine(state.name);
 const number = numbered(${r}.${kind.numberField}) || 'The ${r}';
-const nothing = (reason) => Object.assign(skip(reason), { action: 'skip' });
 
 if (${r}.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
-  return nothing(number + ' is a private ${r}, so its Dynamics 365 case was not changed.');
+  return skip(number + ' is a private ${r}, so its Dynamics 365 case was not changed.');
 }
 
-const named = STATE_TO_CASE_STATUS[stateName];
-const isResolved = state.isResolvedState === true;
-if (!isResolved && typeof named !== 'number') {
-  return nothing(number + ' moved to ' + (stateName || 'a new state') + ', which has no case status mapped to it.');
+if (state.isResolvedState !== true) {
+  return skip(number + ' moved to ' + (stateName || 'a new state') + ': only resolving the ${r} closes its Dynamics 365 case.');
 }
 
 const found = linkedCase(search, guidOf(${r}._id));
-if (!found.row) return nothing(found.reason);
+if (!found.row) return skip(found.reason);
 const caseNumber = found.caseNumber;
 
 // Like the ${r}, the case only moves forward: a case that is already resolved or cancelled is
-// left as it is, and is not reopened to be moved.
+// left as it is, and is not reopened to be closed again.
 if (Number(found.row.statecode) !== 0) {
-  return nothing('Dynamics 365 case ' + caseNumber + ' is already ' + (formatted(found.row, 'statecode') || 'closed') + ', so it was left as it is.');
+  return skip('Dynamics 365 case ' + caseNumber + ' is already ' + (formatted(found.row, 'statecode') || 'closed') + ', so it was left as it is.');
 }
 
+const named = STATE_TO_CASE_STATUS[stateName];
 const status = typeof named === 'number' ? named : RESOLVED_CASE_STATUS;
-if (Number(found.row.statuscode) === status && !isResolved) {
-  return nothing('Dynamics 365 case ' + caseNumber + ' is already ' + (formatted(found.row, 'statuscode') || 'in that status') + '.');
-}
-
-if (isResolved) {
-  return {
-    proceed: true,
-    action: 'close',
-    caseId: found.caseId,
-    caseNumber: caseNumber,
-    closeBody: {
-      IncidentResolution: {
-        subject: limit(defuse(oneLine(FROM_ONEUPTIME + ': ' + number + ' was resolved')), MAX_SUBJECT_LENGTH),
-        description: defuse(number + ' is ' + (stateName || 'resolved') + ' in OneUptime.'),
-        'incidentid@odata.bind': '/incidents(' + found.caseId + ')',
-      },
-      Status: status,
-    },
-    reason: defuse(number + ' is ' + (stateName || 'resolved') + ' in OneUptime.'),
-  };
-}
 
 return {
   proceed: true,
-  action: 'status',
   caseId: found.caseId,
   caseNumber: caseNumber,
-  // statecode beside statuscode, so Dataverse never falls back to the state's default status.
-  statusBody: { statecode: 0, statuscode: status },
-  status: status,
-  reason: defuse(number + ' is ' + stateName + ' in OneUptime.'),
+  closeBody: {
+    IncidentResolution: {
+      subject: limit(defuse(oneLine(FROM_ONEUPTIME + ': ' + number + ' was resolved')), MAX_SUBJECT_LENGTH),
+      description: defuse(number + ' is ' + (stateName || 'resolved') + ' in OneUptime.'),
+      'incidentid@odata.bind': '/incidents(' + found.caseId + ')',
+    },
+    Status: status,
+  },
+  reason: defuse(number + ' is ' + (stateName || 'resolved') + ' in OneUptime.'),
 };
 `,
   );
@@ -4955,15 +3708,30 @@ const dynamicsPrepareRecordScript: DynamicsKindScriptFunction = (
     kind,
     String.raw`
 // Turns a new Dynamics 365 case into a OneUptime ${r}.
-// Case priority to OneUptime severity: 0 is your most severe severity and 2 your least, with
-// the ones in between spread across the range. Case priorities are 1 High, 2 Normal and 3 Low,
-// and a priority that is not listed lands in the middle.
+// Only new cases. Taking an Update too would ${kind.create} an ${r} for an old case the first time
+// anyone edits it.
+const MESSAGES = ['Create'];
+// Case priority to OneUptime severity, by where it sits among your ${r} severities: 0 is your
+// most severe, 1 the middle one and 2 your least severe. Case priorities are 1 High, 2 Normal
+// and 3 Low, and a priority that is not listed lands in the middle.
 const PRIORITY_RANK = { 1: 0, 2: 1, 3: 2 };
+const PLACES = ['most severe', 'middle', 'least severe'];
 // Only cases with one of these priorities become ${kind.plural}: for example [1] for High alone.
 // Leave it empty to take every case the webhook sends.
 const ONLY_PRIORITIES = [];
 
 ${DYNAMICS_RICH_TEXT_READING}
+// ---- Reading the event ----
+// Which event the webhook or the flow names, when it names one. The case itself is read from
+// Dynamics 365 (get-case-1), not taken from the request.
+const event = eventOf(readJson(args.payload), 'incident', 'incidentid');
+if (event.message && MESSAGES.indexOf(event.message) === -1) {
+  return skip('Ignored the ' + event.message + ' event: this workflow only handles ' + MESSAGES.join(', ') + '.');
+}
+if (event.table && event.table !== 'incident') {
+  return skip('The request is about the ' + event.table + ' table, not cases, so it was ignored.');
+}
+
 // ---- Reading the case ----
 const row = readJson(args.case) || {};
 const caseId = guidOf(row.incidentid);
@@ -4988,15 +3756,8 @@ if (ONLY_PRIORITIES.length && ONLY_PRIORITIES.indexOf(priority) === -1) {
   return skip('Dynamics 365 case ' + caseNumber + ' has ' + (priorityName || 'no') + ' priority, which ONLY_PRIORITIES leaves out, so no ${r} was ${kind.created}.');
 }
 
-const found = readJson(args.severities);
-const severities = (Array.isArray(found) ? found : [])
-  .filter((severity) => severity && asText(severity._id))
-  .sort((a, b) => Number(a.order) - Number(b.order));
-if (!severities.length) return skip('This project has no ${r} severities to choose from.');
-
 const rankValue = PRIORITY_RANK[priority];
 const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
-const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
 // What Dynamics 365 users wrote - the case number, the title, the priority's and the customer's
 // names, the description - is placed as written (asWritten). The link to the case is the template's
@@ -5031,8 +3792,7 @@ return {
   proceed: true,
   caseId: caseId,
   caseNumber: defuse(caseNumber),
-  severityName: oneLine(severity.name),
-  ${kind.severityIdColumn}: asText(severity._id),
+  severity: PLACES[rank],
   title: limit(defuse(asWritten(oneLine(row.title)) || 'Dynamics 365 case ' + asWritten(caseNumber)), 500),
   description: limit(defuse(lines.join('\n')), 20000),
 };
@@ -5042,9 +3802,12 @@ return {
 
 /*
  * Dynamics 365 -> OneUptime: the record a case is linked to, read off the
- * case as Dynamics 365 has it.
+ * case as Dynamics 365 has it, and what the case's state means for it: a
+ * state's name, or resolve. Incident or Alert From Another Tool moves the
+ * record, and only ever forward - which also settles the echo after the
+ * OneUptime to Dynamics 365 template closed the case.
  */
-const dynamicsFindLinkedRecordScript: DynamicsKindScriptFunction = (
+const dynamicsDecideStateScript: DynamicsKindScriptFunction = (
   kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
@@ -5052,7 +3815,18 @@ const dynamicsFindLinkedRecordScript: DynamicsKindScriptFunction = (
   return dynamicsScript(
     kind,
     String.raw`
-// Finds the ${r} a Dynamics 365 case is linked to, from its link column.
+// Finds the ${r} a Dynamics 365 case is linked to, from its link column, and maps the case's
+// state onto a OneUptime ${r} state.
+// To map one case status to one state by name, list it here, for example
+// { Researching: 'Acknowledged' }. Statuses listed here win over CASE_STATE_TO_STATE_FLAG.
+const CASE_STATUS_TO_STATE = {};
+// Otherwise the case's state decides: a Resolved case (1) resolves the ${r}. An Active case maps
+// to nothing, because an ${r} never moves backwards. Add 2: 'isResolvedState' to resolve the
+// ${r} when its case is cancelled too.
+const CASE_STATE_TO_STATE_FLAG = { 1: 'isResolvedState' };
+// What the next step does for each flag: moves the ${r} to the first state flagged so.
+const FLAG_TO_WHAT_HAPPENED = { isAcknowledgedState: 'acknowledge', isResolvedState: 'resolve' };
+
 const row = readJson(args.case) || {};
 const caseId = guidOf(row.incidentid);
 if (!caseId) return skip('Dynamics 365 did not return the case.');
@@ -5066,81 +3840,25 @@ if (!${r}Id) {
   return skip('Dynamics 365 case ' + caseNumber + ' is not linked to an ${r}: its ' + linkColumn + ' column does not hold ' + ${kind.upper}_LINK_PREFIX + '<id>.');
 }
 
+// Text from Dynamics 365: the case number, its status's name, and whoever changed it.
+const caseNumberText = oneLine(defuse(caseNumber)) || 'with no number';
+const statusName = oneLine(defuse(formatted(row, 'statuscode')));
+const caseStatus = oneLine(defuse(formatted(row, 'statuscode') || formatted(row, 'statecode') || 'in status ' + asText(row.statuscode))) || 'in a new status';
+const named = oneLine(CASE_STATUS_TO_STATE[statusName]);
+const whatHappened = named ? 'state: ' + named : asText(FLAG_TO_WHAT_HAPPENED[asText(CASE_STATE_TO_STATE_FLAG[Number(row.statecode)])]);
+if (!whatHappened) {
+  return skip('Dynamics 365 case ' + caseNumberText + ' is ' + caseStatus + ', which does not map to a OneUptime state.');
+}
+
+// Why, on the ${r}'s timeline. The case number, its status and the name of whoever changed it came
+// from Dynamics 365, so they are placed as written (asWritten).
+const changedBy = oneLine(defuse(formatted(row, '_modifiedby_value')));
 return {
   proceed: true,
   ${r}Id: ${r}Id,
   caseId: caseId,
-  // Text from Dynamics 365. The next script receives these quoted into its arguments.
-  caseNumber: defuse(caseNumber),
-  caseState: Number(row.statecode),
-  caseStateName: defuse(formatted(row, 'statecode')),
-  caseStatus: Number(row.statuscode),
-  // The status's name, which CASE_STATUS_TO_STATE is keyed by, and the words a log line uses.
-  caseStatusName: defuse(formatted(row, 'statuscode')),
-  caseStatusText: defuse(formatted(row, 'statuscode') || formatted(row, 'statecode') || 'in status ' + asText(row.statuscode)),
-  changedBy: defuse(formatted(row, '_modifiedby_value')),
-};
-`,
-  );
-};
-
-/*
- * Dynamics 365 -> OneUptime: maps the case's state onto a record state, and
- * only ever moves the record forward.
- */
-const dynamicsDecideStateScript: DynamicsKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  const r: string = kind.noun;
-
-  return dynamicsScript(
-    kind,
-    String.raw`
-// Maps the Dynamics 365 case's state onto a OneUptime ${r} state.
-// To map one case status to one state by name, list it here, for example
-// { Researching: 'Acknowledged' }. Statuses listed here win over CASE_STATE_TO_STATE_FLAG.
-const CASE_STATUS_TO_STATE = {};
-// Otherwise the case's state decides: a Resolved case (1) resolves the ${r}. An Active case maps
-// to nothing, because an ${r} never moves backwards. Add 2: 'isResolvedState' to resolve the
-// ${r} when its case is cancelled too.
-const CASE_STATE_TO_STATE_FLAG = { 1: 'isResolvedState' };
-
-const link = readJson(args.link) || {};
-const ${r} = readJson(args.${r});
-const states = readJson(args.states);
-if (!${r} || !asText(${r}._id)) {
-  return skip('No ${r} with id ' + asText(link.${r}Id) + ' exists in this project.');
-}
-
-const number = numbered(${r}.${kind.numberField}) || 'The ${r}';
-const caseNumber = oneLine(link.caseNumber) || 'with no number';
-const caseStatus = oneLine(link.caseStatusText) || 'in a new status';
-const list = Array.isArray(states) ? states : [];
-const wantedName = oneLine(CASE_STATUS_TO_STATE[oneLine(link.caseStatusName)]).toLowerCase();
-const flag = asText(CASE_STATE_TO_STATE_FLAG[Number(link.caseState)]);
-const target = wantedName
-  ? list.find((state) => state && oneLine(state.name).toLowerCase() === wantedName)
-  : flag ? list.find((state) => state && state[flag] === true) : null;
-if (!target) {
-  return skip('Dynamics 365 case ' + caseNumber + ' is ' + caseStatus + ', which does not map to a OneUptime state.');
-}
-
-// An ${r} only moves forward, so an earlier or equal state changes nothing. This is also what
-// settles the echo after the OneUptime to Dynamics 365 template closed the case.
-const current = ${r}.${kind.stateRelation} || {};
-if (Number(target.order) <= Number(current.order)) {
-  return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Dynamics 365 case ' + caseNumber + ' being ' + caseStatus + ' changes nothing.');
-}
-
-// The case number, its status and the name of whoever changed it came from Dynamics 365, so they
-// are placed as written (asWritten).
-const changedBy = oneLine(link.changedBy);
-return {
-  proceed: true,
-  ${r}Id: asText(${r}._id),
-  stateId: asText(target._id),
-  stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_DYNAMICS + ': case ' + asWritten(caseNumber) + ' is ' + asWritten(caseStatus) + (changedBy ? ', changed by ' + asWritten(changedBy) : '') + '.'), 1000),
+  whatHappened: whatHappened,
+  reason: limit(defuse(FROM_DYNAMICS + ': case ' + asWritten(caseNumberText) + ' is ' + asWritten(caseStatus) + (changedBy ? ', changed by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
@@ -5282,200 +4000,76 @@ const dynamicsCreateCaseTemplate: DynamicsTemplateFunction = (
       oneUptimeUrlVariable(kind, "the Dynamics 365 case"),
     ],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: trigger,
-          metadataId: `${r}-on-create`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            select: {
-              _id: true,
-              projectId: true,
-              title: true,
-              description: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              customFields: true,
-              rootCause: true,
-              remediationNotes: true,
-              [kind.severityRelation]: { _id: true, name: true },
-              [kind.stateRelation]: { name: true },
-            },
+    graph: columnGraph([
+      {
+        componentId: trigger,
+        metadataId: `${r}-on-create`,
+        componentType: ComponentType.Trigger,
+        args: {
+          select: {
+            _id: true,
+            projectId: true,
+            title: true,
+            description: true,
+            [kind.numberField]: true,
+            isPrivate: true,
+            customFields: true,
+            rootCause: true,
+            remediationNotes: true,
+            [kind.severityRelation]: { _id: true, name: true },
+            [kind.stateRelation]: { name: true },
           },
         },
-        {
-          componentId: "find-severities-1",
-          metadataId: `${r}-severity-find-many`,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            // Every row. Query cannot be left empty, so it asks for any id.
-            query: { _id: { _type: "NotNull", value: null } },
-            select: { _id: true, name: true, order: true },
-            limit: 50,
-          },
+      },
+      {
+        componentId: "find-severities-1",
+        metadataId: `${r}-severity-find-many`,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          // Every row. Query cannot be left empty, so it asks for any id.
+          query: { _id: { _type: "NotNull", value: null } },
+          select: { _id: true, name: true, order: true },
+          limit: 50,
         },
-        {
-          componentId: "log-severities-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not read this project's ${r} severities, so no Dynamics 365 case was opened. The database error is in the run log above.`,
-          },
+      },
+      {
+        componentId: "prepare-case-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: dynamicsPrepareCaseScript(kind),
+          arguments: jsonText({
+            oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
+            linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+            customer: "{{local.variables.dynamicsCustomer}}",
+            severities:
+              "{{local.components.find-severities-1.returnValues.models}}",
+            [r]: `{{local.components.${trigger}.returnValues.model}}`,
+          }),
         },
-        {
-          componentId: "prepare-case-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: dynamicsPrepareCaseScript(kind),
-            arguments: jsonText({
-              oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
-              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
-              customer: "{{local.variables.dynamicsCustomer}}",
-              severities:
-                "{{local.components.find-severities-1.returnValues.models}}",
-              [r]: `{{local.components.${trigger}.returnValues.model}}`,
-            }),
-          },
+      },
+      {
+        /*
+         * Prefer return=representation makes the create answer with the
+         * new case, number and all, instead of an empty 204 and a URL in a
+         * header.
+         */
+        componentId: "create-case-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/incidents?$select=incidentid,ticketnumber,title`,
+          "request-headers": dynamicsHeaders({
+            prefer: "return=representation",
+          }),
+          "request-body":
+            "{{local.components.prepare-case-1.returnValues.returnValue.caseColumns}}",
         },
-        {
-          componentId: "log-prepare-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value:
-              "❌ Could not prepare the Dynamics 365 case: {{local.components.prepare-case-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-create-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: proceedCondition("prepare-case-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: {
-            value:
-              "ℹ️ {{local.components.prepare-case-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          /*
-           * Prefer return=representation makes the create answer with the
-           * new case, number and all, instead of an empty 204 and a URL in a
-           * header.
-           */
-          componentId: "create-case-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/incidents?$select=incidentid,ticketnumber,title`,
-            "request-headers": dynamicsHeaders({
-              prefer: "return=representation",
-            }),
-            "request-body":
-              "{{local.components.prepare-case-1.returnValues.returnValue.caseColumns}}",
-          },
-        },
-        {
-          componentId: "log-created",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            value: `✅ Opened Dynamics 365 case {{local.components.create-case-1.returnValues.response-body.ticketnumber}} for {{local.components.${trigger}.returnValues.model.${kind.numberField}}}, linked as {{local.components.prepare-case-1.returnValues.returnValue.link}}.`,
-          },
-        },
-        {
-          componentId: "log-create-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Dynamics 365 did not open the case: {{local.components.create-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.create-case-1.returnValues.response-body}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: trigger,
-          toComponentId: "find-severities-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-severities-1",
-          toComponentId: "prepare-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-severities-1",
-          toComponentId: "log-severities-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "prepare-case-1",
-          toComponentId: "if-create-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "prepare-case-1",
-          toComponentId: "log-prepare-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-create-1",
-          toComponentId: "create-case-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-create-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "create-case-1",
-          toComponentId: "log-created",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "create-case-1",
-          toComponentId: "log-create-failed",
-          fromPort: "error",
-        },
-      ],
-    },
-  };
-};
-
-type ActionConditionFunction = (
-  componentId: string,
-  action: string,
-) => JSONObject;
-
-/** An If / Else that takes the Yes path when a script chose this action. */
-const actionCondition: ActionConditionFunction = (
-  componentId: string,
-  action: string,
-): JSONObject => {
-  return {
-    "input-1-type": ConditionValueType.Text,
-    "input-1": `{{local.components.${componentId}.returnValues.returnValue.action}}`,
-    operator: ConditionOperator.EqualTo,
-    "input-2-type": ConditionValueType.Text,
-    "input-2": action,
+      },
+    ]),
   };
 };
 
@@ -5488,249 +4082,80 @@ const dynamicsUpdateCaseTemplate: DynamicsTemplateFunction = (
   return {
     id: `dynamics-update-case-on-${r}-state`,
     name: `Resolve the Dynamics 365 case when the ${r} is resolved`,
-    description: `Closes the linked Dynamics 365 case as Problem Solved when the ${r} is resolved, and can move it to another status at any other state.`,
+    description: `Closes the linked Dynamics 365 case as Problem Solved when the ${r} is resolved.`,
     teaches:
-      "How to look a row up in Dataverse, then choose between two calls from what comes back.",
+      "How to look a row up in Dataverse, then call an action on it from what comes back.",
     category: WorkflowTemplateCategory.Dynamics365,
     icon: IconProp.CheckBadge,
     workflowName: `Sync ${r} state to Dynamics 365`,
-    workflowDescription: `Resolves the linked Dynamics 365 case when the ${r} is resolved. Edit the script to move the case to other statuses as the ${r} changes state.`,
+    workflowDescription: `Resolves the linked Dynamics 365 case when the ${r} is resolved. Edit the script to close it with another resolved status at a resolved state of your own.`,
     variables: [...DYNAMICS_VARIABLES],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: trigger,
-          metadataId: `${r}-on-update`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            "listen-on": { [kind.stateIdColumn]: true },
-            select: {
-              _id: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              [kind.stateRelation]: {
-                name: true,
-                isAcknowledgedState: true,
-                isResolvedState: true,
-              },
+    graph: columnGraph([
+      {
+        componentId: trigger,
+        metadataId: `${r}-on-update`,
+        componentType: ComponentType.Trigger,
+        args: {
+          "listen-on": { [kind.stateIdColumn]: true },
+          select: {
+            _id: true,
+            [kind.numberField]: true,
+            isPrivate: true,
+            [kind.stateRelation]: {
+              name: true,
+              isAcknowledgedState: true,
+              isResolvedState: true,
             },
           },
         },
-        {
-          componentId: "find-case-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            url: dynamicsLinkedCaseUrl({
-              kind: kind,
-              idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
-            }),
-            "request-headers": dynamicsHeaders({
-              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
-            }),
-          },
+      },
+      {
+        componentId: "find-case-1",
+        metadataId: ComponentID.ApiGet,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          url: dynamicsLinkedCaseUrl({
+            kind: kind,
+            idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
+          }),
+          "request-headers": dynamicsHeaders({
+            prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+          }),
         },
-        {
-          componentId: "log-find-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not look up the ${r}'s Dynamics 365 case: {{local.components.find-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.find-case-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        componentId: "plan-case-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: dynamicsPlanCaseScript(kind),
+          arguments: jsonText({
+            [r]: `{{local.components.${trigger}.returnValues.model}}`,
+            search:
+              "{{local.components.find-case-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "plan-case-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: dynamicsPlanCaseScript(kind),
-            arguments: jsonText({
-              [r]: `{{local.components.${trigger}.returnValues.model}}`,
-              search:
-                "{{local.components.find-case-1.returnValues.response-body}}",
-            }),
-          },
+      },
+      {
+        /*
+         * CloseIncident, not a PATCH of statecode: resolving a case by
+         * hand records a Case Resolution, and this does the same.
+         */
+        componentId: "close-case-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/CloseIncident`,
+          "request-headers": dynamicsHeaders(),
+          "request-body":
+            "{{local.components.plan-case-1.returnValues.returnValue.closeBody}}",
         },
-        {
-          componentId: "log-plan-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value:
-              "❌ Could not decide what to do with the Dynamics 365 case: {{local.components.plan-case-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-close-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: actionCondition("plan-case-1", "close"),
-        },
-        {
-          /*
-           * CloseIncident, not a PATCH of statecode: resolving a case by
-           * hand records a Case Resolution, and this does the same.
-           */
-          componentId: "close-case-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/CloseIncident`,
-            "request-headers": dynamicsHeaders(),
-            "request-body":
-              "{{local.components.plan-case-1.returnValues.returnValue.closeBody}}",
-          },
-        },
-        {
-          componentId: "log-closed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            value:
-              "✅ Resolved Dynamics 365 case {{local.components.plan-case-1.returnValues.returnValue.caseNumber}}. {{local.components.plan-case-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "log-close-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Dynamics 365 did not resolve the case: {{local.components.close-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.close-case-1.returnValues.response-body}}",
-          },
-        },
-        {
-          componentId: "if-status-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: actionCondition("plan-case-1", "status"),
-        },
-        {
-          /*
-           * If-Match: * makes the PATCH an update and never an upsert, so
-           * a case deleted meanwhile is not created again.
-           */
-          componentId: "set-status-1",
-          metadataId: ComponentID.ApiPatch,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 1100 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.plan-case-1.returnValues.returnValue.caseId}})`,
-            "request-headers": dynamicsHeaders({ ifMatch: "*" }),
-            "request-body":
-              "{{local.components.plan-case-1.returnValues.returnValue.statusBody}}",
-          },
-        },
-        {
-          componentId: "log-status-set",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 1300 },
-          args: {
-            value:
-              "✅ Moved Dynamics 365 case {{local.components.plan-case-1.returnValues.returnValue.caseNumber}} to status {{local.components.plan-case-1.returnValues.returnValue.status}}. {{local.components.plan-case-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "log-status-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 1300 },
-          args: {
-            value:
-              "❌ Dynamics 365 did not change the case's status: {{local.components.set-status-1.returnValues.error}}\nDynamics 365 said: {{local.components.set-status-1.returnValues.response-body}}",
-          },
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 1100 },
-          args: {
-            value:
-              "ℹ️ {{local.components.plan-case-1.returnValues.returnValue.reason}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: trigger,
-          toComponentId: "find-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-case-1",
-          toComponentId: "plan-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-case-1",
-          toComponentId: "log-find-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "plan-case-1",
-          toComponentId: "if-close-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "plan-case-1",
-          toComponentId: "log-plan-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-close-1",
-          toComponentId: "close-case-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-close-1",
-          toComponentId: "if-status-1",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "close-case-1",
-          toComponentId: "log-closed",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "close-case-1",
-          toComponentId: "log-close-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-status-1",
-          toComponentId: "set-status-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-status-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "set-status-1",
-          toComponentId: "log-status-set",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "set-status-1",
-          toComponentId: "log-status-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
@@ -5774,175 +4199,69 @@ const dynamicsNoteToCaseTemplate: DynamicsNoteToCaseTemplateFunction = (props: {
     workflowDescription: props.workflowDescription,
     variables: [...DYNAMICS_VARIABLES],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "note-on-create-1",
-          metadataId: props.triggerMetadataId,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            select: {
-              _id: true,
-              note: true,
-              [kind.idColumn]: true,
-              [r]: { [kind.numberField]: true, isPrivate: true },
-              createdByUser: { name: true },
-            },
+    graph: columnGraph([
+      {
+        componentId: "note-on-create-1",
+        metadataId: props.triggerMetadataId,
+        componentType: ComponentType.Trigger,
+        args: {
+          select: {
+            _id: true,
+            note: true,
+            [kind.idColumn]: true,
+            [r]: { [kind.numberField]: true, isPrivate: true },
+            createdByUser: { name: true },
           },
         },
-        {
-          componentId: "find-case-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            url: dynamicsLinkedCaseUrl({
-              kind: kind,
-              idReference: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
-            }),
-            "request-headers": dynamicsHeaders({
-              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
-            }),
-          },
+      },
+      {
+        componentId: "find-case-1",
+        metadataId: ComponentID.ApiGet,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          url: dynamicsLinkedCaseUrl({
+            kind: kind,
+            idReference: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
+          }),
+          "request-headers": dynamicsHeaders({
+            prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+          }),
         },
-        {
-          componentId: "log-find-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value: `❌ Could not look up the ${r}'s Dynamics 365 case: {{local.components.find-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.find-case-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        componentId: "build-note-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: dynamicsNoteToCaseScript(kind, noteKind),
+          arguments: jsonText({
+            note: "{{local.components.note-on-create-1.returnValues.model}}",
+            search:
+              "{{local.components.find-case-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "build-note-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            code: dynamicsNoteToCaseScript(kind, noteKind),
-            arguments: jsonText({
-              note: "{{local.components.note-on-create-1.returnValues.model}}",
-              search:
-                "{{local.components.find-case-1.returnValues.response-body}}",
-            }),
-          },
+      },
+      {
+        componentId: "post-note-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/annotations`,
+          "request-headers": dynamicsHeaders(),
+          "request-body": jsonText({
+            subject:
+              "{{local.components.build-note-1.returnValues.returnValue.subject}}",
+            notetext:
+              "{{local.components.build-note-1.returnValues.returnValue.text}}",
+            "objectid_incident@odata.bind":
+              "/incidents({{local.components.build-note-1.returnValues.returnValue.caseId}})",
+          }),
         },
-        {
-          componentId: "log-build-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 500 },
-          args: {
-            value:
-              "❌ Could not write the Dynamics 365 note: {{local.components.build-note-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-post-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
-          args: proceedCondition("build-note-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 900 },
-          args: {
-            value:
-              "ℹ️ {{local.components.build-note-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "post-note-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/annotations`,
-            "request-headers": dynamicsHeaders(),
-            "request-body": jsonText({
-              subject:
-                "{{local.components.build-note-1.returnValues.returnValue.subject}}",
-              notetext:
-                "{{local.components.build-note-1.returnValues.returnValue.text}}",
-              "objectid_incident@odata.bind":
-                "/incidents({{local.components.build-note-1.returnValues.returnValue.caseId}})",
-            }),
-          },
-        },
-        {
-          componentId: "log-posted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            value:
-              "✅ Added the note to Dynamics 365 case {{local.components.build-note-1.returnValues.returnValue.caseNumber}}.",
-          },
-        },
-        {
-          componentId: "log-post-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Dynamics 365 did not accept the note: {{local.components.post-note-1.returnValues.error}}\nDynamics 365 said: {{local.components.post-note-1.returnValues.response-body}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "note-on-create-1",
-          toComponentId: "find-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-case-1",
-          toComponentId: "build-note-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-case-1",
-          toComponentId: "log-find-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "build-note-1",
-          toComponentId: "if-post-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "build-note-1",
-          toComponentId: "log-build-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "post-note-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "post-note-1",
-          toComponentId: "log-posted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "post-note-1",
-          toComponentId: "log-post-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
@@ -5978,22 +4297,22 @@ const dynamicsPublicNoteToCaseTemplate: DynamicsTemplateFunction = (
 const DYNAMICS_WEBHOOK_SETUP: string =
   "Enable it, copy the URL from the Webhook trigger, and post to it from a Power Automate flow or a Dataverse webhook";
 
+/*
+ * Five steps: the Webhook a Dataverse webhook or a Power Automate flow
+ * calls; the case as Dynamics 365 has it, read by the PrimaryEntityId the
+ * request names (API Get By ID); the script that reads the event beside it
+ * and shapes the record; Incident or Alert From Another Tool, which opens it
+ * - once per case, whatever Dynamics 365 sends again - and the request that
+ * writes the record's id into the case's link column.
+ */
 const dynamicsCreateRecordTemplate: DynamicsTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const prepare: string = `prepare-${r}-1`;
-  const create: string = `create-${r}-1`;
-
-  const createJson: JSONObject = {
-    [kind.severityIdColumn]: `{{local.components.${prepare}.returnValues.returnValue.${kind.severityIdColumn}}}`,
-    customFields: {
-      dynamicsCaseId: `{{local.components.${prepare}.returnValues.returnValue.caseId}}`,
-      dynamicsCaseNumber: `{{local.components.${prepare}.returnValues.returnValue.caseNumber}}`,
-    },
-    ...kind.quietCreateFields,
-    title: `{{local.components.${prepare}.returnValues.returnValue.title}}`,
-    description: `{{local.components.${prepare}.returnValues.returnValue.description}}`,
+  const step: string = fromAnotherToolStepId(kind);
+  const prepared: (key: string) => string = (key: string): string => {
+    return `{{local.components.${prepare}.returnValues.returnValue.${key}}}`;
   };
 
   return {
@@ -6008,302 +4327,104 @@ const dynamicsCreateRecordTemplate: DynamicsTemplateFunction = (
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each new Dynamics 365 case, then writes ${kind.labelPrefix}<id> into the case's link column. ${DYNAMICS_WEBHOOK_SETUP} for new cases. If you also create ${kind.otherPlural} from cases, send the two workflows different cases, or each case becomes both.`,
     variables: [...DYNAMICS_VARIABLES],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        /*
+         * The request only says which case. Everything the record is made
+         * of is read here, from Dynamics 365 itself, and the case's id goes
+         * into the address only as a plain ID.
+         */
+        componentId: "get-case-1",
+        metadataId: ComponentID.ApiGetById,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/incidents(${API_GET_BY_ID_PLACEHOLDER})?$select=incidentid,ticketnumber,title,description,prioritycode,statecode,_customerid_value,{{local.variables.dynamicsLinkColumn}}`,
+          id: "{{local.components.webhook-1.returnValues.request-body.PrimaryEntityId}}",
+          "request-headers": dynamicsHeaders({
+            prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+          }),
         },
-        {
-          componentId: "read-event-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: dynamicsReadCaseEventScript(kind, {
-              messages: ["Create"],
-              comment:
-                "Only new cases. Taking an Update too would declare an incident for an old case the first time anyone edits it.",
-            }),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
-          },
-        },
-        {
-          componentId: "log-read-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not read the Dynamics 365 event: {{local.components.read-event-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-case-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("read-event-1"),
-        },
-        {
-          componentId: "log-ignored",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
+      },
+      {
+        componentId: prepare,
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: dynamicsPrepareRecordScript(kind),
           /*
-           * The webhook only says which case. Everything the record is made
-           * of is read here, from Dynamics 365 itself.
+           * The request and the case go last. Text Dynamics 365 users wrote
+           * is only ever substituted after everything else in an argument.
            */
-          componentId: "get-case-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.read-event-1.returnValues.returnValue.caseId}})?$select=incidentid,ticketnumber,title,description,prioritycode,statecode,_customerid_value,{{local.variables.dynamicsLinkColumn}}`,
-            "request-headers": dynamicsHeaders({
-              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
-            }),
-          },
+          arguments: jsonText({
+            dynamicsUrl: "{{local.variables.dynamicsUrl}}",
+            linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+            payload: "{{local.components.webhook-1.returnValues.request-body}}",
+            case: "{{local.components.get-case-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "log-get-case-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value: `❌ Could not read Dynamics 365 case {{local.components.read-event-1.returnValues.returnValue.caseId}}, so no ${r} was ${kind.created}: {{local.components.get-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.get-case-1.returnValues.response-body}}`,
-          },
+      },
+      {
+        /*
+         * customFields.dynamicsCaseId is what stops the create-case template
+         * filing this record back into Dynamics 365 as a second case, and
+         * what keeps a case sent again from opening a second record.
+         */
+        componentId: step,
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: FromAnotherToolAction.Open,
+          outsideId: prepared("caseId"),
+          outsideIdField: "dynamicsCaseId",
+          customFields: { dynamicsCaseNumber: prepared("caseNumber") },
+          title: prepared("title"),
+          description: prepared("description"),
+          severity: prepared("severity"),
+        }),
+      },
+      {
+        /*
+         * The link column's name is a setting, so it is the key here.
+         * If-Match: * makes this an update, never an upsert.
+         */
+        componentId: "link-case-1",
+        metadataId: ComponentID.ApiPatch,
+        componentType: ComponentType.Component,
+        from: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/incidents(${prepared("caseId")})`,
+          "request-headers": dynamicsHeaders({ ifMatch: "*" }),
+          "request-body": jsonText({
+            "{{local.variables.dynamicsLinkColumn}}": `${kind.labelPrefix}{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
+          }),
         },
-        {
-          componentId: "find-severities-1",
-          metadataId: `${r}-severity-find-many`,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            // Every row. Query cannot be left empty, so it asks for any id.
-            query: { _id: { _type: "NotNull", value: null } },
-            select: { _id: true, name: true, order: true },
-            limit: 50,
-          },
-        },
-        {
-          componentId: "log-severities-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value: `❌ Could not read this project's ${r} severities. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: prepare,
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: {
-            code: dynamicsPrepareRecordScript(kind),
-            /*
-             * The case goes last. Text Dynamics 365 users wrote is only ever
-             * substituted after everything else in an argument.
-             */
-            arguments: jsonText({
-              severities:
-                "{{local.components.find-severities-1.returnValues.models}}",
-              dynamicsUrl: "{{local.variables.dynamicsUrl}}",
-              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
-              case: "{{local.components.get-case-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-prepare-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1300 },
-          args: {
-            value: `❌ Could not read the Dynamics 365 case: {{local.components.${prepare}.returnValues.error}}`,
-          },
-        },
-        {
-          componentId: `if-${kind.create}-1`,
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1300 },
-          args: proceedCondition(prepare),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1500 },
-          args: {
-            value: `ℹ️ {{local.components.${prepare}.returnValues.returnValue.reason}}`,
-          },
-        },
-        {
-          componentId: create,
-          metadataId: `${r}-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1500 },
-          args: {
-            /*
-             * customFields.dynamicsCaseId is what stops the create-case
-             * template filing this record back into Dynamics 365 as a
-             * second case.
-             */
-            json: jsonText(createJson),
-          },
-        },
-        {
-          componentId: "log-create-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1700 },
-          args: {
-            value: `❌ Could not ${kind.create} the ${r} for Dynamics 365 case {{local.components.${prepare}.returnValues.returnValue.caseNumber}}. The database error is in the run log above.`,
-          },
-        },
-        {
-          /*
-           * The link column's name is a setting, so it is the key here.
-           * If-Match: * makes this an update, never an upsert.
-           */
-          componentId: "link-case-1",
-          metadataId: ComponentID.ApiPatch,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1700 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.${prepare}.returnValues.returnValue.caseId}})`,
-            "request-headers": dynamicsHeaders({ ifMatch: "*" }),
-            "request-body": jsonText({
-              "{{local.variables.dynamicsLinkColumn}}": `${kind.labelPrefix}{{local.components.${create}.returnValues.model._id}}`,
-            }),
-          },
-        },
-        {
-          componentId: "log-linked",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1900 },
-          args: {
-            value: `✅ ${kind.Created} an ${r} with severity {{local.components.${prepare}.returnValues.returnValue.severityName}} for Dynamics 365 case {{local.components.${prepare}.returnValues.returnValue.caseNumber}}, and linked the case to it.`,
-          },
-        },
-        {
-          componentId: "log-link-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1900 },
-          args: {
-            value: `⚠️ The ${r} was ${kind.created}, but Dynamics 365 did not accept the link, so the other Dynamics 365 templates cannot find it: {{local.components.link-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.link-case-1.returnValues.response-body}}`,
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "read-event-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "if-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "log-read-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-case-1",
-          toComponentId: "get-case-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-case-1",
-          toComponentId: "log-ignored",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "get-case-1",
-          toComponentId: "find-severities-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "get-case-1",
-          toComponentId: "log-get-case-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "find-severities-1",
-          toComponentId: prepare,
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-severities-1",
-          toComponentId: "log-severities-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: prepare,
-          toComponentId: `if-${kind.create}-1`,
-          fromPort: "success",
-        },
-        {
-          fromComponentId: prepare,
-          toComponentId: "log-prepare-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: `if-${kind.create}-1`,
-          toComponentId: create,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: `if-${kind.create}-1`,
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: create,
-          toComponentId: "link-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: create,
-          toComponentId: "log-create-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "link-case-1",
-          toComponentId: "log-linked",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "link-case-1",
-          toComponentId: "log-link-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+    ]),
   };
 };
 
+/*
+ * Five steps: the Webhook; the script that reads which case the event names
+ * (a Close names it inside its Case Resolution, which is why this one is a
+ * script); the case as Dynamics 365 has it; the script that finds the
+ * linked record and says what the case's state means for it; and Incident
+ * or Alert From Another Tool, which moves the record, only ever forward.
+ */
 const dynamicsCaseStatusToStateTemplate: DynamicsTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
-  const find: string = `find-${r}-1`;
+  const decided: (key: string) => string = (key: string): string => {
+    return `{{local.components.decide-state-1.returnValues.returnValue.${key}}}`;
+  };
 
   return {
     id: `dynamics-case-status-to-${r}-state`,
@@ -6316,374 +4437,81 @@ const dynamicsCaseStatusToStateTemplate: DynamicsTemplateFunction = (
     workflowDescription: `Resolves the ${r} when its linked Dynamics 365 case is resolved. ${DYNAMICS_WEBHOOK_SETUP} when a case's status changes.`,
     variables: [...DYNAMICS_VARIABLES],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "read-event-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          code: dynamicsReadCaseEventScript(kind, {
+            messages: ["Update", "Close", "SetState", "SetStateDynamicEntity"],
+            comment:
+              "Resolving a case is a Close; other status changes arrive as an Update.",
+          }),
+          arguments: "{{local.components.webhook-1.returnValues.request-body}}",
         },
-        {
-          componentId: "read-event-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: dynamicsReadCaseEventScript(kind, {
-              messages: [
-                "Update",
-                "Close",
-                "SetState",
-                "SetStateDynamicEntity",
-              ],
-              comment:
-                "Resolving a case is a Close; other status changes arrive as an Update.",
-            }),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
-          },
+      },
+      {
+        componentId: "get-case-1",
+        metadataId: ComponentID.ApiGetById,
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/incidents(${API_GET_BY_ID_PLACEHOLDER})?$select=incidentid,ticketnumber,statecode,statuscode,_modifiedby_value,{{local.variables.dynamicsLinkColumn}}`,
+          id: "{{local.components.read-event-1.returnValues.returnValue.caseId}}",
+          "request-headers": dynamicsHeaders({
+            prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+          }),
         },
-        {
-          componentId: "log-read-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not read the Dynamics 365 event: {{local.components.read-event-1.returnValues.error}}",
-          },
+      },
+      {
+        componentId: "decide-state-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: dynamicsDecideStateScript(kind),
+          // The case goes last: its number, status and user names are Dynamics 365's text.
+          arguments: jsonText({
+            linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+            case: "{{local.components.get-case-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "if-case-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("read-event-1"),
-        },
-        {
-          componentId: "log-ignored",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: "get-case-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.read-event-1.returnValues.returnValue.caseId}})?$select=incidentid,ticketnumber,statecode,statuscode,_modifiedby_value,{{local.variables.dynamicsLinkColumn}}`,
-            "request-headers": dynamicsHeaders({
-              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
-            }),
-          },
-        },
-        {
-          componentId: "log-get-case-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value:
-              "❌ Could not read Dynamics 365 case {{local.components.read-event-1.returnValues.returnValue.caseId}}: {{local.components.get-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.get-case-1.returnValues.response-body}}",
-          },
-        },
-        {
-          componentId: "find-link-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            code: dynamicsFindLinkedRecordScript(kind),
-            arguments: jsonText({
-              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
-              case: "{{local.components.get-case-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-find-link-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Could not read the case's link: {{local.components.find-link-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-linked-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: proceedCondition("find-link-1"),
-        },
-        {
-          componentId: "log-not-linked",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1300 },
-          args: {
-            value:
-              "ℹ️ {{local.components.find-link-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: find,
-          metadataId: `${r}-find-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1300 },
-          args: {
-            query: {
-              _id: `{{local.components.find-link-1.returnValues.returnValue.${r}Id}}`,
-            },
-            select: {
-              _id: true,
-              [kind.numberField]: true,
-              [kind.stateRelation]: { _id: true, name: true, order: true },
-            },
-          },
-        },
-        {
-          componentId: `log-find-${r}-failed`,
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1500 },
-          args: {
-            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: "find-states-1",
-          metadataId: `${r}-state-find-many`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1500 },
-          args: {
-            // Every row. Query cannot be left empty, so it asks for any id.
-            query: { _id: { _type: "NotNull", value: null } },
-            select: {
-              _id: true,
-              name: true,
-              order: true,
-              isAcknowledgedState: true,
-              isResolvedState: true,
-            },
-            limit: 50,
-          },
-        },
-        {
-          componentId: "log-find-states-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1700 },
-          args: {
-            value: `❌ Could not read this project's ${r} states. The database error is in the run log above.`,
-          },
-        },
-        {
-          componentId: "decide-state-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1700 },
-          args: {
-            code: dynamicsDecideStateScript(kind),
-            /*
-             * The link goes last: its case number, status and user names are
-             * Dynamics 365's text, only ever substituted after the rest.
-             */
-            arguments: jsonText({
-              [r]: `{{local.components.${find}.returnValues.model}}`,
-              states: "{{local.components.find-states-1.returnValues.models}}",
-              link: "{{local.components.find-link-1.returnValues.returnValue}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-decide-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1900 },
-          args: {
-            value: `❌ Could not map the case's status to an ${r} state: {{local.components.decide-state-1.returnValues.error}}`,
-          },
-        },
-        {
-          componentId: "if-change-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1900 },
-          args: proceedCondition("decide-state-1"),
-        },
-        {
-          componentId: "log-unchanged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 2100 },
-          args: {
-            value:
-              "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          /*
-           * A state change is a new timeline row, not an edit to the
-           * record: the timeline is what records it, notifies, and refuses
-           * to move a record backwards.
-           */
-          componentId: "change-state-1",
-          metadataId: `${r}-state-timeline-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -650, y: 2100 },
-          args: {
-            json: jsonText({
-              [kind.idColumn]: `{{local.components.decide-state-1.returnValues.returnValue.${r}Id}}`,
-              [kind.timelineStateColumn]:
-                "{{local.components.decide-state-1.returnValues.returnValue.stateId}}",
-              rootCause:
-                "{{local.components.decide-state-1.returnValues.returnValue.rootCause}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-changed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -650, y: 2300 },
-          args: {
-            value: `✅ Moved {{local.components.${find}.returnValues.model.${kind.numberField}}} to {{local.components.decide-state-1.returnValues.returnValue.stateName}} because Dynamics 365 case {{local.components.find-link-1.returnValues.returnValue.caseNumber}} is {{local.components.find-link-1.returnValues.returnValue.caseStatusText}}.`,
-          },
-        },
-        {
-          componentId: "log-change-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 2300 },
-          args: {
-            value: `❌ Could not change the ${r}'s state. The reason is in the run log above — an ${r} cannot move back to an earlier state.`,
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "read-event-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "if-case-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "log-read-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-case-1",
-          toComponentId: "get-case-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-case-1",
-          toComponentId: "log-ignored",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "get-case-1",
-          toComponentId: "find-link-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "get-case-1",
-          toComponentId: "log-get-case-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "find-link-1",
-          toComponentId: "if-linked-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-link-1",
-          toComponentId: "log-find-link-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: find,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: "log-not-linked",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: "find-states-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: `log-find-${r}-failed`,
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "find-states-1",
-          toComponentId: "decide-state-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "find-states-1",
-          toComponentId: "log-find-states-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "decide-state-1",
-          toComponentId: "if-change-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "decide-state-1",
-          toComponentId: "log-decide-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-change-1",
-          toComponentId: "change-state-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-change-1",
-          toComponentId: "log-unchanged",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "change-state-1",
-          toComponentId: "log-changed",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "change-state-1",
-          toComponentId: "log-change-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+      {
+        componentId: fromAnotherToolStepId(kind),
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: decided("whatHappened"),
+          recordId: decided(`${r}Id`),
+          note: decided("reason"),
+        }),
+      },
+    ]),
   };
 };
 
+/*
+ * Five steps: the Webhook; the script that reads which note the event names;
+ * the note as Dynamics 365 has it, with the case it is on (one call, through
+ * $expand); the script that turns it into a private note and finds the
+ * linked record; and Incident or Alert From Another Tool adding the note.
+ */
 const dynamicsCaseNoteToRecordTemplate: DynamicsTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
-  const find: string = `find-${r}-1`;
+  const read: (key: string) => string = (key: string): string => {
+    return `{{local.components.read-note-1.returnValues.returnValue.${key}}}`;
+  };
 
   return {
     id: `dynamics-case-note-to-${r}-private-note`,
@@ -6697,287 +4525,61 @@ const dynamicsCaseNoteToRecordTemplate: DynamicsTemplateFunction = (
     workflowDescription: `Adds each note on a linked Dynamics 365 case to the ${r} as a private note. ${DYNAMICS_WEBHOOK_SETUP} when a note is added.`,
     variables: [...DYNAMICS_VARIABLES],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "read-event-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          code: dynamicsReadNoteEventScript(kind),
+          arguments: "{{local.components.webhook-1.returnValues.request-body}}",
         },
-        {
-          componentId: "read-event-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: dynamicsReadNoteEventScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
-          },
+      },
+      {
+        componentId: "get-note-1",
+        metadataId: ComponentID.ApiGetById,
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: {
+          url: `${DYNAMICS_WEB_API_ROOT}/annotations(${API_GET_BY_ID_PLACEHOLDER})?$select=annotationid,subject,notetext,isdocument,filename,objecttypecode,_createdby_value&$expand=objectid_incident($select=incidentid,ticketnumber,{{local.variables.dynamicsLinkColumn}})`,
+          id: "{{local.components.read-event-1.returnValues.returnValue.noteId}}",
+          "request-headers": dynamicsHeaders({
+            prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+          }),
         },
-        {
-          componentId: "log-read-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 600, y: 300 },
-          args: {
-            value:
-              "❌ Could not read the Dynamics 365 event: {{local.components.read-event-1.returnValues.error}}",
-          },
+      },
+      {
+        componentId: "read-note-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: dynamicsReadCaseNoteScript(kind),
+          arguments: jsonText({
+            dynamicsUrl: "{{local.variables.dynamicsUrl}}",
+            linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+            note: "{{local.components.get-note-1.returnValues.response-body}}",
+          }),
         },
-        {
-          componentId: "if-note-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: proceedCondition("read-event-1"),
-        },
-        {
-          componentId: "log-ignored",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 350, y: 700 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          /*
-           * The note, and through $expand the case it is on, link column
-           * and all, in one call.
-           */
-          componentId: "get-note-1",
-          metadataId: ComponentID.ApiGet,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 700 },
-          args: {
-            url: `${DYNAMICS_WEB_API_ROOT}/annotations({{local.components.read-event-1.returnValues.returnValue.noteId}})?$select=annotationid,subject,notetext,isdocument,filename,objecttypecode,_createdby_value&$expand=objectid_incident($select=incidentid,ticketnumber,{{local.variables.dynamicsLinkColumn}})`,
-            "request-headers": dynamicsHeaders({
-              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
-            }),
-          },
-        },
-        {
-          componentId: "log-get-note-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
-          args: {
-            value:
-              "❌ Could not read Dynamics 365 note {{local.components.read-event-1.returnValues.returnValue.noteId}}: {{local.components.get-note-1.returnValues.error}}\nDynamics 365 said: {{local.components.get-note-1.returnValues.response-body}}",
-          },
-        },
-        {
-          componentId: "read-note-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 900 },
-          args: {
-            code: dynamicsReadCaseNoteScript(kind),
-            arguments: jsonText({
-              dynamicsUrl: "{{local.variables.dynamicsUrl}}",
-              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
-              note: "{{local.components.get-note-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-read-note-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
-          args: {
-            value:
-              "❌ Could not read the Dynamics 365 note: {{local.components.read-note-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-linked-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1100 },
-          args: proceedCondition("read-note-1"),
-        },
-        {
-          componentId: "log-not-copied",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 1300 },
-          args: {
-            value:
-              "ℹ️ {{local.components.read-note-1.returnValues.returnValue.reason}}",
-          },
-        },
-        {
-          componentId: find,
-          metadataId: `${r}-find-one`,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1300 },
-          args: {
-            query: {
-              _id: `{{local.components.read-note-1.returnValues.returnValue.${r}Id}}`,
-            },
-            select: { _id: true, [kind.numberField]: true },
-          },
-        },
-        {
-          componentId: `log-find-${r}-failed`,
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1500 },
-          args: {
-            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
-          },
-        },
-        {
-          /*
-           * Find One answers "nothing matched" on its Success port, so this
-           * is what stops a link naming a record in another project — the
-           * lookup is scoped to this one — from being written to.
-           */
-          componentId: "if-found-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1500 },
-          args: {
-            "input-1-type": ConditionValueType.Text,
-            "input-1": `{{local.components.${find}.returnValues.model._id}}`,
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Text,
-            "input-2": `{{local.components.read-note-1.returnValues.returnValue.${r}Id}}`,
-          },
-        },
-        {
-          componentId: "log-not-found",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -150, y: 1700 },
-          args: {
-            value: `ℹ️ Dynamics 365 case {{local.components.read-note-1.returnValues.returnValue.caseNumber}} names ${r} {{local.components.read-note-1.returnValues.returnValue.${r}Id}}, which is not in this project.`,
-          },
-        },
-        {
-          componentId: "create-note-1",
-          metadataId: `${r}-internal-note-create-one`,
-          componentType: ComponentType.Component,
-          position: { x: -650, y: 1700 },
-          args: {
-            json: jsonText({
-              [kind.idColumn]: `{{local.components.${find}.returnValues.model._id}}`,
-              note: "{{local.components.read-note-1.returnValues.returnValue.note}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-noted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -650, y: 1900 },
-          args: {
-            value: `✅ Added the note on Dynamics 365 case {{local.components.read-note-1.returnValues.returnValue.caseNumber}} to {{local.components.${find}.returnValues.model.${kind.numberField}}} as a private note.`,
-          },
-        },
-        {
-          componentId: "log-note-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -400, y: 1900 },
-          args: {
-            value:
-              "❌ Could not add the private note. The database error is in the run log above.",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "read-event-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "if-note-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-event-1",
-          toComponentId: "log-read-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-note-1",
-          toComponentId: "get-note-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-note-1",
-          toComponentId: "log-ignored",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "get-note-1",
-          toComponentId: "read-note-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "get-note-1",
-          toComponentId: "log-get-note-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "read-note-1",
-          toComponentId: "if-linked-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "read-note-1",
-          toComponentId: "log-read-note-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: find,
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: "log-not-copied",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: "if-found-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: find,
-          toComponentId: `log-find-${r}-failed`,
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-found-1",
-          toComponentId: "create-note-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-found-1",
-          toComponentId: "log-not-found",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "create-note-1",
-          toComponentId: "log-noted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "create-note-1",
-          toComponentId: "log-note-failed",
-          fromPort: "error",
-        },
-      ],
-    },
+      },
+      {
+        componentId: fromAnotherToolStepId(kind),
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: fromAnotherToolArgs({
+          whatHappened: FromAnotherToolAction.Note,
+          recordId: read(`${r}Id`),
+          note: read("note"),
+        }),
+      },
+    ]),
   };
 };
 
@@ -7796,28 +5398,6 @@ const zabbixPageArgs: ZabbixPageArgsFunction = (
   };
 };
 
-type FromAnotherToolStepIdFunction = (kind: TemplateRecordKind) => string;
-
-/*
- * The From Another Tool step's id in a template: the id the Builder gives
- * the first one added, "incident-from-another-tool-1".
- */
-const fromAnotherToolStepId: FromAnotherToolStepIdFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  return `${kind.noun}-from-another-tool-1`;
-};
-
-type FromAnotherToolMetadataIdFunction = (kind: TemplateRecordKind) => string;
-
-const fromAnotherToolMetadataId: FromAnotherToolMetadataIdFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  return kind.noun === ALERT_KIND.noun
-    ? ComponentID.AlertFromAnotherTool
-    : ComponentID.IncidentFromAnotherTool;
-};
-
 /* ----------------------- Zabbix -> OneUptime ----------------------- */
 
 type ZabbixEventValueFunction = (key: string) => string;
@@ -7951,8 +5531,7 @@ const zabbixUpdateArgs: ZabbixUpdateArgsFunction = (data: {
 }): JSONObject => {
   return {
     [ZABBIX_UPDATE_ARGUMENT_IDS.zabbixUrl]: "{{local.variables.zabbixUrl}}",
-    [ZABBIX_UPDATE_ARGUMENT_IDS.apiToken]:
-      "{{local.variables.zabbixApiToken}}",
+    [ZABBIX_UPDATE_ARGUMENT_IDS.apiToken]: "{{local.variables.zabbixApiToken}}",
     [ZABBIX_UPDATE_ARGUMENT_IDS.eventId]: data.eventId,
     [ZABBIX_UPDATE_ARGUMENT_IDS.whatToDo]: data.whatToDo,
     [ZABBIX_UPDATE_ARGUMENT_IDS.message]: data.message,
@@ -8206,6 +5785,26 @@ for (const character of payload) {
 // And it closes with one.
 return last === BACKTICK ? written + JOINER : written;
 `;
+
+/*
+ * Whether a status-page subscriber's update is a confirmed email
+ * subscription: the subscriber templates' Check With JavaScript, which goes
+ * on by Yes for one, and says why by No for anything else.
+ */
+const SUBSCRIBER_CONFIRMED_EMAIL_SCRIPT: string = [
+  "const subscriber = args || {};",
+  "const email = subscriber.subscriberEmail?.value || '';",
+  "const proceed = subscriber.isSubscriptionConfirmed === true && Boolean(email);",
+  "",
+  "return {",
+  "  proceed,",
+  "  reason: proceed",
+  "    ? 'The subscriber confirmed an email subscription.'",
+  "    : 'The subscriber has not confirmed an email subscription, so nothing was sent.',",
+  "  email,",
+  "  statusPage: subscriber.statusPage?.name || 'Status page',",
+  "};",
+].join("\n");
 
 const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   /* ----------------------------- Basics ----------------------------- */
@@ -9404,72 +7003,42 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     workflowDescription:
       "Posts to Slack only when a monitor moves into an offline status.",
     variables: [SLACK_WEBHOOK_URL],
-    graph: {
-      nodes: [
-        {
-          componentId: "monitor-status-timeline-on-create-1",
-          metadataId: "monitor-status-timeline-on-create",
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: { select: MONITOR_STATUS_TIMELINE_SELECT },
+    graph: columnGraph([
+      {
+        componentId: "monitor-status-timeline-on-create-1",
+        metadataId: "monitor-status-timeline-on-create",
+        componentType: ComponentType.Trigger,
+        args: { select: MONITOR_STATUS_TIMELINE_SELECT },
+      },
+      {
+        componentId: "if-else-1",
+        metadataId: ComponentID.IfElse,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          "input-1-type": ConditionValueType.Boolean,
+          "input-1":
+            "{{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.isOfflineState}}",
+          operator: ConditionOperator.EqualTo,
+          "input-2-type": ConditionValueType.Boolean,
+          "input-2": true,
         },
-        {
-          componentId: "if-else-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            "input-1-type": ConditionValueType.Boolean,
-            "input-1":
-              "{{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.isOfflineState}}",
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Boolean,
-            "input-2": true,
-          },
+      },
+      {
+        componentId: "slack-1",
+        metadataId: ComponentID.SlackSendMessageToChannel,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          "webhook-url": "{{local.variables.slackWebhookUrl}}",
+          text: [
+            ":red_circle: *Monitor offline*",
+            "*Monitor:* {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitor.name}}",
+            "*Status:* {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}",
+          ].join("\n"),
         },
-        {
-          componentId: "slack-1",
-          metadataId: ComponentID.SlackSendMessageToChannel,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 500 },
-          args: {
-            "webhook-url": "{{local.variables.slackWebhookUrl}}",
-            text: [
-              ":red_circle: *Monitor offline*",
-              "*Monitor:* {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitor.name}}",
-              "*Status:* {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}",
-            ].join("\n"),
-          },
-        },
-        {
-          componentId: "log-online",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "ℹ️ Status changed to {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}, which is not offline. No notification sent.",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "monitor-status-timeline-on-create-1",
-          toComponentId: "if-else-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "if-else-1",
-          toComponentId: "slack-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-else-1",
-          toComponentId: "log-online",
-          fromPort: "no",
-        },
-      ],
-    },
+      },
+    ]),
   },
   {
     id: "monitor-status-changed-mattermost",
@@ -9645,122 +7214,84 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     description:
       "Checks each new incident's severity and, when it is critical, pages the person on call in a schedule you pick.",
     teaches:
-      "How an If / Else in front of a Page step makes paging conditional. Open the Page step and pick the schedule.",
-    setUpInBuilder: "An on-call schedule to page. You pick it in the Builder.",
+      "How an If / Else in front of a Page step makes paging conditional.",
+    whoToPage: [
+      {
+        componentId: "page-on-call-1",
+        title: "Who to page for critical incidents",
+        description:
+          "The on-call schedules whose person on call right now is paged for a critical incident.",
+        required: true,
+      },
+    ],
     category: WorkflowTemplateCategory.OnCall,
     icon: IconProp.Call,
     workflowName: "Page on-call for critical incidents",
     workflowDescription:
       "Pages whoever is on call in the schedule you pick when a critical incident is created, about that incident. If your most severe incidents are called something else, change what the If / Else compares with.",
     variables: [],
-    graph: {
-      nodes: [
-        {
-          componentId: "incident-on-create-1",
-          metadataId: "incident-on-create",
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: { select: INCIDENT_SELECT },
+    graph: columnGraph([
+      {
+        componentId: "incident-on-create-1",
+        metadataId: "incident-on-create",
+        componentType: ComponentType.Trigger,
+        args: { select: INCIDENT_SELECT },
+      },
+      {
+        componentId: "if-else-1",
+        metadataId: ComponentID.IfElse,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          "input-1-type": ConditionValueType.Text,
+          "input-1":
+            "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+          operator: ConditionOperator.EqualTo,
+          "input-2-type": ConditionValueType.Text,
+          "input-2": "Critical Incident",
         },
-        {
-          componentId: "if-else-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            "input-1-type": ConditionValueType.Text,
-            "input-1":
-              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Text,
-            "input-2": "Critical Incident",
-          },
+      },
+      {
+        componentId: "page-on-call-1",
+        metadataId: ComponentID.PageOnCall,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+          [PAGE_ARGUMENT_IDS.incidentId]:
+            "{{local.components.incident-on-create-1.returnValues.model._id}}",
         },
-        {
-          componentId: "page-on-call-1",
-          metadataId: ComponentID.PageOnCall,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 500 },
-          args: {
-            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
-            [PAGE_ARGUMENT_IDS.incidentId]:
-              "{{local.components.incident-on-create-1.returnValues.model._id}}",
-          },
-        },
-        {
-          componentId: "log-not-critical",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so nobody was paged.",
-          },
-        },
-        {
-          componentId: "log-paged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -300, y: 720 },
-          args: {
-            value:
-              "📟 {{local.components.page-on-call-1.returnValues.summary}}",
-          },
-        },
-        {
-          componentId: "log-nobody-paged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 20, y: 720 },
-          args: {
-            value:
-              "❌ Nobody was paged for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}: {{local.components.page-on-call-1.returnValues.error}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "incident-on-create-1",
-          toComponentId: "if-else-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "if-else-1",
-          toComponentId: "page-on-call-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-else-1",
-          toComponentId: "log-not-critical",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "page-on-call-1",
-          toComponentId: "log-paged",
-          fromPort: PAGE_SUCCESS_PORT_ID,
-        },
-        {
-          fromComponentId: "page-on-call-1",
-          toComponentId: "log-nobody-paged",
-          fromPort: PAGE_ERROR_PORT_ID,
-        },
-      ],
-    },
+      },
+    ]),
   },
   {
     id: "incident-severity-page",
     name: "Page different people for each incident severity",
     description:
-      "Starts an on-call policy you pick for critical incidents, pages a team you pick for major ones, and only logs the rest.",
+      "Starts an on-call policy you pick for critical incidents, pages a team you pick for major ones, and pages nobody for the rest.",
     teaches:
-      "How Switch / Case makes paging depend on a value, with a different Page step on each path. Open each Page step and pick who it pages.",
-    setUpInBuilder:
-      "An on-call policy and a team to page. You pick them in the Builder.",
+      "How Switch / Case makes paging depend on a value, with a different Page step on each path.",
+    whoToPage: [
+      {
+        componentId: "page-on-call-policy-1",
+        title: "Who to page for critical incidents",
+        description:
+          "The on-call policies started for a critical incident, with their escalation rules.",
+        required: true,
+      },
+      {
+        componentId: "page-team-1",
+        title: "Who to page for major incidents",
+        description:
+          "The teams whose every member is paged for a major incident.",
+        required: true,
+      },
+    ],
     category: WorkflowTemplateCategory.OnCall,
     icon: IconProp.Switch,
     workflowName: "Page by incident severity",
     workflowDescription:
-      "Critical incidents start the on-call policy you pick, with its escalation rules. Major ones page every member of the team you pick. Every other severity is logged. If your severities have other names, change the cases to match them.",
+      "Critical incidents start the on-call policy you pick, with its escalation rules. Major ones page every member of the team you pick. Every other severity pages nobody. If your severities have other names, change the cases to match them.",
     variables: [],
     graph: {
       nodes: [
@@ -9822,36 +7353,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "{{local.components.incident-on-create-1.returnValues.model._id}}",
           },
         },
-        {
-          componentId: "log-other-severity",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 460, y: 560 },
-          args: {
-            value:
-              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so nobody was paged.",
-          },
-        },
-        {
-          componentId: "log-policy-not-started",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -260, y: 800 },
-          args: {
-            value:
-              "❌ No on-call policy was started for the critical incident: {{local.components.page-on-call-policy-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "log-team-not-paged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 800 },
-          args: {
-            value:
-              "❌ Nobody was paged for the major incident: {{local.components.page-team-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -9869,21 +7370,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           toComponentId: "page-team-1",
           fromPort: "case-2",
         },
-        {
-          fromComponentId: "switch-1",
-          toComponentId: "log-other-severity",
-          fromPort: SWITCH_DEFAULT_PORT_ID,
-        },
-        {
-          fromComponentId: "page-on-call-policy-1",
-          toComponentId: "log-policy-not-started",
-          fromPort: PAGE_ERROR_PORT_ID,
-        },
-        {
-          fromComponentId: "page-team-1",
-          toComponentId: "log-team-not-paged",
-          fromPort: PAGE_ERROR_PORT_ID,
-        },
       ],
     },
   },
@@ -9893,73 +7379,42 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     description:
       "Gives you a URL. A POST to it pages the people you pick, with the title and message it sent, and opens an alert they can acknowledge.",
     teaches:
-      "How paging works with no incident behind it: the Page step's title and message become a new alert. Open the Page step and pick who to page.",
-    setUpInBuilder: "People to page. You pick them in the Builder.",
+      "How paging works with no incident behind it: the Page step's title and message become a new alert.",
+    whoToPage: [
+      {
+        componentId: "page-users-1",
+        title: "Who to page",
+        description:
+          "The people paged each time something calls the URL, about the alert it opens.",
+        required: true,
+      },
+    ],
     category: WorkflowTemplateCategory.OnCall,
     icon: IconProp.User,
     workflowName: "Page people from a webhook",
     workflowDescription:
       "Anything that can send a POST with a title and a message to this workflow's webhook pages the people you pick. OneUptime creates an alert from the title and the message, and acknowledging the page acknowledges it.",
     variables: [],
-    graph: {
-      nodes: [
-        {
-          componentId: "webhook-1",
-          metadataId: ComponentID.Webhook,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
+    graph: columnGraph([
+      {
+        componentId: "webhook-1",
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "page-users-1",
+        metadataId: ComponentID.PageUsers,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          [PAGE_ARGUMENT_IDS.about]: PageAbout.NewAlert,
+          [PAGE_ARGUMENT_IDS.title]:
+            "{{local.components.webhook-1.returnValues.request-body.title}}",
+          [PAGE_ARGUMENT_IDS.message]:
+            "{{local.components.webhook-1.returnValues.request-body.message}}",
         },
-        {
-          componentId: "page-users-1",
-          metadataId: ComponentID.PageUsers,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            [PAGE_ARGUMENT_IDS.about]: PageAbout.NewAlert,
-            [PAGE_ARGUMENT_IDS.title]:
-              "{{local.components.webhook-1.returnValues.request-body.title}}",
-            [PAGE_ARGUMENT_IDS.message]:
-              "{{local.components.webhook-1.returnValues.request-body.message}}",
-          },
-        },
-        {
-          componentId: "log-paged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 520 },
-          args: {
-            value: "📟 {{local.components.page-users-1.returnValues.summary}}",
-          },
-        },
-        {
-          componentId: "log-nobody-paged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 520 },
-          args: {
-            value:
-              "❌ Nobody was paged: {{local.components.page-users-1.returnValues.error}}",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "webhook-1",
-          toComponentId: "page-users-1",
-          fromPort: "out",
-        },
-        {
-          fromComponentId: "page-users-1",
-          toComponentId: "log-paged",
-          fromPort: PAGE_SUCCESS_PORT_ID,
-        },
-        {
-          fromComponentId: "page-users-1",
-          toComponentId: "log-nobody-paged",
-          fromPort: PAGE_ERROR_PORT_ID,
-        },
-      ],
-    },
+      },
+    ]),
   },
 
   /* ---------------------------- Status Page ---------------------------- */
@@ -9976,105 +7431,47 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     workflowDescription:
       "Posts to Slack when an email subscription to a status page is confirmed.",
     variables: [SLACK_WEBHOOK_URL],
-    graph: {
-      nodes: [
-        {
-          componentId: "subscriber-on-update-1",
-          metadataId: "status-page-subscriber-on-update",
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            "listen-on": { isSubscriptionConfirmed: true },
-            select: {
-              _id: true,
-              subscriberEmail: true,
-              isSubscriptionConfirmed: true,
-              statusPage: { name: true },
-            },
+    graph: columnGraph([
+      {
+        componentId: "subscriber-on-update-1",
+        metadataId: "status-page-subscriber-on-update",
+        componentType: ComponentType.Trigger,
+        args: {
+          "listen-on": { isSubscriptionConfirmed: true },
+          select: {
+            _id: true,
+            subscriberEmail: true,
+            isSubscriptionConfirmed: true,
+            statusPage: { name: true },
           },
         },
-        {
-          componentId: "subscriber-normalize-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: [
-              "const subscriber = args || {};",
-              "const email = subscriber.subscriberEmail?.value || '';",
-              "",
-              "return {",
-              "  email,",
-              "  statusPage: subscriber.statusPage?.name || 'Status page',",
-              "  shouldNotify: subscriber.isSubscriptionConfirmed === true && Boolean(email),",
-              "};",
-            ].join("\n"),
-            arguments:
-              "{{local.components.subscriber-on-update-1.returnValues.model}}",
-          },
+      },
+      {
+        componentId: "subscriber-normalize-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: SUBSCRIBER_CONFIRMED_EMAIL_SCRIPT,
+          arguments:
+            "{{local.components.subscriber-on-update-1.returnValues.model}}",
         },
-        {
-          componentId: "if-confirmed-email-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            "input-1-type": ConditionValueType.Boolean,
-            "input-1":
-              "{{local.components.subscriber-normalize-1.returnValues.returnValue.shouldNotify}}",
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Boolean,
-            "input-2": true,
-          },
+      },
+      {
+        componentId: "slack-1",
+        metadataId: ComponentID.SlackSendMessageToChannel,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          "webhook-url": "{{local.variables.slackWebhookUrl}}",
+          text: [
+            ":bust_in_silhouette: *New confirmed status-page subscriber*",
+            "*Status page:* {{local.components.subscriber-normalize-1.returnValues.returnValue.statusPage}}",
+            "*Email:* {{local.components.subscriber-normalize-1.returnValues.returnValue.email}}",
+          ].join("\n"),
         },
-        {
-          componentId: "slack-1",
-          metadataId: ComponentID.SlackSendMessageToChannel,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 700 },
-          args: {
-            "webhook-url": "{{local.variables.slackWebhookUrl}}",
-            text: [
-              ":bust_in_silhouette: *New confirmed status-page subscriber*",
-              "*Status page:* {{local.components.subscriber-normalize-1.returnValues.returnValue.statusPage}}",
-              "*Email:* {{local.components.subscriber-normalize-1.returnValues.returnValue.email}}",
-            ].join("\n"),
-          },
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 700 },
-          args: {
-            value:
-              "ℹ️ Subscriber update was not a confirmed email subscription. No Slack message sent.",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "subscriber-on-update-1",
-          toComponentId: "subscriber-normalize-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "subscriber-normalize-1",
-          toComponentId: "if-confirmed-email-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "if-confirmed-email-1",
-          toComponentId: "slack-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-confirmed-email-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-      ],
-    },
+      },
+    ]),
   },
   {
     id: "subscriber-added-forward",
@@ -10099,106 +7496,48 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         isSecret: true,
       },
     ],
-    graph: {
-      nodes: [
-        {
-          componentId: "subscriber-on-update-1",
-          metadataId: "status-page-subscriber-on-update",
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            "listen-on": { isSubscriptionConfirmed: true },
-            select: {
-              _id: true,
-              subscriberEmail: true,
-              isSubscriptionConfirmed: true,
-              statusPage: { name: true },
-            },
+    graph: columnGraph([
+      {
+        componentId: "subscriber-on-update-1",
+        metadataId: "status-page-subscriber-on-update",
+        componentType: ComponentType.Trigger,
+        args: {
+          "listen-on": { isSubscriptionConfirmed: true },
+          select: {
+            _id: true,
+            subscriberEmail: true,
+            isSubscriptionConfirmed: true,
+            statusPage: { name: true },
           },
         },
-        {
-          componentId: "subscriber-normalize-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
-          args: {
-            code: [
-              "const subscriber = args || {};",
-              "const email = subscriber.subscriberEmail?.value || '';",
-              "",
-              "return {",
-              "  email,",
-              "  statusPage: subscriber.statusPage?.name || 'Status page',",
-              "  shouldForward: subscriber.isSubscriptionConfirmed === true && Boolean(email),",
-              "};",
-            ].join("\n"),
-            arguments:
-              "{{local.components.subscriber-on-update-1.returnValues.model}}",
-          },
+      },
+      {
+        componentId: "subscriber-normalize-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          code: SUBSCRIBER_CONFIRMED_EMAIL_SCRIPT,
+          arguments:
+            "{{local.components.subscriber-on-update-1.returnValues.model}}",
         },
-        {
-          componentId: "if-confirmed-email-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            "input-1-type": ConditionValueType.Boolean,
-            "input-1":
-              "{{local.components.subscriber-normalize-1.returnValues.returnValue.shouldForward}}",
-            operator: ConditionOperator.EqualTo,
-            "input-2-type": ConditionValueType.Boolean,
-            "input-2": true,
-          },
+      },
+      {
+        componentId: "api-post-1",
+        metadataId: ComponentID.ApiPost,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          url: "{{local.variables.crmWebhookUrl}}",
+          "request-body": [
+            "{",
+            '  "email": "{{local.components.subscriber-normalize-1.returnValues.returnValue.email}}",',
+            '  "statusPage": "{{local.components.subscriber-normalize-1.returnValues.returnValue.statusPage}}"',
+            "}",
+          ].join("\n"),
         },
-        {
-          componentId: "api-post-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 700 },
-          args: {
-            url: "{{local.variables.crmWebhookUrl}}",
-            "request-body": [
-              "{",
-              '  "email": "{{local.components.subscriber-normalize-1.returnValues.returnValue.email}}",',
-              '  "statusPage": "{{local.components.subscriber-normalize-1.returnValues.returnValue.statusPage}}"',
-              "}",
-            ].join("\n"),
-          },
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 700 },
-          args: {
-            value:
-              "ℹ️ Subscriber update was not a confirmed email subscription. Nothing forwarded.",
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "subscriber-on-update-1",
-          toComponentId: "subscriber-normalize-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "subscriber-normalize-1",
-          toComponentId: "if-confirmed-email-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "if-confirmed-email-1",
-          toComponentId: "api-post-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-confirmed-email-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-      ],
-    },
+      },
+    ]),
   },
 
   /* ----------------------- Scheduled Maintenance ----------------------- */
@@ -10879,7 +8218,9 @@ export const applyWhoToPage: ApplyWhoToPageFunction = (data: {
       : null;
 
     if (!node || !target) {
-      throw new Error(`${ask.componentId} is not a Page step of this template.`);
+      throw new Error(
+        `${ask.componentId} is not a Page step of this template.`,
+      );
     }
 
     const picked: Array<string> = Array.from(
