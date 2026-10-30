@@ -160,9 +160,9 @@ func newServiceConfig() *service.Config {
 	}
 }
 
-// echoesToTerminal says whether a command's log lines also go to the
-// terminal. Every command's do: they are its result. The service itself
-// writes only to its log, unless it runs in a terminal.
+// echoesToTerminal says whether the log lines also go to the terminal: for
+// every command, whose result they are, and for the service itself only when
+// it runs in a terminal - under a service manager it writes to its log alone.
 func echoesToTerminal(args []string, interactive bool) bool {
 	if len(args) < 2 {
 		return false
