@@ -104,6 +104,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Regelausnahmen | `Rule Exception` |
 | Beobachtungslisten | `Watchlist` |
 | Beobachtungslistenwerte | `Watchlist Value` |
+| Bedrohungssuchen | `Hunt` |
 | Aufgaben und Belege von Sicherheitsfällen | `Security Case Task`, `Security Case Evidence` |
 | Audit-Protokoll-Exporte | `Audit Log Export` |
 

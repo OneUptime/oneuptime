@@ -21,7 +21,8 @@ jobs:
     # The suite runs transpile-only: packages/Probe/jest.config.json sets
     # ts-jest's isolatedModules, as App's and Common's do, so ts-jest no longer
     # type-checks each test file together with everything it imports, one file
-    # after another (--detectOpenHandles keeps jest in band).
+    # after another (the test script runs jest in band, --runInBand; it no
+    # longer passes --detectOpenHandles: Tests/Ops/JestOpenHandlesInCi).
     #
     # Nothing goes unchecked: Probe's tsconfig.json includes ./**/*.ts, so the
     # compile-probe job in the Compile workflow type-checks every test file as

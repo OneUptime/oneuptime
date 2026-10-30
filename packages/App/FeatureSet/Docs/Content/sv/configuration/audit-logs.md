@@ -104,6 +104,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 | Regelundantag | `Rule Exception` |
 | Bevakningslistor | `Watchlist` |
 | Bevakningslistvärden | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Uppgifter och bevis i säkerhetsärenden | `Security Case Task`, `Security Case Evidence` |
 | Exporter av granskningsloggen | `Audit Log Export` |
 

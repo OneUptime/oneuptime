@@ -104,6 +104,7 @@ flowchart TB
 | नियम अपवाद | `Rule Exception` |
 | वॉचलिस्ट | `Watchlist` |
 | वॉचलिस्ट मान | `Watchlist Value` |
+| हंट | `Hunt` |
 | सुरक्षा केस के कार्य और साक्ष्य | `Security Case Task`, `Security Case Evidence` |
 | ऑडिट लॉग एक्सपोर्ट | `Audit Log Export` |
 

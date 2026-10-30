@@ -7,7 +7,9 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
+import { getRecordNumberColumns } from "Common/Utils/Project/RecordNumber";
 import { getLiveRowEventTypes } from "Common/UI/Components/ModelTable/LiveRows";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { readPage } from "./DocsContentSupport";
@@ -153,6 +155,75 @@ describe("Pages and lists, in English", () => {
   });
 });
 
+/*
+ * An incident's pages, and an alert's, a scheduled maintenance event's and
+ * an episode's, lead with its number - "INC-42 Checkout is down" - in the
+ * heading, the trail and the browser tab: each layout heads its pages with
+ * a ModelPage of a model that numbers its records, and ModelPage reads the
+ * number with the title (Utils/Project/RecordNumber).
+ */
+const NUMBERED_LAYOUTS: Array<{ layout: string; model: BaseModel }> = [
+  { layout: "Pages/Incidents/View/Layout.tsx", model: new Incident() },
+  { layout: "Pages/Alerts/View/Layout.tsx", model: new Alert() },
+  {
+    layout: "Pages/ScheduledMaintenanceEvents/View/Layout.tsx",
+    model: new ScheduledMaintenance(),
+  },
+  {
+    layout: "Pages/Incidents/EpisodeView/Layout.tsx",
+    model: new IncidentEpisode(),
+  },
+  { layout: "Pages/Alerts/EpisodeView/Layout.tsx", model: new AlertEpisode() },
+];
+
+describe("Pages and lists says an event's pages lead with its number", () => {
+  it("in English, with an example", () => {
+    expect(SECTION).toContain("**An incident's pages lead with its number.**");
+    expect(SECTION).toContain(
+      "Its heading, its step in the trail and the browser tab read `INC-42 Checkout is down`",
+    );
+    expect(SECTION).toContain(
+      "Alerts, scheduled maintenance events and episodes do the same.",
+    );
+  });
+
+  it("each of the five layouts heads its pages with a numbered model's ModelPage", () => {
+    for (const numbered of NUMBERED_LAYOUTS) {
+      const layout: string = dense(source(DASHBOARD_SRC, numbered.layout));
+      const modelName: string = numbered.model.constructor.name;
+
+      expect({
+        layout: numbered.layout,
+        isModelPage: layout.includes("<ModelPage"),
+      }).toEqual({
+        layout: numbered.layout,
+        isModelPage: true,
+      });
+      expect(layout).toContain(`modelType={${modelName}}`);
+      expect(layout).toContain('modelNameField="title"');
+      expect({
+        model: numbered.model.tableName,
+        numbered: Boolean(getRecordNumberColumns(numbered.model)),
+      }).toEqual({ model: numbered.model.tableName, numbered: true });
+    }
+  });
+
+  it("ModelPage reads the number with the title and heads the page by both", () => {
+    const modelPage: string = dense(
+      source(REPO_ROOT, "Common/UI/Components/Page/ModelPage.tsx"),
+    );
+
+    expect(modelPage).toContain("getRecordNumberColumns(modelInstance)");
+    expect(modelPage).toContain(
+      "select[numberColumns.numberWithPrefixColumn]=true;",
+    );
+    expect(modelPage).toContain("recordHeading={recordHeading}");
+    expect(modelPage).toContain(
+      "recordNumber:shownHeader?shownHeader.recordNumber:undefined",
+    );
+  });
+});
+
 describe.each(
   SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
     return language !== "en";
@@ -168,6 +239,10 @@ describe.each(
     }).join(" › ");
 
     expect(page).toContain(`*${trail}*`);
+  });
+
+  it("gives the numbered heading's example as it is drawn", () => {
+    expect(page).toContain("`INC-42 Checkout is down`");
   });
 
   it("names Filter and Clear all as its dashboard draws them", () => {

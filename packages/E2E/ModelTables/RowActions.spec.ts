@@ -29,6 +29,8 @@ const RUNBOOKS: string = `/dashboard/${PROJECT}/runbooks`;
 // The fixture's records.
 const INCIDENT: string = "40000000-0000-4000-8000-000000000002";
 const INCIDENT_TITLE: string = "ghfghgf";
+// Its number: a dialog that names it says it first (Utils/Project/RecordNumber).
+const INCIDENT_NUMBER: string = "INC-2";
 const ACKNOWLEDGED: string = "41000000-0000-4000-8000-000000000002";
 const MINOR: string = "43000000-0000-4000-8000-000000000003";
 const ALERT: string = "44000000-0000-4000-8000-000000000010";
@@ -297,7 +299,7 @@ test.describe("an incident's row", () => {
       "Change Incident State",
     );
     await expect(dialog).toContainText(
-      `Pick the next state for ${INCIDENT_TITLE}.`,
+      `Pick the next state for ${INCIDENT_NUMBER} ${INCIDENT_TITLE}.`,
     );
 
     await dialog.getByRole("combobox").first().click();
@@ -329,7 +331,7 @@ test.describe("an incident's row", () => {
       "Change Severity",
     );
     await expect(dialog).toContainText(
-      `Pick the new severity for ${INCIDENT_TITLE}.`,
+      `Pick the new severity for ${INCIDENT_NUMBER} ${INCIDENT_TITLE}.`,
     );
     // Nothing is picked as it opens, as a case's Change Priority.
     await expect(dialog.locator(".ou-select__placeholder")).toHaveText(
@@ -413,7 +415,7 @@ test.describe("an incident's row", () => {
 
     await expect(dialog.getByTestId("modal-title")).toHaveText("Add Owner");
     await expect(dialog).toContainText(
-      `Pick the people and teams to add as owners of ${INCIDENT_TITLE}. Its existing owners are kept.`,
+      `Pick the people and teams to add as owners of ${INCIDENT_NUMBER} ${INCIDENT_TITLE}. Its existing owners are kept.`,
     );
     // The people and teams picker, empty: nobody is added until picked.
     await expect(dialog.getByTestId("people-picker-add-button")).toBeVisible();

@@ -1,14 +1,17 @@
 import Analytics from "../../Utils/Analytics";
 import Breadcrumbs from "../Breadcrumbs/Breadcrumbs";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import PageLoader from "../Loader/PageLoader";
 import LabelElement from "../Label/Label";
 import Link from "../../../Types/Link";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
+import { getNumberedRecordName } from "../../../Utils/Project/RecordNumber";
 import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
 import PageTrailEndContext from "./PageTrailEnd";
+import { getRecordCrumbName } from "./RecordNameInTrail";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -69,6 +72,21 @@ export interface ComponentProps {
   error?: string | undefined;
   labels?: Array<LabelModel> | undefined;
   headerRight?: ReactElement | undefined;
+  /*
+   * The page is one numbered record's - an incident's, an alert's, a
+   * scheduled maintenance event's, an episode's - and is headed by its
+   * number and its name, "INC-18 Manually declared", in place of the title:
+   * two incidents can share a title, never a number
+   * (Utils/Project/RecordNumber). The name is drawn as typed.
+   */
+  recordHeading?: PageRecordHeading | undefined;
+}
+
+export interface PageRecordHeading {
+  // "INC-18", as the record carries it.
+  number: string;
+  // The record's name as typed: "Manually declared".
+  name: string;
 }
 
 // The header's right side (headerRight): its classes, for the tests.
@@ -76,6 +94,48 @@ export const PAGE_HEADER_RIGHT_CLASS_NAME: string =
   "flex min-w-0 max-w-full flex-wrap items-center sm:justify-end gap-3";
 
 export const PAGE_HEADER_RIGHT_TEST_ID: string = "page-header-right";
+
+/*
+ * A numbered record's heading (recordHeading): the number, then the name.
+ * The number is never cut or wrapped, and keeps its place at the start of
+ * the first line - on the right on a right-to-left page.
+ *
+ * The name gives way. On a phone the two run on as one sentence, two lines
+ * at most, the name's first word beside the number. Only when the number
+ * and that word are together wider than the screen does the name start on
+ * the next line, whole: a no-break space between them made the line break
+ * inside the word instead ("CHECKOUT-INC-1042 Che" / "ckout API ..." at
+ * 320px). From 640px up the heading is one line: the number keeps its
+ * whole width and the name is cut short with an ellipsis at its own end,
+ * so an English name on a Persian page still reads from its start (a cut
+ * across the whole line would take the name's start away there). There
+ * the heading is a flex row, which draws no space between its items, so
+ * its gap is that space: a quarter of an em, a word space of the heading's
+ * font. The whole heading on hover.
+ */
+export const PAGE_RECORD_HEADING_CLASS_NAME: string =
+  "line-clamp-2 break-words [overflow-wrap:anywhere] text-xl font-semibold leading-7 text-gray-900 sm:flex sm:min-w-0 sm:items-baseline sm:gap-x-[0.25em] sm:line-clamp-none sm:tracking-tight";
+
+export const PAGE_RECORD_NUMBER_CLASS_NAME: string =
+  "whitespace-nowrap text-gray-500 sm:shrink-0";
+
+export const PAGE_RECORD_NAME_CLASS_NAME: string = "sm:min-w-0 sm:truncate";
+
+/*
+ * Between the number and the name: a plain space, the one place a phone's
+ * line may break before the name - never inside one of its words.
+ */
+export const PAGE_RECORD_HEADING_SEPARATOR: string = " ";
+
+export const PAGE_RECORD_HEADING_TEST_IDS: {
+  heading: string;
+  number: string;
+  name: string;
+} = {
+  heading: "page-record-heading",
+  number: "page-record-number",
+  name: "page-record-name",
+};
 
 const Page: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -85,6 +145,18 @@ const Page: FunctionComponent<ComponentProps> = (
   const translatedDescription: string | undefined = translateString(
     props.description,
   );
+
+  // A numbered record's heading, when the page is one's and both are known.
+  const recordHeading: PageRecordHeading | null =
+    props.recordHeading &&
+    props.recordHeading.number.trim() &&
+    props.recordHeading.name.trim()
+      ? props.recordHeading
+      : null;
+
+  const recordHeadingText: string | undefined = recordHeading
+    ? getNumberedRecordName(recordHeading)
+    : undefined;
 
   // A trail the page inside handed up (usePageBreadcrumbLinks), while it has one.
   const [innerBreadcrumbLinks, setInnerBreadcrumbLinks] =
@@ -121,11 +193,17 @@ const Page: FunctionComponent<ComponentProps> = (
             .map((link: Link) => {
               /*
                * The record's name where the trail has one (Link.recordName),
-               * so a tab says which monitor it is, not "View Monitor". A
-               * record's name reads as typed (Link.isRecordName).
+               * so a tab says which monitor it is, not "View Monitor" - and
+               * a numbered record's number before it (Link.recordNumber),
+               * so two incidents of one title are two tabs that read
+               * differently. A record's name reads as typed
+               * (Link.isRecordName).
                */
-              if (link.recordName) {
-                return link.recordName;
+              const recordCrumbName: string | undefined =
+                getRecordCrumbName(link);
+
+              if (recordCrumbName) {
+                return recordCrumbName;
               }
 
               return link.isRecordName
@@ -138,13 +216,14 @@ const Page: FunctionComponent<ComponentProps> = (
             .join(" - ")
         : undefined;
 
-    const pageTitle: string | undefined = breadcrumbTitle || translatedTitle;
+    const pageTitle: string | undefined =
+      breadcrumbTitle || recordHeadingText || translatedTitle;
 
     if (pageTitle) {
       // The installation's own name when it goes by one (ProductBranding).
       document.title = `${getProductName()} | ${pageTitle}`;
     }
-  }, [translatedTitle, breadcrumbLinks]);
+  }, [translatedTitle, recordHeadingText, breadcrumbLinks]);
 
   if (props.error) {
     return <ErrorMessage message={props.error} />;
@@ -163,20 +242,43 @@ const Page: FunctionComponent<ComponentProps> = (
         props.className || "mb-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 h-max"
       }
     >
-      {((breadcrumbLinks && breadcrumbLinks.length > 0) || props.title) && (
+      {((breadcrumbLinks && breadcrumbLinks.length > 0) ||
+        props.title ||
+        recordHeading) && (
         <div className="mb-5">
           {breadcrumbLinks && breadcrumbLinks.length > 0 && (
             <div className="mt-2">
               <Breadcrumbs links={breadcrumbLinks} />
             </div>
           )}
-          {props.title && (
+          {(props.title || recordHeading) && (
             <div className="mt-2">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap sm:gap-4">
                 <div className="flex flex-col gap-1 min-w-0">
-                  <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
-                    {translatedTitle}
-                  </h1>
+                  {recordHeading ? (
+                    <h1
+                      className={PAGE_RECORD_HEADING_CLASS_NAME}
+                      title={recordHeadingText}
+                      data-testid={PAGE_RECORD_HEADING_TEST_IDS.heading}
+                    >
+                      <bdi
+                        className={PAGE_RECORD_NUMBER_CLASS_NAME}
+                        data-testid={PAGE_RECORD_HEADING_TEST_IDS.number}
+                      >
+                        {recordHeading.number}
+                      </bdi>
+                      {PAGE_RECORD_HEADING_SEPARATOR}
+                      <IsolatedText
+                        className={PAGE_RECORD_NAME_CLASS_NAME}
+                        text={recordHeading.name}
+                        dataTestId={PAGE_RECORD_HEADING_TEST_IDS.name}
+                      />
+                    </h1>
+                  ) : (
+                    <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
+                      {translatedTitle}
+                    </h1>
+                  )}
                   {translatedDescription && (
                     <p className="max-w-3xl text-sm leading-6 text-gray-500">
                       {translatedDescription}

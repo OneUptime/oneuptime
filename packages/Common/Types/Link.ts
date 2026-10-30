@@ -21,4 +21,12 @@ export default interface Link {
    * page view the product analytics records, among them).
    */
   recordName?: string | undefined;
+  /*
+   * That record's number, for a record its project numbers - "INC-18" -
+   * drawn before its name and never cut, so two incidents with the same
+   * title are told apart in the trail and in the browser tab
+   * (Utils/Project/RecordNumber). Like the name, never sent to the product
+   * analytics.
+   */
+  recordNumber?: string | undefined;
 }

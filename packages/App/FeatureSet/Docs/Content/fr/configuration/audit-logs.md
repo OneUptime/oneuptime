@@ -104,6 +104,7 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Exceptions de règle | `Rule Exception` |
 | Listes de surveillance | `Watchlist` |
 | Valeurs de liste de surveillance | `Watchlist Value` |
+| Chasses | `Hunt` |
 | Tâches et preuves des dossiers de sécurité | `Security Case Task`, `Security Case Evidence` |
 | Exports du journal d'audit | `Audit Log Export` |
 
