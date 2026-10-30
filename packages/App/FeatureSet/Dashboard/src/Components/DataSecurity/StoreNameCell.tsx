@@ -12,7 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
 import OneUptimeDate from "Common/Types/Date";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -72,6 +73,29 @@ export const StoreLastCheckedCell: FunctionComponent<{
   );
 };
 
+/*
+ * A store's name on its line, cut at its own end (dir="auto"): a bucket's
+ * name reads left to right on a Persian page too, and cut there from the
+ * right it lost its start ("…tomer-exports"). Lined up as the page reads -
+ * left, or right on a Persian page - beside the kind's icon.
+ */
+export const STORE_NAME_LINE_CLASS_NAME: string =
+  "truncate text-sm font-medium text-gray-900 [text-align:left] rtl:[text-align:right]";
+
+/*
+ * The kind, then the region after a dot - or on the next line when the
+ * two do not fit side by side (a list beside the side menu leaves the name
+ * 168 pixels): both kept whole rather than "AWS S3 Bucket · eu-west-…".
+ * Each piece brings its dot in its padding at its start, and the row is
+ * moved back by as much inside a clip, so the piece a line starts with
+ * shows none.
+ */
+export const STORE_KIND_ROW_CLASS_NAME: string = "-ms-3 flex flex-wrap";
+export const STORE_KIND_PIECE_CLASS_NAME: string =
+  "min-w-0 max-w-full truncate ps-3";
+export const STORE_REGION_PIECE_CLASS_NAME: string =
+  "relative min-w-0 max-w-full truncate ps-3 font-mono before:absolute before:start-0 before:w-3 before:text-center before:font-sans before:content-['·']";
+
 export interface ComponentProps {
   store: DataStore;
 }
@@ -79,9 +103,14 @@ export interface ComponentProps {
 const StoreNameCell: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const kindInfo: DataStoreKindInfo | undefined = getDataStoreKindInfo(
     props.store.kind,
   );
+  // A cloud's own product names stay as they are; Logs and Traces do not.
+  const kind: string = props.store.kind
+    ? translator.translateText(props.store.kind) || props.store.kind
+    : "";
   const region: string = props.store.region || "";
 
   return (
@@ -91,22 +120,43 @@ const StoreNameCell: FunctionComponent<ComponentProps> = (
         className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
       />
       <div className="min-w-0">
-        {props.store._id ? (
-          <AppLink
-            to={getDataStoreRoute(props.store._id)}
-            className="block truncate text-sm font-medium text-gray-900 hover:underline"
-          >
-            {props.store.name || "—"}
-          </AppLink>
-        ) : (
-          <span className="block truncate text-sm font-medium text-gray-900">
-            {props.store.name || "—"}
-          </span>
-        )}
-        <div className="truncate text-xs text-gray-500">
-          {props.store.kind || ""}
-          {region ? <span className="font-mono">{` · ${region}`}</span> : <></>}
+        <div
+          dir="auto"
+          className={STORE_NAME_LINE_CLASS_NAME}
+          data-testid="data-store-name"
+        >
+          {props.store._id ? (
+            <AppLink
+              to={getDataStoreRoute(props.store._id)}
+              className="hover:underline"
+            >
+              {props.store.name || "—"}
+            </AppLink>
+          ) : (
+            <span>{props.store.name || "—"}</span>
+          )}
         </div>
+        {kind || region ? (
+          <div
+            className="overflow-hidden text-xs text-gray-500"
+            data-testid="data-store-kind-and-region"
+          >
+            <div className={STORE_KIND_ROW_CLASS_NAME}>
+              {kind ? (
+                <span className={STORE_KIND_PIECE_CLASS_NAME}>{kind}</span>
+              ) : (
+                <></>
+              )}
+              {region ? (
+                <span className={STORE_REGION_PIECE_CLASS_NAME}>{region}</span>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );

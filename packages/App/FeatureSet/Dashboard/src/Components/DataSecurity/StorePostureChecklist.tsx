@@ -7,7 +7,9 @@ import {
 } from "Common/Types/DataSecurity/DataStorePosture";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -267,10 +269,18 @@ const StorePostureChecklist: FunctionComponent<ComponentProps> = (
       </ul>
 
       {publicReason ? (
-        <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          {translator.translateTemplate("What makes it public: {{reason}}", {
-            reason: publicReason,
-          })}
+        <div
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 [overflow-wrap:anywhere]"
+          data-testid="data-store-public-reason"
+        >
+          {/*
+           * The reason is the cloud's own words: read the way they are
+           * written, its full stop at its end on a Persian page too.
+           */}
+          <TranslatedSentence
+            template="What makes it public: {{reason}}"
+            slots={{ reason: <IsolatedText text={publicReason} /> }}
+          />
         </div>
       ) : (
         <></>
@@ -283,9 +293,13 @@ const StorePostureChecklist: FunctionComponent<ComponentProps> = (
               "What OneUptime could not read, so the lines above may say Unknown:",
             )}
           </p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-amber-800">
+          <ul className="mt-1 list-disc space-y-0.5 ps-5 text-sm text-amber-800">
             {warnings.map((warning: string): ReactElement => {
-              return <li key={warning}>{warning}</li>;
+              return (
+                <li key={warning} className="[overflow-wrap:anywhere]">
+                  <IsolatedText text={warning} />
+                </li>
+              );
             })}
           </ul>
         </div>

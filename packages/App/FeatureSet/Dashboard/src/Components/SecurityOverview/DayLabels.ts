@@ -55,6 +55,35 @@ export function getLabelledDayIndexes(dayCount: number): Set<number> {
   return indexes;
 }
 
+// The dates a narrow chart keeps: the first, the middle and the last.
+export const NARROW_CHART_DAY_LABELS: number = 3;
+
+/*
+ * Which of the labelled days a narrow chart keeps (StackedDayBars, under
+ * 20rem - a phone's card): the first, the middle and the last, each one of
+ * getLabelledDayIndexes's. Five dates in 250 pixels ran into each other
+ * where months are long ("28. Sept.5. Okt.", "۵ اکتبر۲۸ سپتامبر").
+ */
+export function getNarrowChartDayLabelIndexes(dayCount: number): Set<number> {
+  const indexes: Set<number> = new Set<number>();
+
+  if (dayCount <= NARROW_CHART_DAY_LABELS) {
+    for (let index: number = 0; index < dayCount; index++) {
+      indexes.add(index);
+    }
+
+    return indexes;
+  }
+
+  for (let label: number = 0; label < NARROW_CHART_DAY_LABELS; label++) {
+    indexes.add(
+      Math.round((label * (dayCount - 1)) / (NARROW_CHART_DAY_LABELS - 1)),
+    );
+  }
+
+  return indexes;
+}
+
 export type DayLabelAnchor = "start" | "center" | "end";
 
 /*

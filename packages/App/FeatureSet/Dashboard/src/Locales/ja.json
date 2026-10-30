@@ -21654,7 +21654,7 @@
   "{{count}} warn": "警告 {{count}} 件",
   "{{count}} warn_one": "{{count}} warn",
   "{{count}} warnings": "警告 {{count}} 件",
-  "{{count}} warnings_one": "{{count}} warning",
+  "{{count}} warnings_one": "警告 {{count}} 件",
   "{{count}} widgets match “{{term}}”. Press Enter to add the first one.": "「{{term}}」に一致するウィジェットが {{count}} 件あります。Enter キーを押すと最初のウィジェットを追加します。",
   "{{count}} widgets match “{{term}}”. Press Enter to add the first one._one": "{{count}} widget matches “{{term}}”. Press Enter to add the first one.",
   "{{count}} {{itemsName}} could not be imported.": "{{count}} 件の{{itemsName}}をインポートできませんでした。",

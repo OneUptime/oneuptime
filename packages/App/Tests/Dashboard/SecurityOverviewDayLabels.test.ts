@@ -5,9 +5,11 @@ import {
 } from "Common/Types/DateLanguage";
 import {
   MAX_SPREAD_DAY_LABELS,
+  NARROW_CHART_DAY_LABELS,
   formatDayLabel,
   getDayLabelAnchor,
   getLabelledDayIndexes,
+  getNarrowChartDayLabelIndexes,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityOverview/DayLabels";
 
 /*
@@ -18,8 +20,10 @@ import {
  * last date ran past the card's edge, the last two ran into each other on a
  * phone ("Oct 23Oct 27": every fifth day and the last put them four bars
  * apart), and a German page wrote its months in English (the browser's own
- * locale). Held here: which days are labelled, where each label sits on its
- * bar, and the reader's language.
+ * locale). Then five dates still ran together on a phone in German and
+ * Persian, whose months are long: a narrow chart keeps three. Held here:
+ * which days are labelled, on a wide chart and a narrow one, where each
+ * label sits on its bar, and the reader's language.
  */
 
 afterEach(() => {
@@ -54,17 +58,47 @@ describe("which days are labelled", () => {
       expect(indexes[indexes.length - 1]).toBe(dayCount - 1);
 
       // Evenly spread: no gap more than one day shorter than another.
-      const gaps: Array<number> = indexes.slice(1).map(
-        (index: number, position: number): number => {
+      const gaps: Array<number> = indexes
+        .slice(1)
+        .map((index: number, position: number): number => {
           return index - indexes[position]!;
-        },
-      );
+        });
 
       expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
       // A month's last two dates were four bars apart: now about a quarter.
       expect(Math.min(...gaps)).toBeGreaterThanOrEqual(
         Math.floor((dayCount - 1) / (MAX_SPREAD_DAY_LABELS - 1)),
       );
+    }
+  });
+});
+
+describe("which dates a narrow chart keeps", () => {
+  test("a month: the first day, the middle and today", () => {
+    expect([...getNarrowChartDayLabelIndexes(30)]).toEqual([0, 15, 29]);
+    expect([...getNarrowChartDayLabelIndexes(14)]).toEqual([0, 7, 13]);
+    expect([...getNarrowChartDayLabelIndexes(7)]).toEqual([0, 3, 6]);
+    expect(NARROW_CHART_DAY_LABELS).toBe(3);
+  });
+
+  test("every day of a chart of three days or fewer, and nothing for no days", () => {
+    expect([...getNarrowChartDayLabelIndexes(3)]).toEqual([0, 1, 2]);
+    expect([...getNarrowChartDayLabelIndexes(1)]).toEqual([0]);
+    expect(getNarrowChartDayLabelIndexes(0).size).toBe(0);
+  });
+
+  test("only ever dates a wide chart writes too, so narrowing hides some and moves none", () => {
+    for (let dayCount: number = 1; dayCount <= 120; dayCount++) {
+      const wide: Set<number> = getLabelledDayIndexes(dayCount);
+      const narrow: Set<number> = getNarrowChartDayLabelIndexes(dayCount);
+
+      expect(narrow.size).toBe(Math.min(dayCount, NARROW_CHART_DAY_LABELS));
+      expect(narrow.has(0)).toBe(true);
+      expect(narrow.has(dayCount - 1)).toBe(true);
+
+      for (const index of narrow) {
+        expect(wide.has(index)).toBe(true);
+      }
     }
   });
 });

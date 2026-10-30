@@ -51,6 +51,14 @@ interface OpenOptions {
   fail?: "reads" | undefined;
 }
 
+// A piece of a store's kind-and-region line, as drawn.
+interface StorePiece {
+  text: string;
+  cut: boolean;
+  inside: boolean;
+  top: number;
+}
+
 interface UnhandledRequest {
   kind: string;
   modelName?: string;
@@ -283,6 +291,111 @@ test.describe("every list fits a laptop's card beside the side menu", () => {
     await screenshot(page, "layout-stores-busy-1280");
   });
 
+  /*
+   * A store's name is cut to its column; its kind and region never are: the
+   * region moves under the kind when the two do not fit side by side. A
+   * name reads left to right on a Persian page too, so it is cut at its own
+   * end there as well - cut from the right it lost its start.
+   */
+  test("Data Stores keeps each store's kind and region whole, and cuts a long name at its end in Persian too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const lang of ["en", "fa"] as Array<"en" | "fa">) {
+      await open(page, `${BASE}/stores`, { data: "busy", lang });
+      await expect(page.locator("table").first()).toBeVisible();
+      await settle(page);
+
+      // Each row's kind, then its region: whole, and inside the cell.
+      const rows: Array<Array<StorePiece>> = await page
+        .getByTestId("data-store-kind-and-region")
+        .evaluateAll((elements: Array<Element>): Array<Array<StorePiece>> => {
+          return elements.map((element: Element): Array<StorePiece> => {
+            const clip: DOMRect = element.getBoundingClientRect();
+
+            return Array.from(element.querySelectorAll("span")).map(
+              (piece: HTMLSpanElement): StorePiece => {
+                const words: Range = document.createRange();
+                words.selectNodeContents(piece);
+                const box: DOMRect = words.getBoundingClientRect();
+
+                return {
+                  text: piece.textContent || "",
+                  cut: piece.scrollWidth > piece.clientWidth + 1,
+                  inside:
+                    box.left >= clip.left - 1 && box.right <= clip.right + 1,
+                  top: box.top,
+                };
+              },
+            );
+          });
+        });
+
+      // A full page of stores, each with its kind and its region.
+      expect(rows.length).toBe(10);
+
+      for (const pieces of rows) {
+        expect(pieces.length).toBe(2);
+
+        for (const piece of pieces) {
+          expect(piece.cut, `${lang}: ${piece.text} is cut`).toBe(false);
+          expect(piece.inside, `${lang}: ${piece.text} shows whole`).toBe(true);
+        }
+      }
+
+      // A short pair shares its line; a long one puts the region under it.
+      const besideItsKind: Array<boolean> = rows.map(
+        (pieces: Array<StorePiece>): boolean => {
+          return Math.abs(pieces[1]!.top - pieces[0]!.top) < 2;
+        },
+      );
+      expect(besideItsKind).toContain(true);
+      expect(besideItsKind).toContain(false);
+
+      const cutNames: Array<{ text: string; startShows: boolean }> = await page
+        .getByTestId("data-store-name")
+        .evaluateAll(
+          (
+            elements: Array<Element>,
+          ): Array<{ text: string; startShows: boolean }> => {
+            return elements
+              .filter((element: Element): boolean => {
+                return element.scrollWidth > element.clientWidth + 1;
+              })
+              .map(
+                (element: Element): { text: string; startShows: boolean } => {
+                  const box: DOMRect = element.getBoundingClientRect();
+                  const text: Node | null = document
+                    .createTreeWalker(element, NodeFilter.SHOW_TEXT)
+                    .nextNode();
+                  const firstLetter: Range = document.createRange();
+                  firstLetter.setStart(text!, 0);
+                  firstLetter.setEnd(text!, 1);
+                  const letterBox: DOMRect =
+                    firstLetter.getBoundingClientRect();
+
+                  return {
+                    text: element.textContent || "",
+                    startShows:
+                      letterBox.left >= box.left - 1 &&
+                      letterBox.right <= box.right + 1,
+                  };
+                },
+              );
+          },
+        );
+
+      expect(cutNames.length).toBeGreaterThan(0);
+
+      for (const name of cutNames) {
+        expect(name.startShows, `${lang}: ${name.text} keeps its start`).toBe(
+          true,
+        );
+      }
+    }
+  });
+
   test("Issues reads severity, issue, store and risk; an accepted issue says so beside its title", async ({
     page,
   }: {
@@ -315,9 +428,7 @@ test.describe("every list fits a laptop's card beside the side menu", () => {
       .nth(1)
       .locator("tbody tr")
       .first();
-    await expect(accepted).toContainText(
-      "Unencrypted connections are allowed",
-    );
+    await expect(accepted).toContainText("Unencrypted connections are allowed");
     await expect(accepted).toContainText("Accepted");
   });
 });
@@ -385,13 +496,31 @@ test.describe("the Overview", () => {
     });
   });
 
-  for (const width of [LAPTOP, PHONE]) {
-    test(`the day chart's dates stay inside it and apart, at ${width} pixels`, async ({
+  /*
+   * A laptop's chart has room for five dates; a phone's keeps the first, the
+   * middle and the last - five ran into each other there where months are
+   * long ("28. Sept.5. Okt.", Persian's "۵ اکتبر۲۸ سپتامبر"). Each date in
+   * the reader's language, inside the chart and apart from the next.
+   */
+  const CHART_CASES: Array<{
+    width: number;
+    lang: "en" | "de" | "fa";
+    count: number;
+    lastDate: string;
+  }> = [
+    { width: LAPTOP, lang: "en", count: 5, lastDate: "Oct 27" },
+    { width: LAPTOP, lang: "fa", count: 5, lastDate: "۲۷ اکتبر" },
+    { width: PHONE, lang: "de", count: 3, lastDate: "27. Okt." },
+    { width: PHONE, lang: "fa", count: 3, lastDate: "۲۷ اکتبر" },
+  ];
+
+  for (const chartCase of CHART_CASES) {
+    test(`the day chart's dates stay inside it and apart, at ${chartCase.width} pixels in ${chartCase.lang}`, async ({
       page,
     }: {
       page: Page;
     }) => {
-      await open(page, BASE, { width });
+      await open(page, BASE, { width: chartCase.width, lang: chartCase.lang });
       const card: Locator = page
         .getByTestId("data-security-overview-coverage")
         .locator("[role=img]")
@@ -399,10 +528,12 @@ test.describe("the Overview", () => {
       await expect(card).toBeVisible();
       await settle(page);
 
-      const labels: Locator = page.getByTestId("stacked-day-bars-label");
-      // A month: five dates, from the first day to today.
-      await expect(labels).toHaveCount(5);
-      await expect(labels.last()).toHaveText("Oct 27");
+      const labels: Locator = page
+        .getByTestId("stacked-day-bars-label")
+        .filter({ visible: true });
+      await expect(labels).toHaveCount(chartCase.count);
+      // Today's date is the last one written, at the chart's far end.
+      await expect(labels.last()).toHaveText(chartCase.lastDate);
 
       const chart: { left: number; right: number } = await card.evaluate(
         (element: Element): { left: number; right: number } => {
@@ -411,22 +542,28 @@ test.describe("the Overview", () => {
         },
       );
 
-      const boxes: Array<{ left: number; right: number }> =
+      // Left to right as drawn: a Persian chart runs from right to left.
+      const boxes: Array<{ left: number; right: number }> = (
         await labels.evaluateAll(
           (
             elements: Array<Element>,
           ): Array<{ left: number; right: number }> => {
             return elements.map(
               (element: Element): { left: number; right: number } => {
-                const text: Element | null = element.firstElementChild;
-                const box: DOMRect = (
-                  text || element
-                ).getBoundingClientRect();
+                const box: DOMRect = element.getBoundingClientRect();
                 return { left: box.left, right: box.right };
               },
             );
           },
-        );
+        )
+      ).sort(
+        (
+          a: { left: number; right: number },
+          b: { left: number; right: number },
+        ): number => {
+          return a.left - b.left;
+        },
+      );
 
       for (const box of boxes) {
         expect(box.left).toBeGreaterThanOrEqual(chart.left - 1);
@@ -435,23 +572,12 @@ test.describe("the Overview", () => {
 
       for (let index: number = 1; index < boxes.length; index++) {
         expect(
-          boxes[index]!.left,
-          `label ${index} starts after label ${index - 1} ends`,
-        ).toBeGreaterThan(boxes[index - 1]!.right);
+          boxes[index]!.left - boxes[index - 1]!.right,
+          `label ${index} starts at least 4 pixels after label ${index - 1} ends`,
+        ).toBeGreaterThanOrEqual(4);
       }
     });
   }
-
-  test("the day chart writes its dates in the reader's language", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await open(page, BASE, { lang: "de" });
-    await expect(page.getByTestId("stacked-day-bars-label").last()).toHaveText(
-      "27. Okt.",
-    );
-  });
 
   test("a new project starts with the three steps", async ({
     page,
@@ -550,6 +676,22 @@ test.describe("a store's Overview", () => {
     await expect(about).toContainText("Erfolgreich");
     await expect(about).not.toContainText("Cloud inventory");
     await expect(about).not.toContainText("Succeeded");
+  });
+
+  test("in Persian, the cloud's own reason reads the way it is written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, STORE, { lang: "fa" });
+    const reason: Locator = page
+      .getByTestId("data-store-public-reason")
+      .locator("bdi");
+    await expect(reason).toHaveAttribute("dir", "ltr");
+    // Its full stop at its end, not at its start.
+    await expect(reason).toHaveText(
+      'The bucket policy grants s3:GetObject to Principal "*".',
+    );
   });
 
   test("its Scans read as the product's: when, what was read and the details", async ({
