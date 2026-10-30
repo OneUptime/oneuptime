@@ -11,7 +11,7 @@ Savoir ce que contient un magasin de données, ce n'est que la moitié du travai
 ## Flux de données
 
 ```mermaid title="Les quatre sortes de flux"
-flowchart TB
+flowchart LR
     service["Un service"] -->|"Utilise"| db["Une base de données"]
     service -->|"Fournisseur d'IA"| ai["Un fournisseur d'IA"]
     service -->|"Hôte externe"| host["Un hôte extérieur"]

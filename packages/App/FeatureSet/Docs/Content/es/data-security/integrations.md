@@ -15,12 +15,12 @@ Seguridad de datos no tiene un sistema de avisos ni una cola de seguridad propio
 
 ```mermaid title="Qué sigue a un problema nuevo"
 flowchart TB
-    issue["Se abre un problema,<br/>o se vuelve a abrir"] --> critical{"¿Es crítico?"}
-    critical -->|"Sí"| soc["Un caso de seguridad<br/>sobre el almacén"]
-    critical -->|"Sí, con las alertas activadas"| alert["Una alerta que avisa<br/>a quien esté de guardia"]
-    critical -->|"Sí, con los incidentes activados"| incident["Un incidente gestionado<br/>por tu proceso"]
-    issue --> owners["Un correo a los<br/>propietarios del almacén"]
-    issue --> flows["Workflows que<br/>vigilan los problemas"]
+    issue["Se abre un<br/>problema,<br/>o se vuelve<br/>a abrir"] --> critical{"¿Es crítico?"}
+    critical -->|"Sí"| soc["Un caso de<br/>seguridad<br/>sobre el almacén"]
+    critical -->|"Sí, con las<br/>alertas activadas"| alert["Una alerta<br/>que avisa<br/>a quien esté<br/>de guardia"]
+    critical -->|"Sí, con los<br/>incidentes activados"| incident["Un incidente<br/>gestionado<br/>por tu proceso"]
+    issue --> owners["Un correo a los<br/>propietarios<br/>del almacén"]
+    issue --> flows["Workflows que<br/>vigilan los<br/>problemas"]
 ```
 
 Cada una de estas acciones se ejecuta cuando una evaluación abre un problema, o lo vuelve a abrir. Cada una se hace en la medida de lo posible: el problema ya está abierto y en su cronología, así que una integración que falla se registra y se omite, y nunca se reintenta hasta crear un segundo caso o un segundo aviso. Lo que hizo cada una se escribe en la **Cronología** del problema, y la página del problema enlaza al caso, a la alerta y al incidente que originó.

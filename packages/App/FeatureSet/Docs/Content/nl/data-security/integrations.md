@@ -15,11 +15,11 @@ Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het 
 
 ```mermaid title="Wat er volgt op een nieuw probleem"
 flowchart TB
-    issue["Een probleem opent,<br/>of opent opnieuw"] --> critical{"Is het kritiek?"}
-    critical -->|"Ja"| soc["Een beveiligingszaak<br/>over de opslag"]
-    critical -->|"Ja, als waarschuwingen aan staan"| alert["Een waarschuwing die<br/>de dienstdoende oproept"]
-    critical -->|"Ja, als incidenten aan staan"| incident["Een incident dat je<br/>proces afhandelt"]
-    issue --> owners["Een e-mail aan de<br/>eigenaren van de opslag"]
+    issue["Een probleem<br/>opent,<br/>of opent opnieuw"] --> critical{"Is het kritiek?"}
+    critical -->|"Ja"| soc["Een<br/>beveiligingszaak<br/>over de opslag"]
+    critical -->|"Ja, als waarschuwingen<br/>aan staan"| alert["Een waarschuwing<br/>die<br/>de dienstdoende<br/>oproept"]
+    critical -->|"Ja, als incidenten<br/>aan staan"| incident["Een incident<br/>dat je<br/>proces afhandelt"]
+    issue --> owners["Een e-mail<br/>aan de<br/>eigenaren<br/>van de opslag"]
     issue --> flows["Workflows die<br/>problemen volgen"]
 ```
 

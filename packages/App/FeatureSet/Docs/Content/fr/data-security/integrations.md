@@ -15,12 +15,12 @@ Sécurité des données n'a pas son propre système d'astreinte ni sa propre fil
 
 ```mermaid title="Ce qui suit un nouveau problème"
 flowchart TB
-    issue["Un problème s'ouvre,<br/>ou s'ouvre à nouveau"] --> critical{"Est-il Critique ?"}
-    critical -->|"Oui"| soc["Un dossier de sécurité<br/>sur le magasin de données"]
-    critical -->|"Oui, si les alertes sont activées"| alert["Une alerte qui prévient<br/>la personne d'astreinte"]
-    critical -->|"Oui, si les incidents sont activés"| incident["Un incident géré par<br/>votre processus"]
-    issue --> owners["Un e-mail aux propriétaires<br/>du magasin de données"]
-    issue --> flows["Les workflows qui<br/>surveillent les problèmes"]
+    issue["Un problème<br/>s'ouvre,<br/>ou s'ouvre<br/>à nouveau"] --> critical{"Est-il<br/>Critique ?"}
+    critical -->|"Oui"| soc["Un dossier<br/>de sécurité<br/>sur le magasin<br/>de données"]
+    critical -->|"Oui, si les alertes<br/>sont activées"| alert["Une alerte<br/>qui prévient<br/>la personne<br/>d'astreinte"]
+    critical -->|"Oui, si les incidents<br/>sont activés"| incident["Un incident<br/>géré par<br/>votre processus"]
+    issue --> owners["Un e-mail aux<br/>propriétaires<br/>du magasin<br/>de données"]
+    issue --> flows["Les<br/>workflows qui<br/>surveillent<br/>les problèmes"]
 ```
 
 Chacune de ces actions s'exécute quand une évaluation ouvre un problème, ou le rouvre. Chacune est faite au mieux : le problème est déjà ouvert et dans sa chronologie, donc une intégration qui échoue est journalisée et ignorée, jamais relancée au risque d'ouvrir un deuxième dossier ou de prévenir l'astreinte une deuxième fois. Ce que chacune a fait est écrit dans la **Chronologie** du problème, et la page du problème renvoie vers le dossier, l'alerte et l'incident qu'il a déclenchés.

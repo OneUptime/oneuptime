@@ -136,13 +136,13 @@ stateDiagram-v2
     state "Akzeptiert" as Accepted
     state "Behoben" as Resolved
     state "Kein Problem" as NotAnIssue
-    [*] --> Open: Eine Prüfung schlägt fehl
-    Open --> Resolved: Die Prüfung besteht
-    Open --> Accepted: Jemand akzeptiert das Risiko
-    Open --> NotAnIssue: Jemand sagt, es sei kein Problem
-    Accepted --> Open: Die Akzeptanz läuft ab
-    Accepted --> Resolved: Die Prüfung besteht
-    Resolved --> Open: Die Prüfung schlägt erneut fehl
+    [*] --> Open: Eine Prüfung<br/>schlägt fehl
+    Open --> Resolved: Die Prüfung<br/>besteht
+    Open --> Accepted: Jemand akzeptiert<br/>das Risiko
+    Open --> NotAnIssue: Jemand sagt, es<br/>sei kein Problem
+    Accepted --> Open: Die Akzeptanz<br/>läuft ab
+    Accepted --> Resolved: Die Prüfung<br/>besteht
+    Resolved --> Open: Die Prüfung<br/>schlägt erneut fehl
 ```
 
 OneUptime eröffnet, aktualisiert und behebt Probleme, während die Prüfungen laufen. Was ein Mensch mit einem Problem tut, ist zu entscheiden, was als Nächstes geschieht:
