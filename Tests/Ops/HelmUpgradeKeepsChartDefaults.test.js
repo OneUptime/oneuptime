@@ -375,7 +375,7 @@ describe("recommended helm upgrades never use --reuse-values", () => {
     const readme = read(CHART_README);
     expect(readme).toContain("Don't upgrade with `--reuse-values`.");
     expect(readme).toMatch(
-      /helm get values oneuptime-agent -n oneuptime-kubernetes-agent -o yaml > values\.yaml && \\\n {2}helm upgrade oneuptime-agent oneuptime\/kubernetes-agent \\\n {2}--namespace oneuptime-kubernetes-agent -f values\.yaml\n/,
+      /helm get values kubernetes-agent -n oneuptime-agent -o yaml > values\.yaml && \\\n {2}helm upgrade kubernetes-agent oneuptime\/kubernetes-agent \\\n {2}--namespace oneuptime-agent -f values\.yaml\n/,
     );
   });
 
