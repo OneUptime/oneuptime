@@ -96,7 +96,7 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 | Container Restart Loop | Critical | Growth of `container.restarts` per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
 | Container CPU Throttling | Warning | Growth of `container.cpu.throttling_data.throttled_time` in ms per container, past 5 minutes | More than 1000 ms in the window (Sum) | 900 ms or less |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, past 5 minutes | Above 2000 | At or below 1800 |
-| Container Down (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Equal to 0 | Above 0 |
+| Container Restarted (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Below 120 seconds | At or above 132 seconds |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
@@ -110,10 +110,10 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 > `container.memory.percent` divides by the container's memory limit when one is set, and by the **host's** total memory when it is not. Check whether the container was started with `--memory` before you treat a breach as an imminent out-of-memory kill.
 
 > [!WARNING]
-> `container.restarts` and `container.cpu.throttling_data.throttled_time` only ever grow, so those two templates alert on how much they grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real activity, and the thresholds already allow for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting.
+> `container.restarts` and `container.cpu.throttling_data.throttled_time` only ever grow, so those two templates alert on how much they grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real activity, and the thresholds already allow for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting. The agent also samples running containers only, so a container that exits the moment it starts is rarely sampled at all: **Container Restarted (Low Uptime)** fires on every restart the agent does see.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** cannot catch a container that stops and stays stopped. The agent only reports running containers, so a stopped container sends no data at all and its uptime never reads 0. For a service that must stay up, also watch what it serves — for example with an [API Monitor](/docs/monitor/api-monitor).
+> `container.uptime` exists only for running containers. A container that stops and stays stopped sends no data, so **Container Restarted (Low Uptime)** catches restarts and redeploys, not a permanent shutdown. A container meant to run for less than two minutes stays in the alerting state for its whole life. For a service that must stay up, also watch what it serves — for example with an [API Monitor](/docs/monitor/api-monitor).
 
 ## Collected Metrics
 
@@ -147,8 +147,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 
 | Metric | Description |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes read from block devices. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes written to block devices. |
+| `container.blockio.io_service_bytes_recursive` | Bytes read and written on each block device since the container started, split by `operation` (`read`, `write`). A lifetime counter. The list offers it filtered to reads and to writes. |
 
 ### Container
 
@@ -158,7 +157,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 | `container.restarts` | Times the container has restarted since it was created. A lifetime counter. |
 | `container.pids.count` | Tasks in the container. The cgroup pids controller counts threads as well as processes. |
 
-The **Docker Metric** list also offers `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` and the network packet counters. The shipped agent configuration does not turn these on, so check the host's **Metrics** page before you build on them. `container.cpu.throttling_data.throttled_periods` is not in the list; query it from **Advanced**.
+`container.cpu.throttling_data.throttled_periods` is not in the **Docker Metric** list; query it from **Advanced**.
 
 ## Monitoring criteria
 

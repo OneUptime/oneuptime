@@ -102,7 +102,7 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min per oppgave, siste 1 minutt | En hvilken som helst verdi er under 60 sekunder | Hver verdi er på eller over 66 sekunder |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per oppgave, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per oppgave, siste 5 minutter | Over 85 % | På eller under 76,5 % |
-| High Task Process Count | Warning | `container.pids.count`, Max per oppgave, siste 5 minutter | Over 500 | På eller under 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per oppgave, siste 5 minutter | Over 2000 | På eller under 1800 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
 
@@ -140,7 +140,7 @@ Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så metrikken
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `container.pids.count` | antall | Prosesser i en oppgaves container. En plutselig økning kan bety en forkbombe eller en lekkasje. |
+| `container.pids.count` | antall | Oppgaver i en tasks container: cgroup-pids-kontrolleren teller både tråder og prosesser. En plutselig økning kan bety en fork-bombe eller en trådlekkasje. |
 | `container.uptime` | sekunder | Hvor lenge en oppgaves container har kjørt. En oppgave som planlegges på nytt eller startes på nytt, starter en ny container på 0. |
 
 Hver serie bærer containerens identitet som ressursattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` og `resource.docker.swarm.cluster.name`.

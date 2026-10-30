@@ -102,7 +102,7 @@ Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condi
 | Task Down (Low Uptime) | Critico | `container.uptime`, Min per task, ultimo 1 minuto | Un valore qualsiasi è sotto i 60 secondi | Ogni valore è a 66 secondi o più |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
-| High Task Process Count | Warning | `container.pids.count`, Max per task, ultimi 5 minuti | Sopra 500 | A 450 o meno |
+| High Task Process Count | Warning | `container.pids.count`, Max per task, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
 
@@ -140,7 +140,7 @@ Il collector dell'agente usa il receiver OpenTelemetry `docker_stats`, quindi le
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
-| `container.pids.count` | count | Processi all'interno del container di un task. Un aumento improvviso può indicare una fork bomb o un leak. |
+| `container.pids.count` | count | Task nel container di un task: il controller pids del cgroup conta i thread oltre ai processi. Un aumento improvviso può indicare una fork bomb o una perdita di thread. |
 | `container.uptime` | secondi | Da quanto tempo è in esecuzione il container di un task. Un task ripianificato o riavviato avvia un nuovo container da 0. |
 
 Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` e `resource.docker.swarm.cluster.name`.

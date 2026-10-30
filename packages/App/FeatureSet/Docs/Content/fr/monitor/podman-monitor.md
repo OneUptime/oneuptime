@@ -93,21 +93,21 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 | Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
-| High Container Restart Count | Critique | `container.restarts`, Max par conteneur, 5 dernières minutes | Au-dessus de 5 redémarrages au total | 4,5 ou moins |
-| High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 500 | À 450 ou moins |
+| Container Restart Loop | Critique | Croissance de `container.restarts` par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
+| High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Sous 120 secondes | À 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
 **Host Stopped Reporting** se déclenche quand rien n'arrive de l'hôte pendant dix minutes : l'hôte est en panne, ou l'agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient. Un hôte sans autre conteneur envoie quand même des données, car l'agent s'exécute lui-même comme conteneur et remonte les siennes.
 
-Les deux modèles en pourcentage utilisent **Moyenne** : leurs métriques sont déjà des pourcentages par conteneur, donc la moyenne d'une minute est la valeur soutenue. Le nombre de redémarrages et le nombre de processus utilisent **Maximum**, pour lesquels une seule mesure au-dessus du seuil est le signal.
+Les deux modèles en pourcentage utilisent **Moyenne** : leurs métriques sont déjà des pourcentages par conteneur, donc la moyenne d'une minute est la valeur soutenue. Le nombre de processus utilise **Maximum**, où un seul échantillon au-delà du seuil est le signal.
 
 > [!NOTE]
 > `container.cpu.utilization` est le nombre qu'affiche `podman stats`, en moyenne sur l'intervalle de 30 secondes de l'agent : 100 % correspond à un cœur de CPU complet, et non à toute l'allocation de CPU du conteneur. Un conteneur doté de plusieurs cœurs affiche bien plus de 100 en bonne santé ; relevez donc le seuil pour ceux-là.
 
 > [!NOTE]
-> `container.restarts` est un total cumulé tenu par Podman, et non un nombre de redémarrages dans la fenêtre. **High Container Restart Count** reste donc ouvert jusqu'à ce que le conteneur soit recréé, ce qui remet le compteur à zéro.
+> `container.restarts` est un total cumulé tenu par Podman, donc **Container Restart Loop** alerte sur sa croissance dans la fenêtre, comme sous Docker : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de 30 secondes de l'agent, environ la moitié des redémarrages est vue, et le seuil en tient déjà compte. L'agent n'échantillonne en outre que les conteneurs en cours d'exécution : un conteneur qui s'arrête dès son démarrage n'est presque jamais échantillonné, et **Container Restarted (Low Uptime)** se déclenche à chaque redémarrage que l'agent voit.
 
 > [!CAUTION]
 > `container.uptime` n'existe que pour les conteneurs en cours d'exécution. Un conteneur qui s'arrête et reste arrêté n'envoie aucune donnée, donc **Container Restarted (Low Uptime)** détecte les redémarrages et les redéploiements, pas un arrêt définitif. Un conteneur prévu pour tourner moins de deux minutes reste en état d'alerte pendant toute sa vie.
@@ -146,8 +146,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` pointé sur le socket
 
 | Métrique | Description |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Octets lus sur les périphériques de bloc. |
-| `container.blockio.io_service_bytes_recursive.write` | Octets écrits sur les périphériques de bloc. |
+| `container.blockio.io_service_bytes_recursive` | Octets lus et écrits sur chaque périphérique bloc depuis le démarrage du conteneur, répartis par `operation` (`read`, `write`). Un compteur cumulé. La liste le propose filtré sur les lectures et sur les écritures. |
 
 ### Conteneur
 
@@ -157,7 +156,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` pointé sur le socket
 | `container.restarts` | Nombre de redémarrages du conteneur. Un total cumulé. |
 | `container.pids.count` | Tâches dans le conteneur. Le contrôleur pids du cgroup compte les threads aussi bien que les processus. |
 
-La liste **Podman Metric** propose aussi `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` et les compteurs de paquets réseau. La configuration de l'agent fournie ne les active pas ; vérifiez donc la page **Métriques** de l'hôte avant de vous appuyer dessus. `container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
+`container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
 
 ## Critères de surveillance
 

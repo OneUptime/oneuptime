@@ -102,7 +102,7 @@ Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la cond
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarea, último 1 minuto | Cualquier valor está por debajo de 60 segundos | Cada valor está en 66 segundos o más |
 | High Task CPU Usage | Advertencia | `container.cpu.utilization`, Avg por tarea, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Task Memory Usage | Advertencia | `container.memory.percent`, Avg por tarea, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
-| High Task Process Count | Advertencia | `container.pids.count`, Max por tarea, últimos 5 minutos | Por encima de 500 | En 450 o menos |
+| High Task Process Count | Advertencia | `container.pids.count`, Max por tarea, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
@@ -140,7 +140,7 @@ El colector del agente usa el receptor `docker_stats` de OpenTelemetry, así que
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `container.pids.count` | count | Procesos dentro del contenedor de una tarea. Un aumento repentino puede indicar una fork bomb o una fuga. |
+| `container.pids.count` | count | Tareas dentro del contenedor de una tarea: el controlador pids de cgroup cuenta hilos además de procesos. Un aumento repentino puede indicar una fork bomb o una fuga de hilos. |
 | `container.uptime` | seconds | Cuánto tiempo lleva en ejecución el contenedor de una tarea. Una tarea reprogramada o reiniciada empieza un contenedor nuevo en 0. |
 
 Cada serie lleva la identidad del contenedor como atributos de recurso: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` y `resource.docker.swarm.cluster.name`.

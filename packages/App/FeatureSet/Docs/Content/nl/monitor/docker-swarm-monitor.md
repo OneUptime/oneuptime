@@ -102,7 +102,7 @@ Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde
 | Task Down (Low Uptime) | Kritiek | `container.uptime`, Min per taak, laatste 1 minuut | Een willekeurige waarde ligt onder 60 seconden | Elke waarde ligt op of boven 66 seconden |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per taak, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per taak, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 500 | Op of onder 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
@@ -140,7 +140,7 @@ De collector van de agent gebruikt de OpenTelemetry-receiver `docker_stats`, dus
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `container.pids.count` | aantal | Processen in de container van een taak. Een plotselinge stijging kan op een forkbom of een lek wijzen. |
+| `container.pids.count` | aantal | Taken in de container van een taak: de cgroup-pids-controller telt threads net zo goed als processen. Een plotselinge stijging kan wijzen op een fork bomb of een threadlek. |
 | `container.uptime` | seconden | Hoe lang de container van een taak al draait. Een opnieuw ingeplande of herstarte taak begint een nieuwe container op 0. |
 
 Elke reeks draagt de identiteit van de container als resourceattributen: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` en `resource.docker.swarm.cluster.name`.

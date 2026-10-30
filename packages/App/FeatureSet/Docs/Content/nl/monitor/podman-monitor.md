@@ -93,21 +93,21 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 | Host Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers op de host, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| High Container Restart Count | Kritiek | `container.restarts`, Max per container, laatste 5 minuten | Meer dan 5 herstarts in totaal | 4,5 of minder |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 500 | Op of onder 450 |
+| Container Restart Loop | Kritiek | Groei van `container.restarts` per container, laatste 15 minuten | Meer dan 3 herstarts in het venster (Som) | 2,7 of minder |
+| High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 | Container Restarted (Low Uptime) | Kritiek | `container.uptime`, Min per container, laatste 1 minuut | Onder 120 seconden | Op of boven 132 seconden |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
 **Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de host is uitgevallen, of de agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten. Een host zonder andere containers blijft rapporteren, omdat de agent zelf als container draait en zijn eigen gegevens rapporteert.
 
-De twee percentagesjablonen gebruiken **Gemiddelde**: hun metrieken zijn al percentages per container, dus het gemiddelde van een minuut is de aanhoudende waarde. Het aantal herstarts en het aantal processen gebruiken **Maximum**, waarbij één meting over de drempel het signaal is.
+De twee percentagesjablonen gebruiken **Gemiddelde**: hun metrieken zijn al percentages per container, dus het gemiddelde van een minuut is de aanhoudende waarde. Het aantal processen gebruikt **Maximum**, waarbij één meting over de grens het signaal is.
 
 > [!NOTE]
 > `container.cpu.utilization` is het getal dat `podman stats` toont, gemiddeld over het interval van 30 seconden van de agent: 100% is één volledige CPU-kern, niet de hele CPU-toewijzing van de container. Een container die meerdere kernen krijgt, zit gezond ruim boven 100; verhoog daarvoor de drempel.
 
 > [!NOTE]
-> `container.restarts` is een lopend totaal dat Podman bijhoudt, geen aantal herstarts in het venster. **High Container Restart Count** blijft daarom open totdat de container opnieuw wordt gemaakt, wat de telling terugzet.
+> `container.restarts` is een lopend totaal dat Podman bijhoudt, dus **Container Restart Loop** waarschuwt, net als bij Docker, voor hoeveel het in het venster groeide: een Maximum- en een Minimum-query per minuut, met een formule van elkaar afgetrokken en opgeteld. Bij de verzameling van 30 seconden van de agent wordt ongeveer de helft van de herstarts gezien, en de drempel houdt daar al rekening mee. De agent bemonstert bovendien alleen draaiende containers, dus een container die meteen na het starten stopt, wordt zelden bemonsterd: **Container Restarted (Low Uptime)** gaat af bij elke herstart die de agent wel ziet.
 
 > [!CAUTION]
 > `container.uptime` bestaat alleen voor draaiende containers. Een container die stopt en gestopt blijft, stuurt geen gegevens, dus **Container Restarted (Low Uptime)** vangt herstarts en nieuwe uitrols, geen blijvende uitschakeling. Een container die bedoeld is om minder dan twee minuten te draaien, blijft zijn hele leven in de waarschuwingsstatus.
@@ -146,8 +146,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats`, gericht op de Docker
 
 | Metriek | Beschrijving |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Van blokapparaten gelezen bytes. |
-| `container.blockio.io_service_bytes_recursive.write` | Naar blokapparaten geschreven bytes. |
+| `container.blockio.io_service_bytes_recursive` | Bytes gelezen en geschreven op elk blokapparaat sinds de container startte, uitgesplitst naar `operation` (`read`, `write`). Een teller over de hele levensduur. De lijst biedt hem gefilterd op lezen en op schrijven. |
 
 ### Container
 
@@ -157,7 +156,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats`, gericht op de Docker
 | `container.restarts` | Hoe vaak de container is herstart. Een lopend totaal. |
 | `container.pids.count` | Taken in de container. De pids-controller van de cgroup telt threads net zo goed als processen. |
 
-De lijst **Podman Metric** biedt ook `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` en de netwerkpakkettellers. De meegeleverde agentconfiguratie zet deze niet aan; controleer daarom de pagina **Metrieken** van de host voordat u erop bouwt. `container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
+`container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
 
 ## Bewakingscriteria
 

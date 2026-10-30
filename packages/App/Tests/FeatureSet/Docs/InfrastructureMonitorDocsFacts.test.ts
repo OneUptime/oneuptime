@@ -1211,23 +1211,66 @@ describe(`${KUBERNETES}: the template table`, () => {
     ]);
   });
 
-  it("CrashLoopBackOff Detection reads the lifetime restart count of each pod's containers", () => {
+  it("CrashLoopBackOff Detection and Job Failures count growth in the window, not the lifetime count", () => {
+    function named(name: string): BuiltTemplate {
+      return builtTemplates.find((candidate: BuiltTemplate): boolean => {
+        return candidate.name === name;
+      }) as BuiltTemplate;
+    }
+
+    const crashLoop: BuiltTemplate = named("CrashLoopBackOff Detection");
+
+    expect(crashLoop.queries.map(metricNameOf)).toEqual([
+      "k8s.container.restarts",
+      "k8s.container.restarts",
+      "k8s.container.ready",
+    ]);
+    expect(groupByOf(crashLoop)).toContain("resource.k8s.pod.name");
+    expect(crashLoop.formulas).toEqual([
+      "container_restarts_max - container_restarts_min",
+    ]);
+    expect(comparisonOf(primary(crashLoop.first))).toEqual({
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
+    expect(windowAggregationOf(primary(crashLoop.first))).toBe(
+      EvaluateOverTimeType.Sum,
+    );
+    // ...while the container was ready for less than half the window.
+    expect(crashLoop.first.data!.filterCondition).toBe(FilterCondition.All);
+    expect(
+      comparisonOf(crashLoop.first.data!.filters[1] as CriteriaFilter),
+    ).toEqual({ filterType: FilterType.LessThan, value: 0.5 });
+
+    const jobFailures: BuiltTemplate = named("Job Failures");
+
+    expect(jobFailures.formulas).toEqual(["failed_pods_max - failed_pods_min"]);
+    expect(windowAggregationOf(primary(jobFailures.first))).toBe(
+      EvaluateOverTimeType.Sum,
+    );
+
+    expect(englishPage(KUBERNETES)).toContain(
+      "count how much a restart or failed-pod count grew in the window, not the count itself",
+    );
+  });
+
+  it("Node Not Ready fires below 1, so a node whose status is Unknown fires too", () => {
     const template: BuiltTemplate = builtTemplates.find(
       (candidate: BuiltTemplate): boolean => {
-        return candidate.name === "CrashLoopBackOff Detection";
+        return candidate.name === "Node Not Ready";
       },
     ) as BuiltTemplate;
 
-    expect(template.queries.map(metricNameOf)).toEqual([
-      "k8s.container.restarts",
-    ]);
-    expect(groupByOf(template)).toContain("resource.k8s.pod.name");
     expect(comparisonOf(primary(template.first))).toEqual({
-      filterType: FilterType.GreaterThan,
-      value: 5,
+      filterType: FilterType.LessThan,
+      value: 1,
+    });
+    expect(comparisonOf(primary(template.last))).toEqual({
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
     });
     expect(englishPage(KUBERNETES)).toContain(
-      "so the count does not fall back once it has passed 5.",
+      "**Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown",
     );
   });
 
@@ -2137,14 +2180,19 @@ describe("the agents the pages describe", () => {
       () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
     ]
   >)(
-    "%s leaves off the extra metrics the page says the picker lists but the agent does not turn on",
+    "%s sends every metric the picker offers: no optional metric the agent leaves off",
     (
       configPath: string,
       page: string,
       catalog: () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
     ) => {
       const config: string = source(configPath);
-      const extras: Array<string> = [
+      /*
+       * Optional docker_stats metrics the shipped agent leaves off. The
+       * picker used to offer them (and a `.read` / `.write` block I/O pair
+       * the receiver never emits), so a monitor built on one never fired.
+       */
+      const offInTheAgent: Array<string> = [
         "container.cpu.usage.percpu",
         "container.memory.rss",
         "container.memory.cache",
@@ -2157,10 +2205,17 @@ describe("the agents the pages describe", () => {
         },
       );
 
-      for (const metric of extras) {
-        expect(listed).toContain(metric);
+      for (const metric of offInTheAgent) {
+        expect(listed).not.toContain(metric);
         expect(config).not.toContain(`${metric}:\n        enabled: true`);
+        expect(englishPage(page)).not.toContain(`\`${metric}\``);
       }
+
+      // Block I/O is one metric, split by an `operation` attribute.
+      expect(listed).toContain("container.blockio.io_service_bytes_recursive");
+      expect(englishPage(page)).not.toContain(
+        "container.blockio.io_service_bytes_recursive.read",
+      );
 
       for (const metric of [
         "container.restarts",
@@ -2177,7 +2232,10 @@ describe("the agents the pages describe", () => {
         "container.cpu.throttling_data.throttled_periods",
       );
       expect(englishPage(page)).toContain(
-        "`container.cpu.throttling_data.throttled_periods` is not in the list; query it from **Advanced**.",
+        "`container.cpu.throttling_data.throttled_periods` is not in the **",
+      );
+      expect(englishPage(page)).toContain(
+        " Metric** list; query it from **Advanced**.",
       );
     },
   );

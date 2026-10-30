@@ -354,9 +354,9 @@ const highMemoryTemplate: DockerSwarmAlertTemplate = {
 const highProcessCountTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-pids",
   name: "High Task Process Count",
-  summary: "A task runs more than 500 processes.",
+  summary: "A task runs more than 2000 processes and threads.",
   description:
-    "Alert when any Swarm task's container has an unusually high number of processes (container.pids.count > 500), which may indicate a fork bomb or resource leak. One incident per task.",
+    "Alert when any Swarm task's container holds more than 2000 tasks — processes PLUS threads (container.pids.count > 2000) — which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One incident per task.",
   category: "Container",
   severity: "Warning",
   getMonitorStep: (args: DockerSwarmAlertTemplateArgs): MonitorStep => {
@@ -378,19 +378,25 @@ const highProcessCountTemplate: DockerSwarmAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
+        /*
+         * 2000, as Docker's docker-high-pids. container.pids.count reads
+         * the cgroup pids controller, which counts TASKS - threads as well
+         * as processes - so 500 was ordinary for a JVM or a Go service and
+         * the alert called a task working as designed a fork bomb.
+         */
         filterType: FilterType.GreaterThan,
-        value: 500,
-        incidentTitle: `[Docker Swarm] High Task Process Count (>500) - ${args.monitorName}`,
-        incidentDescription: `A Docker Swarm task's container has an unusually high number of processes (>500). This may indicate a fork bomb, a thread/connection leak, or a misconfigured application. Check the root cause for the affected task container and inspect it for runaway processes.`,
-        criteriaName: "High Task PIDs - Count > 500",
+        value: 2000,
+        incidentTitle: `[Docker Swarm] High Task Process/Thread Count (>2000) - ${args.monitorName}`,
+        incidentDescription: `A Docker Swarm task's container held more than 2000 tasks for the whole evaluation window. container.pids.count reads the cgroup pids controller, which counts TASKS — threads as well as processes — so a JVM or a Go service sits far above its process count. Sustained above 2000 usually means a fork bomb, a thread leak, or a pool sized without a ceiling. Check the root cause for the affected task container and inspect it for runaway processes and threads.`,
+        criteriaName: "High Task PIDs - Task Count > 2000",
         criteriaDescription:
-          "Triggers when any task's process count exceeds 500 over the monitoring window.",
+          "Triggers when any task's task (process + thread) count stays above 2000 over the monitoring window.",
       }),
       onlineCriteriaInstance: buildDockerSwarmOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 500,
+        value: 2000,
       }),
     });
   },

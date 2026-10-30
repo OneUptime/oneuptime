@@ -102,7 +102,7 @@ flowchart TB
 | Task Down (Low Uptime) | 심각 | `container.uptime`, 작업별 Min, 최근 1분 | 값 중 하나가 60초 미만 | 모든 값이 66초 이상 |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, 작업별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Task Memory Usage | Warning | `container.memory.percent`, 작업별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
-| High Task Process Count | Warning | `container.pids.count`, 작업별 Max, 최근 5분 | 500 초과 | 450 이하 |
+| High Task Process Count | Warning | `container.pids.count`, 작업별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
 
@@ -140,7 +140,7 @@ flowchart TB
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
-| `container.pids.count` | 개수 | 작업 컨테이너 안의 프로세스. 갑자기 늘면 포크 폭탄이나 누수일 수 있습니다. |
+| `container.pids.count` | 개수 | 작업 컨테이너 안의 태스크 수입니다. cgroup pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. 갑작스러운 증가는 포크 폭탄이나 스레드 누수를 뜻할 수 있습니다. |
 | `container.uptime` | 초 | 작업 컨테이너가 실행된 시간. 다시 예약되거나 다시 시작된 작업은 새 컨테이너를 0부터 시작합니다. |
 
 각 계열은 컨테이너의 신원을 리소스 속성으로 가집니다: `resource.container.name`(`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.cluster.name`.

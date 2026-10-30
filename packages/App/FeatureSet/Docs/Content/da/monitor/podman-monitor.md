@@ -93,21 +93,21 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på værten, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
-| High Container Restart Count | Kritisk | `container.restarts`, Max pr. container, seneste 5 minutter | Over 5 genstarter i alt | 4,5 eller færre |
-| High Container Process Count | Warning | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 500 | Ved eller under 450 |
+| Container Restart Loop | Kritisk | Vækst i `container.restarts` pr. container, seneste 15 minutter | Mere end 3 genstarter i vinduet (Sum) | 2,7 eller færre |
+| High Container Process Count | Warning | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min pr. container, seneste 1 minut | Under 120 sekunder | Ved eller over 132 sekunder |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
 **Host Stopped Reporting** udløses, når der ikke kommer noget fra værten i ti minutter: værten er nede, eller agenten er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked. En vært uden andre containere rapporterer stadig, fordi agenten selv kører som en container og rapporterer sine egne data.
 
-De to procentskabeloner bruger **Gennemsnit**: deres metrikker er allerede procenter pr. container, så gennemsnittet for et minut er den vedvarende værdi. Antal genstarter og antal processer bruger **Maksimum**, hvor én måling over tærsklen er signalet.
+De to procentskabeloner bruger **Gennemsnit**: deres metrikker er allerede procenter pr. Proces-antallet bruger **Maximum**, hvor én måling over grænsen er signalet.
 
 > [!NOTE]
 > `container.cpu.utilization` er det tal, `podman stats` udskriver, i gennemsnit over agentens interval på 30 sekunder: 100 % er én hel CPU-kerne, ikke containerens samlede CPU-tildeling. En container, der har fået flere kerner, viser et godt stykke over 100, mens den er sund, så hæv tærsklen for den.
 
 > [!NOTE]
-> `container.restarts` er en løbende total, som Podman fører, ikke et antal genstarter i vinduet. **High Container Restart Count** forbliver derfor åben, indtil containeren genoprettes, hvilket nulstiller tallet.
+> `container.restarts` er en løbende total, som Podman holder, så **Container Restart Loop** advarer om, hvor meget den voksede i vinduet, som på Docker: en Maximum- og en Minimum-forespørgsel pr. minut, trukket fra hinanden med en formel og summeret. Ved agentens 30-sekunders måling ses omkring halvdelen af genstarterne, og tærsklen tager allerede højde for det. Agenten måler desuden kun kørende containere, så en container, der stopper i samme øjeblik, den starter, bliver sjældent målt: **Container Restarted (Low Uptime)** udløses ved hver genstart, agenten ser.
 
 > [!CAUTION]
 > `container.uptime` findes kun for kørende containere. En container, der stopper og forbliver stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger genstarter og nye udrulninger, ikke en permanent nedlukning. En container, der er beregnet til at køre i under to minutter, forbliver i advarselstilstand hele sin levetid.
@@ -146,8 +146,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats`, rettet mod Podmans Docke
 
 | Metrik | Beskrivelse |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes læst fra blokenheder. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes skrevet til blokenheder. |
+| `container.blockio.io_service_bytes_recursive` | Bytes læst og skrevet på hver blokenhed, siden containeren startede, opdelt efter `operation` (`read`, `write`). En tæller over hele levetiden. Listen tilbyder den filtreret til læsninger og til skrivninger. |
 
 ### Container
 
@@ -157,7 +156,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats`, rettet mod Podmans Docke
 | `container.restarts` | Antal gange, containeren er genstartet. En løbende total. |
 | `container.pids.count` | Opgaver i containeren. Cgroup'ens pids-controller tæller tråde lige så vel som processer. |
 
-Listen **Podman Metric** tilbyder også `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` og tællerne for netværkspakker. Den medfølgende agentkonfiguration slår dem ikke til, så kontrollér værtens side **Metrikker**, før du bygger på dem. `container.cpu.throttling_data.throttled_periods` er ikke på listen; forespørg den fra **Avanceret**.
+`container.cpu.throttling_data.throttled_periods` er ikke på listen; forespørg den fra **Avanceret**.
 
 ## Overvågningskriterier
 

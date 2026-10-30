@@ -102,7 +102,7 @@ flowchart TB
 | Task Down (Low Uptime) | 重大 | `container.uptime`、タスクごとの Min、過去 1 分 | いずれかの値が 60 秒未満 | すべての値が 66 秒以上 |
 | High Task CPU Usage | 警告 | `container.cpu.utilization`、タスクごとの Avg、過去 5 分 | 80 を超える（一つのコアに対する %） | 72 以下 |
 | High Task Memory Usage | 警告 | `container.memory.percent`、タスクごとの Avg、過去 5 分 | 85% を超える | 76.5% 以下 |
-| High Task Process Count | 警告 | `container.pids.count`、タスクごとの Max、過去 5 分 | 500 を超える | 450 以下 |
+| High Task Process Count | 警告 | `container.pids.count`、タスクごとの Max、過去 5 分 | 2000 を超える | 1800 以下 |
 
 **重大度** は選択リストに表示されるラベルです。テンプレートが作成するインシデントとアラートは、プロジェクトで最も重大なインシデントとアラートの重大度から始まります。条件で変更してください。
 
@@ -140,7 +140,7 @@ flowchart TB
 
 | メトリクス | 単位 | 説明 |
 | --- | --- | --- |
-| `container.pids.count` | 個数 | タスクのコンテナ内のプロセス。急増はフォーク爆弾やリークの兆候かもしれません。 |
+| `container.pids.count` | 個数 | タスクのコンテナ内のタスク数です。cgroup の pids コントローラーはプロセスだけでなくスレッドも数えます。急増はフォーク爆弾やスレッドリークの可能性があります。 |
 | `container.uptime` | 秒 | タスクのコンテナが動作している時間。再スケジュールまたは再起動されたタスクは、0 から新しいコンテナを始めます。 |
 
 各系列は、コンテナの識別情報をリソース属性として持ちます：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name`、`resource.docker.swarm.cluster.name`。

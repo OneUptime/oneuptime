@@ -96,7 +96,7 @@ flowchart TB
 | Container Restart Loop | 重大 | コンテナごとの `container.restarts` の増加、過去 15 分 | ウィンドウ内で 3 回を超える再起動（合計） | 2.7 以下 |
 | Container CPU Throttling | 警告 | コンテナごとの `container.cpu.throttling_data.throttled_time` の増加（ms）、過去 5 分 | ウィンドウ内で 1000 ms を超える（合計） | 900 ms 以下 |
 | High Container Process Count | 警告 | `container.pids.count`、コンテナごとの Max、過去 5 分 | 2000 を超える | 1800 以下 |
-| Container Down (Low Uptime) | 重大 | `container.uptime`、コンテナごとの Min、過去 1 分 | 0 に等しい | 0 を超える |
+| Container Restarted (Low Uptime) | 重大 | `container.uptime`、コンテナごとの Min、過去 1 分 | 120 秒未満 | 132 秒以上 |
 
 **重大度** は選択リストに表示されるラベルです。テンプレートが作成するインシデントとアラートは、プロジェクトで最も重大なインシデントとアラートの重大度から始まります。条件で変更してください。
 
@@ -110,10 +110,10 @@ flowchart TB
 > `container.memory.percent` は、コンテナにメモリ上限が設定されていればその上限で、設定されていなければ**ホスト**の総メモリで割ります。超過をメモリ不足による強制終了の前兆と見なす前に、コンテナが `--memory` 付きで起動されたかを確認してください。
 
 > [!WARNING]
-> `container.restarts` と `container.cpu.throttling_data.throttled_time` は増加しかしないため、この 2 つのテンプレートはウィンドウ内でどれだけ増えたかでアラートを出します。1 分ごとの Maximum クエリと Minimum クエリを数式で差し引いて合計します。エージェントの 30 秒ごとの収集では実際の動きの約半分しか見えませんが、しきい値はそれを織り込み済みです。エージェントの `collection_interval` を 60 秒以上にすると、1 分に 1 つのサンプルしか入らず、どちらのテンプレートもアラートを出さなくなります。
+> `container.restarts` と `container.cpu.throttling_data.throttled_time` は増加しかしないため、この 2 つのテンプレートはウィンドウ内でどれだけ増えたかでアラートを出します。1 分ごとの Maximum クエリと Minimum クエリを数式で差し引いて合計します。エージェントの 30 秒ごとの収集では実際の動きの約半分しか見えませんが、しきい値はそれを織り込み済みです。エージェントの `collection_interval` を 60 秒以上にすると、1 分に 1 つのサンプルしか入らず、どちらのテンプレートもアラートを出さなくなります。また、エージェントは実行中のコンテナしかサンプリングしないため、起動直後に終了するコンテナはほとんどサンプリングされません。**Container Restarted (Low Uptime)** はエージェントが捉えた再起動のたびに発火します。
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** は、停止したまま止まっているコンテナを検知できません。エージェントは実行中のコンテナしか報告しないため、停止したコンテナはデータをまったく送らず、その稼働時間が 0 になることはありません。稼働し続ける必要があるサービスでは、提供している機能も監視してください。たとえば [API モニター](/docs/monitor/api-monitor) を使います。
+> `container.uptime` は実行中のコンテナにしか存在しません。停止したまま止まっているコンテナはデータを送らないため、**Container Restarted (Low Uptime)** が捉えるのは再起動や再デプロイで、恒久的な停止は捉えません。2 分未満だけ動く想定のコンテナは、その生涯ずっとアラート状態のままです。たとえば [API モニター](/docs/monitor/api-monitor) を使います。
 
 ## 収集されるメトリクス
 
@@ -147,8 +147,7 @@ flowchart TB
 
 | メトリクス | 説明 |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | ブロックデバイスから読み取ったバイト数。 |
-| `container.blockio.io_service_bytes_recursive.write` | ブロックデバイスに書き込んだバイト数。 |
+| `container.blockio.io_service_bytes_recursive` | コンテナの起動以降に各ブロックデバイスで読み書きされたバイト数で、`operation`（`read`、`write`）ごとに分かれています。起動からの累積カウンターです。一覧では読み取りと書き込みに絞った形で表示されます。 |
 
 ### コンテナ
 
@@ -158,7 +157,7 @@ flowchart TB
 | `container.restarts` | 作成以降にコンテナが再起動した回数。生涯カウンター。 |
 | `container.pids.count` | コンテナ内のタスク数。cgroup の pids コントローラーはプロセスだけでなくスレッドも数えます。 |
 
-**Docker メトリクス** の一覧には、`container.cpu.usage.percpu`、`container.memory.rss`、`container.memory.cache`、ネットワークパケットのカウンターもあります。同梱のエージェント設定ではこれらは有効になっていないため、使う前にホストの **メトリクス** ページを確認してください。`container.cpu.throttling_data.throttled_periods` は一覧にないので、**詳細** から照会します。
+`container.cpu.throttling_data.throttled_periods` は一覧にないので、**詳細** から照会します。
 
 ## 監視条件
 

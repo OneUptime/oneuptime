@@ -209,6 +209,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [KUBERNETES]: [
     // Template names.
     "Cluster Stopped Reporting",
+    "Job Failures",
     "etcd No Leader",
     "API Server Request Saturation",
     "Scheduler Backlog",
@@ -222,6 +223,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Pod CPU Usage",
     "Node CPU Usage",
     "Pod Phase (Code)",
+    "Node Ready Condition",
     // What every rule checks.
     "Metric Value",
     ...ANOMALY_CONDITIONS,
@@ -230,7 +232,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DOCKER]: [
     ...FORM_NAMES,
     "Host Stopped Reporting",
-    "Container Down (Low Uptime)",
+    "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,
   ],
@@ -238,7 +240,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [PODMAN]: [
     ...FORM_NAMES,
     "Host Stopped Reporting",
-    "High Container Restart Count",
+    "Container Restart Loop",
     "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,

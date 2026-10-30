@@ -93,21 +93,21 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 | Host Stopped Reporting | Kritisch | `container.memory.percent`, Count über alle Container des Hosts, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | High Container CPU Usage | Warnung | `container.cpu.utilization`, Avg pro Container, letzte 5 Minuten | Über 80 (% eines Kerns) | Bei oder unter 72 |
 | High Container Memory Usage | Warnung | `container.memory.percent`, Avg pro Container, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
-| High Container Restart Count | Kritisch | `container.restarts`, Max pro Container, letzte 5 Minuten | Über 5 Neustarts insgesamt | 4,5 oder weniger |
-| High Container Process Count | Warnung | `container.pids.count`, Max pro Container, letzte 5 Minuten | Über 500 | Bei oder unter 450 |
+| Container Restart Loop | Kritisch | Zuwachs von `container.restarts` pro Container, letzte 15 Minuten | Mehr als 3 Neustarts im Zeitfenster (Summe) | 2,7 oder weniger |
+| High Container Process Count | Warnung | `container.pids.count`, Max pro Container, letzte 5 Minuten | Über 2000 | Bei oder unter 1800 |
 | Container Restarted (Low Uptime) | Kritisch | `container.uptime`, Min pro Container, letzte 1 Minute | Unter 120 Sekunden | Bei oder über 132 Sekunden |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
 **Host Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Host eintrifft: Der Host ist ausgefallen, oder der Agent läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet. Ein Host ohne weitere Container sendet trotzdem Daten, denn der Agent läuft selbst als Container und meldet seine eigenen Metriken.
 
-Die beiden Prozent-Vorlagen verwenden **Durchschnitt**: Ihre Metriken sind bereits Prozentwerte pro Container, der Durchschnitt einer Minute ist also der anhaltende Messwert. Neustartzahl und Prozessanzahl verwenden **Maximum**, bei denen ein einzelner Messwert über dem Schwellenwert das Signal ist.
+Die beiden Prozent-Vorlagen verwenden **Durchschnitt**: Ihre Metriken sind bereits Prozentwerte pro Container, der Durchschnitt einer Minute ist also der anhaltende Messwert. Die Prozessanzahl verwendet **Maximum**, wo eine einzige überschreitende Messung das Signal ist.
 
 > [!NOTE]
 > `container.cpu.utilization` ist die Zahl, die `podman stats` ausgibt, gemittelt über das 30-Sekunden-Intervall des Agenten: 100 % ist ein voller CPU-Kern, nicht das gesamte CPU-Kontingent des Containers. Ein Container mit mehreren Kernen liest im gesunden Zustand deutlich über 100; erhöhen Sie für solche den Schwellenwert.
 
 > [!NOTE]
-> `container.restarts` ist eine laufende Summe, die Podman führt, keine Zahl der Neustarts im Zeitfenster. **High Container Restart Count** bleibt daher offen, bis der Container neu erstellt wird, was die Zahl zurücksetzt.
+> `container.restarts` ist eine von Podman geführte laufende Summe, daher warnt **Container Restart Loop** wie bei Docker danach, wie stark sie im Zeitfenster gewachsen ist: eine Maximum- und eine Minimum-Abfrage pro Minute, durch eine Formel voneinander abgezogen und summiert. Bei der 30-Sekunden-Erfassung des Agenten wird etwa die Hälfte der Neustarts gesehen, und der Schwellenwert berücksichtigt das bereits. Der Agent erfasst außerdem nur laufende Container, sodass ein Container, der sofort nach dem Start wieder endet, kaum je erfasst wird: **Container Restarted (Low Uptime)** löst bei jedem Neustart aus, den der Agent sieht.
 
 > [!CAUTION]
 > `container.uptime` gibt es nur für laufende Container. Ein Container, der stoppt und gestoppt bleibt, sendet keine Daten; **Container Restarted (Low Uptime)** erkennt daher Neustarts und erneute Deployments, kein dauerhaftes Herunterfahren. Ein Container, der weniger als zwei Minuten laufen soll, bleibt sein ganzes Leben lang im Warnzustand.
@@ -146,8 +146,7 @@ Der Agent verwendet den OpenTelemetry-Receiver `docker_stats`, gerichtet auf den
 
 | Metrik | Beschreibung |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Von Blockgeräten gelesene Bytes. |
-| `container.blockio.io_service_bytes_recursive.write` | Auf Blockgeräte geschriebene Bytes. |
+| `container.blockio.io_service_bytes_recursive` | Seit dem Start des Containers auf jedem Blockgerät gelesene und geschriebene Bytes, aufgeteilt nach `operation` (`read`, `write`). Ein Zähler über die gesamte Lebensdauer. Die Liste bietet ihn gefiltert auf Lese- und auf Schreibvorgänge an. |
 
 ### Container
 
@@ -157,7 +156,7 @@ Der Agent verwendet den OpenTelemetry-Receiver `docker_stats`, gerichtet auf den
 | `container.restarts` | Wie oft der Container neu gestartet wurde. Eine laufende Summe. |
 | `container.pids.count` | Tasks im Container. Der pids-Controller der cgroup zählt Threads ebenso wie Prozesse. |
 
-Die Liste **Podman-Metrik** bietet außerdem `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` und die Netzwerk-Paketzähler. Die mitgelieferte Agent-Konfiguration schaltet diese nicht ein; prüfen Sie daher die Seite **Metriken** des Hosts, bevor Sie darauf aufbauen. `container.cpu.throttling_data.throttled_periods` steht nicht in der Liste; fragen Sie sie über **Erweitert** ab.
+`container.cpu.throttling_data.throttled_periods` steht nicht in der Liste; fragen Sie sie über **Erweitert** ab.
 
 ## Überwachungskriterien
 

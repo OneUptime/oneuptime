@@ -102,7 +102,7 @@ flowchart TB
 | Task Down (Low Uptime) | بحرانی | `container.uptime`، Min به ازای هر وظیفه، ۱ دقیقه گذشته | هر مقداری کمتر از ۶۰ ثانیه باشد | همه مقدارها ۶۶ ثانیه یا بیشتر باشند |
 | High Task CPU Usage | Warning | `container.cpu.utilization`، Avg به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۸۰ (درصدِ یک هسته) | ۷۲ یا کمتر |
 | High Task Memory Usage | Warning | `container.memory.percent`، Avg به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
-| High Task Process Count | Warning | `container.pids.count`، Max به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۵۰۰ | ۴۵۰ یا کمتر |
+| High Task Process Count | Warning | `container.pids.count`، Max به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک الگو می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 
@@ -140,7 +140,7 @@ flowchart TB
 
 | متریک | یکا | توضیح |
 | --- | --- | --- |
-| `container.pids.count` | تعداد | فرایندهای درون کانتینر یک وظیفه. افزایش ناگهانی می‌تواند نشانه یک بمب fork یا نشت باشد. |
+| `container.pids.count` | تعداد | تسک‌های درون کانتینر یک تسک: کنترل‌گر pids در cgroup هم رشته‌ها و هم فرایندها را می‌شمارد. افزایش ناگهانی می‌تواند نشانهٔ fork bomb یا نشت رشته باشد. |
 | `container.uptime` | ثانیه | مدت زمانی که کانتینر یک وظیفه در حال اجراست. وظیفه‌ای که دوباره زمان‌بندی یا راه‌اندازی شود، کانتینر تازه‌ای را از ۰ شروع می‌کند. |
 
 هر سری هویت کانتینر را به‌صورت ویژگی‌های منبع با خود دارد: `resource.container.name` (`<service>.<slot>.<taskid>`)، `resource.container.image.name` و `resource.docker.swarm.cluster.name`.

@@ -102,7 +102,7 @@ flowchart TB
 | Task Down (Low Uptime) | गंभीर | `container.uptime`, प्रति कार्य Min, पिछला 1 मिनट | कोई भी मान 60 सेकंड से कम है | हर मान 66 सेकंड या उससे अधिक है |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, प्रति कार्य Avg, पिछले 5 मिनट | 80 से ऊपर (एक कोर का %) | 72 या उससे कम |
 | High Task Memory Usage | Warning | `container.memory.percent`, प्रति कार्य Avg, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
-| High Task Process Count | Warning | `container.pids.count`, प्रति कार्य Max, पिछले 5 मिनट | 500 से ऊपर | 450 या उससे कम |
+| High Task Process Count | Warning | `container.pids.count`, प्रति कार्य Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
 
 **गंभीरता** वह लेबल है जो चयन सूची दिखाती है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; इन्हें मानदंडों में बदलें।
 
@@ -140,7 +140,7 @@ flowchart TB
 
 | मेट्रिक | इकाई | विवरण |
 | --- | --- | --- |
-| `container.pids.count` | गणना | किसी कार्य के कंटेनर के अंदर की प्रक्रियाएँ। अचानक बढ़ोतरी का मतलब फ़ोर्क बम या लीक हो सकता है। |
+| `container.pids.count` | गणना | किसी टास्क के कंटेनर के भीतर के टास्क: cgroup pids कंट्रोलर प्रोसेस के साथ थ्रेड भी गिनता है। अचानक बढ़ोतरी फ़ोर्क बम या थ्रेड लीक का संकेत हो सकती है। |
 | `container.uptime` | सेकंड | किसी कार्य का कंटेनर कितनी देर से चल रहा है। दोबारा शेड्यूल या रीस्टार्ट हुआ कार्य 0 पर एक नया कंटेनर शुरू करता है। |
 
 हर सीरीज़ कंटेनर की पहचान को रिसोर्स एट्रिब्यूट के रूप में रखती है: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` और `resource.docker.swarm.cluster.name`।

@@ -186,7 +186,11 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
-    // Max per task — any scrape over the threshold trips it (fork bomb/leak).
+    /*
+     * Max per task — any scrape over the threshold trips it (fork bomb/leak).
+     * 2000, as Docker's: the cgroup pids controller counts threads too, so
+     * 500 was ordinary for a JVM or a Go service.
+     */
     id: "docker-swarm-high-pids",
     name: "High Task Process Count",
     category: "Container",
@@ -200,12 +204,12 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     fire: {
       alias: "container_pids",
       filterType: FilterType.GreaterThan,
-      value: 500,
+      value: 2000,
     },
     recover: {
       alias: "container_pids",
       filterType: FilterType.LessThanOrEqualTo,
-      value: 500,
+      value: 2000,
     },
   },
 ];

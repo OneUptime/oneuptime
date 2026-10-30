@@ -96,7 +96,7 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 | Container Restart Loop | Crítico | Crescimento de `container.restarts` por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
 | Container CPU Throttling | Warning | Crescimento de `container.cpu.throttling_data.throttled_time` em ms por contêiner, últimos 5 minutos | Mais de 1000 ms na janela (Soma) | 900 ms ou menos |
 | High Container Process Count | Warning | `container.pids.count`, Max por contêiner, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
-| Container Down (Low Uptime) | Crítico | `container.uptime`, Min por contêiner, último 1 minuto | Igual a 0 | Acima de 0 |
+| Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contêiner, último 1 minuto | Menos de 120 segundos | 132 segundos ou mais |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 
@@ -110,10 +110,10 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 > `container.memory.percent` divide pelo limite de memória do contêiner quando há um definido e, caso contrário, pela memória total **do host**. Verifique se o contêiner foi iniciado com `--memory` antes de tratar uma violação como um encerramento iminente por falta de memória.
 
 > [!WARNING]
-> `container.restarts` e `container.cpu.throttling_data.throttled_time` só crescem, então esses dois modelos alertam com base em quanto eles cresceram na janela: uma consulta de Máximo e uma de Mínimo por minuto, subtraídas por uma fórmula e somadas. Com a coleta do agente a cada 30 segundos, isso enxerga cerca de metade da atividade real, e os limites já levam isso em conta. Se você aumentar o `collection_interval` do agente para 60 segundos ou mais, cada minuto terá uma única amostra e os dois modelos deixarão de alertar.
+> `container.restarts` e `container.cpu.throttling_data.throttled_time` só crescem, então esses dois modelos alertam com base em quanto eles cresceram na janela: uma consulta de Máximo e uma de Mínimo por minuto, subtraídas por uma fórmula e somadas. Com a coleta do agente a cada 30 segundos, isso enxerga cerca de metade da atividade real, e os limites já levam isso em conta. Se você aumentar o `collection_interval` do agente para 60 segundos ou mais, cada minuto terá uma única amostra e os dois modelos deixarão de alertar. O agente também só amostra contêineres em execução, então um contêiner que sai no momento em que inicia raramente é amostrado: **Container Restarted (Low Uptime)** dispara a cada reinício que o agente vê.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** não consegue pegar um contêiner que para e continua parado. O agente só informa contêineres em execução, então um contêiner parado não envia dado algum e seu tempo de atividade nunca marca 0. Para um serviço que precisa ficar no ar, monitore também o que ele serve – por exemplo, com um [monitor de API](/docs/monitor/api-monitor).
+> `container.uptime` só existe para contêineres em execução. Um contêiner que para e continua parado não envia dados, então **Container Restarted (Low Uptime)** pega reinícios e novas implantações, não um desligamento permanente. Um contêiner feito para rodar menos de dois minutos fica em estado de alerta durante toda a vida. Para um serviço que precisa ficar no ar, monitore também o que ele serve – por exemplo, com um [monitor de API](/docs/monitor/api-monitor).
 
 ## Métricas coletadas
 
@@ -147,8 +147,7 @@ O agente usa o receptor `docker_stats` do OpenTelemetry no socket do Docker, a c
 
 | Métrica | Descrição |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes lidos de dispositivos de bloco. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes gravados em dispositivos de bloco. |
+| `container.blockio.io_service_bytes_recursive` | Bytes lidos e gravados em cada dispositivo de bloco desde que o contêiner iniciou, separados por `operation` (`read`, `write`). Um contador acumulado. A lista o oferece filtrado para leituras e para gravações. |
 
 ### Contêiner
 
@@ -158,7 +157,7 @@ O agente usa o receptor `docker_stats` do OpenTelemetry no socket do Docker, a c
 | `container.restarts` | Quantas vezes o contêiner reiniciou desde que foi criado. Um contador de toda a vida útil. |
 | `container.pids.count` | Tarefas no contêiner. O controlador pids do cgroup conta threads além de processos. |
 
-A lista **Métrica do Docker** também oferece `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` e os contadores de pacotes de rede. A configuração do agente distribuída não os ativa, então confira a página **Métricas** do host antes de depender deles. `container.cpu.throttling_data.throttled_periods` não está na lista; consulte-a em **Avançado**.
+`container.cpu.throttling_data.throttled_periods` não está na lista; consulte-a em **Avançado**.
 
 ## Critérios de monitoramento
 

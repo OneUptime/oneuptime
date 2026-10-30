@@ -39,9 +39,9 @@ import ObjectID from "../../../Types/ObjectID";
  *     (App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts)
  *     and the same key the Docker/Podman dashboards query by
  *     (`CONTAINER_NAME_ATTR` in App/FeatureSet/Dashboard/src/Pages/{Docker,
- *     Podman}/View/Overview.tsx). NOTE this differs from Docker Swarm, whose
- *     docker_stats receiver keeps container identity in DATAPOINT labels
- *     (plain `container.name`).
+ *     Podman}/View/Overview.tsx). Docker Swarm runs the same receiver, so its
+ *     templates group by the same `resource.container.name`
+ *     (DockerSwarmAlertTemplates.test.ts holds them to it).
  *
  *   - Host: a host monitor is already scoped to ONE host (the worker injects
  *     `resource.host.name` from hostIdentifier), so host-scalar metrics — CPU

@@ -102,7 +102,7 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 | Task Down (Low Uptime) | Critical | `container.uptime`, Min per task, past 1 minute | Any value is below 60 seconds | Every value is at or above 66 seconds |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, past 5 minutes | Above 85% | At or below 76.5% |
-| High Task Process Count | Warning | `container.pids.count`, Max per task, past 5 minutes | Above 500 | At or below 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per task, past 5 minutes | Above 2000 | At or below 1800 |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
@@ -140,7 +140,7 @@ The agent's collector uses the OpenTelemetry `docker_stats` receiver, so the met
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `container.pids.count` | count | Processes inside a task's container. A sudden rise can mean a fork bomb or a leak. |
+| `container.pids.count` | count | Tasks inside a task's container: the cgroup pids controller counts threads as well as processes. A sudden rise can mean a fork bomb or a thread leak. |
 | `container.uptime` | seconds | How long a task's container has been running. A rescheduled or restarted task starts a new container at 0. |
 
 Each series carries the container's identity as resource attributes: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` and `resource.docker.swarm.cluster.name`.

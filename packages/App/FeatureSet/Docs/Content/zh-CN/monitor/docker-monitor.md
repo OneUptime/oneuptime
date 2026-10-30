@@ -96,7 +96,7 @@ flowchart TB
 | Container Restart Loop | 严重 | 每个容器 `container.restarts` 的增长，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
 | Container CPU Throttling | Warning | 每个容器 `container.cpu.throttling_data.throttled_time` 的增长（ms），最近 5 分钟 | 窗口内超过 1000 ms（总和） | 900 ms 或更少 |
 | High Container Process Count | Warning | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
-| Container Down (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 等于 0 | 高于 0 |
+| Container Restarted (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 低于 120 秒 | 不低于 132 秒 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
 
@@ -110,10 +110,10 @@ flowchart TB
 > `container.memory.percent` 在容器设置了内存限制时除以该限制，否则除以**主机**的总内存。在把超限视为即将发生的内存不足终止之前，请先检查容器是否使用 `--memory` 启动。
 
 > [!WARNING]
-> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只会增长，所以这两个模板根据它们在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实活动，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，两个模板都会停止报警。
+> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只会增长，所以这两个模板根据它们在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实活动，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，两个模板都会停止报警。代理也只对正在运行的容器采样，因此一启动就退出的容器很少被采到：**Container Restarted (Low Uptime)** 会在代理看到的每次重启时触发。
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** 模板无法捕捉停止后一直保持停止的容器。代理只报告正在运行的容器，所以停止的容器根本不发送数据，其运行时间也永远不会读数为 0。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
+> `container.uptime` 只存在于正在运行的容器。停止后一直保持停止的容器不发送任何数据，所以 **Container Restarted (Low Uptime)** 模板捕捉的是重启和重新部署，而不是永久关闭。设计为运行不到两分钟的容器，在其整个生命周期内都会处于警报状态。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
 
 ## 收集的指标
 
@@ -147,8 +147,7 @@ flowchart TB
 
 | 指标 | 说明 |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | 从块设备读取的字节数。 |
-| `container.blockio.io_service_bytes_recursive.write` | 写入块设备的字节数。 |
+| `container.blockio.io_service_bytes_recursive` | 容器启动以来在每个块设备上读取和写入的字节数，按 `operation`（`read`、`write`）区分。是整个生命周期的累计计数器。列表分别提供只看读取和只看写入的版本。 |
 
 ### 容器
 
@@ -158,7 +157,7 @@ flowchart TB
 | `container.restarts` | 容器自创建以来重启的次数。生命周期计数器。 |
 | `container.pids.count` | 容器中的任务数。cgroup 的 pids 控制器既统计进程也统计线程。 |
 
-**Docker 指标** 列表还提供 `container.cpu.usage.percpu`、`container.memory.rss`、`container.memory.cache` 和网络数据包计数器。随附的代理配置不会开启它们，所以在使用之前请先查看主机的 **指标** 页面。`container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
+`container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
 
 ## 监控条件
 

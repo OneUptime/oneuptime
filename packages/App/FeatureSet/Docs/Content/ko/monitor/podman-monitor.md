@@ -93,21 +93,21 @@ flowchart TB
 | Host Stopped Reporting | 심각 | `container.memory.percent`, 호스트의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, 컨테이너별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Container Memory Usage | Warning | `container.memory.percent`, 컨테이너별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
-| High Container Restart Count | 심각 | `container.restarts`, 컨테이너별 Max, 최근 5분 | 총 재시작 5회 초과 | 4.5 이하 |
-| High Container Process Count | Warning | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 500 초과 | 450 이하 |
+| Container Restart Loop | 심각 | 컨테이너별 `container.restarts` 증가량, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
+| High Container Process Count | Warning | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 | Container Restarted (Low Uptime) | 심각 | `container.uptime`, 컨테이너별 Min, 최근 1분 | 120초 미만 | 132초 이상 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
 
 **Host Stopped Reporting** 템플릿은 호스트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 호스트가 다운되었거나, 에이전트가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소된 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다. 에이전트는 컨테이너로 실행되며 자기 컨테이너도 보고하므로, 다른 컨테이너가 없는 호스트도 계속 보고합니다.
 
-두 퍼센트 템플릿은 **평균** 을 씁니다. 메트릭이 이미 컨테이너별 퍼센트이므로 1분 평균이 지속적인 값이 됩니다. 재시작 횟수와 프로세스 수는 **최대** 를 쓰며, 임계값을 넘는 샘플 하나가 곧 신호입니다.
+두 퍼센트 템플릿은 **평균** 을 씁니다. 프로세스 수는 **Maximum**을 사용하며, 임계값을 넘는 샘플 하나가 곧 신호입니다.
 
 > [!NOTE]
 > `container.cpu.utilization`은 `podman stats`가 출력하는 수치를 에이전트의 30초 간격으로 평균한 값입니다. 100%는 컨테이너의 전체 CPU 할당이 아니라 CPU 코어 하나입니다. 여러 코어를 받은 컨테이너는 정상일 때도 100을 훨씬 넘으므로, 그런 컨테이너는 임계값을 올리세요.
 
 > [!NOTE]
-> `container.restarts`는 Podman이 유지하는 누적 합계이며, 기간 안의 재시작 횟수가 아닙니다. 그래서 **High Container Restart Count** 템플릿은 컨테이너를 다시 만들어 횟수가 초기화될 때까지 열려 있습니다.
+> `container.restarts`는 Podman이 유지하는 누계이므로 **Container Restart Loop**는 Docker와 마찬가지로 창 안에서 얼마나 늘었는지로 알림을 보냅니다. 분마다 Maximum과 Minimum 쿼리를 하나씩 두고 수식으로 빼서 합산합니다. 에이전트의 30초 수집에서는 재시작의 약 절반이 보이며, 임계값은 이미 이를 감안합니다. 또한 에이전트는 실행 중인 컨테이너만 샘플링하므로 시작하자마자 종료되는 컨테이너는 거의 샘플링되지 않습니다. **Container Restarted (Low Uptime)** 템플릿은 에이전트가 보는 모든 재시작에서 발생합니다.
 
 > [!CAUTION]
 > `container.uptime`은 실행 중인 컨테이너에만 있습니다. 멈춘 채로 있는 컨테이너는 데이터를 보내지 않으므로, **Container Restarted (Low Uptime)** 템플릿은 재시작과 재배포를 잡을 뿐 영구적인 종료는 잡지 못합니다. 2분보다 짧게 실행되도록 만든 컨테이너는 수명 내내 알림 상태로 남습니다.
@@ -146,8 +146,7 @@ CPU 스로틀링 템플릿은 없습니다. 에이전트가 수집하는 스로�
 
 | 메트릭 | 설명 |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | 블록 장치에서 읽은 바이트. |
-| `container.blockio.io_service_bytes_recursive.write` | 블록 장치에 쓴 바이트. |
+| `container.blockio.io_service_bytes_recursive` | 컨테이너가 시작된 이후 각 블록 장치에서 읽고 쓴 바이트 수로, `operation`(`read`, `write`)별로 나뉩니다. 수명 전체에 걸친 카운터입니다. 목록에서는 읽기와 쓰기로 각각 필터링해 제공합니다. |
 
 ### 컨테이너
 
@@ -157,7 +156,7 @@ CPU 스로틀링 템플릿은 없습니다. 에이전트가 수집하는 스로�
 | `container.restarts` | 컨테이너가 다시 시작된 횟수. 누적 합계. |
 | `container.pids.count` | 컨테이너 안의 작업 수. cgroup의 pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. |
 
-**Podman Metric** 목록에는 `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache`, 네트워크 패킷 카운터도 있습니다. 함께 제공되는 에이전트 구성은 이것들을 켜지 않으므로, 이를 바탕으로 만들기 전에 호스트의 **메트릭** 페이지를 확인하세요. `container.cpu.throttling_data.throttled_periods`는 목록에 없으므로 **고급** 에서 조회하세요.
+`container.cpu.throttling_data.throttled_periods`는 목록에 없으므로 **고급** 에서 조회하세요.
 
 ## 모니터링 기준
 

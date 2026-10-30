@@ -96,7 +96,7 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 | Container Restart Loop | Kritisk | Vekst i `container.restarts` per container, siste 15 minutter | Mer enn 3 omstarter i vinduet (Sum) | 2,7 eller færre |
 | Container CPU Throttling | Warning | Vekst i `container.cpu.throttling_data.throttled_time` i ms per container, siste 5 minutter | Mer enn 1000 ms i vinduet (Sum) | 900 ms eller mindre |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, siste 5 minutter | Over 2000 | På eller under 1800 |
-| Container Down (Low Uptime) | Kritisk | `container.uptime`, Min per container, siste 1 minutt | Lik 0 | Over 0 |
+| Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, siste 1 minutt | Under 120 sekunder | Minst 132 sekunder |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
 
@@ -110,10 +110,10 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 > `container.memory.percent` deler på containerens minnegrense når en er satt, og ellers på **vertens** totale minne. Kontroller om containeren ble startet med `--memory` før du behandler en overskridelse som et nært forestående drap på grunn av minnemangel.
 
 > [!WARNING]
-> `container.restarts` og `container.cpu.throttling_data.throttled_time` bare vokser, så de to malene varsler på hvor mye de vokste i vinduet: en Maksimum- og en Minimum-spørring per minutt, trukket fra hverandre av en formel og summert. Ved agentens innsamling hvert 30. sekund ser det omtrent halvparten av den faktiske aktiviteten, og tersklene tar allerede høyde for det. Hvis du øker agentens `collection_interval` til 60 sekunder eller mer, inneholder hvert minutt én måling, og begge malene slutter å varsle.
+> `container.restarts` og `container.cpu.throttling_data.throttled_time` bare vokser, så de to malene varsler på hvor mye de vokste i vinduet: en Maksimum- og en Minimum-spørring per minutt, trukket fra hverandre av en formel og summert. Ved agentens innsamling hvert 30. sekund ser det omtrent halvparten av den faktiske aktiviteten, og tersklene tar allerede høyde for det. Hvis du øker agentens `collection_interval` til 60 sekunder eller mer, inneholder hvert minutt én måling, og begge malene slutter å varsle. Agenten måler dessuten bare kjørende containere, så en container som avslutter i det den starter, blir sjelden målt: **Container Restarted (Low Uptime)** utløses ved hver omstart agenten ser.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** kan ikke fange en container som stopper og forblir stoppet. Agenten rapporterer bare kjørende containere, så en stoppet container sender ingen data i det hele tatt, og oppetiden viser aldri 0. For en tjeneste som må holde seg oppe, bør du også overvåke det den leverer – for eksempel med en [API-overvåking](/docs/monitor/api-monitor).
+> `container.uptime` finnes bare for kjørende containere. En container som stopper og forblir stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger omstarter og nye utrullinger, ikke en permanent nedstengning. En container som er ment å kjøre i mindre enn to minutter, forblir i varslingstilstand hele levetiden. For en tjeneste som må holde seg oppe, bør du også overvåke det den leverer – for eksempel med en [API-overvåking](/docs/monitor/api-monitor).
 
 ## Innsamlede metrikker
 
@@ -147,8 +147,7 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats` mot Docker-socketen hvert
 
 | Metrikk | Beskrivelse |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Byte lest fra blokkenheter. |
-| `container.blockio.io_service_bytes_recursive.write` | Byte skrevet til blokkenheter. |
+| `container.blockio.io_service_bytes_recursive` | Byte lest og skrevet på hver blokkenhet siden containeren startet, delt etter `operation` (`read`, `write`). En teller over hele levetiden. Listen tilbyr den filtrert på lesing og på skriving. |
 
 ### Container
 
@@ -158,7 +157,7 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats` mot Docker-socketen hvert
 | `container.restarts` | Antall ganger containeren har startet på nytt siden den ble opprettet. En teller over hele levetiden. |
 | `container.pids.count` | Oppgaver i containeren. Cgroup-ens pids-kontroller teller tråder så vel som prosesser. |
 
-Listen **Docker-måling** tilbyr også `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` og tellerne for nettverkspakker. Den medfølgende agentkonfigurasjonen slår dem ikke på, så kontroller vertens side **Målinger** før du bygger på dem. `container.cpu.throttling_data.throttled_periods` står ikke i listen; spør etter den fra **Avansert**.
+`container.cpu.throttling_data.throttled_periods` står ikke i listen; spør etter den fra **Avansert**.
 
 ## Overvåkingskriterier
 

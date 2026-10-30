@@ -102,7 +102,7 @@ Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Be
 | Task Down (Low Uptime) | Kritisch | `container.uptime`, Min pro Task, letzte 1 Minute | Ein beliebiger Wert unter 60 Sekunden liegt | Jeder Wert bei oder über 66 Sekunden liegt |
 | High Task CPU Usage | Warnung | `container.cpu.utilization`, Avg pro Task, letzte 5 Minuten | Über 80 (% eines Kerns) | Bei oder unter 72 |
 | High Task Memory Usage | Warnung | `container.memory.percent`, Avg pro Task, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
-| High Task Process Count | Warnung | `container.pids.count`, Max pro Task, letzte 5 Minuten | Über 500 | Bei oder unter 450 |
+| High Task Process Count | Warnung | `container.pids.count`, Max pro Task, letzte 5 Minuten | Über 2000 | Bei oder unter 1800 |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
@@ -140,7 +140,7 @@ Der Collector des Agents verwendet den OpenTelemetry-Receiver `docker_stats`, di
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `container.pids.count` | count | Prozesse im Container eines Tasks. Ein plötzlicher Anstieg kann auf eine Fork-Bombe oder ein Leck hindeuten. |
+| `container.pids.count` | count | Tasks im Container eines Tasks: Der cgroup-pids-Controller zählt Threads ebenso wie Prozesse. Ein plötzlicher Anstieg kann auf eine Fork-Bombe oder ein Thread-Leck hindeuten. |
 | `container.uptime` | seconds | Wie lange der Container eines Tasks läuft. Ein neu eingeplanter oder neu gestarteter Task beginnt einen neuen Container bei 0. |
 
 Jede Reihe trägt die Identität des Containers als Ressourcenattribute: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` und `resource.docker.swarm.cluster.name`.

@@ -96,7 +96,7 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 | Container Restart Loop | Critique | Croissance de `container.restarts` par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
 | Container CPU Throttling | Warning | Croissance de `container.cpu.throttling_data.throttled_time` en ms par conteneur, 5 dernières minutes | Plus de 1000 ms dans la fenêtre (Somme) | 900 ms ou moins |
 | High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
-| Container Down (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Égal à 0 | Au-dessus de 0 |
+| Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Moins de 120 secondes | 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
@@ -110,10 +110,10 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 > `container.memory.percent` divise par la limite de mémoire du conteneur quand elle est définie, et sinon par la mémoire totale **de l'hôte**. Vérifiez si le conteneur a été démarré avec `--memory` avant de traiter un dépassement comme un arrêt imminent pour manque de mémoire.
 
 > [!WARNING]
-> `container.restarts` et `container.cpu.throttling_data.throttled_time` ne font que croître, donc ces deux modèles alertent sur leur croissance dans la fenêtre : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de l'agent toutes les 30 secondes, cela voit environ la moitié de l'activité réelle, et les seuils en tiennent déjà compte. Si vous portez le `collection_interval` de l'agent à 60 secondes ou plus, chaque minute ne contient qu'une mesure et les deux modèles cessent d'alerter.
+> `container.restarts` et `container.cpu.throttling_data.throttled_time` ne font que croître, donc ces deux modèles alertent sur leur croissance dans la fenêtre : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de l'agent toutes les 30 secondes, cela voit environ la moitié de l'activité réelle, et les seuils en tiennent déjà compte. Si vous portez le `collection_interval` de l'agent à 60 secondes ou plus, chaque minute ne contient qu'une mesure et les deux modèles cessent d'alerter. L'agent n'échantillonne en outre que les conteneurs en cours d'exécution : un conteneur qui s'arrête dès son démarrage n'est presque jamais échantillonné, et **Container Restarted (Low Uptime)** se déclenche à chaque redémarrage que l'agent voit.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** ne peut pas détecter un conteneur qui s'arrête et reste arrêté. L'agent ne remonte que les conteneurs en cours d'exécution, donc un conteneur arrêté n'envoie aucune donnée et sa durée de fonctionnement ne vaut jamais 0. Pour un service qui doit rester disponible, surveillez aussi ce qu'il sert – par exemple avec une [surveillance d'API](/docs/monitor/api-monitor).
+> `container.uptime` n'existe que pour les conteneurs en cours d'exécution. Un conteneur qui s'arrête et reste arrêté n'envoie aucune donnée, donc **Container Restarted (Low Uptime)** détecte les redémarrages et les redéploiements, pas un arrêt définitif. Un conteneur prévu pour tourner moins de deux minutes reste en état d'alerte pendant toute sa vie. Pour un service qui doit rester disponible, surveillez aussi ce qu'il sert – par exemple avec une [surveillance d'API](/docs/monitor/api-monitor).
 
 ## Métriques collectées
 
@@ -147,8 +147,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` sur le socket Docker,
 
 | Métrique | Description |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Octets lus sur les périphériques de bloc. |
-| `container.blockio.io_service_bytes_recursive.write` | Octets écrits sur les périphériques de bloc. |
+| `container.blockio.io_service_bytes_recursive` | Octets lus et écrits sur chaque périphérique bloc depuis le démarrage du conteneur, répartis par `operation` (`read`, `write`). Un compteur cumulé. La liste le propose filtré sur les lectures et sur les écritures. |
 
 ### Conteneur
 
@@ -158,7 +157,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` sur le socket Docker,
 | `container.restarts` | Nombre de redémarrages du conteneur depuis sa création. Un compteur sur toute la durée de vie. |
 | `container.pids.count` | Tâches dans le conteneur. Le contrôleur pids du cgroup compte les threads aussi bien que les processus. |
 
-La liste **Métrique Docker** propose aussi `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` et les compteurs de paquets réseau. La configuration de l'agent fournie ne les active pas ; vérifiez donc la page **Métriques** de l'hôte avant de vous appuyer dessus. `container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
+`container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
 
 ## Critères de surveillance
 

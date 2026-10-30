@@ -102,7 +102,7 @@ flowchart TB
 | Task Down (Low Uptime) | 嚴重 | `container.uptime`，依任務取 Min，最近 1 分鐘 | 任一值低於 60 秒 | 每個值都不低於 66 秒 |
 | High Task CPU Usage | Warning | `container.cpu.utilization`，依任務取 Avg，最近 5 分鐘 | 高於 80（單一核心的 %） | 不高於 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`，依任務取 Avg，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
-| High Task Process Count | Warning | `container.pids.count`，依任務取 Max，最近 5 分鐘 | 高於 500 | 不高於 450 |
+| High Task Process Count | Warning | `container.pids.count`，依任務取 Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
 
@@ -140,7 +140,7 @@ flowchart TB
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
-| `container.pids.count` | 計數 | 任務容器內的處理程序。突然上升可能代表 fork 炸彈或洩漏。 |
+| `container.pids.count` | 計數 | 任務容器內的任務數：cgroup pids 控制器既統計行程也統計執行緒。突然上升可能代表 fork 炸彈或執行緒洩漏。 |
 | `container.uptime` | 秒 | 任務容器已執行的時間。被重新排程或重新啟動的任務會從 0 開始一個新容器。 |
 
 每個序列都會把容器的身分當作資源屬性攜帶：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name` 和 `resource.docker.swarm.cluster.name`。

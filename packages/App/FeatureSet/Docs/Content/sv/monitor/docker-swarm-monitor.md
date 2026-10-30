@@ -102,7 +102,7 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min per uppgift, senaste 1 minuten | Något värde är under 60 sekunder | Varje värde är vid eller över 66 sekunder |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per uppgift, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per uppgift, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
-| High Task Process Count | Warning | `container.pids.count`, Max per uppgift, senaste 5 minuterna | Över 500 | Vid eller under 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per uppgift, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
@@ -140,7 +140,7 @@ Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så måtte
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
-| `container.pids.count` | antal | Processer i en uppgifts container. En plötslig ökning kan betyda en forkbomb eller en läcka. |
+| `container.pids.count` | antal | Uppgifter i en tasks container: cgroup-pids-kontrollern räknar trådar såväl som processer. En plötslig ökning kan betyda en fork-bomb eller en trådläcka. |
 | `container.uptime` | sekunder | Hur länge en uppgifts container har körts. En uppgift som schemaläggs om eller startas om börjar en ny container på 0. |
 
 Varje serie bär containerns identitet som resursattribut: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` och `resource.docker.swarm.cluster.name`.
