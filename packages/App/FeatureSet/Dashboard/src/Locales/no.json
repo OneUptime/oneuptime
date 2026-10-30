@@ -38579,6 +38579,8 @@
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runneren logger inn med den hemmelige nøkkelen sin. Etter en tilbakestilling slutter den å koble til til du kjører oppsettkommandoen på verten på nytt.",
   "Enter the number of a pull request, such as 12.": "Skriv inn nummeret på en pull-forespørsel, for eksempel 12.",
   "Enter the number of a merge request, such as 12.": "Skriv inn nummeret på en merge request, for eksempel 12.",
+  "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
+  "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "Slå på {{enabled}} og la {{endpoints}} peke på etcd på control plane-nodene: http:// for den ukrypterte metrikkporten eller HTTPS-klientporten, med {{secret}} som navnet på en Secret med klientsertifikatet etcd ber om. Administrerte klynger som EKS, GKE og AKS eksponerer ikke etcd.",
   "{{matches}} of {{sampled}}": "{{matches}} av {{sampled}}",
   "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
   "{{on}} of {{total}} on": "{{on}} av {{total}} på",

@@ -1,5 +1,10 @@
 import { DocsFence, readPage, scanMarkdown } from "./DocsContentSupport";
 import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
+import {
+  KUBERNETES_AGENT_HELM_NAMESPACE,
+  KUBERNETES_AGENT_HELM_RELEASE,
+} from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { getAllKubernetesAlertTemplates } from "Common/Types/Monitor/KubernetesAlertTemplates";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -318,6 +323,63 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     );
   });
 
+  /*
+   * The rows used to promise a "PVC Low Disk Space" monitor and CPU and
+   * memory "saturation monitors" that read 0 for a pod without limits. No
+   * template reads the volume metrics, and kubeletstats emits no limit or
+   * request utilization at all where there is nothing to divide by.
+   */
+  it("promises only the templates that exist, and no series where kubeletstats emits none", () => {
+    const names: Array<string> = getAllKubernetesAlertTemplates().map(
+      (template: { name: string }): string => {
+        return template.name;
+      },
+    );
+
+    expect(names).not.toContain("PVC Low Disk Space");
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "Pod CPU Saturating Container Limit",
+        "Pod Memory Saturating Container Limit",
+      ]),
+    );
+    expect(rowsFor("kubeletstats.utilizationMetrics.enabled")[0]![2]).toContain(
+      "which the Pod CPU and Pod Memory Saturating Container Limit templates read. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one.",
+    );
+    expect(rowsFor("kubeletstats.volumeMetrics.enabled")[0]![2]).toContain(
+      "for charts and metric monitors of your own: no built-in template reads them.",
+    );
+    expect(english).not.toContain("PVC Low Disk Space monitor");
+    expect(english).not.toContain("Always 0");
+
+    const valuesText: string = chartFile("values.yaml");
+    for (const promised of [
+      "PVC Low Disk Space",
+      "OOM Kills, High CPU Throttling",
+      "Always 0",
+      "`.*` is appended to it",
+    ]) {
+      expect({ promised, inValues: valuesText.includes(promised) }).toEqual({
+        promised,
+        inValues: false,
+      });
+    }
+  });
+
+  /*
+   * values.yaml said `.*` is appended to each kube-state-metrics allowlist
+   * entry, so `kube_pod_status` would keep `kube_pod_status_phase`. The
+   * collector keeps a metric only when its whole name matches an entry.
+   */
+  it("kube-state-metrics' allowlist matches whole metric names, as values.yaml now says", () => {
+    expect(chartFile("templates/configmap-deployment.yaml")).toContain(
+      'regex: "^({{ join "|" .Values.kubeStateMetrics.metricsAllowlist }})$"',
+    );
+    expect(chartFile("values.yaml")).toContain(
+      "Each entry is a regular expression the WHOLE metric name must match",
+    );
+  });
+
   it("audit logs, CoreDNS and CSI read where the page says", () => {
     expect(valueAt("auditLogs.paths")).toContain(
       "/var/log/kubernetes/audit.log",
@@ -493,6 +555,13 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     );
   });
 
+  /*
+   * The page used to install the release oneuptime-agent in the namespace
+   * oneuptime-kubernetes-agent, while the Dashboard (and the telemetry
+   * page) install kubernetes-agent in oneuptime-agent: after a Dashboard
+   * install, every upgrade, uninstall and troubleshooting command on this
+   * page failed ("has no deployed releases"). It now uses the Dashboard's.
+   */
   it("every install and upgrade uses the release, namespace and chart the page names", () => {
     const commands: Array<string> = bashBlocks()
       .flatMap((block: string): Array<string> => {
@@ -509,22 +578,49 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         command.match(HELM_RELEASE_COMMAND) as RegExpMatchArray
       )[2]!;
 
-      expect(["oneuptime-agent", "oneuptime-agent-ns-a"]).toContain(release);
+      expect([
+        KUBERNETES_AGENT_HELM_RELEASE,
+        `${KUBERNETES_AGENT_HELM_RELEASE}-ns-a`,
+      ]).toContain(release);
     }
+    expect(KUBERNETES_AGENT_HELM_RELEASE).toBe("kubernetes-agent");
+    expect(KUBERNETES_AGENT_HELM_NAMESPACE).toBe("oneuptime-agent");
 
     for (const block of bashBlocks()) {
       if (
-        block.includes("helm install oneuptime-agent ") ||
-        block.includes("helm upgrade oneuptime-agent ") ||
+        block.includes(`helm install ${KUBERNETES_AGENT_HELM_RELEASE} `) ||
+        block.includes(`helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} `) ||
         block.includes("helm uninstall")
       ) {
         expect({
           block,
-          namespace: block.includes("oneuptime-kubernetes-agent"),
+          namespace: block.includes(
+            `--namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+          ),
         }).toEqual({
           block,
           namespace: true,
         });
+      }
+    }
+
+    /*
+     * No command, on this page or in the chart's README, uses the old names
+     * (the README names them once, for whoever installed with them).
+     */
+    expect(english).not.toContain("oneuptime-kubernetes-agent");
+    for (const text of [english, chartFile("README.md")]) {
+      expect(text).not.toMatch(/(-n|--namespace) oneuptime-kubernetes-agent/);
+      expect(text).not.toMatch(
+        /helm (install|upgrade|uninstall|get values) oneuptime-agent /,
+      );
+    }
+    // Every kubectl command of the page looks in that namespace.
+    for (const line of bashBlocks().flatMap((block: string): Array<string> => {
+      return block.split("\n");
+    })) {
+      if (/^kubectl .* -n /.test(line)) {
+        expect(line).toContain(`-n ${KUBERNETES_AGENT_HELM_NAMESPACE}`);
       }
     }
 
@@ -540,8 +636,8 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     const readme: string = chartFile("README.md");
 
     for (const block of [
-      "helm repo update\nhelm upgrade oneuptime-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-kubernetes-agent \\\n  --reset-then-reuse-values",
-      "helm repo update\nhelm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-kubernetes-agent -f values.yaml",
+      "helm repo update\nhelm upgrade kubernetes-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-agent \\\n  --reset-then-reuse-values",
+      "helm repo update\nhelm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \\\n  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-agent -f values.yaml",
     ]) {
       expect(bashBlocks()).toContain(block);
     }
@@ -630,8 +726,10 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       const script: string = chartFile("troubleshoot.sh");
 
       expect(script).toContain('-n|--namespace) NS="${2:-}"; shift 2 ;;');
+      // With no -n it looks where the Dashboard and the docs install.
+      expect(script).toContain(`NS="${KUBERNETES_AGENT_HELM_NAMESPACE}"`);
       expect(english).toContain(
-        "curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \\\n  | bash -s -- -n oneuptime-kubernetes-agent",
+        "curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \\\n  | bash -s -- -n oneuptime-agent",
       );
     });
   });

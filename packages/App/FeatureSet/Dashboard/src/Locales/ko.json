@@ -38579,6 +38579,8 @@
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner는 비밀 키로 로그인합니다. 재설정하면 호스트에서 설치 명령을 다시 실행할 때까지 연결하지 않습니다.",
   "Enter the number of a pull request, such as 12.": "풀 리퀘스트 번호를 입력하세요(예: 12).",
   "Enter the number of a merge request, such as 12.": "머지 리퀘스트 번호를 입력하세요(예: 12).",
+  "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
+  "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "{{enabled}}을(를) 켜고 {{endpoints}}이(가) 컨트롤 플레인 노드의 etcd를 가리키게 하세요. 암호화되지 않은 메트릭 포트에는 http://를 쓰고, HTTPS 클라이언트 포트를 쓸 때는 etcd가 요구하는 클라이언트 인증서를 담은 Secret을 {{secret}}에 지정하세요. EKS, GKE, AKS 같은 관리형 클러스터는 etcd를 노출하지 않습니다.",
   "{{matches}} of {{sampled}}": "{{sampled}}개 중 {{matches}}개",
   "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
   "{{on}} of {{total}} on": "{{total}}개 중 {{on}}개 켜짐",

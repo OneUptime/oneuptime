@@ -80,6 +80,14 @@ const RBAC: string = fs.readFileSync(
   path.join(CHART_DIR, "templates/rbac.yaml"),
   "utf8",
 );
+const VALUES_TEXT: string = fs.readFileSync(
+  path.join(CHART_DIR, "values.yaml"),
+  "utf8",
+);
+const COLLECTOR_DEPLOYMENT: string = fs.readFileSync(
+  path.join(CHART_DIR, "templates/deployment.yaml"),
+  "utf8",
+);
 const DOCS: string = fs.readFileSync(DOCS_PAGE, "utf8");
 
 const SETUPS: Array<KubernetesMetricsSetup> = getAllKubernetesMetricsSetups();
@@ -261,10 +269,17 @@ describe("each value really turns on the scrape its tab charts", () => {
       ["kube-scheduler", "scheduler"],
       ["kube-controller-manager", "controllerManager"],
     ] as Array<[string, string]>) {
-      expect(block).toContain(`- job_name: ${job}`);
-      expect(block).toContain(
-        `{{- range .Values.controlPlane.${component}.endpoints }}`,
+      // Each component's job, only when its list has endpoints, one target each.
+      const jobBlock: string = blockAfter(
+        `{{- with .Values.controlPlane.${component} }}`,
       );
+      expect(block).toContain(jobBlock);
+      expect(jobBlock).toContain("{{- if .endpoints }}");
+      expect(jobBlock).toContain(`- job_name: ${job}`);
+      expect(jobBlock).toContain(
+        `"setting" "controlPlane.${component}.endpoints"`,
+      );
+      expect(jobBlock).toContain("{{- range .endpoints }}");
     }
 
     for (const source of [
@@ -281,25 +296,62 @@ describe("each value really turns on the scrape its tab charts", () => {
   });
 
   test("the in-cluster API server address becomes a working target: https, /metrics, the service account token and the /metrics grant", () => {
-    const block: string = blockAfter("{{- if .Values.controlPlane.enabled }}");
-    const apiServerJob: string = block.slice(
-      block.indexOf("- job_name: kube-apiserver"),
-      block.indexOf("- job_name: kube-scheduler"),
+    const apiServerJob: string = blockAfter(
+      "{{- with .Values.controlPlane.apiServer }}",
     );
 
     expect(IN_CLUSTER_API_SERVER_METRICS_URL).toBe(
       "https://kubernetes.default.svc:443/metrics",
     );
-    expect(apiServerJob).toContain("scheme: https");
+    /*
+     * The chart's own default, so controlPlane.enabled alone reads the API
+     * server. It used to be https://localhost:6443/metrics: the agent's
+     * pod has no host network, so that was the pod itself.
+     */
+    expect(VALUES_TEXT).toMatch(
+      /\n  apiServer:\n(?: {4}#[^\n]*\n)*    endpoints:\n      - https:\/\/kubernetes\.default\.svc:443\/metrics\n/,
+    );
+    expect(VALUES_TEXT).not.toMatch(/localhost:(2379|6443|10259|10257)/);
+    // An https:// endpoint is scraped over https, at /metrics, with the token.
+    expect(apiServerJob).toContain(
+      'scheme: {{ include "kubernetes-agent.controlPlaneScheme" (dict "endpoints" .endpoints "setting" "controlPlane.apiServer.endpoints") }}',
+    );
     expect(apiServerJob).toContain("metrics_path: /metrics");
     expect(apiServerJob).toContain(
       "bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token",
     );
-    // The endpoint's scheme and /metrics are trimmed off into a bare target.
+    // The endpoint's scheme and path are trimmed off into a bare target.
     expect(apiServerJob).toContain(
-      '{{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}',
+      '{{ include "kubernetes-agent.controlPlaneTarget" . | quote }}',
     );
     expect(RBAC).toMatch(/nonResourceURLs:\s*\n\s*- \/metrics\n/);
+  });
+
+  /*
+   * etcd's hint names the two ways the chart can now reach it: an http://
+   * endpoint (kubeadm's plain metrics port) and the client certificate its
+   * HTTPS port asks for, from the Secret the chart mounts.
+   */
+  test("etcd's hint names the client certificate Secret, which the chart mounts and the etcd job presents", () => {
+    expect(setupOf(KubernetesMetricsSource.Etcd).code["secret"]).toBe(
+      "controlPlane.etcd.clientCertSecret",
+    );
+    expect(schemaAt("controlPlane.etcd.clientCertSecret")?.type).toBe("string");
+    expect(setupOf(KubernetesMetricsSource.Etcd).description).toContain(
+      "http:// for its plain metrics port",
+    );
+
+    const etcdJob: string = blockAfter("{{- with .Values.controlPlane.etcd }}");
+    expect(etcdJob).toContain("{{- if .clientCertSecret }}");
+    expect(etcdJob).toContain(
+      "cert_file: /etc/oneuptime/etcd-client-cert/tls.crt",
+    );
+    expect(COLLECTOR_DEPLOYMENT).toContain(
+      "secretName: {{ .Values.controlPlane.etcd.clientCertSecret | quote }}",
+    );
+    expect(COLLECTOR_DEPLOYMENT).toContain(
+      "mountPath: /etc/oneuptime/etcd-client-cert",
+    );
   });
 
   test("coreDns.enabled adds the coredns job, matched by the namespace, service and port the hint names", () => {
@@ -468,11 +520,15 @@ describe("the docs each hint links to", () => {
       getKubernetesMetricsSetupCommand(KubernetesMetricsSource.ApiServer)!,
     );
 
-    // What turning it on also does, and what the agent cannot reach.
-    expect(section).toContain("turns on all four scrapes at once");
+    // What turning it on reads, and what the rest of the control plane needs.
+    expect(section).toContain(
+      "a component with no endpoints is not scraped",
+    );
     expect(section).toContain("`2381`");
     expect(section).toContain("client certificate");
+    expect(section).toContain("`controlPlane.etcd.clientCertSecret`");
     expect(section).toContain("`--bind-address`");
+    expect(section).not.toContain("https://localhost");
   });
 
   test("the CoreDNS section gives the hint's command and names its settings", () => {

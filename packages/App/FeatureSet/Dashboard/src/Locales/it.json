@@ -38579,6 +38579,8 @@
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Il Runner accede con la sua chiave segreta. Dopo un reset smette di connettersi finché non esegui di nuovo il comando di configurazione sul suo host.",
   "Enter the number of a pull request, such as 12.": "Inserisci il numero di una pull request, ad esempio 12.",
   "Enter the number of a merge request, such as 12.": "Inserisci il numero di una merge request, ad esempio 12.",
+  "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
+  "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "Attiva {{enabled}} e fai puntare {{endpoints}} a etcd sui nodi del control plane: http:// per la sua porta delle metriche in chiaro, oppure la sua porta client HTTPS, con {{secret}} che indica un Secret contenente il certificato client richiesto da etcd. I cluster gestiti come EKS, GKE e AKS non espongono etcd.",
   "{{matches}} of {{sampled}}": "{{matches}} su {{sampled}}",
   "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
   "{{on}} of {{total}} on": "{{on}} su {{total}} attivi",
