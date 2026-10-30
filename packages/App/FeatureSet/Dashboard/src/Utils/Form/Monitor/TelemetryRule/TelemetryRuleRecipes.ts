@@ -52,6 +52,9 @@ export enum TelemetryRuleRecipeKey {
   SpansStop = "spans-stop",
   AnyException = "any-exception",
   ExceptionSpike = "exception-spike",
+  NewException = "new-exception",
+  RegressedException = "regressed-exception",
+  ExceptionRise = "exception-rise",
   MetricAbove = "metric-above",
   // Nothing to fill in: the person sets the rule up themselves.
   Custom = "custom",
@@ -63,7 +66,11 @@ export interface TelemetryRuleRecipe {
   title: string;
   description: string;
   icon: IconProp;
-  // The rule.
+  /*
+   * The rule.
+   * What it compares, when not the monitor type's own (Exceptions).
+   */
+  measure?: CheckOn | undefined;
   windowInSeconds: number;
   rollingTime?: RollingTime | undefined;
   filterType: FilterType;
@@ -201,6 +208,59 @@ const EXCEPTION_RECIPES: Array<TelemetryRuleRecipe> = [
     threshold: 20,
     action: TelemetryAlertRuleAction.Alert,
     openedTitle: translationKey("{{monitorName}}: too many exceptions"),
+  },
+  /*
+   * New, regressed and rising: what an Exceptions monitor can say beyond
+   * how many (ExceptionMonitorEvaluation). A new or regressed exception
+   * is looked for over the last 10 minutes, so one first seen just before
+   * a check is still in the window of the next.
+   */
+  {
+    key: TelemetryRuleRecipeKey.NewException,
+    monitorType: MonitorType.Exceptions,
+    title: translationKey("A new exception"),
+    description: translationKey(
+      "An exception nobody has seen before happens for the first time.",
+    ),
+    icon: IconProp.Bug,
+    measure: CheckOn.NewExceptionCount,
+    windowInSeconds: 600,
+    filterType: FilterType.GreaterThan,
+    threshold: 0,
+    action: TelemetryAlertRuleAction.Alert,
+    openedTitle: translationKey("{{monitorName}}: a new exception"),
+  },
+  {
+    key: TelemetryRuleRecipeKey.RegressedException,
+    monitorType: MonitorType.Exceptions,
+    title: translationKey("A resolved exception comes back"),
+    description: translationKey(
+      "An exception you resolved happens again, so the fix did not hold.",
+    ),
+    icon: IconProp.Refresh,
+    measure: CheckOn.RegressedExceptionCount,
+    windowInSeconds: 600,
+    filterType: FilterType.GreaterThan,
+    threshold: 0,
+    action: TelemetryAlertRuleAction.Alert,
+    openedTitle: translationKey(
+      "{{monitorName}}: a resolved exception came back",
+    ),
+  },
+  {
+    key: TelemetryRuleRecipeKey.ExceptionRise,
+    monitorType: MonitorType.Exceptions,
+    title: translationKey("Exceptions spike"),
+    description: translationKey(
+      "Exceptions rise well above the usual, such as three times the day before.",
+    ),
+    icon: IconProp.ArrowTrendingUp,
+    measure: CheckOn.ExceptionCountIncreasePercent,
+    windowInSeconds: 900,
+    filterType: FilterType.GreaterThan,
+    threshold: 200,
+    action: TelemetryAlertRuleAction.Alert,
+    openedTitle: translationKey("{{monitorName}}: exceptions spiked"),
   },
 ];
 
@@ -353,15 +413,18 @@ export const getRuleNameFromFilter: (data: {
   filterType: FilterType;
   threshold: number | undefined;
   metricAlias?: string | undefined;
+  measure?: CheckOn | undefined;
 }) => string = (data: {
   monitorType: MonitorType;
   filterType: FilterType;
   threshold: number | undefined;
   metricAlias?: string | undefined;
+  measure?: CheckOn | undefined;
 }): string => {
-  const checkOn: CheckOn | null = TelemetryAlertRuleUtil.getMeasureCheckOn(
-    data.monitorType,
-  );
+  const checkOn: CheckOn | null = TelemetryAlertRuleUtil.getRuleMeasure({
+    monitorType: data.monitorType,
+    rule: { measure: data.measure },
+  });
 
   if (!checkOn) {
     return CriteriaNameUtil.FALLBACK_NAME;
@@ -406,6 +469,7 @@ export const buildRecipeRule: (data: {
     recipe.action === TelemetryAlertRuleAction.AlertAndIncident;
 
   return {
+    ...(recipe.measure ? { measure: recipe.measure } : {}),
     filterType: recipe.filterType,
     threshold: recipe.threshold,
     windowInSeconds:
@@ -426,6 +490,7 @@ export const buildRecipeRule: (data: {
       monitorType: recipe.monitorType,
       filterType: recipe.filterType,
       threshold: recipe.threshold,
+      measure: recipe.measure,
     }),
     // Not one of the step's criteria: the rule takes the criteria's place.
     ruleCriteriaId: ObjectID.generate().toString(),
@@ -517,6 +582,15 @@ export const findRecipe: (data: {
     data.monitorType,
   ).find((recipe: TelemetryRuleRecipe): boolean => {
     if (
+      // The same measure: a new exception is not a resolved one back.
+      TelemetryAlertRuleUtil.getRuleMeasure({
+        monitorType: data.monitorType,
+        rule,
+      }) !==
+        TelemetryAlertRuleUtil.getRuleMeasure({
+          monitorType: data.monitorType,
+          rule: recipe,
+        }) ||
       rule.filterType !== recipe.filterType ||
       rule.threshold !== recipe.threshold ||
       rule.windowInSeconds !== recipe.windowInSeconds ||

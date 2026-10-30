@@ -954,7 +954,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "SIEM and SOAR as part of the same platform as your observability data. Security events arrive through one authenticated ingest endpoint (OCSF, Google SecOps UDM, SecOps detection alerts, and generic security JSON), ten managed connectors, or the logs you already send; every event is normalized to OCSF and stored in the same data lake as your logs, metrics, and traces. Sigma detection rules and Sigma correlations, a library of ready-made rules, threat intel from free blocklists, STIX/TAXII feeds and Google SecOps, and Security Events monitors find threats. Security Cases group detections by the user, host, or IP address they are about and are closed with a verdict; OneUptime AI triages each new case read-only, citing its evidence and suggesting a priority and a playbook, and playbooks enrich, notify, page on-call, declare incidents, or contain through Okta, CrowdStrike Falcon, and Microsoft Defender, with approval before each containment step by default. What OneUptime finds can be sent on to Google SecOps, Splunk, Microsoft Sentinel, or Elastic Security.",
+        "SIEM and SOAR as part of the same platform as your observability data. Security events arrive through one authenticated ingest endpoint (OCSF, Google SecOps UDM, SecOps detection alerts, and generic security JSON), ten managed connectors, or the logs you already send; every event is normalized to OCSF and stored in the same data lake as your logs, metrics, and traces. Sigma detection rules and Sigma correlations, a library of ready-made rules, threat intel from free blocklists, STIX/TAXII feeds and Google SecOps, and Security Events monitors find threats. Security Cases group detections by the user, host, or IP address they are about and are closed with a verdict; OneUptime AI triages each new case read-only, citing its evidence and suggesting a priority and a playbook, and playbooks enrich, notify, page on-call, declare incidents, or contain through Okta, Microsoft Entra ID, Google Workspace, CrowdStrike Falcon, and Microsoft Defender, with approval before each containment step by default. What OneUptime finds can be sent on to Google SecOps, Splunk, Microsoft Sentinel, or Elastic Security.",
       features: [
         "Single ingest endpoint for security events",
         "OCSF normalization across four source dialects, detected per event",
@@ -970,7 +970,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Security Cases that group detections by user, host or IP address",
         "Case verdicts, and mean time to acknowledge, contain and close",
         "Playbooks with 25 actions, run as a case opens, as detections join it, when AI triage reads it as Likely Malicious, or by hand",
-        "Containment through Okta, CrowdStrike Falcon and Microsoft Defender, with per-step approval",
+        "Containment through Okta, Microsoft Entra ID, Google Workspace, CrowdStrike Falcon and Microsoft Defender, with per-step approval",
         "Deduplicated alerts and optional incidents, or an incident declared from a case",
         "Detection findings written back as searchable events",
         "Security Events monitors over a sliding window",

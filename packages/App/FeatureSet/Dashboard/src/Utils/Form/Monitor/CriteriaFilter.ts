@@ -16,6 +16,7 @@ import {
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
+import { isExceptionMeasure } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import {
   TRANSCEIVER_READING_TITLES,
@@ -724,8 +725,12 @@ export default class CriteriaFilterUtil {
     }
 
     if (monitorType === MonitorType.Exceptions) {
+      /*
+       * How many, new ones, ones that came back, and the rise over the
+       * usual count (ExceptionMonitorEvaluation).
+       */
       options = options.filter((i: DropdownOption) => {
-        return i.value === CheckOn.ExceptionCount;
+        return isExceptionMeasure(i.value);
       });
     }
 
@@ -1033,10 +1038,7 @@ export default class CriteriaFilterUtil {
         );
     }
 
-    if (
-      checkOn === CheckOn.ExceptionCount ||
-      checkOn === CheckOn.ProfileCount
-    ) {
+    if (isExceptionMeasure(checkOn) || checkOn === CheckOn.ProfileCount) {
       /*
        * Exception and profile counts are whole numbers the server decides
        * on with CompareCriteria.compareCriteriaNumbers

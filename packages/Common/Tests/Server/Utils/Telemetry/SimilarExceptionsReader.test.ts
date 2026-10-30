@@ -9,6 +9,8 @@ import {
 import SimilarExceptionsReader, {
   MAX_SAME_SERVICE_CANDIDATES,
   MAX_SAME_TYPE_CANDIDATES,
+  MESSAGE_HEAD_LENGTH,
+  STACK_TRACE_HEAD_LENGTH,
 } from "../../../../Server/Utils/Telemetry/SimilarExceptionsReader";
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
@@ -61,7 +63,11 @@ interface FindCall {
   query: Record<string, unknown>;
   limit: number;
   props: unknown;
+  select?: Record<string, unknown> | undefined;
 }
+
+let texts: Map<string, { message: string; stackTrace: string }>;
+let headReads: Array<Array<string>>;
 
 let findCalls: Array<FindCall>;
 let target: TelemetryException | null;
@@ -98,9 +104,35 @@ beforeEach(() => {
   jest.spyOn(TelemetryExceptionService, "findBy").mockImplementation((async (
     args: FindCall,
   ) => {
-    findCalls.push({ query: args.query, limit: args.limit, props: args.props });
+    findCalls.push({
+      query: args.query,
+      limit: args.limit,
+      props: args.props,
+      select: args.select,
+    });
     return "exceptionType" in args.query ? sameType : sameService;
   }) as never);
+
+  /*
+   * The text heads Postgres cuts (readTextHeads), from the rows as they were
+   * made: the reads above select neither message nor stack trace.
+   */
+  texts = new Map<string, { message: string; stackTrace: string }>();
+  for (const row of [target, ...sameType, ...sameService]) {
+    if (row) {
+      texts.set(row.id!.toString(), {
+        message: row.message || "",
+        stackTrace: row.stackTrace || "",
+      });
+    }
+  }
+  headReads = [];
+  jest
+    .spyOn(SimilarExceptionsReader, "readTextHeads")
+    .mockImplementation((async (args: { ids: Array<string> }) => {
+      headReads.push(args.ids);
+      return texts;
+    }) as never);
 });
 
 afterEach(() => {
@@ -166,5 +198,90 @@ describe("SimilarExceptionsReader.find", () => {
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(findCalls).toHaveLength(0);
+  });
+});
+
+/*
+ * Cheap to open: the message and the stack trace of each candidate - each
+ * possibly megabytes - are never read through the caller's query; only the
+ * first characters of each are, cut by Postgres, for the exceptions the
+ * caller's own read returned.
+ */
+describe("what is read of each exception", () => {
+  test("the reads through the caller's permissions select neither message nor stack trace", async () => {
+    await SimilarExceptionsReader.find({
+      telemetryExceptionId: new ObjectID(TARGET_ID),
+      props: CALLER,
+    });
+
+    for (const call of findCalls) {
+      expect(call.select?.["message"]).toBeUndefined();
+      expect(call.select?.["stackTrace"]).toBeUndefined();
+    }
+    // One read of heads, for the exception and the candidates the caller read.
+    expect(headReads).toHaveLength(1);
+    expect([...new Set(headReads[0])].sort()).toEqual(
+      [
+        TARGET_ID,
+        "30000000-0000-4000-8000-000000000002",
+        "30000000-0000-4000-8000-000000000003",
+        "30000000-0000-4000-8000-000000000004",
+      ].sort(),
+    );
+  });
+
+  test("the heads are cut by Postgres, for the caller's project and those ids only", async () => {
+    jest.restoreAllMocks();
+    const queries: Array<{ sql: string; params: Array<unknown> }> = [];
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, params: Array<unknown>) => {
+          queries.push({ sql, params });
+          return [
+            {
+              id: TARGET_ID.toUpperCase(),
+              message: "m",
+              stackTrace: "s",
+            },
+          ];
+        },
+      },
+    } as never);
+
+    const heads: Map<string, { message: string; stackTrace: string }> =
+      await SimilarExceptionsReader.readTextHeads({
+        projectId: PROJECT_ID,
+        ids: [TARGET_ID, TARGET_ID, "not-an-id"],
+      });
+
+    expect(queries).toHaveLength(1);
+    expect(queries[0]!.sql).toContain("LEFT(COALESCE(\"message\", ''), $3)");
+    expect(queries[0]!.sql).toContain("LEFT(COALESCE(\"stackTrace\", ''), $4)");
+    expect(queries[0]!.sql).toContain('"projectId" = $1');
+    expect(queries[0]!.params).toEqual([
+      PROJECT_ID.toString(),
+      [TARGET_ID],
+      MESSAGE_HEAD_LENGTH,
+      STACK_TRACE_HEAD_LENGTH,
+    ]);
+    expect(heads.get(TARGET_ID)).toEqual({ message: "m", stackTrace: "s" });
+  });
+
+  test("no ids, no query", async () => {
+    jest.restoreAllMocks();
+    const query: jest.SpiedFunction<() => unknown> = jest.fn() as never;
+    jest
+      .spyOn(TelemetryExceptionService, "getRepository")
+      .mockReturnValue({ manager: { query } } as never);
+
+    expect(
+      (
+        await SimilarExceptionsReader.readTextHeads({
+          projectId: PROJECT_ID,
+          ids: [],
+        })
+      ).size,
+    ).toBe(0);
+    expect(query).not.toHaveBeenCalled();
   });
 });

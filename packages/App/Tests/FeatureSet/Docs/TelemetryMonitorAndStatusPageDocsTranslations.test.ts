@@ -171,7 +171,13 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Span Count",
     ...ANOMALY_CONDITIONS,
   ],
-  [EXCEPTIONS_MONITOR]: ["Exception Count"],
+  // The criteria's filter types, as the Dashboard draws them in English.
+  [EXCEPTIONS_MONITOR]: [
+    "Exception Count",
+    "New Exceptions",
+    "Regressed Exceptions",
+    "Exception Increase (in %)",
+  ],
   /*
    * Profiles has none: its criteria's labels (Profile Count, Function Share
    * (in %)) are spelled out for the locales (PROFILE_CHECK_ON_LABELS), so
