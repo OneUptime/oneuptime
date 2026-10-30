@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 `hostmetrics` हर OS पर काम करता है। यह हर `collection_interval` पर कर्नेल से CPU, मेमोरी, डिस्क, फ़ाइल सिस्टम, नेटवर्क, लोड, पेजिंग और प्रक्रियाएँ पढ़ता है। `*.utilization` मेट्रिक्स और `system.cpu.logical.count` रिसीवर में डिफ़ॉल्ट रूप से बंद हैं, और होस्ट के चार्ट और Host अलर्ट टेम्पलेट उन्हें पढ़ते हैं, इसलिए उन्हें ऊपर के कॉन्फ़िगरेशन की तरह चालू रखें। `process` स्क्रैपर **प्रक्रियाएँ** पेज भरता है; यह सीरीज़ का सबसे बड़ा स्रोत भी है ([कम डेटा भेजें](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना) देखें)।
 
 Linux पर कलेक्टर `/proc` और `/sys` पढ़ता है। कंटेनर में चल रहे कलेक्टर को होस्ट वाले माउंट करने होंगे और `HOST_PROC` और `HOST_SYS` सेट करने होंगे ([Docker कंटेनर में](#docker-कंटेनर-में) देखें); नेटिव इंस्टॉल को कुछ नहीं चाहिए।
+
+ऊपर के कॉन्फ़िगरेशन `filesystem` स्क्रैपर से वे फ़ाइल सिस्टम बाहर रखते हैं जो डिज़ाइन से ही भरे होते हैं या जिनमें कोई डेटा नहीं होता (`exclude_fs_types`): snap पैकेज (`squashfs`) और दूसरी केवल-पढ़ने वाली इमेज, CD और DVD, macOS का `/dev` (`devfs`) और ऑटोमाउंटर के मैप (`autofs`)। भरे हुए फ़ाइल सिस्टम जब तक माउंट रहते हैं, 100% उपयोग में दिखते हैं, इसलिए High Filesystem Usage टेम्पलेट उन पर ट्रिगर होता और कभी ठीक नहीं होता: अपने कॉन्फ़िगरेशन में भी यह बहिष्करण रखें। साधारण फ़ाइल सिस्टम वाली केवल-पढ़ने वाली इमेज, जैसे माउंट की गई `.dmg`, भी भरी दिखती है; उसका माउंट पॉइंट `exclude_mount_points` से बाहर रखें।
 
 ### फ़ाइल लॉग
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true

@@ -32,7 +32,7 @@ flowchart TB
 | **컬렉터 구성 목록** 중 이 호스트에 적용되는 첫 번째 구성 | 구성이 호스트의 시스템용이고, 레이블을 지정한 경우 호스트에 그중 하나가 있으면 적용됩니다. |
 | 해당 시스템용 OneUptime 기본값 | 적용되는 구성이 없는 경우. |
 
-OneUptime 기본값은 모든 시스템에서 CPU, 메모리, 디스크, 파일 시스템, 네트워크, 프로세스를 읽습니다. Linux에서는 호스트에 있으면 저널과 systemd 유닛을, Windows에서는 System, Application, Security 이벤트 로그와 Windows 서비스를, macOS에서는 `/var/log`의 설치 로그와 Wi-Fi 로그를 읽습니다. 기본값은 OneUptime 릴리스를 따르므로, 기본값을 쓰는 호스트는 OneUptime이 기본값에 적용한 개선 사항을 받습니다.
+OneUptime 기본값은 모든 시스템에서 CPU, 메모리, 디스크, 파일 시스템, 네트워크, 프로세스를 읽습니다. Linux에서는 호스트에 있으면 저널과 systemd 유닛을, Windows에서는 System, Application, Security 이벤트 로그와 Windows 서비스를, macOS에서는 `/var/log`의 설치 로그와 Wi-Fi 로그를 읽습니다. snap 패키지나 macOS의 `/dev`처럼 설계상 가득 찬 파일 시스템은 제외하므로, 이것들 때문에 High Filesystem Usage 템플릿이 계속 작동하는 일은 없습니다. 기본값은 OneUptime 릴리스를 따르므로, 기본값을 쓰는 호스트는 OneUptime이 기본값에 적용한 개선 사항을 받습니다.
 
 ## 시작하기 전에
 

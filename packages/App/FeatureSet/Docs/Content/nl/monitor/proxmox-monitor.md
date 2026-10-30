@@ -11,7 +11,7 @@ Een Proxmox-monitor bewaakt één Proxmox VE-cluster – de nodes, VM's en LXC-c
 
 ## Hoe het werkt
 
-De OneUptime-Proxmox-agent draait op een machine die de Proxmox VE-API kan bereiken. Elke 30 seconden leest hij prometheus-pve-exporter uit met de cluster- en nodecollectors, labelt hij elke reeks met de resource die ze beschrijft, en stuurt hij de metrieken via OTLP naar OneUptime, voorzien van de naam van het cluster, `proxmox.cluster.name`. De eerste gegevens registreren het cluster. Proxmox VE 9 en later kan metrieken in plaats daarvan zelf pushen, zonder iets te installeren; zie [de native push](#de-native-push-van-proxmox-ve).
+De OneUptime-Proxmox-agent draait op een machine die de Proxmox VE-API kan bereiken. Elke 30 seconden leest hij de clustercollectors van prometheus-pve-exporter één keer uit en zijn nodecollectors één keer voor elke node, labelt hij elke reeks met de resource die ze beschrijft, en stuurt hij de metrieken via OTLP naar OneUptime, voorzien van de naam van het cluster, `proxmox.cluster.name`. De eerste gegevens registreren het cluster. Proxmox VE 9 en later kan metrieken in plaats daarvan zelf pushen, zonder iets te installeren; zie [de native push](#de-native-push-van-proxmox-ve).
 
 Een Proxmox-monitor is aan één cluster gebonden. Elke minuut voert hij zijn query uit over de metrieken van dat cluster en vergelijkt hij het resultaat met zijn criteria.
 
@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Proxmox** onder **
 
 ### Het cluster kiezen
 
-Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Proxmox-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
-- **Custom Metric** – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
+- **Wijzigen** – kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
+- **Geavanceerd** (onder **Meer velden**) – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat de metriek geen gegevens stuurt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -95,7 +95,7 @@ Elke reeks draagt een datapuntlabel `id` dat de Proxmox-resource noemt waartoe z
 | `lxc/<vmid>` | Een LXC-container, bijvoorbeeld `lxc/101`. |
 | `storage/<node>/<storage>` | Een opslagvolume op een node, bijvoorbeeld `storage/pve1/local`. |
 
-Twee uitzonderingen: replicatiereeksen (`pve_replication_*`) dragen de id van de replicatie-**taak** in `id` (bijvoorbeeld `100-0`), en de clusterbrede `pve_not_backed_up_total` heeft helemaal geen `id`.
+Eén uitzondering: replicatiereeksen (`pve_replication_*`) dragen de id van de replicatie-**taak** in `id` (bijvoorbeeld `100-0`). De eigen reeksen van het cluster, zoals het quorum (`pve_up`) en `pve_not_backed_up_total`, dragen `cluster/<name>`.
 
 Filters vergelijken op gelijkheid, niet op een voorvoegsel, dus de agent splitst `id` ook in drie attributen waarop u kunt filteren. De sjablonen steunen erop:
 
@@ -109,7 +109,7 @@ Filter op `pve.scope` of `pve.type` voor één soort resource, op `pve.id` of `i
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt 12 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt 12 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en een drempelcriterium herstelt 10% voorbij zijn drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
@@ -132,8 +132,8 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 
 - **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de Proxmox-agent of zijn pve-exporter is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, de Proxmox-API antwoordt hem niet meer, of elke node van een native push is stilgevallen. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **De sjablonen voor uitval gebruiken Minimum**, zodat één uitlezing waarin de resource uit lag ze laat afgaan, in plaats van verborgen te worden door uitlezingen waarin hij draaide.
-- **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten, dus een gast die u bewust hebt gestopt, roept nooit iemand op.
-- **Cluster Quorum at Risk** is een benadering: pve-exporter heeft geen corosync-metriek, dus het sjabloon telt de nodes die online zijn.
+- **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten: stopt u er bewust een, dan roept die toch iemand op, dus zet eerst het starten bij het opstarten uit.
+- **Cluster Quorum at Risk** telt de nodes die online zijn. pve-exporter meldt het quorum ook zelf, als `pve_up` voor `cluster/<name>`: 1 zolang het cluster quorum heeft.
 - **High Guest CPU Usage** ligt hoger en reageert trager dan het nodesjabloon: een gast hoort zijn vCPU's te gebruiken, dus alleen een gast die nooit terugzakt, roept iemand op.
 - **Verhoudingsformules** nemen aan beide kanten de **Som**. Beide komen uit dezelfde uitlezing, dus het resultaat is een echt percentage.
 - **Container Root Disk Near Full** laat QEMU-VM's buiten beschouwing: hun schijfgebruik staat zonder de QEMU-gastagent op 0.
@@ -148,13 +148,13 @@ Proxmox VE 9 en later kan metrieken pushen via zijn ingebouwde OpenTelemetry-met
 
 ## Verzamelde metrieken
 
-De agent leest prometheus-pve-exporter elke 30 seconden uit met zowel de cluster- als de nodecollectors, wat ook de collectors `backup-info` en `replication` van de exporter dekt (beide standaard aan).
+De agent leest prometheus-pve-exporter elke 30 seconden uit: zijn clustercollectors één keer, op `PVE_HOST`, en zijn nodecollectors één keer voor elke node in `PVE_NODES`, omdat die alleen de node lezen die de exporter bevraagt. De nodecollectors zijn `config` (starten bij opstarten) en `replication`; de collectors `backup-info` (cluster) en `replication` van de exporter staan beide standaard aan.
 
 ### Beschikbaarheid
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_up` | — | 1 als de node of gast actief is of draait, anders 0. |
+| `pve_up` | — | 1 als de node, gast of opslag actief is, anders 0. Voor `cluster/<name>` 1 zolang het cluster quorum heeft. |
 | `pve_uptime_seconds` | seconden | Uptime van de node of gast. |
 | `pve_version_info` | aantal | De Proxmox VE-release, in zijn labels. Altijd 1. |
 
@@ -162,7 +162,7 @@ De agent leest prometheus-pve-exporter elke 30 seconden uit met zowel de cluster
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_node_info` | aantal | Nodemetadata, altijd 1. Tel ze op om de nodes te tellen die rapporteren. |
+| `pve_node_info` | aantal | Nodemetadata, altijd 1 zolang de node rapporteert. Een som telt elke scrape van een minuut op, dus telt geen nodes. |
 | `pve_cpu_usage_ratio` | verhouding | Gebruikte CPU als verhouding van 0–1 van de beschikbare CPU. |
 | `pve_cpu_usage_limit` | kernen | Beschikbare CPU, in kernen. Voor een gast zijn vCPU's. |
 | `pve_memory_usage_bytes` | bytes | Geheugen in gebruik. |
@@ -187,7 +187,7 @@ De CPU- en geheugenreeksen worden ook voor elke gast gerapporteerd, op id's `qem
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Gebruikte bytes op de schijf of opslag. Voor een QEMU-gast staat dit op 0, tenzij de QEMU-gastagent is geïnstalleerd. |
 | `pve_disk_size_bytes` | bytes | Totale grootte van de schijf of opslag. |
-| `pve_storage_info` | aantal | Opslagmetadata, altijd 1. Tel ze op om de opslagvolumes te tellen. |
+| `pve_storage_info` | aantal | Opslagmetadata, altijd 1 zolang de opslag bestaat. Een som telt elke scrape van een minuut op, dus telt geen volumes. |
 
 ### HA
 
@@ -201,12 +201,12 @@ Uit de collector `backup-info` van de exporter, op clusterniveau. Ze rapporteren
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | aantal | Gasten in geen enkele back-uptaak. Eén clusterbrede reeks zonder `id`. |
+| `pve_not_backed_up_total` | aantal | Gasten in geen enkele back-uptaak. Eén clusterbrede reeks, `id` `cluster/<name>`, die ook bij 0 wordt gemeld. |
 | `pve_not_backed_up_info` | aantal | Eén reeks per niet-gedekte gast, altijd 1, gelabeld met de `id` van de gast. Ze verdwijnt zodra de gast aan een back-uptaak wordt toegevoegd. |
 
 ### Replicatie
 
-Uit de collector `replication` van de exporter, op nodeniveau. De reeksen bestaan alleen als het cluster replicatietaken heeft, en dragen de taak-id in `id`:
+Uit de collector `replication` van de exporter, op nodeniveau, gelezen van elke node in `PVE_NODES`. De reeksen bestaan alleen als het cluster replicatietaken heeft, en dragen de taak-id in `id`:
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald e
 :::
 
 :::details Back-up- of replicatiemetrieken ontbreken
-`pve_not_backed_up_*` komt uit de collector `backup-info` van de exporter en `pve_replication_*` uit zijn collector `replication`. Beide staan standaard aan en worden gedekt door de uitleesparameters `cluster=1` en `node=1` van de meegeleverde configuratie. Als u uw eigen exporter draait, controleer dan of u ze niet hebt uitgezet. `pve_replication_*` bestaat alleen als het cluster opslagreplicatietaken heeft.
+`pve_not_backed_up_*` komt uit de collector `backup-info` van de exporter en `pve_replication_*` uit zijn collector `replication`. Beide staan standaard aan en worden gedekt door de meegeleverde configuratie: `cluster=1` één keer, en `node=1` voor elke node in `PVE_NODES`. Een node die in `PVE_NODES` ontbreekt, stuurt geen replicatietaken, en zijn gasten geen vlaggen voor starten bij opstarten, dus **Guest Down** gaat voor hen nooit af. Als u uw eigen exporter draait, controleer dan of u ze niet hebt uitgezet. `pve_replication_*` bestaat alleen als het cluster opslagreplicatietaken heeft.
 :::
 
 :::details Tellers zoals pve_network_receive_bytes groeien alleen maar

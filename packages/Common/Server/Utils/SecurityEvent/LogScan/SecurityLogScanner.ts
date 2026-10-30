@@ -16,6 +16,7 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../Services/SecurityEventService";
+import RealTimeDetections from "../RealTime/RealTimeDetections";
 import SecurityLogSourceService from "../../../Services/SecurityLogSourceService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -495,5 +496,8 @@ export default class SecurityLogScanner {
     );
 
     await SecurityEventService.insertJsonRows(rows);
+
+    // Checked against the project's real-time detection rules as they land.
+    await RealTimeDetections.screen({ projectId: data.projectId, rows });
   }
 }

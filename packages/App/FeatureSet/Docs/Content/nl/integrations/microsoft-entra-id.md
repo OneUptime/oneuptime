@@ -44,7 +44,8 @@ De verbinding meldt zich aan met de [OAuth 2.0-flow voor clientreferenties](http
 
 1. Ga naar **API permissions → Add a permission → Microsoft Graph → Application permissions**, kies `AuditLog.Read.All` en selecteer **Add permissions**. Microsoft documenteert dat zijn lijst met aanmeldingen ook om `Directory.Read.All` kan vragen: voeg die toe als aanmeldingen met `403` worden geweigerd nadat de toestemming is verleend.
 2. Voeg voor het Microsoft 365-auditlogboek een tweede machtiging toe: **Add a permission → Office 365 Management APIs → Application permissions**, en dan `ActivityFeed.Read`.
-3. Selecteer **Grant admin consent for** je tenant en bevestig. De status van elke machtiging moet **Granted** zijn: zonder toestemming wordt elke leesactie geweigerd met `403`.
+3. Om playbooks gebruikers te laten uitschakelen, inschakelen en afmelden (zie [Inperking](/docs/telemetry/security-cases#inperking)), voeg je op dezelfde manier `User.Read.All`, `User.EnableDisableAccount.All` en `User.RevokeSessions.All` toe. Microsoft laat het account van een beheerder alleen wijzigen door een app die ook de rol Privileged Authentication Administrator heeft.
+4. Selecteer **Grant admin consent for** je tenant en bevestig. De status van elke machtiging moet **Granted** zijn: zonder toestemming wordt elke leesactie geweigerd met `403`.
 
 ### Een clientgeheim maken
 

@@ -158,6 +158,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "Explain on a Data Security issue: DataSecurityIssuePrompt, the check's own words, and the store's name, cloud id and the evidence each a field - never a finding's samples.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "Explain an exception: ExceptionExplanationPrompt cuts its message, stack trace, span names, log bodies and deploy titles to fixed lengths before ExceptionSanitizer scrubs them, and sends only allowlisted span attributes.",
+  "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts":
+    "Are similar exceptions the same bug: ExceptionDuplicateCheckPrompt cuts each message and the stack trace its top frames are read from to fixed lengths before ExceptionSanitizer scrubs them, and names each exception by a reference, never its id.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDigest.ts":
     "Sum up a day's new and regressed exceptions: ExceptionDigestPrompt cuts each message, release, service name and the stack trace its top frame is read from to fixed lengths before ExceptionSanitizer scrubs them, and names each exception by a reference, never its id.",
   "packages/Common/Server/API/IncidentEpisodeAPI.ts":

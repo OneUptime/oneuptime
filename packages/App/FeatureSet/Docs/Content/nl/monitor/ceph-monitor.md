@@ -57,19 +57,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Ceph** onder **Inf
 
 ### Het cluster kiezen
 
-Kies onder **Ceph Monitor Configuration** het cluster in **Ceph-cluster**. Elk cluster dat gegevens heeft gestuurd, staat in de lijst.
+Kies onder **Ceph Monitor Configuration** het cluster in **Ceph-cluster**. Elk cluster dat gegevens heeft gestuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Ceph-cluster toevoegen** opent installatiestappen met je sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat je bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** — klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Dat stelt de metrics, filters, aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kun je nog wijzigen.
-- **Custom Metric** — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool ID** beperken hem tot één daemon of pool.
-- **Geavanceerd** — bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een verhouding van gebruikte capaciteit uit `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Gebruik **Groeperen op** `ceph_daemon` of `pool_id` om elke daemon of pool afzonderlijk te beoordelen.
+- **Wijzigen** — kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Dat stelt de metrics, filters, aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kun je nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool ID** beperken hem tot één daemon of pool.
+- **Geavanceerd** (onder **Meer velden**) — bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een verhouding van gebruikte capaciteit uit `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Gebruik **Groeperen op** `ceph_daemon` of `pool_id` om elke daemon of pool afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult ze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metric naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult ze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metric geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor aanmaken
 
@@ -99,7 +99,7 @@ Gegevensreeksen van pools dragen alleen het label `pool_id`: de naam van de pool
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt 24 sjablonen voor een stil cluster, clustergezondheid, OSD's, placement groups en capaciteit. Elk bouwt een complete monitor — query's, labelfilters, een groepering, een criterium dat afgaat en een dat herstelt. De drempels zijn startpunten die je kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt 24 sjablonen voor een stil cluster, clustergezondheid, OSD's, placement groups en capaciteit. Elk bouwt een complete monitor — query's, labelfilters, een groepering, een criterium dat afgaat en een dat herstelt. De drempels zijn startpunten die je kunt aanpassen.
 
 Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster, en een drempelcriterium herstelt pas 10% voorbij zijn drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt. **Ernst** is het label dat de keuzelijst toont; het incident en de waarschuwing die een sjabloon maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project.
 
@@ -175,7 +175,7 @@ De agent bevraagt elke 30 seconden elke mgr-daemon en houdt de eigen labels van 
 | `ceph_healthcheck_slow_ops` | aantal | Trage OSD- en monitorbewerkingen die de check `SLOW_OPS` meldt. |
 | `ceph_daemon_health_metrics` | aantal | Gezondheidsmetrics per daemon, met `type` (bijvoorbeeld `SLOW_OPS`) en `ceph_daemon`. |
 | `ceph_mon_quorum_status` | aantal | 1 als de monitor in het quorum zit, per `ceph_daemon` (bijvoorbeeld `mon.a`). |
-| `ceph_mon_metadata` | aantal | Metadata van de monitor, altijd 1. Tel ze op om monitors te tellen. |
+| `ceph_mon_metadata` | aantal | Metadata van de monitor, altijd 1 zolang de monitor rapporteert. Een som telt elke scrape van een minuut op, dus telt geen monitors. |
 | `ceph_cluster_total_bytes` | bytes | Totale ruwe capaciteit. |
 | `ceph_cluster_total_used_bytes` | bytes | Gebruikte ruwe capaciteit. |
 
@@ -190,7 +190,7 @@ De agent bevraagt elke 30 seconden elke mgr-daemon en houdt de eigen labels van 
 | `ceph_osd_stat_bytes` | bytes | Ruwe capaciteit van het apparaat van het OSD. |
 | `ceph_osd_stat_bytes_used` | bytes | Gebruikte ruwe bytes op het OSD. Vergelijk met het totaal om ongelijk gevulde of bijna volle OSD's te vinden. |
 | `ceph_osd_numpg` | aantal | Placement groups op het OSD. |
-| `ceph_osd_metadata` | aantal | Metadata van het OSD (hostnaam, apparaatklasse, versie), altijd 1. Tel ze op om OSD's te tellen. |
+| `ceph_osd_metadata` | aantal | Metadata van het OSD (hostnaam, apparaatklasse, versie), altijd 1 zolang het OSD rapporteert. Een som telt elke scrape van een minuut op, dus telt geen OSD's. |
 
 ### Poolmetrics
 
@@ -207,7 +207,7 @@ De agent bevraagt elke 30 seconden elke mgr-daemon en houdt de eigen labels van 
 
 ### Metrics voor placement groups
 
-Elke `ceph_pg_*`-reeks is per pool, met het label `pool_id`; tel op over de pools voor een totaal van het hele cluster.
+Elke `ceph_pg_*`-reeks is per pool, met het label `pool_id`. Een som telt elke scrape van een minuut en elke pool op; vergelijk dus pool voor pool, gegroepeerd op `pool_id`, zoals de PG-sjablonen doen.
 
 | Metric | Eenheid | Beschrijving |
 | --- | --- | --- |

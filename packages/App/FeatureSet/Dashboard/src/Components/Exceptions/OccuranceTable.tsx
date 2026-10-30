@@ -249,7 +249,11 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                     data-testid="occurrence-time"
                   >
                     <div className="text-sm font-medium text-gray-900">
-                      {formatRelativeTime(occurredAt)}
+                      {formatRelativeTime(
+                        occurredAt,
+                        new Date(),
+                        translator.language,
+                      )}
                     </div>
                     <div className="text-xs text-gray-500">
                       {OneUptimeDate.getDateAsLocalShortDateTimeString(

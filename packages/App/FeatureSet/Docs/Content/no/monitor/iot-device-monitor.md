@@ -50,19 +50,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT-enhet** un
 
 ### Velg flåten
 
-Velg flåten i **IoT Fleet** under **IoT Monitor Configuration**. Hver flåte som har sendt data, står i listen.
+Velg flåten i **IoT Fleet** under **IoT Monitor Configuration**. Hver flåte som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til IoT-flåte** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Device Offline** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** - velg én metrikk i **IoT Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én enhet eller én enhetstype. En egendefinert metrikk grupperes ikke: den vurderer flåten som helhet.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, også over dine egne metrikknavn, for eksempel minne i bruk i prosent av en enhets minnestørrelse. Bruk **Grupper etter** `device.id` for å vurdere hver enhet for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én metrikk i **IoT Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én enhet eller én enhetstype. En egendefinert metrikk grupperes ikke: den vurderer flåten som helhet.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, også over dine egne metrikknavn, for eksempel minne i bruk i prosent av en enhets minnestørrelse. Bruk **Grupper etter** `device.id` for å vurdere hver enhet for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Select Metric Variable**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Select Metric Variable**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -88,7 +88,7 @@ Filtrene virker sammen: med en **Device ID** og en **Device Type** samsvarer en 
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr 5 maler. Hver bygger en komplett monitor: metrikkspørringen, en gruppering på `device.id`, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr 5 maler. Hver bygger en komplett monitor: metrikkspørringen, en gruppering på `device.id`, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet - unntatt **Device Offline**, som utløser ved den første målingen under 1. Et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 

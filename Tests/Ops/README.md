@@ -483,6 +483,27 @@ a token secret with `$` and quotes and the exporter's profile reach the
 containers as typed. CI must run that check; elsewhere it is skipped with the
 reason logged.
 
+For Proxmox it also pins the node list (`PVE_NODES`) the collector scrapes
+pve-exporter's node collectors from, one node at a time: a fresh install
+offers the nodes the Proxmox VE API lists (with the token on curl's stdin,
+never on its command line) and Enter takes them; a typed bare list is wrapped
+in the square brackets the collector reads as a YAML list; a re-run keeps the
+list without asking; and an `.env` from before the list keeps reading
+`PVE_HOST` alone, with a note naming the nodes to add — which is also what
+the real `docker compose config` gives an `.env` that has no list.
+
+### `ProxmoxTroubleshootNodes.test.js`
+
+Runs section 2 of the Proxmox agent's `troubleshoot.sh` with `docker`
+stubbed to answer like prometheus-pve-exporter. pve-exporter reads
+start-on-boot, replication and the subscription only for the node it queries,
+so the suite pins that the doctor scrapes as the collector does — the cluster
+collectors once at `PVE_HOST` (`cluster=1&node=0`), the node collectors once
+per node in `PVE_NODES` (`cluster=0&node=1`) — names a listed node the
+exporter cannot read, warns when the cluster has more nodes than the list,
+falls back to `PVE_HOST` alone as `docker-compose.yml` does, and reports a
+list without its square brackets as the error that stops the collector.
+
 ### `VMwareAgentWithoutDocker.test.js`
 
 The VMware agent also installs without Docker: the `otelcol-contrib` release

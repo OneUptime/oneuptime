@@ -48,19 +48,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **VMware** under
 
 ### Välj vCentret
 
-Välj vCentret i **vCenter** under **VMware Monitor Configuration**. Varje vCenter som har skickat data, eller som du har anslutit utan en agent, finns i listan.
+Välj vCentret i **vCenter** under **VMware Monitor Configuration**. Varje vCenter som har skickat data, eller som du har anslutit utan en agent, finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till vCenter** öppnar sidan med vCenter-servrar, där du ansluter en.
 
 ### Välj vad som ska bevakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **vCenter Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** - klicka på en [mall](#färdiga-larmmallar). Den sätter mätvärdet, attributfiltren, aggregeringen, tidsintervallet, grupperingen och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** - välj ett mätvärde i **VMware Metric** och sätt sedan **Aggregering** och **Tidsintervall**. Formuläret grupperar det efter objektet det beskriver, så varje värd, VM eller datastore bedöms för sig, och [filtren](#monitorinställningar) begränsar det till ett datacenter, ett kluster, en värd, en VM, en datastore eller en resurspool.
-- **Avancerad** - bygg frågor och formler själv under **Välj mått**, med filter på attribut som `disk_state`, `power_state` eller `status`. Använd **Gruppera efter** med ett [identitetsattribut](#identitetsattribut) för att bedöma varje objekt för sig.
+- **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den sätter mätvärdet, attributfiltren, aggregeringen, tidsintervallet, grupperingen och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **VMware Metric** och sätt sedan **Aggregering** och **Tidsintervall**. Formuläret grupperar det efter objektet det beskriver, så varje värd, VM eller datastore bedöms för sig, och [filtren](#monitorinställningar) begränsar det till ett datacenter, ett kluster, en värd, en VM, en datastore eller en resurspool.
+- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, med filter på attribut som `disk_state`, `power_state` eller `status`. Använd **Gruppera efter** med ett [identitetsattribut](#identitetsattribut) för att bedöma varje objekt för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
@@ -106,7 +106,7 @@ I monitorfilter och grupperingsnycklar börjar resursattribut med `resource.` (`
 
 ## Färdiga larmmallar
 
-OneUptime levererar 24 mallar för vanliga VMware-problem, och **Quick Setup** erbjuder alla. Var och en bygger en komplett monitor: mätvärdesfrågan, attributfiltren, en gruppering på objektets eget identitetsattribut, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+OneUptime levererar 24 mallar för vanliga VMware-problem, och listan under **Vad som ska larmas om** erbjuder alla. Var och en bygger en komplett monitor: mätvärdesfrågan, attributfiltren, en gruppering på objektets eget identitetsattribut, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret, och ett tröskelkriterium återhämtar sig 10 % förbi tröskeln, så ett värde som pendlar kring linjen inte växlar fram och tillbaka.
 
@@ -130,11 +130,11 @@ Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Et
 | Cluster Host Not Effective | Kluster | Kritisk | `vcenter.cluster.host.count` filtrerat till `effective = false`, Max per `resource.vcenter.cluster.name` | Över 0: en värd är i underhållsläge, frånkopplad eller svarar inte, så klustret körs med mindre kapacitet än det är dimensionerat för | Vid 0 |
 | Datacenter Hosts Unhealthy | Datacenter | Kritisk | `vcenter.datacenter.host.count` filtrerat till `status = red`, Max per `resource.vcenter.datacenter.name` | Över 0: en värd har ett kritiskt larm, som en hårdvarusensor, en förlorad lagringssökväg eller ett fel i HA-agenten | Vid 0 |
 | Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtrerat till `status = yellow`, Max per datacenter | Över 0: en värd har ett varningslarm | Vid 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtrerat till `power_state = off`, Max per datacenter | Över 0: en värd är avstängd - den kraschade, förlorade strömmen eller försattes i standby av DPM | Vid 0 |
+| Datacenter Hosts Not Responding | Datacenter | Kritisk | `vcenter.datacenter.host.count` filtrerat till `power_state = unknown`, Max per datacenter | Över 0: vCenter har tappat kontakten med en värd - den kraschade, förlorade strömmen eller sitt hanteringsnätverk, eller kopplades från. En värd som stängts av med flit eller försatts i standby av DPM räknas inte | Vid 0 |
 | Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtrerat till `status = red`, Max per datacenter | Över 0: en VM har ett kritiskt larm, som en misslyckad HA-omstart, en förlorad datastore eller ett förlorat Tools-heartbeat | Vid 0 |
 | Datacenter Clusters Unhealthy | Datacenter | Kritisk | `vcenter.datacenter.cluster.count` filtrerat till `status = red`, Max per datacenter | Över 0: ett kluster har ett kritiskt larm, som för få resurser för HA-failover, ett misslyckat HA-val eller en kritisk vSAN-hälsokontroll | Vid 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per kluster | Över 20 000 µs (20 ms): lagringen blir långsammare för varje VM på vSAN-datastoren. Tyst på kluster utan vSAN | Vid 18 000 µs eller mindre |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per kluster | Över 0: en diskgrupp hänger inte med, och vSAN stryper I/O:n till sina klienter | Vid 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per kluster, **senaste 15 minuterna** | Över 20 000 µs (20 ms): lagringen blir långsammare för varje VM på vSAN-datastoren. Tyst på kluster utan vSAN | Vid 18 000 µs eller mindre |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per kluster, **senaste 15 minuterna** | Över 0: en diskgrupp hänger inte med, och vSAN stryper I/O:n till sina klienter | Vid 0 |
 | Resource Pool Memory Swapped | Kluster | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Över 0: poolens virtuella maskiner tar minne från värdens swap, oftast för att poolens minnesgräns eller -andelar är för låga | Vid 0 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmnivå; ändra dem i kriteriet.

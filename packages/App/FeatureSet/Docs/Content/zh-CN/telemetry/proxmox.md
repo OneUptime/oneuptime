@@ -39,14 +39,14 @@ flowchart TB
 
 ## 开始之前
 
-- Docker Engine 20.10 或更高版本以及 Docker Compose v2 插件，安装在一台能通过端口 8006 访问 Proxmox VE API 的机器上。
+- Docker Engine 20.10 或更高版本以及 Docker Compose v2 插件，安装在一台能通过端口 8006 访问每个节点的 Proxmox VE API 的机器上。
 - 任意 Proxmox VE 节点上的 root shell，或 Proxmox Web UI，用于创建 API 令牌。
 - 一个摄取密钥。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个并复制其值。
 - 从该机器到你的 OneUptime URL 的出站 HTTPS。
 
 ### 在哪里运行代理
 
-代理通过网络查询 Proxmox VE API，因此它不必运行在集群节点上，也不应该这样做：请在能够挺过节点故障的机器上运行它（独立硬件上的小型监控虚拟机、管理主机），或者让 `PVE_HOST` 指向虚拟 IP 或轮询 DNS 名称，而不是某一个节点的地址。如果代理的 API 目标正是刚刚宕掉的节点，你的监控也会随之失效。唯一的例外是可选的 journald 日志管道，它必须运行在 Proxmox VE 节点上（见 [发送 Proxmox 服务日志](#可选发送-proxmox-服务日志)）。
+代理通过网络查询 Proxmox VE API，因此它不必运行在集群节点上，也不应该这样做：请在能够挺过节点故障的机器上运行它（独立硬件上的小型监控虚拟机、管理主机），或者让 `PVE_HOST` 指向虚拟 IP 或轮询 DNS 名称，而不是某一个节点的地址。如果代理的 API 目标正是刚刚宕掉的节点，你的监控也会随之失效。`PVE_NODES` 则不同：它按每个节点自己的地址列出所有节点，绝不使用虚拟 IP（见 [代理采集的内容](#代理采集的内容)）。唯一的例外是可选的 journald 日志管道，它必须运行在 Proxmox VE 节点上（见 [发送 Proxmox 服务日志](#可选发送-proxmox-服务日志)）。
 
 ## 安装代理
 
@@ -87,7 +87,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-该脚本会询问你的 OneUptime URL、摄取密钥、集群名称、Proxmox VE API 主机、是否运行内置导出器，以及令牌 ID 和密钥——还会询问是否允许 [AI 代理](#ai-代理) 应用修复，如果允许，再询问它自己的令牌以及它绝不能更改的客户机。它会安装到 `/opt/oneuptime-proxmox-agent`，写入一个权限为 `0600` 的 `.env` 文件，并使用 Docker Compose 启动代理。再次运行该脚本会复用该 `.env` 中的所有内容而不再提问，这就是你 [升级代理](#升级代理) 的方式。
+该脚本会询问你的 OneUptime URL、摄取密钥、集群名称、Proxmox VE API 主机、是否运行内置导出器、令牌 ID 和密钥，以及每个节点的地址（拿到令牌后，它会给出集群自己的节点列表）——还会询问是否允许 [AI 代理](#ai-代理) 应用修复，如果允许，再询问它自己的令牌以及它绝不能更改的客户机。它会安装到 `/opt/oneuptime-proxmox-agent`，写入一个权限为 `0600` 的 `.env` 文件，并使用 Docker Compose 启动代理。再次运行该脚本会复用该 `.env` 中的所有内容而不再提问，这就是你 [升级代理](#升级代理) 的方式。
 @tab Docker Compose
 从 [ProxmoxAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) 下载 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一个新文件夹中：
 
@@ -104,12 +104,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
 ```
 
-`COMPOSE_PROFILES=pve-exporter` 还会启动内置的导出器。启动代理：
+`PVE_NODES` 用方括号按每个节点自己的地址列出所有节点，`COMPOSE_PROFILES=pve-exporter` 还会启动内置的导出器。启动代理：
 
 ```bash
 docker compose up -d
@@ -149,7 +150,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自托管实例。如果实例只支持 HTTP，请使用 `http://` 及其端口。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
 | `PROXMOX_CLUSTER_NAME` | 是 | 集群在 OneUptime 中的名称，作为 `proxmox.cluster.name` 资源属性打到每个指标上。请保持不变：之后更改它会注册另一个集群。默认为 `proxmox-cluster`。 |
-| `PVE_HOST` | 是 | 导出器和 AI 代理查询的 Proxmox VE API 主机（集群中的任意节点），例如 `192.168.1.10`。 |
+| `PVE_HOST` | 是 | 导出器从中读取集群、AI 代理查询的 Proxmox VE API 主机：任意节点，或在节点之间切换的虚拟 IP，例如 `192.168.1.10`。 |
+| `PVE_NODES` | 集群中需要 | 每个节点自己的 API 地址，用逗号分隔并放在方括号中，例如 `[192.168.1.10,192.168.1.11,192.168.1.12]`。导出器只读取它所询问的那个节点的开机自启、复制和订阅信息，因此会依次询问每个节点。默认只有 `PVE_HOST`，对单个节点来说已经足够。 |
 | `PVE_EXPORTER_URL` | 否 | prometheus-pve-exporter 的地址（`host:port`，不带协议）。默认为内置导出器 `pve-exporter:9221`。 |
 | `PVE_API_TOKEN_ID` | 内置导出器或 AI 代理 | 完整的 Proxmox API 令牌 ID，例如 `monitoring@pam!oneuptime`。除非 AI 代理有自己的令牌（`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`），否则它会用这个令牌读取 API。 |
 | `PVE_API_TOKEN_SECRET` | 内置导出器或 AI 代理 | Proxmox API 令牌密钥。 |
@@ -158,7 +160,7 @@ Everything is ready. Begin running and processing data.
 
 ## 代理采集的内容
 
-Collector 每 30 秒抓取一次导出器，同时开启其集群和节点收集器，这也涵盖了导出器默认开启的 `backup-info`（集群级）和 `replication`（节点级）收集器。每个序列都带有一个标识资源的 `id` 标签：`node/<name>`、`qemu/<vmid>`、`lxc/<vmid>` 或 `storage/<node>/<storage>`。
+Collector 每 30 秒抓取一次导出器：其集群收集器在 `PVE_HOST` 上抓取一次，其节点收集器对 `PVE_NODES` 中的每个节点各抓取一次。任意节点都会为整个集群响应集群收集器，其中包括默认开启的 `backup-info`。节点收集器（用于开机自启的 `config` 和 `replication`）只读取导出器所询问的节点，因此 `PVE_NODES` 中缺少的节点既不会发送其客户机的开机自启标志（**Guest Down** 需要它），也不会发送其复制任务。每个序列都带有一个标识资源的 `id` 标签：`node/<name>`、`qemu/<vmid>`、`lxc/<vmid>` 或 `storage/<node>/<storage>`。
 
 | 类别 | 指标 |
 | --- | --- |
@@ -167,7 +169,8 @@ Collector 每 30 秒抓取一次导出器，同时开启其集群和节点收集
 | 客户机（VM 或 LXC） | `pve_guest_info`，以及 `qemu/*` 和 `lxc/*` ID 上的 CPU、内存和网络序列（`pve_network_receive_bytes`、`pve_network_transmit_bytes`） |
 | 存储 | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| 备份覆盖情况 | `pve_not_backed_up_total`（没有任何备份任务覆盖的客户机；单个集群级序列，没有 `id` 标签）和 `pve_not_backed_up_info`（每个未被覆盖的客户机一个序列，带有其 `id`）。被覆盖是指至少有一个任务选择了该客户机：备份最近是否运行过或是否成功，导出器并不提供。 |
+| 备份覆盖情况 | `pve_not_backed_up_total`（没有任何备份任务覆盖的客户机；单个集群级序列，`id` 为 `cluster/<name>`）和 `pve_not_backed_up_info`（每个未被覆盖的客户机一个序列，带有其 `id`）。被覆盖是指至少有一个任务选择了该客户机：备份最近是否运行过或是否成功，导出器并不提供。 |
+| 开机自启 | `pve_onboot_status`，每个客户机一个序列：客户机设置为开机自启时为 1。**Guest Down** 只针对这些客户机告警。 |
 | 复制 | 每个存储复制任务的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它们的 `id` 标签是任务 ID（例如 `100-0`），而不是资源。 |
 
 监视器条件和属性过滤器按相等而不是按前缀匹配，因此 Collector 的 `transform/pve-identity` 处理器还会把 `id` 拆分为三个属性。内置的 Proxmox 警报模板会按这些属性过滤，所以如果你自定义配置，请保留这个处理器：
@@ -297,7 +300,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 代理会把其文件所固定的 Collector 版本报告为它的 **代理版本**。当它比此 OneUptime 发布所固定的版本旧时，集群 **概览** 上它的旁边会出现警告标志。选择该标志即可看到这些命令。在其文件开始报告版本之前安装的代理，在以这种方式升级之前不会显示版本。
 
-Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，使 Collector 读取新的配置。
+Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，使 Collector 读取新的配置。早于 `PVE_NODES` 的 `.env` 仍然只读取 `PVE_HOST`，脚本会列出需要添加的节点。
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
@@ -359,6 +362,10 @@ API 令牌错误或缺少权限。请检查令牌 ID 的格式（`user@realm!tok
 
 :::details 只有节点指标，没有客户机指标
 客户机序列（`qemu/*` 和 `lxc/*` ID）来自导出器的集群收集器，随附的配置通过抓取参数 `cluster=1` 开启它。如果你自定义了 `otel-collector-config.yaml`，请把 `cluster: ["1"]` 参数加回去。
+:::
+
+:::details Guest Down 或 Replication Failing 对某些客户机从不触发
+它们的开机自启标志和复制任务来自它们所运行的节点，而代理只读取 `PVE_NODES` 中的节点。在那里列出每个节点自己的地址，例如 `PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`，然后运行 `docker compose up -d`。如果编辑后 Collector 无法再启动，说明列表丢了方括号。诊断脚本会检查列表中的每个节点。
 :::
 
 :::details 指标落在错误的集群下

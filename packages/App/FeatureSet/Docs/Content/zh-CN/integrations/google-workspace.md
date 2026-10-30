@@ -43,7 +43,8 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 ### 允许全网域授权
 
 1. 在 [Google 管理控制台](https://admin.google.com) 中，以超级管理员身份打开 **Security → Access and data control → API controls → Manage domain-wide delegation**，然后选择 **Add new**。
-2. 把服务账户的 **Unique ID** 填为 **Client ID**，把 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 填为唯一的 **OAuth scope**。选择 **Authorize**。Google 可能需要几分钟才能生效。
+2. 把服务账户的 **Unique ID** 填为 **Client ID**，把 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 填为 **OAuth scope**。选择 **Authorize**。Google 可能需要几分钟才能生效。
+3. 要让剧本暂停、解除暂停和注销用户（参见 [遏制](/docs/telemetry/security-cases#遏制)），把 `https://www.googleapis.com/auth/admin.directory.user` 和 `https://www.googleapis.com/auth/admin.directory.user.security` 添加到同一客户端的范围中，用逗号分隔。此时，连接所代表的管理员必须是管理这些用户的管理员。
 
 ### 在 OneUptime 中添加连接
 

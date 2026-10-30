@@ -44,7 +44,8 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 1. **API permissions → Add a permission → Microsoft Graph → Application permissions**로 이동해 `AuditLog.Read.All`을 고르고 **Add permissions**를 선택합니다. Microsoft는 로그인 목록에 `Directory.Read.All`도 필요할 수 있다고 안내합니다. 동의를 부여한 뒤에도 로그인이 `403`으로 거부되면 추가하세요.
 2. Microsoft 365 감사 로그를 위해 두 번째 권한을 추가합니다. **Add a permission → Office 365 Management APIs → Application permissions**를 선택한 다음 `ActivityFeed.Read`를 고릅니다.
-3. 테넌트에 대해 **Grant admin consent for**를 선택하고 확인합니다. 각 권한의 상태가 **Granted**여야 합니다. 동의가 없으면 모든 읽기가 `403`으로 거부됩니다.
+3. 플레이북이 사용자를 비활성화, 활성화, 로그아웃할 수 있게 하려면( [봉쇄](/docs/telemetry/security-cases#봉쇄) 참고), 같은 방법으로 `User.Read.All`, `User.EnableDisableAccount.All`, `User.RevokeSessions.All` 를 추가합니다. Microsoft는 Privileged Authentication Administrator 역할도 가진 앱만 관리자의 계정을 바꾸게 합니다.
+4. 테넌트에 대해 **Grant admin consent for**를 선택하고 확인합니다. 각 권한의 상태가 **Granted**여야 합니다. 동의가 없으면 모든 읽기가 `403`으로 거부됩니다.
 
 ### 클라이언트 시크릿 만들기
 

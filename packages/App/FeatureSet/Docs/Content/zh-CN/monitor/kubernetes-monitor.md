@@ -23,7 +23,7 @@ flowchart TB
 ## 开始之前
 
 - 集群中运行着 OneUptime Kubernetes 代理。参见 [Kubernetes 代理(Helm 安装)](/docs/monitor/kubernetes-agent)；安装后几分钟，集群就会出现在 **Kubernetes** 下。
-- 对于控制平面模板（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）：需要代理的控制平面抓取，即 `controlPlane.enabled`。托管集群（EKS、GKE、AKS）不公开这些端点，因此在那里这些监视器永远收不到数据。
+- 对于控制平面模板（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）：需要代理的控制平面抓取，即 `controlPlane.enabled`，它开箱即可读取 API 服务器；etcd 和调度器还需要列出它们的端点（参见 [启用控制平面监控](/docs/telemetry/kubernetes-agent#启用控制平面监控)）。托管集群（EKS、GKE、AKS）不公开这些端点，因此在那里这些监视器永远收不到数据。
 
 ## 创建 Kubernetes 监视器
 
@@ -34,15 +34,15 @@ flowchart TB
 
 ### 选择集群
 
-在 **Kubernetes集群** 中选择它。列表中包含代理报告过的所有集群。
+在 **Kubernetes集群** 中选择它。列表中包含代理报告过的所有集群。选好后，字段下方的一行会显示是否有数据到达。**添加 Kubernetes 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监控的内容
 
-使用以下三个选项卡之一：
+新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始；**更改** 可选择另一个模板。**Custom Metric** 和 **高级** 位于 **更多字段** 下：
 
-| 选项卡 | 你要选择的内容 |
+| 位置 | 你要选择的内容 |
 | --- | --- |
-| **Quick Setup** | 一个 [现成的警报模板](#现成的警报模板)。它会填好指标、范围、时间范围和条件；你仍然可以更改 **时间范围**。 |
+| **告警内容** | 一个 [现成的警报模板](#现成的警报模板)。它会填好指标、范围、时间范围和条件；你仍然可以更改 **时间范围**。 |
 | **Custom Metric** | [指标目录](#指标目录) 中的一个指标，然后是它的 **资源范围**、过滤器、**聚合**（平均值、最大值、最小值、总和或计数）和 **时间范围**。 |
 | **高级** | **资源范围**、过滤器和 **时间范围**，以及在 **选择指标** 下编写的你自己的指标查询和公式，并附带结果的实时图表。 |
 
@@ -128,7 +128,7 @@ flowchart TB
 
 ## 现成的警报模板
 
-**Quick Setup** 选项卡按类别列出这些模板。每个模板会填写两个条件：一个在条件成立时把监视器标记为离线并打开事件和警报，另一个在条件消除后让监视器恢复在线。
+**告警内容** 列表按类别列出这些模板。每个模板会填写两个条件：一个在条件成立时把监视器标记为离线并打开事件和警报，另一个在条件消除后让监视器恢复在线。
 
 | 模板 | 类别 | 触发时机 | 严重程度 |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ flowchart TB
 :::
 
 :::details 控制平面模板从不触发
-**etcd No Leader**、**API Server Request Saturation** 和 **Scheduler Backlog** 读取的指标只有代理的控制平面抓取才会收集。请在代理的 Helm 值中开启 `controlPlane.enabled`；它默认是关闭的。托管集群（EKS、GKE、AKS）不公开这些端点，因此在这些集群上这些监视器永远收不到数据。
+**etcd No Leader**、**API Server Request Saturation** 和 **Scheduler Backlog** 读取的指标只有代理的控制平面抓取才会收集。请在代理的 Helm 值中开启 `controlPlane.enabled`；它默认是关闭的。这样会读取 API 服务器。etcd 和调度器运行在控制平面节点上，因此 **etcd No Leader** 和 **Scheduler Backlog** 还需要把 `controlPlane.etcd.endpoints` 和 `controlPlane.scheduler.endpoints` 设置为代理的 Pod 能访问的地址（参见 [启用控制平面监控](/docs/telemetry/kubernetes-agent#启用控制平面监控)）。托管集群（EKS、GKE、AKS）不公开这些端点，因此在这些集群上这些监视器永远收不到数据。
 :::
 
 :::details CPU 阈值从不触发

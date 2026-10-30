@@ -48,19 +48,19 @@ flowchart TB
 
 ### 选择 vCenter
 
-在 **VMware Monitor Configuration** 下，从 **vCenter** 中选择 vCenter。每个发送过数据或你在无代理情况下连接的 vCenter 都在列表中。
+在 **VMware Monitor Configuration** 下，从 **vCenter** 中选择 vCenter。每个发送过数据或你在无代理情况下连接的 vCenter 都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 vCenter** 会打开 vCenter 页面，你可以在那里连接一个。
 
 ### 选择要监视的内容
 
-选择三个选项卡之一：
+新监视器从 **告警内容** 下的 **vCenter Stopped Reporting** 开始。要监视其他内容：
 
-- **Quick Setup**：点击一个 [模板](#预置告警模板)。它会设置指标、属性过滤器、聚合、时间范围、分组和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
-- **Custom Metric**：从 **VMware Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。表单会按它描述的对象分组，因此每台主机、每个 VM 或每个数据存储都会单独判断，而 [过滤器](#监视器设置) 可以把它缩小到一个数据中心、集群、主机、VM、数据存储或资源池。
-- **高级**：在 **选择指标** 下自己构建查询和公式，并按 `disk_state`、`power_state` 或 `status` 等属性过滤。用一个 [标识属性](#标识属性) 进行 **分组依据**，即可分别判断每个对象。
+- **更改**：选择另一个 [模板](#预置告警模板)。它会设置指标、属性过滤器、聚合、时间范围、分组和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
+- **Custom Metric**（在 **更多字段** 下）：从 **VMware Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。表单会按它描述的对象分组，因此每台主机、每个 VM 或每个数据存储都会单独判断，而 [过滤器](#监视器设置) 可以把它缩小到一个数据中心、集群、主机、VM、数据存储或资源池。
+- **高级**（在 **更多字段** 下）：在 **选择指标** 下自己构建查询和公式，并按 `disk_state`、`power_state` 或 `status` 等属性过滤。用一个 [标识属性](#标识属性) 进行 **分组依据**，即可分别判断每个对象。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标不再发送数据，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -106,7 +106,7 @@ vCenter 每个采集间隔(默认 2 分钟)读取一次，因此 1 分钟的窗�
 
 ## 预置告警模板
 
-OneUptime 为常见的 VMware 问题提供 24 个模板，**Quick Setup** 会提供全部模板。每个模板都会构建一个完整的监视器：指标查询、其属性过滤器、按对象自身标识属性的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 为常见的 VMware 问题提供 24 个模板，**告警内容** 列表会提供全部模板。每个模板都会构建一个完整的监视器：指标查询、其属性过滤器、按对象自身标识属性的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
 除非表格另有说明，模板读取过去 5 分钟。只有当条件在窗口的每一分钟都成立时，条件才会触发；阈值条件会在越过阈值 10% 后恢复，因此在这条线附近徘徊的值不会来回切换。
 
@@ -130,11 +130,11 @@ OneUptime 为常见的 VMware 问题提供 24 个模板，**Quick Setup** 会提
 | Cluster Host Not Effective | 集群 | 严重 | `vcenter.cluster.host.count` 过滤到 `effective = false`，按 `resource.vcenter.cluster.name` 取 Max | 高于 0：某台主机处于维护模式、已断开连接或无响应，因此集群以低于其设计容量的容量运行 | 恢复为 0 |
 | Datacenter Hosts Unhealthy | 数据中心 | 严重 | `vcenter.datacenter.host.count` 过滤到 `status = red`，按 `resource.vcenter.datacenter.name` 取 Max | 高于 0：某台主机有严重警报，例如硬件传感器、丢失的存储路径或 HA 代理错误 | 恢复为 0 |
 | Datacenter Hosts Degraded | 数据中心 | Warning | `vcenter.datacenter.host.count` 过滤到 `status = yellow`，按数据中心取 Max | 高于 0：某台主机有警告级警报 | 恢复为 0 |
-| Datacenter Hosts Powered Off | 数据中心 | Warning | `vcenter.datacenter.host.count` 过滤到 `power_state = off`，按数据中心取 Max | 高于 0：某台主机已关机——它崩溃了、断电了，或被 DPM 置于待机状态 | 恢复为 0 |
+| Datacenter Hosts Not Responding | 数据中心 | 严重 | `vcenter.datacenter.host.count` 过滤到 `power_state = unknown`，按数据中心取 Max | 高于 0：vCenter 与某台主机失去联系——它崩溃了、断电或管理网络中断，或已断开连接。有意关机或被 DPM 置于待机状态的主机不计入 | 恢复为 0 |
 | Datacenter VMs Unhealthy | 数据中心 | Warning | `vcenter.datacenter.vm.count` 过滤到 `status = red`，按数据中心取 Max | 高于 0：某个 VM 有严重警报，例如 HA 重启失败、丢失的数据存储或丢失的 Tools 心跳 | 恢复为 0 |
 | Datacenter Clusters Unhealthy | 数据中心 | 严重 | `vcenter.datacenter.cluster.count` 过滤到 `status = red`，按数据中心取 Max | 高于 0：某个集群有严重警报，例如 HA 故障切换资源不足、HA 选举失败或严重的 vSAN 健康检查 | 恢复为 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，按集群取 Avg | 高于 20 000 µs (20 ms)：vSAN 数据存储上每个 VM 的存储都变慢。在没有 vSAN 的集群上保持静默 | 达到或低于 18 000 µs |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，按集群取 Max | 高于 0：某个磁盘组跟不上，vSAN 正在减慢其客户端的 I/O | 恢复为 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，按集群取 Avg，**过去 15 分钟** | 高于 20 000 µs (20 ms)：vSAN 数据存储上每个 VM 的存储都变慢。在没有 vSAN 的集群上保持静默 | 达到或低于 18 000 µs |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，按集群取 Max，**过去 15 分钟** | 高于 0：某个磁盘组跟不上，vSAN 正在减慢其客户端的 I/O | 恢复为 0 |
 | Resource Pool Memory Swapped | 集群 | Warning | `vcenter.resource_pool.memory.swapped`，按 `resource.vcenter.resource_pool.inventory_path` 取 Max | 高于 0：资源池的 VM 正在从主机交换空间获取内存，通常是因为资源池的内存限制或份额过低 | 恢复为 0 |
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
