@@ -219,7 +219,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
 | **Tröskel** | Värdet att jämföra med. Bredvid finns en enhetslista när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Endast avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Endast avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -235,13 +235,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornamn_ is offline | Något värde i den första frågan är `0` | Sätter monitorn till **Offline** och deklarerar incidenten "_monitornamn_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitornamn_ is online | Något värde är över `0` | Sätter monitorn till **Fungerar**. |
-
-De här standardvärdena passar få Ceph-mätvärden: `ceph_health_status` är 0 när klustret är friskt. Välj en mall eller sätt egna kriterier.
+| 1 | Check if _monitornamn_ is offline | Den första frågan har inga data under hela fönstret | Sätter monitorn till **Offline** och deklarerar incidenten "_monitornamn_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitornamn_ is online | Den första frågan har data | Sätter monitorn till **Fungerar**. |
 
 > [!IMPORTANT]
-> Tystnad matchar inget av kriterierna: Ett kluster som slutar skicka data lämnar monitorn som den var. För att få veta när data upphör sätter du **Om ingen data** till **Utlösare** i ett kriterium. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 
