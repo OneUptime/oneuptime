@@ -51,8 +51,13 @@ export interface ComponentProps {
   ariaLabel?: string | undefined;
 }
 
+/*
+ * A name on two lines splits where the lines come out even (text-wrap:
+ * balance): "Verified methods / (1 unverified)", never "Verified methods (1
+ * / unverified)" with the bracket torn from its word.
+ */
 export const STAT_TILE_LABEL_CLASS_NAME: string =
-  "break-words text-xs leading-snug text-gray-500";
+  "break-words text-balance text-xs leading-snug text-gray-500";
 
 /*
  * A tile reads its own width (a container) to place its icon. Beside the

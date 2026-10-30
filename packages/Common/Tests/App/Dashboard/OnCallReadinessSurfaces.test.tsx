@@ -4058,6 +4058,11 @@ describe("the readiness table, with less to read", () => {
 
     expect(label.className).not.toContain("truncate");
     expect(label.className).toContain("break-words");
+    /*
+     * ...and splits where its lines come out even: "Verified methods / (1
+     * unverified)", not "Verified methods (1 / unverified)".
+     */
+    expect(label.classList.contains("text-balance")).toBe(true);
   });
 
   /*
