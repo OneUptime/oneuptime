@@ -95,7 +95,7 @@ Cada serie lleva una etiqueta de punto de datos `id` que nombra el recurso de Pr
 | `lxc/<vmid>` | Un contenedor LXC, por ejemplo `lxc/101`. |
 | `storage/<node>/<storage>` | Un volumen de almacenamiento en un nodo, por ejemplo `storage/pve1/local`. |
 
-Dos excepciones: las series de replicación (`pve_replication_*`) llevan el id del **trabajo** de replicación en `id` (por ejemplo `100-0`), y `pve_not_backed_up_total`, de todo el clúster, no tiene ningún `id`.
+Una excepción: las series de replicación (`pve_replication_*`) llevan el id del **trabajo** de replicación en `id` (por ejemplo `100-0`). Las series propias del clúster, como el quórum (`pve_up`) y `pve_not_backed_up_total`, llevan `cluster/<name>`.
 
 Los filtros comparan por igualdad, no por prefijo, así que el agente también divide `id` en tres atributos por los que puede filtrar. Las plantillas se basan en ellos:
 
@@ -132,8 +132,8 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga lo contrario.
 
 - **Cluster Stopped Reporting** se dispara cuando no llega nada del clúster durante diez minutos: el agente de Proxmox o su pve-exporter se detuvo, perdió su conexión con OneUptime o le revocaron el token, la API de Proxmox dejó de responderle, o todos los nodos de un envío nativo se quedaron en silencio. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **Las plantillas de caída usan Mínimo**, así que una sola consulta en la que el recurso estaba caído las dispara en lugar de quedar oculta por las consultas en las que funcionaba.
-- **Guest Down** solo mira los invitados configurados para iniciarse al arrancar, así que un invitado que detuvo a propósito nunca avisa a nadie.
-- **Cluster Quorum at Risk** es una aproximación: pve-exporter no tiene ninguna métrica de corosync, así que cuenta los nodos en línea.
+- **Guest Down** solo mira los invitados configurados para iniciarse al arrancar: si detiene uno de ellos a propósito, avisa igualmente, así que desactive antes su inicio al arrancar.
+- **Cluster Quorum at Risk** cuenta los nodos en línea. pve-exporter también informa del propio quórum, como `pve_up` de `cluster/<name>`: 1 mientras el clúster tiene quórum.
 - **High Guest CPU Usage** es más alto y más lento que la plantilla de nodos: se espera que un invitado use sus vCPU, así que solo avisa uno que nunca baja.
 - **Las fórmulas de proporción** toman la **Suma** de ambos lados. Ambos proceden de la misma consulta, así que el resultado es un porcentaje real.
 - **Container Root Disk Near Full** deja fuera las VM QEMU: su uso de disco marca 0 sin el agente invitado de QEMU.
@@ -154,7 +154,7 @@ El agente consulta prometheus-pve-exporter cada 30 segundos: sus recopiladores d
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `pve_up` | — | 1 cuando el nodo o el invitado está activo o en ejecución, 0 en caso contrario. |
+| `pve_up` | — | 1 cuando el nodo, el invitado o el almacenamiento está activo, 0 en caso contrario. Para `cluster/<name>`, 1 mientras el clúster tiene quórum. |
 | `pve_uptime_seconds` | seconds | Tiempo de actividad del nodo o del invitado. |
 | `pve_version_info` | count | La versión de Proxmox VE, en sus etiquetas. Siempre 1. |
 
@@ -162,7 +162,7 @@ El agente consulta prometheus-pve-exporter cada 30 segundos: sus recopiladores d
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadatos del nodo, siempre 1. Súmela para contar los nodos que informan. |
+| `pve_node_info` | count | Metadatos del nodo, siempre 1 mientras el nodo informa. Una suma añade cada recogida de un minuto, así que no cuenta nodos. |
 | `pve_cpu_usage_ratio` | ratio | CPU en uso como proporción de 0 a 1 de la CPU disponible. |
 | `pve_cpu_usage_limit` | cores | CPU disponible, en núcleos. Para un invitado, sus vCPU. |
 | `pve_memory_usage_bytes` | bytes | Memoria en uso. |
@@ -187,7 +187,7 @@ Las series de CPU y memoria también se informan para cada invitado, en los id `
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes usados en el disco o el almacenamiento. Para un invitado QEMU marca 0 salvo que esté instalado el agente invitado de QEMU. |
 | `pve_disk_size_bytes` | bytes | Tamaño total del disco o del almacenamiento. |
-| `pve_storage_info` | count | Metadatos del almacenamiento, siempre 1. Súmela para contar los volúmenes de almacenamiento. |
+| `pve_storage_info` | count | Metadatos del almacenamiento, siempre 1 mientras existe. Una suma añade cada recogida de un minuto, así que no cuenta volúmenes. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Proceden del recopilador `backup-info` del exportador, a nivel de clúster. Solo
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Invitados que no están en ningún trabajo de copia de seguridad. Una sola serie para todo el clúster, sin `id`. |
+| `pve_not_backed_up_total` | count | Invitados que no están en ningún trabajo de copia de seguridad. Una sola serie para todo el clúster, `id` `cluster/<name>`, que también se informa en 0. |
 | `pve_not_backed_up_info` | count | Una serie por invitado no cubierto, siempre 1, etiquetada con el `id` del invitado. Desaparece cuando el invitado se une a un trabajo de copia de seguridad. |
 
 ### Replicación

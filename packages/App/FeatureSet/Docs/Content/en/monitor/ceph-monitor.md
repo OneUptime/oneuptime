@@ -175,7 +175,7 @@ The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels,
 | `ceph_healthcheck_slow_ops` | count | Slow OSD and monitor operations reported by the `SLOW_OPS` check. |
 | `ceph_daemon_health_metrics` | count | Per-daemon health metrics, keyed by `type` (for example `SLOW_OPS`) and `ceph_daemon`. |
 | `ceph_mon_quorum_status` | count | 1 when the monitor is in quorum, per `ceph_daemon` (for example `mon.a`). |
-| `ceph_mon_metadata` | count | Monitor metadata, always 1. Sum it to count monitors. |
+| `ceph_mon_metadata` | count | Monitor metadata, always 1 while the monitor reports. A Sum adds every scrape in a minute, so it does not count monitors. |
 | `ceph_cluster_total_bytes` | bytes | Total raw capacity. |
 | `ceph_cluster_total_used_bytes` | bytes | Raw capacity in use. |
 
@@ -190,7 +190,7 @@ The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels,
 | `ceph_osd_stat_bytes` | bytes | Raw capacity of the OSD's device. |
 | `ceph_osd_stat_bytes_used` | bytes | Raw bytes used on the OSD. Compare with the total to spot uneven or nearly full OSDs. |
 | `ceph_osd_numpg` | count | Placement groups on the OSD. |
-| `ceph_osd_metadata` | count | OSD metadata (hostname, device class, version), always 1. Sum it to count OSDs. |
+| `ceph_osd_metadata` | count | OSD metadata (hostname, device class, version), always 1 while the OSD reports. A Sum adds every scrape in a minute, so it does not count OSDs. |
 
 ### Pool metrics
 
@@ -207,7 +207,7 @@ The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels,
 
 ### Placement group metrics
 
-Every `ceph_pg_*` series is per pool, labeled `pool_id`; sum across pools for a cluster-wide count.
+Every `ceph_pg_*` series is per pool, labeled `pool_id`. A Sum adds every scrape in a minute as well as every pool, so compare pool by pool, grouped by `pool_id`, as the PG templates do.
 
 | Metric | Unit | Description |
 | --- | --- | --- |

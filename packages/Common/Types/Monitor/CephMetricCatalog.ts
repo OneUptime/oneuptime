@@ -70,10 +70,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-mon-quorum-status",
     friendlyName: "Monitor Quorum Status",
     description:
-      "Whether each Ceph monitor daemon is in quorum (1) or not (0). One series per monitor — sum to count members in quorum, or take the minimum to detect any monitor out of quorum.",
+      "Whether each Ceph monitor daemon is in quorum (1) or not (0). One series per monitor: the minimum reads 0 when any monitor is out of quorum. A Sum adds every scrape in the minute, so it does not count members.",
     metricName: "ceph_mon_quorum_status",
     category: "Cluster Health",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: CephResourceScope.Mon,
     unit: "count",
   },
@@ -81,10 +81,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-mon-metadata",
     friendlyName: "Monitor Metadata",
     description:
-      "Metadata series for each monitor daemon (value is always 1) carrying hostname and ceph_version labels. Sum it to count monitors in the cluster.",
+      "Metadata series for each monitor daemon (value is always 1) carrying hostname and ceph_version labels: 1 while the monitor reports. A Sum adds every scrape in the minute, so it does not count monitors.",
     metricName: "ceph_mon_metadata",
     category: "Cluster Health",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Mon,
     unit: "count",
   },
@@ -116,10 +116,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-osd-up",
     friendlyName: "OSD Up",
     description:
-      "Whether each OSD daemon is up (1) or down (0). One series per OSD — take the minimum to detect any OSD down, or sum to count OSDs that are up.",
+      "Whether each OSD daemon is up (1) or down (0). One series per OSD: the minimum reads 0 when any OSD is down. A Sum adds every scrape in the minute, so it does not count OSDs.",
     metricName: "ceph_osd_up",
     category: "OSD",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: CephResourceScope.Osd,
     unit: "count",
   },
@@ -127,10 +127,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-osd-in",
     friendlyName: "OSD In",
     description:
-      "Whether each OSD is in the cluster (1) or marked out (0). An OSD that is up but out no longer stores data and triggers rebalancing.",
+      "Whether each OSD is in the cluster (1) or marked out (0): the minimum reads 0 when any OSD is out. An OSD that is up but out no longer stores data and triggers rebalancing.",
     metricName: "ceph_osd_in",
     category: "OSD",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: CephResourceScope.Osd,
     unit: "count",
   },
@@ -192,10 +192,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-osd-metadata",
     friendlyName: "OSD Metadata",
     description:
-      "Metadata series for each OSD daemon (value is always 1) carrying hostname, device_class, and ceph_version labels. Sum it to count OSDs in the cluster.",
+      "Metadata series for each OSD daemon (value is always 1) carrying hostname, device_class, and ceph_version labels: 1 while the OSD reports. A Sum adds every scrape in the minute, so it does not count OSDs.",
     metricName: "ceph_osd_metadata",
     category: "OSD",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Osd,
     unit: "count",
   },
@@ -237,10 +237,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pool-rd",
     friendlyName: "Pool Read Operations",
     description:
-      "Cumulative read operations served by each pool. Chart as a rate to see read IOPS.",
+      "Cumulative read operations served by each pool. Chart as a rate to see read IOPS. Max reads its latest total.",
     metricName: "ceph_pool_rd",
     category: "Pool",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "ops",
   },
@@ -248,10 +248,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pool-wr",
     friendlyName: "Pool Write Operations",
     description:
-      "Cumulative write operations served by each pool. Chart as a rate to see write IOPS.",
+      "Cumulative write operations served by each pool. Chart as a rate to see write IOPS. Max reads its latest total.",
     metricName: "ceph_pool_wr",
     category: "Pool",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "ops",
   },
@@ -259,10 +259,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pool-rd-bytes",
     friendlyName: "Pool Read Throughput",
     description:
-      "Cumulative bytes read from each pool. Chart as a rate to see read throughput.",
+      "Cumulative bytes read from each pool. Chart as a rate to see read throughput. Max reads its latest total.",
     metricName: "ceph_pool_rd_bytes",
     category: "Pool",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "bytes",
   },
@@ -270,10 +270,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pool-wr-bytes",
     friendlyName: "Pool Write Throughput",
     description:
-      "Cumulative bytes written to each pool. Chart as a rate to see write throughput.",
+      "Cumulative bytes written to each pool. Chart as a rate to see write throughput. Max reads its latest total.",
     metricName: "ceph_pool_wr_bytes",
     category: "Pool",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "bytes",
   },
@@ -281,10 +281,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pool-metadata",
     friendlyName: "Pool Metadata",
     description:
-      "Metadata series for each pool (value is always 1) carrying the pool's name label — the ONLY series that maps pool_id to a name. Sum it to count pools in the cluster.",
+      "Metadata series for each pool (value is always 1) carrying the pool's name label — the ONLY series that maps pool_id to a name: 1 while the pool exists.",
     metricName: "ceph_pool_metadata",
     category: "Pool",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "count",
   },
@@ -294,17 +294,19 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
    *
    * All ceph_pg_* state metrics are exported PER POOL with a `pool_id`
    * datapoint label on every supported release (Nautilus and later) —
-   * they are NOT single cluster-wide gauges. Sum across pools for a
-   * cluster-wide count; Max yields only the largest pool's value.
+   * they are NOT single cluster-wide gauges. A Sum would add every pool
+   * and every scrape in the minute (the agent scrapes every 30 seconds), so
+   * the counts default to Max and are compared pool by pool, grouped by
+   * pool_id, as the PG templates' ratios do.
    */
   {
     id: "ceph-pg-total",
     friendlyName: "Total PGs",
     description:
-      "Number of placement groups per pool (pool_id label). Sum across pools for the cluster-wide total; subtract Active PGs (also summed) to count PGs unable to serve I/O.",
+      "Number of placement groups per pool (pool_id label). Group by pool_id to compare Active or Clean PGs with it pool by pool, as the PG templates do: a Sum adds every scrape in the minute as well as every pool.",
     metricName: "ceph_pg_total",
     category: "PG",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "count",
   },
@@ -312,10 +314,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pg-active",
     friendlyName: "Active PGs",
     description:
-      "Number of placement groups in the active state (able to serve I/O) per pool (pool_id label). In a healthy cluster the sum across pools equals the summed total PG count.",
+      "Number of placement groups in the active state (able to serve I/O) per pool (pool_id label). In a healthy pool it equals Total PGs; group both by pool_id to compare them.",
     metricName: "ceph_pg_active",
     category: "PG",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "count",
   },
@@ -323,10 +325,10 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pg-clean",
     friendlyName: "Clean PGs",
     description:
-      "Number of placement groups in the clean state (fully replicated, no recovery pending) per pool (pool_id label). In a healthy cluster the sum across pools equals the summed total PG count.",
+      "Number of placement groups in the clean state (fully replicated, no recovery pending) per pool (pool_id label). In a healthy pool it equals Total PGs; group both by pool_id to compare them.",
     metricName: "ceph_pg_clean",
     category: "PG",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: CephResourceScope.Pool,
     unit: "count",
   },

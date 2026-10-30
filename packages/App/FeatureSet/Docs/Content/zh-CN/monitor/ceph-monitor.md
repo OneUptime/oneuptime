@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | 计数 | `SLOW_OPS` 检查报告的 OSD 和 mon 慢操作。 |
 | `ceph_daemon_health_metrics` | 计数 | 按守护进程的健康指标，以 `type`（例如 `SLOW_OPS`）和 `ceph_daemon` 为键。 |
 | `ceph_mon_quorum_status` | 计数 | mon 在仲裁中时为 1，按 `ceph_daemon`（例如 `mon.a`）。 |
-| `ceph_mon_metadata` | 计数 | mon 元数据，始终为 1。求和即可统计 mon 数量。 |
+| `ceph_mon_metadata` | 计数 | mon 元数据，mon 报告期间始终为 1。求和会把一分钟内的每次抓取都加起来，因此不能统计 mon 数量。 |
 | `ceph_cluster_total_bytes` | 字节 | 总原始容量。 |
 | `ceph_cluster_total_used_bytes` | 字节 | 已使用的原始容量。 |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | 字节 | OSD 设备的原始容量。 |
 | `ceph_osd_stat_bytes_used` | 字节 | OSD 上已使用的原始字节数。与总量比较，可以发现不均衡或接近写满的 OSD。 |
 | `ceph_osd_numpg` | 计数 | OSD 上的归置组。 |
-| `ceph_osd_metadata` | 计数 | OSD 元数据（主机名、设备类别、版本），始终为 1。求和即可统计 OSD 数量。 |
+| `ceph_osd_metadata` | 计数 | OSD 元数据（主机名、设备类别、版本），OSD 报告期间始终为 1。求和会把一分钟内的每次抓取都加起来，因此不能统计 OSD 数量。 |
 
 ### 存储池指标
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 归置组指标
 
-每个 `ceph_pg_*` 序列都按存储池划分，带有 `pool_id` 标签；对所有存储池求和即可得到集群级的数量。
+每个 `ceph_pg_*` 序列都按存储池划分，带有 `pool_id` 标签。求和会把一分钟内的每次抓取和每个存储池都加起来，因此请像 PG 模板那样，按 `pool_id` 分组逐个存储池比较。
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |

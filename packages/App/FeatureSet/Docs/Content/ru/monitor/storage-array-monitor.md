@@ -228,7 +228,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | --- | --- | --- | --- | --- |
 | `purefa_pod_replica_links_lag_max_msec` | — | FlashArray | `ms` | Наибольшее отставание репликации каждой связи реплик пода (ActiveDR / асинхронная) с метками `local_pod`, `remote_pod`, `remote`, `direction` и `status` — группируйте по `local_pod` |
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | Среднее отставание репликации каждой связи реплик пода |
-| `purefa_pod_performance_replication_bandwidth_bytes` | — | FlashArray | `bytes/s` | Трафик репликации каждого пода с метками `direction` и `dimension` |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | Трафик репликации каждого пода с метками `direction` и `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | Средняя задержка зеркалированной записи каждого пода ActiveCluster |
 
 ### Hardware

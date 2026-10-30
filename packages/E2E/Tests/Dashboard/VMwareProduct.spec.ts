@@ -209,7 +209,7 @@ test.describe.skip("VMware Product Onboarding", () => {
       "Cluster Host Not Effective",
       "Datacenter Hosts Unhealthy",
       "Datacenter Hosts Degraded",
-      "Datacenter Hosts Powered Off",
+      "Datacenter Hosts Not Responding",
       "Datacenter VMs Unhealthy",
       "Datacenter Clusters Unhealthy",
       "vSAN Latency High",

@@ -95,7 +95,7 @@ Varje serie bär en datapunktsetikett `id` som namnger den Proxmox-resurs den h�
 | `lxc/<vmid>` | En LXC-container, till exempel `lxc/101`. |
 | `storage/<node>/<storage>` | En lagringsvolym på en nod, till exempel `storage/pve1/local`. |
 
-Två undantag: replikeringsserier (`pve_replication_*`) bär replikerings-**jobbets** id i `id` (till exempel `100-0`), och den klusteromfattande `pve_not_backed_up_total` har inget `id` alls.
+Ett undantag: replikeringsserier (`pve_replication_*`) bär replikerings-**jobbets** id i `id` (till exempel `100-0`). Klustrets egna serier, som kvorum (`pve_up`) och `pve_not_backed_up_total`, bär `cluster/<name>`.
 
 Filter matchar på likhet, inte på ett prefix, så agenten delar också upp `id` i tre attribut som du kan filtrera på. Mallarna bygger på dem:
 
@@ -132,8 +132,8 @@ Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett
 
 - **Cluster Stopped Reporting** utlöses när ingenting kommer från klustret på tio minuter: Proxmox-agenten eller dess pve-exporter har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, Proxmox-API:t har slutat svara den, eller varje nod i en inbyggd push har tystnat. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **Mallarna för nedtid använder Minimum**, så att en enda insamling där resursen var nere utlöser dem i stället för att döljas av insamlingar där den var igång.
-- **Guest Down** tittar bara på gäster som är inställda på att starta vid uppstart, så en gäst som du har stoppat med avsikt larmar aldrig någon.
-- **Cluster Quorum at Risk** är en approximation: pve-exporter har inget corosync-mått, så mallen räknar de noder som är online.
+- **Guest Down** tittar bara på gäster som är inställda på att starta vid uppstart: stoppar du en av dem med avsikt larmar den ändå, så stäng först av dess start vid uppstart.
+- **Cluster Quorum at Risk** räknar de noder som är online. pve-exporter rapporterar också själva kvorumet, som `pve_up` för `cluster/<name>`: 1 medan klustret har kvorum.
 - **High Guest CPU Usage** ligger högre och reagerar långsammare än nodmallen: en gäst är tänkt att använda sina vCPU:er, så bara en som aldrig går ned igen larmar någon.
 - **Kvotformler** tar **Summa** av båda sidor. Båda kommer från samma insamling, så resultatet är en äkta procentsats.
 - **Container Root Disk Near Full** utelämnar QEMU-VM:ar: deras diskanvändning visar 0 utan QEMU-gästagenten.
@@ -154,7 +154,7 @@ Agenten hämtar data från prometheus-pve-exporter var 30:e sekund: klusterinsam
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
-| `pve_up` | — | 1 när noden eller gästen är uppe eller körs, annars 0. |
+| `pve_up` | — | 1 när noden, gästen eller lagringen är uppe, annars 0. För `cluster/<name>` 1 medan klustret har kvorum. |
 | `pve_uptime_seconds` | sekunder | Nodens eller gästens drifttid. |
 | `pve_version_info` | antal | Proxmox VE-versionen, i sina etiketter. Alltid 1. |
 
@@ -162,7 +162,7 @@ Agenten hämtar data från prometheus-pve-exporter var 30:e sekund: klusterinsam
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
-| `pve_node_info` | antal | Nodmetadata, alltid 1. Summera den för att räkna de noder som rapporterar. |
+| `pve_node_info` | antal | Nodmetadata, alltid 1 medan noden rapporterar. En summa lägger ihop varje skrapning under en minut, så den räknar inte noder. |
 | `pve_cpu_usage_ratio` | kvot | CPU som används som en kvot på 0–1 av den tillgängliga CPU:n. |
 | `pve_cpu_usage_limit` | kärnor | Tillgänglig CPU, i kärnor. För en gäst dess vCPU:er. |
 | `pve_memory_usage_bytes` | byte | Minne som används. |
@@ -187,7 +187,7 @@ CPU- och minnesserierna rapporteras också för varje gäst, på id:na `qemu/*` 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | byte | Använda byte på disken eller lagringen. För en QEMU-gäst visar den 0 om inte QEMU-gästagenten är installerad. |
 | `pve_disk_size_bytes` | byte | Total storlek på disken eller lagringen. |
-| `pve_storage_info` | antal | Lagringsmetadata, alltid 1. Summera den för att räkna lagringsvolymer. |
+| `pve_storage_info` | antal | Lagringsmetadata, alltid 1 medan lagringen finns. En summa lägger ihop varje skrapning under en minut, så den räknar inte volymer. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Från exporterns insamlare `backup-info` på klusternivå. De rapporterar bara t
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | antal | Gäster som inte ingår i något säkerhetskopieringsjobb. En klusteromfattande serie utan `id`. |
+| `pve_not_backed_up_total` | antal | Gäster som inte ingår i något säkerhetskopieringsjobb. En klusteromfattande serie, `id` `cluster/<name>`, som även rapporteras vid 0. |
 | `pve_not_backed_up_info` | antal | En serie per gäst som saknar täckning, alltid 1, märkt med gästens `id`. Den försvinner när gästen läggs till i ett säkerhetskopieringsjobb. |
 
 ### Replikering

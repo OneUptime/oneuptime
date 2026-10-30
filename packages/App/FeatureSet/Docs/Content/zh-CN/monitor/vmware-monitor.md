@@ -130,11 +130,11 @@ OneUptime 为常见的 VMware 问题提供 24 个模板，**告警内容** 列�
 | Cluster Host Not Effective | 集群 | 严重 | `vcenter.cluster.host.count` 过滤到 `effective = false`，按 `resource.vcenter.cluster.name` 取 Max | 高于 0：某台主机处于维护模式、已断开连接或无响应，因此集群以低于其设计容量的容量运行 | 恢复为 0 |
 | Datacenter Hosts Unhealthy | 数据中心 | 严重 | `vcenter.datacenter.host.count` 过滤到 `status = red`，按 `resource.vcenter.datacenter.name` 取 Max | 高于 0：某台主机有严重警报，例如硬件传感器、丢失的存储路径或 HA 代理错误 | 恢复为 0 |
 | Datacenter Hosts Degraded | 数据中心 | Warning | `vcenter.datacenter.host.count` 过滤到 `status = yellow`，按数据中心取 Max | 高于 0：某台主机有警告级警报 | 恢复为 0 |
-| Datacenter Hosts Powered Off | 数据中心 | Warning | `vcenter.datacenter.host.count` 过滤到 `power_state = off`，按数据中心取 Max | 高于 0：某台主机已关机——它崩溃了、断电了，或被 DPM 置于待机状态 | 恢复为 0 |
+| Datacenter Hosts Not Responding | 数据中心 | 严重 | `vcenter.datacenter.host.count` 过滤到 `power_state = unknown`，按数据中心取 Max | 高于 0：vCenter 与某台主机失去联系——它崩溃了、断电或管理网络中断，或已断开连接。有意关机或被 DPM 置于待机状态的主机不计入 | 恢复为 0 |
 | Datacenter VMs Unhealthy | 数据中心 | Warning | `vcenter.datacenter.vm.count` 过滤到 `status = red`，按数据中心取 Max | 高于 0：某个 VM 有严重警报，例如 HA 重启失败、丢失的数据存储或丢失的 Tools 心跳 | 恢复为 0 |
 | Datacenter Clusters Unhealthy | 数据中心 | 严重 | `vcenter.datacenter.cluster.count` 过滤到 `status = red`，按数据中心取 Max | 高于 0：某个集群有严重警报，例如 HA 故障切换资源不足、HA 选举失败或严重的 vSAN 健康检查 | 恢复为 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，按集群取 Avg | 高于 20 000 µs (20 ms)：vSAN 数据存储上每个 VM 的存储都变慢。在没有 vSAN 的集群上保持静默 | 达到或低于 18 000 µs |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，按集群取 Max | 高于 0：某个磁盘组跟不上，vSAN 正在减慢其客户端的 I/O | 恢复为 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，按集群取 Avg，**过去 15 分钟** | 高于 20 000 µs (20 ms)：vSAN 数据存储上每个 VM 的存储都变慢。在没有 vSAN 的集群上保持静默 | 达到或低于 18 000 µs |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，按集群取 Max，**过去 15 分钟** | 高于 0：某个磁盘组跟不上，vSAN 正在减慢其客户端的 I/O | 恢复为 0 |
 | Resource Pool Memory Swapped | 集群 | Warning | `vcenter.resource_pool.memory.swapped`，按 `resource.vcenter.resource_pool.inventory_path` 取 Max | 高于 0：资源池的 VM 正在从主机交换空间获取内存，通常是因为资源池的内存限制或份额过低 | 恢复为 0 |
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。

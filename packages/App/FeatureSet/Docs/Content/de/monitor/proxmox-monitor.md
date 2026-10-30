@@ -95,7 +95,7 @@ Jede Reihe trägt ein Datenpunkt-Label `id`, das die Proxmox-Ressource nennt, zu
 | `lxc/<vmid>` | Ein LXC-Container, zum Beispiel `lxc/101`. |
 | `storage/<node>/<storage>` | Ein Speicher-Volume auf einem Knoten, zum Beispiel `storage/pve1/local`. |
 
-Zwei Ausnahmen: Replikationsreihen (`pve_replication_*`) tragen die ID des Replikations-**Jobs** in `id` (zum Beispiel `100-0`), und das clusterweite `pve_not_backed_up_total` hat überhaupt kein `id`.
+Eine Ausnahme: Replikationsreihen (`pve_replication_*`) tragen die ID des Replikations-**Jobs** in `id` (zum Beispiel `100-0`). Die eigenen Reihen des Clusters, etwa das Quorum (`pve_up`) und `pve_not_backed_up_total`, tragen `cluster/<name>`.
 
 Filter vergleichen auf Gleichheit, nicht auf ein Präfix; daher teilt der Agent `id` zusätzlich in drei Attribute auf, nach denen Sie filtern können. Die Vorlagen stützen sich darauf:
 
@@ -132,8 +132,8 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 
 - **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Cluster eintrifft: Der Proxmox-Agent oder sein pve-exporter läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen, die Proxmox-API antwortet ihm nicht mehr, oder jeder Knoten einer nativen Übertragung ist verstummt. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Die Ausfall-Vorlagen verwenden Minimum**, sodass eine einzige Abfrage, bei der die Ressource ausgefallen war, sie auslöst, statt von den Abfragen verdeckt zu werden, bei denen sie lief.
-- **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen, sodass ein Gast, den Sie absichtlich gestoppt haben, nie jemanden alarmiert.
-- **Cluster Quorum at Risk** ist ein Näherungswert: pve-exporter hat keine corosync-Metrik, daher zählt die Vorlage die Knoten, die online sind.
+- **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen: Stoppen Sie einen davon absichtlich, alarmiert er trotzdem, schalten Sie also zuerst seinen Start beim Booten ab.
+- **Cluster Quorum at Risk** zählt die Knoten, die online sind. pve-exporter meldet das Quorum auch selbst, als `pve_up` für `cluster/<name>`: 1, solange der Cluster ein Quorum hat.
 - **High Guest CPU Usage** ist höher und langsamer als die Knotenvorlage: Ein Gast soll seine vCPUs nutzen, daher alarmiert nur einer, der nie herunterkommt.
 - **Verhältnisformeln** nehmen auf beiden Seiten die **Summe**. Beide stammen aus derselben Abfrage, das Ergebnis ist also ein echter Prozentsatz.
 - **Container Root Disk Near Full** lässt QEMU-VMs aus: Ihre Festplattennutzung liest ohne den QEMU-Gastagenten 0.
@@ -154,7 +154,7 @@ Der Agent fragt prometheus-pve-exporter alle 30 Sekunden ab: seine Cluster-Kolle
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_up` | — | 1, wenn der Knoten oder Gast in Betrieb ist oder läuft, sonst 0. |
+| `pve_up` | — | 1, wenn der Knoten, Gast oder Speicher in Betrieb ist, sonst 0. Für `cluster/<name>` 1, solange der Cluster ein Quorum hat. |
 | `pve_uptime_seconds` | seconds | Betriebszeit des Knotens oder Gasts. |
 | `pve_version_info` | count | Die Proxmox-VE-Version, in ihren Labels. Immer 1. |
 
@@ -162,7 +162,7 @@ Der Agent fragt prometheus-pve-exporter alle 30 Sekunden ab: seine Cluster-Kolle
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadaten des Knotens, immer 1. Summieren Sie sie, um die meldenden Knoten zu zählen. |
+| `pve_node_info` | count | Metadaten des Knotens, immer 1, solange der Knoten meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Knoten. |
 | `pve_cpu_usage_ratio` | ratio | Genutzte CPU als Verhältnis von 0–1 zur verfügbaren CPU. |
 | `pve_cpu_usage_limit` | cores | Verfügbare CPU, in Kernen. Bei einem Gast seine vCPUs. |
 | `pve_memory_usage_bytes` | bytes | Belegter Arbeitsspeicher. |
@@ -187,7 +187,7 @@ Die CPU- und Speicherreihen werden auch für jeden Gast gemeldet, unter den IDs 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Auf der Festplatte oder dem Speicher belegte Bytes. Bei einem QEMU-Gast liest sie 0, sofern der QEMU-Gastagent nicht installiert ist. |
 | `pve_disk_size_bytes` | bytes | Gesamtgröße der Festplatte oder des Speichers. |
-| `pve_storage_info` | count | Metadaten des Speichers, immer 1. Summieren Sie sie, um die Speicher-Volumes zu zählen. |
+| `pve_storage_info` | count | Metadaten des Speichers, immer 1, solange der Speicher existiert. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Volumes. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Aus dem clusterweiten Kollektor `backup-info` des Exporters. Sie melden nur die 
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Gäste in keinem Backup-Job. Eine clusterweite Reihe ohne `id`. |
+| `pve_not_backed_up_total` | count | Gäste in keinem Backup-Job. Eine clusterweite Reihe, `id` `cluster/<name>`, die auch bei 0 gemeldet wird. |
 | `pve_not_backed_up_info` | count | Eine Reihe pro nicht abgedecktem Gast, immer 1, mit der `id` des Gasts als Label. Sie verschwindet, sobald der Gast einem Backup-Job beitritt. |
 
 ### Replikation

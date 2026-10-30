@@ -175,7 +175,7 @@ O agente consulta cada daemon mgr a cada 30 segundos e mantém os rótulos próp
 | `ceph_healthcheck_slow_ops` | contagem | Operações lentas de OSDs e monitores relatadas pelo check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | contagem | Métricas de saúde por daemon, identificadas por `type` (por exemplo `SLOW_OPS`) e `ceph_daemon`. |
 | `ceph_mon_quorum_status` | contagem | 1 quando o monitor está no quórum, por `ceph_daemon` (por exemplo `mon.a`). |
-| `ceph_mon_metadata` | contagem | Metadados do monitor, sempre 1. Some para contar os monitores. |
+| `ceph_mon_metadata` | contagem | Metadados do monitor, sempre 1 enquanto o monitor informa. Uma soma junta cada coleta de um minuto, então não conta monitores. |
 | `ceph_cluster_total_bytes` | bytes | Capacidade bruta total. |
 | `ceph_cluster_total_used_bytes` | bytes | Capacidade bruta em uso. |
 
@@ -190,7 +190,7 @@ O agente consulta cada daemon mgr a cada 30 segundos e mantém os rótulos próp
 | `ceph_osd_stat_bytes` | bytes | Capacidade bruta do dispositivo do OSD. |
 | `ceph_osd_stat_bytes_used` | bytes | Bytes brutos usados no OSD. Compare com o total para achar OSDs desbalanceados ou quase cheios. |
 | `ceph_osd_numpg` | contagem | Placement groups no OSD. |
-| `ceph_osd_metadata` | contagem | Metadados do OSD (nome do host, classe do dispositivo, versão), sempre 1. Some para contar os OSDs. |
+| `ceph_osd_metadata` | contagem | Metadados do OSD (nome do host, classe do dispositivo, versão), sempre 1 enquanto o OSD informa. Uma soma junta cada coleta de um minuto, então não conta OSDs. |
 
 ### Métricas de pools
 
@@ -207,7 +207,7 @@ O agente consulta cada daemon mgr a cada 30 segundos e mantém os rótulos próp
 
 ### Métricas de placement groups
 
-Toda série `ceph_pg_*` é por pool, com o rótulo `pool_id`; some entre os pools para ter uma contagem do cluster inteiro.
+Toda série `ceph_pg_*` é por pool, com o rótulo `pool_id`. Uma soma junta cada coleta de um minuto e cada pool, então compare pool a pool, agrupando por `pool_id`, como fazem os modelos de PG.
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |

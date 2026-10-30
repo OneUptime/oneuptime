@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | 개수 | `SLOW_OPS` 체크가 보고하는 느린 OSD 및 모니터 작업. |
 | `ceph_daemon_health_metrics` | 개수 | 데몬별 상태 메트릭. 키는 `type`(예: `SLOW_OPS`)과 `ceph_daemon`. |
 | `ceph_mon_quorum_status` | 개수 | 모니터가 쿼럼에 있으면 1. `ceph_daemon`(예: `mon.a`)별. |
-| `ceph_mon_metadata` | 개수 | 모니터 메타데이터. 항상 1. 합계하면 모니터 수가 됩니다. |
+| `ceph_mon_metadata` | 개수 | 모니터 메타데이터. 모니터가 보고하는 동안 항상 1. 합계는 매분의 스크레이프를 모두 더하므로 모니터 수가 아닙니다. |
 | `ceph_cluster_total_bytes` | 바이트 | 전체 원시 용량. |
 | `ceph_cluster_total_used_bytes` | 바이트 | 사용 중인 원시 용량. |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | 바이트 | OSD 장치의 원시 용량. |
 | `ceph_osd_stat_bytes_used` | 바이트 | OSD에서 사용 중인 원시 바이트. 전체 용량과 비교하면 고르지 않거나 거의 가득 찬 OSD를 찾을 수 있습니다. |
 | `ceph_osd_numpg` | 개수 | OSD에 있는 배치 그룹. |
-| `ceph_osd_metadata` | 개수 | OSD 메타데이터(호스트 이름, 장치 클래스, 버전). 항상 1. 합계하면 OSD 수가 됩니다. |
+| `ceph_osd_metadata` | 개수 | OSD 메타데이터(호스트 이름, 장치 클래스, 버전). OSD가 보고하는 동안 항상 1. 합계는 매분의 스크레이프를 모두 더하므로 OSD 수가 아닙니다. |
 
 ### 풀 메트릭
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 배치 그룹 메트릭
 
-모든 `ceph_pg_*` 시리즈는 풀별이며 `pool_id` 레이블이 붙습니다. 클러스터 전체 개수는 모든 풀에 걸쳐 합계해서 구합니다.
+모든 `ceph_pg_*` 시리즈는 풀별이며 `pool_id` 레이블이 붙습니다. 합계는 매분의 스크레이프와 모든 풀을 더하므로, PG 템플릿처럼 `pool_id` 로 그룹화해 풀마다 비교합니다.
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |

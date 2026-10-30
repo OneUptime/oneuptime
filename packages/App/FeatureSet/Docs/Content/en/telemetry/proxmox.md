@@ -169,7 +169,7 @@ The collector scrapes the exporter every 30 seconds: its cluster collectors once
 | Guest (VM or LXC) | `pve_guest_info`, and CPU, memory and network series on `qemu/*` and `lxc/*` ids (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Storage | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Backup coverage | `pve_not_backed_up_total` (the guests no backup job covers; one cluster-level series, no `id` label) and `pve_not_backed_up_info` (one series per uncovered guest, with its `id`). Covered means at least one job selects the guest: whether backups ran recently or succeeded is not exposed by the exporter. |
+| Backup coverage | `pve_not_backed_up_total` (the guests no backup job covers; one cluster-level series, `id` `cluster/<name>`) and `pve_not_backed_up_info` (one series per uncovered guest, with its `id`). Covered means at least one job selects the guest: whether backups ran recently or succeeded is not exposed by the exporter. |
 | Start-on-boot | `pve_onboot_status`, one series per guest: 1 when the guest is set to start on boot. **Guest Down** pages only for these guests. |
 | Replication | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, per storage replication job. Their `id` label is the job id (such as `100-0`), not a resource. |
 

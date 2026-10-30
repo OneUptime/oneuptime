@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | 計數 | `SLOW_OPS` 檢查回報的 OSD 和 mon 慢速操作。 |
 | `ceph_daemon_health_metrics` | 計數 | 依常駐程式的健康指標，以 `type`（例如 `SLOW_OPS`）和 `ceph_daemon` 為鍵。 |
 | `ceph_mon_quorum_status` | 計數 | mon 在仲裁中時為 1，依 `ceph_daemon`（例如 `mon.a`）。 |
-| `ceph_mon_metadata` | 計數 | mon 中繼資料，一律為 1。加總即可計算 mon 數量。 |
+| `ceph_mon_metadata` | 計數 | mon 中繼資料，mon 回報期間一律為 1。加總會把一分鐘內的每次抓取都加起來，因此無法計算 mon 數量。 |
 | `ceph_cluster_total_bytes` | 位元組 | 總原始容量。 |
 | `ceph_cluster_total_used_bytes` | 位元組 | 已使用的原始容量。 |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | 位元組 | OSD 裝置的原始容量。 |
 | `ceph_osd_stat_bytes_used` | 位元組 | OSD 上已使用的原始位元組數。與總量比較，可以找出不平均或接近寫滿的 OSD。 |
 | `ceph_osd_numpg` | 計數 | OSD 上的歸置群組。 |
-| `ceph_osd_metadata` | 計數 | OSD 中繼資料（主機名稱、裝置類別、版本），一律為 1。加總即可計算 OSD 數量。 |
+| `ceph_osd_metadata` | 計數 | OSD 中繼資料（主機名稱、裝置類別、版本），OSD 回報期間一律為 1。加總會把一分鐘內的每次抓取都加起來，因此無法計算 OSD 數量。 |
 
 ### 儲存池指標
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 歸置群組指標
 
-每個 `ceph_pg_*` 序列都依儲存池劃分，帶有 `pool_id` 標籤；將所有儲存池加總即可得到叢集層級的數量。
+每個 `ceph_pg_*` 序列都依儲存池劃分，帶有 `pool_id` 標籤。加總會把一分鐘內的每次抓取和每個儲存池都加起來，因此請像 PG 範本那樣，依 `pool_id` 分組逐一比較儲存池。
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |

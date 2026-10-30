@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | カウント | `SLOW_OPS` チェックが報告する、遅い OSD とモニターの操作。 |
 | `ceph_daemon_health_metrics` | カウント | デーモンごとのヘルスメトリクス。キーは `type`（例: `SLOW_OPS`）と `ceph_daemon`。 |
 | `ceph_mon_quorum_status` | カウント | モニターがクォーラムにあるとき 1。`ceph_daemon`（例: `mon.a`）ごと。 |
-| `ceph_mon_metadata` | カウント | モニターのメタデータ。常に 1。合計するとモニターの数になります。 |
+| `ceph_mon_metadata` | カウント | モニターのメタデータ。モニターが報告している間は常に 1。合計は毎分のスクレイプをすべて足すため、モニター数にはなりません。 |
 | `ceph_cluster_total_bytes` | バイト | 生の総容量。 |
 | `ceph_cluster_total_used_bytes` | バイト | 使用中の生容量。 |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | バイト | OSD のデバイスの生容量。 |
 | `ceph_osd_stat_bytes_used` | バイト | OSD で使用されている生のバイト数。総容量と比べると、使用量が偏った OSD やほぼいっぱいの OSD が見つかります。 |
 | `ceph_osd_numpg` | カウント | OSD 上の配置グループ。 |
-| `ceph_osd_metadata` | カウント | OSD のメタデータ（ホスト名、デバイスクラス、バージョン）。常に 1。合計すると OSD の数になります。 |
+| `ceph_osd_metadata` | カウント | OSD のメタデータ（ホスト名、デバイスクラス、バージョン）。OSD が報告している間は常に 1。合計は毎分のスクレイプをすべて足すため、OSD 数にはなりません。 |
 
 ### プールのメトリクス
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 配置グループのメトリクス
 
-`ceph_pg_*` 系列はすべてプールごとで、`pool_id` ラベルが付きます。クラスター全体の数は、プールをまたいで合計して求めます。
+`ceph_pg_*` 系列はすべてプールごとで、`pool_id` ラベルが付きます。合計は毎分のスクレイプとすべてのプールを足すため、PG テンプレートと同じく `pool_id` でグループ化してプールごとに比べます。
 
 | メトリクス | 単位 | 説明 |
 | --- | --- | --- |

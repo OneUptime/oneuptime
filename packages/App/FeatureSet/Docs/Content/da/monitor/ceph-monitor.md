@@ -175,7 +175,7 @@ Agenten henter fra hver mgr-dæmon hvert 30. sekund og beholder Cephs egne label
 | `ceph_healthcheck_slow_ops` | antal | Langsomme OSD- og monitoroperationer, som checket `SLOW_OPS` rapporterer. |
 | `ceph_daemon_health_metrics` | antal | Tilstandsmetrikker pr. dæmon med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antal | 1, når monitoren er i quorum, pr. `ceph_daemon` (for eksempel `mon.a`). |
-| `ceph_mon_metadata` | antal | Monitorens metadata, altid 1. Læg dem sammen for at tælle monitorer. |
+| `ceph_mon_metadata` | antal | Monitorens metadata, altid 1, mens monitoren rapporterer. En sum lægger hver scrape i et minut sammen, så den tæller ikke monitorer. |
 | `ceph_cluster_total_bytes` | bytes | Samlet rå kapacitet. |
 | `ceph_cluster_total_used_bytes` | bytes | Rå kapacitet i brug. |
 
@@ -190,7 +190,7 @@ Agenten henter fra hver mgr-dæmon hvert 30. sekund og beholder Cephs egne label
 | `ceph_osd_stat_bytes` | bytes | Rå kapacitet for OSD'ens enhed. |
 | `ceph_osd_stat_bytes_used` | bytes | Rå bytes brugt på OSD'en. Sammenlign med totalen for at finde skævt fyldte eller næsten fulde OSD'er. |
 | `ceph_osd_numpg` | antal | Placement groups på OSD'en. |
-| `ceph_osd_metadata` | antal | OSD'ens metadata (værtsnavn, enhedsklasse, version), altid 1. Læg dem sammen for at tælle OSD'er. |
+| `ceph_osd_metadata` | antal | OSD'ens metadata (værtsnavn, enhedsklasse, version), altid 1, mens OSD'en rapporterer. En sum lægger hver scrape i et minut sammen, så den tæller ikke OSD'er. |
 
 ### Poolmetrikker
 
@@ -207,7 +207,7 @@ Agenten henter fra hver mgr-dæmon hvert 30. sekund og beholder Cephs egne label
 
 ### Metrikker for placement groups
 
-Hver `ceph_pg_*`-serie er pr. pool, med labelen `pool_id`; læg sammen på tværs af pools for et tal for hele klyngen.
+Hver `ceph_pg_*`-serie er pr. pool, med labelen `pool_id`. En sum lægger både hver scrape i et minut og hver pool sammen, så sammenlign pool for pool, grupperet efter `pool_id`, som PG-skabelonerne gør.
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |

@@ -175,7 +175,7 @@ Agenten hämtar från varje mgr-daemon var 30:e sekund och behåller Cephs egna 
 | `ceph_healthcheck_slow_ops` | antal | Långsamma OSD- och monitoroperationer som checken `SLOW_OPS` rapporterar. |
 | `ceph_daemon_health_metrics` | antal | Hälsomätvärden per daemon, med `type` (till exempel `SLOW_OPS`) och `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antal | 1 när monitorn är i quorum, per `ceph_daemon` (till exempel `mon.a`). |
-| `ceph_mon_metadata` | antal | Monitorns metadata, alltid 1. Summera för att räkna monitorer. |
+| `ceph_mon_metadata` | antal | Monitorns metadata, alltid 1 medan monitorn rapporterar. En summa lägger ihop varje skrapning under en minut, så den räknar inte monitorer. |
 | `ceph_cluster_total_bytes` | byte | Total rå kapacitet. |
 | `ceph_cluster_total_used_bytes` | byte | Rå kapacitet som används. |
 
@@ -190,7 +190,7 @@ Agenten hämtar från varje mgr-daemon var 30:e sekund och behåller Cephs egna 
 | `ceph_osd_stat_bytes` | byte | Rå kapacitet för OSD:ns enhet. |
 | `ceph_osd_stat_bytes_used` | byte | Använda råa byte på OSD:n. Jämför med totalen för att hitta ojämnt fyllda eller nästan fulla OSD:er. |
 | `ceph_osd_numpg` | antal | Placement groups på OSD:n. |
-| `ceph_osd_metadata` | antal | OSD:ns metadata (värdnamn, enhetsklass, version), alltid 1. Summera för att räkna OSD:er. |
+| `ceph_osd_metadata` | antal | OSD:ns metadata (värdnamn, enhetsklass, version), alltid 1 medan OSD:n rapporterar. En summa lägger ihop varje skrapning under en minut, så den räknar inte OSD:er. |
 
 ### Poolmätvärden
 
@@ -207,7 +207,7 @@ Agenten hämtar från varje mgr-daemon var 30:e sekund och behåller Cephs egna 
 
 ### Mätvärden för placement groups
 
-Varje `ceph_pg_*`-serie är per pool, med etiketten `pool_id`; summera över poolerna för ett värde för hela klustret.
+Varje `ceph_pg_*`-serie är per pool, med etiketten `pool_id`. En summa lägger ihop både varje skrapning under en minut och varje pool, så jämför pool för pool, grupperat efter `pool_id`, som PG-mallarna gör.
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
