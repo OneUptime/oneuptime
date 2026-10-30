@@ -438,7 +438,11 @@ and the Affected Resources tests add
 and quotes `feed-note-links-and-quotes{,-dark}`, and the hero's
 chat buttons `incident-hero-open-in-chat{,-mobile}` and `incident-hero-open-channel{,-menu}`,
 and an incident call's transcript `incident-call-transcript-card{,-dark}` and
-`incident-call-summary{,-dark,-mobile}`.
+`incident-call-summary{,-dark,-mobile}`. The numbers before the titles (`EventNumbers.spec.ts`)
+add `event-number-{incident,alert,scheduled-maintenance,incident-episode,alert-episode}-prefixed-1280`,
+`event-number-custom-prefix-1280`, `event-number-sentence-title-{1280,1024,768,390}`,
+`event-number-crumb-{320,390}`, `event-number-long-prefix-320`, `event-number-{dark,de}-1280`
+and `event-number-fa-rtl-{1280,390}`.
 
 ## Poke at it by hand
 
