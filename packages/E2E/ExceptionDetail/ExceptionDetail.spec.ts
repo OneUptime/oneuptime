@@ -1466,7 +1466,14 @@ test.describe("Create monitor on an exception", () => {
   }: {
     page: Page;
   }) => {
-    for (const width of [1024, 1280, 1440]) {
+    /*
+     * Since the assignee and Assign (#5422) and Resolve's menu (#5416)
+     * joined them, the actions take some 40rem: they sit beside the message
+     * only on a card whose content is 72rem wide, so it keeps 26rem to be
+     * read in. The page's own width stops short of that today, so they go
+     * under it at every width here, 1920px too.
+     */
+    for (const width of [1024, 1280, 1440, 1920]) {
       await page.setViewportSize({ width, height: 1000 });
       await open(page, "", "exception=long");
 
@@ -1489,7 +1496,21 @@ test.describe("Create monitor on an exception", () => {
         `the message's width at ${width}px`,
       ).toBeGreaterThan(420);
 
-      if (width === 1440) {
+      // The header's own width, which the container query reads.
+      const contentWidth: number = await page
+        .getByTestId("exception-summary")
+        .locator(":scope > div")
+        .first()
+        .evaluate((element: Element): number => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          return (
+            element.clientWidth -
+            parseFloat(style.paddingLeft) -
+            parseFloat(style.paddingRight)
+          );
+        });
+
+      if (contentWidth >= 72 * 16) {
         // A wide card: the actions beside the exception, at its top.
         expect(actionsBox!.x).toBeGreaterThan(
           messageBox!.x + messageBox!.width,
@@ -1504,10 +1525,12 @@ test.describe("Create monitor on an exception", () => {
         /*
          * ... and the first of them where the exception's words start,
          * past its status icon: it started under the icon, 12px further in
-         * (each Button's own md:ml-3).
+         * (each Button's own md:ml-3). Whichever comes first - since #5422
+         * the assignee, then Resolve.
          */
         const firstButton: { x: number } | null = await actions
-          .getByTestId("exception-triage-resolve")
+          .locator(":scope > *")
+          .first()
           .boundingBox();
         expect(firstButton).not.toBeNull();
         expect(
