@@ -104,8 +104,8 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).
-- **Evidencias**: los archivos, enlaces y eventos de seguridad guardados en el caso, cada uno con quién lo añadió y cuándo. El botón **Añadir archivo** sube un archivo de hasta 10 MB y guarda el SHA-256 de lo que se subió, para que quien lo descargue después pueda comprobar que es lo que se guardó; el botón **Añadir enlace** apunta a evidencias guardadas en otro lugar. Solo un Security Admin puede quitar una evidencia, y la **Cronología** del caso dice qué se añadió y qué se quitó. Un evento de seguridad se guarda aquí tal como era, con **Añadir al caso** en **Eventos** o en la página de una [cacería](/docs/telemetry/security-events#cacerías), y **Ver evento** lo abre.
-- **Tareas**: lo que hay que hacer en el caso, quién lo hace y si está hecho. Añade una tarea en una línea, entrégasela a alguien y márcala cuando esté hecha. Se avisa a la persona a la que se entrega, salvo que la tomara ella misma, y el menú muestra cuántas tareas quedan abiertas junto a **Tareas**.
+- **Evidencias**: los archivos, enlaces y eventos de seguridad guardados en el caso, cada uno con quién lo añadió y cuándo. El botón **Añadir archivo** sube un archivo de hasta 10 MB y guarda el SHA-256 de lo que se subió, para que quien lo descargue después pueda comprobar que es lo que se guardó; el botón **Añadir enlace** apunta a evidencias guardadas en otro lugar. Solo un Security Admin puede quitar una evidencia, y la **Cronología** del caso dice qué se añadió y qué se quitó. Un evento de seguridad se guarda aquí tal como era, con **Añadir al caso** en **Eventos** o en la página de una [cacería](/docs/telemetry/security-events#cacerías), y **Ver evento** lo abre. El paso **Preserve the evidence** de un playbook también guarda aquí los eventos detrás de las detecciones del caso.
+- **Tareas**: lo que hay que hacer en el caso, quién lo hace y si está hecho. Añade una tarea en una línea, entrégasela a alguien y márcala cuando esté hecha. Se avisa a la persona a la que se entrega, salvo que la tomara ella misma, y el menú muestra cuántas tareas quedan abiertas junto a **Tareas**. El paso **Añadir tareas** de un playbook también añade tareas y omite las que el caso ya tiene.
 - **Playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Playbooks**.
 - **Notas privadas**: lo que el equipo escribió sobre el caso.
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
@@ -264,9 +264,10 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Caso | Set the status | Pasa el caso a otro estado del proyecto, con el veredicto que elijas cuando ese estado lo cierra |
 | Caso | Add a note | Escribe una nota en el caso, como una lista de comprobación para el analista |
 | Caso | Add labels | Pone etiquetas al caso |
+| Caso | Add tasks | Añade tareas a la lista de comprobación del caso, para una persona o para quien trabaje el caso |
 | Investigación | Check entities against threat intel | Busca cada entidad en tu inteligencia de amenazas y puede subir la prioridad si hay una coincidencia |
 | Investigación | Look up entity activity | Cuenta los eventos de seguridad de cada entidad en una ventana reciente y anota el resultado en el caso |
-| Investigación | Preserve the evidence | Conserva las grabaciones de sesión de las solicitudes detrás del caso y anota sus trazas y excepciones en el caso |
+| Investigación | Preserve the evidence | Conserva los eventos detrás de las detecciones del caso y las grabaciones de sesión de sus solicitudes, y anota sus trazas y excepciones en el caso |
 | Notificación | Email people | Envía por email a usuarios y equipos un resumen del caso, con un enlace a él |
 | Notificación | Notify data store owners | Envía por email a los propietarios de cada almacén de datos del caso un enlace a él |
 | Notificación | Post to Slack | Publica un resumen del caso en un canal de Slack |
@@ -278,9 +279,15 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Contención | End the user's Okta sessions | Cierra la sesión en Okta del usuario del que trata el caso y revoca sus tokens |
 | Contención | Contain the host in CrowdStrike | Aplica la contención de red al host del que trata el caso con CrowdStrike Falcon |
 | Contención | Isolate the device in Microsoft Defender | Aísla el host del que trata el caso con Microsoft Defender for Endpoint |
+| Contención | Disable the user in Microsoft Entra ID | Deshabilita en Microsoft Entra ID la cuenta del usuario del que trata el caso |
+| Contención | Sign the user out of Microsoft Entra ID | Cierra en todas partes la sesión de Microsoft Entra ID del usuario del que trata el caso y revoca sus tokens de actualización |
+| Contención | Suspend the user in Google Workspace | Suspende en Google Workspace al usuario del que trata el caso |
+| Contención | Sign the user out of Google Workspace | Cierra la sesión de Google Workspace del usuario del que trata el caso en todos los navegadores y dispositivos |
 | Contención | Unsuspend the user in Okta | Levanta en Okta la suspensión del usuario del que trata el caso |
 | Contención | Lift containment in CrowdStrike | Levanta la contención de red que CrowdStrike Falcon aplica al host del que trata el caso |
 | Contención | Release the device in Microsoft Defender | Libera del aislamiento en Microsoft Defender for Endpoint al host del que trata el caso |
+| Contención | Enable the user in Microsoft Entra ID | Vuelve a habilitar en Microsoft Entra ID la cuenta del usuario del que trata el caso |
+| Contención | Unsuspend the user in Google Workspace | Reactiva en Google Workspace al usuario del que trata el caso |
 | Contención | Bloquear el acceso público a los almacenes de datos | Bloquea el acceso público a cada bucket o cuenta de almacenamiento del que trata el caso, a través de su conexión a la nube |
 | Contención | Revocar el uso compartido de almacenes de datos | Deja de compartir fuera de tus cuentas las instantáneas de cada base de datos de la que trata el caso, a través de su conexión a la nube |
 | Automatización | Send a webhook | Envía el caso como JSON a una URL |
@@ -290,16 +297,28 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
-- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook**, **Post a status page announcement** y los dos pasos de almacenes de datos empiezan con la aprobación activada, porque ejecutan comandos en tus sistemas, hablan con tus clientes o cambian los ajustes de una nube; quien añade el paso puede desactivarla.
-- **Solo si hubo coincidencia de inteligencia de amenazas**: omitir el paso salvo que un paso **Comprobar las entidades con la inteligencia de amenazas** anterior de la misma ejecución haya encontrado un indicador conocido.
-- **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución.
+- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los ocho pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook**, **Post a status page announcement** y los dos pasos de almacenes de datos empiezan con la aprobación activada, porque ejecutan comandos en tus sistemas, hablan con tus clientes o cambian los ajustes de una nube; quien añade el paso puede desactivarla.
+- **Ejecutar este paso**: **Siempre**, o solo después de un resultado de un paso anterior, como que **Comprobar las entidades con la inteligencia de amenazas** encuentre una entidad maliciosa conocida; consulta [Ramificar según el resultado de un paso](#ramificar-según-el-resultado-de-un-paso).
+- **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución. Está en **Más campos**, junto con **Ejecutar este paso**.
+
+### Ramificar según el resultado de un paso
+
+**Ejecutar este paso** hace que un paso espere a cómo terminó un paso anterior. Cada paso anterior ofrece sus resultados:
+
+| Un paso anterior | Sus resultados |
+| --- | --- |
+| Comprobar las entidades con la inteligencia de amenazas | Encontró una entidad maliciosa conocida, o no encontró nada malicioso conocido |
+| Consultar la actividad de las entidades | Encontró actividad, o no encontró actividad |
+| Cualquier otro paso | Tuvo éxito, y falló cuando tiene activado **Continuar si falla** |
+
+Dos pasos que esperan resultados opuestos de un mismo paso son un si y un si no: suspender a un usuario solo cuando la inteligencia de amenazas lo conoce y, si no, añadir una tarea para confirmar con él el inicio de sesión. Cuando el paso esperado termina de otra forma, el paso que espera se omite, y la ejecución dice por qué debajo de él; lo mismo pasa con un paso que espera a uno que se omitió. La tarjeta de un paso dice a qué espera, y un paso al que otro espera no se puede mover debajo de él ni eliminar hasta que ese otro se ejecute de otra forma. La plantilla **Escalar indicadores maliciosos conocidos** sube la prioridad y el estado de un caso solo cuando hubo coincidencia de inteligencia de amenazas, y un paso guardado con el antiguo interruptor de inteligencia de amenazas lo conserva como **Solo si una comprobación anterior de inteligencia de amenazas encontró una entidad maliciosa conocida**.
 
 ### Responder con OneUptime
 
 Cuatro pasos actúan a través del resto de OneUptime en lugar de un producto conectado:
 
 - **Run a runbook** inicia uno de tus [runbooks](/docs/runbooks/index) con el caso como entradas, que un paso Bash lee como variables de entorno (consulta [Llamar al webhook](/docs/runbooks/triggers#llamar-al-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` y `ONEUPTIME_INPUT_HOST` son la dirección, el usuario y el host de los que trata el caso, elegidos con la misma regla que un paso de contención, y quedan vacíos si no trata de ninguno. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` y `ONEUPTIME_INPUT_HOSTS` enumeran en JSON todos los que nombra el caso, y `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` y `ONEUPTIME_INPUT_CASE_URL` indican de qué caso se trata. Un usuario o host protegido nunca está entre ellos. La ejecución del runbook indica que la inició **Security playbook**, para el caso.
-- **Preserve the evidence** conserva las grabaciones de sesión de las solicitudes detrás del caso más allá de su retención, y escribe en el caso una nota que enlaza la traza de cada solicitud, cada grabación y cada excepción. Los logs y las trazas no se pueden conservar más tiempo del que el proyecto guarda la telemetría, así que exporta antes lo que necesites.
+- **Preserve the evidence** guarda en la página **Evidencias** del caso el último evento de cada una de sus detecciones, hasta 100, tal como está ahora, conserva las grabaciones de sesión de las solicitudes detrás del caso más allá de su retención, y escribe en el caso una nota que enlaza la traza de cada solicitud, cada grabación y cada excepción. Los logs y las trazas no se pueden conservar más tiempo del que el proyecto guarda la telemetría, así que exporta antes lo que necesites.
 - **Post a status page announcement** publica lo que escribiste, tal como lo escribiste, en las páginas de estado que elijas. No se le añade nada del caso. Sus suscriptores solo reciben aviso si **Notificar a los suscriptores** está activado.
 - **Fix the code with AI** pide a OneUptime AI, para cada excepción que lanzaron las solicitudes del caso, hasta tres, un pull request que la corrija. Necesita OneUptime AI activado, un repositorio con el código conectado mediante la GitHub App y un runner. Sin ellos, el paso se omite e indica qué falta.
 
@@ -312,6 +331,8 @@ Los pasos de contención actúan a través de una conexión que necesita algo m�
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un token de API con permiso para gestionar usuarios |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un cliente de API con permiso de escritura en el ámbito Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Una aplicación con el permiso Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | Una aplicación con los permisos de aplicación User.Read.All, User.EnableDisableAccount.All y User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Delegación de todo el dominio con los ámbitos admin.directory.user y admin.directory.user.security, para un administrador que gestione al usuario |
 | Bloquear el acceso público a los almacenes de datos, Revocar el uso compartido de almacenes de datos | La conexión a la nube del almacén | **Respuesta de seguridad de datos** activada, y su comando de configuración ejecutado de nuevo |
 
 Un paso de usuario o de host solo actúa sobre los usuarios o hosts de los que trata el caso, nunca sobre todos los que el caso nombra:
@@ -319,7 +340,7 @@ Un paso de usuario o de host solo actúa sobre los usuarios o hosts de los que t
 - El valor por el que se agrupa una detección del caso, como la cuenta por la que agrupa una regla de viaje imposible, o el host que nombra la alerta de un producto conectado.
 - Un usuario o host del caso que tu inteligencia de amenazas conoce como indicador.
 
-Un caso agrupado por una dirección, como un ataque de fuerza bruta contra tu VPN, no trata de ninguno de los dos: sus pasos de contención se omiten, y la cuenta contra la que lo intentó y la puerta de enlace que alcanzó quedan intactas. Un paso actúa como máximo sobre 10 usuarios o hosts. Busca cada uno en el producto por su nombre e indica en la ejecución qué hizo con cada uno: hecho, ya hecho, no encontrado, rechazado o protegido.
+Un caso agrupado por una dirección, como un ataque de fuerza bruta contra tu VPN, no trata de ninguno de los dos: sus pasos de contención se omiten, y la cuenta contra la que lo intentó y la puerta de enlace que alcanzó quedan intactas. Un paso actúa como máximo sobre 10 usuarios o hosts. Busca cada uno en el producto por su nombre e indica en la ejecución qué hizo con cada uno: hecho, ya hecho, no encontrado, rechazado o protegido. Microsoft Entra ID encuentra a un usuario por su nombre de inicio de sesión o su dirección de correo, y solo cambia la cuenta de un administrador para una aplicación que además tenga el rol Privileged Authentication Administrator; Google Workspace lo encuentra por su dirección principal o un alias.
 
 Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los que trata el caso, como máximo 10: los de los problemas de Seguridad de datos que ha recibido, y cualquiera por el que lo agrupó una detección. No tocan un almacén marcado como **Público por diseño**, cambian cómo se comparte un almacén pero nunca sus datos, e indican en la ejecución qué hicieron con cada almacén (consulta [Cerrar una exposición](/docs/data-security/integrations#cerrar-una-exposición)).
 
@@ -329,11 +350,11 @@ Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los 
 
 #### Aprobación
 
-Los cuatro pasos que dejan a alguien sin acceso esperan aprobación. Solo un Security Admin puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
+Los ocho pasos que dejan a alguien sin acceso esperan aprobación. Solo un Security Admin puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
 
 #### Deshacer
 
-Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención** o **Liberar**. El cierre de una sesión de Okta no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
+Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención**, **Liberar** o **Activar**. Un cierre de sesión no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
 
 ### Mensajes
 
@@ -417,6 +438,10 @@ Abre la ejecución en el caso: el paso indica, para cada usuario o host, si el p
 
 :::details Se omitió un paso de contención
 El caso no trata de ningún usuario ni host, solo de una dirección, por ejemplo, o todos los usuarios o hosts de los que trata están protegidos. Abre la ejecución en el caso: el paso indica el motivo.
+:::
+
+:::details Se omitió un paso que se ejecuta solo después de otro
+El paso al que espera terminó de otra forma, o se omitió él mismo: no encontró nada malicioso conocido, por ejemplo, cuando el paso espera una entidad maliciosa conocida. Abre la ejecución en el caso: el paso omitido dice a qué paso esperaba y qué resultado. Para cambiarlo, edita el paso y abre **Más campos**.
 :::
 
 :::details No se puede eliminar ni archivar un estado o una prioridad

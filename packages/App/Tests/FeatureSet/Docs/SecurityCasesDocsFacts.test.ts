@@ -77,6 +77,18 @@ import {
   SECURITY_PLAYBOOK_STALE_RUNNING_MS,
 } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
+import { MAX_EVIDENCE_DETECTIONS } from "Common/Server/Utils/SecurityPlaybook/SecurityCaseEvidence";
+import {
+  GOOGLE_WORKSPACE_DIRECTORY_SECURITY_SCOPE,
+  GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE,
+} from "Common/Server/Utils/SecurityEvent/Response/GoogleWorkspaceResponseClient";
+import {
+  SecurityPlaybookStepOutcome,
+  describeSecurityPlaybookStepOutcome,
+  getSecurityPlaybookStepOutcomes,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import { SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import { SecurityPlaybookStep } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import { MAX_NOTIFIED_DATA_STORES } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners";
 import Permission from "Common/Types/Permission";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -994,15 +1006,224 @@ describe("Security Cases and Playbooks docs", () => {
         },
       );
 
-    expect(disruptive).toHaveLength(4);
+    // Okta, CrowdStrike, Defender, and Microsoft Entra ID and Google Workspace's two each.
+    expect(disruptive).toHaveLength(8);
     expect(
       disruptive.every((action: SecurityPlaybookActionDefinition): boolean => {
         return action.category === SecurityPlaybookActionCategory.Contain;
       }),
     ).toBe(true);
     expect(page).toContain(
-      "The four steps that cut someone off always do, unless a Security Admin turns it off.",
+      "The eight steps that cut someone off always do, unless a Security Admin turns it off.",
     );
+    expect(flat(section(page, "Approval"))).toContain(
+      "The eight steps that cut someone off wait for approval.",
+    );
+  });
+
+  it("says when a step runs and whether it carries on wait under More fields, as the step's dialog folds them", () => {
+    const dialog: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookStepDialog.tsx`,
+      ),
+    );
+    const steps: string = flat(section(page, "Steps"));
+
+    // Both fold into the dialog's More fields (getAdvancedFormSection).
+    expect(dialog).toContain(
+      "const howItRuns: FormFieldCollapsibleSection<JSONObject> = getAdvancedFormSection<JSONObject>();",
+    );
+
+    for (const title of ["Run This Step", "Carry On If It Fails"]) {
+      const field: string = dialog.slice(dialog.indexOf(`title: "${title}",`));
+
+      expect(field.slice(0, field.indexOf("}, {"))).toContain(
+        "collapsibleSection: howItRuns,",
+      );
+    }
+
+    expect(steps).toContain(
+      "- **Run This Step**: **Always**, or only after a result of a step before it, such as **Check entities against threat intel** finding a known-bad entity;",
+    );
+    expect(steps).toContain(
+      "Off, a failed step stops the run. It waits under **More fields**, with **Run This Step**.",
+    );
+    // The old switch is gone from the dialog, and from the page.
+    expect(dialog).not.toContain('title: "Only If Threat Intel Matched"');
+    expect(page).not.toContain("**Only If Threat Intel Matched**");
+  });
+
+  it("lists the results each step before offers to wait on, as Run This Step words them", () => {
+    const rows: Array<Array<string>> = rowsOf("Branch on a step's result");
+    const titleOf: (type: SecurityPlaybookActionType) => string = (
+      type: SecurityPlaybookActionType,
+    ): string => {
+      return SECURITY_PLAYBOOK_ACTIONS.find(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.type === type;
+        },
+      )!.title;
+    };
+    const resultsOf: (type: SecurityPlaybookActionType) => string = (
+      type: SecurityPlaybookActionType,
+    ): string => {
+      const phrases: Array<string> = getSecurityPlaybookStepOutcomes({
+        action: type,
+        continueOnFailure: false,
+      }).map((outcome: SecurityPlaybookStepOutcome): string => {
+        return describeSecurityPlaybookStepOutcome(type, outcome);
+      });
+
+      return phrases
+        .map((phrase: string, index: number): string => {
+          return index === 0
+            ? phrase.charAt(0).toUpperCase() + phrase.slice(1)
+            : phrase;
+        })
+        .join(", or ");
+    };
+
+    expect(rows).toEqual([
+      [
+        titleOf(SecurityPlaybookActionType.CheckThreatIntel),
+        resultsOf(SecurityPlaybookActionType.CheckThreatIntel),
+      ],
+      [
+        titleOf(SecurityPlaybookActionType.LookUpEntityActivity),
+        resultsOf(SecurityPlaybookActionType.LookUpEntityActivity),
+      ],
+      [
+        "Any other step",
+        "Succeeded, and failed when it has **Carry On If It Fails** on",
+      ],
+    ]);
+
+    // Any other step succeeds; it can be waited on to fail only when it carries on.
+    expect(
+      getSecurityPlaybookStepOutcomes({
+        action: SecurityPlaybookActionType.AddCaseNote,
+        continueOnFailure: false,
+      }),
+    ).toEqual([SecurityPlaybookStepOutcome.Succeeded]);
+    expect(
+      getSecurityPlaybookStepOutcomes({
+        action: SecurityPlaybookActionType.AddCaseNote,
+        continueOnFailure: true,
+      }),
+    ).toEqual([
+      SecurityPlaybookStepOutcome.Succeeded,
+      SecurityPlaybookStepOutcome.Failed,
+    ]);
+    expect(
+      describeSecurityPlaybookStepOutcome(
+        SecurityPlaybookActionType.AddCaseNote,
+        SecurityPlaybookStepOutcome.Failed,
+      ),
+    ).toBe("failed");
+  });
+
+  it("says the Escalate Known-Bad Indicators template branches on threat intel, and where a skipped step says why", () => {
+    const branch: string = flat(section(page, "Branch on a step's result"));
+    const template: { title: string; steps: Array<SecurityPlaybookStep> } = ((
+      found: (typeof SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS)[number],
+    ): { title: string; steps: Array<SecurityPlaybookStep> } => {
+      return {
+        title: found.title,
+        steps: found.getSteps({
+          priorityId: (): string => {
+            return "priority";
+          },
+          statusId: (): string => {
+            return "status";
+          },
+        }),
+      };
+    })(
+      SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS.find(
+        (
+          candidate: (typeof SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS)[number],
+        ) => {
+          return candidate.key === "known-bad";
+        },
+      )!,
+    );
+    const [check, ...rest] = template.steps;
+
+    expect(check!.action).toBe(SecurityPlaybookActionType.CheckThreatIntel);
+    expect(rest.length).toBeGreaterThan(0);
+
+    for (const later of rest) {
+      expect(later.runIf).toEqual({
+        stepId: check!.id,
+        outcome: SecurityPlaybookStepOutcome.Found,
+      });
+    }
+
+    expect(branch).toContain(
+      `The **${template.title}** template raises a case's priority and status only when threat intel matched`,
+    );
+    expect(branch).toContain(
+      "When the step waited on ends another way, the step that waits is skipped, and the run says why under it",
+    );
+    // The skipped step's reason, as the engine writes it.
+    expect(
+      flat(
+        source(
+          "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition.ts",
+        ),
+      ),
+    ).toContain("reason: `Skipped: it runs only if step ${waitedOn + 1}");
+  });
+
+  it("says Add tasks leaves out the tasks a case has, and Preserve the evidence keeps the events behind its detections", () => {
+    const actions: string = flat(
+      source("Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts"),
+    );
+
+    expect(page).toContain(
+      "A playbook's **Add tasks** step adds tasks too, and leaves out any the case has already.",
+    );
+    expect(actions).toContain(
+      "return skipped(mdText`The case has these tasks already.`);",
+    );
+    expect(MAX_EVIDENCE_DETECTIONS).toBe(100);
+    expect(flat(section(page, "Responding through OneUptime"))).toContain(
+      `- **Preserve the evidence** keeps the latest event of each of the case's detections, up to ${MAX_EVIDENCE_DETECTIONS}, on its **Evidence** page as it is now,`,
+    );
+  });
+
+  it("names the permissions and scopes Microsoft Entra ID and Google Workspace containment needs, as the clients ask for them", () => {
+    const containment: string = flat(section(page, "Containment"));
+    const entra: string = flat(
+      source(
+        "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient.ts",
+      ),
+    );
+
+    for (const permission of [
+      "User.Read.All",
+      "User.EnableDisableAccount.All",
+      "User.RevokeSessions.All",
+    ]) {
+      expect(entra).toContain(permission);
+    }
+
+    expect(containment).toContain(
+      "| Microsoft Entra ID | An app with the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All application permissions |",
+    );
+    expect(GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE).toBe(
+      "https://www.googleapis.com/auth/admin.directory.user",
+    );
+    expect(GOOGLE_WORKSPACE_DIRECTORY_SECURITY_SCOPE).toBe(
+      "https://www.googleapis.com/auth/admin.directory.user.security",
+    );
+    expect(containment).toContain(
+      "| Google Workspace | Domain-wide delegation with the admin.directory.user and admin.directory.user.security scopes, for an administrator who manages the user |",
+    );
+    expect(containment).toContain(
+      "changes an administrator's account only for an app that also holds the Privileged Authentication Administrator role",
+    );
+    expect(entra).toContain("Privileged Authentication Administrator role");
   });
 
   it("names the connection each Contain step acts through, and how many entities it acts on", () => {
@@ -1153,9 +1374,16 @@ describe("Security Cases and Playbooks docs", () => {
       ]!;
     });
 
-    expect(undoable).toEqual(["Unsuspend", "Lift Containment", "Release"]);
+    // Okta's and Google Workspace's undo are both Unsuspend.
+    expect(undoable).toEqual([
+      "Unsuspend",
+      "Lift Containment",
+      "Release",
+      "Enable",
+      "Unsuspend",
+    ]);
     expect(flat(section(page, "Undo"))).toContain(
-      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment** or **Release**.",
+      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone.",
     );
   });
 

@@ -44,7 +44,8 @@ Tilkoblingen logger på med [OAuth 2.0-flyten for klientlegitimasjon](https://le
 
 1. Gå til **API permissions → Add a permission → Microsoft Graph → Application permissions**, velg `AuditLog.Read.All`, og velg **Add permissions**. Microsoft dokumenterer at listen over pålogginger også kan kreve `Directory.Read.All`: legg den til hvis pålogginger avvises med `403` etter at samtykket er gitt.
 2. For Microsoft 365-revisjonsloggen legger du til en ny tillatelse: **Add a permission → Office 365 Management APIs → Application permissions**, deretter `ActivityFeed.Read`.
-3. Velg **Grant admin consent for** leieren din, og bekreft. Statusen til hver tillatelse må være **Granted**: uten samtykke avvises hver lesing med `403`.
+3. For å la playbooks deaktivere, aktivere og logge ut brukere (se [Inndemming](/docs/telemetry/security-cases#inndemming)), legger du til `User.Read.All`, `User.EnableDisableAccount.All` og `User.RevokeSessions.All` på samme måte. Microsoft lar bare en app som også har rollen Privileged Authentication Administrator, endre kontoen til en administrator.
+4. Velg **Grant admin consent for** leieren din, og bekreft. Statusen til hver tillatelse må være **Granted**: uten samtykke avvises hver lesing med `403`.
 
 ### Opprett en klienthemmelighet
 

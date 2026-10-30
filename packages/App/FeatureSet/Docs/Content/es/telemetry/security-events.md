@@ -313,7 +313,7 @@ Las cacerías tienen la misma API REST que el resto de OneUptime, en `/security-
 
 ## Reglas de detección
 
-Una regla de detección es una regla [Sigma](https://sigmahq.io/), un formato YAML abierto para describir actividad sospechosa, que OneUptime ejecuta según una programación sobre tus eventos. Cuando coincide, abre un [caso](/docs/telemetry/security-cases) o se suma a uno, abre una alerta, opcionalmente un incidente, y escribe un Detection Finding de vuelta en los eventos. La **Biblioteca de reglas** tiene reglas listas para usar como punto de partida.
+Una regla de detección es una regla [Sigma](https://sigmahq.io/), un formato YAML abierto para describir actividad sospechosa, que OneUptime ejecuta según una programación sobre tus eventos, o sobre cada evento en cuanto llega. Cuando coincide, abre un [caso](/docs/telemetry/security-cases) o se suma a uno, abre una alerta, opcionalmente un incidente, y escribe un Detection Finding de vuelta en los eventos. La **Biblioteca de reglas** tiene reglas listas para usar como punto de partida.
 
 ```mermaid title="Cómo se dispara una regla de detección"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. El **Nombre** se rellena con el `title` de la regla: escríbelo encima para llamarla de otra forma. Una regla nueva se ejecuta; **Habilitado** está en su formulario de edición.
 4. En **Al coincidir**, deja **Abrir un caso al coincidir** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
 5. En **Alertas e incidentes**, elige qué más genera una coincidencia: **Crear una alerta** (el valor por defecto), **Declarar un incidente**, **Ambos** o **Ninguno**, con una **Gravedad de la alerta** o una **Gravedad del incidente** opcionales.
-6. **Más campos** contiene la **Descripción**, **Escribir un hallazgo de detección al coincidir** (activado) y cómo se cuentan las coincidencias; consulta [Ajustes de evaluación](#ajustes-de-evaluación).
+6. **Más campos** contiene la **Descripción**, **Escribir un hallazgo de detección al coincidir** (activado), **Ejecutar en tiempo real** (desactivado) y cómo se cuentan las coincidencias; consulta [Ajustes de evaluación](#ajustes-de-evaluación).
 :::
 
 Una primera regla, que coincide con los inicios de sesión fallidos desde fuera de `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Campo | Qué hace |
 | --- | --- |
 | **Intervalo de evaluación (minutos)** | Cada cuánto se ejecuta la regla: minutos enteros, de 1 a 1440. El formulario de una regla nueva empieza en 5. |
+| **Ejecutar en tiempo real** | Desactivado en una regla nueva. Activado, la regla comprueba cada evento en cuanto llega en lugar de en cada intervalo; consulta [Reglas en tiempo real](#reglas-en-tiempo-real). |
 | **Campo de agrupación** | Opcional. Las coincidencias que comparten el valor de este campo, como `principalHost`, se cuentan, alertan y deduplican juntas: una alerta por host en lugar de cientos. |
 | **Campo de recuento distinto** | Opcional. Cuenta los valores distintos de este campo en lugar de los eventos coincidentes. Los valores vacíos no cuentan. |
 | **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ejecución: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
@@ -450,6 +451,16 @@ OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su interval
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
 - Un evento que llega con más de dos minutos de retraso, cuando una ejecución ya ha cubierto su hora, se guarda y se puede buscar, pero esa regla nunca lo lee.
 - Cada grupo que alcanza el umbral se convierte en un Detection Finding, hasta 10.000 por ejecución. Se abren alertas, incidentes y casos para los 100 con los recuentos más altos; el resto comparte un caso sobre la regla, y el **Último error** de la regla dice cuántos grupos coincidieron.
+
+### Reglas en tiempo real
+
+Una regla que se dispara con un solo evento puede ejecutarse en tiempo real en lugar de en su intervalo: activa **Ejecutar en tiempo real**, en **Más campos** del paso **Al coincidir**. Cada evento que recibe OneUptime, de cualquier origen, se comprueba entonces con la regla en cuanto llega, y una coincidencia abre su caso, su alerta y su hallazgo en segundos.
+
+- Sirve para una regla con un **Umbral de número de coincidencias** de 1, sin **Campo de recuento distinto** y sin el modificador `re`. Una correlación cuenta eventos juntos, así que se ejecuta en su intervalo. El formulario dice qué cambiar cuando una regla no sirve.
+- Un proyecto ejecuta como máximo 50 reglas en tiempo real, ya que cada evento se comprueba con cada una.
+- En **Reglas de detección**, el **Estado** de una regla en tiempo real dice **Tiempo real**, y también su columna de intervalo. Una comprobación que falla aparece en su **Último error**, como la de una ejecución.
+- Al activarla, la regla lee primero lo que llegó desde su última ejecución, así que nada queda entre su programación y el tiempo real. Al desactivarla, vuelve a su intervalo, desde dos minutos antes.
+- Las excepciones y las listas de seguimiento se le aplican como a cualquier regla, y **Ejecutar sobre eventos pasados** la lee como a cualquier otra.
 
 ### Gravedad
 
@@ -573,6 +584,10 @@ Comprueba la clave en `x-oneuptime-token` y la ruta, `/security-events/v1/ingest
 
 :::details Una regla nunca coincide
 Comprueba su **Estado**: con **Deshabilitado** la regla no se ejecuta, y con **La ejecución falló**, **Ver error** en su fila muestra por qué. Abre un evento que esperabas que coincidiera y compáralo con la regla, campo a campo: un valor simple debe ser igual al campo entero, así que usa `contains` o `*` para una parte. Un atributo se nombra como está en el evento (`threat.matched`, no `attributes.threat.matched`). Con un umbral mayor que 1, las coincidencias tienen que caer en una sola ejecución.
+:::
+
+:::details No se puede activar Ejecutar en tiempo real
+La regla cuenta coincidencias, cuenta valores distintos, lee una expresión regular o es una correlación, y el formulario dice cuál: pon **Umbral de número de coincidencias** en 1, vacía **Campo de recuento distinto**, o usa `contains`, `startswith` o `endswith` en lugar de `re`. Un proyecto ejecuta como máximo 50 reglas en tiempo real: desactívalo primero en otra regla.
 :::
 
 :::details Una regla coincidió, pero no se abrió ninguna alerta

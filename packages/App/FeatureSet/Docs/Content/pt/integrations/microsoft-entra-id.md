@@ -44,7 +44,8 @@ A conexão entra com o [fluxo de credenciais do cliente do OAuth 2.0](https://le
 
 1. Vá em **API permissions → Add a permission → Microsoft Graph → Application permissions**, escolha `AuditLog.Read.All` e selecione **Add permissions**. A Microsoft documenta que a lista de logins dela também pode pedir `Directory.Read.All`: adicione-a se os logins forem recusados com `403` depois de concedido o consentimento.
 2. Para o log de auditoria do Microsoft 365, adicione uma segunda permissão: **Add a permission → Office 365 Management APIs → Application permissions**, depois `ActivityFeed.Read`.
-3. Selecione **Grant admin consent for** o seu locatário e confirme. O status de cada permissão deve mostrar **Granted**: sem consentimento, toda leitura é recusada com `403`.
+3. Para que os playbooks possam desativar, ativar e desconectar usuários (veja [Contenção](/docs/telemetry/security-cases#contenção)), adicione do mesmo jeito `User.Read.All`, `User.EnableDisableAccount.All` e `User.RevokeSessions.All`. A Microsoft só deixa um app que também tenha a função Privileged Authentication Administrator mudar a conta de um administrador.
+4. Selecione **Grant admin consent for** o seu locatário e confirme. O status de cada permissão deve mostrar **Granted**: sem consentimento, toda leitura é recusada com `403`.
 
 ### Criar um segredo do cliente
 

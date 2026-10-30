@@ -104,8 +104,8 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).
-- **Evidence**: the files, links and security events kept on the case, each with who added it and when. **Add File** uploads a file of up to 10 MB and records the SHA-256 of what was uploaded, so whoever downloads it later can check it is what was kept; **Add Link** points to evidence kept somewhere else. Only a Security Admin can remove a piece of evidence, and the case's **Timeline** says what was added and removed. A security event is kept here as it was, with **Add to Case** on **Events** or on a [hunt's](/docs/telemetry/security-events#hunts) page, and **View Event** opens it.
-- **Tasks**: what has to be done on the case, who is doing it, and whether it is done. Add a task as a line, hand it to someone, and tick it off when it is done. The person it is handed to is told, unless they took it themselves, and the menu shows how many tasks are open beside **Tasks**.
+- **Evidence**: the files, links and security events kept on the case, each with who added it and when. **Add File** uploads a file of up to 10 MB and records the SHA-256 of what was uploaded, so whoever downloads it later can check it is what was kept; **Add Link** points to evidence kept somewhere else. Only a Security Admin can remove a piece of evidence, and the case's **Timeline** says what was added and removed. A security event is kept here as it was, with **Add to Case** on **Events** or on a [hunt's](/docs/telemetry/security-events#hunts) page, and **View Event** opens it. A playbook's **Preserve the evidence** step keeps the events behind the case's detections here too.
+- **Tasks**: what has to be done on the case, who is doing it, and whether it is done. Add a task as a line, hand it to someone, and tick it off when it is done. The person it is handed to is told, unless they took it themselves, and the menu shows how many tasks are open beside **Tasks**. A playbook's **Add tasks** step adds tasks too, and leaves out any the case has already.
 - **Playbooks**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbooks**.
 - **Private Notes**: what the team wrote about the case.
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
@@ -264,9 +264,10 @@ A disabled playbook runs neither by itself nor by hand.
 | Case | Set the status | Moves the case to another of the project's statuses, with the verdict you choose when that status closes it |
 | Case | Add a note | Writes a note on the case, such as a checklist for the analyst |
 | Case | Add labels | Tags the case with labels |
+| Case | Add tasks | Adds tasks to the case's checklist, for a person or for whoever works the case |
 | Investigate | Check entities against threat intel | Looks each entity up in your threat intelligence, and can raise the priority on a match |
 | Investigate | Look up entity activity | Counts each entity's security events over a recent window, and notes it on the case |
-| Investigate | Preserve the evidence | Keeps the session replays of the requests behind the case, and notes their traces and exceptions on the case |
+| Investigate | Preserve the evidence | Keeps the events behind the case's detections and the session replays of its requests, and notes their traces and exceptions on the case |
 | Notify | Email people | Emails users and teams a summary of the case, with a link to it |
 | Notify | Notify data store owners | Emails the owners of each data store the case is about, with a link to the case |
 | Notify | Post to Slack | Posts a summary of the case to a Slack channel |
@@ -278,9 +279,15 @@ A disabled playbook runs neither by itself nor by hand.
 | Contain | End the user's Okta sessions | Signs the user the case is about out of Okta and revokes their tokens |
 | Contain | Contain the host in CrowdStrike | Network-contains the host the case is about with CrowdStrike Falcon |
 | Contain | Isolate the device in Microsoft Defender | Isolates the host the case is about with Microsoft Defender for Endpoint |
+| Contain | Disable the user in Microsoft Entra ID | Disables the account of the user the case is about in Microsoft Entra ID |
+| Contain | Sign the user out of Microsoft Entra ID | Signs the user the case is about out of Microsoft Entra ID everywhere and revokes their refresh tokens |
+| Contain | Suspend the user in Google Workspace | Suspends the user the case is about in Google Workspace |
+| Contain | Sign the user out of Google Workspace | Signs the user the case is about out of Google Workspace on every browser and device |
 | Contain | Unsuspend the user in Okta | Unsuspends the user the case is about in Okta |
 | Contain | Lift containment in CrowdStrike | Lifts CrowdStrike Falcon's network containment from the host the case is about |
 | Contain | Release the device in Microsoft Defender | Releases the host the case is about from isolation in Microsoft Defender for Endpoint |
+| Contain | Enable the user in Microsoft Entra ID | Enables the account of the user the case is about in Microsoft Entra ID again |
+| Contain | Unsuspend the user in Google Workspace | Unsuspends the user the case is about in Google Workspace |
 | Contain | Block public access to data stores | Blocks public access to each bucket or storage account the case is about, through its cloud connection |
 | Contain | Revoke data store sharing | Stops sharing the snapshots of each database the case is about outside your accounts, through its cloud connection |
 | Automate | Send a webhook | Posts the case as JSON to a URL |
@@ -290,16 +297,28 @@ A disabled playbook runs neither by itself nor by hand.
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
-- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook**, **Post a status page announcement** and the two data store steps start with it on, since they run commands on your systems, speak to your customers or change a cloud's settings; whoever adds the step can turn it off.
-- **Only If Threat Intel Matched**: skip the step unless an earlier **Check entities against threat intel** step of the run found a known indicator.
-- **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run.
+- **Needs Approval**: stop the run before the step until someone approves it on the case. The eight steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook**, **Post a status page announcement** and the two data store steps start with it on, since they run commands on your systems, speak to your customers or change a cloud's settings; whoever adds the step can turn it off.
+- **Run This Step**: **Always**, or only after a result of a step before it, such as **Check entities against threat intel** finding a known-bad entity; see [Branch on a step's result](#branch-on-a-steps-result).
+- **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run. It waits under **More fields**, with **Run This Step**.
+
+### Branch on a step's result
+
+**Run This Step** makes a step wait on how a step before it ended. Each step before it offers its results:
+
+| A step before it | Its results |
+| --- | --- |
+| Check entities against threat intel | Found a known-bad entity, or found nothing known-bad |
+| Look up entity activity | Found activity, or found no activity |
+| Any other step | Succeeded, and failed when it has **Carry On If It Fails** on |
+
+Two steps that wait on opposite results of one step are an if and an else: suspend a user only when threat intel knows them, and otherwise add a task to confirm the sign-in with them. When the step waited on ends another way, the step that waits is skipped, and the run says why under it; so is a step that waits on one that was skipped. A step's card says what it waits on, and a step that another waits on can't be moved below it or deleted until that one runs another way. The **Escalate Known-Bad Indicators** template raises a case's priority and status only when threat intel matched, and a step saved with the old threat intel switch keeps it as **Only if an earlier threat intel check found a known-bad entity**.
 
 ### Responding through OneUptime
 
 Four steps act through the rest of OneUptime rather than a connected product:
 
 - **Run a runbook** starts one of your [runbooks](/docs/runbooks/index) with the case as its inputs, which a Bash step reads as environment variables (see [Call the webhook](/docs/runbooks/triggers#call-the-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` and `ONEUPTIME_INPUT_HOST` are the address, user and host the case is about, chosen by the same rule as a Contain step, and empty when it is about none. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` and `ONEUPTIME_INPUT_HOSTS` list every one the case names, as JSON, and `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` and `ONEUPTIME_INPUT_CASE_URL` say which case it is. A protected user or host is never among them. The runbook's run says it was started by **Security playbook**, for the case.
-- **Preserve the evidence** keeps the session replays of the requests behind the case past their retention, and writes a note on the case that links each request's trace, each replay and each exception. Logs and traces cannot be kept longer than the project keeps telemetry, so export what you need before then.
+- **Preserve the evidence** keeps the latest event of each of the case's detections, up to 100, on its **Evidence** page as it is now, and the session replays of the requests behind the case past their retention, and writes a note on the case that links each request's trace, each replay and each exception. Logs and traces cannot be kept longer than the project keeps telemetry, so export what you need before then.
 - **Post a status page announcement** posts what you wrote, as you wrote it, on the status pages you choose. Nothing from the case is added to it. Its subscribers are told only when **Notify Subscribers** is on.
 - **Fix the code with AI** asks OneUptime AI for a pull request that fixes each exception the case's requests threw, up to three. It needs OneUptime AI on, a repository that holds the code connected through the GitHub App, and a runner. Without them the step is skipped and says what is missing.
 
@@ -312,6 +331,8 @@ The Contain steps act through a connection that needs more than read access: a [
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | An API token allowed to manage users |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | An API client with the Hosts write scope |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | An app with the Machine.Isolate permission |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | An app with the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All application permissions |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domain-wide delegation with the admin.directory.user and admin.directory.user.security scopes, for an administrator who manages the user |
 | Block public access to data stores, Revoke data store sharing | The store's cloud connection | **Data security response** turned on, and its setup command run again |
 
 A user or host step acts only on the users or hosts the case is about, never on every one it names:
@@ -319,7 +340,7 @@ A user or host step acts only on the users or hosts the case is about, never on 
 - The value a detection of the case is grouped on, such as the account an impossible-travel rule groups by, or the host a connected product's alert names.
 - A user or host of the case that your threat intelligence knows as an indicator.
 
-A case grouped on an address, such as a brute force against your VPN, is about neither: its Contain steps are skipped, and the account it tried and the gateway it hit are left alone. A step acts on at most 10 users or hosts. It finds each in the product by name, and says on the run what it did with each one: done, already done, not found, refused, or protected.
+A case grouped on an address, such as a brute force against your VPN, is about neither: its Contain steps are skipped, and the account it tried and the gateway it hit are left alone. A step acts on at most 10 users or hosts. It finds each in the product by name, and says on the run what it did with each one: done, already done, not found, refused, or protected. Microsoft Entra ID finds a user by sign-in name or mail address, and changes an administrator's account only for an app that also holds the Privileged Authentication Administrator role; Google Workspace finds one by primary or alias address.
 
 The two data store steps act on the data stores the case is about, at most 10: those of the Data Security issues it took in, and any a detection grouped it on. They leave a store marked **Public By Design** alone, change how a store is shared but never its data, and say on the run what they did with each store (see [Close an exposure](/docs/data-security/integrations#close-an-exposure)).
 
@@ -329,11 +350,11 @@ The two data store steps act on the data stores the case is about, at most 10: t
 
 #### Approval
 
-The four steps that cut someone off wait for approval. Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did. The approval lists the users or hosts the step would act on under **Act On**, every one ticked: untick any it should leave alone. Protected ones are not offered. Whoever started a run cannot approve its steps: someone else does, though they can still reject it.
+The eight steps that cut someone off wait for approval. Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did. The approval lists the users or hosts the step would act on under **Act On**, every one ticked: untick any it should leave alone. Protected ones are not offered. Whoever started a run cannot approve its steps: someone else does, though they can still reject it.
 
 #### Undo
 
-The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment** or **Release**. An ended Okta session cannot be undone. Every undo is kept on the case's timeline and in the project's audit log.
+The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone. Every undo is kept on the case's timeline and in the project's audit log.
 
 ### Messages
 
@@ -417,6 +438,10 @@ Open the run on the case: the step says, for each user or host, whether the prod
 
 :::details A Contain step was skipped
 The case is about no user or host, only an address for example, or every user or host it is about is protected. Open the run on the case: the step says which.
+:::
+
+:::details A step that runs only after another was skipped
+The step it waits on ended another way, or was skipped itself: it found nothing known-bad, say, where the step waits for a known-bad entity. Open the run on the case: the skipped step says which step it waited on, and for what. To change it, edit the step and open **More fields**.
 :::
 
 :::details A status or priority can't be deleted or archived

@@ -38758,7 +38758,7 @@
   "Unsuspend the user in Google Workspace": "Unsuspend the user in Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Who does the tasks. Left empty, they are for whoever works the case.",
   "{{tasks}} for a person": "{{tasks}} for a person",
-  "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.": "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.",
+  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Checks each event as it arrives, within seconds, instead of every interval.",
   "Keeps events and session replays, notes traces and exceptions": "Keeps events and session replays, notes traces and exceptions",
   "Real time": "Real time",

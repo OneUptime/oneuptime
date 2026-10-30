@@ -104,8 +104,8 @@ flowchart TB
 - **检测**：触发后打开或并入该案例的检测、触发次数，以及最新的匹配事件。
 - **实体**：案例涉及的用户、主机和地址，以及它们最近 7 天在你所有安全事件中的活动。每个实体都可以在 **关联分析** 中打开。
 - **关联信号**：案例所指的主机、集群、服务和成员（按 OneUptime 所知），以及其检测前后各自发生的情况：它们的日志、追踪和指标，其上未解决的内容和发生的变更。请参阅[关联信号](/docs/telemetry/security-connected-signals)。
-- **证据**：保存在案例中的文件、链接和安全事件，每项都记录添加人和添加时间。**添加文件** 上传不超过 10 MB 的文件，并记录所上传内容的 SHA-256，这样之后下载的人可以核对它是否就是所保存的内容；**添加链接** 指向保存在其他地方的证据。只有 Security Admin 才能移除证据，案例的 **时间线** 会记录添加和移除了什么。安全事件可在 **事件** 或 [狩猎](/docs/telemetry/security-events#狩猎) 页面上通过 **添加到案例** 按原样保存到这里，**查看事件** 可以打开它。
-- **任务**：案例中需要做什么、由谁在做，以及是否已完成。用一行添加任务，把它交给某人，完成后勾选。接手任务的人会收到通知（自己领取的除外），菜单还会在 **任务** 旁显示未完成任务的数量。
+- **证据**：保存在案例中的文件、链接和安全事件，每项都记录添加人和添加时间。**添加文件** 上传不超过 10 MB 的文件，并记录所上传内容的 SHA-256，这样之后下载的人可以核对它是否就是所保存的内容；**添加链接** 指向保存在其他地方的证据。只有 Security Admin 才能移除证据，案例的 **时间线** 会记录添加和移除了什么。安全事件可在 **事件** 或 [狩猎](/docs/telemetry/security-events#狩猎) 页面上通过 **添加到案例** 按原样保存到这里，**查看事件** 可以打开它。剧本的 **Preserve the evidence** 步骤也会把案例检测背后的事件保存到这里。
+- **任务**：案例中需要做什么、由谁在做，以及是否已完成。用一行添加任务，把它交给某人，完成后勾选。接手任务的人会收到通知（自己领取的除外），菜单还会在 **任务** 旁显示未完成任务的数量。剧本的 **添加任务** 步骤也会添加任务，并略过案例已有的任务。
 - **剧本**：每个剧本在该案例上逐步做了什么，以及等待审批的步骤。有运行在等待时，菜单会在 **剧本** 旁显示等待的数量。
 - **私人备注**：团队就该案例写下的内容。
 - **审计日志**：对案例的每一次更改，以及更改人。请参阅 [审计日志](/docs/configuration/audit-logs)。
@@ -264,9 +264,10 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | 案例 | Set the status | 把案例移到项目的另一个状态；如果该状态会关闭案例，则附上你选择的结论 |
 | 案例 | Add a note | 在案例上写一条备注，例如给分析师的检查清单 |
 | 案例 | Add labels | 为案例添加标签 |
+| 案例 | Add tasks | 向案例的清单添加任务，交给某个人，或留给处理案例的人 |
 | 调查 | Check entities against threat intel | 在你的威胁情报中查找每个实体，匹配时可以提高优先级 |
 | 调查 | Look up entity activity | 统计每个实体在最近一段时间内的安全事件，并记录到案例上 |
-| 调查 | Preserve the evidence | 保留案例背后请求的会话回放，并把它们的追踪和异常记录到案例上 |
+| 调查 | Preserve the evidence | 保留案例检测背后的事件及其请求的会话回放，并把它们的追踪和异常记录到案例上 |
 | 通知 | Email people | 通过电子邮件向用户和团队发送案例摘要及其链接 |
 | 通知 | Notify data store owners | 通过电子邮件向案例涉及的每个数据存储的所有者发送案例链接 |
 | 通知 | Post to Slack | 把案例摘要发布到某个 Slack 频道 |
@@ -278,9 +279,15 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | 遏制 | End the user's Okta sessions | 让案例涉及的用户退出 Okta 登录，并吊销其令牌 |
 | 遏制 | Contain the host in CrowdStrike | 通过 CrowdStrike Falcon 对案例涉及的主机进行网络遏制 |
 | 遏制 | Isolate the device in Microsoft Defender | 通过 Microsoft Defender for Endpoint 隔离案例涉及的主机 |
+| 遏制 | Disable the user in Microsoft Entra ID | 在 Microsoft Entra ID 中禁用案例涉及的用户的账户 |
+| 遏制 | Sign the user out of Microsoft Entra ID | 将案例涉及的用户从所有位置注销 Microsoft Entra ID，并吊销其刷新令牌 |
+| 遏制 | Suspend the user in Google Workspace | 在 Google Workspace 中暂停案例涉及的用户 |
+| 遏制 | Sign the user out of Google Workspace | 在每个浏览器和设备上将案例涉及的用户从 Google Workspace 注销 |
 | 遏制 | Unsuspend the user in Okta | 在 Okta 中取消暂停案例涉及的用户 |
 | 遏制 | Lift containment in CrowdStrike | 解除 CrowdStrike Falcon 对案例涉及的主机施加的网络遏制 |
 | 遏制 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中将案例涉及的主机解除隔离 |
+| 遏制 | Enable the user in Microsoft Entra ID | 在 Microsoft Entra ID 中重新启用案例涉及的用户的账户 |
+| 遏制 | Unsuspend the user in Google Workspace | 在 Google Workspace 中解除暂停案例涉及的用户 |
 | 遏制 | 阻止对数据存储的公开访问 | 通过其云连接，阻止对案例涉及的每个存储桶或存储账户的公开访问 |
 | 遏制 | 撤销数据存储共享 | 通过其云连接，停止在你的账户之外共享案例涉及的每个数据库的快照 |
 | 自动化 | Send a webhook | 把案例以 JSON 格式 POST 到某个 URL |
@@ -290,16 +297,28 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 
 一个剧本最多有 25 个步骤。它们按顺序运行，每个步骤在前一个完成后才开始。每个步骤还可以设置：
 
-- **需要批准**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。**Run a runbook**、**Post a status page announcement** 和两个数据存储步骤默认开启批准，因为它们会在你的系统上执行命令、面向你的客户发布内容或更改云的设置；添加该步骤的人可以将其关闭。
-- **仅在威胁情报匹配时**：除非本次运行中之前的 **用威胁情报检查实体** 步骤发现了已知指标，否则跳过该步骤。
-- **失败时继续**：即使该步骤失败，也继续运行下一个步骤。关闭此项时，失败的步骤会停止本次运行。
+- **需要批准**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的八个步骤始终如此，除非 Security Admin 将其关闭。**Run a runbook**、**Post a status page announcement** 和两个数据存储步骤默认开启批准，因为它们会在你的系统上执行命令、面向你的客户发布内容或更改云的设置；添加该步骤的人可以将其关闭。
+- **运行此步骤**：**始终** 运行，或仅在前面某个步骤得出某个结果后运行，例如 **用威胁情报检查实体** 发现已知恶意实体时；参见 [按步骤的结果分支](#按步骤的结果分支)。
+- **失败时继续**：即使该步骤失败，也继续运行下一个步骤。关闭此项时，失败的步骤会停止本次运行。它和 **运行此步骤** 一起位于 **更多字段** 中。
+
+### 按步骤的结果分支
+
+**运行此步骤** 让一个步骤等待前面某个步骤的结束方式。前面的每个步骤都提供它的结果：
+
+| 前面的步骤 | 它的结果 |
+| --- | --- |
+| 用威胁情报检查实体 | 发现已知恶意实体，或未发现已知恶意项 |
+| 查询实体活动 | 发现活动，或未发现活动 |
+| 任何其他步骤 | 成功；开启了 **失败时继续** 时，还有失败 |
+
+等待同一步骤相反结果的两个步骤就是一个 if 和一个 else：只有威胁情报知道某个用户时才暂停该用户，否则添加一个任务，与该用户确认这次登录。被等待的步骤以其他方式结束时，等待它的步骤会被跳过，运行会在它下方说明原因；等待一个被跳过步骤的步骤也是如此。步骤的卡片会说明它在等待什么；另一个步骤所等待的步骤，在那个步骤改为以其他方式运行之前，既不能移到它下方，也不能删除。**升级已知恶意指标** 模板只在威胁情报匹配时才提高案例的优先级和状态；用旧的威胁情报开关保存的步骤会把它保留为 **仅当前面的威胁情报检查发现已知恶意实体时**。
 
 ### 通过 OneUptime 响应
 
 以下四个步骤通过 OneUptime 的其他部分执行，而不是通过已连接的产品：
 
 - **Run a runbook** 以案例作为输入，启动你的某个[运行手册](/docs/runbooks/index)，Bash 步骤会把这些输入读作环境变量（参见[调用 Webhook](/docs/runbooks/triggers#调用-webhook)）。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 和 `ONEUPTIME_INPUT_HOST` 是案例所涉及的地址、用户和主机，按与遏制类步骤相同的规则选出，案例不涉及其中任何一个时为空。`ONEUPTIME_INPUT_IPS`、`ONEUPTIME_INPUT_USERS` 和 `ONEUPTIME_INPUT_HOSTS` 以 JSON 列出案例提到的所有对象，`ONEUPTIME_INPUT_CASE_NUMBER`、`ONEUPTIME_INPUT_CASE_TITLE` 和 `ONEUPTIME_INPUT_CASE_URL` 说明是哪个案例。受保护的用户或主机永远不会在其中。运行手册的运行记录会注明它是由 **Security playbook** 为该案例启动的。
-- **Preserve the evidence** 将案例背后请求的会话回放保留到其保留期之后，并在案例上写一条备注，链接每个请求的追踪、每个回放和每个异常。日志和追踪的保存时间不能超过项目保留遥测数据的时间，因此请在此之前导出你需要的内容。
+- **Preserve the evidence** 把案例每个检测的最新事件按原样保存到案例的 **证据** 页面，最多 100 个，将案例背后请求的会话回放保留到其保留期之后，并在案例上写一条备注，链接每个请求的追踪、每个回放和每个异常。日志和追踪的保存时间不能超过项目保留遥测数据的时间，因此请在此之前导出你需要的内容。
 - **Post a status page announcement** 按你撰写的原样，把你写的内容发布到你选择的状态页上。不会添加案例中的任何内容。只有开启 **通知订阅者** 时，才会通知这些状态页的订阅者。
 - **Fix the code with AI** 针对案例的请求所引发的每个异常（最多三个），请 OneUptime AI 提交一个修复它的拉取请求。该步骤需要开启 OneUptime AI、一个包含代码并通过 GitHub App 连接的代码仓库，以及一个运行器。缺少这些时，该步骤会被跳过并说明缺少什么。
 
@@ -312,6 +331,8 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | 一个有权管理用户的 API 令牌 |
 | Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | 一个具有 Hosts 写入范围的 API 客户端 |
 | Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | 一个具有 Machine.Isolate 权限的应用 |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | 具有 User.Read.All、User.EnableDisableAccount.All 和 User.RevokeSessions.All 应用程序权限的应用 |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | 具有 admin.directory.user 和 admin.directory.user.security 范围的全网域授权，以管理该用户的管理员身份执行 |
 | 阻止对数据存储的公开访问、撤销数据存储共享 | 数据存储的云连接 | 已开启 **数据安全响应**，并重新运行其设置命令 |
 
 用户或主机类步骤只作用于案例涉及的用户或主机，绝不会作用于案例提到的所有用户或主机：
@@ -319,7 +340,7 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 - 案例中某个检测分组所依据的值，例如“不可能的旅行”规则分组所依据的账户，或已连接产品的警报中提到的主机。
 - 案例中被你的威胁情报列为指标的用户或主机。
 
-按地址分组的案例，例如针对你的 VPN 的暴力破解，并不涉及以上任何一种：它的遏制类步骤会被跳过，它尝试过的账户和它攻击的网关都不会被触及。一个步骤最多作用于 10 个用户或主机。它会按名称在产品中查找每一个，并在运行上说明对每一个做了什么：已完成、早已完成、未找到、被拒绝或受保护。
+按地址分组的案例，例如针对你的 VPN 的暴力破解，并不涉及以上任何一种：它的遏制类步骤会被跳过，它尝试过的账户和它攻击的网关都不会被触及。一个步骤最多作用于 10 个用户或主机。它会按名称在产品中查找每一个，并在运行上说明对每一个做了什么：已完成、早已完成、未找到、被拒绝或受保护。Microsoft Entra ID 按登录名或邮件地址查找用户，并且只允许同时具有 Privileged Authentication Administrator 角色的应用更改管理员的账户；Google Workspace 按主地址或别名查找用户。
 
 两个数据存储步骤作用于案例涉及的数据存储，最多 10 个：案例所并入的数据安全问题的数据存储，以及检测据以对案例分组的任何数据存储。它们不会触及标记为 **有意公开** 的数据存储，只更改数据存储的共享方式而绝不更改其数据，并在运行上说明对每个数据存储做了什么（参见 [消除暴露](/docs/data-security/integrations#消除暴露)）。
 
@@ -329,11 +350,11 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 
 #### 审批
 
-切断某人访问的四个步骤会等待审批。只有 Security Admin 可以为其中某个步骤关闭 **需要批准**，OneUptime 会记录是谁关闭的。审批时会在 **作用对象** 下列出该步骤将要作用的用户或主机，每一个都已勾选：取消勾选该步骤不应触及的那些。受保护的用户或主机不会列为可选项。发起运行的人不能批准它的步骤：要由其他人批准，不过发起人仍然可以拒绝该步骤。
+切断某人访问的八个步骤会等待审批。只有 Security Admin 可以为其中某个步骤关闭 **需要批准**，OneUptime 会记录是谁关闭的。审批时会在 **作用对象** 下列出该步骤将要作用的用户或主机，每一个都已勾选：取消勾选该步骤不应触及的那些。受保护的用户或主机不会列为可选项。发起运行的人不能批准它的步骤：要由其他人批准，不过发起人仍然可以拒绝该步骤。
 
 #### 撤销
 
-撤销类步骤和它们所撤销的步骤一样，作用于案例涉及的用户或主机。运行停止后，被遏制的用户或主机在其步骤上还会有一个专属按钮：**解除暂停**、**解除遏制** 或 **释放**。已结束的 Okta 会话无法撤销。每次撤销都会记录在案例的时间线上和项目的审计日志中。
+撤销类步骤和它们所撤销的步骤一样，作用于案例涉及的用户或主机。运行停止后，被遏制的用户或主机在其步骤上还会有一个专属按钮：**解除暂停**、**解除遏制**、**释放** 或 **启用**。注销无法撤销。每次撤销都会记录在案例的时间线上和项目的审计日志中。
 
 ### 消息
 
@@ -417,6 +438,10 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 
 :::details 遏制类步骤被跳过
 案例不涉及任何用户或主机，例如只涉及一个地址，或者它涉及的每个用户或主机都受保护。在案例上打开这次运行：该步骤会说明是哪一种情况。
+:::
+
+:::details 只在另一个步骤之后运行的步骤被跳过了
+它等待的步骤以其他方式结束了，或者自身被跳过了：例如该步骤等待已知恶意实体，而那个步骤未发现已知恶意项。在案例上打开这次运行：被跳过的步骤会说明它等待的是哪个步骤的什么结果。要更改它，请编辑该步骤并打开 **更多字段**。
 :::
 
 :::details 无法删除或归档某个状态或优先级

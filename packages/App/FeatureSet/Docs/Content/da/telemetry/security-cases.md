@@ -104,8 +104,8 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
-- **Beviser**: de filer, links og sikkerhedsbegivenheder, der gemmes på sagen, hver med hvem der tilføjede den og hvornår. Med **Tilføj fil** uploader du en fil på op til 10 MB, og SHA-256 for det uploadede registreres, så den, der senere downloader den, kan kontrollere, at det er det, der blev gemt; med **Tilføj link** henviser du til beviser, der opbevares et andet sted. Kun en Security Admin kan fjerne et bevis, og sagens **Tidslinje** viser, hvad der blev tilføjet og fjernet. En sikkerhedsbegivenhed gemmes her, som den var, med **Føj til sag** under **Begivenheder** eller på en [hunts](/docs/telemetry/security-events#hunts) side, og **Vis begivenhed** åbner den.
-- **Opgaver**: hvad der skal gøres i sagen, hvem der gør det, og om det er gjort. Tilføj en opgave som en linje, giv den til nogen, og sæt flueben ved den, når den er udført. Den, opgaven gives til, får besked, medmindre vedkommende selv tog den, og menuen viser ved siden af **Opgaver**, hvor mange opgaver der er åbne.
+- **Beviser**: de filer, links og sikkerhedsbegivenheder, der gemmes på sagen, hver med hvem der tilføjede den og hvornår. Med **Tilføj fil** uploader du en fil på op til 10 MB, og SHA-256 for det uploadede registreres, så den, der senere downloader den, kan kontrollere, at det er det, der blev gemt; med **Tilføj link** henviser du til beviser, der opbevares et andet sted. Kun en Security Admin kan fjerne et bevis, og sagens **Tidslinje** viser, hvad der blev tilføjet og fjernet. En sikkerhedsbegivenhed gemmes her, som den var, med **Føj til sag** under **Begivenheder** eller på en [hunts](/docs/telemetry/security-events#hunts) side, og **Vis begivenhed** åbner den. Et playbooks trin **Preserve the evidence** gemmer også her begivenhederne bag sagens detektioner.
+- **Opgaver**: hvad der skal gøres i sagen, hvem der gør det, og om det er gjort. Tilføj en opgave som en linje, giv den til nogen, og sæt flueben ved den, når den er udført. Den, opgaven gives til, får besked, medmindre vedkommende selv tog den, og menuen viser ved siden af **Opgaver**, hvor mange opgaver der er åbne. Et playbooks trin **Tilføj opgaver** tilføjer også opgaver og udelader dem, sagen allerede har.
 - **Playbooks**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbooks**.
 - **Private noter**: hvad teamet skrev om sagen.
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
@@ -264,9 +264,10 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Case | Set the status | Flytter sagen til en anden af projektets statusser, med den konklusion, du vælger, når den status lukker den |
 | Case | Add a note | Skriver en note på sagen, f.eks. en tjekliste til analytikeren |
 | Case | Add labels | Mærker sagen med etiketter |
+| Case | Add tasks | Tilføjer opgaver til sagens tjekliste, til en person eller til den, der arbejder med sagen |
 | Investigate | Check entities against threat intel | Slår hver entitet op i din trusselsintelligens og kan hæve prioriteten ved et match |
 | Investigate | Look up entity activity | Tæller hver entitets sikkerhedsbegivenheder over et nyligt tidsvindue og noterer det på sagen |
-| Investigate | Preserve the evidence | Gemmer sessionsoptagelserne af anmodningerne bag sagen og noterer deres traces og undtagelser på sagen |
+| Investigate | Preserve the evidence | Gemmer begivenhederne bag sagens detektioner og sessionsoptagelserne af dens anmodninger og noterer deres traces og undtagelser på sagen |
 | Notify | Email people | Sender brugere og teams en opsummering af sagen på e-mail med et link til den |
 | Notify | Notify data store owners | Sender ejerne af hvert datalager, sagen handler om, en e-mail med et link til sagen |
 | Notify | Post to Slack | Slår en opsummering af sagen op i en Slack-kanal |
@@ -278,9 +279,15 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | End the user's Okta sessions | Logger den bruger, sagen handler om, ud af Okta og tilbagekalder deres tokens |
 | Contain | Contain the host in CrowdStrike | Isolerer den vært, sagen handler om, fra netværket med CrowdStrike Falcon |
 | Contain | Isolate the device in Microsoft Defender | Isolerer den vært, sagen handler om, med Microsoft Defender for Endpoint |
+| Contain | Disable the user in Microsoft Entra ID | Deaktiverer i Microsoft Entra ID kontoen for den bruger, sagen handler om |
+| Contain | Sign the user out of Microsoft Entra ID | Logger den bruger, sagen handler om, ud af Microsoft Entra ID overalt og tilbagekalder brugerens opdateringstokens |
+| Contain | Suspend the user in Google Workspace | Suspenderer i Google Workspace den bruger, sagen handler om |
+| Contain | Sign the user out of Google Workspace | Logger den bruger, sagen handler om, ud af Google Workspace i alle browsere og på alle enheder |
 | Contain | Unsuspend the user in Okta | Ophæver suspenderingen af den bruger, sagen handler om, i Okta |
 | Contain | Lift containment in CrowdStrike | Ophæver CrowdStrike Falcons netværksisolering af den vært, sagen handler om |
 | Contain | Release the device in Microsoft Defender | Frigiver den vært, sagen handler om, fra isoleringen i Microsoft Defender for Endpoint |
+| Contain | Enable the user in Microsoft Entra ID | Aktiverer igen i Microsoft Entra ID kontoen for den bruger, sagen handler om |
+| Contain | Unsuspend the user in Google Workspace | Ophæver i Google Workspace suspenderingen af den bruger, sagen handler om |
 | Contain | Bloker offentlig adgang til datalagre | Blokerer offentlig adgang til hver bucket eller storage account, sagen handler om, gennem dens cloudforbindelse |
 | Contain | Tilbagekald deling af datalager | Stopper delingen uden for jeres konti af snapshots af hver database, sagen handler om, gennem dens cloudforbindelse |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
@@ -290,16 +297,28 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
-- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
-- **Kun ved træf i trusselsinformation**: springe trinnet over, medmindre et tidligere trin **Tjek entiteter mod trusselsinformation** i kørslen fandt en kendt indikator.
-- **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen.
+- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De otte trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
+- **Kør dette trin**: **Altid**, eller kun efter et resultat af et tidligere trin, f.eks. at **Tjek entiteter mod trusselsinformation** finder en kendt ondsindet entitet; se [Forgren efter et trins resultat](#forgren-efter-et-trins-resultat).
+- **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen. Den findes under **Flere felter** sammen med **Kør dette trin**.
+
+### Forgren efter et trins resultat
+
+**Kør dette trin** får et trin til at vente på, hvordan et tidligere trin endte. Hvert tidligere trin tilbyder sine resultater:
+
+| Et tidligere trin | Dets resultater |
+| --- | --- |
+| Tjek entiteter mod trusselsinformation | Fandt en kendt ondsindet entitet, eller fandt intet kendt ondsindet |
+| Slå entitetsaktivitet op | Fandt aktivitet, eller fandt ingen aktivitet |
+| Ethvert andet trin | Lykkedes, og mislykkedes, når det har **Fortsæt, hvis det mislykkes** slået til |
+
+To trin, der venter på modsatte resultater af det samme trin, er et hvis og et ellers: suspender kun en bruger, når trusselsinformationen kender vedkommende, og tilføj ellers en opgave om at bekræfte login med vedkommende. Når det trin, der ventes på, ender på en anden måde, springes det ventende trin over, og kørslen fortæller under det hvorfor; det samme gælder et trin, der venter på et, der blev sprunget over. Et trins kort viser, hvad det venter på, og et trin, som et andet venter på, kan ikke flyttes ned under det eller slettes, før det andet kører på en anden måde. Skabelonen **Eskalér kendte ondsindede indikatorer** hæver kun en sags prioritet og status ved træf i trusselsinformation, og et trin, der er gemt med den gamle kontakt for trusselsinformation, beholder den som **Kun hvis et tidligere tjek af trusselsinformation fandt en kendt ondsindet entitet**.
 
 ### Reaktion gennem OneUptime
 
 Fire trin handler gennem resten af OneUptime i stedet for gennem et forbundet produkt:
 
 - **Run a runbook** starter en af dine [runbooks](/docs/runbooks/index) med sagen som input, som et Bash-trin læser som miljøvariabler (se [Kald webhooken](/docs/runbooks/triggers#kald-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er den adresse, bruger og vært, sagen handler om, valgt efter samme regel som for et Contain-trin, og tomme, når den ikke handler om nogen. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` og `ONEUPTIME_INPUT_HOSTS` oplister som JSON alle dem, sagen nævner, og `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` og `ONEUPTIME_INPUT_CASE_URL` fortæller, hvilken sag det er. En beskyttet bruger eller vært er aldrig blandt dem. Runbookens kørsel viser, at den blev startet af **Security playbook** for sagen.
-- **Preserve the evidence** gemmer sessionsoptagelserne af anmodningerne bag sagen ud over deres opbevaringstid og skriver en note på sagen, der linker til hver anmodnings trace, hver optagelse og hver undtagelse. Logs og traces kan ikke gemmes længere, end projektet gemmer telemetri, så eksportér det, du har brug for, inden da.
+- **Preserve the evidence** gemmer den seneste begivenhed for hver af sagens detektioner, op til 100, som den er nu, på sagens side **Beviser**, gemmer sessionsoptagelserne af anmodningerne bag sagen ud over deres opbevaringstid og skriver en note på sagen, der linker til hver anmodnings trace, hver optagelse og hver undtagelse. Logs og traces kan ikke gemmes længere, end projektet gemmer telemetri, så eksportér det, du har brug for, inden da.
 - **Post a status page announcement** slår det, du skrev, op, som du skrev det, på de statussider, du vælger. Intet fra sagen tilføjes. Deres abonnenter får kun besked, når **Underret abonnenter** er slået til.
 - **Fix the code with AI** beder OneUptime AI om en pull request, der retter hver undtagelse, sagens anmodninger udløste, op til tre. Trinnet kræver, at OneUptime AI er slået til, et repository med koden forbundet via GitHub-appen og en runner. Uden dem springes trinnet over og siger, hvad der mangler.
 
@@ -312,6 +331,8 @@ Contain-trinnene handler gennem en forbindelse, der skal have mere end læseadga
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token, der må administrere brugere |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skriveadgang til scopet Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tilladelsen Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | En app med programtilladelserne User.Read.All, User.EnableDisableAccount.All og User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domæneomfattende delegering med scopes admin.directory.user og admin.directory.user.security, for en administrator, der administrerer brugeren |
 | Bloker offentlig adgang til datalagre, Tilbagekald deling af datalager | Datalagerets cloudforbindelse | **Datasikkerhedsrespons** slået til, og dens opsætningskommando kørt igen |
 
 Et bruger- eller værtstrin handler kun på de brugere eller værter, sagen handler om, aldrig på alle dem, den nævner:
@@ -319,7 +340,7 @@ Et bruger- eller værtstrin handler kun på de brugere eller værter, sagen hand
 - Den værdi, en af sagens detektioner er grupperet efter, f.eks. den konto, en regel for umulige rejser grupperer efter, eller den vært, en advarsel fra et forbundet produkt nævner.
 - En bruger eller vært i sagen, som din trusselsintelligens kender som en indikator.
 
-En sag, der er grupperet efter en adresse, f.eks. et brute force-angreb mod din VPN, handler om ingen af delene: dens Contain-trin springes over, og den forsøgte konto og den ramte gateway lades i fred. Et trin handler på højst 10 brugere eller værter. Det finder hver af dem i produktet ud fra navnet og skriver på kørslen, hvad det gjorde med hver enkelt: udført, allerede udført, ikke fundet, afvist eller beskyttet.
+En sag, der er grupperet efter en adresse, f.eks. et brute force-angreb mod din VPN, handler om ingen af delene: dens Contain-trin springes over, og den forsøgte konto og den ramte gateway lades i fred. Et trin handler på højst 10 brugere eller værter. Det finder hver af dem i produktet ud fra navnet og skriver på kørslen, hvad det gjorde med hver enkelt: udført, allerede udført, ikke fundet, afvist eller beskyttet. Microsoft Entra ID finder en bruger ud fra loginnavn eller mailadresse og ændrer kun en administrators konto for en app, der også har rollen Privileged Authentication Administrator; Google Workspace finder brugeren ud fra den primære adresse eller et alias.
 
 De to datalagertrin handler på de datalagre, sagen handler om, højst 10: dem fra de datasikkerhedsproblemer, den har optaget, og dem, en detektion har grupperet den efter. De lader et datalager markeret **Offentlig med vilje** være i fred, ændrer, hvordan et datalager deles, men aldrig dets data, og skriver på kørslen, hvad de gjorde med hvert datalager (se [Luk en eksponering](/docs/data-security/integrations#luk-en-eksponering)).
 
@@ -329,11 +350,11 @@ De to datalagertrin handler på de datalagre, sagen handler om, højst 10: dem f
 
 #### Godkendelse
 
-De fire trin, der lukker nogen ude, venter på godkendelse. Kun en Security Admin kan slå **Kræver godkendelse** fra for et af dem, og OneUptime registrerer, hvem der gjorde det. Godkendelsen viser under **Handl på** de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være i fred. Beskyttede brugere og værter tilbydes ikke. Den, der startede en kørsel, kan ikke godkende dens trin: det gør en anden, men vedkommende kan stadig afvise det.
+De otte trin, der lukker nogen ude, venter på godkendelse. Kun en Security Admin kan slå **Kræver godkendelse** fra for et af dem, og OneUptime registrerer, hvem der gjorde det. Godkendelsen viser under **Handl på** de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være i fred. Beskyttede brugere og værter tilbydes ikke. Den, der startede en kørsel, kan ikke godkende dens trin: det gør en anden, men vedkommende kan stadig afvise det.
 
 #### Fortryd
 
-Fortryd-trinnene handler på de brugere eller værter, sagen handler om, ligesom de trin, de fortryder. Når kørslen er stoppet, har en inddæmmet bruger eller vært også sin egen knap på sit trin: **Ophæv suspendering**, **Ophæv inddæmning** eller **Frigiv**. En afsluttet Okta-session kan ikke fortrydes. Alt, hvad der fortrydes, gemmes på sagens tidslinje og i projektets auditlog.
+Fortryd-trinnene handler på de brugere eller værter, sagen handler om, ligesom de trin, de fortryder. Når kørslen er stoppet, har en inddæmmet bruger eller vært også sin egen knap på sit trin: **Ophæv suspendering**, **Ophæv inddæmning**, **Frigiv** eller **Aktivér**. Et logout kan ikke fortrydes. Alt, hvad der fortrydes, gemmes på sagens tidslinje og i projektets auditlog.
 
 ### Beskeder
 
@@ -417,6 +438,10 @@ Tjek, at den er aktiveret, at dens indstilling **Trigger** passer (Case Opened k
 
 :::details Et Contain-trin blev sprunget over
 Sagen handler ikke om nogen bruger eller vært, f.eks. kun om en adresse, eller alle de brugere eller værter, den handler om, er beskyttede. Åbn kørslen på sagen: trinnet fortæller, hvilken af de to det er.
+:::
+
+:::details Et trin, der kun kører efter et andet, blev sprunget over
+Det trin, det venter på, endte på en anden måde eller blev selv sprunget over: Det fandt f.eks. intet kendt ondsindet, hvor trinnet venter på en kendt ondsindet entitet. Åbn kørslen på sagen: Det oversprungne trin fortæller, hvilket trin det ventede på, og hvilket resultat. For at ændre det skal du redigere trinnet og åbne **Flere felter**.
 :::
 
 :::details En status eller prioritet kan ikke slettes eller arkiveres

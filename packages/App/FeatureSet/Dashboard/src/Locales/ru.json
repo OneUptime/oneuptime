@@ -38758,7 +38758,7 @@
   "Unsuspend the user in Google Workspace": "Разблокировать пользователя в Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Кто выполняет задачи. Если оставить пустым, они достанутся тому, кто работает с кейсом.",
   "{{tasks}} for a person": "{{tasks}} для человека",
-  "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.": "Проверять каждое событие сразу по поступлении, за секунды, а не раз в интервал. Для правила, срабатывающего на одно событие: порог 1, без поля подсчёта уникальных значений и без регулярного выражения.",
+  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Проверять каждое событие сразу по поступлении, за секунды. Для правила, срабатывающего на одно событие: порог 1, без поля подсчёта уникальных значений и регулярного выражения.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Проверяет каждое событие сразу по поступлении, за секунды, а не раз в интервал.",
   "Keeps events and session replays, notes traces and exceptions": "Сохраняет события и записи сеансов, отмечает трассировки и исключения",
   "Real time": "В реальном времени",

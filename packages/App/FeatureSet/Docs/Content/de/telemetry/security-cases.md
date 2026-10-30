@@ -104,8 +104,8 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
-- **Belege**: die Dateien, Links und Sicherheitsereignisse, die zum Fall aufbewahrt werden, jeweils mit Person und Zeitpunkt des Hinzufügens. Mit **Datei hinzufügen** laden Sie eine Datei mit bis zu 10 MB hoch, und der SHA-256 des Hochgeladenen wird festgehalten, damit jeder, der sie später herunterlädt, prüfen kann, dass es das Aufbewahrte ist; mit **Link hinzufügen** verweisen Sie auf Belege, die anderswo liegen. Nur ein Security Admin kann einen Beleg entfernen, und die **Zeitachse** des Falls zeigt, was hinzugefügt und entfernt wurde. Ein Sicherheitsereignis wird so aufbewahrt, wie es war, mit **Zum Fall hinzufügen** unter **Ereignisse** oder auf der Seite einer [Bedrohungssuche](/docs/telemetry/security-events#bedrohungssuchen), und **Ereignis anzeigen** öffnet es.
-- **Aufgaben**: was im Fall zu tun ist, wer es erledigt und ob es erledigt ist. Fügen Sie eine Aufgabe als Zeile hinzu, geben Sie sie jemandem und haken Sie sie ab, wenn sie erledigt ist. Wer die Aufgabe bekommt, wird benachrichtigt, außer er hat sie sich selbst genommen, und das Menü zeigt neben **Aufgaben**, wie viele Aufgaben offen sind.
+- **Belege**: die Dateien, Links und Sicherheitsereignisse, die zum Fall aufbewahrt werden, jeweils mit Person und Zeitpunkt des Hinzufügens. Mit **Datei hinzufügen** laden Sie eine Datei mit bis zu 10 MB hoch, und der SHA-256 des Hochgeladenen wird festgehalten, damit jeder, der sie später herunterlädt, prüfen kann, dass es das Aufbewahrte ist; mit **Link hinzufügen** verweisen Sie auf Belege, die anderswo liegen. Nur ein Security Admin kann einen Beleg entfernen, und die **Zeitachse** des Falls zeigt, was hinzugefügt und entfernt wurde. Ein Sicherheitsereignis wird so aufbewahrt, wie es war, mit **Zum Fall hinzufügen** unter **Ereignisse** oder auf der Seite einer [Bedrohungssuche](/docs/telemetry/security-events#bedrohungssuchen), und **Ereignis anzeigen** öffnet es. Der Schritt **Preserve the evidence** eines Playbooks bewahrt hier auch die Ereignisse hinter den Erkennungen des Falls auf.
+- **Aufgaben**: was im Fall zu tun ist, wer es erledigt und ob es erledigt ist. Fügen Sie eine Aufgabe als Zeile hinzu, geben Sie sie jemandem und haken Sie sie ab, wenn sie erledigt ist. Wer die Aufgabe bekommt, wird benachrichtigt, außer er hat sie sich selbst genommen, und das Menü zeigt neben **Aufgaben**, wie viele Aufgaben offen sind. Der Schritt **Aufgaben hinzufügen** eines Playbooks fügt ebenfalls Aufgaben hinzu und lässt jede weg, die der Fall schon hat.
 - **Playbooks**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbooks**, wie viele es sind.
 - **Private Notizen**: was das Team zum Fall geschrieben hat.
 - **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
@@ -264,9 +264,10 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Fall | Set the status | Setzt den Fall auf einen anderen Status des Projekts, mit der Bewertung, die Sie wählen, wenn dieser Status ihn schließt |
 | Fall | Add a note | Schreibt eine Notiz an den Fall, etwa eine Checkliste für den Analysten |
 | Fall | Add labels | Versieht den Fall mit Labels |
+| Fall | Add tasks | Fügt der Checkliste des Falls Aufgaben hinzu, für eine Person oder für die Person, die den Fall bearbeitet |
 | Untersuchen | Check entities against threat intel | Schlägt jede Entität in Ihrer Threat Intelligence nach und kann bei einem Treffer die Priorität anheben |
 | Untersuchen | Look up entity activity | Zählt die Sicherheitsereignisse jeder Entität in einem kürzlich zurückliegenden Zeitfenster und vermerkt das am Fall |
-| Untersuchen | Preserve the evidence | Behält die Session Replays der Anfragen hinter dem Fall und vermerkt deren Traces und Ausnahmen am Fall |
+| Untersuchen | Preserve the evidence | Behält die Ereignisse hinter den Erkennungen des Falls und die Session Replays seiner Anfragen und vermerkt deren Traces und Ausnahmen am Fall |
 | Benachrichtigen | Email people | Schickt Benutzern und Teams eine Zusammenfassung des Falls per E-Mail, mit einem Link darauf |
 | Benachrichtigen | Notify data store owners | Schickt den Eigentümern jedes Datenspeichers, um den es im Fall geht, eine E-Mail mit einem Link zum Fall |
 | Benachrichtigen | Post to Slack | Postet eine Zusammenfassung des Falls in einen Slack-Kanal |
@@ -278,9 +279,15 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Eindämmen | End the user's Okta sessions | Meldet den Benutzer, um den es im Fall geht, bei Okta ab und widerruft seine Tokens |
 | Eindämmen | Contain the host in CrowdStrike | Isoliert den Host, um den es im Fall geht, mit CrowdStrike Falcon vom Netzwerk |
 | Eindämmen | Isolate the device in Microsoft Defender | Isoliert den Host, um den es im Fall geht, mit Microsoft Defender for Endpoint |
+| Eindämmen | Disable the user in Microsoft Entra ID | Deaktiviert das Konto des Benutzers, um den es im Fall geht, in Microsoft Entra ID |
+| Eindämmen | Sign the user out of Microsoft Entra ID | Meldet den Benutzer, um den es im Fall geht, überall von Microsoft Entra ID ab und widerruft seine Aktualisierungstoken |
+| Eindämmen | Suspend the user in Google Workspace | Sperrt den Benutzer, um den es im Fall geht, in Google Workspace |
+| Eindämmen | Sign the user out of Google Workspace | Meldet den Benutzer, um den es im Fall geht, in jedem Browser und auf jedem Gerät von Google Workspace ab |
 | Eindämmen | Unsuspend the user in Okta | Hebt die Sperre des Benutzers, um den es im Fall geht, in Okta auf |
 | Eindämmen | Lift containment in CrowdStrike | Hebt die Netzwerkisolierung durch CrowdStrike Falcon für den Host auf, um den es im Fall geht |
 | Eindämmen | Release the device in Microsoft Defender | Hebt die Isolierung des Hosts, um den es im Fall geht, in Microsoft Defender for Endpoint auf |
+| Eindämmen | Enable the user in Microsoft Entra ID | Aktiviert das Konto des Benutzers, um den es im Fall geht, in Microsoft Entra ID wieder |
+| Eindämmen | Unsuspend the user in Google Workspace | Hebt die Sperre des Benutzers, um den es im Fall geht, in Google Workspace auf |
 | Eindämmen | Öffentlichen Zugriff auf Datenspeicher sperren | Sperrt den öffentlichen Zugriff auf jeden Bucket und jedes Speicherkonto, um die es im Fall geht, über deren Cloud-Verbindung |
 | Eindämmen | Freigabe von Datenspeichern widerrufen | Beendet die Freigabe der Snapshots jeder Datenbank, um die es im Fall geht, außerhalb Ihrer Konten, über deren Cloud-Verbindung |
 | Automatisieren | Send a webhook | Sendet den Fall als JSON per POST an eine URL |
@@ -290,16 +297,28 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
-- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook**, **Post a status page announcement** und die beiden Datenspeicher-Schritte beginnen mit eingeschalteter Genehmigung, denn sie führen Befehle auf Ihren Systemen aus, sprechen zu Ihren Kunden oder ändern die Einstellungen einer Cloud; wer den Schritt hinzufügt, kann sie abschalten.
-- **Nur bei Threat-Intel-Treffer**: den Schritt überspringen, sofern nicht ein früherer Schritt **Entitäten mit Threat Intel abgleichen** derselben Ausführung einen bekannten Indikator gefunden hat.
-- **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung.
+- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die acht Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook**, **Post a status page announcement** und die beiden Datenspeicher-Schritte beginnen mit eingeschalteter Genehmigung, denn sie führen Befehle auf Ihren Systemen aus, sprechen zu Ihren Kunden oder ändern die Einstellungen einer Cloud; wer den Schritt hinzufügt, kann sie abschalten.
+- **Diesen Schritt ausführen**: **Immer** oder nur nach einem Ergebnis eines Schritts davor, etwa wenn **Entitäten mit Threat Intel abgleichen** eine bekannt bösartige Entität findet; siehe [Nach dem Ergebnis eines Schritts verzweigen](#nach-dem-ergebnis-eines-schritts-verzweigen).
+- **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung. Die Option liegt unter **Weitere Felder**, zusammen mit **Diesen Schritt ausführen**.
+
+### Nach dem Ergebnis eines Schritts verzweigen
+
+**Diesen Schritt ausführen** lässt einen Schritt darauf warten, wie ein Schritt davor geendet hat. Jeder Schritt davor bietet seine Ergebnisse an:
+
+| Ein Schritt davor | Seine Ergebnisse |
+| --- | --- |
+| Entitäten mit Threat Intel abgleichen | Eine bekannt bösartige Entität gefunden, oder nichts bekannt Bösartiges gefunden |
+| Aktivität der Entitäten nachschlagen | Aktivität gefunden, oder keine Aktivität gefunden |
+| Jeder andere Schritt | Erfolgreich, und fehlgeschlagen, wenn bei ihm **Bei Fehler weitermachen** an ist |
+
+Zwei Schritte, die auf entgegengesetzte Ergebnisse desselben Schritts warten, sind ein Wenn und ein Sonst: einen Benutzer nur sperren, wenn Threat Intel ihn kennt, und sonst eine Aufgabe hinzufügen, die Anmeldung mit ihm zu bestätigen. Endet der Schritt, auf den gewartet wird, anders, wird der wartende Schritt übersprungen, und die Ausführung sagt darunter, warum; ebenso ein Schritt, der auf einen übersprungenen wartet. Die Karte eines Schritts sagt, worauf er wartet, und ein Schritt, auf den ein anderer wartet, lässt sich weder unter ihn verschieben noch löschen, bis jener anders läuft. Die Vorlage **Bekannt bösartige Indikatoren eskalieren** hebt Priorität und Status eines Falls nur bei einem Threat-Intel-Treffer an, und ein Schritt, der mit dem alten Threat-Intel-Schalter gespeichert wurde, behält ihn als **Nur wenn eine frühere Threat-Intel-Prüfung eine bekannt bösartige Entität gefunden hat**.
 
 ### Reagieren mit OneUptime
 
 Vier Schritte handeln über den Rest von OneUptime statt über ein verbundenes Produkt:
 
 - **Run a runbook** startet eines Ihrer [Runbooks](/docs/runbooks/index) mit dem Fall als Eingaben, die ein Bash-Schritt als Umgebungsvariablen liest (siehe [Den Webhook aufrufen](/docs/runbooks/triggers#den-webhook-aufrufen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` und `ONEUPTIME_INPUT_HOST` sind Adresse, Benutzer und Host, um die es im Fall geht, gewählt nach derselben Regel wie bei einem Eindämmungsschritt, und leer, wenn es um keinen geht. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` und `ONEUPTIME_INPUT_HOSTS` führen als JSON alle auf, die der Fall nennt, und `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` und `ONEUPTIME_INPUT_CASE_URL` sagen, um welchen Fall es geht. Ein geschützter Benutzer oder Host ist nie darunter. Beim Lauf des Runbooks steht, dass ihn **Security playbook** für den Fall gestartet hat.
-- **Preserve the evidence** behält die Session Replays der Anfragen hinter dem Fall über ihre Aufbewahrung hinaus und schreibt eine Notiz an den Fall, die den Trace jeder Anfrage, jedes Replay und jede Ausnahme verlinkt. Logs und Traces lassen sich nicht länger halten, als das Projekt Telemetrie aufbewahrt; exportieren Sie also vorher, was Sie brauchen.
+- **Preserve the evidence** bewahrt das neueste Ereignis jeder Erkennung des Falls, bis zu 100, so wie es jetzt ist, auf seiner Seite **Belege** auf, behält die Session Replays der Anfragen hinter dem Fall über ihre Aufbewahrung hinaus und schreibt eine Notiz an den Fall, die den Trace jeder Anfrage, jedes Replay und jede Ausnahme verlinkt. Logs und Traces lassen sich nicht länger halten, als das Projekt Telemetrie aufbewahrt; exportieren Sie also vorher, was Sie brauchen.
 - **Post a status page announcement** veröffentlicht, was Sie geschrieben haben, so wie Sie es geschrieben haben, auf den Statusseiten, die Sie wählen. Nichts aus dem Fall wird hinzugefügt. Deren Abonnenten werden nur benachrichtigt, wenn **Abonnenten benachrichtigen** an ist.
 - **Fix the code with AI** bittet OneUptime AI für jede Ausnahme, die die Anfragen des Falls ausgelöst haben, bis zu drei, um einen Pull Request, der sie behebt. Dafür braucht es eingeschaltete OneUptime AI, ein über die GitHub App verbundenes Repository mit dem Code und einen Runner. Fehlt etwas davon, wird der Schritt übersprungen und nennt, was fehlt.
 
@@ -312,6 +331,8 @@ Die Eindämmungsschritte handeln über eine Verbindung, die mehr als Lesezugriff
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Ein API-Token, das Benutzer verwalten darf |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Einen API-Client mit Schreibrecht im Scope Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Eine App mit der Berechtigung Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | Eine App mit den Anwendungsberechtigungen User.Read.All, User.EnableDisableAccount.All und User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domainweite Delegierung mit den Bereichen admin.directory.user und admin.directory.user.security, für einen Administrator, der den Benutzer verwaltet |
 | Öffentlichen Zugriff auf Datenspeicher sperren, Freigabe von Datenspeichern widerrufen | Die Cloud-Verbindung des Datenspeichers | **Datensicherheitsreaktion** eingeschaltet und ihr Einrichtungsbefehl erneut ausgeführt |
 
 Ein Schritt für Benutzer oder Hosts wirkt nur auf die Benutzer oder Hosts, um die es im Fall geht, nie auf alle, die der Fall nennt:
@@ -319,7 +340,7 @@ Ein Schritt für Benutzer oder Hosts wirkt nur auf die Benutzer oder Hosts, um d
 - Der Wert, nach dem eine Erkennung des Falls gruppiert ist, etwa das Konto, nach dem eine Regel für unmögliche Ortswechsel gruppiert, oder der Host, den die Warnung eines verbundenen Produkts nennt.
 - Ein Benutzer oder Host des Falls, den Ihre Threat Intelligence als Indikator kennt.
 
-Bei einem Fall, der nach einer Adresse gruppiert ist, etwa einem Brute-Force-Angriff auf Ihr VPN, geht es um keines von beiden: Seine Eindämmungsschritte werden übersprungen, und das Konto, bei dem er es versucht hat, und das Gateway, das er getroffen hat, bleiben unangetastet. Ein Schritt wirkt auf höchstens 10 Benutzer oder Hosts. Er sucht jeden davon im Produkt nach seinem Namen und vermerkt an der Ausführung, was er mit jedem getan hat: erledigt, bereits erledigt, nicht gefunden, abgelehnt oder geschützt.
+Bei einem Fall, der nach einer Adresse gruppiert ist, etwa einem Brute-Force-Angriff auf Ihr VPN, geht es um keines von beiden: Seine Eindämmungsschritte werden übersprungen, und das Konto, bei dem er es versucht hat, und das Gateway, das er getroffen hat, bleiben unangetastet. Ein Schritt wirkt auf höchstens 10 Benutzer oder Hosts. Er sucht jeden davon im Produkt nach seinem Namen und vermerkt an der Ausführung, was er mit jedem getan hat: erledigt, bereits erledigt, nicht gefunden, abgelehnt oder geschützt. Microsoft Entra ID findet einen Benutzer über Anmeldenamen oder E-Mail-Adresse und ändert das Konto eines Administrators nur für eine App, die zusätzlich die Rolle Privileged Authentication Administrator hat; Google Workspace findet ihn über die primäre Adresse oder einen Alias.
 
 Die beiden Datenspeicher-Schritte wirken auf die Datenspeicher, um die es im Fall geht, höchstens 10: die der Datensicherheitsprobleme, die er aufgenommen hat, und alle, nach denen eine Erkennung ihn gruppiert hat. Sie lassen einen als **Absichtlich öffentlich** markierten Datenspeicher unangetastet, ändern, wie ein Datenspeicher geteilt wird, aber nie seine Daten, und vermerken an der Ausführung, was sie mit jedem Datenspeicher getan haben (siehe [Eine Exponierung schließen](/docs/data-security/integrations#eine-exponierung-schließen)).
 
@@ -329,11 +350,11 @@ Die beiden Datenspeicher-Schritte wirken auf die Datenspeicher, um die es im Fal
 
 #### Genehmigung
 
-Die vier Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Security Admin kann **Genehmigung erforderlich** für einen von ihnen abschalten, und OneUptime hält fest, wer das getan hat. Die Genehmigung listet unter **Anwenden auf** die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei allen, die er unangetastet lassen soll. Geschützte werden nicht angeboten. Wer eine Ausführung gestartet hat, kann ihre Schritte nicht genehmigen: Das tut jemand anderes, ablehnen kann er sie aber weiterhin.
+Die acht Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Security Admin kann **Genehmigung erforderlich** für einen von ihnen abschalten, und OneUptime hält fest, wer das getan hat. Die Genehmigung listet unter **Anwenden auf** die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei allen, die er unangetastet lassen soll. Geschützte werden nicht angeboten. Wer eine Ausführung gestartet hat, kann ihre Schritte nicht genehmigen: Das tut jemand anderes, ablehnen kann er sie aber weiterhin.
 
 #### Rückgängig machen
 
-Die Schritte zum Rückgängigmachen wirken auf die Benutzer oder Hosts, um die es im Fall geht, wie die Schritte, die sie rückgängig machen. Sobald die Ausführung beendet ist, hat ein eingedämmter Benutzer oder Host an seinem Schritt außerdem eine eigene Schaltfläche: **Sperre aufheben**, **Eindämmung aufheben** oder **Freigeben**. Das Beenden einer Okta-Sitzung lässt sich nicht rückgängig machen. Jedes Rückgängigmachen wird in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten.
+Die Schritte zum Rückgängigmachen wirken auf die Benutzer oder Hosts, um die es im Fall geht, wie die Schritte, die sie rückgängig machen. Sobald die Ausführung beendet ist, hat ein eingedämmter Benutzer oder Host an seinem Schritt außerdem eine eigene Schaltfläche: **Sperre aufheben**, **Eindämmung aufheben**, **Freigeben** oder **Aktivieren**. Eine Abmeldung lässt sich nicht rückgängig machen. Jedes Rückgängigmachen wird in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten.
 
 ### Nachrichten
 
@@ -417,6 +438,10 @@ Prüfen Sie, dass es aktiviert ist, dass sein **Auslöser** passt (Case Opened l
 
 :::details Ein Eindämmungsschritt wurde übersprungen
 Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, oder jeder Benutzer oder Host, um den es darin geht, ist geschützt. Öffnen Sie die Ausführung am Fall: Der Schritt sagt, was davon zutrifft.
+:::
+
+:::details Ein Schritt, der erst nach einem anderen läuft, wurde übersprungen
+Der Schritt, auf den er wartet, hat anders geendet oder wurde selbst übersprungen: Er fand etwa nichts bekannt Bösartiges, wo der Schritt auf eine bekannt bösartige Entität wartet. Öffnen Sie die Ausführung am Fall: Der übersprungene Schritt sagt, auf welchen Schritt er gewartet hat und worauf. Um das zu ändern, bearbeiten Sie den Schritt und öffnen **Weitere Felder**.
 :::
 
 :::details Ein Status oder eine Priorität lässt sich nicht löschen oder archivieren

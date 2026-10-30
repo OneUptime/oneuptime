@@ -38758,7 +38758,7 @@
   "Unsuspend the user in Google Workspace": "Riattiva l'utente in Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Chi svolge le attività. Se lo lasci vuoto, sono per chi segue il caso.",
   "{{tasks}} for a person": "{{tasks}} per una persona",
-  "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.": "Controlla ogni evento appena arriva, in pochi secondi, invece che a ogni intervallo. Per una regola che scatta su un solo evento: una soglia di 1, nessun campo di conteggio distinto e nessuna espressione regolare.",
+  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Controlla ogni evento appena arriva, in pochi secondi. Per una regola che scatta su un evento: soglia 1, nessun campo di conteggio distinto, nessuna espressione regolare.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Controlla ogni evento appena arriva, in pochi secondi, invece che a ogni intervallo.",
   "Keeps events and session replays, notes traces and exceptions": "Conserva eventi e session replay, annota tracce ed eccezioni",
   "Real time": "Tempo reale",

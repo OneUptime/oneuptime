@@ -43,7 +43,8 @@ La connessione accede con la chiave di un account di servizio e la [delega a liv
 ### Consentire la delega a livello di dominio
 
 1. Nella [Console di amministrazione Google](https://admin.google.com), come super amministratore, apri **Security → Access and data control → API controls → Manage domain-wide delegation** e seleziona **Add new**.
-2. Inserisci il **Unique ID** dell'account di servizio come **Client ID**, e `https://www.googleapis.com/auth/admin.reports.audit.readonly` come unico **OAuth scope**. Seleziona **Authorize**. Google può impiegare qualche minuto per applicarlo.
+2. Inserisci il **Unique ID** dell'account di servizio come **Client ID**, e `https://www.googleapis.com/auth/admin.reports.audit.readonly` come **OAuth scope**. Seleziona **Authorize**. Google può impiegare qualche minuto per applicarlo.
+3. Perché i playbook possano sospendere, riattivare e disconnettere utenti (vedi [Contenimento](/docs/telemetry/security-cases#contenimento)), aggiungi `https://www.googleapis.com/auth/admin.directory.user` e `https://www.googleapis.com/auth/admin.directory.user.security` agli ambiti dello stesso client, separati da virgole. L'amministratore che la connessione impersona deve allora gestire quegli utenti.
 
 ### Aggiungere la connessione in OneUptime
 

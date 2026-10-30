@@ -38758,7 +38758,7 @@
   "Unsuspend the user in Google Workspace": "Google Workspace에서 사용자 정지 해제",
   "Who does the tasks. Left empty, they are for whoever works the case.": "작업을 하는 사람입니다. 비워 두면 케이스를 처리하는 사람의 작업이 됩니다.",
   "{{tasks}} for a person": "담당자에게 {{tasks}}",
-  "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.": "간격마다가 아니라 이벤트가 도착하는 즉시 몇 초 안에 각 이벤트를 확인합니다. 이벤트 하나로 발생하는 규칙용입니다: 임계값 1, 고유 개수 필드 없음, 정규식 없음.",
+  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "이벤트가 도착하는 즉시 몇 초 안에 각 이벤트를 확인합니다. 이벤트 하나로 발생하는 규칙용입니다: 임계값 1, 고유 개수 필드 없음, 정규식 없음.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "간격마다가 아니라 이벤트가 도착하는 즉시 몇 초 안에 각 이벤트를 확인합니다.",
   "Keeps events and session replays, notes traces and exceptions": "이벤트와 세션 리플레이를 보관하고 트레이스와 예외를 기록",
   "Real time": "실시간",

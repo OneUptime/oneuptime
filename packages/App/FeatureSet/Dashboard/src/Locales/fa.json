@@ -38758,7 +38758,7 @@
   "Unsuspend the user in Google Workspace": "لغو تعلیق کاربر در Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "چه کسی وظایف را انجام می‌دهد. اگر خالی بماند، برای هر کسی است که روی پرونده کار می‌کند.",
   "{{tasks}} for a person": "{{tasks}} برای یک نفر",
-  "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.": "هر رویداد را به‌محض رسیدن، در چند ثانیه بررسی کنید، به‌جای هر بازه. برای قاعده‌ای که با یک رویداد فعال می‌شود: آستانه ۱، بدون فیلد شمارش یکتا و بدون عبارت باقاعده.",
+  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "هر رویداد را به‌محض رسیدن، در چند ثانیه بررسی کنید. برای قاعده‌ای که با یک رویداد فعال می‌شود: آستانه ۱، بدون فیلد شمارش یکتا و بدون عبارت باقاعده.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "هر رویداد را به‌محض رسیدن، در چند ثانیه بررسی می‌کند، به‌جای هر بازه.",
   "Keeps events and session replays, notes traces and exceptions": "رویدادها و بازپخش‌های نشست را نگه می‌دارد، ترِیس‌ها و استثناها را یادداشت می‌کند",
   "Real time": "بی‌درنگ",

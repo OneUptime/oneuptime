@@ -301,8 +301,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         }}
         createInitialValues={{
           isEnabled: true,
-          isRealTime: false,
           evaluationIntervalInMinutes: 5,
+          // A new rule runs on its interval: Run in Real Time is off.
+          isRealTime: false,
           /*
            * Mirror the DB defaults (DetectionRule.ts): without these the
            * severity dropdowns' showIf sees undefined on a fresh create
@@ -512,7 +513,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Run in Real Time",
             stepId: "on-match",
             description:
-              "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.",
+              "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             collapsibleSection: advancedSection,

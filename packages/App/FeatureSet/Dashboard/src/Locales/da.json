@@ -38758,7 +38758,7 @@
   "Unsuspend the user in Google Workspace": "Ophæv suspenderingen af brugeren i Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Hvem der udfører opgaverne. Står feltet tomt, er de til den, der arbejder med sagen.",
   "{{tasks}} for a person": "{{tasks}} til en person",
-  "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.": "Tjek hver hændelse, når den ankommer, inden for sekunder i stedet for ved hvert interval. Til en regel, der udløses af én hændelse: en grænse på 1, intet felt til unik optælling og intet regulært udtryk.",
+  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Tjek hver hændelse, når den ankommer, inden for sekunder. Til en regel, der udløses af én hændelse: grænse 1, intet felt til unik optælling, intet regulært udtryk.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Tjekker hver hændelse, når den ankommer, inden for sekunder i stedet for ved hvert interval.",
   "Keeps events and session replays, notes traces and exceptions": "Beholder hændelser og session replays, noterer spor og undtagelser",
   "Real time": "Realtid",

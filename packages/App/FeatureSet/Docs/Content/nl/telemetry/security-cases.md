@@ -104,8 +104,8 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
-- **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar.
-- **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan.
+- **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar. Ook de stap **Preserve the evidence** van een playbook bewaart hier de gebeurtenissen achter de detecties van de zaak.
+- **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan. Ook de stap **Taken toevoegen** van een playbook voegt taken toe en laat weg wat de zaak al heeft.
 - **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
 - **Privénotities**: wat het team over de zaak schreef.
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
@@ -264,9 +264,10 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Zaak | Set the status | Zet de zaak op een andere status van het project, met het oordeel dat je kiest als die status haar sluit |
 | Zaak | Add a note | Schrijft een notitie bij de zaak, zoals een checklist voor de analist |
 | Zaak | Add labels | Voorziet de zaak van labels |
+| Zaak | Add tasks | Voegt taken toe aan de checklist van de zaak, voor een persoon of voor wie de zaak behandelt |
 | Onderzoeken | Check entities against threat intel | Zoekt elke entiteit op in je threat intelligence, en kan bij een match de prioriteit verhogen |
 | Onderzoeken | Look up entity activity | Telt de beveiligingsgebeurtenissen van elke entiteit over een recent venster, en noteert dat bij de zaak |
-| Onderzoeken | Preserve the evidence | Bewaart de sessie-opnames van de verzoeken achter de zaak, en noteert hun traces en exceptions bij de zaak |
+| Onderzoeken | Preserve the evidence | Bewaart de gebeurtenissen achter de detecties van de zaak en de sessie-opnames van haar verzoeken, en noteert hun traces en exceptions bij de zaak |
 | Informeren | Email people | Mailt gebruikers en teams een samenvatting van de zaak, met een link ernaartoe |
 | Informeren | Notify data store owners | Mailt de eigenaars van elke gegevensopslag waar de zaak over gaat, met een link naar de zaak |
 | Informeren | Post to Slack | Plaatst een samenvatting van de zaak in een Slack-kanaal |
@@ -278,9 +279,15 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Inperken | End the user's Okta sessions | Meldt de gebruiker waar de zaak over gaat af bij Okta en trekt zijn tokens in |
 | Inperken | Contain the host in CrowdStrike | Isoleert de host waar de zaak over gaat van het netwerk met CrowdStrike Falcon |
 | Inperken | Isolate the device in Microsoft Defender | Isoleert de host waar de zaak over gaat met Microsoft Defender for Endpoint |
+| Inperken | Disable the user in Microsoft Entra ID | Schakelt in Microsoft Entra ID het account uit van de gebruiker waar de zaak over gaat |
+| Inperken | Sign the user out of Microsoft Entra ID | Meldt de gebruiker waar de zaak over gaat overal af bij Microsoft Entra ID en trekt de vernieuwingstokens in |
+| Inperken | Suspend the user in Google Workspace | Schort in Google Workspace de gebruiker op waar de zaak over gaat |
+| Inperken | Sign the user out of Google Workspace | Meldt de gebruiker waar de zaak over gaat af bij Google Workspace, in elke browser en op elk apparaat |
 | Inperken | Unsuspend the user in Okta | Heft in Okta de schorsing op van de gebruiker waar de zaak over gaat |
 | Inperken | Lift containment in CrowdStrike | Heft voor de host waar de zaak over gaat de netwerkisolatie van CrowdStrike Falcon op |
 | Inperken | Release the device in Microsoft Defender | Haalt in Microsoft Defender for Endpoint de host waar de zaak over gaat uit isolatie |
+| Inperken | Enable the user in Microsoft Entra ID | Schakelt in Microsoft Entra ID het account weer in van de gebruiker waar de zaak over gaat |
+| Inperken | Unsuspend the user in Google Workspace | Heft in Google Workspace de opschorting op van de gebruiker waar de zaak over gaat |
 | Inperken | Openbare toegang tot gegevensopslagen blokkeren | Blokkeert de openbare toegang tot elke bucket of elk opslagaccount waar de zaak over gaat, via de cloudkoppeling ervan |
 | Inperken | Delen van gegevensopslag intrekken | Stopt het delen buiten je accounts van de snapshots van elke database waar de zaak over gaat, via de cloudkoppeling ervan |
 | Automatiseren | Send a webhook | Post de zaak als JSON naar een URL |
@@ -290,16 +297,28 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
-- **Alleen bij treffer in dreigingsinformatie**: de stap overslaan, tenzij een eerdere stap **Entiteiten controleren in dreigingsinformatie** van dezelfde uitvoering een bekende indicator vond.
-- **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering.
+- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De acht stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
+- **Deze stap uitvoeren**: **Altijd**, of alleen na een resultaat van een stap ervoor, zoals **Entiteiten controleren in dreigingsinformatie** die een bekende kwaadaardige entiteit vindt; zie [Vertakken op het resultaat van een stap](#vertakken-op-het-resultaat-van-een-stap).
+- **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering. Dit staat onder **Meer velden**, samen met **Deze stap uitvoeren**.
+
+### Vertakken op het resultaat van een stap
+
+**Deze stap uitvoeren** laat een stap wachten op hoe een stap ervoor eindigde. Elke stap ervoor biedt zijn resultaten aan:
+
+| Een stap ervoor | Zijn resultaten |
+| --- | --- |
+| Entiteiten controleren in dreigingsinformatie | Vond een bekende kwaadaardige entiteit, of vond niets bekend kwaadaardigs |
+| Activiteit van entiteiten opzoeken | Vond activiteit, of vond geen activiteit |
+| Elke andere stap | Geslaagd, en mislukt als **Doorgaan bij fout** erbij aan staat |
+
+Twee stappen die op tegengestelde resultaten van dezelfde stap wachten, zijn een als en een anders: een gebruiker alleen opschorten als dreigingsinformatie hem kent, en anders een taak toevoegen om de aanmelding met hem te bevestigen. Als de stap waarop gewacht wordt anders eindigt, wordt de wachtende stap overgeslagen, en de uitvoering zegt eronder waarom; hetzelfde geldt voor een stap die wacht op een overgeslagen stap. De kaart van een stap zegt waarop hij wacht, en een stap waarop een andere wacht, kan niet onder die andere worden gezet of verwijderd totdat die andere anders wordt uitgevoerd. De sjabloon **Bekende kwaadaardige indicatoren escaleren** verhoogt de prioriteit en status van een zaak alleen bij een treffer in dreigingsinformatie, en een stap die met de oude schakelaar voor dreigingsinformatie is opgeslagen, houdt die als **Alleen als een eerdere controle in dreigingsinformatie een bekende kwaadaardige entiteit vond**.
 
 ### Reageren via OneUptime
 
 Vier stappen werken via de rest van OneUptime in plaats van via een verbonden product:
 
 - **Run a runbook** start een van uw [runbooks](/docs/runbooks/index) met de zaak als invoer, die een Bash-stap als omgevingsvariabelen leest (zie [De webhook aanroepen](/docs/runbooks/triggers#de-webhook-aanroepen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` en `ONEUPTIME_INPUT_HOST` zijn het adres, de gebruiker en de host waar de zaak over gaat, gekozen volgens dezelfde regel als bij een inperkingsstap, en leeg als het over geen ervan gaat. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` en `ONEUPTIME_INPUT_HOSTS` geven als JSON alle adressen, gebruikers en hosts die de zaak noemt, en `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` en `ONEUPTIME_INPUT_CASE_URL` zeggen om welke zaak het gaat. Een beschermde gebruiker of host zit er nooit bij. De uitvoering van het runbook vermeldt dat **Security playbook** haar voor de zaak heeft gestart.
-- **Preserve the evidence** bewaart de sessie-opnames van de verzoeken achter de zaak langer dan hun bewaartermijn, en schrijft een notitie bij de zaak die naar de trace van elk verzoek, elke opname en elke exception linkt. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart, dus exporteer vóór die tijd wat u nodig hebt.
+- **Preserve the evidence** bewaart de nieuwste gebeurtenis van elke detectie van de zaak, tot 100, zoals ze nu is, op de pagina **Bewijs** van de zaak, bewaart de sessie-opnames van de verzoeken achter de zaak langer dan hun bewaartermijn, en schrijft een notitie bij de zaak die naar de trace van elk verzoek, elke opname en elke exception linkt. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart, dus exporteer vóór die tijd wat u nodig hebt.
 - **Post a status page announcement** plaatst wat u schreef, zoals u het schreef, op de statuspagina's die u kiest. Er wordt niets uit de zaak aan toegevoegd. Hun abonnees worden alleen ingelicht als **Abonnees op de hoogte stellen** aan staat.
 - **Fix the code with AI** vraagt OneUptime AI om voor elke exception die de verzoeken van de zaak veroorzaakten, tot drie, een pull request die haar oplost. De stap vereist dat OneUptime AI aan staat, een repository met de code die via de GitHub App is verbonden, en een runner. Zonder deze wordt de stap overgeslagen en zegt hij wat er ontbreekt.
 
@@ -312,6 +331,8 @@ De inperkingsstappen werken via een verbinding die meer dan leestoegang nodig he
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Een API-token dat gebruikers mag beheren |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Een API-client met schrijfrechten in de scope Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Een app met de machtiging Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | Een app met de toepassingsmachtigingen User.Read.All, User.EnableDisableAccount.All en User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domeinbrede delegatie met de scopes admin.directory.user en admin.directory.user.security, voor een beheerder die de gebruiker beheert |
 | Openbare toegang tot gegevensopslagen blokkeren, Delen van gegevensopslag intrekken | De cloudkoppeling van de opslag | **Gegevensbeveiligingsrespons** aangezet, en de installatieopdracht ervan opnieuw uitgevoerd |
 
 Een stap voor gebruikers of hosts werkt alleen op de gebruikers of hosts waar de zaak over gaat, nooit op alle gebruikers en hosts die ze noemt:
@@ -319,7 +340,7 @@ Een stap voor gebruikers of hosts werkt alleen op de gebruikers of hosts waar de
 - De waarde waarop een detectie van de zaak is gegroepeerd, zoals het account waarop een regel voor onmogelijke reizen groepeert, of de host die de waarschuwing van een gekoppeld product noemt.
 - Een gebruiker of host van de zaak die je threat intelligence als indicator kent.
 
-Een zaak die op een adres is gegroepeerd, zoals een brute-forceaanval op je VPN, gaat over geen van beide: haar inperkingsstappen worden overgeslagen, en het geprobeerde account en de geraakte gateway blijven ongemoeid. Een stap werkt op hoogstens 10 gebruikers of hosts. Hij zoekt elk ervan op naam op in het product, en meldt op de uitvoering wat hij met elk deed: uitgevoerd, al uitgevoerd, niet gevonden, geweigerd of beschermd.
+Een zaak die op een adres is gegroepeerd, zoals een brute-forceaanval op je VPN, gaat over geen van beide: haar inperkingsstappen worden overgeslagen, en het geprobeerde account en de geraakte gateway blijven ongemoeid. Een stap werkt op hoogstens 10 gebruikers of hosts. Hij zoekt elk ervan op naam op in het product, en meldt op de uitvoering wat hij met elk deed: uitgevoerd, al uitgevoerd, niet gevonden, geweigerd of beschermd. Microsoft Entra ID vindt een gebruiker op aanmeldnaam of e-mailadres, en wijzigt het account van een beheerder alleen voor een app die ook de rol Privileged Authentication Administrator heeft; Google Workspace vindt hem op primair adres of alias.
 
 De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak over gaat, hoogstens 10: die van de problemen van Gegevensbeveiliging die ze opnam, en elke opslag waarop een detectie haar groepeerde. Ze laten een opslag die als **Bewust openbaar** is gemarkeerd ongemoeid, wijzigen hoe een opslag wordt gedeeld maar nooit de gegevens ervan, en melden op de uitvoering wat ze met elke opslag deden (zie [Een blootstelling sluiten](/docs/data-security/integrations#een-blootstelling-sluiten)).
 
@@ -329,11 +350,11 @@ De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak
 
 #### Goedkeuring
 
-De vier stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Security Admin kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
+De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Security Admin kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
 
 #### Ongedaan maken
 
-De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen** of **Vrijgeven**. Een beëindigde Okta-sessie kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
+De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
 
 ### Berichten
 
@@ -417,6 +438,10 @@ Open de uitvoering op de zaak: de stap meldt voor elke gebruiker of host of het 
 
 :::details Een inperkingsstap is overgeslagen
 De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een adres, of elke gebruiker of host waar ze over gaat, is beschermd. Open de uitvoering op de zaak: de stap meldt welke van de twee.
+:::
+
+:::details Een stap die pas na een andere draait, werd overgeslagen
+De stap waarop hij wacht, eindigde anders of werd zelf overgeslagen: hij vond bijvoorbeeld niets bekend kwaadaardigs, terwijl de stap op een bekende kwaadaardige entiteit wacht. Open de uitvoering op de zaak: de overgeslagen stap zegt op welke stap hij wachtte, en op welk resultaat. Om dat te veranderen, bewerk je de stap en open je **Meer velden**.
 :::
 
 :::details Een status of prioriteit kan niet worden verwijderd of gearchiveerd

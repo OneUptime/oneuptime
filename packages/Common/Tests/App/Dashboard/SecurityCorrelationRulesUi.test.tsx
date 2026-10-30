@@ -561,7 +561,7 @@ describe("the Detection Rules page", () => {
     expect(realTime.stepId).toBe("on-match");
     expect(realTime.collapsibleSection?.title).toBe("More fields");
     expect(realTime.description).toBe(
-      "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.",
+      "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
     );
     expect(capturedTableProps?.createInitialValues?.["isRealTime"]).toBe(false);
 

@@ -104,8 +104,8 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
-- **Preuves** : les fichiers, les liens et les événements de sécurité conservés sur le dossier, chacun avec qui l'a ajouté et quand. Le bouton **Ajouter un fichier** téléverse un fichier de 10 Mo au plus et enregistre le SHA-256 de ce qui a été téléversé, pour que quiconque le télécharge plus tard puisse vérifier que c'est bien ce qui a été conservé ; le bouton **Ajouter un lien** renvoie vers des preuves conservées ailleurs. Seul un Security Admin peut retirer une preuve, et la **Chronologie** du dossier indique ce qui a été ajouté et retiré. Un événement de sécurité y est conservé tel qu'il était, avec **Ajouter au dossier** sur **Événements** ou sur la page d'une [chasse](/docs/telemetry/security-events#chasses), et **Voir l'événement** l'ouvre.
-- **Tâches** : ce qu'il faut faire sur le dossier, qui s'en charge et si c'est fait. Ajoutez une tâche en une ligne, confiez-la à quelqu'un et cochez-la quand elle est faite. La personne à qui elle est confiée est prévenue, sauf si elle l'a prise elle-même, et le menu indique combien de tâches sont ouvertes à côté de **Tâches**.
+- **Preuves** : les fichiers, les liens et les événements de sécurité conservés sur le dossier, chacun avec qui l'a ajouté et quand. Le bouton **Ajouter un fichier** téléverse un fichier de 10 Mo au plus et enregistre le SHA-256 de ce qui a été téléversé, pour que quiconque le télécharge plus tard puisse vérifier que c'est bien ce qui a été conservé ; le bouton **Ajouter un lien** renvoie vers des preuves conservées ailleurs. Seul un Security Admin peut retirer une preuve, et la **Chronologie** du dossier indique ce qui a été ajouté et retiré. Un événement de sécurité y est conservé tel qu'il était, avec **Ajouter au dossier** sur **Événements** ou sur la page d'une [chasse](/docs/telemetry/security-events#chasses), et **Voir l'événement** l'ouvre. L'étape **Preserve the evidence** d'un playbook y conserve aussi les événements derrière les détections du dossier.
+- **Tâches** : ce qu'il faut faire sur le dossier, qui s'en charge et si c'est fait. Ajoutez une tâche en une ligne, confiez-la à quelqu'un et cochez-la quand elle est faite. La personne à qui elle est confiée est prévenue, sauf si elle l'a prise elle-même, et le menu indique combien de tâches sont ouvertes à côté de **Tâches**. L'étape **Ajouter des tâches** d'un playbook ajoute aussi des tâches, en laissant de côté celles que le dossier a déjà.
 - **Playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier.
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
@@ -264,9 +264,10 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Dossier | Set the status | Fait passer le dossier à un autre statut du projet, avec le verdict de votre choix quand ce statut le ferme |
 | Dossier | Add a note | Écrit une note sur le dossier, comme une liste de vérification pour l'analyste |
 | Dossier | Add labels | Applique des étiquettes au dossier |
+| Dossier | Add tasks | Ajoute des tâches à la liste de contrôle du dossier, pour une personne ou pour qui traite le dossier |
 | Investigation | Check entities against threat intel | Recherche chaque entité dans votre renseignement sur les menaces, et peut relever la priorité en cas de correspondance |
 | Investigation | Look up entity activity | Compte les événements de sécurité de chaque entité sur une fenêtre récente, et consigne le résultat sur le dossier |
-| Investigation | Preserve the evidence | Conserve les enregistrements de session des requêtes derrière le dossier, et consigne leurs traces et exceptions sur le dossier |
+| Investigation | Preserve the evidence | Conserve les événements derrière les détections du dossier et les enregistrements de session de ses requêtes, et consigne leurs traces et exceptions sur le dossier |
 | Notification | Email people | Envoie par e-mail à des utilisateurs et des équipes un résumé du dossier, avec un lien vers celui-ci |
 | Notification | Notify data store owners | Envoie par e-mail aux propriétaires de chaque magasin de données concerné par le dossier un lien vers celui-ci |
 | Notification | Post to Slack | Publie un résumé du dossier dans un canal Slack |
@@ -278,9 +279,15 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Confinement | End the user's Okta sessions | Déconnecte d'Okta l'utilisateur sur lequel porte le dossier et révoque ses jetons |
 | Confinement | Contain the host in CrowdStrike | Applique le confinement réseau à l'hôte sur lequel porte le dossier avec CrowdStrike Falcon |
 | Confinement | Isolate the device in Microsoft Defender | Isole l'hôte sur lequel porte le dossier avec Microsoft Defender for Endpoint |
+| Confinement | Disable the user in Microsoft Entra ID | Désactive dans Microsoft Entra ID le compte de l'utilisateur sur lequel porte le dossier |
+| Confinement | Sign the user out of Microsoft Entra ID | Déconnecte partout de Microsoft Entra ID l'utilisateur sur lequel porte le dossier et révoque ses jetons d'actualisation |
+| Confinement | Suspend the user in Google Workspace | Suspend dans Google Workspace l'utilisateur sur lequel porte le dossier |
+| Confinement | Sign the user out of Google Workspace | Déconnecte de Google Workspace l'utilisateur sur lequel porte le dossier, sur chaque navigateur et appareil |
 | Confinement | Unsuspend the user in Okta | Lève dans Okta la suspension de l'utilisateur sur lequel porte le dossier |
 | Confinement | Lift containment in CrowdStrike | Lève le confinement réseau appliqué par CrowdStrike Falcon à l'hôte sur lequel porte le dossier |
 | Confinement | Release the device in Microsoft Defender | Libère de l'isolement dans Microsoft Defender for Endpoint l'hôte sur lequel porte le dossier |
+| Confinement | Enable the user in Microsoft Entra ID | Réactive dans Microsoft Entra ID le compte de l'utilisateur sur lequel porte le dossier |
+| Confinement | Unsuspend the user in Google Workspace | Lève dans Google Workspace la suspension de l'utilisateur sur lequel porte le dossier |
 | Confinement | Bloquer l'accès public aux magasins de données | Bloque l'accès public à chaque bucket ou compte de stockage sur lequel porte le dossier, via sa connexion cloud |
 | Confinement | Révoquer le partage des magasins de données | Cesse de partager hors de vos comptes les instantanés de chaque base de données sur laquelle porte le dossier, via sa connexion cloud |
 | Automatisation | Send a webhook | Envoie le dossier en JSON à une URL |
@@ -290,16 +297,28 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook**, **Post a status page announcement** et les deux étapes de magasin de données commencent avec ce réglage activé, car elles exécutent des commandes sur vos systèmes, s'adressent à vos clients ou modifient les paramètres d'un cloud ; la personne qui ajoute l'étape peut le désactiver.
-- **Seulement si le renseignement sur les menaces correspond** : sauter l'étape, sauf si une étape **Vérifier les entités dans le renseignement sur les menaces** antérieure de la même exécution a trouvé un indicateur connu.
-- **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution.
+- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les huit étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook**, **Post a status page announcement** et les deux étapes de magasin de données commencent avec ce réglage activé, car elles exécutent des commandes sur vos systèmes, s'adressent à vos clients ou modifient les paramètres d'un cloud ; la personne qui ajoute l'étape peut le désactiver.
+- **Exécuter cette étape** : **Toujours**, ou seulement après un résultat d'une étape précédente, par exemple quand **Vérifier les entités dans le renseignement sur les menaces** trouve une entité connue comme malveillante ; voir [Bifurquer selon le résultat d'une étape](#bifurquer-selon-le-résultat-dune-étape).
+- **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution. Ce réglage se trouve sous **Plus de champs**, avec **Exécuter cette étape**.
+
+### Bifurquer selon le résultat d'une étape
+
+**Exécuter cette étape** fait attendre à une étape la façon dont une étape précédente s'est terminée. Chaque étape précédente propose ses résultats :
+
+| Une étape précédente | Ses résultats |
+| --- | --- |
+| Vérifier les entités dans le renseignement sur les menaces | A trouvé une entité connue comme malveillante, ou n'a rien trouvé de connu comme malveillant |
+| Rechercher l'activité des entités | A trouvé de l'activité, ou n'a trouvé aucune activité |
+| Toute autre étape | A réussi, et a échoué quand **Continuer en cas d'échec** y est activé |
+
+Deux étapes qui attendent des résultats opposés d'une même étape forment un si et un sinon : suspendre un utilisateur seulement quand le renseignement sur les menaces le connaît, et sinon ajouter une tâche pour confirmer la connexion avec lui. Quand l'étape attendue se termine autrement, l'étape qui attend est sautée, et l'exécution indique pourquoi sous elle ; il en va de même pour une étape qui attend une étape sautée. La carte d'une étape indique ce qu'elle attend, et une étape qu'une autre attend ne peut être ni déplacée sous celle-ci ni supprimée tant que celle-ci ne s'exécute pas autrement. Le modèle **Escalader les indicateurs malveillants connus** ne relève la priorité et le statut d'un dossier qu'en cas de correspondance du renseignement sur les menaces, et une étape enregistrée avec l'ancien interrupteur du renseignement sur les menaces le garde sous la forme **Seulement si une vérification antérieure du renseignement sur les menaces a trouvé une entité connue comme malveillante**.
 
 ### Répondre avec OneUptime
 
 Quatre étapes agissent par le reste de OneUptime plutôt que par un produit connecté :
 
 - **Run a runbook** lance l'un de vos [runbooks](/docs/runbooks/index) avec le dossier en entrée, qu'une étape Bash lit sous forme de variables d'environnement (voir [Appeler le webhook](/docs/runbooks/triggers#appeler-le-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` et `ONEUPTIME_INPUT_HOST` sont l'adresse, l'utilisateur et l'hôte sur lesquels porte le dossier, choisis selon la même règle qu'une étape de confinement, et vides lorsqu'il n'en concerne aucun. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` et `ONEUPTIME_INPUT_HOSTS` listent en JSON tous ceux que le dossier nomme, et `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` et `ONEUPTIME_INPUT_CASE_URL` indiquent de quel dossier il s'agit. Un utilisateur ou un hôte protégé n'en fait jamais partie. L'exécution du runbook indique qu'elle a été lancée par **Security playbook**, pour le dossier.
-- **Preserve the evidence** conserve les enregistrements de session des requêtes derrière le dossier au-delà de leur rétention, et écrit sur le dossier une note qui renvoie à la trace de chaque requête, à chaque enregistrement et à chaque exception. Les journaux et les traces ne peuvent pas être conservés plus longtemps que le projet ne garde la télémétrie : exportez donc avant ce dont vous avez besoin.
+- **Preserve the evidence** conserve sur la page **Preuves** du dossier le dernier événement de chacune de ses détections, jusqu'à 100, tel qu'il est maintenant, conserve les enregistrements de session des requêtes derrière le dossier au-delà de leur rétention, et écrit sur le dossier une note qui renvoie à la trace de chaque requête, à chaque enregistrement et à chaque exception. Les journaux et les traces ne peuvent pas être conservés plus longtemps que le projet ne garde la télémétrie : exportez donc avant ce dont vous avez besoin.
 - **Post a status page announcement** publie ce que vous avez écrit, tel que vous l'avez écrit, sur les pages de statut de votre choix. Rien du dossier n'y est ajouté. Leurs abonnés ne sont prévenus que si **Notifier les abonnés** est activé.
 - **Fix the code with AI** demande à OneUptime AI, pour chaque exception levée par les requêtes du dossier, jusqu'à trois, une pull request qui la corrige. L'étape nécessite OneUptime AI activé, un dépôt contenant le code connecté via la GitHub App, et un runner. Sans eux, l'étape est ignorée et indique ce qui manque.
 
@@ -312,6 +331,8 @@ Les étapes de confinement agissent via une connexion qui a besoin de plus qu'un
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un jeton d'API autorisé à gérer les utilisateurs |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un client API avec le scope Hosts en écriture |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Une application avec l'autorisation Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | Une application avec les autorisations d'application User.Read.All, User.EnableDisableAccount.All et User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Une délégation au niveau du domaine avec les champs d'application admin.directory.user et admin.directory.user.security, pour un administrateur qui gère l'utilisateur |
 | Bloquer l'accès public aux magasins de données, Révoquer le partage des magasins de données | La connexion cloud du magasin de données | **Réponse de sécurité des données** activé, et sa commande de configuration exécutée à nouveau |
 
 Une étape portant sur un utilisateur ou un hôte n'agit que sur les utilisateurs ou hôtes sur lesquels porte le dossier, jamais sur tous ceux que le dossier nomme :
@@ -319,7 +340,7 @@ Une étape portant sur un utilisateur ou un hôte n'agit que sur les utilisateur
 - La valeur selon laquelle une détection du dossier est regroupée, comme le compte selon lequel regroupe une règle de voyage impossible, ou l'hôte que nomme l'alerte d'un produit connecté.
 - Un utilisateur ou un hôte du dossier que votre renseignement sur les menaces connaît comme indicateur.
 
-Un dossier regroupé selon une adresse, comme une attaque par force brute contre votre VPN, ne porte sur aucun des deux : ses étapes de confinement sont sautées, et le compte qu'elle visait et la passerelle qu'elle a atteinte ne sont pas touchés. Une étape agit sur au plus 10 utilisateurs ou hôtes. Elle retrouve chacun dans le produit par son nom, et indique sur l'exécution ce qu'elle a fait de chacun : fait, déjà fait, introuvable, refusé ou protégé.
+Un dossier regroupé selon une adresse, comme une attaque par force brute contre votre VPN, ne porte sur aucun des deux : ses étapes de confinement sont sautées, et le compte qu'elle visait et la passerelle qu'elle a atteinte ne sont pas touchés. Une étape agit sur au plus 10 utilisateurs ou hôtes. Elle retrouve chacun dans le produit par son nom, et indique sur l'exécution ce qu'elle a fait de chacun : fait, déjà fait, introuvable, refusé ou protégé. Microsoft Entra ID retrouve un utilisateur par son nom de connexion ou son adresse e-mail, et ne modifie le compte d'un administrateur que pour une application qui détient aussi le rôle Privileged Authentication Administrator ; Google Workspace le retrouve par son adresse principale ou un alias.
 
 Les deux étapes de magasin de données agissent sur les magasins de données sur lesquels porte le dossier, 10 au plus : ceux des problèmes de Sécurité des données qu'il a reçus, et tout magasin de données selon lequel une détection l'a regroupé. Elles ne touchent pas à un magasin de données marqué **Public par conception**, modifient la façon dont un magasin de données est partagé mais jamais ses données, et indiquent sur l'exécution ce qu'elles ont fait de chaque magasin de données (voir [Fermer une exposition](/docs/data-security/integrations#fermer-une-exposition)).
 
@@ -329,11 +350,11 @@ Les deux étapes de magasin de données agissent sur les magasins de données su
 
 #### Approbation
 
-Les quatre étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Security Admin peut désactiver **Approbation requise** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Agir sur** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
+Les huit étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Security Admin peut désactiver **Approbation requise** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Agir sur** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
 
 #### Annulation
 
-Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Réactiver**, **Lever le confinement** ou **Libérer**. La fin d'une session Okta ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet.
+Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Réactiver**, **Lever le confinement**, **Libérer** ou **Activer**. Une déconnexion ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet.
 
 ### Messages
 
@@ -417,6 +438,10 @@ Ouvrez l'exécution sur le dossier : l'étape indique, pour chaque utilisateur o
 
 :::details Une étape de confinement a été sautée
 Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adresse par exemple, ou chaque utilisateur ou hôte sur lequel il porte est protégé. Ouvrez l'exécution sur le dossier : l'étape indique la raison.
+:::
+
+:::details Une étape qui ne s'exécute qu'après une autre a été sautée
+L'étape qu'elle attend s'est terminée autrement, ou a elle-même été sautée : elle n'a rien trouvé de connu comme malveillant, par exemple, alors que l'étape attend une entité connue comme malveillante. Ouvrez l'exécution sur le dossier : l'étape sautée indique quelle étape elle attendait, et quel résultat. Pour la modifier, modifiez l'étape et ouvrez **Plus de champs**.
 :::
 
 :::details Un statut ou une priorité ne peut être ni supprimé ni archivé
