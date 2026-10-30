@@ -104,6 +104,7 @@ flowchart TB
 | 규칙 예외 | `Rule Exception` |
 | 관심 목록 | `Watchlist` |
 | 관심 목록 값 | `Watchlist Value` |
+| 헌트 | `Hunt` |
 | 보안 케이스의 작업과 증거 | `Security Case Task`, `Security Case Evidence` |
 | 감사 로그 내보내기 | `Audit Log Export` |
 

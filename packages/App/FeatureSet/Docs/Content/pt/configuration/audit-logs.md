@@ -104,6 +104,7 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Exceções de regra | `Rule Exception` |
 | Listas de observação | `Watchlist` |
 | Valores da lista de observação | `Watchlist Value` |
+| Caçadas | `Hunt` |
 | Tarefas e evidências dos casos de segurança | `Security Case Task`, `Security Case Evidence` |
 | Exportações do registro de auditoria | `Audit Log Export` |
 
