@@ -3,6 +3,7 @@ import CreatePermission, {
   CreateParent,
 } from "../../../Server/Types/Database/Permissions/CreatePermission";
 import EditionPermissions from "../../../Server/Types/Database/Permissions/EditionPermission";
+import PrivateRecordPermission from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -78,6 +79,24 @@ const parentOf: (modelType: ModelType) => CreateParent = (
 ): CreateParent => {
   return CreatePermission.getCreateParent(modelType)!;
 };
+
+/*
+ * Whether a model's parent is of a kind that can be private - an incident,
+ * an alert or an episode. A member's write under one is held to the teams
+ * that own it (PrivateRecordPermission): a parent their write's lookup
+ * leaves out is looked up once more as they read it, so one they read but
+ * may not change through its owners is refused in so many words, and one
+ * they do not read at all like one that does not exist.
+ */
+const isUnderPrivateKind: (modelType: ModelType) => boolean = (
+  modelType: ModelType,
+): boolean => {
+  return PrivateRecordPermission.isPrivateRecordModel(
+    parentOf(modelType).parentModelType,
+  );
+};
+
+const CREATABLE_UNDER_PRIVATE_KINDS_COUNT: number = 30;
 
 /*
  * A permission of the model's create list that reads nothing of the parent:
@@ -189,26 +208,62 @@ interface LookupCall {
  * left out: the Enterprise Edition's models are swept on a Community Edition
  * test run too.
  */
+interface ServiceOptions {
+  /*
+   * What each read of the parents as the caller finds, in turn, when the
+   * reads differ: the first as the write reaches them, the next as read.
+   */
+  readableIdsByLookup?: Array<Array<string>> | undefined;
+  /*
+   * The private parents the write does not reach, of those found as
+   * OneUptime (PrivateRecordPermission.getUnreachableParentIds): none
+   * unless given.
+   */
+  unreachableIds?: Array<string> | undefined;
+}
+
 const serviceFor: (
   modelType: ModelType,
   readableIds: Array<string>,
+  options?: ServiceOptions,
 ) => {
   service: DatabaseService<BaseModel>;
   lookups: Array<LookupCall>;
   projectLookups: Array<LookupCall>;
+  unreachableLookups: Array<LookupCall>;
 } = (
   modelType: ModelType,
   readableIds: Array<string>,
+  options?: ServiceOptions,
 ): {
   service: DatabaseService<BaseModel>;
   lookups: Array<LookupCall>;
   projectLookups: Array<LookupCall>;
+  unreachableLookups: Array<LookupCall>;
 } => {
   const service: DatabaseService<BaseModel> = new DatabaseService<BaseModel>(
     modelType,
   );
   const lookups: Array<LookupCall> = [];
   const projectLookups: Array<LookupCall> = [];
+  const unreachableLookups: Array<LookupCall> = [];
+
+  getJestSpyOn(
+    PrivateRecordPermission,
+    "getUnreachableParentIds",
+  ).mockImplementation((async (lookup: {
+    parentModelType: ModelType;
+    parentIds: Array<string>;
+  }): Promise<Array<string>> => {
+    unreachableLookups.push({
+      parentModelType: lookup.parentModelType,
+      ids: lookup.parentIds,
+    });
+
+    return lookup.parentIds.filter((id: string): boolean => {
+      return (options?.unreachableIds || []).includes(id);
+    });
+  }) as never);
 
   getJestSpyOn(DatabaseService as never, "findIdsInProject").mockImplementation(
     (async (lookup: {
@@ -243,8 +298,12 @@ const serviceFor: (
       ids: lookup.ids,
     });
 
+    // Per lookup, when given: the first as the write reaches, then as read.
+    const readable: Array<string> =
+      options?.readableIdsByLookup?.[lookups.length - 1] || readableIds;
+
     return lookup.ids.filter((id: string): boolean => {
-      return readableIds.includes(id);
+      return readable.includes(id);
     });
   }) as never);
 
@@ -260,6 +319,7 @@ const serviceFor: (
     service: service,
     lookups: lookups,
     projectLookups: projectLookups,
+    unreachableLookups: unreachableLookups,
   };
 };
 
@@ -312,6 +372,13 @@ describe("every model read through another record is created only under a parent
     // A key column, and a join table.
     expect(names).toContain("IncidentInternalNote");
     expect(names).toContain("StatusPageAnnouncement");
+
+    // The parts of an incident, an alert and an episode among them.
+    expect(
+      CREATABLE.filter((entry: [string, ModelType]): boolean => {
+        return isUnderPrivateKind(entry[1]);
+      }).length,
+    ).toBe(CREATABLE_UNDER_PRIVATE_KINDS_COUNT);
   });
 
   test.each(CREATABLE)(
@@ -334,7 +401,62 @@ describe("every model read through another record is created only under a parent
       expect((refusal as Error).message).toContain(
         `references records that are not in this project: ${parent.title} "${PARENT_ID}".`,
       );
+
+      /*
+       * Under an incident, an alert or an episode, the parent the write's
+       * lookup left out is looked up once more as the creator reads it: not
+       * read either, it is answered like one that does not exist.
+       */
+      expect(lookups).toEqual(
+        isUnderPrivateKind(modelType)
+          ? [
+              { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
+              { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
+            ]
+          : [{ parentModelType: parent.parentModelType, ids: [PARENT_ID] }],
+      );
+    },
+  );
+
+  /*
+   * THE MAINTAINER'S CASE (block 33), FOR EVERY PART OF A PRIVATE RECORD: a
+   * private incident, alert or episode the creator reads - a team of theirs
+   * owns it - but whose owning teams' permissions do not reach the create,
+   * while another team's would. The write's lookup leaves it out, the read
+   * finds it: refused, saying why, before any hook.
+   */
+  test.each(
+    CREATABLE.filter((entry: [string, ModelType]): boolean => {
+      return isUnderPrivateKind(entry[1]);
+    }),
+  )(
+    "%s: a private parent the creator reads, whose owners' permissions do not reach the create, is refused saying why",
+    async (_name: string, modelType: ModelType) => {
+      const parent: CreateParent = parentOf(modelType);
+      const { service, lookups } = serviceFor(modelType, [], {
+        readableIdsByLookup: [[], [PARENT_ID]],
+      });
+
+      const refusal: unknown = await refusalOf(
+        service.create({
+          data: recordUnder(modelType),
+          props: memberWith([
+            row(createGrantOf(modelType)!),
+            row(parentReadGrantOf(modelType), [LABEL_ID]),
+          ]),
+        }),
+      );
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe(
+        `You do not have permission to create ${
+          new modelType().singularName
+        }. ${PrivateRecordPermission.getPrivateParentWriteReason(
+          (new parent.parentModelType().singularName || "record").toLowerCase(),
+        )}`,
+      );
       expect(lookups).toEqual([
+        { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
         { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
       ]);
     },
@@ -408,9 +530,8 @@ describe("every model read through another record is created only under a parent
 
     for (const modelType of optional) {
       const parent: CreateParent = parentOf(modelType);
-      const { service, lookups, projectLookups } = serviceFor(modelType, [
-        PARENT_ID,
-      ]);
+      const { service, lookups, projectLookups, unreachableLookups } =
+        serviceFor(modelType, [PARENT_ID]);
 
       const refusal: unknown = await refusalOf(
         service.create({
@@ -429,6 +550,55 @@ describe("every model read through another record is created only under a parent
       expect(projectLookups).toEqual([
         { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
       ]);
+
+      // A parent that can be private is asked whether the write reaches it.
+      expect([nameOf(modelType), unreachableLookups]).toEqual([
+        nameOf(modelType),
+        isUnderPrivateKind(modelType)
+          ? [{ parentModelType: parent.parentModelType, ids: [PARENT_ID] }]
+          : [],
+      ]);
+    }
+  });
+
+  /*
+   * An incident's link to an alert, from a caller who reads no incident:
+   * a private incident the link's permission does not reach - no team of
+   * theirs that owns it may link it - is answered like one that does not
+   * exist, telling them nothing about it.
+   */
+  test("a model whose parent read is optional takes no private parent its write does not reach from a caller who reads no parent", async () => {
+    const optionalUnderPrivateKinds: Array<ModelType> = CREATABLE.map(
+      (entry: [string, ModelType]): ModelType => {
+        return entry[1];
+      },
+    ).filter((modelType: ModelType): boolean => {
+      return (
+        Boolean(new modelType().isParentReadOptional) &&
+        isUnderPrivateKind(modelType)
+      );
+    });
+
+    expect(optionalUnderPrivateKinds.map(nameOf)).toEqual(["IncidentAlert"]);
+
+    for (const modelType of optionalUnderPrivateKinds) {
+      const parent: CreateParent = parentOf(modelType);
+      const { service, lookups } = serviceFor(modelType, [PARENT_ID], {
+        unreachableIds: [PARENT_ID],
+      });
+
+      const refusal: unknown = await refusalOf(
+        service.create({
+          data: recordUnder(modelType),
+          props: memberWith([row(createGrantOf(modelType)!)]),
+        }),
+      );
+
+      expect(refusal).toBeInstanceOf(ProjectScopedReferenceException);
+      expect((refusal as Error).message).toContain(
+        `references records that are not in this project: ${parent.title} "${PARENT_ID}".`,
+      );
+      expect(lookups).toEqual([]);
     }
   });
 
@@ -483,9 +653,15 @@ describe("every model read through another record is created only under a parent
       expect((refusal as Error).message).toContain(
         `references records that are not in this project: ${parent.title} "${PARENT_ID}".`,
       );
-      expect(lookups).toEqual([
-        { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
-      ]);
+      // Under a private kind, looked up once more as read (see above).
+      expect(lookups).toEqual(
+        isUnderPrivateKind(modelType)
+          ? [
+              { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
+              { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
+            ]
+          : [{ parentModelType: parent.parentModelType, ids: [PARENT_ID] }],
+      );
     },
   );
 });

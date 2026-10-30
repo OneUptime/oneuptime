@@ -249,8 +249,12 @@ describe("Declare Incident in the alert header", () => {
     expect(code).toContain(
       'import{getDeclareIncidentFromAlertAction}from"./DeclareIncidentFromAlert";',
     );
+    /*
+     * With what the reader holds on the alert when it is private: the link to
+     * the new incident is a part of it (PrivateRecordScope).
+     */
     expect(code).toContain(
-      "constdeclareIncidentAction:EventPanelAction|null=getDeclareIncidentFromAlertAction(props.alertId);",
+      "constdeclareIncidentAction:EventPanelAction|null=getDeclareIncidentFromAlertAction(props.alertId,privateRecordOptions);",
     );
     // Declare Incident first, then the page's own (its video call's Join call).
     expect(code).toContain(
@@ -338,8 +342,9 @@ describe("Declare Incident in the alert header", () => {
       "constincidentGate:PermissionGateResult=PermissionGate.check(newIncident(),ModelAction.Create,);";
     const earlyReturn: string =
       "if(!incidentGate.isAllowed){returnincidentGate;}";
+    // The link is a part of the alert: held to a private alert's owners.
     const linkCheck: string =
-      "returnPermissionGate.check(newIncidentAlert(),ModelAction.Create);";
+      "returnPermissionGate.check(newIncidentAlert(),ModelAction.Create,linkOptions,);";
 
     expect(gate.indexOf(incidentCheck)).toBe(0);
     expect(gate.indexOf(earlyReturn)).toBeGreaterThan(
@@ -357,7 +362,7 @@ describe("Declare Incident in the alert header", () => {
     );
 
     const gateCall: string =
-      "constgate:PermissionGateResult=getDeclareIncidentFromAlertsGate();";
+      "constgate:PermissionGateResult=getDeclareIncidentFromAlertsGate(linkOptions);";
     const hidden: string =
       "if(!gate.isAllowed&&!gate.disabledReason){returnnull;}";
     const locked: string =

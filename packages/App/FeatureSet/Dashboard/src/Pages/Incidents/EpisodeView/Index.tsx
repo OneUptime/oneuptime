@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
@@ -8,7 +9,11 @@ import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpi
 import { assignIncidentEpisodeRole } from "../../../Utils/EventRoleAssignment";
 import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -109,6 +114,14 @@ import {
 const IncidentEpisodeView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * On a private record's page, what the reader holds on it: a change of it
+   * or of a part of it - a link, a member, a role - is offered only when a
+   * team of theirs that owns it may make it (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
@@ -460,6 +473,7 @@ const IncidentEpisodeView: FunctionComponent<
   const mayAssignRoles: boolean = PermissionGate.check(
     new IncidentEpisodeRoleMember(),
     ModelAction.Create,
+    privateRecordGate(new IncidentEpisodeRoleMember()),
   ).isAllowed;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
