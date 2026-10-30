@@ -501,9 +501,16 @@ describe("a cloud account's own pages", () => {
       title: "AI",
       items: ["AI agent", "Logs"],
     });
-    expect(sections).toContainEqual({ title: "Activity", items: ["Changes"] });
+    expect(sections).toContainEqual({
+      title: "Activity",
+      items: ["Changes", "Feed"],
+    });
     expect(accounts).toContain(
       "Its **Resources** lists them, its **Changes** lists what changed in it, newest first, and its **Topology** draws",
+    );
+    // The account's feed, under Activity: what happened to it in OneUptime.
+    expect(accounts).toContain(
+      "Its **Feed** records how the account came to OneUptime, its Cloud AI agent connecting or being reset, and who changed what OneUptime AI may do in it.",
     );
 
     // The Overview's AI agent card, and the one button it has until an agent connects.

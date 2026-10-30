@@ -1905,6 +1905,39 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(words).toContain(
         "A cloud account's **AI** section has two pages, **AI agent** and **Logs**,",
       );
+
+      /*
+       * Its Feed, under Activity, records the agent connecting or being
+       * reset and every change to what AI may do: the menu draws it so,
+       * and the agent's and a person's changes are written to it.
+       */
+      const activitySection: string = sideMenu.slice(
+        sideMenu.indexOf('<SideMenuSection title="Activity">'),
+        sideMenu.indexOf(
+          "</SideMenuSection>",
+          sideMenu.indexOf('<SideMenuSection title="Activity">'),
+        ),
+      );
+
+      expect(
+        Array.from(activitySection.matchAll(/title: "([^"]+)"/g)).map(
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
+        ),
+      ).toEqual(["Changes", "Feed"]);
+      expect(words).toContain(
+        "Under **Activity**, the account's **Feed** records the agent connecting or being reset, and every change to what OneUptime AI may do there, with who made it.",
+      );
+      expect(
+        oneLine(
+          readRepoFile(
+            "packages/Common/Server/Services/ResourceAiAgentService.ts",
+          ),
+        ),
+      ).toContain(
+        "await CloudAccountFeedService.createCloudAccountFeedItem({ cloudAccountId: item.resourceId,",
+      );
     });
   });
 
