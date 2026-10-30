@@ -75,8 +75,17 @@ const INCIDENT_LONG_TLDR: string =
 const ALERT_TLDR: string =
   "A 17:35 config reload cut the ledger client timeout from 5s to 1s, so slow ledger writes fail and payment webhooks return 502 — the same cause as alert #298.";
 
-// The code-fix action on a completed investigation; the docs name it too.
-const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
+/*
+ * The code-fix action on a completed investigation, which the AI card's
+ * Remediation step offers (block 43); the docs name it too.
+ */
+const OPEN_FIX_PR: string = "Open fix pull request";
+
+/*
+ * A finished investigation folds to its summary on the AI card (block 43):
+ * the toggle that opens the whole report, its working and the verdict.
+ */
+const SHOW_FULL_REPORT: string = "Show full report";
 
 // The investigation's guarantee, shown whether or not its details are open.
 const READ_ONLY: string = "Read-only — nothing in your systems was changed";
@@ -597,6 +606,13 @@ async function expectPageReady(
     { timeout: 30000 },
   );
   for (const text of readyTexts) {
+    /*
+     * The report's closing line is under the fold: a page that waits for
+     * it reads the whole report, as a reader who opens it does.
+     */
+    if (text === REPORT_CAVEAT) {
+      await showFullReport(page);
+    }
     await expect(page.getByText(text).first()).toBeVisible({ timeout: 30000 });
   }
   /*
@@ -907,8 +923,65 @@ function card(page: Page, heading: string | RegExp): Locator {
   });
 }
 
+// The one AI card: its two steps, Investigation and Remediation (block 43).
 function investigationCard(page: Page): Locator {
-  return card(page, "AI Investigation");
+  return card(page, "OneUptime AI");
+}
+
+function investigationStep(page: Page): Locator {
+  return page.getByTestId("ai-card-step-investigation");
+}
+
+function remediationStep(page: Page): Locator {
+  return page.getByTestId("ai-card-step-remediation");
+}
+
+// Each step of the AI card: its section, its title and its pill's name.
+interface AiCardStepNames {
+  testId: string;
+  title: string;
+  pill: string;
+}
+
+const STEP_TITLES_AND_PILLS: ReadonlyArray<AiCardStepNames> = [
+  {
+    testId: "ai-card-step-investigation",
+    title: "Investigation",
+    pill: "Investigation status",
+  },
+  {
+    testId: "ai-card-step-remediation",
+    title: "Remediation",
+    pill: "Remediation status",
+  },
+];
+
+function stepTitle(page: Page, step: AiCardStepNames): Locator {
+  return page
+    .getByTestId(step.testId)
+    .getByRole("heading", { level: 3, name: step.title, exact: true });
+}
+
+function reportToggle(page: Page): Locator {
+  return page.getByTestId("investigation-report-toggle");
+}
+
+// A finished investigation folded to its answer: the TL;DR, or its Summary.
+function foldedReportSummary(page: Page): Locator {
+  return investigationStep(page).getByTestId("investigation-report-summary");
+}
+
+/*
+ * Opens a finished investigation's folded report: its sections, its working
+ * and the verdict. A no-op once it is open.
+ */
+async function showFullReport(page: Page): Promise<void> {
+  const toggle: Locator = reportToggle(page);
+  await expect(toggle).toBeVisible({ timeout: 30000 });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
 // The card that opens an incident's, alert's or episode's left column.
@@ -1286,7 +1359,7 @@ test.describe("AI investigation report", () => {
       "Completed",
     );
     await expect(investigation).toContainText(
-      "OneUptime AI's root-cause report for this incident.",
+      "What OneUptime AI found, and what it is doing about it.",
     );
 
     const summary: Locator = summarySection(page);
@@ -1577,7 +1650,9 @@ test.describe("AI investigation report", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       INCIDENT_PAGE.pageTitle,
     );
-    await expect(summarySection(page)).toContainText(INCIDENT_TLDR);
+    // Back on #1042, its report is folded to its summary again.
+    await expect(foldedReportSummary(page)).toHaveText(INCIDENT_TLDR);
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
     await expectNoErrorStates(page);
   });
 
@@ -2078,25 +2153,53 @@ test.describe("AI investigation report", () => {
     await expect(page.locator("#ai-investigation")).toBeFocused();
   });
 
-  test("Open Fix PR creates a fix task for this run", async ({
+  /*
+   * The fix in the code the investigation recommends is a fix, so the
+   * Remediation step offers it (block 43): "Act on this investigation" was
+   * a row of the investigation's own.
+   */
+  test("?codefix=act: Open fix pull request on the Remediation step starts one from this run", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openReady(page, INCIDENT_PAGE);
+    await openReady(page, INCIDENT_PAGE, "codefix=act");
 
-    const investigation: Locator = investigationCard(page);
+    const remediation: Locator = remediationStep(page);
+    const codeFix: Locator = remediation.getByTestId("remediation-code-fix");
+    await expect(codeFix.getByTestId("remediation-code-fix-text")).toHaveText(
+      "The investigation found the cause in the code.",
+    );
+    // Why OneUptime AI did not open it on its own, and the switch that would.
+    await expect(codeFix.getByTestId("remediation-code-fix-why")).toHaveText(
+      'OneUptime AI opens one on its own only while "Fix new incidents automatically" is on.',
+    );
     await expect(
-      investigation.getByRole("heading", { name: "Act on this investigation" }),
-    ).toBeVisible();
-    await investigation
+      codeFix.getByRole("link", { name: "Turn on for incidents" }),
+    ).toHaveAttribute("href", INCIDENT_AI_SETTINGS_HREF);
+    await expect(
+      investigationCard(page).getByRole("heading", {
+        name: "Act on this investigation",
+      }),
+    ).toHaveCount(0);
+    await expect(
+      investigationStep(page).getByRole("button", { name: OPEN_FIX_PR }),
+    ).toHaveCount(0);
+
+    await codeFix
       .getByRole("button", { name: OPEN_FIX_PR, exact: true })
       .click();
 
-    await expect(investigation.getByText("Fix task created")).toBeVisible();
+    // Asked for: it is being written now, with where to follow it.
+    await expect(codeFix.getByTestId("remediation-code-fix-text")).toHaveText(
+      "A pull request that fixes the code is being written.",
+    );
     await expect(
-      investigation.getByRole("link", { name: "View task progress" }),
+      codeFix.getByRole("link", { name: "View progress" }),
     ).toHaveAttribute("href", new RegExp(`${FIX_TASK_ID}$`));
+    await expect(remediation.getByLabel("Remediation status")).toHaveText(
+      "Fixing…",
+    );
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
       page,
       "/ai-investigation/create-fix-task",
@@ -2109,24 +2212,31 @@ test.describe("AI investigation report", () => {
     });
   });
 
-  test("?fail=create-fix-task explains why no task was created", async ({
+  test("?codefix=act&fail=create-fix-task says why no pull request was opened", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openReady(page, INCIDENT_PAGE, "fail=create-fix-task");
+    await openReady(page, INCIDENT_PAGE, "codefix=act&fail=create-fix-task");
 
-    const investigation: Locator = investigationCard(page);
-    await investigation
+    const codeFix: Locator = remediationStep(page).getByTestId(
+      "remediation-code-fix",
+    );
+    await codeFix
       .getByRole("button", { name: OPEN_FIX_PR, exact: true })
       .click();
-    await expect(
-      investigation.getByText("Could not create the fix task"),
-    ).toBeVisible();
-    await expect(investigation).toContainText(
+    const notice: Locator = codeFix.getByTestId("remediation-code-fix-error");
+    await expect(notice).toContainText("Could not open the pull request");
+    await expect(notice).toContainText(
       "No AI agent is online for this project.",
     );
-    await expect(investigation.getByText("Fix task created")).toHaveCount(0);
+    // Still on offer: nothing was started.
+    await expect(codeFix.getByTestId("remediation-code-fix-text")).toHaveText(
+      "The investigation found the cause in the code.",
+    );
+    await expect(
+      codeFix.getByRole("button", { name: OPEN_FIX_PR, exact: true }),
+    ).toBeEnabled();
   });
 
   test("the feed shows a compact AI item and unfolds the full report in place", async ({
@@ -2189,7 +2299,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     await expect(investigation).toContainText(
-      "OneUptime AI's root-cause report for this alert.",
+      "What OneUptime AI found, and what it is doing about it.",
     );
     await expect(summarySection(page)).toContainText(ALERT_TLDR);
     const reference: Locator = referenceLink(summarySection(page), "#298");
@@ -2268,8 +2378,8 @@ test.describe("investigation details", () => {
     await expectAbove(reportSection(page), details, "report before details");
     await expectAbove(
       details,
-      investigation.getByRole("heading", { name: "Act on this investigation" }),
-      "details before the actions",
+      investigation.getByRole("heading", { name: VERDICT_QUESTION }),
+      "details before the rating",
     );
     // Neither the old usage strip nor the old activity disclosure is left.
     await expect(namedList(investigation, "Investigation usage")).toHaveCount(
@@ -3995,7 +4105,9 @@ interface PanelOffender {
  * text box together with the frame drawn around it), inline code and
  * collapsed content are left out. So are the two things in an answer that
  * keep a frame on purpose, each a named group: a chart or table (a figure,
- * framed wherever it is drawn) and an action waiting for approval. The card
+ * framed wherever it is drawn) and an action waiting for approval - and each
+ * step's status pill (block 43), a pill on its title's line as the card's
+ * header pill was, never a panel around content. The card
  * used to hold a tinted summary box, a report box with an amber callout
  * inside it, a details box and an actions box, and its conversation gray
  * steps, a red error, bordered action rows and source pills.
@@ -4067,7 +4179,7 @@ async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
       for (const element of Array.from(region.querySelectorAll("*"))) {
         if (
           element.closest(
-            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden], textarea",
+            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden], textarea, [data-testid='ai-card-step-investigation-status'], [data-testid='ai-card-step-remediation-status']",
           ) ||
           textBoxFrames.some((frame: Element): boolean => {
             return frame.contains(element);
@@ -4252,14 +4364,17 @@ test.describe("one flat AI investigation card", () => {
         return heading.text;
       }),
     ).toEqual([
+      // The first step, its report opened: what OneUptime AI found.
+      "Investigation",
       "Summary",
       "Most likely root cause",
       "Evidence",
       "Suggested next steps",
       "Evidence and activity",
-      "Act on this investigation",
       VERDICT_QUESTION,
-      // The shared conversation under the report.
+      // The second step: what OneUptime AI is doing to fix it (block 43).
+      "Remediation",
+      // The shared conversation under both.
       "Ask OneUptime AI",
     ]);
     expect(
@@ -4302,7 +4417,7 @@ test.describe("one flat AI investigation card", () => {
     expect(looks[0]).toContain("rgb(249, 250, 251) | rgb(55, 65, 81)");
   });
 
-  test("the report is the first thing in the card and the rating the last", async ({
+  test("the report opens the investigation step and the rating closes it, before Remediation", async ({
     page,
   }: {
     page: Page;
@@ -4328,13 +4443,27 @@ test.describe("one flat AI investigation card", () => {
     await expectAbove(
       investigationDetails(page),
       page.getByTestId("investigation-actions"),
-      "the working before the actions",
+      "the working before the rating",
     );
+    /*
+     * The rating is all that is left of the actions: the fix pull request
+     * is the Remediation step's (block 43).
+     */
     await expect(
       page
         .getByTestId("investigation-actions")
         .getByRole("heading", { level: 3 }),
-    ).toHaveText(["Act on this investigation", VERDICT_QUESTION]);
+    ).toHaveText([VERDICT_QUESTION]);
+    await expectAbove(
+      page.getByTestId("investigation-actions"),
+      reportToggle(page),
+      "the rating, then Show less",
+    );
+    await expectAbove(
+      reportToggle(page),
+      remediationStep(page),
+      "the investigation, then the remediation",
+    );
   });
 
   test("hairlines, not boxes, split the report from its working and its actions", async ({
@@ -4814,40 +4943,53 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await textLook(verdictDescription),
     );
 
-    // The title starts at the card's left edge: no icon tile in front of it.
+    /*
+     * The title starts at the card's left edge, where the steps' marks do:
+     * the conversation follows both steps rather than sitting in one, and
+     * there is no icon tile in front of it.
+     */
     const headingBox: Box = await documentBox(heading);
     const sectionBox: Box = await documentBox(section);
-    const verdictBox: Box = await documentBox(verdictHeading);
+    const markBox: Box = await documentBox(
+      page.getByTestId("ai-card-step-investigation-mark"),
+    );
     expect(headingBox.x).toBeCloseTo(sectionBox.x, 0);
-    expect(headingBox.x).toBeCloseTo(verdictBox.x, 0);
+    expect(headingBox.x).toBeCloseTo(markBox.x, 0);
     await expect(heading.locator("xpath=..").locator("svg")).toHaveCount(0);
   });
 
-  test("the status pill ends at the edge the card's content ends at", async ({
+  test("each step's status pill sits on its title's line and ends at the edge the card's content ends at", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openReady(page, INCIDENT_PAGE);
     const investigation: Locator = investigationCard(page);
-    const pill: Box = await documentBox(
-      investigation.getByLabel("Investigation status"),
-    );
-    const title: Box = await documentBox(
-      investigation.getByRole("heading", { level: 2 }),
-    );
     const section: Box = await documentBox(conversation(page));
 
-    // The default header: no layout of its own is needed any more.
+    // The default header: the card's title and description, no pill.
     await expect(investigation.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",
       "default",
     );
-    // Beside the title, on its line.
-    expect(pill.y).toBeLessThan(title.y + title.height);
-    expect(pill.x).toBeGreaterThan(title.x + title.width);
-    // It used to stop 12px short of the hairlines' right end.
-    expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
+    await expect(
+      investigation.getByTestId("card-header").getByLabel(/status$/),
+    ).toHaveCount(0);
+
+    for (const step of STEP_TITLES_AND_PILLS) {
+      const pill: Box = await documentBox(
+        page.getByTestId(step.testId).getByLabel(step.pill, { exact: true }),
+      );
+      const title: Box = await documentBox(stepTitle(page, step));
+      // Beside the step's title, on its line.
+      expect(pill.y, step.title).toBeLessThan(title.y + title.height);
+      expect(pill.x, step.title).toBeGreaterThan(title.x + title.width);
+      // At the card's content edge, where the hairlines end.
+      expect(pill.x + pill.width, step.title).toBeCloseTo(
+        section.x + section.width,
+        0,
+      );
+    }
   });
 
   test.describe("what it suggests", () => {
@@ -5975,24 +6117,30 @@ test.describe("one AI card: the investigation and the conversation", () => {
       });
     }
 
-    test("the fix task and verdict messages are lines of their rows", async ({
+    test("the fix pull request and verdict messages are lines of their rows", async ({
       page,
     }: {
       page: Page;
     }) => {
-      await openReady(page, INCIDENT_PAGE, "fail=verdict,create-fix-task");
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        "codefix=act&fail=verdict,create-fix-task",
+      );
       const investigation: Locator = investigationCard(page);
 
-      await investigation.getByRole("button", { name: OPEN_FIX_PR }).click();
+      await remediationStep(page)
+        .getByRole("button", { name: OPEN_FIX_PR })
+        .click();
       await investigation.getByRole("button", { name: "Confirmed" }).click();
 
-      const fixError: Locator = investigation.getByTestId(
-        "investigation-fix-task-error",
+      const fixError: Locator = remediationStep(page).getByTestId(
+        "remediation-code-fix-error",
       );
       const verdictError: Locator = investigation.getByTestId(
         "investigation-verdict-error",
       );
-      await expect(fixError).toContainText("Could not create the fix task");
+      await expect(fixError).toContainText("Could not open the pull request");
       await expect(verdictError).toContainText("Could not save your verdict");
 
       // They were red alert boxes, the loudest things in the card.
@@ -6003,32 +6151,34 @@ test.describe("one AI card: the investigation and the conversation", () => {
       expect(await panelsInsideTheCard(page)).toEqual([]);
     });
 
-    test("a created fix task is a line with a green mark and a link to the task", async ({
+    test("a pull request asked for is a line with a mark and a link to its progress", async ({
       page,
     }: {
       page: Page;
     }) => {
-      await openReady(page, INCIDENT_PAGE);
-      const investigation: Locator = investigationCard(page);
-
-      await investigation.getByRole("button", { name: OPEN_FIX_PR }).click();
-
-      const created: Locator = investigation.getByTestId(
-        "investigation-fix-task-created",
+      await openReady(page, INCIDENT_PAGE, "codefix=act");
+      const codeFix: Locator = remediationStep(page).getByTestId(
+        "remediation-code-fix",
       );
-      await expect(created).toContainText("Fix task created");
-      expect(await frameLook(created)).toEqual(NO_FRAME);
-      // emerald-600.
+
+      await codeFix.getByRole("button", { name: OPEN_FIX_PR }).click();
+
+      await expect(codeFix).toHaveAttribute("data-offer", "InProgress");
+      await expect(codeFix).toContainText(
+        "A pull request that fixes the code is being written.",
+      );
+      expect(await frameLook(codeFix)).toEqual(NO_FRAME);
+      // indigo-600: on its way, like a decision line that waits.
       expect(
-        await created
+        await codeFix
           .locator("svg")
           .first()
           .evaluate((icon: Element): string => {
             return window.getComputedStyle(icon).color;
           }),
-      ).toBe("rgb(5, 150, 105)");
+      ).toBe("rgb(79, 70, 229)");
       await expect(
-        created.getByRole("link", { name: "View task progress" }),
+        codeFix.getByRole("link", { name: "View progress" }),
       ).toHaveAttribute("href", new RegExp(`${FIX_TASK_ID}$`));
       expect(await panelsInsideTheCard(page)).toEqual([]);
     });
@@ -6096,17 +6246,18 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }: {
       page: Page;
     }) => {
-      // "Completed" fits beside "AI Investigation".
+      // "Completed" fits beside the Investigation step's title.
       let investigation: Locator = await openCardState(page, CARD_STATES[0]!);
       let title: Box = await documentBox(
-        investigation.getByRole("heading", { level: 2 }),
+        stepTitle(page, STEP_TITLES_AND_PILLS[0]!),
       );
       let pill: Box = await documentBox(
         investigation.getByLabel("Investigation status"),
       );
       let section: Box = await documentBox(conversation(page));
 
-      expect(title.height).toBeLessThanOrEqual(26);
+      // One line: the title's 28px line, level with the step's mark.
+      expect(title.height).toBeLessThanOrEqual(28);
       expect(pill.x).toBeGreaterThan(title.x + title.width);
       expect(pill.y).toBeLessThan(title.y + title.height);
       // At the card's content edge, not centred under the title.
@@ -6118,16 +6269,14 @@ test.describe("one AI card: the investigation and the conversation", () => {
        * to the left or the middle.
        */
       investigation = await openCardState(page, CARD_STATES[7]!);
-      title = await documentBox(
-        investigation.getByRole("heading", { level: 2 }),
-      );
+      title = await documentBox(stepTitle(page, STEP_TITLES_AND_PILLS[0]!));
       pill = await documentBox(
         investigation.getByLabel("Investigation status"),
       );
       section = await documentBox(conversation(page));
 
       // The title is never the one that gives way.
-      expect(title.height).toBeLessThanOrEqual(26);
+      expect(title.height).toBeLessThanOrEqual(28);
       expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
       if (pill.y >= title.y + title.height) {
         expect(pill.x).toBeGreaterThan(title.x);
@@ -6291,9 +6440,9 @@ test.describe("one AI card: the investigation and the conversation", () => {
  * Enable AI (off-project), the AI rules (off-rules) or the minimum severity
  * (off-severity), with fixing off beside it (?fixing=) - the AI card is one
  * line: what is off and why, Ask OneUptime AI while AI is on, and a chevron
- * that opens what to turn on, where, and who can. The Remediation card
+ * that opens what to turn on, where, and who can. The Remediation step
  * leaves saying why nothing was fixed to it. When fixing did something
- * (?fixing=acted), both cards stay whole.
+ * (?fixing=acted), the card stays whole, with both its steps.
  */
 
 const AI_OFF_TITLE: string = "AI investigation is off";
@@ -6363,8 +6512,12 @@ function aiOffStepsPanel(page: Page): Locator {
   return aiOffLine(page).getByTestId("ai-off-summary-steps");
 }
 
+/*
+ * What OneUptime AI is doing to fix the record: the AI card's second step
+ * (block 43), which was a card of its own far down the page.
+ */
 function remediationCard(page: Page): Locator {
-  return card(page, "Remediation");
+  return remediationStep(page);
 }
 
 async function openAiOffLine(
@@ -6620,11 +6773,12 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       await expect(
         page.getByRole("heading", {
           level: 2,
-          name: "AI Investigation",
+          name: "OneUptime AI",
           exact: true,
         }),
       ).toHaveCount(0);
       await expect(page.getByLabel("Investigation status")).toHaveCount(0);
+      await expect(page.getByLabel("Remediation status")).toHaveCount(0);
       await expect(page.getByTestId("investigation-not-started")).toHaveCount(
         0,
       );
@@ -6636,7 +6790,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       ).toHaveCount(0);
       // Nobody has asked: no conversation until someone does.
       await expect(conversation(page)).toHaveCount(0);
-      // The line says why nothing was fixed: no Remediation card.
+      // The line says why nothing was fixed: no Remediation step.
       await expect(remediationCard(page)).toHaveCount(0);
       // Nothing in the header says AI is working on it.
       await expect(
@@ -14885,7 +15039,9 @@ test.describe("screenshots", () => {
       await screenshotBetween(
         page,
         investigationCard(page).getByRole("heading", {
-          name: "AI Investigation",
+          level: 2,
+          name: "OneUptime AI",
+          exact: true,
         }),
         reportSection(page),
         "ai-report-summary",
@@ -15143,6 +15299,8 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     page: Page;
   }) => {
     await open(page, INCIDENT_PATH, "linked=followup");
+    // Folded to its summary, the report says why it was written once opened.
+    await showFullReport(page);
     const lead: Locator = followUpLead(page);
     // The report's markdown is drawn once its renderer has loaded.
     await expect(lead).toContainText(FOLLOW_UP_LEAD_TEXT, { timeout: 30000 });
@@ -15214,6 +15372,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     page: Page;
   }) => {
     await open(page, INCIDENT_PATH, "linked=followup");
+    await showFullReport(page);
     await expect(followUpLead(page)).toBeVisible({ timeout: 30000 });
 
     const containers: Locator = await expandEvidence(page, "C2");
@@ -15272,6 +15431,10 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
       "ai=running&linked=followup",
     ]) {
       await open(page, INCIDENT_PATH, query);
+      // A finished check's working is under its folded report.
+      if (!query.includes("ai=running")) {
+        await showFullReport(page);
+      }
       await expect(investigationCard(page)).toContainText("checking again", {
         ignoreCase: true,
         timeout: 30000,
@@ -15309,6 +15472,9 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     for (const shot of shots) {
       await page.setViewportSize({ width: shot.width, height: 1000 });
       await open(page, INCIDENT_PATH, shot.query);
+      if (!shot.query.includes("ai=running")) {
+        await showFullReport(page);
+      }
       await expect(investigationCard(page)).toContainText(
         shot.query.includes("ai=running")
           ? "Starting investigation"
@@ -18427,15 +18593,15 @@ test.describe("at a glance: layout", () => {
 /*
  * Issue #5293: an incident Ask AI declared on a host's page was linked to
  * nothing, and its Remediation card said only that it was "not linked to a
- * Kubernetes cluster or an infrastructure resource". The card now says, in
- * plain words, what OneUptime AI fixes and what to do: add what the
- * incident is about under Affected Resources, and OneUptime AI tries
- * again. "Go to Affected Resources" takes the reader to that card - on a
+ * Kubernetes cluster or an infrastructure resource". The AI card's
+ * Remediation step (block 43) now says, in plain words, what OneUptime AI
+ * fixes and what to do: add what the incident is about under Affected
+ * Resources, and OneUptime AI tries again. "Go to Affected Resources" takes the reader to that card - on a
  * phone far below - and marks where it landed. ?fixing=nothing-linked is
  * such a record with no monitor (an incident Ask AI declared);
  * ?fixing=nothing-linked-monitor names its monitor too.
  */
-test.describe("the Remediation card of a record linked to nothing (issue #5293)", () => {
+test.describe("the Remediation step of a record linked to nothing (issue #5293)", () => {
   const NOTHING_LINKED_INCIDENT: string =
     "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.";
   const WHAT_TO_DO: string =
@@ -19021,14 +19187,15 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
 
 /*
  * A fix that changes a cloud account is dry-run before anyone approves it
- * (CloudChangeDryRun): under the change, the Remediation card says what
- * the dry run found - it would run (the call it would make and its undo),
- * the agent would refuse it (why, in amber), it could not finish, or it is
- * being checked - and each says nothing was changed. Dry run again checks
- * once more, and the answer lands on the card's next poll. ?cloudfix= is
- * such a fix on Incident #1042, for the AWS account "prod".
+ * (CloudChangeDryRun): under the change, the AI card's Remediation step
+ * says what the dry run found - it would run (the call it would make and
+ * its undo), the agent would refuse it (why, in amber), it could not
+ * finish, or it is being checked - and each says nothing was changed. Dry
+ * run again checks once more, and the answer lands on the step's next
+ * poll. ?cloudfix= is such a fix on Incident #1042, for the AWS account
+ * "prod".
  */
-test.describe("a cloud fix's dry run on the Remediation card", () => {
+test.describe("a cloud fix's dry run on the Remediation step", () => {
   const SERVICE: string =
     "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout-api";
   const COMMAND: string = `cloud scale-out ${SERVICE} --count 8`;
@@ -19110,7 +19277,10 @@ test.describe("a cloud fix's dry run on the Remediation card", () => {
     await expect(note.getByTestId("remediation-dry-run-summary")).toContainText(
       "(ONEUPTIME_AI_CLOUD_REQUIRED_TAG)",
     );
-    await expect(note).toHaveClass(/border-amber-200/);
+    // Amber words and mark, on the AI card itself: no box (block 43).
+    await expect(note).toHaveClass(/text-amber-800/);
+    expect(await frameLook(note)).toEqual(NO_FRAME);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
     await expect(
       remediationCard(page).getByTestId("remediation-approve-button"),
     ).toBeVisible();
@@ -19254,4 +19424,531 @@ test.describe("a cloud fix's dry run on the Remediation card", () => {
       "remediation-cloud-dry-run-refused-390-dark",
     );
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The AI card in two steps (block 43): "Can you make it in two steps?
+ * Investigation would be one step, and remediation would be the other
+ * step ... When remediation is enabled, it should show. Up there, it
+ * should show the remediation card. If no remediation is happening because
+ * of some error, show why remediation doesn't happen."
+ *
+ * The OneUptime AI card holds both, up top: 1 Investigation, folded to its
+ * summary once it reports, and 2 Remediation, which was a card of its own
+ * far down the page - each with a status pill beside its title, and a mark
+ * on a rail that joins them.
+ * ---------------------------------------------------------------------------
+ */
+
+const NOT_TRIED: string = "OneUptime AI has not tried to fix this incident.";
+const WAITING_FOR_INVESTIGATION: string =
+  "OneUptime AI decides how to fix this incident once the investigation is done, so it can act on the root cause.";
+const FIXING_OFF_LINE: string =
+  '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.';
+const FIXING_ON_NOW_LINE: string =
+  '"Fix new incidents automatically" was off when OneUptime AI checked this incident. It is on now.';
+const TRY_AGAIN_HINT: string =
+  "Checks this incident again with the project's settings as they are now.";
+const TOO_SOON: string =
+  "OneUptime AI has just checked this incident. Try again in a moment.";
+
+function stepPill(step: Locator, label: string): Locator {
+  return step.getByLabel(label, { exact: true });
+}
+
+// Opens a record and waits for its AI card to have drawn both steps.
+async function openTwoSteps(
+  page: Page,
+  query: string,
+  remediationPill: string,
+  pagePath: string = INCIDENT_PATH,
+): Promise<{ investigation: Locator; remediation: Locator }> {
+  await open(page, pagePath, query);
+  const investigation: Locator = investigationStep(page);
+  const remediation: Locator = remediationStep(page);
+  await expect(remediation).toBeVisible({ timeout: 30000 });
+  await expect(
+    stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
+  ).toHaveText(remediationPill, { timeout: 30000 });
+  await expectWhatHappenedSettled(page);
+  return { investigation, remediation };
+}
+
+test.describe("the AI card in two steps: Investigation, then Remediation (block 43)", () => {
+  test("up top, one card holds both: the investigation folded to its summary, then what fixing did", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { investigation, remediation } = await openTwoSteps(
+      page,
+      "",
+      "Not tried",
+    );
+
+    const aiCard: Locator = investigationCard(page);
+    await expect(aiCard).toHaveCount(1);
+    await expect(aiCard.getByTestId("card-description")).toHaveText(
+      "What OneUptime AI found, and what it is doing about it.",
+    );
+    await expect(aiCard.getByTestId("ai-card-step-investigation")).toHaveCount(
+      1,
+    );
+    await expect(aiCard.getByTestId("ai-card-step-remediation")).toHaveCount(1);
+
+    // Step 1: its title and pill on one line, its mark a check: it reported.
+    await expect(stepTitle(page, STEP_TITLES_AND_PILLS[0]!)).toBeVisible();
+    await expect(
+      stepPill(investigation, STEP_TITLES_AND_PILLS[0]!.pill),
+    ).toHaveText("Completed");
+    await expect(investigation).toHaveAttribute("data-indicator", "done");
+    await expect(investigation).toHaveAttribute("data-step", "1");
+    await expect(
+      page.getByTestId("ai-card-step-investigation-rail"),
+    ).toBeVisible();
+
+    // Folded to its answer, with the rest one press away.
+    await expect(foldedReportSummary(page)).toHaveText(INCIDENT_TLDR);
+    await expect(reportToggle(page)).toHaveText(SHOW_FULL_REPORT);
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(page.getByText(VERDICT_QUESTION)).toHaveCount(0);
+
+    // Step 2, under it: nothing was decided for this incident yet.
+    await expect(stepTitle(page, STEP_TITLES_AND_PILLS[1]!)).toBeVisible();
+    await expect(remediation).toHaveAttribute("data-step", "2");
+    await expect(
+      remediation.getByTestId("remediation-step-not-tried"),
+    ).toHaveText(NOT_TRIED);
+    await expectAbove(investigation, remediation, "investigation, then fixing");
+    // The last step has no rail under it.
+    await expect(page.getByTestId("ai-card-step-remediation-rail")).toHaveCount(
+      0,
+    );
+
+    // Up there: above the feed, not far down the page, and no card of its own.
+    await expectAbove(
+      remediation,
+      card(page, "Incident Feed"),
+      "fixing above the feed",
+    );
+    await expect(card(page, "Remediation")).toHaveCount(0);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await expectNoErrorStates(page);
+  });
+
+  test("Show full report opens the report, its working and the verdict; Show less folds it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoSteps(page, "", "Not tried");
+
+    await reportToggle(page).click();
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(reportToggle(page)).toHaveText("Show less");
+    await expect(summarySection(page)).toContainText(INCIDENT_TLDR);
+    await expect(reportSection(page)).toContainText(REPORT_CAVEAT);
+    await expect(investigationDetails(page)).toBeVisible();
+    await expect(page.getByText(VERDICT_QUESTION)).toBeVisible();
+    // The verdict ends the report, and the toggle closes it.
+    await expectAbove(
+      page.getByText(VERDICT_QUESTION),
+      reportToggle(page),
+      "the verdict, then Show less",
+    );
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+
+    await reportToggle(page).click();
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(foldedReportSummary(page)).toHaveText(INCIDENT_TLDR);
+  });
+
+  test("the header's View full report opens the folded report it jumps to", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoSteps(page, "", "Not tried");
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
+
+    await hero(page).getByRole("button", { name: "View full report" }).click();
+
+    await expect(page.locator("#ai-investigation")).toBeFocused();
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(reportSection(page)).toContainText(REPORT_CAVEAT);
+  });
+
+  test("while the investigation runs, fixing waits for it, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { investigation, remediation } = await openTwoSteps(
+      page,
+      "ai=running&state=created",
+      "Waiting",
+    );
+
+    await expect(
+      stepPill(investigation, STEP_TITLES_AND_PILLS[0]!.pill),
+    ).toHaveText("Investigating…");
+    await expect(investigation).toHaveAttribute("data-indicator", "live");
+    await expect(
+      remediation.getByTestId("remediation-decision-line"),
+    ).toHaveText(WAITING_FOR_INVESTIGATION);
+    await expect(remediation).toHaveAttribute("data-indicator", "waiting");
+    // Nothing to try again while it waits.
+    await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
+      0,
+    );
+  });
+
+  test("fixing off: the step says why, and links to the switch (?fixing=off)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { remediation } = await openTwoSteps(page, "fixing=off", "Off");
+
+    const line: Locator = remediation.getByTestId("remediation-decision-line");
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      FIXING_OFF_LINE,
+    );
+    await expect(
+      line.getByRole("link", { name: "Turn on for incidents" }),
+    ).toHaveAttribute("href", INCIDENT_AI_SETTINGS_HREF);
+    // Still off, and the incident is resolved: nothing to try again.
+    await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
+      0,
+    );
+  });
+
+  test("turned on since: the line says it was off then and is on now, and Try again decides again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { remediation } = await openTwoSteps(
+      page,
+      "state=created&fixing=off&switches=on",
+      "Needs attention",
+    );
+
+    await expect(
+      remediation.getByTestId("remediation-decision-text"),
+    ).toHaveText(FIXING_ON_NOW_LINE);
+    const tryAgain: Locator = remediation.getByTestId("remediation-try-again");
+    await expect(tryAgain).toContainText(TRY_AGAIN_HINT);
+
+    await tryAgain.getByRole("button", { name: "Try again" }).click();
+
+    // Decided again, now: OneUptime AI started a fix, read at once.
+    await expect(
+      stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
+    ).toHaveText("Fixing…");
+    await expect(remediation.getByTestId("remediation-decision")).toContainText(
+      '"prod-eu-west-1"',
+    );
+    await expect(
+      remediation.getByTestId("remediation-decision-text").first(),
+    ).not.toHaveText(FIXING_ON_NOW_LINE);
+    await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
+      0,
+    );
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/try-again",
+    );
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.body).toEqual({ incidentId: INCIDENT_ID });
+  });
+
+  test("?fail=try-again: the refusal says why, in a notice that can be put away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { remediation } = await openTwoSteps(
+      page,
+      "state=created&fixing=off&switches=on&fail=try-again",
+      "Needs attention",
+    );
+
+    await remediation.getByRole("button", { name: "Try again" }).click();
+
+    const notice: Locator = remediation.getByTestId(
+      "remediation-try-again-error",
+    );
+    await expect(notice).toContainText("OneUptime AI could not check again");
+    await expect(notice).toContainText(TOO_SOON);
+    await expect(notice).toHaveAttribute("role", "alert");
+    expect(await frameLook(notice)).toEqual(NO_FRAME);
+    // What it said before stays.
+    await expect(
+      remediation.getByTestId("remediation-decision-text"),
+    ).toHaveText(FIXING_ON_NOW_LINE);
+
+    await notice.getByRole("button", { name: "Dismiss" }).click();
+    await expect(notice).toHaveCount(0);
+  });
+
+  test("the alert page has the same two steps, in its own words (?fixing=off)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { remediation } = await openTwoSteps(
+      page,
+      "fixing=off",
+      "Off",
+      ALERT_PATH,
+    );
+
+    await expect(
+      remediation.getByTestId("remediation-decision-text"),
+    ).toHaveText(
+      '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
+    );
+    await expect(
+      remediation.getByRole("link", { name: "Turn on for alerts" }),
+    ).toHaveAttribute("href", ALERT_AI_SETTINGS_HREF);
+    await expect(foldedReportSummary(page)).toHaveText(ALERT_TLDR);
+    await expect(card(page, "Remediation")).toHaveCount(0);
+  });
+
+  test("a fix waiting for approval is what the pill says (?cloudfix=would-run)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { remediation } = await openTwoSteps(
+      page,
+      "cloudfix=would-run",
+      "Needs your approval",
+    );
+
+    await expect(remediation).toHaveAttribute("data-indicator", "attention");
+    await expect(
+      remediation.getByTestId("remediation-fixes-description"),
+    ).toBeVisible();
+    await expect(
+      remediation.getByTestId("remediation-approve-button"),
+    ).toBeVisible();
+    // Nothing to try again beside a fix.
+    await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
+      0,
+    );
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test.describe("the fix in the code the investigation recommends (?codefix=)", () => {
+    const CASES: ReadonlyArray<{
+      query: string;
+      pill: string;
+      text: string;
+      link: string;
+    }> = [
+      {
+        query: "codefix=writing",
+        pill: "Fixing…",
+        text: "OneUptime AI is writing a pull request that fixes the code.",
+        link: "View progress",
+      },
+      {
+        query: "codefix=opened",
+        pill: "Pull request opened",
+        text: "OneUptime AI opened a pull request that fixes the code.",
+        link: "View pull request",
+      },
+      {
+        query: "codefix=no-repository",
+        pill: "Needs attention",
+        text: "The investigation found the cause in the code, but no code repository is connected.",
+        link: "Connect a repository",
+      },
+    ];
+
+    for (const codeFix of CASES) {
+      test(`${codeFix.query}: ${codeFix.pill}, with what came of it and where`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        const { remediation } = await openTwoSteps(
+          page,
+          codeFix.query,
+          codeFix.pill,
+        );
+
+        const row: Locator = remediation.getByTestId("remediation-code-fix");
+        await expect(row.getByTestId("remediation-code-fix-text")).toHaveText(
+          codeFix.text,
+        );
+        await expect(
+          row.getByRole("link", { name: codeFix.link }),
+        ).toBeVisible();
+        // OneUptime AI is trying (or one step from it): never "not tried".
+        await expect(
+          remediation.getByTestId("remediation-step-not-tried"),
+        ).toHaveCount(0);
+        const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+          page,
+          "/ai-investigation/code-fix-suggestion",
+        );
+        expect(requests[0]?.body).toEqual({
+          subjectType: "incident",
+          subjectId: INCIDENT_ID,
+        });
+        expect(await panelsInsideTheCard(page)).toEqual([]);
+      });
+    }
+  });
+
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`both steps at ${width}px, ${theme}: titles, pills and lines fit, nothing scrolls sideways`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 1000 });
+        const { investigation, remediation } = await openTwoSteps(
+          page,
+          `state=created&fixing=off&switches=on${theme === "dark" ? "&theme=dark" : ""}`,
+          "Needs attention",
+        );
+
+        for (const step of STEP_TITLES_AND_PILLS) {
+          const pill: Locator = page
+            .getByTestId(step.testId)
+            .getByLabel(step.pill, { exact: true });
+          expect(await isOverflowing(pill), `${step.pill} is cut off`).toBe(
+            false,
+          );
+          const title: Box = await documentBox(stepTitle(page, step));
+          const pillBox: Box = await documentBox(pill);
+          // Beside its title while they fit, under it otherwise - never over it.
+          expect(
+            pillBox.y >= title.y - 8,
+            `${step.pill} sits level with or below its title`,
+          ).toBe(true);
+          expect(title.height, `${step.title} is one line`).toBeLessThanOrEqual(
+            28,
+          );
+        }
+
+        /*
+         * From sm up a step's body sits under its title, beside the rail; on
+         * a phone it takes the card's width, under the mark, and the rail is
+         * left out.
+         */
+        const mark: Box = await documentBox(
+          page.getByTestId("ai-card-step-investigation-mark"),
+        );
+        const body: Box = await documentBox(
+          page.getByTestId("ai-card-step-investigation-body"),
+        );
+        const title: Box = await documentBox(
+          stepTitle(page, STEP_TITLES_AND_PILLS[0]!),
+        );
+        if (width < 640) {
+          expect(body.x).toBeCloseTo(mark.x, 0);
+          expect(body.y).toBeGreaterThanOrEqual(mark.y + mark.height);
+          await expect(
+            page.getByTestId("ai-card-step-investigation-rail"),
+          ).toBeHidden();
+        } else {
+          expect(body.x).toBeCloseTo(title.x, 0);
+          await expect(
+            page.getByTestId("ai-card-step-investigation-rail"),
+          ).toBeVisible();
+        }
+
+        await expect(
+          remediation.getByRole("button", { name: "Try again" }),
+        ).toBeVisible();
+        await expect(investigation).toBeVisible();
+        expect(await panelsInsideTheCard(page)).toEqual([]);
+        await expectNoHorizontalOverflow(page);
+        await page.mouse.move(0, 0);
+        await screenshotElement(
+          investigationCard(page),
+          `ai-card-two-steps-${width}-${theme}`,
+        );
+      });
+    }
+  }
+
+  test("reads in German (?lang=de)", async ({ page }: { page: Page }) => {
+    await open(page, INCIDENT_PATH, "fixing=off&lang=de");
+    const remediation: Locator = remediationStep(page);
+    await expect(
+      remediation.getByRole("heading", { level: 3, name: "Behebung" }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      investigationStep(page).getByRole("heading", {
+        level: 3,
+        name: "Untersuchung",
+      }),
+    ).toBeVisible();
+    await expect(remediation.getByLabel("Behebungsstatus")).toHaveText("Aus");
+    await expect(reportToggle(page)).toHaveText(
+      "Vollständigen Bericht anzeigen",
+    );
+    await expect(
+      remediation.getByRole("link", { name: "Für Vorfälle einschalten" }),
+    ).toHaveAttribute("href", INCIDENT_AI_SETTINGS_HREF);
+    await expectWhatHappenedSettled(page);
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(investigationCard(page), "ai-card-two-steps-de");
+  });
+
+  for (const width of [1280, 390]) {
+    test(`reads in Persian, right to left, at ${width}px (?lang=fa&dir=auto)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await open(page, INCIDENT_PATH, "fixing=off&lang=fa&dir=auto");
+      const investigation: Locator = investigationStep(page);
+      const remediation: Locator = remediationStep(page);
+      await expect(
+        remediation.getByRole("heading", { level: 3, name: "رفع مشکل" }),
+      ).toBeVisible({ timeout: 30000 });
+      await expect(
+        investigation.getByRole("heading", { level: 3, name: "بررسی" }),
+      ).toBeVisible();
+      await expect(remediation.getByLabel("وضعیت رفع مشکل")).toHaveText(
+        "خاموش",
+      );
+      await expectWhatHappenedSettled(page);
+
+      // Right to left: each step's mark is at the start, right of its title.
+      for (const [step, testId] of [
+        [investigation, "ai-card-step-investigation"],
+        [remediation, "ai-card-step-remediation"],
+      ] as Array<[Locator, string]>) {
+        const mark: Box = await documentBox(page.getByTestId(`${testId}-mark`));
+        const title: Box = await documentBox(
+          step.getByRole("heading", { level: 3 }).first(),
+        );
+        expect(
+          mark.x,
+          "the mark is at the start, on the right",
+        ).toBeGreaterThan(title.x + title.width);
+      }
+
+      await expectNoHorizontalOverflow(page);
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        investigationCard(page),
+        `ai-card-two-steps-fa-${width}`,
+      );
+    });
+  }
 });

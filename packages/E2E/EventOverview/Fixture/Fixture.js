@@ -95,7 +95,7 @@
  *            Maintenance #58 with nothing attached, for the empty state.
  *   ?thread= empty (default) | answered | working | approval | linking
  *            | error | crowded
- *            What the conversation that closes the AI Investigation card of
+ *            What the conversation that closes the OneUptime AI card of
  *            Incident #1042 and Alert #311 holds: nobody has asked,
  *            two answered questions (one of them the viewer's, with a table,
  *            an executed action and a source), an answer being written with
@@ -265,6 +265,23 @@
  *            change is being checked at once and would run a second later,
  *            which the card reads on its next poll. ?fail=dry-run refuses
  *            the click.
+ *   ?codefix= act | no-repository | writing | opened: what came of the fix
+ *            in the code the completed investigations of #1042 and #311
+ *            recommend, as FixFromIncidentTaskTrigger.getSuggestionForSubject
+ *            answers POST /ai-investigation/code-fix-suggestion on the AI
+ *            card's Remediation step (block 43). act: a person may open it,
+ *            and OneUptime AI did not on its own because "Fix new incidents
+ *            automatically" was off; no-repository: no code repository is
+ *            connected; writing: OneUptime AI is writing the pull request;
+ *            opened: it opened one. Absent, there is nothing to say. Open
+ *            fix pull request (POST /ai-investigation/create-fix-task)
+ *            starts one, which every later read answers as being written.
+ *   Try again (POST /auto-remediation/try-again) decides again for an open
+ *            record, as AutoRemediationRuleEngineService.tryAgain does:
+ *            the record's decision is written afresh - OneUptime AI started
+ *            a fix on prod-eu-west-1 - so the step reads it at once.
+ *            ?fail=try-again refuses it with the server's words for a
+ *            record OneUptime AI has just checked.
  *
  * Every read and write is recorded on window.__eventOverviewFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -608,6 +625,11 @@ const CLOUD_FIX_MODES = ["would-run", "refused", "failed", "running", "none"];
 const cloudFixMode = CLOUD_FIX_MODES.includes(params.get("cloudfix"))
   ? params.get("cloudfix")
   : "";
+// ?codefix=: what came of the fix in the code the investigations recommend.
+const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
+const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
+  ? params.get("codefix")
+  : "";
 // Enable AI is off now only for off-project while the switches stay off.
 const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
 const resourcesMode = ["many", "none"].includes(params.get("resources"))
@@ -871,6 +893,7 @@ const fixture = {
     fixing: fixingMode,
     switches: switchesMode,
     cloudfix: cloudFixMode,
+    codefix: codeFixMode,
     hold: isAiHoldMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
@@ -4453,6 +4476,101 @@ if (cloudFixMode) {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * The fix in the code an investigation recommends (?codefix=), on the AI
+ * card's Remediation step: what came of it, in the wire form
+ * investigationCodeFixSuggestionToJSON gives. A pull request someone asked
+ * for with Open fix pull request is being written from then on.
+ * ---------------------------------------------------------------------------
+ */
+const codeFixAskedFor = new Set();
+
+function codeFixSuggestion(body) {
+  const nothing = {
+    offer: "None",
+    fixOutcome: null,
+    blocker: null,
+    aiRunId: null,
+    isAutomatic: false,
+    automaticBlocker: null,
+  };
+
+  if (codeFixAskedFor.has(String(body.subjectId))) {
+    return {
+      ...nothing,
+      offer: "InProgress",
+      aiRunId: ID.task(1),
+      isAutomatic: false,
+    };
+  }
+
+  if (codeFixMode === "act") {
+    return { ...nothing, offer: "Act", automaticBlocker: "FixOff" };
+  }
+  if (codeFixMode === "no-repository") {
+    return { ...nothing, offer: "SetUp", automaticBlocker: "NoRepository" };
+  }
+  if (codeFixMode === "writing") {
+    return {
+      ...nothing,
+      offer: "InProgress",
+      aiRunId: ID.task(2),
+      isAutomatic: true,
+    };
+  }
+  if (codeFixMode === "opened") {
+    return {
+      ...nothing,
+      offer: "Done",
+      fixOutcome: "Fixed",
+      aiRunId: ID.task(2),
+      isAutomatic: true,
+    };
+  }
+  return nothing;
+}
+
+/*
+ * Try again (POST /auto-remediation/try-again): OneUptime AI decides again
+ * with the settings of now. Here it starts a fix on prod-eu-west-1, written
+ * down as the engine writes a new decision.
+ */
+function tryAgain(body) {
+  const isAlert = Boolean(body.alertId);
+  if (failures.has("try-again")) {
+    throw fail(
+      400,
+      isAlert
+        ? "OneUptime AI has just checked this alert. Try again in a moment."
+        : "OneUptime AI has just checked this incident. Try again in a moment.",
+    );
+  }
+
+  const subjectId = String(isAlert ? body.alertId : body.incidentId);
+  const entries = [
+    {
+      lane: "KubernetesCluster",
+      reason: "ClusterRoundStarted",
+      kubernetesClusterId: ID.kubernetesCluster(1),
+      kubernetesClusterName: "prod-eu-west-1",
+      remediationMode: "ApprovalRequired",
+    },
+    { lane: "Resource", reason: "ResourceSkippedForClusterRound" },
+  ];
+
+  insert(AutoRemediationDecision, {
+    ...(isAlert
+      ? { alertId: new ObjectID(subjectId) }
+      : { incidentId: new ObjectID(subjectId) }),
+    stage: "Evaluated",
+    entries,
+    createdAt: NOW,
+  });
+
+  return { result: "Evaluated" };
+}
+
+/*
  * Dry run / Dry run again (POST /auto-remediation/dry-run): the change is
  * being checked at once, and would run a second later. Each change hands
  * out a new plan, so a read never shares one with an earlier read.
@@ -7286,7 +7404,16 @@ async function handleApi(method, options) {
     if (failures.has("create-fix-task")) {
       throw fail(400, "No AI agent is online for this project.");
     }
+    codeFixAskedFor.add(String(body.subjectId));
     return ok({ aiRunId: ID.task(1) });
+  }
+
+  // What came of the fix in the code (?codefix=), on the Remediation step.
+  if (
+    method === "POST" &&
+    url.endsWith("/ai-investigation/code-fix-suggestion")
+  ) {
+    return ok(codeFixSuggestion(body));
   }
 
   /*
@@ -7385,6 +7512,11 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && url.endsWith("/security-case/incident-security")) {
     return ok(incidentSecurity(body));
+  }
+
+  // Try again on the Remediation step: decided again, or refused.
+  if (method === "POST" && url.endsWith("/auto-remediation/try-again")) {
+    return ok(tryAgain(body));
   }
 
   /*
@@ -7697,7 +7829,7 @@ function StubPage(props) {
 }
 
 const STUB_PAGES = [
-  // Where a fix task the AI Investigation card started leads: Code.
+  // Where a fix pull request the AI card's Remediation step started leads.
   [PageMap.CODE_TASK_VIEW, "Code Task"],
   [PageMap.CODE, "Code"],
   [PageMap.MONITOR_VIEW, "Monitor"],
@@ -7729,7 +7861,7 @@ const STUB_PAGES = [
   [PageMap.ALERT_EPISODES, "Alert Episodes"],
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS, "Scheduled Maintenance"],
   [PageMap.HOME, "Home"],
-  // Where the AI Investigation card's cluster access notice links.
+  // Where the AI card's cluster access notice links.
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, "Kubernetes AI Agent"],
   // Where the sources of an answer in the card's conversation lead.
   [PageMap.METRICS, "Metrics"],
