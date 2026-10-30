@@ -497,9 +497,10 @@ describe("a cloud account's own pages", () => {
       title: "Basic",
       items: ["Overview", "Resources", "Topology"],
     });
+    // What AI did first, its agent last, as every resource's AI section.
     expect(sections).toContainEqual({
       title: "AI",
-      items: ["AI agent", "Logs"],
+      items: ["Logs", "AI agent"],
     });
     expect(sections).toContainEqual({
       title: "Activity",

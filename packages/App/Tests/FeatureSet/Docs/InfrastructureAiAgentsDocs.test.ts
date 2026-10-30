@@ -1933,9 +1933,9 @@ describe("Infrastructure AI Agents docs", (): void => {
             return match[1] as string;
           },
         ),
-      ).toEqual(["AI agent", "Logs"]);
+      ).toEqual(["Logs", "AI agent"]);
       expect(words).toContain(
-        "A cloud account's **AI** section has two pages, **AI agent** and **Logs**,",
+        "A cloud account's **AI** section has two pages, **Logs** and **AI agent**,",
       );
 
       /*
