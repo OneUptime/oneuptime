@@ -19,9 +19,15 @@ import {
   ProductionReviewUtil,
   ProductionReviewWhere,
 } from "../../../../Types/CodeRepository/ProductionReview";
+import { PullRequestTerm } from "../../../../Types/CodeRepository/CodeHost";
+import { GitHubCheckConclusion } from "../GitHub/GitHubCheckRuns";
 
 /*
- * THE PRODUCTION REVIEW COMMENT, AS GITHUB SHOWS IT.
+ * THE PRODUCTION REVIEW COMMENT, AS GITHUB, GITLAB, FORGEJO AND GITEA SHOW IT.
+ *
+ * Their markdown is GitHub's for all this comment uses - headings, bold,
+ * code spans, links, tables, <sub> - and each names a pull request its own
+ * way (a GitLab merge request), which the comment says as its host does.
  *
  * One comment per pull request, edited in place on every review, so it is
  * written to be read again and again: what production says about this
@@ -62,11 +68,50 @@ export interface ProductionReviewCommentInput {
   projectId: string;
   // The product's name, as a licence may rename it.
   productName: string;
-  // The app's handle, for the command the comment suggests; null when unknown.
-  appSlug: string | null;
+  /*
+   * The command that asks for a review on the host ("@oneuptime production
+   * review", GitHub's), for the footer to suggest; null where there is none
+   * or it is not known.
+   */
+  reviewCommand: string | null;
   // Whether the pull request's next push is reviewed on its own.
   updatesOnPush: boolean;
   isPublicRepository: boolean | null;
+  // The host's word for a pull request; "pull request" when unsaid.
+  pullRequestTerm?: PullRequestTerm | undefined;
+  /*
+   * A host OneUptime reads no commands from (GitLab, Forgejo, Gitea): the
+   * footer says to press Review again in OneUptime, with a link to it.
+   */
+  asksAgainInProduct?: boolean | undefined;
+}
+
+/*
+ * What a review's GitHub check run says: its conclusion - success when
+ * production has nothing to say, neutral when there is something worth a
+ * look (a review never fails a pull request) - a title, and a summary that
+ * holds what the comment holds: the review, or only a link to it.
+ */
+export interface ProductionReviewCheckRunText {
+  conclusion: GitHubCheckConclusion;
+  title: string;
+  summary: string;
+}
+
+// The titles a review's check run has.
+export const PRODUCTION_REVIEW_CHECK_TITLES: {
+  worthALook: string;
+  nothingFound: string;
+} = {
+  worthALook: "Something in production is worth a look",
+  nothingFound: "Nothing in production runs through these changes",
+};
+
+// The input's word for a pull request.
+function termOf(input: {
+  pullRequestTerm?: PullRequestTerm | undefined;
+}): PullRequestTerm {
+  return input.pullRequestTerm || "pull request";
 }
 
 /*
@@ -251,12 +296,53 @@ export default class ProductionReviewComposer {
   }
 
   /*
+   * The review as its GitHub check run says it: what it concluded, a title
+   * that says only whether production has something to say - which the
+   * comment says too, on a public repository - and as its summary the
+   * comment's body, the review or the link to it, and its footer: not the
+   * comment's marker, nor its heading, which would only say again what the
+   * check's own name says above it ("OneUptime production review").
+   */
+  public static composeCheckRun(
+    input: ProductionReviewCommentInput,
+  ): ProductionReviewCheckRunText {
+    const hasSignal: boolean = ProductionReviewUtil.hasSignal(input.report);
+
+    const summary: string = [
+      input.posting === ProductionReviewPosting.Link
+        ? ProductionReviewComposer.linkBody(input)
+        : ProductionReviewComposer.reviewBody(input),
+      ProductionReviewComposer.footer(input),
+    ]
+      .filter((part: MarkdownText): boolean => {
+        return !part.isEmpty();
+      })
+      .map((part: MarkdownText): string => {
+        return part.toString();
+      })
+      .join("\n\n");
+
+    return {
+      conclusion: hasSignal
+        ? GitHubCheckConclusion.Neutral
+        : GitHubCheckConclusion.Success,
+      title: hasSignal
+        ? PRODUCTION_REVIEW_CHECK_TITLES.worthALook
+        : PRODUCTION_REVIEW_CHECK_TITLES.nothingFound,
+      summary,
+    };
+  }
+
+  /*
    * One plain sentence of what the review found: the outcome's summary, which
    * is what a reader of the run sees where the full review is not drawn.
    */
-  public static summarize(report: ProductionReviewReport): string {
+  public static summarize(
+    report: ProductionReviewReport,
+    term: PullRequestTerm = "pull request",
+  ): string {
     if (!ProductionReviewUtil.hasSignal(report)) {
-      return "Nothing in production runs through this pull request's changes.";
+      return `Nothing in production runs through this ${term}'s changes.`;
     }
 
     const found: Array<string> = [];
@@ -312,8 +398,8 @@ export default class ProductionReviewComposer {
     const hasSignal: boolean = ProductionReviewUtil.hasSignal(input.report);
 
     const finding: MarkdownText = hasSignal
-      ? mdText`${githubSafeText(input.productName, 60)} reviewed this pull request against production and found something worth a look in the code it changes.`
-      : mdText`${githubSafeText(input.productName, 60)} reviewed this pull request against production and found nothing that runs through its changes.`;
+      ? mdText`${githubSafeText(input.productName, 60)} reviewed this ${termOf(input)} against production and found something worth a look in the code it changes.`
+      : mdText`${githubSafeText(input.productName, 60)} reviewed this ${termOf(input)} against production and found nothing that runs through its changes.`;
 
     const where: MarkdownText = input.isPublicRepository
       ? mdText`This repository is public, so the review is in ${githubSafeText(
@@ -416,7 +502,7 @@ export default class ProductionReviewComposer {
     if (services.length === 1 && services[0]!.requestCount !== undefined) {
       const service: ProductionReviewServiceJSON = services[0]!;
 
-      return mdText`This pull request changes code that runs in production in ${named[0]!} (${formatCount(
+      return mdText`This ${termOf(input)} changes code that runs in production in ${named[0]!} (${formatCount(
         service.requestCount || 0,
       )} spans in the last hour${
         service.p99Ms !== undefined
@@ -425,7 +511,7 @@ export default class ProductionReviewComposer {
       }).`;
     }
 
-    return mdText`This pull request changes code that runs in production in ${listing(
+    return mdText`This ${termOf(input)} changes code that runs in production in ${listing(
       named,
     )}.`;
   }
@@ -436,17 +522,17 @@ export default class ProductionReviewComposer {
     const report: ProductionReviewReport = input.report;
 
     if (report.codeFileCount === 0) {
-      return mdText`This pull request changes no code production runs, so production has nothing to say about it.`;
+      return mdText`This ${termOf(input)} changes no code production runs, so production has nothing to say about it.`;
     }
 
     if (report.services.length === 0 && report.noServicesReason) {
-      return mdText`Production has nothing to say about this pull request yet: no service ${githubSafeText(
+      return mdText`Production has nothing to say about this ${termOf(input)} yet: no service ${githubSafeText(
         input.productName,
         60,
       )} monitors is known to run this repository's code.`;
     }
 
-    return mdText`Nothing in production runs through this pull request's changes: no exception thrown in them in the last ${PRODUCTION_REVIEW_WINDOWS.exceptionsDays} days, no traced operation or profiled function that runs them in the last hour, and no open incident or suspect deploy on their services.`;
+    return mdText`Nothing in production runs through this ${termOf(input)}'s changes: no exception thrown in them in the last ${PRODUCTION_REVIEW_WINDOWS.exceptionsDays} days, no traced operation or profiled function that runs them in the last hour, and no open incident or suspect deploy on their services.`;
   }
 
   private static linkTo(
@@ -781,12 +867,17 @@ export default class ProductionReviewComposer {
     );
 
     const next: MarkdownText = input.updatesOnPush
-      ? mdText`Updated when the pull request changes.`
-      : input.appSlug
+      ? mdText`Updated when the ${termOf(input)} changes.`
+      : input.reviewCommand
         ? mdText`Not updated on its own: ask again with ${FeedMarkdown.code(
-            `@${input.appSlug} production review`,
+            input.reviewCommand,
           )} after new commits.`
-        : mdText`Not updated on its own: ask again after new commits.`;
+        : input.asksAgainInProduct
+          ? mdText`Not updated on its own: press ${FeedMarkdown.link(
+              "Review again",
+              input.reviewUrl,
+            )} in ${githubSafeText(input.productName, 60)} after new commits.`
+          : mdText`Not updated on its own: ask again after new commits.`;
 
     const scope: MarkdownText =
       input.posting === ProductionReviewPosting.Review

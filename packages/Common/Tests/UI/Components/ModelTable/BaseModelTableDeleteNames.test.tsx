@@ -90,6 +90,7 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import { MAX_DISPLAY_NAME_LENGTH } from "../../../../UI/Utils/ModelDisplayName";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentTemplate from "../../../../Models/DatabaseModels/IncidentTemplate";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "../../../../Models/DatabaseModels/NetworkEndpoint";
@@ -578,5 +579,73 @@ describe("a bulk Delete", () => {
     expect(screen.getByTestId("bulk-delete-consequence")).toHaveTextContent(
       "Their interfaces are deleted too.",
     );
+  });
+});
+
+/*
+ * An incidents list reads each row's number for its Number column. Two of
+ * its rows can share a title - every incident declared by hand reads
+ * "Manually declared" - so a dialog about them names each by its number
+ * first (Utils/Project/RecordNumber).
+ */
+describe("a numbered row's Delete names it by its number first", () => {
+  const INCIDENT_ROWS: Array<JSONObject> = [17, 18, 19].map(
+    (number: number): JSONObject => {
+      return {
+        _id: `incident-${number}`,
+        title: "Manually declared",
+        incidentNumber: number,
+        incidentNumberWithPrefix: `INC-${number}`,
+      };
+    },
+  );
+
+  test("one row: Are you sure you want to delete INC-18 Manually declared?", async () => {
+    renderTable({
+      modelType: Incident,
+      columnField: "title",
+      singularName: "Incident",
+      rows: INCIDENT_ROWS,
+    });
+
+    const description: HTMLElement = await openRowDelete(1);
+
+    expect(
+      within(description).getByTestId("delete-confirmation-name"),
+    ).toHaveTextContent(/^INC-18 Manually declared$/);
+  });
+
+  test("a selection: each row by its number, so rows of one title are told apart", async () => {
+    await startBulkDelete(
+      {
+        modelType: Incident,
+        columnField: "title",
+        singularName: "Incident",
+        pluralName: "Incidents",
+        rows: INCIDENT_ROWS,
+      },
+      3,
+    );
+
+    expect(listedNames()).toEqual([
+      "INC-17 Manually declared",
+      "INC-18 Manually declared",
+      "INC-19 Manually declared",
+    ]);
+  });
+
+  test("a row that does not carry its number is named by its title, as before", async () => {
+    renderTable({
+      modelType: Incident,
+      columnField: "title",
+      singularName: "Incident",
+      rows: [{ _id: "incident-1", title: "Manually declared" }],
+    });
+
+    const description: HTMLElement = await openRowDelete(0);
+
+    expect(
+      within(description).getByTestId("delete-confirmation-name"),
+    ).toHaveTextContent(/^Manually declared$/);
   });
 });

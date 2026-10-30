@@ -43,6 +43,11 @@ import CodeFixTaskType, {
 } from "Common/Types/AI/CodeFixTaskType";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
+  CodeHost,
+  CodeHostCapability,
+} from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import {
   PRODUCTION_REVIEW_LIMITS,
   PRODUCTION_REVIEW_WINDOWS,
   ProductionReviewPosting,
@@ -416,7 +421,7 @@ describe("Ask AI", () => {
       ],
       [
         "CommitCodeToBranchTool",
-        "commit to a new branch of a connected repository",
+        "commit to a new branch of a repository on GitHub, GitLab, Forgejo or Gitea",
       ],
       ["OpenCodePullRequestTool", "open a pull request"],
     ] as Array<[string, string]>) {
@@ -434,6 +439,24 @@ describe("Ask AI", () => {
     expect(toolbox).toContain("These never touch the default or a protected");
     expect(actions).toContain(
       "It never writes to the default branch or a protected one, so a person still merges the change.",
+    );
+
+    /*
+     * Any host with pull requests: GitHub through the App, GitLab, Forgejo
+     * and Gitea through the repository's connection - a Git server has
+     * none to open (CodeWriteTools).
+     */
+    const writeTools: string = flat(
+      readRepoFile("Common/Server/Utils/AI/Toolbox/CodeWriteTools.ts"),
+    );
+    expect(writeTools).toContain(
+      "if (type === CodeRepositoryType.Git) { throw new BadDataException(",
+    );
+    expect(writeTools).toContain(
+      "is on a Git server, which has no pull requests for chat to open.",
+    );
+    expect(actions).toContain(
+      "open a pull request (a merge request on GitLab)",
     );
   });
 
@@ -2349,6 +2372,46 @@ describe("AI SRE and the infrastructure AI agents", () => {
     );
   });
 
+  /*
+   * A cloud account is investigated with no agent: OneUptime reads it live
+   * through the connection it was connected with, so a missing agent blocks
+   * only its fixes and a missing connection only its investigation. Its
+   * fixes are the Cloud AI agent's, which runs in the account.
+   */
+  it("says a cloud account is investigated with no agent and fixed by its Cloud AI agent, as the readiness and the investigation tool decide it", () => {
+    const access: string = flat(
+      readRepoFile("Common/Server/Services/ResourceAiAccessService.ts"),
+    );
+    const toolkit: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/AI/ResourceAccess/InfrastructureInvestigationToolkit.ts",
+      ),
+    );
+    const types: string = readRepoFile(
+      "Common/Types/ResourceAiAgent/AiResourceType.ts",
+    );
+    const lead: string = englishPage(INFRASTRUCTURE_AI_AGENTS).split(
+      "\n",
+    )[4] as string;
+
+    expect(access).toContain(
+      "const agentGapBlocksInvestigation: boolean = !isCloudAccount;",
+    );
+    expect(access).toContain(
+      'code: "cloud_connection_missing", title: `No cloud connection reads this ${noun}`,',
+    );
+    expect(toolkit).toContain(
+      "isCloudAiResourceType(resource.resourceType) && isCloudServerRead({ resourceType: resource.resourceType, command })",
+    );
+    // The three clouds' agent, by the name the AI agent pages give it.
+    expect(types.split('agentDisplayName: "Cloud AI agent",').length - 1).toBe(
+      3,
+    );
+    expect(lead).toBe(
+      "An AWS account, an Azure subscription or a Google Cloud project needs no agent to be investigated: OneUptime reads it live, through the read-only connection it was connected with. Only its fixes need one, the Cloud AI agent, which runs in the account itself and is set up with one command from the account's page (see [In a cloud account](#in-a-cloud-account)).",
+    );
+  });
+
   it("says the resource AI agent asks for work every 3 seconds, as its loop does", () => {
     const config: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "..", "agents/ResourceAIAgent/Config.ts"),
@@ -2507,7 +2570,7 @@ describe("Production review of pull requests", () => {
       `It runs only while AI is on for the project, at most ${PRODUCTION_REVIEW_LIMITS.maxAiReadsPerPullRequestPerDay} times a day for a pull request and ${PRODUCTION_REVIEW_LIMITS.maxAiReadsPerRepositoryPerDay} for a repository`,
     );
     expect(section).toContain(
-      "When production shows nothing about the change, OneUptime posts nothing.",
+      "When production shows nothing about the change, OneUptime posts no comment.",
     );
   });
 
@@ -2549,10 +2612,15 @@ describe("Production review of pull requests", () => {
     );
   });
 
-  it("reviews on its own only for people who can write to the repository; the command asks for anyone else", () => {
+  it("reviews on its own only for people who can write to the repository; anyone else's is asked for, by number or with the command", () => {
     const trigger: string = flat(
       readRepoFile(
         "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewGitHubTrigger.ts",
+      ),
+    );
+    const poller: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewPoller.ts",
       ),
     );
     const parser: string = flat(
@@ -2560,31 +2628,167 @@ describe("Production review of pull requests", () => {
         "Common/Server/Utils/CodeRepository/GitHub/GitHubCommandParser.ts",
       ),
     );
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeProductionReviewCopy.ts"),
+    );
+    const page: string = flat(
+      dashboardSource("Pages/Code/Repository/ProductionReviews.tsx"),
+    );
 
     expect(trigger).toContain('return notHandled("author-cannot-write");');
     expect(trigger).toContain('return notHandled("sender-cannot-write");');
     expect(trigger).toContain('return notHandled("bot-or-unknown-author");');
+    // GitLab, Forgejo and Gitea: never a fork's, nor an author who cannot write.
+    expect(poller).toContain(
+      "if (pullRequest.isFromFork) { return ProductionReviewPollOutcome.Fork; }",
+    );
+    expect(poller).toContain(
+      "=== AuthorWriteAccess.CannotWrite ) { return ProductionReviewPollOutcome.AuthorCannotWrite; }",
+    );
     expect(parser).toContain('"production review",');
+    // Review a pull request, on the Production Reviews page, for those who may ask.
+    expect(copy).toContain('button: translationKey("Review a pull request"),');
+    expect(page).toContain(
+      "{repository.canAsk && isConnected ? ( <CodeProductionReviewAsk",
+    );
     expect(section).toContain(
-      "A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository.",
+      "A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository; on GitLab, Forgejo and Gitea, only one from a branch of the repository itself.",
+    );
+    expect(section).toContain(
+      `${bold("Review a pull request")}, on the repository's ${bold("Production Reviews")} page, takes its number, and on GitHub a comment of \`@oneuptime production review\` on it does the same.`,
     );
     expect(codeIn(section)).toContain("@oneuptime production review");
+  });
+
+  /*
+   * GitLab, Forgejo and Gitea (#5275's follow-ups): read every minute with
+   * the repository's access token, in GitLab's words on GitLab; the comment
+   * posted as the token's account, and kept in Code when the server
+   * refuses it.
+   */
+  it("works on GitLab, Forgejo and Gitea, read every minute, in GitLab's words there", () => {
+    const job: string = flat(
+      readRepoFile(
+        "App/FeatureSet/Workers/Jobs/AIAgent/FindPullRequestsToReviewInProduction.ts",
+      ),
+    );
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeProductionReviewCopy.ts"),
+    );
+
+    for (const type of [
+      CodeRepositoryType.GitHub,
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+    ]) {
+      expect(CodeHost.can(type, CodeHostCapability.ProductionReview)).toBe(
+        true,
+      );
+    }
+    expect(
+      CodeHost.can(CodeRepositoryType.Git, CodeHostCapability.ProductionReview),
+    ).toBe(false);
+    expect(job).toContain("schedule: EVERY_MINUTE,");
+    expect(copy).toContain(
+      'translationKey( "Review Merge Requests Against Production", )',
+    );
+    expect(section).toContain(
+      "It works in GitHub, GitLab, Forgejo and Gitea repositories. GitHub tells OneUptime when a pull request opens or changes; a GitLab, Forgejo or Gitea repository is read every minute, through its access token, for the pull requests that changed.",
+    );
+    expect(section).toContain(
+      `On GitLab every word of it is GitLab's: a merge request, and the switch is ${bold("Review Merge Requests Against Production")}.`,
+    );
+  });
+
+  it("comments with the repository's token there, and keeps the review in Code when the server refuses it", () => {
+    const runner: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+      ),
+    );
+    const hostCopy: string = flat(
+      dashboardSource("Components/Code/CodeHostCopy.ts"),
+    );
+
+    expect(runner).toContain("data.report.isCommentRefused = true;");
+    expect(runner).toContain(
+      "data.report.posting = ProductionReviewPosting.None;",
+    );
+    // What the connect dialog asks of a Forgejo or Gitea token.
+    expect(hostCopy).toContain(
+      "An access token with read and write access to repositories and issues, and read access to the user.",
+    );
+    expect(section).toContain(
+      "On GitLab, Forgejo and Gitea the comment is posted with the repository's access token, as its account. A Forgejo or Gitea token needs write access to issues for that. When the server refuses the comment - a token without it, or a locked discussion - the review is kept in Code only, and its page says so.",
+    );
+  });
+
+  /*
+   * On GitHub a review adds a check to the pull request's commit
+   * (GitHubCheckRuns): never failing - neutral or success - and only with
+   * the App's Checks permission to write.
+   */
+  it("adds a check on GitHub that never fails a pull request, with the Checks permission to write", () => {
+    const checkRuns: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/GitHub/GitHubCheckRuns.ts",
+      ),
+    );
+    const runner: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+      ),
+    );
+    const composer: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts",
+      ),
+    );
+
+    // Its only conclusions: success and neutral, never a failure.
+    expect(checkRuns).toContain(
+      'export enum GitHubCheckConclusion { // Production has nothing to say about the change. Success = "success", // Something in production is worth a look, or the review is elsewhere. Neutral = "neutral", }',
+    );
+    expect(checkRuns).not.toContain('"failure"');
+    expect(checkRuns).toContain(
+      'permissions: { checks: "write", metadata: "read" }',
+    );
+    // Its name: the product's, then "production review".
+    expect(runner).toContain("getProductName()} production review`;");
+    expect(composer).toContain(
+      'worthALook: "Something in production is worth a look", nothingFound: "Nothing in production runs through these changes",',
+    );
+    expect(section).toContain(
+      `On GitHub, each review also adds a check to the pull request's latest commit, ${bold("OneUptime production review")}, titled ${bold("Something in production is worth a look")} or, when production shows nothing, ${bold("Nothing in production runs through these changes")}, with the review or its link. It never fails a pull request: it ends neutral or successful, so no branch rule waits on it.`,
+    );
+    expect(section).toContain(
+      `It needs the GitHub App's ${bold("Checks")} permission with ${bold("Read & write")} (see [Set the permissions](/docs/self-hosted/github-integration#set-the-permissions)); without it, the comment is all a review posts.`,
+    );
   });
 
   it("is on for repositories connected from now on, and off for those connected before it", () => {
     const service: string = flat(
       readRepoFile("Common/Server/Services/CodeRepositoryService.ts"),
     );
+    // A GitLab, Forgejo or Gitea connection turns it on where the host has pull requests.
+    const connector: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/CodeHost/CodeRepositoryConnector.ts",
+      ),
+    );
     const model: string = flat(
       readRepoFile("Common/Models/DatabaseModels/CodeRepository.ts"),
     );
 
     expect(service).toContain("isProductionReviewEnabled: true,");
+    expect(connector).toContain(
+      "row.isProductionReviewEnabled = CodeHost.can(",
+    );
     expect(model).toContain(
       "public isProductionReviewEnabled?: boolean = undefined;",
     );
     expect(section).toContain(
-      "The switch is on for the repositories the GitHub App connects from now on. A repository connected before it existed keeps it off until you turn it on.",
+      "The switch is on for the repositories connected from now on, through the GitHub App or a GitLab, Forgejo or Gitea connection. A repository connected before it existed keeps it off until you turn it on.",
     );
   });
 

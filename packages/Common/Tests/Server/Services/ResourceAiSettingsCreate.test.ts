@@ -31,6 +31,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { getJestSpyOn } from "../../Spy";
@@ -172,11 +173,16 @@ function onBeforeCreate(
 }
 
 it("the wiring table covers every resource type", () => {
+  // The cloud accounts' one service: CloudAccountServiceAiAccess.test.ts.
   expect(
     WIRING.map((wiring: CreateWiring) => {
       return wiring.resourceType;
     }),
-  ).toEqual([...ALL_AI_RESOURCE_TYPES]);
+  ).toEqual(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isCloudAiResourceType(type);
+    }),
+  );
 });
 
 describe.each(WIRING)(

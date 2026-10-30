@@ -21,11 +21,9 @@ import {
   getAiAgentStateSentence,
   getAiAgentStatusPill,
   getAiAgentSummary,
-  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
   getAutomaticRemediation,
-  getAutomaticRemediationLine,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
   getKubernetesAiSettingsSource,
@@ -117,6 +115,8 @@ import {
   AiAccessSetBy,
 } from "../../../../Components/AiAccess/AiAccessRow";
 import AgentAiSettingsModal from "../../../../Components/AiAccess/AgentAiSettingsModal";
+import AutomaticRemediationNote from "../../../../Components/AiAccess/AutomaticRemediationNote";
+import { shouldShowAutomaticRemediationLine } from "../../../../Components/AiAccess/AutomaticRemediationLine";
 import { AgentAiSettingsInstructions } from "../../../../Components/AiAccess/AgentAiSettingsInstructions";
 import AgentVersion from "../../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../../Components/AgentVersion/AgentKind";
@@ -1697,34 +1697,22 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             sentence={REMEDIATION_MODE_SUMMARIES[remediationMode]}
             dataTestId="ai-access-fixes"
           >
-            {automaticRemediation ? (
-              <div
-                className="flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                data-testid="ai-access-automatic-remediation"
-              >
-                <p className="text-xs leading-5 text-gray-600">
-                  {getAutomaticRemediationLine(automaticRemediation)}
-                </p>
-                {automaticRemediation.incidents &&
-                automaticRemediation.alerts ? (
-                  <></>
-                ) : (
-                  <div className="flex flex-wrap gap-3">
-                    {automaticRemediation.incidents
-                      ? null
-                      : renderSettingsLink(
-                          PageMap.INCIDENTS_SETTINGS_AI,
-                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.incidents,
-                        )}
-                    {automaticRemediation.alerts
-                      ? null
-                      : renderSettingsLink(
-                          PageMap.ALERTS_SETTINGS_AI,
-                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.alerts,
-                        )}
-                  </div>
-                )}
-              </div>
+            {/*
+             * Whether the project fixes new incidents and alerts at all,
+             * while the cluster's own fixes are on: with them off the
+             * project's switches change nothing here yet, and the hint
+             * below is the one next step.
+             */}
+            {automaticRemediation &&
+            shouldShowAutomaticRemediationLine({
+              settings: automaticRemediation,
+              areFixesOn:
+                remediationMode !== KubernetesAiRemediationMode.Disabled,
+            }) ? (
+              <AutomaticRemediationNote
+                settings={automaticRemediation}
+                dataTestId="ai-access-automatic-remediation"
+              />
             ) : null}
             {remediationMode === KubernetesAiRemediationMode.Disabled ? (
               <AiAccessHint

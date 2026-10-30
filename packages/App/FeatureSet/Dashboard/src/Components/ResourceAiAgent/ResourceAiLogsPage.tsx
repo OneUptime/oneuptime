@@ -1,4 +1,5 @@
 import PageComponentProps from "../../Pages/PageComponentProps";
+import { APPROVED_BY_LABEL } from "../Runbook/RunbookExecutionWaitCopy";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
@@ -236,6 +237,23 @@ function FixRow(props: { fix: ResourceAiLogsFix }): ReactElement {
         {props.fix.rationale ||
           translator.translateText("No reason was recorded.")}
       </p>
+      {/* Who approved a fix that waited for approval: why it ran. */}
+      {props.fix.approvedByName ? (
+        <p
+          className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500"
+          data-testid="ai-logs-fix-approved-by"
+        >
+          <span className="min-w-0 break-words">
+            <span className="whitespace-nowrap">
+              {translator.translateText(APPROVED_BY_LABEL)}
+            </span>{" "}
+            <span className="font-medium text-gray-700">
+              {props.fix.approvedByName}
+            </span>
+          </span>
+          <When at={props.fix.approvedAt} />
+        </p>
+      ) : null}
     </li>
   );
 }
@@ -497,6 +515,12 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
           modelType={RunnerJob}
           id={descriptor.commandsTableId}
           name={descriptor.commandsCardTitle}
+          /*
+           * Its rows are commands, never "runner jobs" (the model's own
+           * name): "Showing 1-2 of 2 commands".
+           */
+          singularName="Command"
+          pluralName="Commands"
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
@@ -516,10 +540,12 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
            * The table fetches exactly the column fields plus these, so every
            * field a cell reads must be named here or it is undefined on the
            * row: aiRunId tells an investigation from a connection test,
-           * exitCode and errorMessage say how a command ended.
+           * stepId a fix's dry run from the fix, exitCode and errorMessage
+           * say how a command ended.
            */
           selectMoreFields={{
             aiRunId: true,
+            stepId: true,
             exitCode: true,
             errorMessage: true,
           }}
@@ -591,6 +617,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
                     {describeResourceCommandJobOrigin({
                       origin: item.origin,
                       aiRunId: item.aiRunId,
+                      stepId: item.stepId,
                     })}
                   </span>
                 );

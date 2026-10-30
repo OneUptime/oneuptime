@@ -505,6 +505,7 @@ import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
+import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -1015,6 +1016,7 @@ const services: Array<BaseService> = [
    * none of these families has an existing entry to sit next to.
    */
   CloudAccountService,
+  CloudAccountFeedService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,

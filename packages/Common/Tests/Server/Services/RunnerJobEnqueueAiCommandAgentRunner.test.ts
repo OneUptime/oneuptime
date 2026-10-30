@@ -7,6 +7,15 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import AiCommandKillSwitch from "../../../Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 /*
  * Contract under test — RunnerJobService.enqueueAiCommand, the chokepoint

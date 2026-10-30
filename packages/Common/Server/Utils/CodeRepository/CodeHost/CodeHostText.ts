@@ -8,6 +8,9 @@
 const MIN_SHA_LENGTH: number = 7;
 const MAX_SHA_LENGTH: number = 64;
 
+// A pull request's number in a commit message: at most nine digits.
+const MAX_REFERENCE_DIGITS: number = 9;
+
 export default class CodeHostText {
   public static readString(raw: unknown): string {
     return typeof raw === "string" ? raw : "";
@@ -62,6 +65,48 @@ export default class CodeHostText {
     }
 
     return content;
+  }
+
+  /*
+   * The pull requests a commit's message names the way Forgejo and Gitea
+   * (and GitHub) write them when they merge one: "Title (#12)", "Merge
+   * pull request 'Title' (#12) from ...". Each "(#" followed by digits and
+   * ")", in order, once each - read with indexOf, as the message is
+   * whoever committed's text.
+   */
+  public static readParenthesizedNumbers(message: string): Array<number> {
+    const numbers: Array<number> = [];
+    const text: string = message || "";
+    let from: number = 0;
+
+    for (;;) {
+      const start: number = text.indexOf("(#", from);
+
+      if (start < 0) {
+        return numbers;
+      }
+
+      let end: number = start + 2;
+
+      while (
+        end < text.length &&
+        end - start - 2 < MAX_REFERENCE_DIGITS &&
+        text.charCodeAt(end) >= 48 &&
+        text.charCodeAt(end) <= 57
+      ) {
+        end++;
+      }
+
+      if (end > start + 2 && text.charAt(end) === ")") {
+        const number: number = Number(text.substring(start + 2, end));
+
+        if (number > 0 && !numbers.includes(number)) {
+          numbers.push(number);
+        }
+      }
+
+      from = start + 2;
+    }
   }
 
   /*

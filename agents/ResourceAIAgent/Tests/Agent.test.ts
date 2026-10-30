@@ -473,6 +473,49 @@ test("a Host without HOST_NAME registers under the name its executor reads", asy
   assert.strictEqual((await statusOf(agent)).resourceIdentifier, "node-17");
 });
 
+test("a Cloud AI agent without its account variable registers as the account its cloud names, pinned to ONEUPTIME_AI_CLOUD_ACCOUNT_ID", async () => {
+  const agent: ResourceAiAgent = createAgent({
+    env: agentEnv({
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "aws",
+      DOCKER_HOST_NAME: "",
+      ONEUPTIME_AI_CLOUD_ACCOUNT_ID: "6A1B2C3D-4E5F-4061-8273-9A8B7C6D5E4F",
+    }),
+    createExecutor: fakeExecutorFactory({ resolvedIdentifier: "123456789012" }),
+  });
+
+  await agent.start();
+  const [registration] = await server.waitFor("/register");
+
+  assert.strictEqual(registration!.body["resourceType"], "AwsAccount");
+  assert.strictEqual(registration!.body["resourceIdentifier"], "123456789012");
+  assert.strictEqual(
+    registration!.body["resourceId"],
+    "6a1b2c3d-4e5f-4061-8273-9a8b7c6d5e4f",
+  );
+  assert.strictEqual(agent.config.identitySource, "executor");
+});
+
+test("a Cloud AI agent whose cloud does not say which account it is in stays misconfigured, in its own words", async () => {
+  const agent: ResourceAiAgent = createAgent({
+    env: agentEnv({
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "azure",
+      DOCKER_HOST_NAME: "",
+    }),
+    createExecutor: fakeExecutorFactory({ resolvedIdentifier: null }),
+  });
+
+  await agent.start();
+
+  const snapshot: AgentStatusSnapshot = await statusOf(agent);
+  assert.strictEqual(snapshot.phase, "misconfigured");
+  assert.match(
+    snapshot.configProblems[0]!,
+    /^AZURE_SUBSCRIPTION_ID is not set, and the agent could not ask its cloud which Azure subscription it is in\. Set it \(or ONEUPTIME_AI_AGENT_RESOURCE_NAME\) to the Azure subscription the agent serves\./,
+  );
+  await realSleep(50);
+  assert.strictEqual(server.requests.length, 0);
+});
+
 const UNNAMED_HOST_CASES: Array<
   [string, FakeExecutorBehaviour["resolvedIdentifier"]]
 > = [

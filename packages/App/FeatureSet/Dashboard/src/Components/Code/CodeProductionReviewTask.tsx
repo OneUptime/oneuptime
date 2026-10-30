@@ -1,17 +1,31 @@
 import { CodeTaskResponse } from "./CodeApi";
+import { getCodeHostName, getPullRequestCopy } from "./CodeHostCopy";
+import CodeHostMark from "./CodeHostMark";
 import { GitBranchMark } from "./CodeMarks";
-import { getRepositoryFullName, getRepositoryRoute } from "./CodePaths";
+import {
+  getRepositoryFullName,
+  getRepositoryRoute,
+  getRepositorySettingsRoute,
+} from "./CodePaths";
+import { CodeRepositorySetting } from "./CodeRepositorySettingsCopy";
 import CodeProductionReview from "./CodeProductionReview";
 import {
   PRODUCTION_REVIEW_COPY,
+  ProductionReviewReconnect,
   getProductionReviewPostingSentence,
+  getProductionReviewReconnect,
   getReviewedPullRequestNumber,
+  inReviewHostWords,
 } from "./CodeProductionReviewCopy";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
 import CodeTimeAgo from "./CodeTimeAgo";
-import { GitHubMark } from "./GitHubConnect";
 import { CodeTaskState, CodeTaskTurnJSON } from "Common/Types/AI/CodeTask";
 import URL from "Common/Types/API/URL";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import {
   ProductionReviewPosting,
   ProductionReviewReport,
@@ -35,6 +49,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * While a review runs, the one before it stays on screen under a line that
  * says it is being reviewed again. A review that could not finish says why;
  * one that was not done (the pull request was closed, or a draft) says so.
+ *
+ * Every word is the repository's host's: a GitLab merge request is "Merge
+ * request !12", with GitLab's mark, and so on (inReviewHostWords).
  */
 
 export interface ComponentProps {
@@ -52,17 +69,24 @@ export interface ComponentProps {
 /*
  * When the pull request is reviewed again, as its comment says it: on every
  * change while the repository's switch is on and its author can write to
- * the repository - otherwise only when someone asks.
+ * the repository - otherwise only when someone asks. Null before its first
+ * review is in: whether its author can write is what the review reads, and
+ * a pull request asked for from a fork (Review a pull request) is not
+ * reviewed again on its own - so nothing is promised until it is known.
  */
 export function getProductionReviewUpdatesSentence(data: {
   data: Pick<CodeTaskResponse, "repository">;
   report: ProductionReviewReport | null;
-}): string {
+}): string | null {
   if (!data.data.repository?.isProductionReviewEnabled) {
     return PRODUCTION_REVIEW_COPY.updatesWhenAsked;
   }
 
-  if (data.report?.pullRequest.isAuthorTrusted === false) {
+  if (!data.report) {
+    return null;
+  }
+
+  if (data.report.pullRequest.isAuthorTrusted === false) {
     return PRODUCTION_REVIEW_COPY.updatesWhenAskedForAuthor;
   }
 
@@ -103,18 +127,30 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
     report?.pullRequest.url || data.task.origin.url || "";
   const pullRequestNumber: number | null =
     report?.pullRequest.number || reviewedNumber;
+  // Where the repository is hosted: its mark, and its words.
+  const provider: string | undefined = data.repository?.provider;
+  const hostProduct: string | undefined =
+    data.repository?.connection?.hostProduct;
+  const isOnGitHub: boolean =
+    CodeHost.readType(provider) === CodeRepositoryType.GitHub;
+  const hostName: string = getCodeHostName({ provider, hostProduct });
   const title: string =
     data.task.title ||
     report?.pullRequest.title ||
     translator.translateTemplate(
-      PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+      inReviewHostWords(
+        PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+        provider,
+      ),
       {
         label: data.task.origin.label || "",
       },
     );
 
   const text: (key: string) => string = (key: string): string => {
-    return translator.translateText(key) || key;
+    const sentence: string = inReviewHostWords(key, provider);
+
+    return translator.translateText(sentence) || sentence;
   };
 
   const renderStatus: () => ReactElement = (): ReactElement => {
@@ -180,13 +216,50 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
 
   const renderFooter: () => ReactElement = (): ReactElement => {
     if (!data.repository || !data.repository.isConnected) {
+      /*
+       * With the one fix beside it, as the repository's Production Reviews
+       * say it: Connect GitHub, Replace access token or Go to Settings.
+       */
+      const reconnect: ProductionReviewReconnect | null = data.repository
+        ? getProductionReviewReconnect(data.repository)
+        : null;
+      const reconnectRoute: Route | null =
+        data.repository && reconnect
+          ? reconnect.place === "repositories"
+            ? RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CODE_REPOSITORIES] as Route,
+              )
+            : getRepositorySettingsRoute(data.repository.id)
+          : null;
+
       return (
-        <p
+        <div
           data-testid="production-review-not-connected"
-          className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600"
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600"
         >
-          {text(PRODUCTION_REVIEW_COPY.notConnected)}
-        </p>
+          <p className="min-w-0 flex-1 basis-56">
+            {data.repository && !isOnGitHub
+              ? translator.translateTemplate(
+                  inReviewHostWords(
+                    PRODUCTION_REVIEW_COPY.notConnectedHost,
+                    provider,
+                  ),
+                  { host: hostName },
+                )
+              : text(PRODUCTION_REVIEW_COPY.notConnected)}
+          </p>
+          {reconnect && reconnectRoute ? (
+            <Link
+              to={reconnectRoute}
+              dataTestId="production-review-reconnect"
+              className="flex-shrink-0 font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              <>{translator.translateText(reconnect.title)}</>
+            </Link>
+          ) : (
+            <></>
+          )}
+        </div>
       );
     }
 
@@ -201,27 +274,49 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * A first review on its way - just asked for, from Review a pull
+     * request - has nothing to ask again yet: the line above says when it
+     * starts, and the bar comes with the review.
+     */
+    if (!report && isWorking) {
+      return <></>;
+    }
+
+    const updates: string | null = getProductionReviewUpdatesSentence({
+      data,
+      report,
+    });
+
     return (
       <div
         data-testid="production-review-footer-bar"
         className="flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
       >
-        <p
-          data-testid="production-review-updates"
-          className="min-w-0 flex-1 basis-56 text-sm text-gray-600"
-        >
-          {text(getProductionReviewUpdatesSentence({ data, report }))}
-        </p>
+        {updates ? (
+          <p
+            data-testid="production-review-updates"
+            className="min-w-0 flex-1 basis-56 text-sm text-gray-600"
+          >
+            {text(updates)}
+          </p>
+        ) : (
+          <></>
+        )}
         {/*
          * Waits while a review is asked for or runs - the line above the
          * review says which - so it is never pressed twice for one push.
+         * Alone in the bar (a first review that could not finish), at its
+         * end, where it sits beside the sentence.
          */}
         <button
           type="button"
           data-testid="production-review-again"
           disabled={isWorking || props.isAskingAgain}
           onClick={props.onReviewAgain}
-          className="inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`${
+            updates ? "" : "ml-auto "
+          }inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60`}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
           {text(PRODUCTION_REVIEW_COPY.reviewAgain)}
@@ -263,10 +358,17 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
               className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-lg bg-white px-3 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <>
-                <GitHubMark className="h-4 w-4 flex-shrink-0" />
-                {translator.translateTemplate("Pull request #{{number}}", {
-                  number: pullRequestNumber.toString(),
-                })}
+                <CodeHostMark
+                  provider={provider}
+                  hostProduct={hostProduct}
+                  className="h-4 w-4 flex-shrink-0"
+                />
+                {translator.translateTemplate(
+                  getPullRequestCopy(provider).title,
+                  {
+                    number: pullRequestNumber.toString(),
+                  },
+                )}
                 <Icon
                   icon={IconProp.ExternalLink}
                   className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
@@ -294,7 +396,11 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
               className="inline-flex min-w-0 items-center gap-1.5 hover:text-indigo-600"
             >
               <>
-                <GitHubMark className="h-4 w-4 flex-shrink-0" />
+                <CodeHostMark
+                  provider={provider}
+                  hostProduct={hostProduct}
+                  className="h-4 w-4 flex-shrink-0"
+                />
                 <span className="truncate">
                   {getRepositoryFullName(data.repository) ||
                     data.repository.name}
@@ -350,7 +456,51 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        {report ? (
+        {/*
+         * The host would not let the access token comment (a Forgejo or
+         * Gitea token without write access to issues, a locked
+         * discussion): the review is only here - said in place of where it
+         * was posted, with what lets it comment and where that is done.
+         */}
+        {report?.isCommentRefused ? (
+          <div
+            data-testid="production-review-comment-refused"
+            className="mt-3 flex items-start gap-2 text-sm text-amber-800"
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
+            />
+            <p className="min-w-0 break-words">
+              {translator.translateTemplate(
+                inReviewHostWords(
+                  PRODUCTION_REVIEW_COPY.commentRefused,
+                  provider,
+                ),
+                { host: hostName },
+              )}
+              {CodeHost.readType(provider) === CodeRepositoryType.Forgejo ? (
+                <> {text(PRODUCTION_REVIEW_COPY.commentRefusedIssues)}</>
+              ) : (
+                <></>
+              )}
+              {data.repository && data.canAsk ? (
+                <>
+                  {" "}
+                  <Link
+                    to={getRepositorySettingsRoute(data.repository.id)}
+                    dataTestId="production-review-comment-refused-settings"
+                    className="font-medium text-amber-900 underline hover:text-amber-700"
+                  >
+                    <>{text(PRODUCTION_REVIEW_COPY.goToSettings)}</>
+                  </Link>
+                </>
+              ) : (
+                <></>
+              )}
+            </p>
+          </div>
+        ) : report ? (
           <div
             data-testid="production-review-posting"
             data-posting={report.posting}
@@ -364,7 +514,9 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
               }
               className="h-4 w-4 flex-shrink-0 text-gray-400"
             />
-            <span>{text(getProductionReviewPostingSentence(report))}</span>
+            <span>
+              {text(getProductionReviewPostingSentence(report, provider))}
+            </span>
             {report.commentUrl &&
             report.posting !== ProductionReviewPosting.None ? (
               <Link
@@ -400,7 +552,23 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
 
       <div className="mt-6 space-y-4">
         {renderStatus()}
-        {report ? <CodeProductionReview report={report} /> : <></>}
+        {report ? (
+          <CodeProductionReview
+            report={report}
+            provider={provider}
+            hostName={hostName}
+            {...(data.repository && data.canAsk
+              ? {
+                  llmProviderSettingsRoute: getRepositorySettingsRoute(
+                    data.repository.id,
+                    CodeRepositorySetting.ProductionReviewLlmProvider,
+                  ),
+                }
+              : {})}
+          />
+        ) : (
+          <></>
+        )}
       </div>
 
       <div

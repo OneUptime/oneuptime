@@ -12,6 +12,7 @@ import {
   buildPageSearchCommandDescriptors,
   canDeleteProject,
   computeCreateActionGates,
+  getEntitySearchResultTitle,
   getEntitySearchSpecs,
   getPageSearchCommandRanking,
   getVisibleActionIds,
@@ -33,7 +34,6 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { HeldPermissions } from "Common/Types/HeldPermissions";
 import CommandPalette from "Common/UI/Components/CommandPalette/CommandPalette";
@@ -126,9 +126,8 @@ function createEntitySearchProvider<
         for (const item of result.data) {
           const modelId: string | undefined =
             item._id?.toString() || item.id?.toString();
-          const title: string =
-            ((item as unknown as JSONObject)[data.spec.titleField] as string) ||
-            "";
+          // "INC-18 Manually declared" for a numbered entity.
+          const title: string = getEntitySearchResultTitle(data.spec, item);
 
           if (!modelId || !title) {
             continue;

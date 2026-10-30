@@ -181,7 +181,7 @@ describe("monitor probing — per-check deadline", () => {
     /*
      * The deadline timer must be cleared on the success path too: one
      * un-cleared timer per check holds the event loop open (and surfaces
-     * under jest --detectOpenHandles, which this project runs).
+     * under jest --detectOpenHandles).
      */
     expect(clearTimeoutSpy).toHaveBeenCalled();
   });

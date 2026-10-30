@@ -77,11 +77,19 @@ import {
 } from "Common/Types/Monitor/CephMetricCatalog";
 import { CEPH_SNAPSHOT_METRIC_NAMES } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import { DEFAULT_MESSAGE_QUEUE_MIN_SPANS } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
-import { FAAS_CLOUD_PLATFORM_VALUES } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudProvider,
+  FAAS_CLOUD_PLATFORM_VALUES,
+} from "Common/Types/Cloud/CloudPlatform";
 import {
   AGENT_AI_FIXES_SETTING_VALUES,
   AI_FIXES_ENV,
 } from "Common/Types/AI/AgentAiSettings";
+import {
+  CLOUD_AI_AGENT_FIXES_MODES,
+  CloudAiAgentEnvironmentVariable,
+  getCloudAiAgentEnvironment,
+} from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -2170,6 +2178,48 @@ describe("where the Ceph and VMware agents' fix mode is set", () => {
         });
       }
     }
+  });
+
+  /*
+   * A Cloud AI agent has no .env: its setup command writes the same
+   * variable, from the answer to "How far may AI go?", in one of the values
+   * the page's table names, with the write switch on.
+   */
+  it("has a Cloud AI agent's setup command write the same fix modes, as the Infrastructure AI Agents page says", () => {
+    const modes: Array<string> = Object.values(AGENT_AI_FIXES_SETTING_VALUES);
+    const written: Array<string> = CLOUD_AI_AGENT_FIXES_MODES.map(
+      (fixesMode: (typeof CLOUD_AI_AGENT_FIXES_MODES)[number]): string => {
+        const variable: CloudAiAgentEnvironmentVariable | undefined =
+          getCloudAiAgentEnvironment({
+            provider: CloudProvider.AWS,
+            oneuptimeUrl: "https://oneuptime.com",
+            ingestionKey: "ingestion-key",
+            cloudAccountId: "11111111-1111-1111-1111-111111111111",
+            accountId: "123456789012",
+            fixesMode,
+          }).find((candidate: CloudAiAgentEnvironmentVariable): boolean => {
+            return candidate.name === AI_FIXES_ENV;
+          });
+
+        return variable?.value || "";
+      },
+    );
+
+    expect(written).toEqual([
+      "ask-for-approval",
+      "automatic",
+      "bypass-approval",
+    ]);
+
+    for (const mode of written) {
+      expect(modes).toContain(mode);
+    }
+
+    lineWith(
+      "ai/infrastructure-ai-agents",
+      `\`${AI_FIXES_ENV}\` from your answer`,
+      "`ONEUPTIME_AI_ALLOW_WRITES=true`",
+    );
   });
 });
 

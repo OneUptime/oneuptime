@@ -384,6 +384,10 @@ export enum CodeTaskOriginType {
   Insight = "Insight",
   GitHubIssue = "GitHubIssue",
   GitHubPullRequest = "GitHubPullRequest",
+  // A merge request on GitLab ("!12"): what its production review is of.
+  GitLabMergeRequest = "GitLabMergeRequest",
+  // A pull request on Forgejo or Gitea ("#12"): what its production review is of.
+  CodeHostPullRequest = "CodeHostPullRequest",
   Unknown = "Unknown",
 }
 
@@ -393,7 +397,7 @@ export interface CodeTaskOriginJSON {
   label: string;
   // A OneUptime record to link to.
   recordId?: string | undefined;
-  // A GitHub issue or pull request to link to.
+  // A GitHub issue or pull request - or another host's - to link to.
   url?: string | undefined;
   /*
    * An Insight's kind (AIInsightType), when it was read: where it opens -

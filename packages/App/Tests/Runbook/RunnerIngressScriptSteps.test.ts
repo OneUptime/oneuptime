@@ -131,6 +131,15 @@ jest.mock("Common/Server/Utils/Response", () => {
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
+import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 const CLAIM_ROUTE: string = "/claim-next-job";
 const RESULT_ROUTE: string = "/job/:jobId/result";
