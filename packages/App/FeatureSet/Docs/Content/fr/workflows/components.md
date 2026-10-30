@@ -47,7 +47,7 @@ flowchart TB
 - Les **Outputs** sont les points du bord inférieur. La plupart des blocs ont **Success** et **Error** ; [Conditions](#conditions) a **Yes** et **No**, et [Switch / Case](#switch-case) en a une pour chacun de ses cas, plus **Default**.
 - Les **Returns** sont les valeurs qu'un bloc transmet aux blocs suivants, comme le **Response Body** d'une API. Un bloc suivant en lit une avec `{{local.components.<block ID>.returnValues.<value ID>}}` ; le bouton **{ }** d'un paramètre l'insère pour vous. Voir [Variables](/docs/workflows/variables#sorties-des-composants-données-des-blocs-précédents).
 
-Un bloc qui prend **Error** confie l'échec aux blocs reliés à **Error**, et l'exécution continue là. Si rien n'est relié à **Error**, l'exécution échoue : ce qu'elle faisait par ailleurs continue, puis elle se termine avec le statut **Error**, et l'entrée du bloc dans les **Étapes** de l'exécution dit pourquoi. Un paramètre obligatoire laissé vide, ou un paramètre qui ne peut jamais fonctionner, arrête au contraire l'exécution avec une erreur.
+Un bloc qui prend **Error** confie l'échec aux blocs reliés à **Error**, et l'exécution continue là. Si rien n'est relié à **Error**, l'exécution échoue : ce qu'elle faisait par ailleurs continue, puis elle se termine avec le statut **Erreur**, et l'entrée du bloc dans les **Étapes** de l'exécution dit pourquoi. Un paramètre obligatoire laissé vide, ou un paramètre qui ne peut jamais fonctionner, arrête au contraire l'exécution avec une erreur.
 
 ## API
 

@@ -47,7 +47,7 @@ flowchart TB
 - **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Success** en **Error**; [Conditions](#conditions) heeft **Yes** en **No**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Default**.
 - **Returns** zijn de waarden die een blok aan latere blokken doorgeeft, zoals de **Response Body** van een API. Een later blok leest er een met `{{local.components.<block ID>.returnValues.<value ID>}}`; de knop **{ }** in een instelling voegt hem voor je in. Zie [Variabelen](/docs/workflows/variables#componentuitvoer-data-uit-eerdere-blokken).
 
-Een blok dat **Error** neemt, geeft de fout door aan de blokken die op **Error** zijn aangesloten, en de uitvoering gaat daar verder. Is er niets op **Error** aangesloten, dan mislukt de uitvoering: wat ze verder nog deed, loopt door, daarna eindigt ze met de status **Error**, en de vermelding van het blok in **Stappen** van de uitvoering zegt waarom. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
+Een blok dat **Error** neemt, geeft de fout door aan de blokken die op **Error** zijn aangesloten, en de uitvoering gaat daar verder. Is er niets op **Error** aangesloten, dan mislukt de uitvoering: wat ze verder nog deed, loopt door, daarna eindigt ze met de status **Fout**, en de vermelding van het blok in **Stappen** van de uitvoering zegt waarom. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
 
 ## API
 

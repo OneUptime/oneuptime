@@ -2,7 +2,7 @@
 
 Un workflow si costruisce nel suo **Costruttore**: una tela su cui aggiungi blocchi, li colleghi e compili le loro impostazioni. Questa pagina spiega come creare un workflow, [aggiungere blocchi](#aggiungere-blocchi), [collegarli](#collegare-i-blocchi) e [configurarli](#configurare-un-blocco), [passare valori dall'uno all'altro](#usare-i-valori-dei-blocchi-precedenti) e [attivare il workflow](#attivarlo).
 
-Per creare un workflow, apri **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. La finestra **Crea un flusso di lavoro** ti chiede prima come vuoi iniziare, poi un nome. Un modello che ha bisogno di impostazioni proprie, come un URL di webhook di Slack, te le chiede in un passaggio in più e le salva come variabili del workflow, così puoi cambiarle in seguito senza modificare il workflow.
+Per creare un workflow, apri **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. La finestra **Crea un flusso di lavoro** ti chiede prima come vuoi iniziare, poi un nome. Un modello che ha bisogno di impostazioni proprie, come un URL di webhook di Slack, te le chiede in un passaggio in più e le salva come variabili del workflow, così puoi cambiarle in seguito senza modificare il workflow. Un modello che chiama delle persone chiede in quel passaggio anche chi chiamare, scegliendo tra gli utenti, i team, le pianificazioni di reperibilità o le policy di reperibilità del tuo progetto.
 
 Scegli come iniziare:
 

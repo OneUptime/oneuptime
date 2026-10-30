@@ -47,7 +47,7 @@ flowchart TB
 - **Outputs** er punkterne på den nederste kant. De fleste blokke har **Success** og **Error**; [Conditions](#conditions) har **Yes** og **No**, og [Switch / Case](#switch-case) har én for hvert af sine tilfælde og desuden **Default**.
 - **Returns** er de værdier, en blok giver videre til senere blokke, som en API's **Response Body**. En senere blok læser en med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en indstilling indsætter den for dig. Se [Variabler](/docs/workflows/variables#komponent-output-data-fra-tidligere-blokke).
 
-En blok, der tager **Error**, giver fejlen videre til de blokke, der er forbundet til **Error**, og kørslen fortsætter der. Er intet forbundet til **Error**, mislykkes kørslen: det, den ellers var i gang med, kører videre, derefter slutter den med status **Error**, og blokkens post under kørslens **Trin** siger hvorfor. En påkrævet indstilling, der er efterladt tom, eller en indstilling, der aldrig kan virke, stopper derimod kørslen med en fejl.
+En blok, der tager **Error**, giver fejlen videre til de blokke, der er forbundet til **Error**, og kørslen fortsætter der. Er intet forbundet til **Error**, mislykkes kørslen: det, den ellers var i gang med, kører videre, derefter slutter den med status **Fejl**, og blokkens post under kørslens **Trin** siger hvorfor. En påkrævet indstilling, der er efterladt tom, eller en indstilling, der aldrig kan virke, stopper derimod kørslen med en fejl.
 
 ## API
 

@@ -47,7 +47,7 @@ flowchart TB
 - **Ausgaben** sind die Punkte am unteren Rand. Die meisten Bausteine haben **Success** und **Error**; [Bedingungen](#conditions) hat **Yes** und **No**, und [Switch / Case](#switch-case) hat eine für jeden seiner Fälle und dazu **Default**.
 - **Rückkehren** sind die Werte, die ein Baustein an spätere Bausteine weitergibt, etwa den **Response Body** einer API. Ein späterer Baustein liest einen mit `{{local.components.<block ID>.returnValues.<value ID>}}`; die Schaltfläche **{ }** in einer Einstellung fügt ihn für Sie ein. Siehe [Variablen](/docs/workflows/variables#komponentenausgaben-daten-aus-früheren-bausteinen).
 
-Ein Baustein, der **Error** nimmt, übergibt den Fehler an die Bausteine, die mit **Error** verbunden sind, und die Ausführung geht dort weiter. Ist mit **Error** nichts verbunden, schlägt die Ausführung fehl: Was sie sonst noch tat, läuft weiter, dann endet sie mit dem Status **Error**, und der Eintrag des Bausteins unter **Schritte** der Ausführung sagt, warum. Eine leer gelassene Pflichteinstellung oder eine Einstellung, die nie funktionieren kann, stoppt die Ausführung dagegen mit einem Fehler.
+Ein Baustein, der **Error** nimmt, übergibt den Fehler an die Bausteine, die mit **Error** verbunden sind, und die Ausführung geht dort weiter. Ist mit **Error** nichts verbunden, schlägt die Ausführung fehl: Was sie sonst noch tat, läuft weiter, dann endet sie mit dem Status **Fehler**, und der Eintrag des Bausteins unter **Schritte** der Ausführung sagt, warum. Eine leer gelassene Pflichteinstellung oder eine Einstellung, die nie funktionieren kann, stoppt die Ausführung dagegen mit einem Fehler.
 
 ## API
 

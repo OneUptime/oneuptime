@@ -47,7 +47,7 @@ flowchart TB
 - Gli **Outputs** sono i punti sul bordo inferiore. La maggior parte dei blocchi ha **Success** ed **Error**; [Conditions](#conditions) ha **Yes** e **No**, e [Switch / Case](#switch-case) ne ha una per ciascuno dei suoi casi, più **Default**.
 - I **Returns** sono i valori che un blocco passa ai blocchi successivi, come il **Response Body** di un'API. Un blocco successivo ne legge uno con `{{local.components.<block ID>.returnValues.<value ID>}}`; il pulsante **{ }** di un'impostazione lo inserisce per te. Vedi [Variabili](/docs/workflows/variables#output-dei-componenti-i-dati-dei-blocchi-precedenti).
 
-Un blocco che prende **Error** passa l'errore ai blocchi collegati a **Error**, e l'esecuzione prosegue lì. Se a **Error** non è collegato nulla, l'esecuzione fallisce: quello che stava facendo per il resto continua, poi termina con lo stato **Error**, e la voce del blocco nei **Passaggi** dell'esecuzione dice perché. Un'impostazione obbligatoria lasciata vuota, o un'impostazione che non può mai funzionare, ferma invece l'esecuzione con un errore.
+Un blocco che prende **Error** passa l'errore ai blocchi collegati a **Error**, e l'esecuzione prosegue lì. Se a **Error** non è collegato nulla, l'esecuzione fallisce: quello che stava facendo per il resto continua, poi termina con lo stato **Errore**, e la voce del blocco nei **Passaggi** dell'esecuzione dice perché. Un'impostazione obbligatoria lasciata vuota, o un'impostazione che non può mai funzionare, ferma invece l'esecuzione con un errore.
 
 ## API
 

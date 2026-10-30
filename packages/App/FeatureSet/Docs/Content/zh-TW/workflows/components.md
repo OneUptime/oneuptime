@@ -47,7 +47,7 @@ flowchart TB
 - **Outputs** 是底部邊緣的點。大多數區塊有 **Success** 和 **Error**；[Conditions](#conditions) 有 **Yes** 和 **No**；[Switch / Case](#switch-case) 每個分支有一個，另有 **Default**。
 - **Returns** 是區塊傳給後續區塊的值，例如 API 的 **Response Body**。後續區塊用 `{{local.components.<block ID>.returnValues.<value ID>}}` 讀取；設定中的 **{ }** 按鈕會替你插入。請參閱 [變數](/docs/workflows/variables#元件輸出來自前面區塊的資料)。
 
-選擇了 **Error** 的區塊會把失敗交給連接到 **Error** 的區塊，執行在那裡繼續。如果 **Error** 上沒有連接任何東西，執行就會失敗：它正在做的其他事情照常執行，然後執行以狀態 **Error** 結束，執行的 **步驟** 中該區塊的項目會說明原因。而留空的必填設定，或永遠不可能生效的設定，會以錯誤停止執行。
+選擇了 **Error** 的區塊會把失敗交給連接到 **Error** 的區塊，執行在那裡繼續。如果 **Error** 上沒有連接任何東西，執行就會失敗：它正在做的其他事情照常執行，然後執行以狀態 **錯誤** 結束，執行的 **步驟** 中該區塊的項目會說明原因。而留空的必填設定，或永遠不可能生效的設定，會以錯誤停止執行。
 
 ## API
 

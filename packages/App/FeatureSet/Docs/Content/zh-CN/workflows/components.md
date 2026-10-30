@@ -47,7 +47,7 @@ flowchart TB
 - **Outputs** 是底部边缘的点。大多数块有 **Success** 和 **Error**；[Conditions](#conditions) 有 **Yes** 和 **No**；[Switch / Case](#switch-case) 每个分支有一个，另有 **Default**。
 - **Returns** 是块传给后续块的值，例如 API 的 **Response Body**。后续块用 `{{local.components.<block ID>.returnValues.<value ID>}}` 读取；设置中的 **{ }** 按钮会替你插入。参见 [变量](/docs/workflows/variables#组件输出来自前面块的数据)。
 
-选择了 **Error** 的块会把失败交给连接到 **Error** 的块，运行在那里继续。如果 **Error** 上没有连接任何东西，运行就会失败：它正在做的其他事情照常运行，然后运行以状态 **Error** 结束，运行的 **步骤** 中该块的条目会说明原因。而留空的必填设置，或者永远不可能生效的设置，会以错误停止运行。
+选择了 **Error** 的块会把失败交给连接到 **Error** 的块，运行在那里继续。如果 **Error** 上没有连接任何东西，运行就会失败：它正在做的其他事情照常运行，然后运行以状态 **错误** 结束，运行的 **步骤** 中该块的条目会说明原因。而留空的必填设置，或者永远不可能生效的设置，会以错误停止运行。
 
 ## API
 
