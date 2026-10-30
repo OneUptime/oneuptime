@@ -12,10 +12,12 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
+  WorkspaceEventStanding,
   WorkspaceEventStateOption,
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateTimeline";
 import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -88,12 +90,26 @@ export default class MicrosoftTeamsAlertActions {
           event: { type: WorkspaceEventType.Alert, id: alertId },
         });
 
-      // Somebody got there first: who and when, to whoever pressed.
-      if ((await WorkspaceMemberActions.getStanding(alert)).isAcknowledged) {
+      /*
+       * Somebody got there first: who and when, to whoever pressed. Paged
+       * into it by a person's page, the presser answered that page by
+       * pressing (OnCallPersonPageAnswer): it stops, and is said first.
+       */
+      const standing: WorkspaceEventStanding =
+        await WorkspaceMemberActions.getStanding(alert);
+
+      if (standing.isAcknowledged) {
         await MicrosoftTeamsActionAnswer.replyAlready({
           turnContext: turnContext,
           event: alert,
           press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: await OnCallPersonPageAnswer.onAcknowledgePressed({
+            kind: "alert",
+            recordId: alert.id,
+            projectId: alert.projectId,
+            pressedByUserId: databaseProps.userId,
+            isResolved: standing.isResolved,
+          }),
         });
         return;
       }

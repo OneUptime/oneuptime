@@ -299,3 +299,92 @@ describe("never throws", () => {
     expect(logger.error).toHaveBeenCalled();
   });
 });
+
+/*
+ * ACKNOWLEDGE PRESSED ON A RECORD SOMEBODY ELSE ACKNOWLEDGED (UI review of
+ * block 31): the press a person paged into INC-8 makes in its channel. The
+ * incident's state does not move, so no state change hands anything on -
+ * the press answers the presser's own person's pages all the same.
+ */
+describe("Acknowledge pressed on a record acknowledged already", () => {
+  test("answers the presser's own person's page about it", async () => {
+    const nitins: UserOnCallLog = page({ startedBy: "person" });
+    logs = [nitins];
+
+    await expect(
+      OnCallPersonPageAnswer.onAcknowledgePressed({
+        kind: "incident",
+        recordId: RECORD_ID,
+        projectId: PROJECT_ID,
+        pressedByUserId: NITIN,
+        isResolved: false,
+      }),
+    ).resolves.toBe(1);
+
+    const asked: { query: Record<string, unknown> } = findBy.mock
+      .calls[0]![0] as never;
+
+    expect(asked.query["userId"]).toEqual(NITIN);
+    expect(asked.query["triggeredByIncidentId"]).toEqual(RECORD_ID);
+    expect(
+      (acknowledgePage.mock.calls[0]![0] as { userOnCallLogId: ObjectID })
+        .userOnCallLogId,
+    ).toEqual(nitins.id);
+  });
+
+  test("an alert's, by the alert's column", async () => {
+    logs = [page({ startedBy: "person", kind: "alert" })];
+
+    await expect(
+      OnCallPersonPageAnswer.onAcknowledgePressed({
+        kind: "alert",
+        recordId: RECORD_ID,
+        projectId: PROJECT_ID,
+        pressedByUserId: NITIN,
+        isResolved: false,
+      }),
+    ).resolves.toBe(1);
+    expect(
+      (findBy.mock.calls[0]![0] as { query: Record<string, unknown> }).query[
+        "triggeredByAlertId"
+      ],
+    ).toEqual(RECORD_ID);
+  });
+
+  test("a resolved record, or a press nobody can be told for, answers nothing and reads nothing", async () => {
+    logs = [page({ startedBy: "person" })];
+
+    for (const press of [
+      { pressedByUserId: NITIN, isResolved: true },
+      { pressedByUserId: undefined, isResolved: false },
+      { pressedByUserId: null, isResolved: false },
+    ]) {
+      await expect(
+        OnCallPersonPageAnswer.onAcknowledgePressed({
+          kind: "incident",
+          recordId: RECORD_ID,
+          projectId: PROJECT_ID,
+          ...press,
+        }),
+      ).resolves.toBe(0);
+    }
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(acknowledgePage).not.toHaveBeenCalled();
+  });
+
+  test("a workflow's or a policy's page is left to its own link, as for a state change", async () => {
+    logs = [page({ startedBy: "workflow" }), page({ startedBy: "policy" })];
+
+    await expect(
+      OnCallPersonPageAnswer.onAcknowledgePressed({
+        kind: "incident",
+        recordId: RECORD_ID,
+        projectId: PROJECT_ID,
+        pressedByUserId: NITIN,
+        isResolved: false,
+      }),
+    ).resolves.toBe(0);
+    expect(acknowledgePage).not.toHaveBeenCalled();
+  });
+});

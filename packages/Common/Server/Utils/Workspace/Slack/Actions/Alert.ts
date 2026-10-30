@@ -30,10 +30,12 @@ import SlackActionAuthorization, {
 } from "./Authorization";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
+  WorkspaceEventStanding,
   WorkspaceEventStateOption,
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer from "./Answer";
 import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 
@@ -136,12 +138,26 @@ export default class SlackAlertActions {
 
       const { props, event: alert } = authorized;
 
-      // Somebody got there first: who and when, where the press was.
-      if ((await WorkspaceMemberActions.getStanding(alert)).isAcknowledged) {
+      /*
+       * Somebody got there first: who and when, where the press was. Paged
+       * into it by a person's page, the presser answered that page by
+       * pressing (OnCallPersonPageAnswer): it stops, and is said first.
+       */
+      const standing: WorkspaceEventStanding =
+        await WorkspaceMemberActions.getStanding(alert);
+
+      if (standing.isAcknowledged) {
         await SlackActionAnswer.answerAlready({
           source: slackRequest,
           event: alert,
           press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: await OnCallPersonPageAnswer.onAcknowledgePressed({
+            kind: "alert",
+            recordId: alert.id,
+            projectId: alert.projectId,
+            pressedByUserId: props.userId,
+            isResolved: standing.isResolved,
+          }),
         });
 
         return;

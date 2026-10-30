@@ -31,7 +31,10 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * stop, the page is answered and ends for everybody it paged, and its
  * message in the channel says they acknowledged. A change somebody else
  * makes answers nothing of theirs, and one OneUptime makes on its own (no
- * person) answers nothing at all.
+ * person) answers nothing at all. Pressing Acknowledge in Slack or
+ * Microsoft Teams on a record somebody else acknowledged already answers
+ * the presser's pages too (onAcknowledgePressed): it is the same "I'm on
+ * it", though the record's state does not move.
  *
  * Every state timeline of an incident or an alert tells the one hook every
  * state change reaches (OnCallAcknowledgementTimeout.onRecordStateChanged),
@@ -53,6 +56,36 @@ const OPEN_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
 ];
 
 export default class OnCallPersonPageAnswer {
+  /*
+   * Acknowledge pressed on an incident or an alert that is acknowledged
+   * already - in Slack or Microsoft Teams, where the press is answered with
+   * who got there first. It is the press a person paged into an incident
+   * somebody else is on makes in its channel, and the incident's state does
+   * not move, so onRecordStateChanged hears nothing: the press answers the
+   * presser's own person's pages about it all the same, as acknowledging it
+   * would have. Without this, they were called again ten minutes after
+   * pressing Acknowledge. A resolved record answers nothing: resolving it
+   * ended its pages. Returns how many were answered; never throws.
+   */
+  @CaptureSpan()
+  public static async onAcknowledgePressed(data: {
+    kind: OnCallPersonPageRecordKind;
+    recordId: ObjectID;
+    projectId: ObjectID;
+    pressedByUserId?: ObjectID | null | undefined;
+    // Where the record stands, as the press read it.
+    isResolved: boolean;
+  }): Promise<number> {
+    return await OnCallPersonPageAnswer.onRecordStateChanged({
+      kind: data.kind,
+      recordId: data.recordId,
+      projectId: data.projectId,
+      changedByUserId: data.pressedByUserId,
+      isAcknowledged: true,
+      isResolved: data.isResolved,
+    });
+  }
+
   /*
    * A state change of an incident or an alert, as its state timeline saved
    * it: answers the person's pages it answers (see the header). Returns how
