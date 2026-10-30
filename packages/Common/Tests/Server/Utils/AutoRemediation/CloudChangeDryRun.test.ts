@@ -6,7 +6,9 @@ import CloudChangeDryRun, {
   readCloudDryRunOutcome,
 } from "../../../../Server/Utils/AutoRemediation/CloudChangeDryRun";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
+import AutoRemediationSuggestionService, {
+  SuggestionTransitionSet,
+} from "../../../../Server/Services/AutoRemediationSuggestionService";
 import ResourceCommandJobRunner, {
   ResourceCommandJobOutcome,
 } from "../../../../Server/Utils/AI/ResourceAccess/ResourceCommandJobRunner";
@@ -166,8 +168,9 @@ describe("CloudChangeDryRun.dryRunSuggestion", () => {
       .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
       .mockImplementation(
         async (data: {
+          suggestionId: ObjectID;
           fromStatus: AutoRemediationSuggestionStatus;
-          set: Record<string, unknown>;
+          set: SuggestionTransitionSet;
         }): Promise<number> => {
           const affected: number = casResult();
 
@@ -176,8 +179,8 @@ describe("CloudChangeDryRun.dryRunSuggestion", () => {
             set: data.set as unknown as JSONObject,
           });
 
-          if (affected > 0 && stored && data.set["commandPlan"]) {
-            stored.commandPlan = data.set["commandPlan"] as JSONObject;
+          if (affected > 0 && stored && data.set.commandPlan) {
+            stored.commandPlan = data.set.commandPlan;
           }
 
           return affected;
@@ -658,14 +661,18 @@ describe("CloudChangeDryRun.dryRunSuggestion", () => {
       jest
         .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
         .mockImplementation(
-          async (data: { set: Record<string, unknown> }): Promise<number> => {
+          async (data: {
+            suggestionId: ObjectID;
+            fromStatus: AutoRemediationSuggestionStatus;
+            set: SuggestionTransitionSet;
+          }): Promise<number> => {
             write++;
 
             if (write > 1) {
               throw new Error("database down");
             }
 
-            stored!.commandPlan = data.set["commandPlan"] as JSONObject;
+            stored!.commandPlan = data.set.commandPlan as JSONObject;
             return 1;
           },
         );

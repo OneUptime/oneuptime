@@ -10,6 +10,7 @@ import AiFirstResponderEligibility from "../../../../../Server/Utils/AI/FirstRes
 import OneUptimeDate from "../../../../../Types/Date";
 import ObjectID from "../../../../../Types/ObjectID";
 import AiResourceType from "../../../../../Types/ResourceAiAgent/AiResourceType";
+import { CloudProvider } from "../../../../../Types/Cloud/CloudPlatform";
 import { ResourceAiRemediationMode } from "../../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -39,7 +40,7 @@ const GATES: ResourceAiAccessProjectGates = {
 
 interface AccountCase {
   type: AiResourceType;
-  provider: string;
+  provider: CloudProvider;
   id: ObjectID;
   accountId: string;
   mode: ResourceAiRemediationMode;
@@ -49,7 +50,7 @@ interface AccountCase {
 const CASES: Array<AccountCase> = [
   {
     type: AiResourceType.AwsAccount,
-    provider: "aws",
+    provider: CloudProvider.AWS,
     id: new ObjectID("6b000000-0000-4000-8000-0000000000a1"),
     accountId: "123456789012",
     mode: ResourceAiRemediationMode.Automatic,
@@ -57,7 +58,7 @@ const CASES: Array<AccountCase> = [
   },
   {
     type: AiResourceType.AzureSubscription,
-    provider: "azure",
+    provider: CloudProvider.Azure,
     id: new ObjectID("6b000000-0000-4000-8000-0000000000a2"),
     accountId: "00000000-0000-0000-0000-0000000000ab",
     mode: ResourceAiRemediationMode.BypassApproval,
@@ -65,7 +66,7 @@ const CASES: Array<AccountCase> = [
   },
   {
     type: AiResourceType.GoogleCloudProject,
-    provider: "gcp",
+    provider: CloudProvider.GCP,
     id: new ObjectID("6b000000-0000-4000-8000-0000000000a3"),
     accountId: "shop-prod",
     mode: ResourceAiRemediationMode.RequireApproval,
@@ -73,7 +74,7 @@ const CASES: Array<AccountCase> = [
   },
   {
     type: AiResourceType.AwsAccount,
-    provider: "aws",
+    provider: CloudProvider.AWS,
     id: new ObjectID("6b000000-0000-4000-8000-0000000000a4"),
     accountId: "210987654321",
     mode: ResourceAiRemediationMode.Automatic,

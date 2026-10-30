@@ -369,7 +369,7 @@ describe("POST /auto-remediation/dry-run", () => {
   test("a caller who may not run runbooks may not ask for one", async () => {
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-      .mockResolvedValue(buildUserProps([Permission.ReadIncident]));
+      .mockResolvedValue(buildUserProps([Permission.Viewer]));
 
     expectRefused(await callDryRun());
   });
