@@ -228,7 +228,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | --- | --- | --- | --- | --- |
 | `purefa_pod_replica_links_lag_max_msec` | — | FlashArray | `ms` | بیشترین عقب‌ماندگی همتاسازی هر پیوند replica پاد (ActiveDR / ناهمگام)، با برچسب‌های `local_pod`، `remote_pod`، `remote`، `direction` و `status` – بر پایه `local_pod` گروه‌بندی کنید |
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | میانگین عقب‌ماندگی همتاسازی هر پیوند replica پاد |
-| `purefa_pod_performance_replication_bandwidth_bytes` | — | FlashArray | `bytes/s` | ترافیک همتاسازی هر پاد، با برچسب‌های `direction` و `dimension` |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | ترافیک همتاسازی هر پاد، با برچسب‌های `direction` و `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | میانگین تأخیر نوشتن آینه‌ای هر پاد ActiveCluster |
 
 ### Hardware
