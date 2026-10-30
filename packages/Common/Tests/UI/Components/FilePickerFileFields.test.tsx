@@ -546,6 +546,58 @@ describe("what it says it takes", () => {
   });
 });
 
+describe("each file it lists", () => {
+  /*
+   * Under its name, a file's type as people read it - "DOCX", not the
+   * 71-letter MIME type of a Word document - and its size when the picker
+   * has its bytes.
+   */
+  test("names its type by its short name, never its MIME type", () => {
+    const word: FileModel = new FileModel(
+      new ObjectID("aaaaaaaa-0000-4000-8000-000000000001"),
+    );
+    word.name = "change-request.docx";
+    word.fileType = MimeType.docx;
+
+    const capture: FileModel = new FileModel(
+      new ObjectID("aaaaaaaa-0000-4000-8000-000000000002"),
+    );
+    capture.name = "capture.pcap";
+    capture.fileType = MimeType.pcap;
+    capture.file = Buffer.from(new Uint8Array(2048));
+
+    render(
+      <FilePicker isMultiFilePicker={true} initialValue={[word, capture]} />,
+    );
+
+    expect(screen.getByText("DOCX")).toBeInTheDocument();
+    expect(screen.getByText("PCAP • 2.0 KB")).toBeInTheDocument();
+    expect(screen.queryByText(MimeType.docx)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(MimeType.pcap, { exact: false }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a long name wraps in its row, beside its buttons", () => {
+    const long: FileModel = new FileModel(
+      new ObjectID("aaaaaaaa-0000-4000-8000-000000000003"),
+    );
+    long.name = "quarterly-capacity-review-".repeat(6) + "final.pdf";
+    long.fileType = MimeType.pdf;
+
+    render(<FilePicker initialValue={long} />);
+
+    const name: HTMLElement = screen.getByText(long.name);
+
+    expect(name.className).toContain("[overflow-wrap:anywhere]");
+    // Its column and its row may grow narrower than the name.
+    expect((name.parentElement as HTMLElement).className).toContain("min-w-0");
+    expect(
+      (name.parentElement!.parentElement as HTMLElement).className,
+    ).toContain("min-w-0");
+  });
+});
+
 describe("several pickers on one page", () => {
   test("each input has an id of its own", () => {
     const { container } = render(

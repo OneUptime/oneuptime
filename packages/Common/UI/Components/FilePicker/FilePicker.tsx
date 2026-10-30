@@ -6,6 +6,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import CommonURL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import MimeType from "../../../Types/File/MimeType";
+import { getMimeTypeLabel } from "../../../Types/File/MimeTypeLabel";
 import IconProp from "../../../Types/Icon/IconProp";
 import FileModel from "../../../Models/DatabaseModels/File";
 import React, {
@@ -548,8 +549,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       };
 
       const metadata: Array<string> = [];
-      if (file.fileType) {
-        metadata.push(file.fileType);
+      /*
+       * "PDF", not application/pdf: a Word document's MIME type is a word of
+       * 71 letters that would run off a phone's screen.
+       */
+      const typeLabel: string = getMimeTypeLabel(file.fileType);
+      if (typeLabel) {
+        metadata.push(typeLabel);
       }
       const readableSize: string | null = formatFileSize(file);
       if (readableSize) {
@@ -561,12 +567,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           key={key}
           className="flex w-full items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
         >
-          <div className="flex items-start gap-3 text-left">
-            <div className="flex h-10 w-10 items-center justify-center rounded border border-gray-200 bg-gray-50">
+          {/* A long name wraps in its row rather than push its buttons off. */}
+          <div className="flex min-w-0 items-start gap-3 text-left">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-gray-200 bg-gray-50">
               <Icon icon={IconProp.File} className="text-gray-500" />
             </div>
-            <div className="flex flex-col">
-              <p className="text-sm font-medium text-gray-900">
+            <div className="flex min-w-0 flex-col">
+              <p className="break-words text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                 {file.name ||
                   translator.translateTemplate("File {{number}}", {
                     number: i + 1,
