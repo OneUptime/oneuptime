@@ -309,7 +309,7 @@ describe("each value really turns on the scrape its tab charts", () => {
      * pod has no host network, so that was the pod itself.
      */
     expect(VALUES_TEXT).toMatch(
-      /\n  apiServer:\n(?: {4}#[^\n]*\n)*    endpoints:\n      - https:\/\/kubernetes\.default\.svc:443\/metrics\n/,
+      /\n {2}apiServer:\n(?: {4}#[^\n]*\n)* {4}endpoints:\n {6}- https:\/\/kubernetes\.default\.svc:443\/metrics\n/,
     );
     expect(VALUES_TEXT).not.toMatch(/localhost:(2379|6443|10259|10257)/);
     // An https:// endpoint is scraped over https, at /metrics, with the token.
@@ -521,9 +521,7 @@ describe("the docs each hint links to", () => {
     );
 
     // What turning it on reads, and what the rest of the control plane needs.
-    expect(section).toContain(
-      "a component with no endpoints is not scraped",
-    );
+    expect(section).toContain("a component with no endpoints is not scraped");
     expect(section).toContain("`2381`");
     expect(section).toContain("client certificate");
     expect(section).toContain("`controlPlane.etcd.clientCertSecret`");

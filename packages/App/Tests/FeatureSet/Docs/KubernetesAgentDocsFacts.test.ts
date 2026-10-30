@@ -616,10 +616,12 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       );
     }
     // Every kubectl command of the page looks in that namespace.
+    const namespacedKubectl: RegExp = /^kubectl .* -n /;
+
     for (const line of bashBlocks().flatMap((block: string): Array<string> => {
       return block.split("\n");
     })) {
-      if (/^kubectl .* -n /.test(line)) {
+      if (namespacedKubectl.test(line)) {
         expect(line).toContain(`-n ${KUBERNETES_AGENT_HELM_NAMESPACE}`);
       }
     }
