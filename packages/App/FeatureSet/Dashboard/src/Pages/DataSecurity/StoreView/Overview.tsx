@@ -163,7 +163,8 @@ const StoreOwnersList: FunctionComponent<{
           owner.kind === "user"
             ? owner.user.name?.toString() ||
               owner.user.email?.toString() ||
-              (translator.translateText("User") || "User")
+              translator.translateText("User") ||
+              "User"
             : owner.team.name || translator.translateText("Team") || "Team";
         const detail: string =
           owner.kind === "user"
@@ -630,10 +631,7 @@ const DataStoreOverview: FunctionComponent<
                 className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
               >
                 <span>{translator.translateText(SEE_FINDINGS)}</span>
-                <Icon
-                  icon={IconProp.ChevronRight}
-                  className="h-4 w-4"
-                />
+                <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
               </AppLink>
             ) : (
               <></>

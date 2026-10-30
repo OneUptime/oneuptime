@@ -50,11 +50,14 @@ const DAY_LABEL_ANCHOR_CLASS_NAMES: Readonly<Record<DayLabelAnchor, string>> = {
 };
 
 /*
- * A date a narrow chart leaves out (getNarrowChartDayLabelIndexes): shown
- * once the row of dates - its own container - is 20rem wide.
+ * A date a narrow chart leaves out (getNarrowChartDayLabelIndexes): hidden
+ * while the row of dates - its own container - is narrower than 20rem.
+ * Shown by default and hidden by the query, never a bare `hidden` a query
+ * shows again: a stylesheet's `.hidden{display:none !important}` would keep
+ * that one hidden on every chart (ForeignHiddenRuleGuard).
  */
 export const WIDE_CHART_DAY_LABEL_CLASS_NAME: string =
-  "hidden [@container(min-width:20rem)]:inline";
+  "[@container(max-width:19.99rem)]:hidden";
 
 /*
  * A day-by-day bar chart, each bar split by what it is made of - cases by
