@@ -150,7 +150,7 @@ Nas configurações **Permissions & events** da sua GitHub App, inscreva-se em:
 | **Pull request review** | uma menção no corpo de uma avaliação enviada |
 | **Pull request review comment** | uma menção em um comentário em linha no diff |
 
-Em **Repository permissions**, **Issues** precisa estar em **Read & write**: o GitHub envia os comentários de conversa de um pull request pela API de issues, então é isso que permite à app comentar também em pull requests.
+Em **Repository permissions**, **Issues** precisa estar em **Read & write**: o GitHub envia os comentários de conversa de um pull request pela API de issues, então é isso que permite à app comentar também em pull requests. **Checks** com **Read & write** permite que cada revisão de produção adicione um check ao commit mais recente do pull request; sem ela, uma revisão publica só o comentário.
 
 ## Prompt injection: o que está e o que não está protegido
 

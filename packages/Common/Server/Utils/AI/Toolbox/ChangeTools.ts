@@ -22,16 +22,17 @@ import {
 import ChangeEventService from "../../../Services/ChangeEventService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ServiceService from "../../../Services/ServiceService";
-import GitHubUtil, {
-  GitHubInstallationToken,
-} from "../../CodeRepository/GitHub/GitHub";
-import GitHubCommits, {
-  GitHubChangedFile,
-  GitHubCommitRange,
-  GitHubCommitSummary,
-  GitHubPullRequestSummary,
-  GitHubRepositoryName,
-} from "../../CodeRepository/GitHub/GitHubCommits";
+import GitHubCommits from "../../CodeRepository/GitHub/GitHubCommits";
+import CodeHostCommits, {
+  CodeHostCommitReader,
+  RepositoryAddress,
+} from "../../CodeRepository/CodeHost/CodeHostCommits";
+import {
+  CodeHostCommitFile,
+  CodeHostCommitRange,
+  CodeHostCommitSummary,
+  CodeHostPullRequestSummary,
+} from "../../CodeRepository/CodeHost/CodeHostTypes";
 import logger from "../../Logger";
 import { findReadableRepositories } from "./CodeTools";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
@@ -46,9 +47,10 @@ import {
 
 /*
  * get_change_details: what one recorded change was, and - for a deploy that
- * names a commit in a repository connected through the GitHub App - what it
- * shipped: the commits since the service's previous deploy (or the one
- * commit, and the pull requests it came from) and the files they touched.
+ * names a commit in a repository connected to OneUptime on GitHub, GitLab,
+ * Forgejo or Gitea - what it shipped: the commits since the service's
+ * previous deploy (or the one commit, and the pull or merge requests it came
+ * from) and the files they touched (CodeHostCommits reads each host).
  *
  * Every read is the caller's own: the change event and its service under
  * the caller's props, the repository through findReadableRepositories, so
@@ -70,25 +72,33 @@ const resolveReadPermissions: () => Array<Permission> =
 // How many of the service's earlier changes are searched for its previous commit.
 const PREVIOUS_CHANGES_SEARCHED: number = 20;
 
+// The repository a change's commits were read from.
+export interface ChangeRepository {
+  owner: string;
+  name: string;
+  // Its host: GitLab's merge requests are listed as such.
+  provider: CodeRepositoryType;
+}
+
 export interface ChangeCode {
-  repository: GitHubRepositoryName;
+  repository: ChangeRepository;
   // The commit of the service's previous deploy, when one was found.
   baseCommitSha?: string | undefined;
   /*
-   * The previous deploy's commit, when GitHub could not compare it with
+   * The previous deploy's commit, when the host could not compare it with
    * this one (it is not in the repository, or was force-pushed away).
    */
   uncomparedBaseCommitSha?: string | undefined;
-  range?: GitHubCommitRange | undefined;
-  commit?: GitHubCommitSummary | undefined;
-  files?: Array<GitHubChangedFile> | undefined;
-  pullRequests?: Array<GitHubPullRequestSummary> | undefined;
+  range?: CodeHostCommitRange | undefined;
+  commit?: CodeHostCommitSummary | undefined;
+  files?: Array<CodeHostCommitFile> | undefined;
+  pullRequests?: Array<CodeHostPullRequestSummary> | undefined;
 }
 
 export const GetChangeDetailsTool: ObservabilityTool = {
   name: "get_change_details",
   description:
-    "Get one recorded change by its changeId (from recent_changes, or the Recent changes section of an investigation's context): its time, kind, service, version before and after, commit, environment and where it was recorded from - and, when it names a commit in a repository connected through the GitHub App, what it shipped: the commits since the service's previous deploy (or that commit and the pull requests it came from), with their authors, and the files they touched. Use it to see whether a deploy that came right before a problem changed the code the problem points at.",
+    "Get one recorded change by its changeId (from recent_changes, or the Recent changes section of an investigation's context): its time, kind, service, version before and after, commit, environment and where it was recorded from - and, when it names a commit in a repository connected to OneUptime on GitHub, GitLab, Forgejo or Gitea, what it shipped: the commits since the service's previous deploy (or that commit and the pull or merge requests it came from), with their authors, and the files they touched. Use it to see whether a deploy that came right before a problem changed the code the problem points at.",
   inputSchema: {
     type: "object",
     properties: {
@@ -186,7 +196,7 @@ export const GetChangeDetailsTool: ObservabilityTool = {
         logger.debug(`get_change_details: commits not read: ${error}`);
         rows.push({
           kind: "note",
-          text: "The commits this change shipped could not be read from GitHub.",
+          text: "The commits this change shipped could not be read.",
         });
       }
     } else if (change.eventType === "deployment") {
@@ -296,6 +306,8 @@ export function describeChangeRow(data: {
 export function describeCodeRows(code: ChangeCode): Array<JSONObject> {
   const rows: Array<JSONObject> = [];
   const repository: string = `${code.repository.owner}/${code.repository.name}`;
+  const isGitLab: boolean =
+    code.repository.provider === CodeRepositoryType.GitLab;
 
   if (code.range) {
     const from: string = code.baseCommitSha
@@ -319,7 +331,7 @@ export function describeCodeRows(code: ChangeCode): Array<JSONObject> {
     });
 
     for (const commit of code.range.commits) {
-      rows.push(commitRow(commit));
+      rows.push(commitRow(commit, isGitLab));
     }
 
     for (const file of code.range.files) {
@@ -338,12 +350,13 @@ export function describeCodeRows(code: ChangeCode): Array<JSONObject> {
         ? `the previous deploy's commit (${shortCommitSha(code.uncomparedBaseCommitSha)}) could not be compared with this one, so only this commit is listed`
         : "no earlier deploy of this service names a commit, so only this commit is listed",
     });
-    rows.push(commitRow(code.commit));
+    rows.push(commitRow(code.commit, isGitLab));
   }
 
   for (const pullRequest of code.pullRequests || []) {
     rows.push({
-      kind: "pull_request",
+      // GitLab's merge request, by its own name.
+      kind: isGitLab ? "merge_request" : "pull_request",
       number: pullRequest.number,
       title: pullRequest.title,
       author: pullRequest.authorLogin || "",
@@ -359,7 +372,10 @@ export function describeCodeRows(code: ChangeCode): Array<JSONObject> {
   return rows;
 }
 
-function commitRow(commit: GitHubCommitSummary): JSONObject {
+function commitRow(
+  commit: CodeHostCommitSummary,
+  isGitLab: boolean = false,
+): JSONObject {
   return {
     kind: "commit",
     sha: shortCommitSha(commit.sha),
@@ -367,29 +383,39 @@ function commitRow(commit: GitHubCommitSummary): JSONObject {
     message: commit.message,
     ...(commit.pullRequestNumbers.length > 0
       ? {
-          pullRequests: commit.pullRequestNumbers
-            .map((number: number): string => {
-              return `#${number}`;
-            })
-            .join(", "),
+          // GitLab's merge requests are "!12", everyone else's "#12".
+          [isGitLab ? "mergeRequests" : "pullRequests"]:
+            commit.pullRequestNumbers
+              .map((number: number): string => {
+                return `${isGitLab ? "!" : "#"}${number}`;
+              })
+              .join(", "),
         }
       : {}),
   };
 }
 
-function fileRow(file: GitHubChangedFile): JSONObject {
+/*
+ * A file, with its lines counted where the host counts them: Forgejo and
+ * Gitea say which files changed and how, not by how many lines.
+ */
+function fileRow(file: CodeHostCommitFile): JSONObject {
   return {
     kind: "file",
     path: file.path,
     status: file.status,
-    changes: `+${file.additions} -${file.deletions}`,
+    ...(file.additions !== undefined && file.deletions !== undefined
+      ? { changes: `+${file.additions} -${file.deletions}` }
+      : {}),
   };
 }
 
 /*
  * The repository a change's commit lives in: the one its repository URL
- * names, else the one its service's name resolves to - always one the
- * caller may read, through an installation bound to the project.
+ * names - on GitHub for a github.com address, on any other host by its
+ * path - else the one its service's name resolves to. Always one the
+ * caller may read, through an installation bound to the project or a
+ * connection of its own.
  */
 async function findChangeRepository(data: {
   fields: ChangeEventFields;
@@ -404,19 +430,13 @@ async function findChangeRepository(data: {
     return null;
   }
 
-  const named: GitHubRepositoryName | null = GitHubCommits.parseRepositoryName(
-    data.fields.repositoryUrl,
-  );
+  const named: RepositoryAddress | null =
+    CodeHostCommits.parseRepositoryAddress(data.fields.repositoryUrl);
 
   if (named) {
     return (
       readable.find((repository: CodeRepository): boolean => {
-        return (
-          (repository.organizationName || "").toLowerCase() ===
-            named.owner.toLowerCase() &&
-          (repository.repositoryName || "").toLowerCase() ===
-            named.name.toLowerCase()
-        );
+        return CodeHostCommits.isRepositoryAt(repository, named);
       }) || null
     );
   }
@@ -471,15 +491,14 @@ export function isPreviousDeployOf(
   }
 
   if (current.repositoryUrl && earlier.repositoryUrl) {
-    const currentName: GitHubRepositoryName | null =
-      GitHubCommits.parseRepositoryName(current.repositoryUrl);
-    const earlierName: GitHubRepositoryName | null =
-      GitHubCommits.parseRepositoryName(earlier.repositoryUrl);
+    const currentAddress: RepositoryAddress | null =
+      CodeHostCommits.parseRepositoryAddress(current.repositoryUrl);
+    const earlierAddress: RepositoryAddress | null =
+      CodeHostCommits.parseRepositoryAddress(earlier.repositoryUrl);
 
     const isSameRepository: boolean =
-      currentName && earlierName
-        ? currentName.owner.toLowerCase() === earlierName.owner.toLowerCase() &&
-          currentName.name.toLowerCase() === earlierName.name.toLowerCase()
+      currentAddress && earlierAddress
+        ? CodeHostCommits.isSameRepository(currentAddress, earlierAddress)
         : current.repositoryUrl.trim().toLowerCase() ===
           earlier.repositoryUrl.trim().toLowerCase();
 
@@ -547,51 +566,51 @@ async function readChangeCode(data: {
     ctx: data.ctx,
   });
 
-  /*
-   * A deploy's commits are read with GitHub's compare API: a repository on
-   * another host says so, rather than no repository matching.
-   */
-  if (
-    repository &&
-    CodeHost.readType(repository.repositoryHostedAt) !==
-      CodeRepositoryType.GitHub
-  ) {
-    return `The change's repository, ${repository.organizationName}/${repository.repositoryName}, is on ${CodeHost.getFacts(repository.repositoryHostedAt).name}. OneUptime lists the commits a deploy shipped for GitHub repositories only, so they are not listed.`;
-  }
-
   if (
     !repository ||
-    !repository.gitHubAppInstallationId ||
     !repository.organizationName ||
     !repository.repositoryName
   ) {
-    return "No repository connected through the GitHub App that you may read matches this change, so the commits it shipped are not listed.";
+    return "No repository connected to OneUptime that you may read matches this change, so the commits it shipped are not listed.";
   }
 
-  const token: GitHubInstallationToken =
-    await GitHubUtil.getInstallationAccessToken(
-      repository.gitHubAppInstallationId,
-      {
-        permissions: {
-          contents: "read",
-          pull_requests: "read",
-          metadata: "read",
-        },
-      },
-    );
+  const type: CodeRepositoryType = CodeHost.readType(
+    repository.repositoryHostedAt,
+  );
+  const hostName: string = CodeHost.getFacts(type).name;
+  const repositoryName: string = `${repository.organizationName}/${repository.repositoryName}`;
 
-  const target: {
-    token: string;
-    owner: string;
-    repository: string;
-  } = {
-    token: token.token,
-    owner: repository.organizationName,
-    repository: repository.repositoryName,
-  };
-  const name: GitHubRepositoryName = {
+  // A Git server has no API OneUptime reads commits through.
+  if (type === CodeRepositoryType.Git) {
+    return `The change's repository, ${repositoryName}, is on a Git server, which has no API OneUptime reads commits through, so the commits it shipped are not listed.`;
+  }
+
+  let reader: CodeHostCommitReader | null = null;
+
+  if (type === CodeRepositoryType.GitHub) {
+    // findReadableRepositories proved its installation is the project's.
+    reader = repository.gitHubAppInstallationId
+      ? CodeHostCommits.gitHub({
+          installationId: repository.gitHubAppInstallationId,
+          organizationName: repository.organizationName,
+          repositoryName: repository.repositoryName,
+        })
+      : null;
+  } else {
+    reader = await CodeHostCommits.openForRepository({
+      projectId: data.ctx.projectId,
+      repositoryId: repository.id!,
+    });
+  }
+
+  if (!reader) {
+    return `The change's repository, ${repositoryName}, is not reached through its ${hostName} connection now, so the commits it shipped are not listed.`;
+  }
+
+  const name: ChangeRepository = {
     owner: repository.organizationName,
     name: repository.repositoryName,
+    provider: type,
   };
 
   const base: string | undefined = data.serviceId
@@ -610,7 +629,7 @@ async function readChangeCode(data: {
       return {
         repository: name,
         baseCommitSha: base,
-        range: await GitHubCommits.compare({ ...target, base, head }),
+        range: await reader.compare({ base, head }),
       };
     } catch (error) {
       // The previous commit is not in this repository, or was force-pushed away.
@@ -621,19 +640,25 @@ async function readChangeCode(data: {
     }
   }
 
-  const [commit, pullRequests]: [
-    { commit: GitHubCommitSummary; files: Array<GitHubChangedFile> },
-    Array<GitHubPullRequestSummary>,
-  ] = await Promise.all([
-    GitHubCommits.getCommit({ ...target, sha: head }),
-    GitHubCommits.listPullRequestsForCommit({ ...target, sha: head }),
-  ]);
+  try {
+    const [commit, pullRequests]: [
+      { commit: CodeHostCommitSummary; files: Array<CodeHostCommitFile> },
+      Array<CodeHostPullRequestSummary>,
+    ] = await Promise.all([
+      reader.getCommit(head),
+      reader.listPullRequestsForCommit(head),
+    ]);
 
-  return {
-    repository: name,
-    ...(uncomparedBase ? { uncomparedBaseCommitSha: uncomparedBase } : {}),
-    commit: commit.commit,
-    files: commit.files,
-    pullRequests,
-  };
+    return {
+      repository: name,
+      ...(uncomparedBase ? { uncomparedBaseCommitSha: uncomparedBase } : {}),
+      commit: commit.commit,
+      files: commit.files,
+      pullRequests,
+    };
+  } catch (error) {
+    logger.debug(`get_change_details: commits not read: ${error}`);
+
+    return `The commits this change shipped could not be read from ${hostName}.`;
+  }
 }

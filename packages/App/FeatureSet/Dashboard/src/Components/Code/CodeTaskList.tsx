@@ -4,6 +4,7 @@ import {
   PRODUCTION_REVIEW_COPY,
   getProductionReviewGlance,
   getReviewedPullRequestNumber,
+  inReviewHostWords,
 } from "./CodeProductionReviewCopy";
 import CodeDiffStat from "./CodeDiffStat";
 import { GitPullRequestMark } from "./CodeMarks";
@@ -315,7 +316,10 @@ export const CodeTaskRow: FunctionComponent<{
     task.title ||
     (isProductionReview && task.origin.label
       ? translator.translateTemplate(
-          PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+          inReviewHostWords(
+            PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+            props.repositoryHost?.provider,
+          ),
           { label: task.origin.label },
         )
       : translator.translateTemplate(getRecipeLabel(task.recipe)));
@@ -368,9 +372,12 @@ export const CodeTaskRow: FunctionComponent<{
         className="inline-flex items-center gap-1"
       >
         <GitPullRequestMark className="h-3 w-3 flex-shrink-0" />
-        {translator.translateTemplate("PR #{{number}}", {
-          number: reviewedNumber.toString(),
-        })}
+        {translator.translateTemplate(
+          getPullRequestCopy(props.repositoryHost?.provider).short,
+          {
+            number: reviewedNumber.toString(),
+          },
+        )}
       </span>,
     );
   }

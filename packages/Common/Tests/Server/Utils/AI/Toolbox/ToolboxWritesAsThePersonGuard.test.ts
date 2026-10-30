@@ -18,11 +18,12 @@ import { describe, expect, test } from "@jest/globals";
  * This guard reads the toolbox's source through the TypeScript AST:
  *
  *   A. A call that may write - a method of a service (Server/Services), of
- *      WorkspaceMemberActions, of the GitHub client or of the investigation
- *      queue, other than a read (find*, count*, get*, ...) - passes
- *      `props: ctx.props`, or is in ALLOWED with the reason OneUptime makes
- *      it itself, after the person's own checks. ALLOWED only shrinks: an
- *      entry no call matches fails.
+ *      WorkspaceMemberActions, of the GitHub client, of the investigation
+ *      queue, or of a repository's host writer (CodeHostWriter: GitHub,
+ *      GitLab, Forgejo or Gitea), other than a read (find*, count*, get*,
+ *      ...) - passes `props: ctx.props`, or is in ALLOWED with the reason
+ *      OneUptime makes it itself, after the person's own checks. ALLOWED
+ *      only shrinks: an entry no call matches fails.
  *   B. Those modules are called through their default export only - never
  *      through a named import, an alias or a method passed around - so the
  *      scan sees every call.
@@ -51,7 +52,16 @@ const WRITER_MODULES: Array<RegExp> = [
   /\/CodeRepository\/GitHub\/GitHub$/,
   // The queue AI investigations run from.
   /\/SRE\/InvestigationQueue$/,
+  // A repository's host - GitHub, GitLab, Forgejo or Gitea - by its writer.
+  /\/CodeRepository\/CodeHost\/CodeHostWriter$/,
 ];
+
+/*
+ * The writers those modules hand out, by their type: a variable, a
+ * parameter or a field declared as one is a writer, and a call of its
+ * methods is recorded as "CodeHostWriter#commitFiles".
+ */
+const WRITER_INSTANCE_TYPES: Array<string> = ["CodeHostWriter"];
 
 // A call that only reads, by its method's name.
 const READ_METHOD: RegExp = /^(?:find|count|get|aggregate|fetch)(?:[A-Z]|$)/;
@@ -66,6 +76,10 @@ const OTHER_READS: Record<string, string> = {
     "Arithmetic on a date: the hour of the week a baseline is kept for; reads and writes nothing.",
   "MetricBaselineServiceClass.sigmaForSensitivity":
     "Arithmetic: how many standard deviations a sensitivity allows; reads and writes nothing.",
+  "CodeHostWriters.gitHub":
+    "Hands out the writer of a GitHub repository, through its GitHub App installation; writes nothing.",
+  "CodeHostWriters.openForRepository":
+    "Hands out the writer of a GitLab, Forgejo or Gitea repository, through its connection; writes nothing.",
 };
 
 // What every write passes: the props of the person who asked.
@@ -77,8 +91,8 @@ interface AllowedWrite {
   reason: string;
 }
 
-const GITHUB_WRITE: string =
-  "GitHub is written through the project's GitHub App installation, once the person's update of the repository was checked with their props (CodeRepositoryService.findOneUpdatableById) - never on the default or a protected branch.";
+const HOST_WRITE: string =
+  "The repository's host is written through the project's GitHub App installation or the repository's connection to GitLab, Forgejo or Gitea, once the person's update of the repository was checked with their props (CodeRepositoryService.findOneUpdatableById) - never on the default or a protected branch.";
 
 /*
  * Writes OneUptime makes itself, once the person's own checks passed, by
@@ -99,18 +113,18 @@ const ALLOWED: Array<AllowedWrite> = [
   },
   {
     file: "CodeWriteTools.ts",
-    call: "GitHubUtil.createBranch",
-    reason: GITHUB_WRITE,
+    call: "CodeHostWriter#createBranch",
+    reason: HOST_WRITE,
   },
   {
     file: "CodeWriteTools.ts",
-    call: "GitHubUtil.commitFilesToBranch",
-    reason: GITHUB_WRITE,
+    call: "CodeHostWriter#commitFiles",
+    reason: HOST_WRITE,
   },
   {
     file: "CodeWriteTools.ts",
-    call: "GitHubUtil.createPullRequestWithToken",
-    reason: GITHUB_WRITE,
+    call: "CodeHostWriter#openPullRequest",
+    reason: HOST_WRITE,
   },
   {
     file: "CodeWriteTools.ts",
@@ -276,6 +290,28 @@ function scanSource(file: string, sourceText: string): FileScan {
   const writers: Set<string> = new Set<string>();
   const namedFromWriters: Set<string> = new Set<string>();
   const unseenCalls: Array<string> = [];
+  // The names declared as a writer instance, and the type each is.
+  const writerInstances: Map<string, string> = new Map<string, string>();
+
+  const collectWriterInstances: (node: ts.Node) => void = (
+    node: ts.Node,
+  ): void => {
+    if (
+      (ts.isVariableDeclaration(node) ||
+        ts.isParameter(node) ||
+        ts.isPropertySignature(node) ||
+        ts.isPropertyDeclaration(node)) &&
+      node.type &&
+      WRITER_INSTANCE_TYPES.includes(node.type.getText()) &&
+      (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name))
+    ) {
+      writerInstances.set(node.name.text, node.type.getText());
+    }
+
+    ts.forEachChild(node, collectWriterInstances);
+  };
+
+  collectWriterInstances(sourceFile);
 
   for (const statement of sourceFile.statements) {
     if (
@@ -361,7 +397,46 @@ function scanSource(file: string, sourceText: string): FileScan {
 
   const writes: Array<WriteCall> = [];
 
+  // A method of a writer instance: `writer.commitFiles(...)`, `data.writer.getBranch(...)`.
+  const writerInstanceCall: (
+    node: ts.Node,
+  ) => { type: string; method: string } | null = (
+    node: ts.Node,
+  ): { type: string; method: string } | null => {
+    if (
+      !ts.isCallExpression(node) ||
+      !ts.isPropertyAccessExpression(node.expression)
+    ) {
+      return null;
+    }
+
+    const receiver: ts.Expression = node.expression.expression;
+    const name: string | undefined = ts.isIdentifier(receiver)
+      ? receiver.text
+      : ts.isPropertyAccessExpression(receiver)
+        ? receiver.name.text
+        : undefined;
+    const type: string | undefined = name
+      ? writerInstances.get(name)
+      : undefined;
+
+    return type ? { type, method: node.expression.name.text } : null;
+  };
+
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    const instanceCall: { type: string; method: string } | null =
+      writerInstanceCall(node);
+
+    if (instanceCall && !isReadMethod(instanceCall.type, instanceCall.method)) {
+      writes.push({
+        file: file,
+        line: lineOf(sourceFile, node),
+        call: `${instanceCall.type}#${instanceCall.method}`,
+        passesPersonProps: passesPersonProps(node as ts.CallExpression),
+        declaredIn: declaredIn(node),
+      });
+    }
+
     if (ts.isIdentifier(node) && !isInsideImport(node)) {
       const parent: ts.Node = node.parent;
       const isReceiver: boolean =
@@ -730,6 +805,39 @@ export const SneakyTool: ObservabilityTool = {
     expect(result.unseenCalls[2]).toContain(
       "Snippet.ts:8: calls IncidentServiceClass",
     );
+  });
+
+  test("D: finds a write through a repository's host writer - its own variable's or a helper's parameter's - and lets its reads through", () => {
+    const result: GuardResult = checkSnippet(
+      'import CodeHostWriters, { CodeHostWriter } from "../../CodeRepository/CodeHost/CodeHostWriter";\n' +
+        `async function pushTo(data: { writer: CodeHostWriter; branchName: string }): Promise<void> {
+  await data.writer.getBranch(data.branchName);
+  await data.writer.createBranch({ branchName: data.branchName, fromBranchName: "main" });
+}
+
+export const PeekTool: ObservabilityTool = {
+  name: "peek",
+  isMutation: false,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    const writer: CodeHostWriter = CodeHostWriters.gitHub({ installationId: "1", organizationName: "acme", repositoryName: "app" });
+    await writer.getDefaultBranchName();
+    await writer.commitFiles({ branchName: "x", files: [], commitMessage: "m" });
+    await pushTo({ writer, branchName: "x" });
+  },
+};
+`,
+    );
+
+    expect(result.notAsThePerson).toEqual([
+      "Snippet.ts:4: CodeHostWriter#createBranch - pass props: ctx.props, the person's own props, so the dashboard's checks hold the change",
+      "Snippet.ts:13: CodeHostWriter#commitFiles - pass props: ctx.props, the person's own props, so the dashboard's checks hold the change",
+    ]);
+    expect(result.notAMutationTool).toEqual([
+      "Snippet.ts:4: CodeHostWriter#createBranch - peek changes the project, so it must be marked isMutation: true",
+      "Snippet.ts:13: CodeHostWriter#commitFiles - peek changes the project, so it must be marked isMutation: true",
+    ]);
+    expect(result.unseenCalls).toEqual([]);
+    expect(result.writingTools).toEqual(["peek"]);
   });
 
   test("D: lets a read, and a write as the person in a mutation tool, through", () => {
