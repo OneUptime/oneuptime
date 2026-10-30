@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -30,9 +31,10 @@ type Agent struct {
 }
 
 // NewAgent verifies the secret key and schedules the metrics report. It exits
-// the process when the configuration is incomplete or the key is not
-// accepted, and returns nil when ctx is cancelled - the agent stopping - while
-// the key is being verified.
+// the process when the configuration is incomplete or OneUptime refuses the
+// key, and returns nil when ctx is cancelled - the agent stopping - while the
+// key is being verified. A key that cannot be verified yet - OneUptime or the
+// network is down, as at boot - is asked about again until it can be.
 func NewAgent(ctx context.Context, secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 
 	ag := &Agent{
@@ -59,7 +61,7 @@ func NewAgent(ctx context.Context, secretKey string, oneuptimeUrl string, proxyU
 			slog.Info("The agent stopped before its secret key was verified")
 			return nil
 		}
-		slog.Error("Secret key is invalid. If you are sure that the secret key is correct, please check your network connection, OneUptime URL (" + ag.OneUptimeURL + "), Proxy URL (" + ag.ProxyURL + ") and try again.")
+		slog.Error("Secret key is invalid. If you are sure that the secret key is correct, please check the OneUptime URL (" + ag.OneUptimeURL + ") and Proxy URL (" + ag.ProxyURL + ") and try again.")
 		os.Exit(1)
 		return ag
 	}
@@ -171,7 +173,7 @@ func collectMetricsJob(ctx context.Context, secretKey string, oneuptimeUrl strin
 
 	servProcesses := utils.GetServerProcesses()
 	if servProcesses == nil {
-		slog.Warn("Failed to get server processes")
+		slog.Warn("Failed to get server processes; the report has no process list")
 	}
 
 	metricsReport := &model.ServerMonitorReport{
@@ -241,13 +243,75 @@ func collectMetricsJob(ctx context.Context, secretKey string, oneuptimeUrl strin
 	}
 }
 
-// checkIfSecretKeyIsValid asks OneUptime whether it accepts the secret key.
-// The request is abandoned when ctx is cancelled, and the key is then not
-// called valid.
-func checkIfSecretKeyIsValid(ctx context.Context, secretKey string, oneuptimeUrl string, proxyUrl string) bool {
+// keyVerification is what one attempt to verify the secret key found out.
+type keyVerification int
+
+const (
+	// OneUptime accepted the key.
+	keyAccepted keyVerification = iota
+	// OneUptime refused the key, or the agent's settings cannot reach it - a
+	// OneUptime URL that cannot be read, or one that redirects to another
+	// server. Asking again gets the same answer.
+	keyRefused
+	// The key could not be verified: OneUptime or the network did not answer,
+	// or OneUptime answered with an error of its own. Asking again later may
+	// get an answer.
+	keyNotVerified
+)
+
+// The wait before asking OneUptime about the key again: the first, doubled
+// after every answer that is not one, up to the longest. Variables so tests
+// can wait less.
+var (
+	keyVerificationFirstRetry   = 5 * time.Second
+	keyVerificationLongestRetry = 5 * time.Minute
+)
+
+// nextKeyVerificationRetry returns how long to wait before asking about the key
+// again, after waiting previous (0 before the first wait).
+func nextKeyVerificationRetry(previous time.Duration) time.Duration {
+	if previous <= 0 {
+		return keyVerificationFirstRetry
+	}
+	if next := previous * 2; next < keyVerificationLongestRetry {
+		return next
+	}
+	return keyVerificationLongestRetry
+}
+
+// keyVerificationOfStatus says what OneUptime's answer to the verification
+// says about the key. OneUptime answers 200 for a key it accepts, and 400 for
+// one it does not. A server error, or an answer that the server is too busy
+// to give one, says nothing about the key.
+func keyVerificationOfStatus(status int) keyVerification {
+	switch {
+	case status == http.StatusOK:
+		return keyAccepted
+	case status >= 500, status == http.StatusRequestTimeout, status == http.StatusTooManyRequests:
+		return keyNotVerified
+	default:
+		return keyRefused
+	}
+}
+
+// keyVerificationOfError says what a verification that got no answer says
+// about the key: nothing - unless a redirect the agent does not follow stopped
+// it, as the same redirect would stop it again.
+func keyVerificationOfError(err error) keyVerification {
+	var refused *redirectRefused
+	if errors.As(err, &refused) {
+		return keyRefused
+	}
+	return keyNotVerified
+}
+
+// verifySecretKey asks OneUptime once whether it accepts the secret key. The
+// request is abandoned when ctx is cancelled, and the key is then not
+// verified.
+func verifySecretKey(ctx context.Context, secretKey string, oneuptimeUrl string, proxyUrl string) keyVerification {
 	if secretKey == "" {
 		slog.Error("Secret key is empty")
-		return false
+		return keyRefused
 	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, oneuptimeUrl+"/server-monitor/secret-key/verify/"+secretKey, nil)
@@ -255,25 +319,59 @@ func checkIfSecretKeyIsValid(ctx context.Context, secretKey string, oneuptimeUrl
 		// A URL that cannot be parsed is quoted whole in the error, the secret
 		// key at its end.
 		slog.Error(utils.RedactSecret(err.Error(), secretKey))
-		return false
+		return keyRefused
 	}
 
 	resp, err := newHTTPClient(proxyUrl).Do(request)
 	if err != nil {
 		if ctx.Err() != nil {
 			// The agent is stopping, which NewAgent logs.
-			return false
+			return keyNotVerified
 		}
 		// Same *url.Error leak as the ingest request above: the verify URL also
 		// ends in the secret.
 		slog.Error(utils.RedactSecret(err.Error(), secretKey))
-		return false
+		return keyVerificationOfError(err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	verification := keyVerificationOfStatus(resp.StatusCode)
+	if verification != keyAccepted {
 		slog.Error("Secret key verification failed with status code " + strconv.Itoa(resp.StatusCode))
-		return false
 	}
-	return true
+	return verification
+}
+
+// checkIfSecretKeyIsValid asks OneUptime whether it accepts the secret key
+// until it gets an answer: true when OneUptime accepts the key, false when it
+// refuses it, or when ctx is cancelled - the agent stopping - first. An agent
+// that starts before the network, or while OneUptime is restarting, used to
+// exit on the first failed request, and a Windows service then stayed
+// stopped.
+func checkIfSecretKeyIsValid(ctx context.Context, secretKey string, oneuptimeUrl string, proxyUrl string) bool {
+	var wait time.Duration
+
+	for {
+		switch verifySecretKey(ctx, secretKey, oneuptimeUrl, proxyUrl) {
+		case keyAccepted:
+			return true
+		case keyRefused:
+			return false
+		}
+
+		if ctx.Err() != nil {
+			return false
+		}
+
+		wait = nextKeyVerificationRetry(wait)
+		slog.Warn("The secret key could not be verified with OneUptime yet; asking again in " + wait.String())
+
+		timer := time.NewTimer(wait)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return false
+		case <-timer.C:
+		}
+	}
 }

@@ -99,7 +99,7 @@ Without winget, download the agent yourself:
 To deploy the agent with Intune, Configuration Manager or Group Policy, use `oneuptime-infrastructure-agent-amd64.msi` (or `oneuptime-infrastructure-agent-arm64.msi`) from the same release. It installs the agent in `C:\Program Files\OneUptimeInfrastructureAgent`, and a newer MSI upgrades it in place and starts it again. An MSI from an earlier release cannot be upgraded: uninstall it once first.
 :::
 
-Each way installs the newest release for your operating system and processor (x86-64 or ARM64). The apt and yum repositories hold the `.deb` and `.rpm` packages attached to each GitHub release, signed with the key at `https://packages.oneuptime.com/gpg.key`, and the packages put the binary in `/usr/bin`. The install script puts the `oneuptime-infrastructure-agent` binary in `$HOME/bin`. On a self-hosted install, the script is served from your own OneUptime URL.
+Each way installs the newest release for your operating system and processor (x86-64 or ARM64). The apt and yum repositories hold the `.deb` and `.rpm` packages attached to each GitHub release, signed with the key at `https://packages.oneuptime.com/gpg.key`, and the packages put the binary in `/usr/bin`. Run with `sudo`, the install script puts the `oneuptime-infrastructure-agent` binary in `/usr/local/bin` (in `$HOME/bin` without `sudo`), and it downloads with `curl` or `wget`. On a self-hosted install, the script is served from your own OneUptime URL.
 
 ### Connect it to the monitor
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-When it starts, the agent checks the secret key with OneUptime and sends its first report straight away.
+When it starts, the agent checks the secret key with OneUptime and sends its first report straight away. While it cannot reach OneUptime, it keeps trying: again after 5 seconds, then twice as long each time, up to every 5 minutes.
 
 ### Check that it reports
 
@@ -165,7 +165,7 @@ Run `sudo oneuptime-infrastructure-agent status` (no `sudo` on Windows): it prin
 | `uninstall` | Removes the service and deletes the agent's configuration file. |
 | `help` | Lists the commands. |
 
-Run them with `sudo` on Linux and macOS, and from an Administrator **Command Prompt** on Windows. To change the secret key, URL or proxy of a configured agent, run `stop` and `uninstall`, then `configure` and `start` again.
+Run them with `sudo` on Linux and macOS, and from an Administrator **Command Prompt** on Windows. To change the secret key, URL or proxy of a configured agent, run `stop` and `uninstall`, then `configure` and `start` again. Each command prints what it did, or why it failed, and writes the same to the agent's log. If the service stops on a failure, the service manager starts it again, after two minutes on Linux and Windows. A Windows service set up by an older agent's `configure` restarts only once you run `uninstall` and `configure` again.
 
 ### Files
 
@@ -199,15 +199,15 @@ Every report carries the server's hostname and:
 
 | Area | What is reported |
 | --- | --- |
-| CPU | Usage %, core count, usage per core, and time spent in user, system, idle, I/O wait, steal, nice, IRQ and soft IRQ |
+| CPU | Usage %, core count, usage per core, and time spent in user, system, idle, I/O wait, steal, nice, IRQ and soft IRQ since the previous report |
 | Memory | Total, used, free and available memory, buffers and cache, usage %, and swap total, used, free and usage % |
-| Disks | For each mounted disk: mount path, device, file system, total, used and free space, usage %, bytes and operations read and written, and I/O time |
+| Disks | For each mounted disk, except read-only images (snaps, ISOs) and `/dev`: mount path, device, file system, total, used and free space, usage % as `df` counts it, bytes and operations read and written, and I/O time |
 | Load | 1-, 5- and 15-minute load averages |
 | Network | For each interface: bytes and packets sent and received, errors and drops in and out; plus established and listening connections |
 | Host | Operating system, platform and version, kernel version and architecture, uptime, boot time, virtualization and process count |
-| Processes | Each running process: name, PID, command, CPU %, memory, status, threads, user and start time |
+| Processes | Each running process: name, PID, command, CPU %, memory, status, threads, user and start time; a process whose command line cannot be read, such as a protected Windows process, without its command |
 
-Values the operating system does not provide are left out. The monitor's **Metrics** tab charts availability, CPU, memory, disk usage and I/O, load averages, swap, network traffic and errors, connections, uptime and the process count.
+Values the operating system does not provide are left out, and a criteria on a value the report does not have is not met: a missing value is not 0. The monitor's **Metrics** tab charts availability, CPU, memory, disk usage and I/O, load averages, swap, network traffic and errors, connections, uptime and the process count.
 
 ## Monitoring criteria
 
@@ -228,7 +228,7 @@ Criteria decide when the monitor is online, degraded or offline, and when it ope
 | Server Process Command | Whether a process with exactly this command line is running (case-insensitive) | Is Executing, Is Not Executing |
 | Server Process PID | Whether a process with this PID is running | Is Executing, Is Not Executing |
 
-**Disk Path** takes a mount point or device, such as `/`, `/mnt/data`, `C:\` or `/dev/sda1`; it is `/` when left empty. Enter `*` to check every disk the agent reports: each disk that crosses the threshold gets an alert of its own, so a second disk filling up is not hidden behind the first one's open alert.
+**Disk Path** takes a mount point or device, such as `/`, `/mnt/data`, `C:\` or `/dev/sda1`; it is `/` when left empty. Enter `*` to check every disk the agent reports: each disk that crosses the threshold gets an alert of its own, so a second disk filling up is not hidden behind the first one's open alert. Case and a trailing `/` or `\` do not matter, and a device stands for the disk mounted from it. A path that names no disk the agent reports does not match. When the agent cannot read the server's processes, its report has no process list, and no process filter matches, whether it checks that a process is executing or that it is not.
 
 ### Evaluate over a period of time
 
@@ -262,16 +262,16 @@ Criteria decide when the monitor is online, degraded or offline, and when it ope
 
 :::details The agent is not reporting
 - Check that the service runs: `sudo oneuptime-infrastructure-agent status`.
-- Read its log: `sudo oneuptime-infrastructure-agent logs -n 50`. A line `Metrics successfully pushed to OneUptime server` means reports are getting through.
-- The agent checks the secret key when it starts and exits if OneUptime rejects it, logging `Secret key is invalid`. Compare the key with the one on the monitor's **Settings** page, under **Reset Server Monitor Secret Key**.
+- Read its log: `sudo oneuptime-infrastructure-agent logs -n 50`. A line `Metrics successfully pushed to OneUptime server` means OneUptime received a report, not that it accepted it: OneUptime answers before it checks the secret key. The monitor's **Metrics** tab charting the server shows that it accepted them.
+- The agent checks the secret key when it starts and exits if OneUptime rejects it, logging `Secret key is invalid`. Compare the key with the one on the monitor's **Settings** page, under **Reset Server Monitor Secret Key**. While OneUptime cannot be reached, the agent logs `The secret key could not be verified with OneUptime yet` and tries again.
 - Make sure the server can reach your OneUptime URL over HTTPS, and that no firewall blocks outbound connections.
 :::
 
 :::details `sudo` says the command is not found
-The packages put the agent on the system path, so this only happens with the install script. The install script puts the binary in `$HOME/bin` of the user it ran as, and prints the directory it used. Run the agent by its full path, for example `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. To install it into a directory on the system path instead, pass `-b` to the script:
+The packages put the agent in `/usr/bin`, which is on every path. Run with `sudo`, the install script puts it in `/usr/local/bin`, which some systems, such as RHEL, leave off sudo's path: there, the script prints the commands with the agent's full path, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`. Before, the script put the agent in `$HOME/bin`, which is `/root/bin` under `sudo`: run an agent installed then by that full path, or install it again. To install the agent in a directory on the system path instead, pass `-b` to the script:
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 
