@@ -22,7 +22,9 @@ export interface HostMetricDefinition {
    * `state` (CPU by user/system/idle..., memory by used/free/cached...), so
    * a query over every state reads 1/N of the total and never crosses a
    * useful threshold: memory and filesystem usage count the `used` state,
-   * CPU utilization gives one series per state, filesystems one per mount.
+   * CPU utilization the `user` state, filesystems give one series per mount
+   * and processes one per status. CPU is never one series per state: idle,
+   * at 0.95 on a quiet host, would pass any threshold set for busy time.
    */
   attributes?: Record<string, string> | undefined;
   groupByAttributeKeys?: Array<string> | undefined;
@@ -42,12 +44,12 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
     id: "system-cpu-utilization",
     friendlyName: "CPU Utilization",
     description:
-      "Share of CPU time in each state (user, system, iowait, idle...), as a ratio (0 to 1), one series per state: 0.8 fires when any one state passes 80%.",
+      "Share of CPU time spent running applications (the user state), as a ratio (0 to 1). The High CPU Utilization template adds system time.",
     metricName: "system.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "ratio",
-    groupByAttributeKeys: ["state"],
+    attributes: { state: "user" },
   },
   {
     id: "process-cpu-utilization",
@@ -155,11 +157,13 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-processes-count",
     friendlyName: "Process Count",
-    description: "Number of processes running on the host.",
+    description:
+      "Number of processes on the host, one series per status (running, sleeping, blocked...).",
     metricName: "system.processes.count",
     category: "Processes",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "count",
+    groupByAttributeKeys: ["status"],
   },
 ];
 
