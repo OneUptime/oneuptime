@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "작업 중…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "워크로드 종류",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "작업 보기",
   "What OneUptime AI found, and what it is doing about it.": "OneUptime AI가 찾은 내용과 이에 대해 하고 있는 일입니다.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "승인하면 표시된 내용이 그대로 사용자 이름으로 실행됩니다."
+  "Approving runs exactly what is shown, under your name.": "승인하면 표시된 내용이 그대로 사용자 이름으로 실행됩니다.",
+  "Has Data": "데이터 있음",
+  "Has No Data": "데이터 없음"
 }

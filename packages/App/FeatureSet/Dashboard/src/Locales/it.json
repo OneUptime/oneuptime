@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "In corso…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "Tipo di carico di lavoro",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "Vedi l'attività",
   "What OneUptime AI found, and what it is doing about it.": "Cosa ha trovato OneUptime AI e cosa sta facendo per rimediare.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Approvare esegue esattamente ciò che è mostrato, a tuo nome."
+  "Approving runs exactly what is shown, under your name.": "Approvare esegue esattamente ciò che è mostrato, a tuo nome.",
+  "Has Data": "Dati presenti",
+  "Has No Data": "Nessun dato"
 }

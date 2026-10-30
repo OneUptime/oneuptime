@@ -4,6 +4,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import {
   CheckOn,
   CriteriaFilter,
+  FilterType,
   NoDataPolicy,
 } from "../../../Types/Monitor/CriteriaFilter";
 import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
@@ -82,6 +83,13 @@ export function monitorStepOptsIntoNoDataDetection(
     for (const filter of filters) {
       if (filter.checkOn !== CheckOn.MetricValue) {
         continue;
+      }
+      /*
+       * Has No Data (an infrastructure monitor's out-of-the-box offline
+       * criteria) asks about silence as plainly as a Trigger policy does.
+       */
+      if (filter.filterType === FilterType.IsEmpty) {
+        return true;
       }
       const policy: NoDataPolicy | undefined =
         filter.metricMonitorOptions?.onNoDataPolicy;

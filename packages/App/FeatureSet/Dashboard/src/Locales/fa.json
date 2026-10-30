@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "در حال کار…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "نوع بار کاری",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "مشاهده وظیفه",
   "What OneUptime AI found, and what it is doing about it.": "آنچه OneUptime AI یافت و کاری که درباره آن انجام می‌دهد.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "تأیید، دقیقاً همان چیزی را که نشان داده شده، به نام شما اجرا می‌کند."
+  "Approving runs exactly what is shown, under your name.": "تأیید، دقیقاً همان چیزی را که نشان داده شده، به نام شما اجرا می‌کند.",
+  "Has Data": "دارای داده",
+  "Has No Data": "بدون داده"
 }

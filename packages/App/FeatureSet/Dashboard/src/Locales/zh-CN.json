@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "处理中…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "工作负载类型",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "查看任务",
   "What OneUptime AI found, and what it is doing about it.": "OneUptime AI 发现了什么，以及正在采取什么行动。",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "批准后将以您的名义完全按所示内容执行。"
+  "Approving runs exactly what is shown, under your name.": "批准后将以您的名义完全按所示内容执行。",
+  "Has Data": "有数据",
+  "Has No Data": "无数据"
 }

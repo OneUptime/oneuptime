@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "Работает…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "Тип рабочей нагрузки",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "Открыть задачу",
   "What OneUptime AI found, and what it is doing about it.": "Что нашёл OneUptime AI и что он делает для исправления.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Подтверждение запускает ровно то, что показано, от вашего имени."
+  "Approving runs exactly what is shown, under your name.": "Подтверждение запускает ровно то, что показано, от вашего имени.",
+  "Has Data": "Есть данные",
+  "Has No Data": "Нет данных"
 }

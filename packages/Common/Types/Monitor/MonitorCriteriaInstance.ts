@@ -347,15 +347,59 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     /*
-     * The metric-backed types: MonitorCriteriaEvaluator hands their criteria
-     * to MetricMonitorCriteria, which reads exactly one thing -
-     * CheckOn.MetricValue - so they share one pair of defaults: a metric
-     * that is reporting a value means online, a metric that has gone to zero
-     * means offline. A type missing from the list would fall through to
-     * `new MonitorCriteriaInstance()` and ship an unnamed criteria whose
-     * "Is Online" filter no evaluator on this path reads - a rule that can
-     * never fire and cannot be saved, since getValidationError requires a
-     * name.
+     * An infrastructure monitor (Host, Kubernetes, Docker, Podman, Docker
+     * Swarm, Proxmox, VMware, Ceph, Storage Array, IoT Device) is online
+     * while its agent sends data: Has Data on the first query, whatever the
+     * values. These types used to share the Metrics monitor's pair below,
+     * "any value above 0 is online, any value of 0 is offline" - and a
+     * metric that is healthy at zero (container restarts, failed job pods,
+     * an idle load average) declared "is offline" on a healthy resource,
+     * while a resource that stopped sending never went offline at all.
+     */
+    if (MonitorTypeHelper.isInfrastructureMonitor(arg.monitorType)) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.IsNotEmpty,
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
+              metricAlias:
+                arg.metricOptions &&
+                arg.metricOptions.metricAliases &&
+                arg.metricOptions.metricAliases.length > 0
+                  ? arg.metricOptions.metricAliases[0]
+                  : undefined,
+            },
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: `Check if ${arg.monitorName} is online`,
+        description: `This criteria checks if the ${arg.monitorName} is sending data.`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    /*
+     * The other metric-backed type, Metrics: MonitorCriteriaEvaluator hands
+     * its criteria to MetricMonitorCriteria, which reads exactly one thing -
+     * CheckOn.MetricValue: a metric that is reporting a value means online, a
+     * metric that has gone to zero means offline. A type missing from the
+     * list would fall through to `new MonitorCriteriaInstance()` and ship an
+     * unnamed criteria whose "Is Online" filter no evaluator on this path
+     * reads - a rule that can never fire and cannot be saved, since
+     * getValidationError requires a name.
      */
     if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -1646,7 +1690,61 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
+    /*
+     * An infrastructure monitor is offline once its agent has sent nothing
+     * for the whole window: Has No Data on the first query. A value of 0 is
+     * data, so a metric that is healthy at zero no longer opens "is
+     * offline" on a healthy resource, and a resource that stopped sending
+     * now does. Has No Data also opts the step into absent-series detection
+     * (HostAbsenceSeries.monitorStepOptsIntoNoDataDetection).
+     */
+    if (MonitorTypeHelper.isInfrastructureMonitor(arg.monitorType)) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.IsEmpty,
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
+              metricAlias:
+                arg.metricOptions &&
+                arg.metricOptions.metricAliases &&
+                arg.metricOptions.metricAliases.length > 0
+                  ? arg.metricOptions.metricAliases[0]
+                  : undefined,
+            },
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} has sent no data for the whole evaluation window.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} has sent no data for the whole evaluation window.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: true,
+        name: `Check if ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} has stopped sending data.`,
+      };
+    } else if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,

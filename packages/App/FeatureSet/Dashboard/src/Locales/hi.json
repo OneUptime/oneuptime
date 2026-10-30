@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "काम जारी है…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "वर्कलोड प्रकार",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "कार्य देखें",
   "What OneUptime AI found, and what it is doing about it.": "OneUptime AI को क्या मिला, और वह इसके बारे में क्या कर रहा है।",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "अनुमोदन करने पर ठीक वही, जो दिखाया गया है, आपके नाम से चलता है।"
+  "Approving runs exactly what is shown, under your name.": "अनुमोदन करने पर ठीक वही, जो दिखाया गया है, आपके नाम से चलता है।",
+  "Has Data": "डेटा है",
+  "Has No Data": "कोई डेटा नहीं"
 }

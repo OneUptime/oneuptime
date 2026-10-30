@@ -18645,7 +18645,7 @@
   "Working set": "Working set",
   "Working…": "Bezig…",
   "Workload Identifier": "Workload Identifier",
-  "Workload Kind": "Workload Kind",
+  "Workload Kind": "Workloadtype",
   "Workload Last Seen At": "Workload Last Seen At",
   "Workload Spend": "Workload Spend",
   "Workload Type": "Workload Type",
@@ -38794,5 +38794,7 @@
   "View task": "Taak bekijken",
   "What OneUptime AI found, and what it is doing about it.": "Wat OneUptime AI vond, en wat het eraan doet.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Goedkeuren voert precies uit wat wordt getoond, op uw naam."
+  "Approving runs exactly what is shown, under your name.": "Goedkeuren voert precies uit wat wordt getoond, op uw naam.",
+  "Has Data": "Gegevens aanwezig",
+  "Has No Data": "Geen gegevens"
 }
