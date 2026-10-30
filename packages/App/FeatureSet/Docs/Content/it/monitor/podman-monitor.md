@@ -4,7 +4,7 @@ Un monitor Podman sorveglia i container di un host Podman e vi avvisa quando un 
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-podman): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-pronti): Cinque avvisi pronti, un incidente per container.
+- [Modelli](#modelli-di-avviso-pronti): Sei avvisi pronti, un incidente per container.
 - [Metriche](#metriche-raccolte): Cosa raccoglie l'agente e cosa significa ogni metrica.
 - [Log](#log-raccolti): I log dei container e il driver di log di cui hanno bisogno.
 :::
@@ -84,27 +84,30 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre cinque modelli. Ognuno costruisce un monitor completo: una query raggruppata per `resource.container.name`, un criterio che scatta e uno che ripristina. Ogni container viene giudicato separatamente e riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+**Quick Setup** offre sei modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Host Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni container viene giudicato separatamente e riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container dell'host, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
-| High Container Restart Count | Critico | `container.restarts`, Max per container, ultimi 5 minuti | Sopra 5 riavvii in totale | 4,5 o meno |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 500 | A 450 o meno |
+| Container Restart Loop | Critico | Crescita di `container.restarts` per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
+| High Container Process Count | Warning | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
 | Container Restarted (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Sotto i 120 secondi | A 132 secondi o più |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
 
-I due modelli in percentuale usano **Media**: le loro metriche sono già percentuali per container, quindi la media di un minuto è la lettura sostenuta. Il numero di riavvii e il numero di processi usano **Massimo**, dove un singolo campione oltre la soglia è il segnale.
+**Host Stopped Reporting** scatta quando dall'host non arriva nulla per dieci minuti: l'host è giù, oppure l'agente si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala. Un host senza altri container continua comunque a inviare dati, perché l'agente gira come container e invia i propri.
+
+I due modelli in percentuale usano **Media**: le loro metriche sono già percentuali per container, quindi la media di un minuto è la lettura sostenuta. Il conteggio dei processi usa **Maximum**, dove un solo campione oltre la soglia è il segnale.
 
 > [!NOTE]
 > `container.cpu.utilization` è il numero stampato da `podman stats`, in media sull'intervallo di 30 secondi dell'agente: il 100% è un core di CPU intero, non l'intera quota di CPU del container. Un container con più core segna ben oltre 100 quando è sano, quindi alzate la soglia per quei container.
 
 > [!NOTE]
-> `container.restarts` è un totale progressivo tenuto da Podman, non un conteggio dei riavvii nella finestra. Per questo **High Container Restart Count** resta aperto finché il container non viene ricreato, il che azzera il conteggio.
+> `container.restarts` è un totale progressivo tenuto da Podman, quindi **Container Restart Loop** avvisa di quanto è cresciuto nella finestra, come su Docker: una query Maximum e una Minimum al minuto, sottratte con una formula e sommate. Con la raccolta a 30 secondi dell'agente si vede circa metà dei riavvii, e la soglia ne tiene già conto. L'agente campiona inoltre solo i container in esecuzione, quindi un container che termina appena avviato viene campionato di rado: **Container Restarted (Low Uptime)** scatta a ogni riavvio che l'agente vede.
 
 > [!CAUTION]
 > `container.uptime` esiste solo per i container in esecuzione. Un container che si ferma e resta fermo non invia dati, quindi **Container Restarted (Low Uptime)** coglie riavvii e nuovi deploy, non uno spegnimento definitivo. Un container pensato per girare meno di due minuti resta in stato di avviso per tutta la sua vita.
@@ -143,8 +146,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` puntato sul socket compati
 
 | Metrica | Descrizione |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Byte letti dai dispositivi a blocchi. |
-| `container.blockio.io_service_bytes_recursive.write` | Byte scritti sui dispositivi a blocchi. |
+| `container.blockio.io_service_bytes_recursive` | Byte letti e scritti su ogni dispositivo a blocchi dall'avvio del container, divisi per `operation` (`read`, `write`). Un contatore cumulativo. L'elenco lo offre filtrato sulle letture e sulle scritture. |
 
 ### Container
 
@@ -154,7 +156,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` puntato sul socket compati
 | `container.restarts` | Quante volte il container si è riavviato. Un totale progressivo. |
 | `container.pids.count` | Task nel container. Il controller pids del cgroup conta i thread oltre ai processi. |
 
-L'elenco **Podman Metric** offre anche `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` e i contatori dei pacchetti di rete. La configurazione dell'agente distribuita non li attiva, quindi controllate la pagina **Metriche** dell'host prima di basarvi su di essi. `container.cpu.throttling_data.throttled_periods` non è nell'elenco; interrogatela da **Avanzato**.
+`container.cpu.throttling_data.throttled_periods` non è nell'elenco; interrogatela da **Avanzato**.
 
 ## Criteri di monitoraggio
 

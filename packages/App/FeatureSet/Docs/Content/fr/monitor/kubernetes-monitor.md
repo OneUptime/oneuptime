@@ -5,7 +5,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 :::cards
 - [Installer l'agent](/docs/monitor/kubernetes-agent): Une seule commande Helm fait entrer le cluster dans OneUptime.
 - [Créer le moniteur](#créer-un-moniteur-kubernetes): Choisir le cluster, puis un modèle, une métrique ou une requête.
-- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Dix-sept alertes prêtes à l'emploi, de CrashLoopBackOff à etcd.
+- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Dix-huit alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
 - [Critères](#critères-de-surveillance): Seuils statiques et détection d'anomalies.
 :::
 
@@ -84,14 +84,14 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 | Catégorie | Métriques |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nœud | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nœud | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Conteneur | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Charge de travail | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plan de contrôle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** et **Node CPU Usage** sont exprimés en cœurs, pas en pourcentage : `0.18` correspond à 0,18 cœur. **Pod Phase (Code)** est un code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agrégez-le avec Maximum ou Minimum, jamais avec Somme. Les métriques du plan de contrôle n'arrivent que si la collecte du plan de contrôle par l'agent est activée.
+> **Pod CPU Usage** et **Node CPU Usage** sont exprimés en cœurs, pas en pourcentage : `0.18` correspond à 0,18 cœur. **Pod Phase (Code)** est un code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agrégez-le avec Maximum ou Minimum, jamais avec Somme. Les métriques du plan de contrôle n'arrivent que si la collecte du plan de contrôle par l'agent est activée. **Node Ready Condition** vaut 1 pour Ready, 0 pour NotReady et -1 pour Unknown, ce que signale un nœud tombé : alertez en dessous de 1.
 
 ## Critères de surveillance
 
@@ -132,13 +132,14 @@ L'onglet **Quick Setup** liste ces modèles, regroupés par catégorie. Chacun r
 
 | Modèle | Catégorie | Se déclenche quand | Gravité |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | Charge de travail | Un conteneur a redémarré plus de 5 fois depuis la création de son pod | Critique |
+| Cluster Stopped Reporting | Disponibilité | Aucune donnée n'arrive de l'agent du cluster pendant 10 minutes | Critique |
+| CrashLoopBackOff Detection | Charge de travail | Un conteneur a redémarré en 15 minutes et a été prêt moins de la moitié de ce temps | Critique |
 | Pod Stuck in Pending | Planification | Un pod est en phase Pending dans chaque mesure d'une fenêtre de 15 minutes | Warning |
-| Node Not Ready | Nœud | Un nœud signale NotReady | Critique |
+| Node Not Ready | Nœud | Un nœud signale NotReady ou cesse de signaler son état (Unknown) | Critique |
 | High Node CPU Utilization | Nœud | L'utilisation moyenne du CPU d'un nœud dépasse 90 % de son CPU allouable | Warning |
-| High Node Memory Utilization | Nœud | L'utilisation moyenne de la mémoire d'un nœud dépasse 85 % de sa mémoire allouable | Warning |
+| High Node Memory Utilization | Nœud | Le working set mémoire moyen d'un nœud dépasse 85 % de sa mémoire allouable | Warning |
 | Deployment Replica Mismatch | Charge de travail | Un deployment a moins de réplicas disponibles que souhaité pendant 15 minutes | Warning |
-| Job Failures | Charge de travail | Un job a des pods en échec | Warning |
+| Job Failures | Charge de travail | Un pod d'un job a échoué en 15 minutes | Warning |
 | etcd No Leader | Plan de contrôle | etcd n'a pas de leader élu | Critique |
 | API Server Request Saturation | Plan de contrôle | Le serveur d'API maintient 200 requêtes en cours ou plus pendant toute la fenêtre | Critique |
 | Scheduler Backlog | Planification | La file des pods en attente du scheduler n'est pas vide pendant 5 minutes | Warning |
@@ -146,14 +147,16 @@ L'onglet **Quick Setup** liste ces modèles, regroupés par catégorie. Chacun r
 | DaemonSet Misscheduled Nodes | Charge de travail | Un DaemonSet exécute des pods sur des nœuds qui ne correspondent plus à son sélecteur de nœuds, à son affinité ou à ses tolérances | Warning |
 | High Node CPU Request Commitment | Nœud | La somme des requêtes CPU des conteneurs d'un nœud dépasse 90 % de son CPU allouable | Warning |
 | High Node Memory Request Commitment | Nœud | La somme des requêtes mémoire des conteneurs d'un nœud dépasse 90 % de sa mémoire allouable | Warning |
-| HPA Saturated at Max Replicas | Charge de travail | Un HPA tourne à 90 % ou plus de ses `maxReplicas` | Critique |
+| HPA Saturated at Max Replicas | Charge de travail | Un HPA mis à l'échelle au-dessus de ses `minReplicas` tourne à 90 % ou plus de ses `maxReplicas` | Critique |
 | Pod Memory Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de mémoire de ses conteneurs | Critique |
 | Pod CPU Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de CPU de ses conteneurs | Warning |
 
 Les modèles fondés sur des métriques par objet évaluent chaque nœud, pod, deployment, job, DaemonSet ou HPA séparément, si bien qu'un cluster avec plusieurs pods défaillants reçoit un incident par pod plutôt qu'un seul pour tout le cluster.
 
+**Cluster Stopped Reporting** se déclenche quand rien n'arrive de l'agent du cluster pendant dix minutes : l'agent a été désinstallé ou plante en boucle, sa clé d'API a été révoquée, il a perdu sa connexion à OneUptime, ou le serveur d'API du cluster ne lui répond plus. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** lit le nombre de redémarrages du conteneur sur toute la vie de son pod actuel, et non un taux. Un conteneur qui a bouclé sur des plantages puis s'est rétabli garde l'alerte ouverte jusqu'à ce que son pod soit remplacé.
+> **CrashLoopBackOff Detection** et **Job Failures** comptent de combien un compteur de redémarrages ou de pods en échec a augmenté dans la fenêtre, pas le compteur lui-même : ils se résolvent donc seuls une fois les redémarrages ou les échecs arrêtés. La hausse n'est vue qu'entre deux échantillons d'une même minute : à l'intervalle de 30 secondes de l'agent, c'est environ la moitié. Une boucle de plantage redémarre encore et encore et est détectée ; un redémarrage isolé peut passer inaperçu.
 
 ### Repérer les causes, pas seulement les symptômes
 
@@ -181,8 +184,8 @@ Les clusters s'enregistrent eux-mêmes à partir des données de l'agent, sous l
 **Pod CPU Usage** et **Node CPU Usage** sont exprimés en cœurs, pas en pourcentage, donc un seuil de `80` signifie 80 cœurs. Définissez le seuil en cœurs, ou partez de **High Node CPU Utilization** ou de **Pod CPU Saturating Container Limit**, qui comparent un pourcentage.
 :::
 
-:::details CrashLoopBackOff Detection reste ouvert après le rétablissement du pod
-Le modèle lit le nombre de redémarrages du conteneur sur toute la vie de son pod actuel, donc ce nombre ne redescend pas une fois qu'il a dépassé 5. L'alerte se résout quand le pod est remplacé, par exemple par un redéploiement, une éviction ou la vidange d'un nœud.
+:::details CrashLoopBackOff Detection ne s'est pas déclenché pour un redémarrage
+Le modèle se déclenche quand le compteur de redémarrages d'un conteneur augmente en 15 minutes alors que le conteneur a été prêt moins de la moitié de ce temps : un conteneur qui a redémarré une fois et est revenu aussitôt n'alerte donc pas. La hausse n'est vue qu'entre deux échantillons d'une même minute, si bien qu'un redémarrage isolé peut passer inaperçu ; une boucle de plantage redémarre toutes les quelques minutes et est détectée.
 :::
 
 ## Étapes suivantes

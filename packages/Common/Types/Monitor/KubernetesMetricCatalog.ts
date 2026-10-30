@@ -124,8 +124,20 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   {
     id: "node-memory-usage",
     friendlyName: "Node Memory Usage",
-    description: "Memory usage in bytes for nodes",
+    description:
+      "Memory usage in bytes for nodes, page cache included. For memory pressure, use Node Memory Working Set.",
     metricName: "k8s.node.memory.usage",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Avg,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "bytes",
+  },
+  {
+    id: "node-memory-working-set",
+    friendlyName: "Node Memory Working Set",
+    description:
+      "Memory in use on the node, in bytes, without the page cache the kernel can reclaim: the figure the kubelet evicts pods on, and the one kubectl top node prints. Divide by Node Allocatable Memory for a percentage.",
+    metricName: "k8s.node.memory.working_set",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Node,
@@ -156,7 +168,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     id: "node-condition-ready",
     friendlyName: "Node Ready Condition",
     description:
-      "Whether the node is in Ready condition (1 = ready, 0 = not ready)",
+      "The node's Ready condition: 1 = Ready, 0 = NotReady, -1 = Unknown (the kubelet stopped reporting, as a node that went down does). Alert on 'less than 1' to catch both.",
     metricName: "k8s.node.condition_ready",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Min,

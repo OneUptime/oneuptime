@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  applyAssignmentChange,
   applyManualResolutionChange,
   ExceptionIssueBadge,
   getExceptionIssueBadges,
@@ -214,5 +215,46 @@ describe("what resolving or reopening by hand writes", () => {
     expect(written({ resolvedInReleaseAfter: "" })).toEqual({
       resolvedInReleaseAfter: null,
     });
+  });
+});
+
+/*
+ * One assignee: a person or a team. Naming one clears the other, so the
+ * list's Assigned to me and the exception's header always agree.
+ */
+describe("what assigning writes", () => {
+  function assigned(data: Record<string, unknown>): Record<string, unknown> {
+    const copy: Record<string, unknown> = { ...data };
+    applyAssignmentChange(copy);
+    return copy;
+  }
+
+  test("a person clears the team", () => {
+    expect(assigned({ assignToUserId: "u-1" })).toEqual({
+      assignToUserId: "u-1",
+      assignToTeamId: null,
+    });
+  });
+
+  test("a team clears the person", () => {
+    expect(assigned({ assignToTeamId: "t-1" })).toEqual({
+      assignToUserId: null,
+      assignToTeamId: "t-1",
+    });
+  });
+
+  test("unassigning one leaves the other as it is", () => {
+    expect(assigned({ assignToUserId: null })).toEqual({
+      assignToUserId: null,
+    });
+    expect(assigned({ assignToTeamId: "" })).toEqual({ assignToTeamId: "" });
+  });
+
+  test("a write naming both, or neither, is kept as written", () => {
+    expect(assigned({ assignToUserId: "u-1", assignToTeamId: "t-1" })).toEqual({
+      assignToUserId: "u-1",
+      assignToTeamId: "t-1",
+    });
+    expect(assigned({ isResolved: true })).toEqual({ isResolved: true });
   });
 });

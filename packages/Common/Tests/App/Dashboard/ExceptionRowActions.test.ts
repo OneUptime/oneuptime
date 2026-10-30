@@ -63,22 +63,32 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import {
+  EXCEPTION_ALREADY_ASSIGNED,
   EXCEPTION_ALREADY_THERE,
+  EXCEPTION_ASSIGN_RESULT_LABELS,
+  EXCEPTION_ASSIGN_TITLE,
+  EXCEPTION_ASSIGN_TO_ME_TITLE,
   EXCEPTION_BULK_LOCK_SENTENCE,
   EXCEPTION_NAME_MAX_LENGTH,
+  EXCEPTION_NOT_ASSIGNED,
   EXCEPTION_RESULT_LABELS,
   EXCEPTION_ROW_TRIAGE_ORDER,
+  getExceptionAssignBulkAction,
+  getExceptionAssignmentRowActions,
   getExceptionBulkActions,
   getExceptionId,
   getExceptionName,
   getExceptionRowActions,
   getExceptionTriageWrite,
   isExceptionTriageActionOffered,
+  runExceptionAssignment,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionRowActions";
 import {
   BulkActionButtonSchema,
+  BulkActionOnClickProps,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import ObjectID from "../../../Types/ObjectID";
 import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import ActionButtonSchema, {
   ActionButtonPlacement,
@@ -863,5 +873,232 @@ describe("Resolve in next release", () => {
         ),
       ]),
     ).toBe(false);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Assignment: Assign to me in a row's menu, Assign to… in Bulk Actions
+ * ---------------------------------------------------------------------------
+ */
+describe("assigning from the list", () => {
+  const ME: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+  const TEAM: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
+
+  const assignToMe: () => ActionButtonSchema<TelemetryException> =
+    (): ActionButtonSchema<TelemetryException> => {
+      return getExceptionAssignmentRowActions({
+        currentUserId: ME,
+        onChanged: (): void => {},
+      })[0]!;
+    };
+
+  test("a row offers Assign to me in its menu, unless it is the reader's already", () => {
+    const action: ActionButtonSchema<TelemetryException> = assignToMe();
+    const open: TelemetryException = exception({
+      isResolved: false,
+      isArchived: false,
+    });
+    const mine: TelemetryException = exception({
+      isResolved: false,
+      isArchived: false,
+    });
+    mine.assignToUserId = new ObjectID(ME.toString());
+    const theirTeams: TelemetryException = exception({
+      isResolved: false,
+      isArchived: false,
+    });
+    theirTeams.assignToTeamId = TEAM;
+
+    expect(action.title).toBe(EXCEPTION_ASSIGN_TO_ME_TITLE);
+    expect(action.icon).toBe(IconProp.User);
+    expect(action.placement).toBe(ActionButtonPlacement.MoreMenu);
+    expect(action.isVisible!(open)).toBe(true);
+    expect(action.isVisible!(theirTeams)).toBe(true);
+    expect(action.isVisible!(mine)).toBe(false);
+  });
+
+  test("Assign to me writes the reader, with the team cleared, and the list is read again", async () => {
+    let changed: number = 0;
+    const action: ActionButtonSchema<TelemetryException> =
+      getExceptionAssignmentRowActions({
+        currentUserId: ME,
+        onChanged: (): void => {
+          changed++;
+        },
+      })[0]!;
+
+    await Promise.resolve(
+      action.onClick(
+        exception({ isResolved: false, isArchived: false }),
+        (): void => {},
+        (): void => {},
+      ),
+    );
+
+    expect(updateCalls).toEqual([
+      { id: EXCEPTION_ID, data: { assignToUserId: ME, assignToTeamId: null } },
+    ]);
+    expect(changed).toBe(1);
+  });
+
+  test("nobody signed in is offered nothing, and someone who may not update finds it locked", () => {
+    expect(
+      getExceptionAssignmentRowActions({
+        currentUserId: null,
+        onChanged: (): void => {},
+      }),
+    ).toEqual([]);
+
+    permissionsForTest = [Permission.Viewer];
+    PermissionGate.clearPermissionPropsCache();
+
+    const locked: ActionButtonSchema<TelemetryException> = assignToMe();
+    expect(locked.disabled).toBe(true);
+    expect(locked.tooltip).toContain("permission");
+  });
+
+  test("Assign to… in Bulk Actions opens its dialog with the selection", async () => {
+    const opened: Array<BulkActionOnClickProps<TelemetryException>> = [];
+    const action: BulkActionButtonSchema<TelemetryException> =
+      getExceptionAssignBulkAction({
+        onOpen: (props: BulkActionOnClickProps<TelemetryException>): void => {
+          opened.push(props);
+        },
+      });
+    const items: Array<TelemetryException> = [
+      exceptionWithId(EXCEPTION_ID, { isResolved: false, isArchived: false }),
+    ];
+
+    expect(action.title).toBe(EXCEPTION_ASSIGN_TITLE);
+    expect(action.menuGroup).toBe(ActionMenuGroup.Change);
+    expect(action.resultLabels).toBe(EXCEPTION_ASSIGN_RESULT_LABELS);
+
+    await action.onClick({
+      items,
+      onProgressInfo: (): void => {},
+      onBulkActionStart: (): void => {},
+      onBulkActionEnd: (): void => {},
+    });
+
+    expect(opened).toHaveLength(1);
+    expect(opened[0]!.items).toBe(items);
+    // Opening writes nothing: the dialog's pick starts the run.
+    expect(updateCalls).toEqual([]);
+  });
+
+  async function runAssign(
+    items: Array<TelemetryException>,
+    write: { assignToUserId: ObjectID | null; assignToTeamId: ObjectID | null },
+  ): Promise<BulkRun> {
+    let last: ProgressInfo<TelemetryException> | null = null;
+
+    await runExceptionAssignment(
+      {
+        items,
+        onProgressInfo: (info: ProgressInfo<TelemetryException>): void => {
+          last = info;
+        },
+        onBulkActionStart: (): void => {},
+        onBulkActionEnd: (): void => {},
+      },
+      write,
+    );
+
+    const final: ProgressInfo<TelemetryException> =
+      last as unknown as ProgressInfo<TelemetryException>;
+
+    return {
+      succeeded: final.successItems.map((row: TelemetryException): string => {
+        return getExceptionId(row);
+      }),
+      unchanged: (final.unchanged || []).map(
+        (entry: { item: TelemetryException; reason: unknown }) => {
+          return {
+            id: getExceptionId(entry.item),
+            reason: String(entry.reason),
+          };
+        },
+      ),
+      failed: final.failed.map(
+        (entry: { item: TelemetryException; failedMessage: unknown }) => {
+          return {
+            id: getExceptionId(entry.item),
+            message: String(entry.failedMessage),
+          };
+        },
+      ),
+    };
+  }
+
+  test("the run assigns each exception once, and leaves one already there alone", async () => {
+    const already: TelemetryException = exceptionWithId(SECOND_ID, {
+      isResolved: false,
+      isArchived: false,
+    });
+    already.assignToTeamId = new ObjectID(TEAM.toString());
+
+    const run: BulkRun = await runAssign(
+      [
+        exceptionWithId(EXCEPTION_ID, { isResolved: false, isArchived: false }),
+        already,
+      ],
+      { assignToUserId: null, assignToTeamId: TEAM },
+    );
+
+    expect(updateCalls).toEqual([
+      {
+        id: EXCEPTION_ID,
+        data: { assignToUserId: null, assignToTeamId: TEAM },
+      },
+    ]);
+    expect(run.succeeded).toEqual([EXCEPTION_ID]);
+    expect(run.unchanged).toEqual([
+      { id: SECOND_ID, reason: EXCEPTION_ALREADY_ASSIGNED },
+    ]);
+  });
+
+  test("unassigning leaves one nobody owns alone, saying so", async () => {
+    const owned: TelemetryException = exceptionWithId(EXCEPTION_ID, {
+      isResolved: false,
+      isArchived: false,
+    });
+    owned.assignToUserId = ME;
+
+    const run: BulkRun = await runAssign(
+      [
+        owned,
+        exceptionWithId(SECOND_ID, { isResolved: false, isArchived: false }),
+      ],
+      { assignToUserId: null, assignToTeamId: null },
+    );
+
+    expect(updateCalls).toEqual([
+      {
+        id: EXCEPTION_ID,
+        data: { assignToUserId: null, assignToTeamId: null },
+      },
+    ]);
+    expect(run.unchanged).toEqual([
+      { id: SECOND_ID, reason: EXCEPTION_NOT_ASSIGNED },
+    ]);
+    expect(EXCEPTION_ALREADY_ASSIGNED).toBe("Already assigned there.");
+    expect(EXCEPTION_NOT_ASSIGNED).toBe("Not assigned to anyone.");
+  });
+
+  test("a refusal fails only its own exception, in the server's words", async () => {
+    refusalForTest = "The assignee is not a member of this project.";
+
+    const run: BulkRun = await runAssign(
+      [exceptionWithId(EXCEPTION_ID, { isResolved: false, isArchived: false })],
+      { assignToUserId: ME, assignToTeamId: null },
+    );
+
+    expect(run.failed).toEqual([
+      {
+        id: EXCEPTION_ID,
+        message: "The assignee is not a member of this project.",
+      },
+    ]);
   });
 });

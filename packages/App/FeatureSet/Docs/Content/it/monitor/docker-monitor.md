@@ -4,7 +4,7 @@ Un monitor Docker sorveglia i container di un host Docker e vi avvisa quando un 
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-docker): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-pronti): Sei avvisi pronti, un incidente per container.
+- [Modelli](#modelli-di-avviso-pronti): Sette avvisi pronti, un incidente per container.
 - [Metriche](#metriche-raccolte): Cosa raccoglie l'agente e cosa significa ogni metrica.
 - [Log](#log-raccolti): I log dei container e il driver di log di cui hanno bisogno.
 :::
@@ -84,20 +84,24 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre sei modelli. Ognuno costruisce un monitor completo: una query raggruppata per `resource.container.name`, un criterio che scatta e uno che ripristina. Ogni container viene giudicato separatamente, così un container occupato non ne nasconde un altro, e ogni container che supera la soglia riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+**Quick Setup** offre sette modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Host Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni container viene giudicato separatamente, un container occupato non ne nasconde un altro, e ogni container che supera la soglia riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container dell'host, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
 | Container Restart Loop | Critico | Crescita di `container.restarts` per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
 | Container CPU Throttling | Warning | Crescita di `container.cpu.throttling_data.throttled_time` in ms per container, ultimi 5 minuti | Più di 1000 ms nella finestra (Somma) | 900 ms o meno |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
-| Container Down (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Uguale a 0 | Sopra 0 |
+| Container Restarted (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Meno di 120 secondi | 132 secondi o più |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
+
+> [!NOTE]
+> **Host Stopped Reporting** scatta quando dall'host non arriva nulla per dieci minuti: l'host è giù, oppure l'agente si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala. Un host senza altri container continua comunque a inviare dati, perché l'agente gira come container e invia i propri.
 
 > [!NOTE]
 > `container.cpu.utilization` è il numero stampato da `docker stats`, in media sull'intervallo di 30 secondi dell'agente: il 100% è un core di CPU intero, non l'intero host, quindi un container che usa due core segna 200. Su un host multicore la soglia di 80 è un budget di CPU, non una quota della macchina.
@@ -106,10 +110,10 @@ Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condi
 > `container.memory.percent` divide per il limite di memoria del container quando è impostato, e altrimenti per la memoria totale **dell'host**. Verificate se il container è stato avviato con `--memory` prima di trattare un superamento come un'imminente terminazione per memoria esaurita.
 
 > [!WARNING]
-> `container.restarts` e `container.cpu.throttling_data.throttled_time` crescono soltanto, quindi quei due modelli avvisano in base a quanto sono cresciuti nella finestra: una query di Massimo e una di Minimo al minuto, sottratte da una formula e sommate. Con la raccolta dell'agente ogni 30 secondi, questo vede circa metà dell'attività reale, e le soglie ne tengono già conto. Se portate il `collection_interval` dell'agente a 60 secondi o più, ogni minuto contiene un solo campione ed entrambi i modelli smettono di avvisare.
+> `container.restarts` e `container.cpu.throttling_data.throttled_time` crescono soltanto, quindi quei due modelli avvisano in base a quanto sono cresciuti nella finestra: una query di Massimo e una di Minimo al minuto, sottratte da una formula e sommate. Con la raccolta dell'agente ogni 30 secondi, questo vede circa metà dell'attività reale, e le soglie ne tengono già conto. Se portate il `collection_interval` dell'agente a 60 secondi o più, ogni minuto contiene un solo campione ed entrambi i modelli smettono di avvisare. L'agente campiona inoltre solo i container in esecuzione, quindi un container che termina appena avviato viene campionato di rado: **Container Restarted (Low Uptime)** scatta a ogni riavvio che l'agente vede.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** non può cogliere un container che si ferma e resta fermo. L'agente comunica solo i container in esecuzione, quindi un container fermo non invia alcun dato e il suo uptime non segna mai 0. Per un servizio che deve restare attivo, sorvegliate anche ciò che serve, per esempio con un [monitor API](/docs/monitor/api-monitor).
+> `container.uptime` esiste solo per i container in esecuzione. Un container che si ferma e resta fermo non invia dati, quindi **Container Restarted (Low Uptime)** coglie riavvii e nuovi deploy, non uno spegnimento definitivo. Un container pensato per girare meno di due minuti resta in stato di avviso per tutta la sua vita. Per un servizio che deve restare attivo, sorvegliate anche ciò che serve, per esempio con un [monitor API](/docs/monitor/api-monitor).
 
 ## Metriche raccolte
 
@@ -143,8 +147,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` sul socket di Docker, ogni
 
 | Metrica | Descrizione |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Byte letti dai dispositivi a blocchi. |
-| `container.blockio.io_service_bytes_recursive.write` | Byte scritti sui dispositivi a blocchi. |
+| `container.blockio.io_service_bytes_recursive` | Byte letti e scritti su ogni dispositivo a blocchi dall'avvio del container, divisi per `operation` (`read`, `write`). Un contatore cumulativo. L'elenco lo offre filtrato sulle letture e sulle scritture. |
 
 ### Container
 
@@ -154,7 +157,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` sul socket di Docker, ogni
 | `container.restarts` | Quante volte il container si è riavviato da quando è stato creato. Un contatore sull'intera vita. |
 | `container.pids.count` | Task nel container. Il controller pids del cgroup conta i thread oltre ai processi. |
 
-L'elenco **Metrica Docker** offre anche `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` e i contatori dei pacchetti di rete. La configurazione dell'agente distribuita non li attiva, quindi controllate la pagina **Metriche** dell'host prima di basarvi su di essi. `container.cpu.throttling_data.throttled_periods` non è nell'elenco; interrogatela da **Avanzato**.
+`container.cpu.throttling_data.throttled_periods` non è nell'elenco; interrogatela da **Avanzato**.
 
 ## Criteri di monitoraggio
 

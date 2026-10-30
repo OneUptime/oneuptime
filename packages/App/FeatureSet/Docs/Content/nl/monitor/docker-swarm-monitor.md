@@ -4,14 +4,14 @@ Een Docker Swarm-monitor bewaakt de containers achter de servicetaken van een Sw
 
 :::cards
 - [De monitor maken](#een-docker-swarm-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vier kant-en-klare waarschuwingen, één incident per taak.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vijf kant-en-klare waarschuwingen, één incident per taak.
 - [Metrieken](#verzamelde-metrieken): De containermetrieken waarop u kunt waarschuwen.
 - [Filters](#monitorinstellingen): Een monitor beperken tot een service, een taak of een image.
 :::
 
 ## Hoe het werkt
 
-De OneUptime-Docker Swarm-agent draait op een managernode. Zijn collector leest elke 30 seconden containerstatistieken uit de Docker-daemon van die node en voorziet elke batch van de naam van het cluster, `docker.swarm.cluster.name`. Een kleine inventarispoller ernaast leest elke 5 minuten de nodes, services en taken van het cluster uit de Swarm-API. De eerste gegevens registreren het cluster in OneUptime.
+De OneUptime-Docker Swarm-agent draait op een managernode. Zijn collector leest elke 30 seconden containerstatistieken uit de Docker-daemon van die node, voorziet elke batch van de naam van het cluster, `docker.swarm.cluster.name`, en de metrieken van elke taak van de service en node van die taak. Een kleine inventarispoller ernaast leest elke 5 minuten de nodes, services en taken van het cluster uit de Swarm-API. De eerste gegevens registreren het cluster in OneUptime.
 
 De collector ziet alleen containers op de node waarop hij draait. Voor metrieken van elke node draait u de collector op elke node met dezelfde `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 | Veld | Tabblad | Wat het doet |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Verplicht. Beperkt elke query tot `resource.docker.swarm.cluster.name`. Dit is het enige resourceattribuut dat de agent meegeeft, dus de monitor voegt geen filter op `container.runtime` of `host.name` toe. |
-| **Servicenaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `docker.swarm.service.name`, bijvoorbeeld `web`. |
-| **Nodenaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `docker.swarm.node.name`, bijvoorbeeld `swarm-node-1`. |
+| **Docker Swarm Cluster** | Alle | Verplicht. Beperkt elke query tot `resource.docker.swarm.cluster.name`. De metrieken van een taak dragen `container.runtime=docker`, net als die van een Docker-host, en de agent geeft nooit `host.name` mee, dus de monitor filtert op geen van beide. |
+| **Servicenaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.docker.swarm.service.name`, de service zoals `docker service ls` hem noemt, bijvoorbeeld `web` (`<stack>_web` in een stack). |
+| **Nodenaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.docker.swarm.node.name`, de hostnaam van de node zoals `docker node ls` die toont, bijvoorbeeld `swarm-node-1`. De agent op die node geeft hem mee vanuit `DOCKER_SWARM_NODE_NAME`. |
 | **Containernaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.container.name`. De container van een taak heet `<service>.<slot>.<taskid>`, bijvoorbeeld `web.1.abc123`. |
-| **Container-image** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.container.image.name`, bijvoorbeeld `nginx:latest`. |
+| **Container-image** | Custom Metric, Geavanceerd | Optioneel. Komt overeen met `resource.container.image.name`, met of zonder de digest die Swarm aan de image vastzet: `nginx:latest` komt ook overeen met `nginx:latest@sha256:…`, een digest die u typt, wordt weggelaten, en een naam zonder tag betekent `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe metingen worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het schuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen in. |
 | **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
-> [!WARNING]
-> De meegeleverde agent stelt `docker.swarm.service.name` en `docker.swarm.node.name` nog niet in, dus een monitor waarin **Servicenaam** of **Nodenaam** is ingevuld, vindt geen gegevens. Beperk in plaats daarvan met **Container-image**, of groepeer op `resource.container.name`.
+> [!NOTE]
+> **Servicenaam** en **Nodenaam** hebben de bestanden van de agent vanaf versie 0.161.2 nodig: oudere bestanden versturen de service noch de node. [Werk de agent bij](/docs/telemetry/docker-swarm#de-agent-upgraden) op elke node waarop hij draait.
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt vier sjablonen. Elk bouwt een complete monitor: een query gegroepeerd op `resource.container.name`, een criterium dat afgaat en een dat herstelt. Elke taak wordt afzonderlijk beoordeeld en krijgt een eigen incident en een eigen waarschuwing, waarvan de hoofdoorzaak de getroffen taken en hun waarden opsomt. De drempels zijn uitgangspunten die u kunt aanpassen.
+**Quick Setup** biedt vijf sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Cluster Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke taak afzonderlijk wordt beoordeeld en een eigen incident en een eigen waarschuwing krijgt, waarvan de hoofdoorzaak de getroffen taken en hun waarden opsomt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers in het cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | Task Down (Low Uptime) | Kritiek | `container.uptime`, Min per taak, laatste 1 minuut | Een willekeurige waarde ligt onder 60 seconden | Elke waarde ligt op of boven 66 seconden |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per taak, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per taak, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 500 | Op of onder 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de nodes waarop de agent draait zijn uitgevallen, of de agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten. Een node zonder taken blijft rapporteren, omdat de agent zelf als container draait en zijn eigen gegevens rapporteert.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** gaat af op één jonge meting, omdat een herstart een gebeurtenis is en geen niveau. Swarm geeft een vervangende taak een nieuwe container, en dus een nieuwe reeks; daarom zoekt het sjabloon naar een uptime onder een minuut in plaats van naar een 0. Een uitrol of een opschaling laat het ook afgaan, en het herstelt zodra de nieuwe taken een minuut uptime voorbij zijn. Een taak die sterft en niet wordt vervangen, stuurt niets en wordt dus niet opgemerkt.
@@ -136,10 +140,10 @@ De collector van de agent gebruikt de OpenTelemetry-receiver `docker_stats`, dus
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `container.pids.count` | aantal | Processen in de container van een taak. Een plotselinge stijging kan op een forkbom of een lek wijzen. |
+| `container.pids.count` | aantal | Taken in de container van een taak: de cgroup-pids-controller telt threads net zo goed als processen. Een plotselinge stijging kan wijzen op een fork bomb of een threadlek. |
 | `container.uptime` | seconden | Hoe lang de container van een taak al draait. Een opnieuw ingeplande of herstarte taak begint een nieuwe container op 0. |
 
-Elke reeks draagt de identiteit van de container als resourceattributen: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` en `resource.docker.swarm.cluster.name`.
+Elke reeks draagt de identiteit van de container als resourceattributen: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (als de agent de naam van de node kent) en `resource.docker.swarm.cluster.name`.
 
 ## Bewakingscriteria
 
@@ -182,7 +186,7 @@ De collector leest de Docker-daemon van de node waarop hij draait, dus hij ziet 
 :::
 
 :::details Een monitor gefilterd op service of node vindt geen gegevens
-**Servicenaam** en **Nodenaam** vergelijken met `docker.swarm.service.name` en `docker.swarm.node.name`, die de meegeleverde agent niet instelt. Maak ze leeg en beperk met **Container-image**, of groepeer op `resource.container.name`.
+**Servicenaam** en **Nodenaam** vergelijken met `resource.docker.swarm.service.name` en `resource.docker.swarm.node.name`, die de agent verstuurt vanaf versie 0.161.2 van zijn bestanden: [werk hem bij](/docs/telemetry/docker-swarm#de-agent-upgraden). De naam van de node komt uit `DOCKER_SWARM_NODE_NAME` in de `.env` van elke node, die het installatiescript schrijft; voeg hem daar zelf toe op een node die u op een andere manier hebt ingericht.
 :::
 
 :::details Elke taak verschijnt als één reeks

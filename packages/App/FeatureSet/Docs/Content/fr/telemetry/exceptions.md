@@ -58,7 +58,7 @@ Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique
 
 ### Chercher et filtrer
 
-Tapez une requête comme `type:TypeError env:production`, voir [Syntaxe de recherche](/docs/telemetry/search-syntax#exceptions), ou cliquez sur une valeur de la barre latérale **Filtres** : un service, un hôte ou une autre ressource, un **Type d'exception**, un **Environnement** ou une **Classe d'erreur**.
+Tapez une requête comme `type:TypeError env:production`, voir [Syntaxe de recherche](/docs/telemetry/search-syntax#exceptions), ou cliquez sur une valeur de la barre latérale **Filtres** : un service, un hôte ou une autre ressource, un **Type d'exception**, un **Environnement** ou une **Classe d'erreur**. **Attribuées à moi** n'affiche que les exceptions qui vous sont attribuées, et le menu de tri classe la liste par **Vu pour la dernière fois**, **Vu pour la première fois** ou **Le plus d'événements**.
 
 ### Ouvrir une exception
 
@@ -96,6 +96,8 @@ Les boutons en haut de la page de l'exception, sa page **Paramètres** et le men
 **Paramètres** indique qui a résolu ou archivé l'exception en dernier, et quand. Ses boutons s'intitulent **Marquer comme résolu** ou **Marquer comme non résolu**, et **Archiver** ou **Désarchiver**.
 
 Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
+
+**Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois.
 
 ## Classes d'erreur
 

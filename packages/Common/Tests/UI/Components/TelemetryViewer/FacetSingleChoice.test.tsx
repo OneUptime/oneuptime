@@ -577,3 +577,83 @@ describe("what the choices mean: never a paragraph under the title", () => {
     expect(choice("Root spans")).not.toHaveAttribute("aria-describedby");
   });
 });
+
+/*
+ * Escape puts the help away (WCAG 1.4.13), however it came up, without the
+ * pointer or the focus moving; the choice stays as it was.
+ */
+describe("Escape puts the Span Type's help away", () => {
+  // Escape as the keyboard sends it; false when the key was spent.
+  const pressEscape: () => boolean = (): boolean => {
+    return fireEvent.keyDown(document.activeElement || document.body, {
+      key: "Escape",
+    });
+  };
+
+  const noTooltips: () => Promise<void> = async (): Promise<void> => {
+    await waitFor(() => {
+      expect(screen.queryAllByRole("tooltip")).toEqual([]);
+    });
+  };
+
+  test("the (i)'s help, pointed at: Escape closes it", async () => {
+    renderSidebar({ chosenValue: "entry" });
+
+    fireEvent.mouseEnter(helpButton());
+    expect(await tooltipsShown()).toHaveLength(1);
+
+    expect(pressEscape()).toBe(false);
+    await noTooltips();
+    expect(choice("Entry spans")).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("the (i)'s help, tabbed to: Escape closes it and the focus stays on the (i)", async () => {
+    renderSidebar({ chosenValue: "entry" });
+
+    tabTo(helpButton());
+    expect(await tooltipsShown()).toHaveLength(1);
+
+    pressEscape();
+    await noTooltips();
+    expect(helpButton()).toHaveFocus();
+  });
+
+  test("the (i)'s help, tapped open on a phone: Escape closes it, and a tap opens it again", async () => {
+    renderSidebar({ chosenValue: "entry" });
+
+    tap(helpButton());
+    expect(await tooltipsShown()).toHaveLength(1);
+
+    pressEscape();
+    await noTooltips();
+
+    tap(helpButton());
+    expect(await tooltipsShown()).toHaveLength(1);
+  });
+
+  test("an option's sentence, tabbed to: Escape closes it, the focus stays, nothing is chosen", async () => {
+    const rendered: Rendered = renderSidebar({ chosenValue: "entry" });
+
+    tabTo(choice("Root spans"));
+    expect(
+      (await tooltipsShown()).map((tooltip: HTMLElement): string => {
+        return tooltip.textContent || "";
+      }),
+    ).toEqual(["Where a trace starts."]);
+
+    pressEscape();
+    await noTooltips();
+    expect(choice("Root spans")).toHaveFocus();
+    expect(rendered.include).not.toHaveBeenCalled();
+  });
+
+  test("an option's sentence, pointed at: Escape closes it", async () => {
+    renderSidebar({ chosenValue: "entry" });
+
+    fireEvent.mouseEnter(choice("All spans"));
+    expect(await tooltipsShown()).toHaveLength(1);
+
+    expect(pressEscape()).toBe(false);
+    await noTooltips();
+  });
+});
