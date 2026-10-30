@@ -710,6 +710,11 @@ jobs:
           # Security Events Empty States (2.1 minutes on 14.0.93's gate run) moved
           # here from group 11 on 2026-10-27, when that run took this group 14.5
           # minutes before Cloud Connect and Docker Swarm Pages grew: about 18.5.
+          # #5367 (the Cloud AI agent) grew Cloud Connect by 29 tests run on
+          # 2026-10-30 (an account's AI agent card, Let AI fix problems, its AI
+          # agent page, Logs and Feed, at 1280 and 390, dark, German and
+          # Persian, and its UI review's guide, Change and Refresh walks, some
+          # 15 seconds; master's run took 3.7 minutes for its 68): about 20.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui

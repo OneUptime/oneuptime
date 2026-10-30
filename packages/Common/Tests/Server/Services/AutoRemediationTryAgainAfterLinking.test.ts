@@ -168,6 +168,8 @@ describe("which updates link something a fix acts on", () => {
     expect([...REMEDIATION_LINK_COLUMNS].sort()).toEqual(
       [
         "kubernetesClusters",
+        // Fixed through their accounts' Cloud AI agents.
+        "cloudResources",
         "hosts",
         "dockerHosts",
         "podmanHosts",

@@ -222,8 +222,20 @@ const SetupGuideOptionPicker: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * Never more columns than choices: two answers side by side fill the
+     * row, rather than two thirds of it beside an empty third column.
+     */
     return (
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        className={`grid grid-cols-1 gap-2 ${
+          group.options.length > 2
+            ? "sm:grid-cols-2 lg:grid-cols-3"
+            : group.options.length === 2
+              ? "sm:grid-cols-2"
+              : ""
+        }`}
+      >
         {group.options.map(renderOption)}
       </div>
     );

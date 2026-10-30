@@ -128,6 +128,11 @@ export interface ResourceAiLogFix {
   rationale?: string | undefined;
   createdAt?: string | undefined;
   approvedAt?: string | undefined;
+  /*
+   * Who approved it - their name, or their email without one - the reason
+   * a fix that waited for approval ran. Absent when nobody approved it.
+   */
+  approvedByName?: string | undefined;
   incidentId?: string | undefined;
   alertId?: string | undefined;
 }

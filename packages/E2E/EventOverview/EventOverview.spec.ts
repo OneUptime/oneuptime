@@ -19018,3 +19018,240 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
     await shoot(page, "nomatch-dark");
   });
 });
+
+/*
+ * A fix that changes a cloud account is dry-run before anyone approves it
+ * (CloudChangeDryRun): under the change, the Remediation card says what
+ * the dry run found - it would run (the call it would make and its undo),
+ * the agent would refuse it (why, in amber), it could not finish, or it is
+ * being checked - and each says nothing was changed. Dry run again checks
+ * once more, and the answer lands on the card's next poll. ?cloudfix= is
+ * such a fix on Incident #1042, for the AWS account "prod".
+ */
+test.describe("a cloud fix's dry run on the Remediation card", () => {
+  const SERVICE: string =
+    "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout-api";
+  const COMMAND: string = `cloud scale-out ${SERVICE} --count 8`;
+  const UNDO: string = `To undo it: cloud scale-in ${SERVICE} --count 4`;
+  const CLOUD_FIX_SUGGESTION_ID: string = uuid("93000000", 1);
+  const WOULD_RUN: RegExp =
+    /^Dry run .+: this change would run\. Nothing was changed\.$/;
+
+  function dryRunNote(page: Page): Locator {
+    return remediationCard(page).getByTestId("remediation-dry-run");
+  }
+
+  function dryRunButton(page: Page): Locator {
+    return remediationCard(page).getByTestId("remediation-dry-run-button");
+  }
+
+  // The plan's row of the change, which holds its dry run.
+  function changeRow(page: Page): Locator {
+    return remediationCard(page)
+      .locator("li")
+      .filter({ hasText: COMMAND })
+      .last();
+  }
+
+  async function openCloudFix(page: Page, query: string): Promise<void> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(
+      remediationCard(page).getByText(COMMAND, { exact: true }),
+    ).toBeVisible({ timeout: 30000 });
+  }
+
+  test("would run: nothing was changed, then the call it would make and its undo, beside Approve & Run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=would-run");
+
+    const note: Locator = dryRunNote(page);
+    await expect(note).toHaveAttribute("data-status", "WouldRun");
+    await expect(note.getByTestId("remediation-dry-run-headline")).toHaveText(
+      WOULD_RUN,
+    );
+    const summary: Locator = note.getByTestId("remediation-dry-run-summary");
+    await expect(summary).toContainText(
+      "It would make ecs:UpdateService with desiredCount, and nothing else.",
+    );
+    await expect(summary).toContainText(UNDO);
+    // Under the change it checked.
+    await expect(
+      changeRow(page).getByTestId("remediation-dry-run"),
+    ).toHaveCount(1);
+
+    await expect(
+      remediationCard(page).getByTestId("remediation-approve-button"),
+    ).toBeVisible();
+    await expect(dryRunButton(page)).toHaveText("Dry run again");
+    await expect(dryRunButton(page)).toBeEnabled();
+
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-cloud-dry-run-would-run",
+    );
+  });
+
+  test("would be refused: amber, with the agent's reason, and Approve & Run stays: the agent checks the change again when it runs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=refused");
+
+    const note: Locator = dryRunNote(page);
+    await expect(note).toHaveAttribute("data-status", "WouldBeRefused");
+    await expect(note.getByTestId("remediation-dry-run-headline")).toHaveText(
+      /^Dry run .+: the agent would refuse this change\. Nothing was changed\.$/,
+    );
+    await expect(note.getByTestId("remediation-dry-run-summary")).toContainText(
+      "(ONEUPTIME_AI_CLOUD_REQUIRED_TAG)",
+    );
+    await expect(note).toHaveClass(/border-amber-200/);
+    await expect(
+      remediationCard(page).getByTestId("remediation-approve-button"),
+    ).toBeVisible();
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-cloud-dry-run-refused",
+    );
+  });
+
+  test("could not finish: says so, with what the server knows, and nothing was changed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=failed");
+
+    const note: Locator = dryRunNote(page);
+    await expect(note).toHaveAttribute("data-status", "Failed");
+    await expect(note.getByTestId("remediation-dry-run-headline")).toHaveText(
+      /^Dry run .+: it could not finish\. Nothing was changed\.$/,
+    );
+    await expect(note.getByTestId("remediation-dry-run-summary")).toContainText(
+      "did not pick up the command in time",
+    );
+    await expect(note).not.toHaveClass(/amber/);
+  });
+
+  test("being checked: one status line, and Dry run again waits for the answer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=running");
+
+    const note: Locator = dryRunNote(page);
+    await expect(note).toHaveAttribute("data-status", "Running");
+    await expect(note).toHaveAttribute("role", "status");
+    await expect(note).toHaveText("Checking this change with a dry run…");
+    await expect(dryRunButton(page)).toBeDisabled();
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-cloud-dry-run-running",
+    );
+  });
+
+  test("no dry run yet, as from before dry runs: Dry run, and no answer under the change", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=none");
+
+    await expect(dryRunNote(page)).toHaveCount(0);
+    await expect(dryRunButton(page)).toHaveText("Dry run");
+    await expect(dryRunButton(page)).toBeEnabled();
+  });
+
+  test("Dry run again checks once more: the change is being checked at once, and its answer lands on the next poll", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=failed");
+    await expect(dryRunNote(page)).toHaveAttribute("data-status", "Failed");
+
+    await dryRunButton(page).click();
+
+    // Read again right after the click: on its way, so the card polls.
+    await expect(dryRunNote(page)).toHaveAttribute("data-status", "Running");
+    await expect(dryRunButton(page)).toBeDisabled();
+
+    const posts: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/dry-run",
+    );
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.method).toBe("POST");
+    expect(posts[0]!.body).toEqual({ suggestionId: CLOUD_FIX_SUGGESTION_ID });
+
+    // The card's next poll (every 15 s) reads the answer.
+    await expect(dryRunNote(page)).toHaveAttribute("data-status", "WouldRun", {
+      timeout: 30000,
+    });
+    await expect(
+      dryRunNote(page).getByTestId("remediation-dry-run-headline"),
+    ).toHaveText(WOULD_RUN);
+    await expect(dryRunButton(page)).toBeEnabled();
+    // One click, one dry run.
+    expect(await apiRequestsTo(page, "/auto-remediation/dry-run")).toHaveLength(
+      1,
+    );
+  });
+
+  test("a click the server refuses says the dry run did not start and nothing was changed, with why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudFix(page, "cloudfix=failed&fail=dry-run");
+
+    await dryRunButton(page).click();
+
+    const refusal: Locator = remediationCard(page).getByTestId(
+      "remediation-action-error",
+    );
+    await expect(refusal).toContainText(
+      "Could not start the dry run: nothing was changed",
+    );
+    await expect(refusal).toContainText(
+      "The Cloud AI agent of this AWS account is offline, so the change cannot be dry-run.",
+    );
+    // The answer it had stays.
+    await expect(dryRunNote(page)).toHaveAttribute("data-status", "Failed");
+    await expect(dryRunButton(page)).toBeEnabled();
+  });
+
+  test("reads at a phone's width in dark mode: the long resource id stays inside the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCloudFix(page, "cloudfix=refused&theme=dark");
+
+    const note: Locator = dryRunNote(page);
+    await expect(note).toHaveAttribute("data-status", "WouldBeRefused");
+    await expectNoHorizontalOverflow(page);
+
+    const cardBox: Box = await documentBox(remediationCard(page));
+    const noteBox: Box = await documentBox(note);
+    expect(noteBox.x).toBeGreaterThanOrEqual(cardBox.x);
+    expect(noteBox.x + noteBox.width).toBeLessThanOrEqual(
+      cardBox.x + cardBox.width + 1,
+    );
+    expect(
+      await isOverflowing(note.getByTestId("remediation-dry-run-summary")),
+    ).toBe(false);
+
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-cloud-dry-run-refused-390-dark",
+    );
+  });
+});
