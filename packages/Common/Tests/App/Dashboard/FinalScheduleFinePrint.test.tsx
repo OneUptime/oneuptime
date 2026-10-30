@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import fs from "fs";
 import path from "path";
@@ -103,6 +110,7 @@ import LayersPreview, {
   FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX,
   FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX,
   VIEW_AS_CONTROL_CLASS_NAME,
+  VIEW_AS_LABEL_CLASS_NAME,
   VIEW_AS_NOTE_CLASS_NAME,
   VIEW_AS_ROW_CLASS_NAME,
   getFinalScheduleCalendarView,
@@ -777,9 +785,31 @@ describe("the legend and the grid", () => {
     expect(row.className).toBe(VIEW_AS_ROW_CLASS_NAME);
     expect(row.classList.contains("flex-wrap")).toBe(true);
     expect(control.className).toBe(VIEW_AS_CONTROL_CLASS_NAME);
-    expect(control.classList.contains("whitespace-nowrap")).toBe(true);
-    expect(control.classList.contains("shrink-0")).toBe(true);
+    /*
+     * The control may narrow to the row: the timezone dialog it holds is
+     * drawn in place, and its words sit in the row until it is styled.
+     */
+    expect(control.classList.contains("shrink-0")).toBe(false);
+    expect(control.classList.contains("max-w-full")).toBe(true);
     expect(control).toHaveTextContent("View as");
+
+    // "View as" keeps to one line...
+    const label: HTMLElement = within(control).getByText("View as");
+    expect(label.className).toBe(VIEW_AS_LABEL_CLASS_NAME);
+    expect(label.classList.contains("whitespace-nowrap")).toBe(true);
+    /*
+     * ...but nothing around the control does: the control holds the
+     * timezone dialog, drawn in place, which would inherit it and run its
+     * words off a phone's screen.
+     */
+    let ancestor: HTMLElement | null = control;
+    while (ancestor) {
+      expect([
+        ancestor.tagName,
+        ancestor.classList.contains("whitespace-nowrap"),
+      ]).toEqual([ancestor.tagName, false]);
+      ancestor = ancestor.parentElement;
+    }
     expect(note.className).toBe(VIEW_AS_NOTE_CLASS_NAME);
     // Wrapped "pretty": never a last line of one word.
     expect(note.classList.contains("text-pretty")).toBe(true);

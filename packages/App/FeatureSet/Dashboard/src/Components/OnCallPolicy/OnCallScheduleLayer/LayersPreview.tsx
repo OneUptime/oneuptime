@@ -125,13 +125,20 @@ export const getFinalScheduleCalendarView: (data: {
  * times are in - beside it where they both fit, under it where they do not
  * (the note is one wrapping item, never squeezed into a narrow column beside
  * the control). "View as" itself never breaks: beside the side menu it read
- * "View / as".
+ * "View / as". Only the words keep to one line, and the control may still
+ * narrow to the row: it holds the timezone dialog too, drawn in place, and
+ * for the moment before the dialog is styled its words sit in the row - a
+ * no-wrap around them, or a control that may not shrink, stretched the page
+ * to three phone screens wide.
  */
 export const VIEW_AS_ROW_CLASS_NAME: string =
   "mt-5 flex flex-wrap items-center gap-x-4 gap-y-2";
 
 export const VIEW_AS_CONTROL_CLASS_NAME: string =
-  "flex shrink-0 items-center gap-2 whitespace-nowrap";
+  "flex min-w-0 max-w-full items-center gap-2";
+
+export const VIEW_AS_LABEL_CLASS_NAME: string =
+  "whitespace-nowrap text-xs font-medium text-gray-500";
 
 // Wrapped "pretty": no last line of one word ("... actually paged / in.").
 export const VIEW_AS_NOTE_CLASS_NAME: string =
@@ -1008,7 +1015,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       {/* View-as timezone bubble + note above the calendar grid. */}
       <div className={VIEW_AS_ROW_CLASS_NAME} data-testid="view-as-row">
         <div className={VIEW_AS_CONTROL_CLASS_NAME}>
-          <span className="text-xs font-medium text-gray-500">
+          <span className={VIEW_AS_LABEL_CLASS_NAME}>
             {translator.translateText("View as")}
           </span>
           <TimezoneSelectButton
