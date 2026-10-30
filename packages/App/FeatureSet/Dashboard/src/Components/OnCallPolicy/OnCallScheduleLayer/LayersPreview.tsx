@@ -50,10 +50,13 @@ import {
 } from "./ScheduleOverrides";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -82,23 +85,57 @@ const CALENDAR_EDGE_MARGIN_DAYS: number = 1;
 const CALENDAR_MINIMUM_GAP_SECONDS: number = 60;
 
 /*
- * The view the schedule's calendar opens on: a week, or on a phone a day. A
- * week in a phone's 300 pixels drew seven columns of 40, every name broken
- * into a letter a line down its block ("N / i / n / a"). The reader can still
- * switch to Week, Month or Agenda; this is only where it opens.
+ * The view the schedule's calendar opens on: a week where the preview has
+ * room for seven readable columns, a day where it has not. A week in a
+ * phone's 300 pixels drew seven columns of 40, every name broken into a
+ * letter a line down its block ("N / i / n / a") - and beside the side menu
+ * at 768 pixels the card gives the grid 430 pixels, hardly more than a
+ * phone ("Bob / Riv / era"), while the window is a tablet's. So the room is
+ * the preview's own width, read before it is first drawn: a week from 560
+ * pixels (columns of some 70, a name on two lines at most); only where no
+ * width can be read (nothing laid out yet, a test's DOM) the window's, a
+ * day under 640. The reader can still switch to Week, Month or Agenda; this
+ * is only where it opens.
  */
+export const FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX: number = 560;
+
 export const FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX: number = 640;
 
-export const getFinalScheduleCalendarView: (
-  windowWidth: number | undefined,
-) => DefaultCalendarView = (
-  windowWidth: number | undefined,
-): DefaultCalendarView => {
-  return windowWidth !== undefined &&
-    windowWidth < FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX
+export const getFinalScheduleCalendarView: (data: {
+  previewWidth?: number | undefined;
+  windowWidth?: number | undefined;
+}) => DefaultCalendarView = (data: {
+  previewWidth?: number | undefined;
+  windowWidth?: number | undefined;
+}): DefaultCalendarView => {
+  if (data.previewWidth !== undefined && data.previewWidth > 0) {
+    return data.previewWidth < FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX
+      ? DefaultCalendarView.Day
+      : DefaultCalendarView.Week;
+  }
+
+  return data.windowWidth !== undefined &&
+    data.windowWidth < FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX
     ? DefaultCalendarView.Day
     : DefaultCalendarView.Week;
 };
+
+/*
+ * The "View as" row: the control, then the note that says which zone the
+ * times are in - beside it where they both fit, under it where they do not
+ * (the note is one wrapping item, never squeezed into a narrow column beside
+ * the control). "View as" itself never breaks: beside the side menu it read
+ * "View / as".
+ */
+export const VIEW_AS_ROW_CLASS_NAME: string =
+  "mt-5 flex flex-wrap items-center gap-x-4 gap-y-2";
+
+export const VIEW_AS_CONTROL_CLASS_NAME: string =
+  "flex shrink-0 items-center gap-2 whitespace-nowrap";
+
+// Wrapped "pretty": no last line of one word ("... actually paged / in.").
+export const VIEW_AS_NOTE_CLASS_NAME: string =
+  "min-w-0 text-pretty text-xs text-gray-500";
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -864,8 +901,33 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       );
     };
 
+  /*
+   * The preview's own width, read once before it is first drawn: the room
+   * the calendar's first view is chosen for (getFinalScheduleCalendarView).
+   */
+  const previewRef: MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const [previewWidth, setPreviewWidth] = useState<number | undefined>(
+    undefined,
+  );
+
+  useLayoutEffect(() => {
+    const width: number =
+      previewRef.current?.getBoundingClientRect().width || 0;
+
+    if (width > 0) {
+      setPreviewWidth(width);
+    }
+  }, []);
+
+  const calendarView: DefaultCalendarView = getFinalScheduleCalendarView({
+    previewWidth: previewWidth,
+    windowWidth: typeof window === "undefined" ? undefined : window.innerWidth,
+  });
+
   return (
     <div
+      ref={previewRef}
       id={props.id}
       data-testid="layers-preview"
       /*
@@ -944,8 +1006,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       {getOverrideScopeNote()}
 
       {/* View-as timezone bubble + note above the calendar grid. */}
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+      <div className={VIEW_AS_ROW_CLASS_NAME} data-testid="view-as-row">
+        <div className={VIEW_AS_CONTROL_CLASS_NAME}>
           <span className="text-xs font-medium text-gray-500">
             {translator.translateText("View as")}
           </span>
@@ -965,7 +1027,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        <p className="text-xs text-gray-500 sm:max-w-md sm:text-right">
+        <p className={VIEW_AS_NOTE_CLASS_NAME} data-testid="view-as-note">
           {viewNote}
         </p>
       </div>
@@ -1056,11 +1118,15 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       )}
 
       <Calendar
+        /*
+         * Opened again on the view for the room the preview turned out to
+         * have, if that is not the one the window suggested (the width is
+         * read before anything is drawn, so nobody sees the first).
+         */
+        key={calendarView}
         events={displayEvents}
         backgroundEvents={displayGapEvents}
-        defaultCalendarView={getFinalScheduleCalendarView(
-          typeof window === "undefined" ? undefined : window.innerWidth,
-        )}
+        defaultCalendarView={calendarView}
         defaultDate={displayDefaultDate}
         getNow={getDisplayNow}
         onRangeChange={(startEndTime: StartAndEndTime) => {

@@ -101,6 +101,10 @@ jest.mock("../../../UI/Components/Calendar/Calendar", () => {
 
 import LayersPreview, {
   FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX,
+  FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX,
+  VIEW_AS_CONTROL_CLASS_NAME,
+  VIEW_AS_NOTE_CLASS_NAME,
+  VIEW_AS_ROW_CLASS_NAME,
   getFinalScheduleCalendarView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayersPreview";
 import {
@@ -142,6 +146,9 @@ const USER_NAMES: Array<string> = ["Nina Patel", "Bob Rivera", "Chen Wei"];
 
 // What a letter-spaced, upper-case label is drawn with.
 const SHOUTING_CLASSES: Array<string> = ["uppercase", "tracking-wide"];
+
+// A class that goes by the window's width (sm:, md:, max-lg: and the rest).
+const WINDOW_BREAKPOINT: RegExp = /^(?:max-)?(?:sm|md|lg|xl|2xl):/;
 
 function makeUser(index: number): User {
   const user: User = new User();
@@ -650,14 +657,156 @@ describe("the legend and the grid", () => {
     }
   });
 
-  test("the grid opens on a week, and on a phone on a day", () => {
+  test("the grid opens on a week where the preview has room for seven columns, and on a day where it has not", () => {
+    expect(FINAL_SCHEDULE_WEEK_VIEW_MIN_WIDTH_IN_PX).toBe(560);
+
+    /*
+     * The preview's own width decides: a phone's card (318), the card
+     * beside the side menu at 768 (430), at 1024 (634) and at 1280 (890).
+     */
+    expect(getFinalScheduleCalendarView({ previewWidth: 318 })).toBe("day");
+    expect(getFinalScheduleCalendarView({ previewWidth: 430 })).toBe("day");
+    expect(getFinalScheduleCalendarView({ previewWidth: 559 })).toBe("day");
+    expect(getFinalScheduleCalendarView({ previewWidth: 560 })).toBe("week");
+    expect(getFinalScheduleCalendarView({ previewWidth: 634 })).toBe("week");
+    expect(getFinalScheduleCalendarView({ previewWidth: 890 })).toBe("week");
+
+    // ...whatever the window: a tablet's window, a phone's room.
+    expect(
+      getFinalScheduleCalendarView({ previewWidth: 430, windowWidth: 768 }),
+    ).toBe("day");
+    expect(
+      getFinalScheduleCalendarView({ previewWidth: 634, windowWidth: 600 }),
+    ).toBe("week");
+  });
+
+  test("with no width of its own to read, the window decides: a day under 640", () => {
     expect(FINAL_SCHEDULE_DAY_VIEW_BELOW_WIDTH_IN_PX).toBe(640);
-    expect(getFinalScheduleCalendarView(390)).toBe("day");
-    expect(getFinalScheduleCalendarView(639)).toBe("day");
-    expect(getFinalScheduleCalendarView(640)).toBe("week");
-    expect(getFinalScheduleCalendarView(1280)).toBe("week");
-    // No window to read (a server render): the week.
-    expect(getFinalScheduleCalendarView(undefined)).toBe("week");
+    expect(getFinalScheduleCalendarView({ windowWidth: 390 })).toBe("day");
+    expect(getFinalScheduleCalendarView({ windowWidth: 639 })).toBe("day");
+    expect(getFinalScheduleCalendarView({ windowWidth: 640 })).toBe("week");
+    expect(getFinalScheduleCalendarView({ windowWidth: 1280 })).toBe("week");
+    // Nothing laid out yet (a width of 0) reads as no width.
+    expect(
+      getFinalScheduleCalendarView({ previewWidth: 0, windowWidth: 390 }),
+    ).toBe("day");
+    // No window to read either (a server render): the week.
+    expect(getFinalScheduleCalendarView({})).toBe("week");
+  });
+
+  /*
+   * Beside the side menu at 768 the window is a tablet's, but the card gives
+   * the grid some 430 pixels: a week there broke every name ("Bob / Riv /
+   * era"). The preview reads its own width before it is first drawn.
+   */
+  test("the preview opens the grid for its own width, not the window's", async () => {
+    answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
+
+    const width: number = window.innerWidth;
+    const original: () => DOMRect = HTMLElement.prototype.getBoundingClientRect;
+
+    try {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 768,
+      });
+      HTMLElement.prototype.getBoundingClientRect = function (
+        this: HTMLElement,
+      ): DOMRect {
+        if (this.getAttribute("data-testid") === "layers-preview") {
+          return { width: 430, height: 900, top: 0, left: 0 } as DOMRect;
+        }
+        return original.call(this);
+      };
+
+      renderPreview();
+      await waitForPreview();
+
+      expect(
+        calendarProps[calendarProps.length - 1]!["defaultCalendarView"],
+      ).toBe("day");
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original;
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: width,
+      });
+    }
+  });
+
+  test("a wide preview opens on a week, though the window alone would say a day", async () => {
+    answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
+
+    const width: number = window.innerWidth;
+    const original: () => DOMRect = HTMLElement.prototype.getBoundingClientRect;
+
+    try {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 600,
+      });
+      HTMLElement.prototype.getBoundingClientRect = function (
+        this: HTMLElement,
+      ): DOMRect {
+        if (this.getAttribute("data-testid") === "layers-preview") {
+          return { width: 634, height: 900, top: 0, left: 0 } as DOMRect;
+        }
+        return original.call(this);
+      };
+
+      renderPreview();
+      await waitForPreview();
+
+      expect(
+        calendarProps[calendarProps.length - 1]!["defaultCalendarView"],
+      ).toBe("week");
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original;
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: width,
+      });
+    }
+  });
+
+  /*
+   * "View as" and its control, then the note saying which zone the times are
+   * in: beside them where both fit, else under them as one wrapping line -
+   * never a narrow right-aligned column beside the control (four lines at
+   * 768), and "View as" never broken into "View / as".
+   */
+  test("the View as row keeps its words whole and lets the note wrap under the control", async () => {
+    answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
+
+    renderPreview();
+    await waitForPreview();
+
+    const row: HTMLElement = screen.getByTestId("view-as-row");
+    const note: HTMLElement = screen.getByTestId("view-as-note");
+    const control: HTMLElement = screen.getByTestId("view-as-timezone-button")
+      .parentElement as HTMLElement;
+
+    expect(row.className).toBe(VIEW_AS_ROW_CLASS_NAME);
+    expect(row.classList.contains("flex-wrap")).toBe(true);
+    expect(control.className).toBe(VIEW_AS_CONTROL_CLASS_NAME);
+    expect(control.classList.contains("whitespace-nowrap")).toBe(true);
+    expect(control.classList.contains("shrink-0")).toBe(true);
+    expect(control).toHaveTextContent("View as");
+    expect(note.className).toBe(VIEW_AS_NOTE_CLASS_NAME);
+    // Wrapped "pretty": never a last line of one word.
+    expect(note.classList.contains("text-pretty")).toBe(true);
+    expect(note).toHaveTextContent("Europe/London");
+
+    // Nothing in the row goes by the window's width any more.
+    for (const element of [row, control, note]) {
+      for (const token of element.className.split(" ")) {
+        expect(token).not.toMatch(WINDOW_BREAKPOINT);
+      }
+    }
   });
 
   test("the preview hands the grid the view for the window it is in", async () => {
