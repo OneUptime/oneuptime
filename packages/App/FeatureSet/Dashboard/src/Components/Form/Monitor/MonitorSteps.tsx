@@ -4,6 +4,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import URL from "Common/Types/API/URL";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
@@ -67,6 +68,19 @@ import {
   TelemetryMonitorLinkSeed,
 } from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 
+/*
+ * What a link fills in on a new monitor's step, besides the criteria the
+ * form seeds for its type: where it checks, and whether it takes a
+ * self-signed certificate - a network device's web UI ("Monitor web UI",
+ * DeviceWebUiUtil). Only for the type it was made for: pick another type
+ * and the step starts as that type's usually does.
+ */
+export interface MonitorStepSeed {
+  monitorType: MonitorType;
+  monitorDestination: URL;
+  allowSelfSignedCertificates?: boolean | undefined;
+}
+
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
   onChange?: ((value: MonitorSteps) => void) | undefined;
@@ -86,6 +100,8 @@ export interface ComponentProps extends CustomElementProps {
    * link's type starts watching just that, on the recipe that suits it.
    */
   seedQuery?: TelemetryMonitorLinkSeed | undefined;
+  // What a link fills in on the new monitor's step (MonitorStepSeed).
+  seedStep?: MonitorStepSeed | undefined;
   /*
    * The form creates a monitor (Create Monitor, not from a template): its
    * steps may have been handed in - the form's own, after a walk back to
@@ -243,6 +259,24 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       monitorName: props.monitorName || "",
       ...data.criteriaSeedOptions,
     });
+
+    // A link's address, only for the type it was made for (MonitorStepSeed).
+    const stepSeed: MonitorStepSeed | undefined =
+      props.seedStep && props.seedStep.monitorType === data.monitorType
+        ? props.seedStep
+        : undefined;
+    const seededFirstStep: MonitorStep | undefined =
+      steps.data?.monitorStepsInstanceArray[0];
+
+    if (stepSeed && seededFirstStep) {
+      seededFirstStep.setMonitorDestination(stepSeed.monitorDestination);
+
+      if (stepSeed.allowSelfSignedCertificates !== undefined) {
+        seededFirstStep.setAllowSelfSignedCertificates(
+          stepSeed.allowSelfSignedCertificates,
+        );
+      }
+    }
 
     // A link's query, only for the type it was made for.
     const linkSeed: TelemetryMonitorLinkSeed | undefined =

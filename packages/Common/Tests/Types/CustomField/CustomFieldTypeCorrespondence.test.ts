@@ -124,9 +124,11 @@ describe("CustomFieldType long and rich text", () => {
         "Date",
         "DateTime",
         "Dropdown",
+        "File",
         "LongText",
         "Markdown",
         "MultiSelectDropdown",
+        "MultipleFiles",
         "Number",
         "Text",
       ].sort(),
@@ -137,6 +139,37 @@ describe("CustomFieldType long and rich text", () => {
     for (const [key, value] of customFieldTypeEntries) {
       expect(key).toEqual(value);
     }
+  });
+});
+
+describe("CustomFieldType files", () => {
+  test("includes File and MultipleFiles, spelled as the Detail and form types", () => {
+    /*
+     * A File field reaches its form as the file picker for one file and a
+     * Multiple files field as the picker for several - FormFieldSchemaType
+     * File and MultipleFiles, which upload and hand back what they
+     * uploaded - and both reach Detail as the file types it draws as their
+     * files' names.
+     */
+    expect(CustomFieldType.File).toEqual("File");
+    expect(CustomFieldType.MultipleFiles).toEqual("MultipleFiles");
+    expect(FieldType.File as string).toEqual(CustomFieldType.File);
+    expect(FieldType.MultipleFiles as string).toEqual(
+      CustomFieldType.MultipleFiles,
+    );
+    expect(FormFieldSchemaType.File as string).toEqual(CustomFieldType.File);
+    expect(FormFieldSchemaType.MultipleFiles as string).toEqual(
+      CustomFieldType.MultipleFiles,
+    );
+  });
+
+  test("an image field is not a custom field type", () => {
+    /*
+     * FormFieldSchemaType.ImageFile is the picker for a logo; a File field
+     * takes pictures among its kinds of file, so there is no separate
+     * picture type to keep in step.
+     */
+    expect(Object.values(CustomFieldType)).not.toContain("ImageFile");
   });
 });
 

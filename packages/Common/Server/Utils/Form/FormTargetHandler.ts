@@ -10,10 +10,16 @@ import {
 import {
   FormCustomFieldDefinition,
   FormFieldBinding,
+  isPublicFormFileField,
   PublicFormField,
   PublicFormFieldType,
   ValidatedFormAnswers,
 } from "../../../Types/Form/FormPublic";
+import {
+  CustomFieldFile,
+  readCustomFieldFiles,
+} from "../../../Types/CustomField/CustomFieldFile";
+import File from "../../../Models/DatabaseModels/File";
 import { getFormAnswerDisplayValue } from "../../../Types/Form/FormSubmissionAnswer";
 import {
   FormTargetSettingReference,
@@ -75,6 +81,12 @@ export interface SortedFormAnswers {
   submitterName?: string | undefined;
   submitterEmail?: string | undefined;
   questions: Array<FormNoteAnswer>;
+  /*
+   * The files the submitter chose for the form's own file questions, as
+   * stored for the submission: the private note carries them, so the
+   * people acting on the record can download them there.
+   */
+  noteAttachments: Array<CustomFieldFile>;
 }
 
 // The service that owns a kind of record a target's settings can name.
@@ -108,6 +120,8 @@ export interface FormTargetHandler<TPrepared> {
     form: Form;
     createdId: ObjectID;
     note: string;
+    // Files the note carries: the answers to the form's own file questions.
+    attachments?: Array<CustomFieldFile> | undefined;
   }): Promise<void>;
 }
 
@@ -135,6 +149,7 @@ export class FormTargetHelpers {
       targetFieldLabels: {},
       customFields: {},
       questions: [],
+      noteAttachments: [],
     };
 
     for (const field of context.fields) {
@@ -192,6 +207,11 @@ export class FormTargetHelpers {
             displayValue: getFormAnswerDisplayValue(field, value),
             format: getNoteFormat(field.type),
           });
+
+          // A file question's files go on the note, to be downloaded there.
+          if (isPublicFormFileField(field)) {
+            sorted.noteAttachments.push(...readCustomFieldFiles(value));
+          }
           break;
       }
     }
@@ -333,6 +353,17 @@ export class FormTargetHelpers {
     const date: Date = new Date(value);
 
     return isNaN(date.getTime()) ? undefined : date;
+  }
+
+  // The files a note carries, as the stubs its attachments are written with.
+  public static toAttachmentStubs(
+    files: Array<CustomFieldFile> | undefined,
+  ): Array<File> {
+    return (files || []).map((file: CustomFieldFile): File => {
+      const stub: File = new File();
+      stub._id = file.fileId;
+      return stub;
+    });
   }
 
   /*

@@ -71,6 +71,7 @@ Every request passes these checks, in this order:
 6. Every answer must be within the size limits and fit its question — see [Building a Form](/docs/forms/building#size-limits).
 7. What the answers and the settings make must be creatable: an incident needs a severity, an event an end after its start.
 8. A submission must fit within the form's hourly allowance — see [Rate limits](#rate-limits).
+9. Its files must fit within the form's hourly allowance of files, right before they are stored.
 
 A form's logo and favicon are part of the form: they are sent inside the answer that opens it, base64, only once it has passed the first four checks, and never from an address of their own. Nobody can fetch them without the form, and no file can be fetched by its id through a form; the files themselves stay private. A form shows only images uploaded in its own project: a file of another project is refused when the form is saved, and never sent to its page.
 
@@ -109,6 +110,7 @@ Opening a form and submitting it are limited per network address, and submitting
 - **Opening a form** — per form from one address, and per address across every form, with room for a whole office opening the link at once. Past either, the page shows "Too many requests. Please try again later." If the rate limiter cannot be reached, forms still open.
 - **Submitting, per address** — per form from one address, and per address across every form. Past either, the submitter sees "Too many submissions from your network. Please wait a few minutes and try again." Everybody behind one address — an office network, a VPN gateway — shares these limits, and every submission counts, even one that is then refused for a wrong answer.
 - **Submitting, per form** — how many records one form may create in an hour, from every address together, so even submissions from many addresses at once can only page you a limited number of times an hour. Only a submission that passed every other check counts, right before its record is created. Past it, everybody sees "This form is receiving too many submissions right now. Please try again later." until the window is over. **Reset Link** starts the new link with a fresh allowance.
+- **Files, per form** — how many megabytes of files one form may take in an hour, from every address together. Only the files of a submission that passed every other check count, right before they are stored. Past it, a submission with files is refused with "This form is receiving too many files right now. Please try again later." until the window is over; one without files still goes through.
 
 Every limit answers `429` with a `Retry-After` header, in seconds, and the page tells the submitter when to try again. The windows are fixed, not rolling. Each per-address limit also counts the addresses of one IPv6 /64 together, at ten times its number. If the rate limiter cannot be reached, submissions are refused rather than let through uncounted: the API answers `503`, and the submitter sees "Submissions cannot be accepted right now. Please try again in a few minutes."
 
@@ -124,6 +126,8 @@ On a self-hosted installation, these environment variables of the OneUptime app 
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Submissions from one address per window, across every form. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | The window for the per-form limit, in seconds. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Records one form may create per window, from every address together. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | The window for the per-form files limit, in seconds. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabytes of files one form may take in per window, from every address together. |
 
 Each variable also reads its old name, with `INCIDENT_FORM_` in front instead of `FORM_` — such as `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` — so an installation that tuned incident forms keeps its limits; the new name wins when both are set. Neither `config.env` nor the Helm chart's values pass them on: add them to the environment of the `app` container yourself — with `app.extraEnv`, or the chart-wide `extraEnv`, in the Helm chart, or in a `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` decides which address the per-address limits count.
 

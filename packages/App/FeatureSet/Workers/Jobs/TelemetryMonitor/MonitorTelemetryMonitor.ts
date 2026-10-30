@@ -97,7 +97,6 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import { getPercentileLevel } from "Common/Types/BaseDatabase/AggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
@@ -118,6 +117,10 @@ import ExceptionMonitorMeasureReader, {
   ExceptionMonitorMeasures,
 } from "Common/Server/Utils/Monitor/ExceptionMonitorMeasures";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
+import KubernetesFinishedPods, {
+  POD_UID_ATTRIBUTE as FINISHED_POD_UID_ATTRIBUTE,
+} from "Common/Server/Utils/Monitor/KubernetesFinishedPods";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import ProfileMonitorResponse, {
@@ -157,6 +160,7 @@ import MonitorStepStorageArrayMonitor, {
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
   MonitorStepDockerSwarmMonitorUtil,
+  SWARM_TASK_SERVICE_ATTRIBUTE,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MonitorStepIoTMonitor, {
   IoTDeviceFilters,
@@ -782,199 +786,27 @@ const bucketAggregatedResultBySeries: (input: {
   return buckets;
 };
 
-/**
- * When the UTC minute `time` falls in begins, in epoch milliseconds: the
- * instant `Date.UTC(year, month, day, hours, minutes)` of its UTC fields
- * names. From 1970 on that is the time floored to a multiple of 60,000 ms
- * (an ECMAScript day is exactly 86,400,000 ms), which costs a fraction of
- * reading five fields and building two Dates for every raw row. Earlier
- * instants keep the field-by-field computation (Date.UTC reads the years
- * 0-99 as 1900-1999), and an invalid time still throws the RangeError the
- * bucket's ISO key threw.
+/*
+ * The most rows one grouped read of a monitor returns: a row per series and
+ * time bucket (a minute over any window up to three hours), aggregated by
+ * ClickHouse. Five times LIMIT_PER_PROJECT, which the reads of a single
+ * series keep: a grouped read used to fetch LIMIT_PER_PROJECT RAW rows and
+ * aggregate them in code, so a Kubernetes monitor grouped by pod, over a
+ * cluster of a few hundred pods reporting every 30 seconds, read only the
+ * newest few minutes of its window - and "All Values" over the window
+ * waited for data it would never read (follow-up of #4912). A row is a
+ * series' bucket now, never a raw data point, so this many rows cover
+ * 3,333 series over a 15-minute window, at whatever rate they report.
  */
-export const getUtcMinuteStartMs: (time: Date) => number = (
-  time: Date,
-): number => {
-  const ms: number = time.getTime();
-
-  if (ms >= 0) {
-    return ms - (ms % 60000);
-  }
-
-  const bucketDate: Date = new Date(
-    Date.UTC(
-      time.getUTCFullYear(),
-      time.getUTCMonth(),
-      time.getUTCDate(),
-      time.getUTCHours(),
-      time.getUTCMinutes(),
-      0,
-      0,
-    ),
-  );
-
-  // Throws "Invalid time value" for an invalid time, as before.
-  bucketDate.toISOString();
-
-  return bucketDate.getTime();
-};
-
-/**
- * Per-series aggregation path: fetch raw metric rows and bucket them
- * by (series fingerprint, minute bucket) in code. Returns an
- * AggregatedResult shaped identically to what `MetricService.aggregateBy`
- * would have produced with `GROUP BY time, attributes`.
- *
- * Why in-code instead of SQL GROUP BY: ClickHouse's parameterized
- * query returns 0 rows when the GROUP BY clause includes the nested
- * `attributes` Map column, even though running the exact same SQL
- * directly returns rows. This is a quirk of the @clickhouse/client
- * parameter binding for Map columns. Rather than work around the
- * library bug we fetch raw rows (just like the Kubernetes monitor
- * already does for its per-resource breakdown) and aggregate in JS.
- * For the realistic monitor shape — hundreds of hosts × ~60 samples
- * per minute — the extra work is negligible compared to a cron tick.
- */
-export const aggregatePerSeriesFromRawMetrics: (input: {
-  rawMetrics: Array<Metric>;
-  attributeKeys: Array<string>;
-  aggregationType: MetricsAggregationType;
-}) => AggregatedResult = (input: {
-  rawMetrics: Array<Metric>;
-  attributeKeys: Array<string>;
-  aggregationType: MetricsAggregationType;
-}): AggregatedResult => {
-  /*
-   * Keyed by the series' fingerprint and the minute's start in epoch
-   * milliseconds: the same buckets, met in the same order, as the
-   * fingerprint and the minute's ISO text the key used to be.
-   */
-  const buckets: Map<
-    string,
-    {
-      labels: JSONObject;
-      timestamp: Date;
-      values: Array<number>;
-      attributes: JSONObject;
-    }
-  > = new Map();
-
-  for (const metric of input.rawMetrics) {
-    const attrs: JSONObject = (metric.attributes as JSONObject) || {};
-    const labels: JSONObject = {};
-    for (const key of input.attributeKeys) {
-      const value: unknown = attrs[key];
-      labels[key] =
-        value === undefined || value === null ? "" : (value as string);
-    }
-    const fingerprint: string =
-      MetricSeriesFingerprint.computeFingerprint(labels);
-
-    const metricTime: Date = metric.time ? new Date(metric.time) : new Date();
-    const minuteStartMs: number = getUtcMinuteStartMs(metricTime);
-
-    const bucketKey: string = `${fingerprint}|${minuteStartMs}`;
-
-    const value: number =
-      typeof metric.value === "number" ? metric.value : Number(metric.value);
-
-    if (!Number.isFinite(value)) {
-      continue;
-    }
-
-    const existing:
-      | {
-          labels: JSONObject;
-          timestamp: Date;
-          values: Array<number>;
-          attributes: JSONObject;
-        }
-      | undefined = buckets.get(bucketKey);
-
-    if (existing) {
-      existing.values.push(value);
-    } else {
-      buckets.set(bucketKey, {
-        labels,
-        timestamp: new Date(minuteStartMs),
-        values: [value],
-        attributes: attrs,
-      });
-    }
-  }
-
-  const rows: Array<AggregatedModel> = [];
-
-  for (const bucket of buckets.values()) {
-    const vs: Array<number> = bucket.values;
-    if (vs.length === 0) {
-      continue;
-    }
-
-    let aggregated: number;
-    switch (input.aggregationType) {
-      case MetricsAggregationType.Sum:
-        aggregated = vs.reduce((a: number, b: number) => {
-          return a + b;
-        }, 0);
-        break;
-      case MetricsAggregationType.Count:
-        aggregated = vs.length;
-        break;
-      case MetricsAggregationType.Max:
-        aggregated = Math.max(...vs);
-        break;
-      case MetricsAggregationType.Min:
-        aggregated = Math.min(...vs);
-        break;
-      case MetricsAggregationType.P50:
-      case MetricsAggregationType.P75:
-      case MetricsAggregationType.P90:
-      case MetricsAggregationType.P95:
-      case MetricsAggregationType.P99: {
-        /*
-         * Nearest-rank percentile over the bucket's raw values. This
-         * path serves the infra monitors' gauge metrics, where every
-         * row is a single observation — histogram metrics go through
-         * the SQL bucket fanout instead. Previously these fell into
-         * the default branch and were silently computed as Avg.
-         */
-        const sorted: Array<number> = [...vs].sort((a: number, b: number) => {
-          return a - b;
-        });
-        const level: number = getPercentileLevel(input.aggregationType) || 0.5;
-        const rankIndex: number = Math.min(
-          sorted.length - 1,
-          Math.max(0, Math.ceil(level * sorted.length) - 1),
-        );
-        aggregated = sorted[rankIndex]!;
-        break;
-      }
-      case MetricsAggregationType.Avg:
-      default:
-        aggregated =
-          vs.reduce((a: number, b: number) => {
-            return a + b;
-          }, 0) / vs.length;
-        break;
-    }
-
-    rows.push({
-      timestamp: bucket.timestamp,
-      value: aggregated,
-      attributes: bucket.attributes as AggregatedModel[string],
-    });
-  }
-
-  return { data: rows };
-};
+export const GROUPED_READ_ROW_LIMIT: number = 5 * LIMIT_PER_PROJECT;
 
 /**
  * Where a read cut at its row limit becomes complete, or null when the read
  * was whole.
  *
- * A monitor's reads return their newest rows first, up to LIMIT_PER_PROJECT
- * rows. A read that returns that many was cut, and holds only the newest
+ * A monitor's reads return their newest rows first, up to their limit
+ * (LIMIT_PER_PROJECT, or GROUPED_READ_ROW_LIMIT for a grouped read). A read
+ * that returns that many was cut, and holds only the newest
  * rows: every series in it seems to begin at its oldest row, whatever it
  * did before. That is where the data becomes complete, and "All Values"
  * judges a series' coverage from there (MetricWindowCoverage) - otherwise a
@@ -1040,8 +872,26 @@ export interface QueryDataPoints {
 /**
  * Read one query of an infrastructure monitor (Kubernetes, Docker, Host,
  * Podman, Proxmox, VMware, IoT, Docker Swarm, Ceph, storage arrays) over its
- * window: per series and minute from the raw rows when the query is
- * grouped, per time bucket from ClickHouse when it is not.
+ * window, aggregated by ClickHouse per time bucket - and, for a grouped
+ * query, per series: GROUP BY the query's attribute keys, which returns one
+ * row per series and bucket, the shape buildSeriesBreakdown reads. It is
+ * the Metrics monitor's read, so a series' buckets are the ones its chart
+ * draws.
+ *
+ * A grouped row's `attributes` hold the grouped keys and every other
+ * attribute of the bucket's newest datapoint (includeSampleAttributes), as
+ * the raw rows' did: Affected Resources names a pod's node and workload,
+ * or whether a Proxmox id is a node or a guest, from them
+ * (MonitorCriteriaEvaluator's series context).
+ *
+ * A grouped query used to read raw rows - up to LIMIT_PER_PROJECT of them,
+ * newest first - and aggregate them per series and minute in code, because
+ * a GROUP BY on the whole `attributes` Map returned no rows through the
+ * client's parameter binding. Grouping by each key's value
+ * (MetricService's groupByAttributeKeys) never touches the Map as a whole.
+ * Moving the grouping into SQL also reads histograms by their
+ * distribution and percentiles as ClickHouse computes them, as the Metrics
+ * monitor and the charts do.
  */
 export const readQueryDataPoints: (input: {
   query: Query<Metric>;
@@ -1056,38 +906,8 @@ export const readQueryDataPoints: (input: {
   groupBy: MetricQueryConfigData["metricQueryData"]["groupBy"];
   startAndEndDate: InBetween<Date>;
 }): Promise<QueryDataPoints> => {
-  if (input.groupByAttributeKeys.length > 0) {
-    const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-      query: input.query,
-      select: {
-        attributes: true,
-        value: true,
-        time: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return {
-      aggregatedResult: aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: input.groupByAttributeKeys,
-        aggregationType: input.aggregationType,
-      }),
-      completeFrom: getCutReadCompleteFrom({
-        times: rawMetricsForAgg.map((metric: Metric): Date | undefined => {
-          return metric.time;
-        }),
-        limit: LIMIT_PER_PROJECT,
-      }),
-    };
-  }
+  const isGrouped: boolean = input.groupByAttributeKeys.length > 0;
+  const limit: number = isGrouped ? GROUPED_READ_ROW_LIMIT : LIMIT_PER_PROJECT;
 
   const aggregatedResult: AggregatedResult = await MetricService.aggregateBy({
     query: input.query,
@@ -1100,9 +920,12 @@ export const readQueryDataPoints: (input: {
     endTimestamp:
       (input.startAndEndDate?.endValue as Date) ||
       OneUptimeDate.getCurrentDate(),
-    limit: LIMIT_PER_PROJECT,
+    limit: limit,
     skip: 0,
     groupBy: input.groupBy,
+    groupByAttributeKeys: isGrouped ? input.groupByAttributeKeys : undefined,
+    // A resource's context for Affected Resources, besides its labels.
+    includeSampleAttributes: isGrouped ? true : undefined,
     // Alerting path: fail loud on timeout, never score partial buckets.
     timeoutOverflowMode: "throw",
     props: {
@@ -1116,7 +939,7 @@ export const readQueryDataPoints: (input: {
       times: aggregatedResult.data.map((row: AggregatedModel): Date => {
         return row.timestamp;
       }),
-      limit: LIMIT_PER_PROJECT,
+      limit: limit,
     }),
   };
 };
@@ -1821,6 +1644,11 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
      * map carrying exactly the grouped keys — the shape
      * buildSeriesBreakdown already consumes.
      */
+    const readRowLimit: number =
+      groupByAttributeKeys.length > 0
+        ? GROUPED_READ_ROW_LIMIT
+        : LIMIT_PER_PROJECT;
+
     const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
       {
         query: query,
@@ -1832,7 +1660,8 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
           (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
+        // A row per series and bucket when grouped (GROUPED_READ_ROW_LIMIT).
+        limit: readRowLimit,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
         groupByAttributeKeys:
@@ -1858,7 +1687,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
         times: aggregatedResults.data.map((row: AggregatedModel): Date => {
           return row.timestamp;
         }),
-        limit: LIMIT_PER_PROJECT,
+        limit: readRowLimit,
       }),
     );
 
@@ -2166,6 +1995,14 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     kubernetesMonitorConfig.metricViewConfig.queryConfigs,
   );
 
+  /*
+   * The cluster's pods that have finished (Succeeded or Failed): their
+   * containers' requests hold nothing on a node any more, but the
+   * k8s_cluster receiver still reports them. Read once, and only for a step
+   * that reads a request metric (KubernetesFinishedPods).
+   */
+  let finishedPodUids: Array<string> | undefined = undefined;
+
   for (const queryConfig of kubernetesMonitorConfig.metricViewConfig
     .queryConfigs) {
     const metricName: string =
@@ -2225,8 +2062,29 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       }
     }
 
-    if (Object.keys(attributes).length > 0) {
-      query.attributes = attributes;
+    let queryAttributes: Dictionary<string | IncludesNone> = attributes;
+
+    if (KubernetesFinishedPods.isScopedMetric(metricName)) {
+      if (finishedPodUids === undefined) {
+        finishedPodUids = await KubernetesFinishedPods.readFinishedPodUids({
+          projectId: data.projectId,
+          clusterIdentifier: kubernetesMonitorConfig.clusterIdentifier,
+          namespace: kubernetesMonitorConfig.resourceFilters?.namespace,
+          startAndEndDate: startAndEndDate,
+        });
+      }
+
+      if (finishedPodUids.length > 0) {
+        queryAttributes = {
+          ...attributes,
+          [FINISHED_POD_UID_ATTRIBUTE]: new IncludesNone(finishedPodUids),
+        };
+      }
+    }
+
+    if (Object.keys(queryAttributes).length > 0) {
+      // Built as its own map first: see the Docker Swarm image filter.
+      query.attributes = queryAttributes as Dictionary<string>;
     }
 
     const aggregationType: MetricsAggregationType =
@@ -3623,24 +3481,40 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       }
     }
 
-    if (Object.keys(attributes).length > 0) {
+    /*
+     * Swarm tasks only: a container Swarm runs for a service carries the
+     * service label, and one started any other way on a node (the agent's
+     * own, a `docker run`) does not. A Service Name filter scopes to tasks
+     * already.
+     */
+    const isTasksOnly: boolean = Boolean(
+      dockerSwarmMonitorConfig.resourceFilters?.tasksOnly &&
+        !dockerSwarmMonitorConfig.resourceFilters?.serviceName,
+    );
+
+    if (Object.keys(attributes).length > 0 || isTasksOnly) {
       /*
        * Built apart from the query and handed over as the plain map the
        * other monitors give. Written straight into `query.attributes`, the
        * literal with its Wildcard is checked against Query<Metric>'s
        * recursive attribute type, and TypeScript gives up on that (TS2589:
        * type instantiation is excessively deep). The statement generator
-       * reads a Wildcard map entry as a LIKE match.
+       * reads a Wildcard map entry as a LIKE match, and a NotNull one as
+       * "the attribute is present".
        */
-      const queryAttributes: Dictionary<string | Wildcard<string>> =
-        containerImageGlobs.length > 0
+      const queryAttributes: Dictionary<string | Wildcard<string> | NotNull> = {
+        ...attributes,
+        ...(containerImageGlobs.length > 0
           ? {
-              ...attributes,
               "resource.container.image.name": new Wildcard<string>(
                 containerImageGlobs,
               ),
             }
-          : attributes;
+          : {}),
+        ...(isTasksOnly
+          ? { [SWARM_TASK_SERVICE_ATTRIBUTE]: new NotNull() }
+          : {}),
+      };
 
       query.attributes = queryAttributes as Dictionary<string>;
     }

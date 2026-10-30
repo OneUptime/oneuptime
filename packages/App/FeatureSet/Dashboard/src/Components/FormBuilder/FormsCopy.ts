@@ -260,6 +260,10 @@ export const FormsCopy: {
 
   // Duplicating the form.
   duplicateFormNote: string;
+
+  // The picture of a file question on its card.
+  inputFile: string;
+  inputFiles: string;
 } = {
   productTitle: "Forms",
 
@@ -563,6 +567,10 @@ export const FormsCopy: {
 
   duplicateFormNote:
     "The copy has everything this form has, with a link of its own. It starts turned off: turn it on from its Share page when ready.",
+
+  // The picture of a file question on its card.
+  inputFile: "Drop a file here or choose one",
+  inputFiles: "Drop files here or choose them",
 };
 
 // How each kind of question of the form's own is named in the builder.
@@ -605,6 +613,14 @@ export const FORM_QUESTION_TYPE_TEXT: Record<
   [CustomFieldType.DateTime]: {
     title: "Date and Time",
     description: "A day and a time.",
+  },
+  [CustomFieldType.File]: {
+    title: "File",
+    description: "One file, such as a screenshot or a signed document.",
+  },
+  [CustomFieldType.MultipleFiles]: {
+    title: "Multiple Files",
+    description: "Up to 10 files, such as screenshots and logs.",
   },
 };
 

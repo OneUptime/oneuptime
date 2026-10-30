@@ -429,6 +429,8 @@ const PAGE_COPY: Record<string, string> = {
   templateDescription:
     "Choose a template to fill in the form. You can change any answer before you submit.",
   templateNone: "No template",
+  // While a submission with files is being sent, over its progress bar.
+  uploadingFiles: "Uploading your files…",
 };
 
 /*
@@ -492,6 +494,35 @@ const MARKDOWN_TOOLBAR_WORDS: Array<string> = [
  * under markdownCallouts (MARKDOWN_CALLOUT_NAMES).
  */
 const MARKDOWN_VIEWER_WORDS: Array<string> = ["Opens in a new tab"];
+
+/*
+ * The file picker's words, for a form's file questions: what it offers,
+ * what it takes (the hints the questions hand it), the files it holds, and
+ * why it refuses one - a file too large, of a type it does not take, one too
+ * many. Flat keys, as the picker looks them up, in the page's locale.
+ */
+const FILE_PICKER_SENTENCES: Array<string> = [
+  "Upload a file",
+  "Upload files",
+  "Add more files",
+  "Release to add them.",
+  "Click to choose files or drag & drop.",
+  // A File question takes one file, and says so.
+  "Click to choose a file or drag & drop.",
+  "Click to add more or drag & drop.",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.",
+  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Chosen files",
+  "Remove",
+  "Replace",
+  "File {{number}}",
+  '"{{fileName}}" exceeds the 10MB limit.',
+  "These files exceed the 10MB limit: {{fileNames}}.",
+  '"{{fileName}}" is not a type of file this field takes.',
+  "These files are not a type this field takes: {{fileNames}}.",
+  "Add one file at a time.",
+  "This field holds up to {{count}} files. Remove one to add another.",
+];
 
 /*
  * What a screen reader calls each callout (MarkdownQuote's
@@ -566,12 +597,14 @@ const FLAT_SENTENCES: Array<string> = [
   ...MARKDOWN_EDITOR_SENTENCES,
   ...MARKDOWN_TOOLBAR_WORDS,
   ...MARKDOWN_VIEWER_WORDS,
+  ...FILE_PICKER_SENTENCES,
 ];
 
 // Words a language genuinely shares with English, and nothing else.
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   de: ["(Optional)", "Link", "Code"],
   fr: ["Code"],
+  it: ["File {{number}}"],
   pt: ["Link"],
   nl: ["Code"],
   da: ["Link"],

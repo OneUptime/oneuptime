@@ -23,6 +23,7 @@ import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
 import StartsWith from "Common/Types/BaseDatabase/StartsWith";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import { isCustomFieldFileType } from "Common/Types/CustomField/CustomFieldFile";
 import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
@@ -131,6 +132,11 @@ export type GetCustomFieldFacetKindFunction = (
 export const getCustomFieldFacetKind: GetCustomFieldFacetKindFunction = (
   definition: CustomFieldDefinition,
 ): FacetKind => {
+  // A file field is chosen by whether it holds files: see FILE_CUSTOM_FIELD_OPTIONS.
+  if (isCustomFieldFileType(definition.customFieldType)) {
+    return "options";
+  }
+
   if (definition.customFieldType === CustomFieldType.Number) {
     return "number";
   }
@@ -166,6 +172,21 @@ export const BOOLEAN_CUSTOM_FIELD_OPTIONS: Array<FilterChipDropdownOption> = [
   { value: "false", label: "No" },
 ];
 
+/*
+ * A File or Multiple files field is filtered by whether it holds files -
+ * "incidents with no postmortem attached" - not by what they are called.
+ */
+export const FILE_CUSTOM_FIELD_HAS_FILES: string = "has-files";
+export const FILE_CUSTOM_FIELD_NO_FILES: string = "no-files";
+
+export const FILE_CUSTOM_FIELD_OPTIONS: Array<FilterChipDropdownOption> = [
+  { value: FILE_CUSTOM_FIELD_HAS_FILES, label: "Has files" },
+  { value: FILE_CUSTOM_FIELD_NO_FILES, label: "No files" },
+];
+
+// The one question a file chip asks: whether the field holds files.
+export const FILE_FACET_OPERATORS: Array<FilterOperator> = ["is"];
+
 export type GetCustomFieldFacetOptionsFunction = (
   definition: CustomFieldDefinition,
 ) => Array<FilterChipDropdownOption>;
@@ -175,6 +196,10 @@ export const getCustomFieldFacetOptions: GetCustomFieldFacetOptionsFunction = (
 ): Array<FilterChipDropdownOption> => {
   if (definition.customFieldType === CustomFieldType.Boolean) {
     return BOOLEAN_CUSTOM_FIELD_OPTIONS;
+  }
+
+  if (isCustomFieldFileType(definition.customFieldType)) {
+    return FILE_CUSTOM_FIELD_OPTIONS;
   }
 
   /*
@@ -199,6 +224,10 @@ export type GetCustomFieldFacetOperatorsFunction = (
 
 export const getCustomFieldFacetOperators: GetCustomFieldFacetOperatorsFunction =
   (definition: CustomFieldDefinition): Array<FilterOperator> => {
+    if (isCustomFieldFileType(definition.customFieldType)) {
+      return FILE_FACET_OPERATORS;
+    }
+
     const kind: FacetKind = getCustomFieldFacetKind(definition);
 
     if (kind === "number") {
@@ -282,6 +311,34 @@ const buildCustomFieldFacetQuery: BuildCustomFieldFacetQueryFunction = (
   const wrap: WrapFunction = (value: unknown): JSONObject => {
     return { [name]: value } as JSONObject;
   };
+
+  /*
+   * A file field holds files or it does not: an emptied field loses its key
+   * (CustomFieldFiles), so "has files" is a key that is set. Both choices,
+   * or neither, constrain nothing.
+   */
+  if (isCustomFieldFileType(definition.customFieldType)) {
+    if (operator === "is_empty") {
+      return wrap(new IsNull());
+    }
+
+    if (operator === "is_not_empty") {
+      return wrap(new NotNull());
+    }
+
+    const chosen: Array<string> = input.values || [];
+    const wantsFiles: boolean = chosen.includes(FILE_CUSTOM_FIELD_HAS_FILES);
+    const wantsNone: boolean = chosen.includes(FILE_CUSTOM_FIELD_NO_FILES);
+
+    if (wantsFiles === wantsNone) {
+      return undefined;
+    }
+
+    const holdsFiles: boolean =
+      operator === "is_not" ? !wantsFiles : wantsFiles;
+
+    return wrap(holdsFiles ? new NotNull() : new IsNull());
+  }
 
   /*
    * A date field delegates the whole vocabulary — including is_empty and
@@ -481,8 +538,9 @@ export const buildCustomFieldFacets: BuildCustomFieldFacetsFunction = (
         key: getCustomFieldFacetKey(definition.name),
         label: definition.name,
         type: kind,
-        icon:
-          kind === "number"
+        icon: isCustomFieldFileType(definition.customFieldType)
+          ? IconProp.PaperClip
+          : kind === "number"
             ? IconProp.Hashtag
             : kind === "dateRange"
               ? IconProp.Calendar

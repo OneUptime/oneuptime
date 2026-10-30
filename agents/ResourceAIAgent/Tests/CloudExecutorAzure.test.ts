@@ -1088,7 +1088,7 @@ describe("Azure: long-running operations and failures", () => {
     );
     assert.ok(
       !h.cloud.requests.some((request: CloudHttpRequest): boolean => {
-        return request.url.includes("attacker.example.com");
+        return new URL(request.url).hostname === "attacker.example.com";
       }),
     );
   });

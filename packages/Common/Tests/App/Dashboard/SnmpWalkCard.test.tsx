@@ -16,7 +16,17 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
-import SnmpWalkCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkCard";
+import SnmpWalkCard, {
+  SNMP_WALK_DOWNLOAD_TRIGGER_CLASS_NAME,
+  SNMP_WALK_RESULT_ACTIONS_CLASS_NAME,
+  SNMP_WALK_RESULT_HEADER_CLASS_NAME,
+  SNMP_WALK_RESULT_SUMMARY_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkCard";
+import {
+  CSV_BYTE_ORDER_MARK,
+  buildSnmpWalkCsv,
+  buildSnmpwalkText,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkExport";
 import {
   SNMP_WALK_MAX_CONSECUTIVE_POLL_FAILURES,
   SNMP_WALK_MAX_POLL_ATTEMPTS,
@@ -48,6 +58,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * same `modelAPI` seam DeviceDiagnostics uses, with fake timers for the
  * polling.
  */
+
+/*
+ * The browser's save: the card hands DownloadFile the file. Recorded here,
+ * as the SNMP Walk browser suite records the real download.
+ */
+const downloadFileMock: MockFunction = getJestMockFunction();
+
+jest.mock("../../../UI/Utils/DownloadFile", () => {
+  return {
+    __esModule: true,
+    default: (data: unknown): void => {
+      downloadFileMock(data);
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -269,6 +294,7 @@ beforeEach(() => {
   getListMock.mockReset();
   createMock.mockReset();
   updateMock.mockReset();
+  downloadFileMock.mockReset();
 
   getDeviceMock.mockResolvedValue(device());
   getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 5 });
@@ -1455,5 +1481,236 @@ describe("reading a long walk", () => {
     expect(screen.getByTestId("snmp-walk-row-value-toggle")).toHaveTextContent(
       "Show less",
     );
+  });
+});
+
+/*
+ * Saving a walk (#5281, the follow-up of #5184's walk page): Download, a
+ * bordered button beside Continue walking, opens the two formats - text
+ * the way snmpwalk prints a walk, and CSV for a spreadsheet - and saves
+ * every OID the walk read, continued pages and all, whatever the filter
+ * shows.
+ */
+describe("saving what a walk read", () => {
+  interface SavedFile {
+    content: string;
+    filename: string;
+    mimeType: string;
+  }
+
+  function lastSaved(): SavedFile {
+    const calls: Array<Array<unknown>> = downloadFileMock.mock.calls as Array<
+      Array<unknown>
+    >;
+
+    expect(calls.length).toBeGreaterThan(0);
+
+    return calls[calls.length - 1]![0] as SavedFile;
+  }
+
+  async function openDownload(): Promise<HTMLElement> {
+    await click(screen.getByRole("button", { name: "Download this walk" }));
+
+    return screen.getByRole("menu");
+  }
+
+  function givenLastWalk(
+    resultOverrides: Partial<NetworkDeviceDiagnosticSnmpWalkResult> = {},
+  ): void {
+    getListMock.mockResolvedValue({
+      data: [completedWalk(OLD_WALK_ID, resultOverrides)],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+  }
+
+  test("Download sits with the walk's results, and offers text and CSV", async () => {
+    givenLastWalk();
+    await renderCard();
+
+    const actions: HTMLElement = screen.getByTestId("snmp-walk-result-actions");
+    const trigger: HTMLElement = within(actions).getByRole("button", {
+      name: "Download this walk",
+    });
+
+    expect(trigger).toHaveTextContent("Download");
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(actions.getAttribute("class")).toBe(
+      SNMP_WALK_RESULT_ACTIONS_CLASS_NAME,
+    );
+    /*
+     * One line with the summary, which keeps 18rem beside the actions: on a
+     * card too narrow for both (beside the device page's side menu) they
+     * wrap under it rather than squeezing it to a few words a line.
+     */
+    const header: HTMLElement = screen.getByTestId("snmp-walk-result-header");
+    expect(header.getAttribute("class")).toBe(
+      SNMP_WALK_RESULT_HEADER_CLASS_NAME,
+    );
+    expect(header).toHaveClass("sm:flex-row", "sm:flex-wrap");
+    expect(header.lastElementChild).toBe(actions);
+    const summaryBox: Element = header.firstElementChild!;
+    expect(summaryBox.getAttribute("class")).toBe(
+      SNMP_WALK_RESULT_SUMMARY_CLASS_NAME,
+    );
+    expect(summaryBox).toHaveClass("min-w-0", "sm:grow", "sm:basis-72");
+    expect(
+      within(summaryBox as HTMLElement).getByTestId("snmp-walk-summary"),
+    ).toBeVisible();
+    // A bordered button, as wide as the card on a phone like the one beside it.
+    for (const className of SNMP_WALK_DOWNLOAD_TRIGGER_CLASS_NAME.split(" ")) {
+      expect(trigger).toHaveClass(className);
+    }
+
+    const menu: HTMLElement = await openDownload();
+
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["snmpwalk text (.txt)", "CSV spreadsheet (.csv)"]);
+  });
+
+  test("text: every OID as snmpwalk prints it, in a file named after the device and the subtree", async () => {
+    givenLastWalk();
+    await renderCard();
+
+    await openDownload();
+    await click(screen.getByTestId("snmp-walk-download-text"));
+
+    const saved: SavedFile = lastSaved();
+
+    expect(downloadFileMock).toHaveBeenCalledTimes(1);
+    expect(saved.content).toBe(
+      buildSnmpwalkText([SYS_UPTIME, SYS_NAME, CISCO_CPU]),
+    );
+    expect(saved.content).toContain(
+      '.1.3.6.1.2.1.1.5.0 = STRING: "edge-sw-01"',
+    );
+    expect(saved.filename.startsWith("edge-sw-01-snmp-walk-1.3.6.1-")).toBe(
+      true,
+    );
+    expect(saved.filename.endsWith(".txt")).toBe(true);
+    expect(saved.mimeType).toBe("text/plain;charset=utf-8;");
+  });
+
+  test("CSV: the same OIDs, a row each, after a byte order mark", async () => {
+    givenLastWalk();
+    await renderCard();
+
+    await openDownload();
+    await click(screen.getByTestId("snmp-walk-download-csv"));
+
+    const saved: SavedFile = lastSaved();
+
+    expect(saved.content).toBe(
+      `${CSV_BYTE_ORDER_MARK}${buildSnmpWalkCsv([SYS_UPTIME, SYS_NAME, CISCO_CPU])}`,
+    );
+    expect(saved.filename.endsWith(".csv")).toBe(true);
+    expect(saved.mimeType).toBe("text/csv;charset=utf-8;");
+  });
+
+  test("a walk read in pages saves as one walk, under its root", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        completedWalk(WALK_ID, {
+          rootOid: "1.3.6.1.2.1",
+          afterOid: SYS_NAME.oid,
+          rows: [walkRow("1.3.6.1.2.1.2.1.0", SnmpDataType.Integer, 3)],
+        }),
+        completedWalk(OLD_WALK_ID, {
+          rootOid: "1.3.6.1.2.1",
+          rows: [SYS_UPTIME, SYS_NAME],
+          stopReason: SnmpWalkStopReason.OidLimit,
+          nextOid: SYS_NAME.oid,
+        }),
+      ],
+      count: 2,
+      skip: 0,
+      limit: 5,
+    });
+    await renderCard();
+
+    await openDownload();
+    await click(screen.getByTestId("snmp-walk-download-text"));
+
+    expect(lastSaved().content.trim().split("\n")).toEqual([
+      ".1.3.6.1.2.1.1.3.0 = Timeticks: (104524500) 12 days, 2:20:45.00",
+      '.1.3.6.1.2.1.1.5.0 = STRING: "edge-sw-01"',
+      ".1.3.6.1.2.1.2.1.0 = INTEGER: 3",
+    ]);
+    expect(
+      lastSaved().filename.startsWith("edge-sw-01-snmp-walk-1.3.6.1.2.1-"),
+    ).toBe(true);
+  });
+
+  test("the filter narrows the list, never the file", async () => {
+    givenLastWalk();
+    await renderCard();
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("snmp-walk-filter"), {
+        target: { value: "sysName" },
+      });
+    });
+
+    expect(rowsShown()).toEqual([SYS_NAME.oid]);
+
+    await openDownload();
+    await click(screen.getByTestId("snmp-walk-download-text"));
+
+    expect(lastSaved().content.trim().split("\n")).toHaveLength(3);
+  });
+
+  test("a reader who may not walk can still save the last walk", async () => {
+    givenLastWalk();
+    await renderCard({ canWalk: false });
+
+    expect(
+      screen.getByRole("button", { name: "Download this walk" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("snmp-walk-continue")).toBeNull();
+  });
+
+  test("Download sits before Continue walking, when there is more to read", async () => {
+    givenLastWalk({
+      stopReason: SnmpWalkStopReason.OidLimit,
+      nextOid: CISCO_CPU.oid,
+    });
+    await renderCard();
+
+    const actions: HTMLElement = screen.getByTestId("snmp-walk-result-actions");
+    const continueButton: HTMLElement =
+      screen.getByTestId("snmp-walk-continue");
+    const trigger: HTMLElement = within(actions).getByRole("button", {
+      name: "Download this walk",
+    });
+
+    expect(actions).toContainElement(continueButton);
+    expect(
+      trigger.compareDocumentPosition(continueButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("nothing to save: no walk yet, or a walk that read no OID", async () => {
+    await renderCard();
+
+    expect(
+      screen.queryByRole("button", { name: "Download this walk" }),
+    ).toBeNull();
+
+    cleanup();
+    givenLastWalk({ rows: [] });
+    await renderCard();
+
+    expect(screen.getByTestId("snmp-walk-result")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Download this walk" }),
+    ).toBeNull();
+    expect(screen.queryByTestId("snmp-walk-result-actions")).toBeNull();
   });
 });

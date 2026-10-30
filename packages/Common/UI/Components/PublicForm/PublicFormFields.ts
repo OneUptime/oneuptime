@@ -5,8 +5,11 @@ import FormValues from "../Forms/Types/FormValues";
 import { translateValidationMessage } from "../Forms/Validation";
 import Color from "../../../Types/Color";
 import {
+  FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE,
+  FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE,
   getPublicFormForTemplate,
   isBlankFormAnswer,
+  isPublicFormFileField,
   isWholeEmailAddress,
   PUBLIC_FORM_MULTI_LINE_FIELD_TYPES,
   PublicForm,
@@ -15,7 +18,14 @@ import {
   PublicFormFieldType,
   PublicFormTemplate,
 } from "../../../Types/Form/FormPublic";
+import {
+  encodeBase64,
+  FORM_SUBMISSION_FILES_MAX_TOTAL_SIZE_IN_BYTES,
+  FORM_SUBMISSION_MAX_FILES,
+  FormFileAnswer,
+} from "../../../Types/Form/FormFileAnswer";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { setCustomFieldFilePicker } from "../CustomFields/CustomFieldFormFields";
 
 /*
  * A form's questions as inputs: what the public page anyone with a form's
@@ -83,6 +93,10 @@ const toSchemaType: ToSchemaTypeFunction = (
       return FormFieldSchemaType.MultiSelectDropdown;
     case PublicFormFieldType.Email:
       return FormFieldSchemaType.Email;
+    case PublicFormFieldType.File:
+      return FormFieldSchemaType.File;
+    case PublicFormFieldType.MultipleFiles:
+      return FormFieldSchemaType.MultipleFiles;
     default:
       return FormFieldSchemaType.Text;
   }
@@ -168,6 +182,25 @@ export const buildPublicFormFields: BuildPublicFormFieldsFunction = (
 
       if (question.type === PublicFormFieldType.Email) {
         field.disableSpellCheck = true;
+      }
+
+      /*
+       * A file question keeps its files in the browser until the form is
+       * submitted: there may be nobody signed in to upload them as. It
+       * takes what the server takes (FormFileAnswer), and says so.
+       */
+      if (isPublicFormFileField(question)) {
+        field.keepFilesInBrowser = true;
+
+        setCustomFieldFilePicker({
+          field: field,
+          isMultiple: question.type === PublicFormFieldType.MultipleFiles,
+          maxFiles: question.maxFiles,
+        });
+
+        if (question.maxFileSizeInBytes) {
+          field.maxFileSizeInBytes = question.maxFileSizeInBytes;
+        }
       }
 
       field.customValidation = (
@@ -297,6 +330,11 @@ export const getPublicFormValuesFromAnswers: GetPublicFormValuesFromAnswersFunct
           }
           break;
 
+        // A template holds no file: whoever fills the form in chooses them.
+        case PublicFormFieldType.File:
+        case PublicFormFieldType.MultipleFiles:
+          break;
+
         default:
           if (typeof answer === "string" && answer.length > 0) {
             value = answer;
@@ -378,6 +416,103 @@ const readChoice: ReadChoiceFunction = (value: unknown): string => {
   return "";
 };
 
+type ToFormFileAnswersFunction = (value: unknown) => Array<FormFileAnswer>;
+
+/*
+ * What a file picker that keeps its files in the browser holds - a File
+ * model with its bytes, or a list of them - as the answers a submission
+ * sends. An entry with no bytes is left out.
+ */
+const toFormFileAnswers: ToFormFileAnswersFunction = (
+  value: unknown,
+): Array<FormFileAnswer> => {
+  const entries: Array<unknown> = Array.isArray(value)
+    ? value
+    : value === undefined || value === null
+      ? []
+      : [value];
+  const files: Array<FormFileAnswer> = [];
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+
+    const record: Record<string, unknown> = entry as Record<string, unknown>;
+    const bytes: unknown = record["file"];
+
+    if (!ArrayBuffer.isView(bytes) || typeof record["name"] !== "string") {
+      continue;
+    }
+
+    files.push({
+      name: record["name"],
+      fileType:
+        typeof record["fileType"] === "string" ? record["fileType"] : "",
+      data: encodeBase64(
+        new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      ),
+    });
+  }
+
+  return files;
+};
+
+export type GetPublicFormFilesProblemFunction = (data: {
+  form: PublicForm;
+  // Everything the page's form holds, keyed as getPublicFormFieldKey.
+  values: JSONObject;
+}) => string | null;
+
+/**
+ * What is wrong with the files a submission would carry, all its questions
+ * together, before anything is sent: more files than a response carries, or
+ * more bytes - the server's own sentence for each, for the page to show in
+ * the submitter's language. Null when they fit.
+ */
+export const getPublicFormFilesProblem: GetPublicFormFilesProblemFunction =
+  (data: { form: PublicForm; values: JSONObject }): string | null => {
+    let count: number = 0;
+    let bytes: number = 0;
+
+    for (const question of data.form.fields || []) {
+      if (!isPublicFormFileField(question)) {
+        continue;
+      }
+
+      const raw: unknown = (data.values || {})[
+        getPublicFormFieldKey(question.id)
+      ];
+      const entries: Array<unknown> = Array.isArray(raw)
+        ? raw
+        : raw === undefined || raw === null
+          ? []
+          : [raw];
+
+      for (const entry of entries) {
+        const file: unknown =
+          entry && typeof entry === "object"
+            ? (entry as Record<string, unknown>)["file"]
+            : undefined;
+
+        if (ArrayBuffer.isView(file)) {
+          count++;
+          bytes += file.byteLength;
+        }
+      }
+    }
+
+    if (count > FORM_SUBMISSION_MAX_FILES) {
+      return FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE;
+    }
+
+    if (bytes > FORM_SUBMISSION_FILES_MAX_TOTAL_SIZE_IN_BYTES) {
+      return FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE;
+    }
+
+    return null;
+  };
+
 export type PackPublicFormAnswersFunction = (data: {
   form: PublicForm;
   // Everything the page's form submitted, keyed as getPublicFormFieldKey.
@@ -449,6 +584,22 @@ export const packPublicFormAnswers: PackPublicFormAnswersFunction = (data: {
           answer = raw.trim();
         }
         break;
+
+      /*
+       * The files the picker kept, each as its name, its type and its bytes
+       * in base64: one for a File question, a list for a Multiple files one.
+       */
+      case PublicFormFieldType.File:
+      case PublicFormFieldType.MultipleFiles: {
+        const files: Array<FormFileAnswer> = toFormFileAnswers(raw);
+
+        if (files.length > 0) {
+          answer = (question.type === PublicFormFieldType.File
+            ? files[0]
+            : files) as unknown as JSONValue;
+        }
+        break;
+      }
 
       default:
         if (raw instanceof Date && !isNaN(raw.getTime())) {

@@ -17,8 +17,8 @@ Data Security does not run a pager or a security queue of its own. It hands what
 flowchart TB
     issue["An issue opens,<br/>or opens again"] --> critical{"Is it Critical?"}
     critical -->|"Yes"| soc["A security case<br/>about the store"]
-    critical -->|"Yes, if alerts are on"| alert["An alert that pages<br/>whoever is on call"]
-    critical -->|"Yes, if incidents are on"| incident["An incident your<br/>process runs"]
+    critical -->|"Yes, if<br/>alerts are on"| alert["An alert<br/>that pages<br/>whoever is<br/>on call"]
+    critical -->|"Yes, if<br/>incidents are on"| incident["An incident your<br/>process runs"]
     issue --> owners["An email to the<br/>store's owners"]
     issue --> flows["Workflows that<br/>watch issues"]
 ```

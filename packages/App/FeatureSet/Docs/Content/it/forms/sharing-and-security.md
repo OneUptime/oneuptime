@@ -71,6 +71,7 @@ Ogni richiesta supera questi controlli, in questo ordine:
 6. Ogni risposta deve rientrare nei limiti di dimensione e adattarsi alla sua domanda — vedi [Creare un modulo](/docs/forms/building#limiti-di-dimensione).
 7. Ciò che formano le risposte e le impostazioni deve poter essere creato: un incidente ha bisogno di una gravità, un evento di una fine successiva al suo inizio.
 8. Un invio deve rientrare nella quota oraria del modulo — vedi [Limiti di frequenza](#limiti-di-frequenza).
+9. I suoi file devono rientrare nella quota oraria di file del modulo, subito prima di essere salvati.
 
 Il logo e la favicon di un modulo fanno parte del modulo: vengono inviati dentro la risposta che lo apre, in base64, solo dopo che ha superato i primi quattro controlli, e mai da un indirizzo proprio. Nessuno può ottenerli senza il modulo, e nessun file può essere ottenuto tramite il suo id attraverso un modulo; i file stessi restano privati. Un modulo mostra solo immagini caricate nel proprio progetto: un file di un altro progetto viene rifiutato quando il modulo viene salvato, e non viene mai inviato alla sua pagina.
 
@@ -109,6 +110,7 @@ Aprire un modulo e inviarlo sono limitati per indirizzo di rete, e l'invio è li
 - **Aprire un modulo** — per modulo da un indirizzo, e per indirizzo su tutti i moduli, con margine per un intero ufficio che apre il link nello stesso momento. Oltre l'uno o l'altro, la pagina mostra "Troppe richieste. Riprova più tardi." Se il limitatore di frequenza non è raggiungibile, i moduli si aprono comunque.
 - **Inviare, per indirizzo** — per modulo da un indirizzo, e per indirizzo su tutti i moduli. Oltre l'uno o l'altro, il mittente vede "Troppe segnalazioni dalla tua rete. Attendi qualche minuto e riprova." Tutti quelli dietro uno stesso indirizzo — una rete d'ufficio, un gateway VPN — condividono questi limiti, e ogni invio conta, anche uno che poi viene rifiutato per una risposta sbagliata.
 - **Inviare, per modulo** — quanti record può creare un modulo in un'ora, da tutti gli indirizzi insieme, così anche gli invii da molti indirizzi contemporaneamente possono chiamarti solo un numero limitato di volte all'ora. Conta solo un invio che ha superato tutti gli altri controlli, subito prima che venga creato il suo record. Oltre questo limite, tutti vedono "Questo modulo sta ricevendo troppi invii in questo momento. Riprova più tardi." finché la finestra non termina. **Reimposta link** fa partire il nuovo link con una quota nuova.
+- **File, per modulo** — quanti megabyte di file può ricevere un modulo in un'ora, da tutti gli indirizzi insieme. Contano solo i file di un invio che ha superato ogni altro controllo, subito prima di essere salvati. Oltre il limite, un invio con file viene rifiutato con "Questo modulo sta ricevendo troppi file in questo momento. Riprova più tardi." finché la finestra non finisce; un invio senza file passa comunque.
 
 Ogni limite risponde `429` con un'intestazione `Retry-After`, in secondi, e la pagina dice al mittente quando riprovare. Le finestre sono fisse, non scorrevoli. Ogni limite per indirizzo conta anche insieme gli indirizzi di uno stesso /64 IPv6, con dieci volte il suo numero. Se il limitatore di frequenza non è raggiungibile, gli invii vengono rifiutati invece di essere lasciati passare senza conteggio: l'API risponde `503`, e il mittente vede "Al momento non è possibile accettare invii. Riprova tra qualche minuto."
 
@@ -124,6 +126,8 @@ In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime 
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Invii da un indirizzo per finestra, su tutti i moduli. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | La finestra per il limite per modulo, in secondi. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Record che un modulo può creare per finestra, da tutti gli indirizzi insieme. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | La finestra del limite di file per modulo, in secondi. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabyte di file che un modulo può ricevere per finestra, da tutti gli indirizzi insieme. |
 
 Ogni variabile legge anche il suo vecchio nome, con `INCIDENT_FORM_` davanti invece di `FORM_` — come `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` —, quindi un'installazione che aveva regolato i moduli di incidente mantiene i suoi limiti; il nuovo nome prevale quando sono impostati entrambi. Né `config.env` né i valori del chart Helm le trasmettono: aggiungile tu all'ambiente del container `app` — con `app.extraEnv`, o con l'`extraEnv` dell'intero chart, nel chart Helm, oppure in un `docker-compose.override.yml` per Docker Compose. `TRUSTED_PROXY_HOPS` decide quale indirizzo contano i limiti per indirizzo.
 

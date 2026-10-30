@@ -81,10 +81,14 @@ Logotypen behåller höjden på den OneUptime-logotyp den ersätter, och en bred
 | **Kryssruta** | En ruta att kryssa i, som en bekräftelse. |
 | **Datum** | En dag. |
 | **Datum och tid** | En dag och en tid. |
+| **Fil** | En fil, till exempel en skärmbild eller ett signerat dokument. |
+| **Flera filer** | Upp till 10 filer, till exempel skärmbilder och loggar. |
 
 En listruta eller ett flerval visar de **Alternativ** du ger det, var och en med en valfri färg (knappen bredvid ett alternativ öppnar en uppsättning namngivna färger, med **Anpassad färg** för en exakt kod), mellan ett och 100 av dem. Att byta en fråga mellan **Rullgardinslista** och **Flerval** behåller dess alternativ; en fråga som blir en av dem börjar med två som du kan byta namn på, och en som slutar vara en av dem förlorar dem. **Duplicera** kopierar en av formulärets egna frågor direkt under den.
 
 Svaren på de här frågorna sparas med inlämningen och visas i den privata anteckningen på det formuläret skapar — de fyller inte i något fält. För att fylla i ett fält lägger du till själva fältet, från de två följande grupperna.
+
+En fråga av typen **Fil** eller **Flera filer** tar filer från inlämnarens dator och bifogar dem i den privata anteckningen, där ditt team laddar ned dem. Vill du i stället behålla filerna i ett anpassat fält på incidenten eller händelsen lägger du till ett anpassat fält av typen **Fil** eller **Flera filer**.
 
 ### Fält på det formuläret skapar
 
@@ -115,7 +119,7 @@ Varje fält kan bara efterfrågas en gång; listan markerar de som redan finns p
 
 ### Anpassade fält
 
-Dina anpassade fält för incidenter — eller för schemalagt underhåll, i ett underhållsformulär — var och en en fråga vars svar blir fältets värde. Frågan tar sin typ och sina alternativ från det anpassade fältet, och börjar med dess namn som fråga och dess beskrivning som hjälptext, som du kan ändra.
+Dina anpassade fält för incidenter — eller för schemalagt underhåll, i ett underhållsformulär — var och en en fråga vars svar blir fältets värde. Frågan tar sin typ och sina alternativ från det anpassade fältet, och börjar med dess namn som fråga och dess beskrivning som hjälptext, som du kan ändra. Ett anpassat fält av typen **Fil** eller **Flera filer** ställs som en filfråga, och dess filer hamnar i fältet.
 
 Ett formulär frågar bara efter de anpassade fält som du lägger till i det, vad **Visa vid skapande** än säger: varje fält som ett formulär frågar efter visar sitt namn, sin beskrivning och sina alternativ för alla med länken. När ett anpassat fält tas bort ligger dess fråga kvar på formuläret men efterfrågas inte längre, och dess kort säger det — ta bort frågan. Ett fält som skapas igen med samma namn är ett nytt fält: lägg till det igen.
 
@@ -232,6 +236,9 @@ Efter inlämningen säger sidan "Tack — ditt svar har skickats." och anger num
 | Vilket annat textsvar som helst | 10 000 tecken. |
 | Ett flervalssvar | 100 val. |
 | **Ditt namn**, **Din e-post** | 100 tecken var. |
+| En fil | 10 MB, av de slag som ett [anpassat filfält](/docs/incidents/settings#filfält) tar emot. |
+| En fråga av typen **Flera filer** | 10 filer. |
+| Filerna i en inlämning | 10 filer, 20 MB totalt. |
 
 En inlämning som bryter mot en gräns, utelämnar ett obligatoriskt svar eller ger ett svar som inte passar frågan avvisas med ett meddelande som anger vilket, och inget skapas. Svar på frågor som formuläret inte ställer ignoreras.
 

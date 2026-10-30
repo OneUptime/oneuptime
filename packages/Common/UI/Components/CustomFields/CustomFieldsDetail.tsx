@@ -13,12 +13,23 @@ import BasicFormModal from "../FormModal/BasicFormModal";
 import {
   buildCustomFieldFormFields,
   CustomFieldFormDefinition,
+  fromCustomFieldFileFormValue,
   getCustomFieldDetailContentClassName,
   getCustomFieldDisplayValue,
   getCustomFieldDropdownOptions,
   sortCustomFieldDefinitions,
+  toCustomFieldFileFormValue,
   toCustomFieldFormDefinition,
 } from "./CustomFieldFormFields";
+import CustomFieldFileList from "./CustomFieldFileList";
+import { APP_API_URL } from "../../Config";
+import URL from "../../../Types/API/URL";
+import {
+  CustomFieldFile,
+  isCustomFieldFileType,
+  readCustomFieldFiles,
+} from "../../../Types/CustomField/CustomFieldFile";
+import { getCustomFieldFileDownloadPath } from "../../../Types/CustomField/CustomFieldRecordKinds";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -273,11 +284,34 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       setSaveError("");
       setShowModelForm(false);
 
+      /*
+       * A file field's picker holds File models; each file goes as the file
+       * it names, and the server reads the rest from the file itself.
+       */
+      const customFields: JSONObject = { ...data };
+
+      for (const schemaItem of schemaList) {
+        const name: unknown = (schemaItem as any).name;
+        const type: CustomFieldType | undefined = (schemaItem as any)
+          .customFieldType;
+
+        if (
+          typeof name === "string" &&
+          isCustomFieldFileType(type) &&
+          Object.prototype.hasOwnProperty.call(customFields, name)
+        ) {
+          customFields[name] = fromCustomFieldFileFormValue({
+            customFieldType: type,
+            value: customFields[name],
+          }) as JSONObject[string];
+        }
+      }
+
       await ModelAPI.updateById({
         modelType: props.modelType,
         id: props.modelId,
         data: {
-          customFields: data,
+          customFields: customFields,
         },
       });
 
@@ -393,14 +427,38 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         typeof name === "string" &&
         Object.prototype.hasOwnProperty.call(stored, name)
       ) {
-        displayed[name] = getCustomFieldDisplayValue({
-          customFieldType: (schemaItem as any).customFieldType,
-          value: stored[name],
-        }) as JSONObject[string];
+        displayed[name] = (
+          isCustomFieldFileType((schemaItem as any).customFieldType)
+            ? toCustomFieldFileFormValue({
+                customFieldType: (schemaItem as any).customFieldType,
+                value: stored[name],
+              })
+            : getCustomFieldDisplayValue({
+                customFieldType: (schemaItem as any).customFieldType,
+                value: stored[name],
+              })
+        ) as JSONObject[string];
       }
     }
 
     return displayed;
+  };
+
+  /*
+   * Where one of the record's files downloads from: the route that serves it
+   * to people who may read the record, as a download.
+   */
+  const getFileDownloadUrl: (file: CustomFieldFile) => string | null = (
+    file: CustomFieldFile,
+  ): string | null => {
+    const path: string | null = getCustomFieldFileDownloadPath({
+      recordTableName: new props.modelType().tableName,
+      projectId: props.projectId,
+      recordId: props.modelId,
+      fileId: file.fileId,
+    });
+
+    return path ? URL.fromURL(APP_API_URL).addRoute(path).toString() : null;
   };
 
   return (
@@ -446,11 +504,36 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                   CustomFieldType.Dropdown ||
                 (schemaItem as any).customFieldType ===
                   CustomFieldType.MultiSelectDropdown;
+              const isFile: boolean = isCustomFieldFileType(
+                (schemaItem as any).customFieldType,
+              );
+
               return {
                 key: (schemaItem as any).name,
                 title: (schemaItem as any).name,
                 description: getMappedDescription(schemaItem) as string,
                 fieldType: (schemaItem as any).customFieldType,
+                /*
+                 * A file field shows its files, each a download for whoever
+                 * may read the record.
+                 */
+                getElement: isFile
+                  ? (): ReactElement => {
+                      return (
+                        <CustomFieldFileList
+                          files={readCustomFieldFiles(
+                            (
+                              ((model as any)?.["customFields"] ||
+                                {}) as JSONObject
+                            )[(schemaItem as any).name],
+                          )}
+                          getDownloadUrl={getFileDownloadUrl}
+                          emptyText="No data entered"
+                          dataTestId={`custom-field-files-${(schemaItem as any).name}`}
+                        />
+                      );
+                    }
+                  : undefined,
                 contentClassName: getCustomFieldDetailContentClassName(
                   (schemaItem as any).customFieldType,
                 ),

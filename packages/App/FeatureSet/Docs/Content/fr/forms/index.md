@@ -190,7 +190,7 @@ Chaque question a son propre `id` (lettres, chiffres, `-` et `_`), une `source`,
 
 | `source` | Ce qu'elle demande |
 | --- | --- |
-| `Question` | Une question propre au formulaire, à laquelle on répond selon son `type` : `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` ou `DateTime`. Une liste déroulante liste ses `dropdownOptions`, une par ligne. |
+| `Question` | Une question propre au formulaire, à laquelle on répond selon son `type` : `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` ou `MultipleFiles`. Une liste déroulante liste ses `dropdownOptions`, une par ligne. |
 | `TargetField` | Un champ de ce que crée le formulaire, nommé par `targetField` : `title`, `description`, `incidentSeverityId`, `monitors`, `labels` et `impactStartedAt` pour un incident ; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` et `labels` pour un événement de maintenance. Un champ auquel on répond par un choix liste les enregistrements qu'il propose dans `allowedOptionIds`. |
 | `TargetCustomField` | L'un des champs personnalisés de l'incident ou de l'événement, nommé par `customFieldId`. |
 | `Submitter` | Le `Name` ou l'`Email` de la personne qui soumet, nommé par `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+La réponse à une question de fichiers, ce sont les fichiers tels qu'ils ont été enregistrés, chacun avec son `fileId`, `name`, `fileType` et `size`. Les fichiers eux-mêmes sont sur ce que la soumission a créé : dans son champ personnalisé de fichier, ou joints à sa note privée.
 
 ### Workflows
 

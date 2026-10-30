@@ -94,6 +94,8 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 De lijst onder **Waarover te waarschuwen** biedt vijf sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Cluster Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke taak afzonderlijk wordt beoordeeld en een eigen incident en een eigen waarschuwing krijgt, waarvan de hoofdoorzaak de getroffen taken en hun waarden opsomt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
+Die sjablonen lezen bovendien alleen de taken van Swarm: een container die op een andere manier op een node is gestart, waaronder die van de agent zelf, telt niet mee. Een query via **Custom Metric** of **Geavanceerd** leest elke container die de agent meldt; het filter **Servicenaam** beperkt die tot de taken van één service.
+
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |

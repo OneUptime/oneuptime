@@ -134,7 +134,7 @@ Jede Einreichung hinterlässt eine private Notiz an dem, was sie erstellt hat:
 > **Which office are you in?**\
 > Berlin
 
-Sie nennt das Formular und die einreichende Person — "Submitted anonymously through the form **Report a Problem**.", wenn das Formular nicht gefragt hat, wer sie ist —, dann, wenn die Einreichung mit einer der Vorlagen des Formulars begann, welche: "Started from the template **Application Outage**." — und listet dann die Antworten auf die eigenen Fragen des Formulars, jede unter ihrer Frage, in der Reihenfolge des Formulars. Die Antworten auf verknüpfte Fragen stehen schon am Datensatz: sein Titel, sein Schweregrad, seine benutzerdefinierten Felder. Weil sie privat ist, erreicht die Notiz nie eine Statusseite, wird aber wie jede andere Notiz in die Slack- und Microsoft-Teams-Kanäle des Datensatzes gepostet.
+Sie nennt das Formular und die einreichende Person — "Submitted anonymously through the form **Report a Problem**.", wenn das Formular nicht gefragt hat, wer sie ist —, dann, wenn die Einreichung mit einer der Vorlagen des Formulars begann, welche: "Started from the template **Application Outage**." — und listet dann die Antworten auf die eigenen Fragen des Formulars, jede unter ihrer Frage, in der Reihenfolge des Formulars. Die Antworten auf verknüpfte Fragen stehen schon am Datensatz: sein Titel, sein Schweregrad, seine benutzerdefinierten Felder. Weil sie privat ist, erreicht die Notiz nie eine Statusseite, wird aber wie jede andere Notiz in die Slack- und Microsoft-Teams-Kanäle des Datensatzes gepostet. Die Dateien ihrer Fragen vom Typ **Datei** und **Mehrere Dateien** hängen an der Notiz, wo Ihr Team sie herunterlädt.
 
 Die Adresse ist ein Link, der genau an diese Adresse schreibt — im Dashboard, in Slack und in der E-Mail an die Eigentümer.
 
@@ -158,6 +158,10 @@ Eine Einreichung geht direkt an Orte, an denen Text von selbst wirken kann — S
 | Bildsyntax oder ein Diagramm-Codeblock im Titel | **Der Titel ist reiner Text.** Auch sie bekommen das unsichtbare Zeichen, sodass der Titel, wo immer er landet — eine Episode, eine Chatnachricht, eine Notizvorlage —, nichts lädt und nichts zeichnet. Die unsichtbaren Zeichen zählen zur Grenze des Titels. |
 
 Alles andere — Links, der Rest des Markdowns, Auswahlen in Auswahllisten, Zahlen, Datumsangaben, ein angehaktes Kästchen — wird so gespeichert, wie die einreichende Person es angegeben hat, und die Einreichung behält Namen und E-Mail der einreichenden Person wie getippt.
+
+## Dateien, die eine einreichende Person sendet
+
+Eine Dateifrage behält die Dateien, die eine einreichende Person auswählt, in deren Browser und sendet sie mit den Antworten, sodass niemand ein Konto braucht, um eine Datei anzuhängen. Der Server prüft jede Datei so, wie es ein [benutzerdefiniertes Dateifeld](/docs/incidents/settings#dateifelder) tut — ihre Größe, ihre Art und was sie enthält — und speichert die Dateien privat in Ihrem Projekt, erst wenn die Einreichung jede andere Prüfung bestanden hat: Für eine abgelehnte Einreichung wird nichts behalten. Eine Frage zu einem benutzerdefinierten Feld vom Typ **Datei** oder **Mehrere Dateien** legt ihre Dateien in dieses Feld, und die eigenen Dateifragen des Formulars hängen ihre an die private Notiz. Die Einreichung behält den Namen jeder Datei. [Größengrenzen](/docs/forms/building#größengrenzen) und [Ratenbegrenzungen](/docs/forms/sharing-and-security#ratenbegrenzungen) sagen, wie viel eine Einreichung und ein Formular senden dürfen.
 
 ## Nächste Schritte
 

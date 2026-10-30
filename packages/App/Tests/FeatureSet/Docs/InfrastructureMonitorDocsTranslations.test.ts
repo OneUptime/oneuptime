@@ -217,6 +217,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Pod CPU Saturating Container Limit",
     "HPA Saturated at Max Replicas",
     "High Node CPU Utilization",
+    "High Node CPU Request Commitment",
+    "High Node Memory Request Commitment",
     ...FORM_NAMES,
     // The Custom Metric picker's metric names.
     "Pod CPU Usage",

@@ -94,6 +94,8 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 Listan under **Vad som ska larmas om** erbjuder fem mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Cluster Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje uppgift bedöms för sig och får en egen incident och ett eget larm, vars grundorsak listar de berörda uppgifterna och deras värden. Trösklarna är utgångspunkter som du kan redigera.
 
+De mallarna läser dessutom bara Swarms uppgifter: en container som startats på något annat sätt på en nod, bland dem agentens egen, räknas inte. En fråga via **Custom Metric** eller **Avancerad** läser varje container som agenten rapporterar; filtret **Tjänstenamn** begränsar den till en tjänsts uppgifter.
+
 Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |

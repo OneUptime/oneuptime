@@ -94,6 +94,8 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 La lista de **Sobre qué alertar** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Cluster Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz enumera las tareas afectadas y sus valores. Los umbrales son puntos de partida que puede editar.
 
+Esas plantillas además solo leen las tareas de Swarm: un contenedor iniciado de otra forma en un nodo, entre ellos el del propio agente, queda fuera. Una consulta de **Custom Metric** o **Avanzado** lee todos los contenedores que informa el agente; el filtro **Nombre del servicio** la limita a las tareas de un servicio.
+
 Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
