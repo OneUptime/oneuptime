@@ -134,6 +134,14 @@ describe("the undo actions", () => {
         SecurityPlaybookActionType.ReleaseDefenderDevice,
         SecurityPlaybookActionType.IsolateDefenderDevice,
       ],
+      [
+        SecurityPlaybookActionType.EnableEntraIdUser,
+        SecurityPlaybookActionType.DisableEntraIdUser,
+      ],
+      [
+        SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
+        SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+      ],
     ]);
 
     for (const undo of undos) {

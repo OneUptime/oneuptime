@@ -5,6 +5,7 @@ import SecurityCaseStage from "../SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookActionType } from "./SecurityPlaybookAction";
 import { SecurityPlaybookStep } from "./SecurityPlaybookStep";
+import { SecurityPlaybookStepOutcome } from "./SecurityPlaybookStepCondition";
 import SecurityPlaybookTrigger from "./SecurityPlaybookTrigger";
 
 /*
@@ -48,7 +49,10 @@ function step(
   flags: Partial<
     Pick<
       SecurityPlaybookStep,
-      "requiresApproval" | "continueOnFailure" | "onlyIfThreatIntelMatched"
+      | "requiresApproval"
+      | "continueOnFailure"
+      | "onlyIfThreatIntelMatched"
+      | "runIf"
     >
   > = {},
 ): SecurityPlaybookStep {
@@ -59,6 +63,7 @@ function step(
     requiresApproval: flags.requiresApproval || false,
     continueOnFailure: flags.continueOnFailure || false,
     onlyIfThreatIntelMatched: flags.onlyIfThreatIntelMatched || false,
+    ...(flags.runIf ? { runIf: flags.runIf } : {}),
   };
 }
 
@@ -108,19 +113,29 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
       getSteps: (
         values: SecurityPlaybookTemplateValues,
       ): Array<SecurityPlaybookStep> => {
+        const check: SecurityPlaybookStep = step(
+          SecurityPlaybookActionType.CheckThreatIntel,
+          {},
+        );
+        // Both run only on a match: the branch threat intel decides.
+        const onMatch: SecurityPlaybookStep["runIf"] = {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.Found,
+        };
+
         return [
-          step(SecurityPlaybookActionType.CheckThreatIntel, {}),
+          check,
           step(
             SecurityPlaybookActionType.SetCasePriority,
             {
               priorityId: values.priorityId(SecurityCasePriorityLevel.Critical),
             },
-            { onlyIfThreatIntelMatched: true },
+            { runIf: onMatch },
           ),
           step(
             SecurityPlaybookActionType.SetCaseStatus,
             { statusId: values.statusId(SecurityCaseStage.Acknowledged) },
-            { onlyIfThreatIntelMatched: true },
+            { runIf: onMatch },
           ),
         ];
       },
