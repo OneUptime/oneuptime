@@ -11,7 +11,7 @@ En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-co
 
 ## Slik fungerer det
 
-OneUptimes Proxmox-agent kjører på en maskin som kan nå Proxmox VE-API-et. Hvert 30. sekund henter den data fra prometheus-pve-exporter med klynge- og nodeinnsamlerne, merker hver serie med ressursen den beskriver, og sender metrikkene til OneUptime over OTLP, stemplet med klyngens navn, `proxmox.cluster.name`. De første dataene registrerer klyngen. Proxmox VE 9 og nyere kan i stedet pushe metrikker selv, uten å installere noe; se [det innebygde pushet](#det-innebygde-pushet-i-proxmox-ve).
+OneUptimes Proxmox-agent kjører på en maskin som kan nå Proxmox VE-API-et. Hvert 30. sekund henter den data fra klyngeinnsamlerne i prometheus-pve-exporter én gang og fra nodeinnsamlerne én gang for hver node, merker hver serie med ressursen den beskriver, og sender metrikkene til OneUptime over OTLP, stemplet med klyngens navn, `proxmox.cluster.name`. De første dataene registrerer klyngen. Proxmox VE 9 og nyere kan i stedet pushe metrikker selv, uten å installere noe; se [det innebygde pushet](#det-innebygde-pushet-i-proxmox-ve).
 
 En Proxmox-monitor er knyttet til én klynge. Hvert minutt kjører den spørringen sin over klyngens metrikker og sammenligner resultatet med kriteriene sine.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 og nyere kan pushe metrikker gjennom den innebygde OpenTelemetry-me
 
 ## Innsamlede metrikker
 
-Agenten henter data fra prometheus-pve-exporter hvert 30. sekund med både klynge- og nodeinnsamlerne, noe som også dekker exporterens innsamlere `backup-info` og `replication` (begge på som standard).
+Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: klyngeinnsamlerne én gang, på `PVE_HOST`, og nodeinnsamlerne én gang for hver node i `PVE_NODES`, fordi de bare leser noden exporteren spør. Nodeinnsamlerne er `config` (start ved oppstart) og `replication`; exporterens innsamlere `backup-info` (klynge) og `replication` er begge på som standard.
 
 ### Tilgjengelighet
 
@@ -206,7 +206,7 @@ Fra exporterens innsamler `backup-info` på klyngenivå. De rapporterer bare dek
 
 ### Replikering
 
-Fra exporterens innsamler `replication` på nodenivå. Seriene finnes bare når klyngen har replikeringsjobber, og bærer jobb-id-en i `id`:
+Fra exporterens innsamler `replication` på nodenivå, lest fra hver node i `PVE_NODES`. Seriene finnes bare når klyngen har replikeringsjobber, og bærer jobb-id-en i `id`:
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik
 :::
 
 :::details Sikkerhetskopi- eller replikeringsmetrikker mangler
-`pve_not_backed_up_*` kommer fra exporterens innsamler `backup-info` og `pve_replication_*` fra innsamleren `replication`. Begge er på som standard og dekkes av innsamlingsparameterne `cluster=1` og `node=1` i den medfølgende konfigurasjonen. Hvis du kjører din egen exporter, kontrollerer du at du ikke har slått dem av. `pve_replication_*` finnes bare når klyngen har jobber for lagringsreplikering.
+`pve_not_backed_up_*` kommer fra exporterens innsamler `backup-info` og `pve_replication_*` fra innsamleren `replication`. Begge er på som standard og dekkes av den medfølgende konfigurasjonen: `cluster=1` én gang, og `node=1` for hver node i `PVE_NODES`. En node som mangler i `PVE_NODES`, sender ingen replikeringsjobber, og gjestene dens ingen flagg for start ved oppstart, så **Guest Down** utløses aldri for dem. Hvis du kjører din egen exporter, kontrollerer du at du ikke har slått dem av. `pve_replication_*` finnes bare når klyngen har jobber for lagringsreplikering.
 :::
 
 :::details Tellere som pve_network_receive_bytes bare vokser

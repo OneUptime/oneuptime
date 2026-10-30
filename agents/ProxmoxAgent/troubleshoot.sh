@@ -254,8 +254,9 @@ else
       add_finding "PVE_EXPORTER_URL must be reachable from a container: use the host's LAN IP or DNS name (or host.docker.internal on Docker Desktop), never localhost." ;;
   esac
 
-  # Scrape exactly what the collector scrapes, from the collector's netns.
-  SCRAPE_URL="http://${PVE_EXPORTER_URL}/pve?target=${PVE_HOST}&cluster=1&node=1"
+  # Scrape exactly what the collector scrapes, from the collector's netns:
+  # the cluster collectors once, at PVE_HOST.
+  SCRAPE_URL="http://${PVE_EXPORTER_URL}/pve?target=${PVE_HOST}&cluster=1&node=0"
   if [ "$AGENT_RUNNING" = 1 ]; then
     SCRAPE_OUT=$(docker run --rm --network "container:$AGENT_CONTAINER" "$CURL_IMAGE" -sS -m 30 "$SCRAPE_URL" 2>&1)
   else
@@ -285,6 +286,46 @@ else
       fi
     fi
   fi
+
+  # The node collectors (start-on-boot, which Guest Down reads, replication
+  # and the subscription), once per node in PVE_NODES: the exporter reads
+  # them only for the node it queries. docker-compose.yml defaults the list
+  # to PVE_HOST alone.
+  PVE_NODES=$(agent_env PVE_NODES)
+  [ -z "$PVE_NODES" ] && PVE_NODES="[$PVE_HOST]"
+  case "$PVE_NODES" in
+    \[*\])
+      NODE_LIST=$(printf '%s' "$PVE_NODES" | sed 's/^\[//; s/\]$//' | tr ',' '\n' \
+        | sed "s/^[[:space:]\"']*//; s/[[:space:]\"']*\$//" | grep -v '^$')
+      NODES_LISTED=$(printf '%s\n' "$NODE_LIST" | grep -c . || true)
+      for NODE in $NODE_LIST; do
+        NODE_URL="http://${PVE_EXPORTER_URL}/pve?target=${NODE}&cluster=0&node=1"
+        if [ "$AGENT_RUNNING" = 1 ]; then
+          NODE_OUT=$(docker run --rm --network "container:$AGENT_CONTAINER" "$CURL_IMAGE" -sS -m 30 "$NODE_URL" 2>&1)
+        else
+          NODE_OUT=$(docker run --rm "$CURL_IMAGE" -sS -m 30 "$NODE_URL" 2>&1)
+        fi
+        NODE_EXIT=$?
+        if [ "$NODE_EXIT" = 0 ] && printf '%s\n' "$NODE_OUT" | grep -q 'pve_'; then
+          pass "Node $NODE answers the node collectors (start-on-boot, replication)."
+        else
+          warn "Node $NODE does not answer the node collectors — its guests' start-on-boot and its replication jobs are missing."
+          detail "Response head: $(printf '%s' "$NODE_OUT" | tr '\n' ' ' | head -c 200)"
+          add_finding "The exporter cannot read node $NODE (PVE_NODES). Use the node's own address, one the exporter can reach on port 8006, and check the token's PVEAuditor role on path /."
+        fi
+      done
+      # The cluster scrape lists every node once (pve_node_info).
+      NODES_IN_CLUSTER=$(printf '%s\n' "$SCRAPE_OUT" | grep -c '^pve_node_info{' || true)
+      if [ "${NODES_IN_CLUSTER:-0}" -gt "${NODES_LISTED:-0}" ] 2>/dev/null; then
+        warn "The cluster has $NODES_IN_CLUSTER nodes but PVE_NODES lists $NODES_LISTED — Guest Down and Replication Failing never see the guests and jobs of the others."
+        add_finding "List every node's own address in PVE_NODES in $ENV_FILE, e.g. PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12], and restart: docker compose up -d"
+      fi
+      ;;
+    *)
+      fail "PVE_NODES is '$PVE_NODES' — not a list in square brackets, so the collector refuses to start."
+      add_finding "Write PVE_NODES in $ENV_FILE as a comma-separated list in square brackets, e.g. PVE_NODES=[192.168.1.10,192.168.1.11], and restart: docker compose up -d"
+      ;;
+  esac
 fi
 
 # ----------------------------------------------------------------------------

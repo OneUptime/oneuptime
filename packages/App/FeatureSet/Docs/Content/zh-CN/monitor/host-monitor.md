@@ -113,7 +113,7 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 - **Host Stopped Reporting** 会在主机 10 分钟内没有任何数据到达时触发：机器宕机或无法访问，或者它的 Collector 已停止、失去了通往 OneUptime 的路由或令牌被撤销。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **CPU** 是繁忙时间（`user` 加 `system`），与主机 **概览** 图表中的数字相同。不包括 iowait 和 steal。
 - **内存** 不计缓冲区和页缓存，所以主要被缓存占用的主机不会触发它。
-- **文件系统** 为每个挂载点打开一个事件。只读的伪文件系统（例如 snap 的 `squashfs` 挂载或 macOS 的 `devfs`）总是 100% 已满；请在 Collector 的 `filesystem` 抓取器中排除它们。
+- **文件系统** 为每个挂载点打开一个事件。只读的伪文件系统（例如 snap 的 `squashfs` 挂载或 macOS 的 `devfs`）总是 100% 已满：OneUptime 的 Collector 配置用 `exclude_fs_types` 把它们排除在 `filesystem` 抓取器之外，你自己的配置也需要这样做。
 - **平均负载** 是原始的运行队列长度，没有除以核心数：4 在 2 核主机上意味着饱和，在 32 核主机上则很平常，所以在大型主机上请调高它。
 - **进程数** 比较的是最大的单个进程状态（`running`、`sleeping`、…），而不是主机的总数，因此它与进程列表对不上。进程抓取器只在 Linux 上报告。
 
@@ -212,7 +212,7 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 :::
 
 :::details High Filesystem Usage 在一个总是满的挂载点上触发
-只读的伪文件系统（例如 `/snap` 下 snap 的 `squashfs` 环回挂载，或 macOS 的 `devfs`）按设计就是 100% 已满，永远不会恢复。请把它们从 Collector 的 `filesystem` 抓取器中排除。
+只读的伪文件系统（例如 `/snap` 下 snap 的 `squashfs` 环回挂载，或 macOS 的 `devfs`）按设计就是 100% 已满，永远不会恢复。OneUptime 运行和提供的配置用 `exclude_fs_types` 把它们排除在外；你自己的配置，或在此之前创建的收集器配置，也需要同样的排除：请从 [主机指标](/docs/telemetry/host-otel-collector#主机指标) 复制。其他总是满的挂载点（例如已挂载的 `.dmg`）请用 `exclude_mount_points` 排除。
 :::
 
 ## 后续步骤

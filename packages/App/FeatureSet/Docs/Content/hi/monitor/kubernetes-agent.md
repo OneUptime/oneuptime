@@ -60,8 +60,8 @@ helm repo update
 URL को अपने OneUptime URL से बदलें, और दोनों प्लेसहोल्डर को अपनी इंजेशन कुंजी और क्लस्टर के नाम से:
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -73,7 +73,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ### जाँचें कि पॉड चल रहे हैं
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
+kubectl get pods -n oneuptime-agent
 ```
 
 हर पॉड को एक-दो मिनट में `Running` तक पहुँच जाना चाहिए।
@@ -100,16 +100,16 @@ GKE Autopilot और EKS Fargate विशेषाधिकार वाले 
 :::tabs
 @tab Standard
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
 @tab GKE Autopilot
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
@@ -117,8 +117,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ```
 @tab EKS Fargate
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
@@ -131,8 +131,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 इंस्टॉल के समय दिए गए लेबल क्लस्टर से, और इस एजेंट द्वारा रिपोर्ट की गई सेवाओं और होस्ट से जुड़ते हैं। `--set oneuptime.labels.<key>=<value>` `<key>:<value>` नाम का प्रोजेक्ट लेबल बन जाता है:
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -156,8 +156,8 @@ clusterName: prod
 ```
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   -f values.yaml
 ```
 
@@ -182,8 +182,8 @@ Windows नोड पर कभी एजेंट पॉड नहीं चल
 Windows नोड पर पॉड के लॉग भी इकट्ठा करने के लिए, हाइब्रिड मोड चालू करें:
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -240,8 +240,8 @@ OBI किसी कॉल के पार ट्रेस को आगे भ
 - **कोई भी दूसरी लॉग पंक्ति** बिना बदलाव के, बिना लिंक के इकट्ठा होती है, जब तक कि आप `ebpf.logEnricher.plainText=true` भी सेट न करें। तब OBI उसमें ` trace_id=… span_id=…` जोड़ देता है, और नोड कलेक्टर आईडी को लॉग रिकॉर्ड में ले जाता है और पंक्ति से हटा देता है, इसलिए OneUptime उसे वैसा ही दिखाता है जैसा आपके ऐप ने लिखा था। कंटेनर की लॉग फ़ाइल में मौजूद पंक्ति, जिसे `kubectl logs` प्रिंट करता है, जोड़ा गया हिस्सा बनाए रखती है।
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=true
 ```
 
@@ -310,8 +310,8 @@ ebpf:
 यह जाँचने के लिए कि OBI चल रहा है और ट्रैफ़िक देख रहा है:
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl get pods -n oneuptime-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 ## निरंतर CPU प्रोफ़ाइलिंग
@@ -338,14 +338,14 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 | विकल्प | डिफ़ॉल्ट | यह क्या जोड़ता है |
 | --- | --- | --- |
 | `hostMetrics.enabled` | चालू | `/proc` और `/sys` से हर नोड के OS मेट्रिक्स: डिस्क I/O कतारें, फ़ाइल सिस्टम inode, नेटवर्क इंटरफ़ेस त्रुटियाँ, पेजिंग और लोड एवरेज। नोड कलेक्टर में चलता है, बिना अतिरिक्त पॉड के। |
-| `kubeletstats.utilizationMetrics.enabled` | चालू | कंटेनर और पॉड का CPU और मेमोरी, उनके request और limit के प्रतिशत के रूप में, जिन्हें CPU और मेमोरी सैचुरेशन मॉनिटर पढ़ते हैं। बिना request या limit वाले पॉड के लिए हमेशा 0। |
-| `kubeletstats.volumeMetrics.enabled` | चालू | हर PVC की खाली और कुल जगह (`k8s.volume.available`, `k8s.volume.capacity`), जिसे PVC Low Disk Space मॉनिटर पढ़ता है। हर पॉड के हर PVC के लिए एक सीरीज़। |
+| `kubeletstats.utilizationMetrics.enabled` | चालू | कंटेनर और पॉड का CPU और मेमोरी, उनके request और limit के प्रतिशत के रूप में, जिन्हें Pod CPU Saturating Container Limit और Pod Memory Saturating Container Limit टेम्पलेट पढ़ते हैं। बिना limit (या request) वाले कंटेनर को इनमें से कोई सीरीज़ नहीं मिलती, और पॉड को तभी जब उसके हर कंटेनर में यह हो। |
+| `kubeletstats.volumeMetrics.enabled` | चालू | हर PVC की खाली और कुल जगह (`k8s.volume.available`, `k8s.volume.capacity`), आपके अपने चार्ट और मेट्रिक मॉनिटर के लिए: कोई बिल्ट-इन टेम्पलेट इसे नहीं पढ़ता। हर पॉड के हर PVC के लिए एक सीरीज़। |
 | `cadvisor.enabled` | चालू | हर kubelet के `/metrics/cadvisor` से CPU थ्रॉटलिंग और OOM किल: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` और `container_oom_events_total`, और कुछ नहीं। |
 | `kubeStateMetrics.enabled` | बंद | kube-state-metrics से पॉड फ़ेज़ (Pending, Terminating), शेड्यूल न हो सकने वाले पॉड, कंटेनर के प्रतीक्षा कारण (CrashLoopBackOff, ImagePullBackOff) और रिसोर्स कोटा का उपयोग। `kubeStateMetrics.mode: bundled` (डिफ़ॉल्ट) आपके लिए एक छोटा kube-state-metrics चलाता है; `external` उसे पढ़ता है जो आप पहले से चलाते हैं, `kubeStateMetrics.endpoint` पर। |
 | `auditLogs.enabled` | बंद | Kubernetes ऑडिट लॉग, `/var/log/kubernetes/audit.log`: API को हर अनुरोध, किसने, किस पर। केवल सेल्फ़-मैनेज्ड क्लस्टर: मैनेज्ड क्लस्टर (EKS, GKE, AKS, DOKS) इसे क्लाउड प्रदाता को भेजते हैं। |
 | `csi.enabled` | बंद | `app=csi-driver` या `app.kubernetes.io/component=csi-driver` लेबल वाले पॉड से CSI स्टोरेज ड्राइवर के मेट्रिक्स: वॉल्यूम अटैच और डिटैच समय, प्रोविज़निंग विफलताएँ, IOPS। |
 | `coreDns.enabled` | बंद | `:9153/metrics` पर CoreDNS के मेट्रिक्स: क्वेरी दर, लेटेंसी, कैश हिट और त्रुटियाँ। |
-| `controlPlane.enabled` | बंद | etcd, API सर्वर, शेड्यूलर और कंट्रोलर मैनेजर। केवल सेल्फ़-मैनेज्ड क्लस्टर: मैनेज्ड क्लस्टर इन्हें उजागर नहीं करते। |
+| `controlPlane.enabled` | बंद | API सर्वर, क्लस्टर के भीतर के अपने पते पर, और etcd, शेड्यूलर और कंट्रोलर मैनेजर, आपके दिए एंडपॉइंट पर ([कंट्रोल प्लेन निगरानी चालू करें](/docs/telemetry/kubernetes-agent#कंट्रोल-प्लेन-निगरानी-चालू-करें))। केवल सेल्फ़-मैनेज्ड क्लस्टर: मैनेज्ड क्लस्टर इन्हें उजागर नहीं करते। |
 | `cost.enabled` | बंद | हर वर्कलोड की लागत। देखें [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost)। |
 
 ## सामान्य विकल्प
@@ -376,8 +376,8 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values
 ```
 
@@ -385,9 +385,9 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm repo update
-helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
-  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent -f values.yaml
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
 ```
 
 `--reuse-values` से अपग्रेड न करें: यह उस चार्ट के डिफ़ॉल्ट भी रखता है जिससे आप अपग्रेड कर रहे हैं, इसलिए नए चार्ट के डिफ़ॉल्ट, जिनमें उसकी eBPF इमेज भी है, कभी लागू नहीं होते। जब कोई रिलीज़ पुराने चार्ट के डिफ़ॉल्ट पर चलती है, तो इंस्टॉल या अपग्रेड के बाद Helm जो नोट्स प्रिंट करता है, वे एक चेतावनी और उसे ठीक करने वाले कमांड के साथ खत्म होते हैं।
@@ -398,8 +398,8 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
 ## अनइंस्टॉल करना
 
 ```bash
-helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
-kubectl delete namespace oneuptime-kubernetes-agent
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
 ```
 
 ## समस्या निवारण
@@ -409,7 +409,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
-  | bash -s -- -n oneuptime-kubernetes-agent
+  | bash -s -- -n oneuptime-agent
 ```
 
 आम कारण, खासकर दोबारा इंस्टॉल के बाद, गलत या रद्द की गई इंजेशन कुंजी है: OneUptime उसे अस्वीकार करता है, और कलेक्टर हर बैच हटा देता है जबकि उसके पॉड `Running` बने रहते हैं।
@@ -420,8 +420,8 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set preset=gke-autopilot
 ```
@@ -437,8 +437,8 @@ EKS Fargate पर, `--set preset=eks-fargate` का उपयोग करे�
 एजेंट के पॉड और उनके लॉग जाँचें:
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
-kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
+kubectl get pods -n oneuptime-agent
+kubectl logs -n oneuptime-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
 `api` मोड में, लॉग टेलर `/healthz`, पोर्ट 13133, पर अपने एक्सपोर्ट की स्थिति के साथ जवाब देता है: इस तक `kubectl port-forward` से पहुँचें।
@@ -448,7 +448,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptim
 OBI का लॉग पढ़ें:
 
 ```bash
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 - **कर्नेल बहुत पुराना है, या उसमें BTF नहीं है।** OBI को BTF के साथ Linux 5.8 या बाद का संस्करण चाहिए; किसी नोड पर `uname -r` से जाँचें। अगर आप इसे अपग्रेड नहीं कर सकते, तो `--set ebpf.enabled=false` से eBPF बंद करें।
@@ -468,7 +468,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 नेमस्पेस को कई रिलीज़ में बाँटें, हर एक को उसके अपने नेमस्पेस नियमों के साथ इंस्टॉल करके:
 
 ```bash
-helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
+helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
   --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...

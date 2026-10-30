@@ -114,10 +114,11 @@ ENV_ARGS=(
   -e "VCENTER_COLLECTION_INTERVAL=2m"
   # The Proxmox and Ceph agents (prometheus receivers scraping an exporter
   # and the mgr prometheus module). A scrape target has to parse as
-  # host:port, and the Ceph targets are one YAML list, so give them the
-  # shapes their compose files and install scripts write.
+  # host:port, and the Proxmox nodes and the Ceph targets are YAML lists,
+  # so give them the shapes their compose files and install scripts write.
   -e "PROXMOX_CLUSTER_NAME=validate-only"
   -e "PVE_HOST=pve.example.com"
+  -e "PVE_NODES=[pve1.example.com,pve2.example.com]"
   -e "PVE_EXPORTER_URL=pve-exporter:9221"
   -e "CEPH_CLUSTER_NAME=validate-only"
   -e "CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283]"

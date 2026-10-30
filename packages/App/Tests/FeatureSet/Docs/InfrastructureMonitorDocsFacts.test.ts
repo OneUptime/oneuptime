@@ -2308,9 +2308,17 @@ describe("the agents the pages describe", () => {
       "agents/ProxmoxAgent/otel-collector-config.yaml",
     );
 
-    expect(config).toContain('cluster: ["1"]');
-    expect(config).toContain('node: ["1"]');
+    /*
+     * The node collectors read only the node the exporter asks, so they
+     * run once per node in PVE_NODES and the cluster collectors once.
+     */
+    expect(config).toContain('cluster: ["1"]\n            node: ["0"]');
+    expect(config).toContain('cluster: ["0"]\n            node: ["1"]');
+    expect(config).toContain("- targets: ${env:PVE_NODES}");
     expect(config).toContain("scrape_interval: 30s");
+    expect(englishPage(PROXMOX)).toContain(
+      "The agent scrapes prometheus-pve-exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`, because they read only the node the exporter asks.",
+    );
 
     for (const [prefix, scope, type] of [
       ["node", "node", "node"],

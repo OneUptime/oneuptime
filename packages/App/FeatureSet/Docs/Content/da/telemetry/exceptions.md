@@ -139,7 +139,7 @@ Siden **AI Assistance** tilbyder tre opgaver. Hver kører som en AI-opgave, der 
 | **Generate Regression Test** | Tilføjer en test, der fejler, indtil fejlen er rettet. |
 | **Forbedr fejlhåndtering** | Til forventede fejl: validerer input tidligere, holder brugerdata ude af beskeder og markerer fejlen som håndteret. |
 
-AI har først brug for tre ting: en LLM-udbyder, et forbundet lager (på GitHub, GitLab, Forgejo eller Gitea eller enhver Git-server) og en AI-agent online til at køre opgaven. Siden kontrollerer hver af dem og linker til det, der mangler. Opgaverne holder pause, mens undtagelsen er løst eller arkiveret. Se [Kode](/docs/ai/ai-agent).
+AI har først brug for tre ting: en LLM-udbyder, et forbundet lager (på GitHub, GitLab, Forgejo eller Gitea eller enhver Git-server) og en AI-agent online til at køre opgaven. Siden kontrollerer hver af dem og linker til det, der mangler. Opgaverne holder pause, mens undtagelsen er løst eller arkiveret. Se [Kode](/docs/ai/ai-agent). At starte en opgave kræver tilladelse til at redigere det lager, den arbejder i: Den, der kun må læse undtagelsen, ser dens opgaver, men kan ikke starte nogen.
 
 ## Find og ret nye og stigende undtagelser med AI
 
@@ -182,6 +182,8 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 ## Indsigter i undtagelser
 
 Fanen **Indsigter** tæller dine undtagelser under **Uløst**, **Løst** og **Arkiveret** og din løsningsrate og viser de hyppigste undtagelser, de tjenester, de rammer, og dem, der senest er set.
+
+**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes ikke, bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
 
 ## Fejlfinding
 

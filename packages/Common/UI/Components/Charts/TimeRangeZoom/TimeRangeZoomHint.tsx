@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   ChartTimeRangeZoomContextValue,
   useChartTimeRangeZoom,
@@ -15,8 +17,14 @@ export const TIME_RANGE_ZOOM_HINT_TEST_ID: string = "time-range-zoom-hint";
  */
 export const TIME_RANGE_ZOOM_HINT_GROUP_CLASS: string = "group/zoomhint";
 
-export const TIME_RANGE_ZOOM_HINT_TEXT: string = "Drag to zoom";
-export const TIME_RANGE_ZOOM_HINT_RESET_TEXT: string = "Double-click to reset";
+/*
+ * The hint's words, in English: keys of the locales, drawn in the reader's
+ * language wherever they are shown (here, and DashboardWidgetZoomHint).
+ */
+export const TIME_RANGE_ZOOM_HINT_TEXT: string = translationKey("Drag to zoom");
+export const TIME_RANGE_ZOOM_HINT_RESET_TEXT: string = translationKey(
+  "Double-click to reset",
+);
 
 /*
  * How a revealOnHover hint shows itself: while the pointer is over the card,
@@ -49,6 +57,7 @@ const TimeRangeZoomHint: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
+  const translator: Translator = useTranslator();
 
   if (!zoom) {
     return null;
@@ -63,9 +72,11 @@ const TimeRangeZoomHint: FunctionComponent<ComponentProps> = (
       data-testid={TIME_RANGE_ZOOM_HINT_TEST_ID}
       className={`shrink-0 whitespace-nowrap text-[10px] text-gray-400 ${revealClassName} ${props.className || ""}`}
     >
-      {zoom.onTimeRangeReset
-        ? TIME_RANGE_ZOOM_HINT_RESET_TEXT
-        : TIME_RANGE_ZOOM_HINT_TEXT}
+      {translator.translateText(
+        zoom.onTimeRangeReset
+          ? TIME_RANGE_ZOOM_HINT_RESET_TEXT
+          : TIME_RANGE_ZOOM_HINT_TEXT,
+      )}
     </span>
   );
 };

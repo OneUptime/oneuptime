@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
@@ -18,6 +19,7 @@ import {
 import type { Mock } from "jest-mock";
 import React, { ReactElement, useEffect } from "react";
 import ObjectID from "../../../Types/ObjectID";
+import Tooltip from "../../../UI/Components/Tooltip/Tooltip";
 import { resetPageScrollLockForTesting } from "../../../UI/Utils/PageScrollLock";
 import { PlaylistEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistDashboards";
 import { PlaylistRound } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistPlayerState";
@@ -121,6 +123,12 @@ async function flush(): Promise<void> {
 
 async function renderPlayer(
   first: PlaylistRound | null | Error,
+  // What each dashboard draws; the counting stand-in unless given.
+  drawDashboard: (playing: PlaylistEntry) => ReactElement = (
+    playing: PlaylistEntry,
+  ): ReactElement => {
+    return <Board entry={playing} />;
+  },
 ): Promise<Rendered> {
   const clock: PlaylistFakeClock = new PlaylistFakeClock(T0);
   const onExit: Mock<Callback> = jest.fn<Callback>();
@@ -139,9 +147,7 @@ async function renderPlayer(
           ? Promise.reject(current)
           : Promise.resolve(current);
       }}
-      renderDashboard={(playing: PlaylistEntry): ReactElement => {
-        return <Board entry={playing} />;
-      }}
+      renderDashboard={drawDashboard}
       onExit={onExit}
       onOpenPlaylist={onOpenPlaylist}
       onOpenPlaylists={onOpenPlaylists}
@@ -662,6 +668,65 @@ describe("the keys", () => {
     await key("Escape");
     expect(rendered.onExit).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * The player hears keys on the window, before anything on the page; a
+   * tooltip's Escape listener comes before even that (TooltipEscape). One
+   * Escape put the tooltip away AND left the player.
+   */
+  test.each([
+    { how: "pointed at", isKeyboard: false },
+    { how: "reached from the keyboard", isKeyboard: true },
+  ])(
+    "a tooltip on the dashboard, $how, goes on the first Escape, and only the next one leaves the player",
+    async ({ isKeyboard }: { how: string; isKeyboard: boolean }) => {
+      const rendered: Rendered = await renderPlayer(
+        round([OVERVIEW, CLUSTERS]),
+        (playing: PlaylistEntry): ReactElement => {
+          return (
+            <Tooltip text={`What ${playing.name} shows`}>
+              <button type="button" data-testid="widget-help">
+                {playing.name}
+              </button>
+            </Tooltip>
+          );
+        },
+      );
+
+      const help: HTMLElement = within(onScreen()).getByTestId("widget-help");
+      if (isKeyboard) {
+        await key("Tab");
+        act(() => {
+          help.focus();
+        });
+      } else {
+        fireEvent.mouseEnter(help);
+      }
+      await act(async () => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 250);
+        });
+      });
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "What Production overview shows",
+      );
+
+      const first: KeyboardEvent = await key("Escape");
+
+      expect(first.defaultPrevented).toBe(true);
+      expect(rendered.onExit).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.queryAllByRole("tooltip")).toHaveLength(0);
+      });
+      expect(dashboardName()).toBe("Production overview");
+      if (isKeyboard) {
+        expect(help).toHaveFocus();
+      }
+
+      await key("Escape");
+      expect(rendered.onExit).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test("the keyboard button opens the same sheet", async () => {
     await renderPlayer(round([OVERVIEW, CLUSTERS]));

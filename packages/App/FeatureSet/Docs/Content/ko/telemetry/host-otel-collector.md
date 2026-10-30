@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 `hostmetrics`는 모든 OS에서 작동합니다. `collection_interval`마다 커널에서 CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징, 프로세스를 읽습니다. `*.utilization` 메트릭과 `system.cpu.logical.count`는 리시버에서 기본적으로 꺼져 있지만 호스트의 차트와 Host 알림 템플릿이 이를 읽으므로, 위 구성처럼 켜 두세요. `process` 스크레이퍼는 **프로세스** 페이지를 채우며, 가장 큰 시계열 발생원이기도 합니다([전송량 줄이기](#수집하는-데이터양-줄이기) 참조).
 
 Linux에서 Collector는 `/proc`와 `/sys`를 읽습니다. 컨테이너 안의 Collector는 호스트의 것을 마운트하고 `HOST_PROC`와 `HOST_SYS`를 설정해야 하며([Docker 컨테이너에서](#docker-컨테이너에서) 참조), 네이티브 설치에는 아무것도 필요하지 않습니다.
+
+위 구성은 설계상 가득 차 있거나 데이터를 담지 않는 파일 시스템을 `filesystem` 스크레이퍼에서 제외합니다(`exclude_fs_types`). snap 패키지(`squashfs`)와 그 밖의 읽기 전용 이미지, CD와 DVD, macOS의 `/dev`(`devfs`), 오토마운터의 맵(`autofs`)이 그렇습니다. 가득 찬 것들은 마운트되어 있는 동안 계속 100% 사용 중으로 읽히므로, 제외하지 않으면 High Filesystem Usage 템플릿이 작동한 채 회복하지 않습니다. 직접 작성한 구성에도 이 제외를 유지하세요. 마운트한 `.dmg`처럼 일반 파일 시스템을 가진 읽기 전용 이미지도 가득 찬 것으로 읽히므로, 그 마운트 지점은 `exclude_mount_points`로 제외하세요.
 
 ### 파일 로그
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
