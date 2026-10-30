@@ -5,6 +5,7 @@ import Color from "Common/Types/Color";
 import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
+import { DRY_RUN_COMMAND_STEP_ID_PREFIX } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import {
   translatableTerm,
@@ -86,11 +87,15 @@ export const RESOURCE_COMMAND_JOB_ORIGIN_LABELS: Record<
 
 /*
  * One row's "Why". An AiInvestigation job without an AI run is the AI agent
- * page's connection test, which spends the same read-only access.
+ * page's connection test, which spends the same read-only access. A fix's
+ * job whose step is a dry run (DRY_RUN_COMMAND_STEP_ID_PREFIX) checked a
+ * change before a person approved it and changed nothing, so it never
+ * reads as the fix itself.
  */
 export function describeResourceCommandJobOrigin(job: {
   origin?: string | undefined;
   aiRunId?: unknown;
+  stepId?: string | undefined;
 }): string {
   const origin: string = String(job.origin || "");
 
@@ -101,7 +106,9 @@ export function describeResourceCommandJobOrigin(job: {
   }
 
   if (origin === RunnerJobOrigin.AiRemediation) {
-    return translateTemplate("Fix");
+    return String(job.stepId || "").startsWith(DRY_RUN_COMMAND_STEP_ID_PREFIX)
+      ? translateTemplate("Dry run of a fix (read-only)")
+      : translateTemplate("Fix");
   }
 
   return origin;
@@ -139,6 +146,8 @@ export interface ResourceAiLogsFix {
   incidentId: string | null;
   alertId: string | null;
   approvedAt: string | null;
+  // Who approved it (a name, or an email without one); null when nobody did.
+  approvedByName: string | null;
 }
 
 export interface ResourceAiLogs {
@@ -234,6 +243,7 @@ function parseFix(value: unknown): ResourceAiLogsFix | null {
     incidentId: readString(value["incidentId"]),
     alertId: readString(value["alertId"]),
     approvedAt: readString(value["approvedAt"]),
+    approvedByName: readString(value["approvedByName"]),
   };
 }
 

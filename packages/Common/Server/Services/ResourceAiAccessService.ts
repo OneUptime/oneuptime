@@ -15,7 +15,11 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
+import CloudAccount from "../../Models/DatabaseModels/CloudAccount";
+import CloudResource from "../../Models/DatabaseModels/CloudResource";
+import { getCloudCatalogProvider } from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
@@ -43,6 +47,8 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertService from "./AlertService";
 import CephClusterService from "./CephClusterService";
+import CloudAccountService from "./CloudAccountService";
+import CloudResourceService from "./CloudResourceService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseService from "./DatabaseService";
 import DockerHostService from "./DockerHostService";
@@ -112,6 +118,11 @@ export interface ResourceAiAccessRow {
   aiAccessLastVerifiedAt?: Date | undefined;
   aiAccessLastError?: string | undefined;
   isArchived: boolean;
+  /*
+   * A cloud account only: whether a cloud connection reads it. Its live
+   * reads go through that connection, so an investigation needs it.
+   */
+  hasCloudConnection?: boolean | undefined;
 }
 
 /*
@@ -158,61 +169,127 @@ type SubjectRelation =
   | "vmwareVCenters"
   | "cephClusters"
   | "databaseServers"
-  | "hosts";
+  | "hosts"
+  | "cloudResources";
 
 /*
  * How each resource type is read: its table's service, the extra columns
  * its identity lives in, the Incident/Alert relation that links it to a
  * subject, and the list the monitor-step fallback fills for it.
+ *
+ * A cloud account is linked through the cloud resources it holds: a
+ * subject's cloudResources (and the monitor fallback's cloudResourceIds)
+ * name resources, and each resource's cloud and account id name the
+ * CloudAccount row (one table for the three clouds, told apart by
+ * `query`). The table has no archive.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDatabaseService = DatabaseService<any>;
+
+/*
+ * Each spec reads its service when it is used, never when this module
+ * loads: the model services import this one back (through the AI settings
+ * rules and the agent service), so a process that loads a model service
+ * first would otherwise find it undefined here.
  */
 interface ResourceAiAccessModelSpec {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  service: DatabaseService<any>;
+  readonly service: AnyDatabaseService;
   identityColumns: Record<string, boolean>;
   subjectRelation: SubjectRelation;
   resolvedIdsKey: keyof SeriesResolvedResourceIds;
+  // Conditions every read of the type's rows adds (a cloud account's cloud).
+  query: Record<string, unknown>;
+  // Whether the table archives rows (isArchived).
+  hasArchive: boolean;
+}
+
+const CLOUD_ACCOUNT_IDENTITY_COLUMNS: Record<string, boolean> = {
+  accountId: true,
+  provider: true,
+  cloudConnectionId: true,
+};
+
+function cloudAccountSpec(
+  resourceType: AiResourceType,
+): ResourceAiAccessModelSpec {
+  return {
+    get service(): AnyDatabaseService {
+      return CloudAccountService;
+    },
+    identityColumns: CLOUD_ACCOUNT_IDENTITY_COLUMNS,
+    subjectRelation: "cloudResources",
+    resolvedIdsKey: "cloudResourceIds",
+    query: { provider: getCloudCatalogProvider(resourceType) || "" },
+    hasArchive: false,
+  };
 }
 
 const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
   {
     [AiResourceType.DockerHost]: {
-      service: DockerHostService,
+      get service(): AnyDatabaseService {
+        return DockerHostService;
+      },
       identityColumns: { hostIdentifier: true },
       subjectRelation: "dockerHosts",
       resolvedIdsKey: "dockerHostIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.PodmanHost]: {
-      service: PodmanHostService,
+      get service(): AnyDatabaseService {
+        return PodmanHostService;
+      },
       identityColumns: { hostIdentifier: true },
       subjectRelation: "podmanHosts",
       resolvedIdsKey: "podmanHostIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.DockerSwarmCluster]: {
-      service: DockerSwarmClusterService,
+      get service(): AnyDatabaseService {
+        return DockerSwarmClusterService;
+      },
       identityColumns: {},
       subjectRelation: "dockerSwarmClusters",
       resolvedIdsKey: "dockerSwarmClusterIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.ProxmoxCluster]: {
-      service: ProxmoxClusterService,
+      get service(): AnyDatabaseService {
+        return ProxmoxClusterService;
+      },
       identityColumns: {},
       subjectRelation: "proxmoxClusters",
       resolvedIdsKey: "proxmoxClusterIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.VMwareVCenter]: {
-      service: VMwareVCenterService,
+      get service(): AnyDatabaseService {
+        return VMwareVCenterService;
+      },
       identityColumns: {},
       subjectRelation: "vmwareVCenters",
       resolvedIdsKey: "vmwareVCenterIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.CephCluster]: {
-      service: CephClusterService,
+      get service(): AnyDatabaseService {
+        return CephClusterService;
+      },
       identityColumns: {},
       subjectRelation: "cephClusters",
       resolvedIdsKey: "cephClusterIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.DatabaseServer]: {
-      service: DatabaseServerService,
+      get service(): AnyDatabaseService {
+        return DatabaseServerService;
+      },
       identityColumns: {
         dbSystem: true,
         serverAddress: true,
@@ -220,13 +297,26 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       },
       subjectRelation: "databaseServers",
       resolvedIdsKey: "databaseServerIds",
+      query: {},
+      hasArchive: true,
     },
     [AiResourceType.Host]: {
-      service: HostService,
+      get service(): AnyDatabaseService {
+        return HostService;
+      },
       identityColumns: { hostIdentifier: true },
       subjectRelation: "hosts",
       resolvedIdsKey: "hostIds",
+      query: {},
+      hasArchive: true,
     },
+    [AiResourceType.AwsAccount]: cloudAccountSpec(AiResourceType.AwsAccount),
+    [AiResourceType.AzureSubscription]: cloudAccountSpec(
+      AiResourceType.AzureSubscription,
+    ),
+    [AiResourceType.GoogleCloudProject]: cloudAccountSpec(
+      AiResourceType.GoogleCloudProject,
+    ),
   };
 
 /*
@@ -249,6 +339,12 @@ const REACH_HINTS: Readonly<Record<AiResourceType, string>> = {
     "the database address and the read-only credentials in the agent's environment",
   [AiResourceType.Host]:
     "that the agent runs privileged with the host's PID namespace (pid: host)",
+  [AiResourceType.AwsAccount]:
+    "that the agent's ECS task role can be used and the agent can reach the AWS APIs",
+  [AiResourceType.AzureSubscription]:
+    "that the agent's managed identity has its role on this subscription and the agent can reach Azure Resource Manager",
+  [AiResourceType.GoogleCloudProject]:
+    "that the agent's service account has its role on this project and the agent can reach the Google Cloud APIs",
 };
 
 // "Docker host", but "host" and "database server" for the generic nouns.
@@ -288,6 +384,13 @@ export function getResourceAiAgentInstallNextStep(data: {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
   const noun: string = describeResourceNoun(data.resourceType);
   let identity: string;
+
+  // A cloud agent is set up from the account's page, with one command.
+  if (isCloudAiResourceType(data.resourceType)) {
+    return `To let OneUptime AI fix problems in this ${noun}, use "Let AI fix problems" on the account's Overview (or ${getResourceAiAgentPage(
+      data.resourceType,
+    )}) and run the command it shows in the cloud's own shell: it creates the ${info.agentDisplayName}'s role and starts the agent, which connects on its own.`;
+  }
 
   if (data.resourceType === AiResourceType.DatabaseServer) {
     identity = data.resourceId
@@ -467,6 +570,13 @@ export class ResourceAiAccessServiceClass {
     const noun: string = describeResourceNoun(type);
     const page: string = getResourceAiAgentPage(type);
     const gaps: Array<ResourceAiAccessGap> = [];
+    /*
+     * A cloud account's investigation reads it live on the server, through
+     * its read-only connection: it needs no agent, so the agent's gaps block
+     * only its fixes, and a missing connection blocks only investigation.
+     */
+    const isCloudAccount: boolean = isCloudAiResourceType(type);
+    const agentGapBlocksInvestigation: boolean = !isCloudAccount;
 
     /*
      * The agent as ResourceAiAgentService sees it: one online rule for the
@@ -502,7 +612,7 @@ export class ResourceAiAccessServiceClass {
           resourceId: resource.id.toString(),
           identifier: resource.identifier,
         }),
-        blocksInvestigation: true,
+        blocksInvestigation: agentGapBlocksInvestigation,
         blocksRemediation: true,
       });
     } else if (!agent.isOnline) {
@@ -519,7 +629,7 @@ export class ResourceAiAccessServiceClass {
             ? " and then signed off (it was stopped, restarted or reset)"
             : ""
         }. Check that its container is running and can reach your OneUptime URL (its logs say why it cannot).`,
-        blocksInvestigation: true,
+        blocksInvestigation: agentGapBlocksInvestigation,
         blocksRemediation: true,
       });
     } else if (!posture || posture.resourceType !== type) {
@@ -532,7 +642,7 @@ export class ResourceAiAccessServiceClass {
         code: "ai_agent_unreachable_resource",
         title: `The ${info.agentDisplayName} has not reported that it can reach this ${noun}`,
         nextStep: `Wait for its next report (within a minute), or reset the agent on ${page}.`,
-        blocksInvestigation: true,
+        blocksInvestigation: agentGapBlocksInvestigation,
         blocksRemediation: true,
       });
     } else if (posture.reachable !== true) {
@@ -542,8 +652,19 @@ export class ResourceAiAccessServiceClass {
         nextStep: `Its last check failed${
           posture.reachError ? `: ${posture.reachError}` : ""
         }. Check ${REACH_HINTS[type]}, then use "Test connection" on ${page}.`,
-        blocksInvestigation: true,
+        blocksInvestigation: agentGapBlocksInvestigation,
         blocksRemediation: true,
+      });
+    }
+
+    if (isCloudAccount && resource.hasCloudConnection !== true) {
+      gaps.push({
+        code: "cloud_connection_missing",
+        title: `No cloud connection reads this ${noun}`,
+        nextStep:
+          "Connect it under Cloud → Connect: investigations read the account live through its read-only connection.",
+        blocksInvestigation: true,
+        blocksRemediation: false,
       });
     }
 
@@ -640,6 +761,19 @@ export class ResourceAiAccessServiceClass {
       isRemediationReady:
         remediationMode !== ResourceAiRemediationMode.Disabled &&
         !blocksRemediation,
+      /*
+       * Whether the project fixes new incidents and alerts at all: with
+       * both off - the default - a resource whose fixes are on fixes
+       * nothing new, and its page says so (as a cluster's does).
+       */
+      ...(gates.automaticRemediation
+        ? {
+            automaticRemediation: {
+              incidents: gates.automaticRemediation.incidents === true,
+              alerts: gates.automaticRemediation.alerts === true,
+            },
+          }
+        : {}),
     };
   }
 
@@ -733,15 +867,23 @@ export class ResourceAiAccessServiceClass {
       const models: Array<Record<string, unknown>> = (await spec.service.findBy(
         {
           query: {
+            ...spec.query,
             projectId: data.projectId,
             _id: QueryHelper.any(
               ids.map((id: string): ObjectID => {
                 return new ObjectID(id);
               }),
             ),
-            ...(data.excludeArchived ? { isArchived: false } : {}),
+            ...(data.excludeArchived && spec.hasArchive
+              ? { isArchived: false }
+              : {}),
           },
-          select: { ...AI_ACCESS_COLUMNS, ...spec.identityColumns },
+          select: {
+            ...(spec.hasArchive
+              ? AI_ACCESS_COLUMNS
+              : this.withoutArchive(AI_ACCESS_COLUMNS)),
+            ...spec.identityColumns,
+          },
           limit: ids.length,
           skip: 0,
           props: { isRoot: true },
@@ -832,7 +974,19 @@ export class ResourceAiAccessServiceClass {
         toDate(model["aiAccessLastVerifiedAt"] as DateLike) || undefined,
       aiAccessLastError: readString(model["aiAccessLastError"]),
       isArchived,
+      ...(isCloudAiResourceType(resourceType)
+        ? { hasCloudConnection: Boolean(model["cloudConnectionId"]) }
+        : {}),
     };
+  }
+
+  // The AI access columns of a table that has no archive.
+  private withoutArchive(
+    columns: Record<string, boolean>,
+  ): Record<string, boolean> {
+    const kept: Record<string, boolean> = { ...columns };
+    delete kept["isArchived"];
+    return kept;
   }
 
   /*
@@ -850,6 +1004,10 @@ export class ResourceAiAccessServiceClass {
       resourceType === AiResourceType.Host
     ) {
       return readString(model["hostIdentifier"]);
+    }
+
+    if (isCloudAiResourceType(resourceType)) {
+      return readString(model["accountId"]);
     }
 
     if (resourceType === AiResourceType.DatabaseServer) {
@@ -992,7 +1150,9 @@ export class ResourceAiAccessServiceClass {
         type: AiResourceType;
         ids: Array<string>;
       }> = await Promise.all(
-        ALL_AI_RESOURCE_TYPES.map(
+        ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+          return !isCloudAiResourceType(type);
+        }).map(
           async (
             type: AiResourceType,
           ): Promise<{ type: AiResourceType; ids: Array<string> }> => {
@@ -1011,6 +1171,24 @@ export class ResourceAiAccessServiceClass {
 
       for (const relation of relations) {
         linked.set(relation.type, relation.ids);
+      }
+
+      // Cloud accounts: the accounts of the cloud resources it links.
+      const cloudAccounts: Map<
+        AiResourceType,
+        Array<string>
+      > = await this.getCloudAccountsOfResources({
+        projectId: data.projectId,
+        cloudResourceIds: await this.readSubjectRelation({
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+          relation: "cloudResources",
+        }),
+      });
+
+      for (const [type, ids] of cloudAccounts) {
+        linked.set(type, ids);
       }
 
       monitorIds.push(
@@ -1241,13 +1419,21 @@ export class ResourceAiAccessServiceClass {
       props: { isRoot: true },
     });
 
+    const cloudResourceIds: Array<string> = [];
+
     for (const monitor of monitors) {
       const resolved: SeriesResolvedResourceIds =
         await MonitorResourceContextUtil.resolveResourceContextForMonitor({
           monitor,
         });
 
+      cloudResourceIds.push(...(resolved.cloudResourceIds || []));
+
       for (const type of ALL_AI_RESOURCE_TYPES) {
+        if (isCloudAiResourceType(type)) {
+          continue;
+        }
+
         const ids: Array<string> =
           (resolved[MODEL_SPECS[type].resolvedIdsKey] as
             | Array<string>
@@ -1256,6 +1442,144 @@ export class ResourceAiAccessServiceClass {
         if (ids.length > 0) {
           byType.set(type, [...(byType.get(type) || []), ...ids]);
         }
+      }
+    }
+
+    for (const [type, ids] of await this.getCloudAccountsOfResources({
+      projectId: data.projectId,
+      cloudResourceIds,
+    })) {
+      byType.set(type, ids);
+    }
+
+    return byType;
+  }
+
+  /*
+   * The cloud accounts (CloudAccount ids by resource type) these cloud
+   * resources belong to, in the order the resources name them: each
+   * resource's cloud and account id name its account's row. A resource of
+   * an account no connection reached has none.
+   */
+  @CaptureSpan()
+  public async getCloudAccountsOfResources(data: {
+    projectId: ObjectID;
+    cloudResourceIds: Array<string>;
+  }): Promise<Map<AiResourceType, Array<string>>> {
+    const byType: Map<AiResourceType, Array<string>> = new Map<
+      AiResourceType,
+      Array<string>
+    >();
+    const ids: Array<string> = Array.from(
+      new Set<string>(
+        data.cloudResourceIds.filter((id: string): boolean => {
+          return ObjectID.isValidUUID(id);
+        }),
+      ),
+    ).slice(0, SUBJECT_RESOURCE_READ_BATCH_SIZE);
+
+    if (ids.length === 0) {
+      return byType;
+    }
+
+    const resources: Array<CloudResource> = await CloudResourceService.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(
+          ids.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        ),
+      },
+      select: { _id: true, cloudProvider: true, cloudAccountId: true },
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    // Each account once, in the order its first resource was named.
+    const order: Map<string, number> = new Map<string, number>(
+      ids.map((id: string, index: number): [string, number] => {
+        return [id.toLowerCase(), index];
+      }),
+    );
+    const accounts: Array<{ provider: string; accountId: string }> = [];
+
+    for (const resource of resources.sort(
+      (left: CloudResource, right: CloudResource): number => {
+        return (
+          (order.get(left.id?.toString().toLowerCase() || "") || 0) -
+          (order.get(right.id?.toString().toLowerCase() || "") || 0)
+        );
+      },
+    )) {
+      const provider: string = (resource.cloudProvider || "").trim();
+      const accountId: string = (resource.cloudAccountId || "").trim();
+
+      if (
+        provider &&
+        accountId &&
+        !accounts.some(
+          (account: { provider: string; accountId: string }): boolean => {
+            return (
+              account.provider === provider &&
+              account.accountId.toLowerCase() === accountId.toLowerCase()
+            );
+          },
+        )
+      ) {
+        accounts.push({ provider, accountId });
+      }
+    }
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      const provider: string | null = getCloudCatalogProvider(type);
+
+      if (!provider) {
+        continue;
+      }
+
+      const accountIds: Array<string> = accounts
+        .filter((account: { provider: string }): boolean => {
+          return account.provider === provider;
+        })
+        .map((account: { accountId: string }): string => {
+          return account.accountId;
+        });
+
+      if (accountIds.length === 0) {
+        continue;
+      }
+
+      // Compared without case, as the account's own counts are (Azure ids).
+      const rows: Array<CloudAccount> = await CloudAccountService.findBy({
+        query: {
+          projectId: data.projectId,
+          provider: provider as never,
+          accountId: QueryHelper.findWithSameTextAnyOf(accountIds),
+        },
+        select: { _id: true, accountId: true },
+        limit: accountIds.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      const found: Array<string> = accountIds
+        .map((accountId: string): string | undefined => {
+          return rows
+            .find((row: CloudAccount): boolean => {
+              return (
+                (row.accountId || "").toLowerCase() === accountId.toLowerCase()
+              );
+            })
+            ?.id?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        });
+
+      if (found.length > 0) {
+        byType.set(type, found);
       }
     }
 

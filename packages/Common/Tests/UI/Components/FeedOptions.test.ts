@@ -21,6 +21,7 @@ import {
 import { AlertEpisodeFeedEventType } from "../../../Models/DatabaseModels/AlertEpisodeFeed";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { CephClusterFeedEventType } from "../../../Models/DatabaseModels/CephClusterFeed";
+import { CloudAccountFeedEventType } from "../../../Models/DatabaseModels/CloudAccountFeed";
 import { CloudResourceFeedEventType } from "../../../Models/DatabaseModels/CloudResourceFeed";
 import { DataSecurityIssueFeedEventType } from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import { DataStoreFeedEventType } from "../../../Models/DatabaseModels/DataStoreFeed";
@@ -84,6 +85,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "CephClusterFeed",
     enumName: "CephClusterFeedEventType",
     eventTypes: Object.values(CephClusterFeedEventType),
+  },
+  {
+    name: "CloudAccountFeed",
+    enumName: "CloudAccountFeedEventType",
+    eventTypes: Object.values(CloudAccountFeedEventType),
   },
   {
     name: "CloudResourceFeed",

@@ -8,6 +8,7 @@
 - [Google Cloud](#google-cloud): 読み取り専用の四つのロールを持つサービス アカウント。
 - [OneUptime が読み取るもの](#oneuptime-が読み取るもの): リソース、メトリクス、変更、ヘルス イベントを、どのくらいの頻度で読み取り、いくらかかるか。
 - [データセキュリティ](#データセキュリティ): 接続によってデータセキュリティが読み取れるものと、各レベルがコマンドに追加するもの。
+- [AI に問題を修正させる](#ai-に問題を修正させる): コマンドをもう一つ実行すれば、OneUptime AI は見つけた問題を修正できます。
 :::
 
 ## 仕組み
@@ -21,7 +22,7 @@ flowchart TB
     ou --> chg["変更と<br/>ヘルス イベント"]
 ```
 
-- **アクセスは読み取りだけです。** コマンドが作成するアクセスは、リソースとその設定、メトリクス、変更内容、プロバイダーのヘルス イベントを読み取るだけで、それ以外は何もできません。AWS では下に挙げるアクション、Azure では **Monitoring Reader** ロール、Google Cloud では四つの閲覧者ロールです。[データセキュリティ](#データセキュリティ) でコンテンツのサンプルをオンにしない限り、データやシークレットを読み取ることはありません。削除すれば OneUptime のアクセスを止められます。
+- **アクセスは読み取りだけです。** コマンドが作成するアクセスは、リソースとその設定、メトリクス、変更内容、プロバイダーのヘルス イベントを読み取るだけで、それ以外は何もできません。AWS では下に挙げるアクション、Azure では **Monitoring Reader** ロール、Google Cloud では四つの閲覧者ロールです。OneUptime がこのアクセスでデータやシークレットを読み取ることはありません。ただし、AI にアカウントのログの読み取りを許可した場合はログ行を、[データセキュリティ](#データセキュリティ) でコンテンツのサンプルをオンにした場合はそのサンプルを読み取ります。削除すれば OneUptime のアクセスを止められます。
 - **OneUptime は定期的に読み取ります。** 接続時に別の間隔を選ばない限り、Azure と Google Cloud は 5 分ごと、AWS は 10 分ごとです。各読み取りは前回からの変更も記録し、30 分ごとにすべてのリソースをもう一度一覧にします。
 - **リソースごとに専用のページがあります。** リソースは **クラウド → すべてのリソース** に、主要なメトリクス、オーナー、ラベルとともに表示されます。一覧に載ったリソースのページには、**つながっているリソース** (どこで動いているか、どこからトラフィックが来るか)、エンドポイント、タグ、設定、そして **インシデント**、**アラート**、**変更** も表示されます。
 - **アカウントごとに専用のページがあります。** アカウントは **クラウド → アカウント** に、種類とリージョン別のリソース、**変更**、リソースどうしのつながりを示す **トポロジー** とともに表示されます。
@@ -49,7 +50,7 @@ OneUptime のサインイン方法を選びます。推奨は **IAM ロール** 
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -71,6 +72,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | Cloud Control を通じて、すべてのリソースとその構成を一覧にする | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | 変更を読み取る: アカウントの管理イベント | `cloudtrail:LookupEvents` |
 | アカウントに関する AWS 自身のヘルス イベントを読み取る | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| 調査中に、リソースの現在の状態と最近のイベントを読み取る | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
+| 調査中に、アカウントのクォータを読み取る | `servicequotas:ListServiceQuotas` |
+| AI にアカウントのログの読み取りを許可した場合にのみ、ログ行を読み取る | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 管理アカウントから組織のアカウントを一覧にする | `organizations:ListAccounts` |
 
 `apigateway:GET` は API 自身の定義に対してだけ許可され、キーには許可されません。また、組織のアカウントを一覧にできるのは管理アカウントのロールだけです。AWS Health が応答するのは、Business、Enterprise On-Ramp、Enterprise のいずれかのサポート プランを契約しているアカウントだけです。契約がない場合、OneUptime は一日後にもう一度問い合わせます。
@@ -258,9 +262,25 @@ OneUptime の呼び出しは、クラウドの料金でお使いのクラウド 
 
 ## OneUptime で見えるもの
 
-- **アカウントのページ。** **クラウド → アカウント** で、アカウントの概要には種類とリージョン別のリソース数と、接続が最後に読み取った時刻が表示されます。**リソース** にはリソースの一覧、**変更** には新しい順の変更、**トポロジー** にはリージョン、その中のネットワーク、それぞれで動いているものが、リンクされたリソース上の未解決のインシデントとアラートとともに描かれます。
+- **アカウントのページ。** **クラウド → アカウント** で、アカウントの概要には種類とリージョン別のリソース数と、接続が最後に読み取った時刻が表示されます。**リソース** にはリソースの一覧、**変更** には新しい順の変更、**トポロジー** にはリージョン、その中のネットワーク、それぞれで動いているものが、リンクされたリソース上の未解決のインシデントとアラートとともに描かれます。**フィード** には、アカウントが OneUptime に加わった経緯、クラウド AI エージェントの接続やリセット、そして OneUptime AI がそこで行えることを誰が変更したかが記録されます。
 - **リソースの変更。** 変更は、変更したリソースとそのアカウントに結び付いた変更イベントとして保存され、リソースのメトリクス チャートにインシデントやアラートとともにマーカーとして描かれます。どのリソースにも絞り込まれていないチャートには、クラウド アカウントのアクティビティ ログは表示されません。忙しいアカウントでデプロイが埋もれないようにするためです。プロバイダーのヘルス イベントは表示されたままです。
 - **インシデントとアラート。** モニター、インシデント、アラートのリンクされたリソースでクラウド リソースをリンクすると、そのインシデントとアラートがリソースのページに一覧表示されます。ホストがリソースのエンドポイントに (直接、または DNS を通じて) つながる Web サイト、API、SSL、ping、ポートのモニターでは、**リンクされたリソース** カードの **おすすめのクラウドリソース** にそのリソースが表示されます。**リソースをリンク** を選んでリンクします。
+
+## AI に問題を修正させる
+
+OneUptime AI は調査中、上記の読み取り専用のアクセスで、接続されたすべてのアカウントを読み取ります。サービスの再起動、スケールアウト、ロールバックなどで問題の修正もさせるには、**クラウド → アカウント** でアカウントを開き、その **概要** にある **AI エージェント** カードで **AI に問題を修正させる** を選択します。
+
+ダイアログは **AI にどこまで任せますか？** という一つの質問をします。デフォルトの **実行前に確認する** では OneUptime AI が修正をひとつずつ提案し、人がワンクリックで承認します。**安全な修正は自動で適用する** では安全な変更は自動的に実行され、よりリスクの高い変更は引き続き承認を待ちます。そのほかはすべて、**その他の項目** の下に安全なデフォルトがあります。次に、このアカウント用に書き出されたコマンドが一つ表示されます。アカウントでロールを作成できるユーザーとしてサインインし、AWS CloudShell、Azure Cloud Shell、または Google Cloud Shell で実行してください。コマンドは、有効にした変更だけを行えるロールを作成し、そのロールでクラウド AI エージェントをアカウント内に起動します。エージェントは数分以内に自動的に接続され、ダイアログにもそう表示されます。貼り戻すものは何もありません。
+
+エージェントは、アカウント内で月中ずっと動作する小さなコンテナ一つで、クラウドの標準料金で請求されます:
+
+| クラウド | 実行されるもの | 目安 |
+| --- | --- | --- |
+| AWS | 0.25 vCPU と 0.5 GB の ECS Fargate タスク一つと、そのパブリック IPv4 アドレス(`us-east-1` の料金) | 月 $13 |
+| Azure | 0.25 vCPU と 0.5 GiB の Container Apps レプリカ一つ。サブスクリプションの毎月の無料付与分である 180,000 vCPU 秒と 360,000 GiB 秒を差し引いた後 | 月 $14 |
+| Google Cloud | CPU を常に割り当てた 1 vCPU と 0.5 GiB の Cloud Run インスタンス一つ(vCPU を丸ごと一つ使用)。毎月の無料枠である 240,000 vCPU 秒と 450,000 GiB 秒を差し引いた後 | 月 $45 |
+
+エージェントが変更できるもの、各変更の段階と取り消し方、ログの読み方: [インフラストラクチャの AI エージェント](/docs/ai/infrastructure-ai-agents#クラウド-アカウント内で)。
 
 ## トラブルシューティング
 

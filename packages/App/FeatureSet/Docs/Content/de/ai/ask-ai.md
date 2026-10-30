@@ -87,7 +87,7 @@ Was KI fragen tun kann, wenn ein Modus es erlaubt:
 - Eine interne Notiz zu einem Vorfall oder einer Warnung veröffentlichen. Interne Notizen erscheinen nie auf einer Statusseite.
 - Eine öffentliche Statusmeldung zu einem Vorfall veröffentlichen. Das ist eine eigene Aktion, weil sie die Abonnenten der Statusseite benachrichtigt.
 - Eine Bereitschaftsrichtlinie alarmieren, ein Runbook ausführen oder eine KI-Untersuchung eines Vorfalls oder einer Warnung starten.
-- Eine Codeänderung vorschlagen: in einen neuen Branch eines verbundenen Repositorys committen und einen Pull Request öffnen. Er schreibt nie in den Standard-Branch oder einen geschützten Branch, sodass weiterhin ein Mensch die Änderung mergt.
+- Eine Codeänderung vorschlagen: in einen neuen Branch eines Repositorys auf GitHub, GitLab, Forgejo oder Gitea committen und einen Pull Request öffnen (auf GitLab einen Merge Request). Er schreibt nie in den Standard-Branch oder einen geschützten Branch, sodass weiterhin ein Mensch die Änderung mergt.
 
 Fragen Sie nach einem Vorfall, wenn Benutzer betroffen sind, und nach einer Warnung, wenn etwas zuerst die Aufmerksamkeit Ihres Teams braucht, etwa wenn der Speicher eines Hosts immer weiter steigt. Beides wird einmal angelegt und überwacht nichts: Um jedes Mal benachrichtigt zu werden, wenn der Speicher eines Hosts 75 % übersteigt, legen Sie eine [Host-Überwachung](/docs/monitor/host-monitor#fertige-warnungsvorlagen) aus ihrer Speichervorlage an, mit 75 % als Schwellenwert. KI fragen kann keine Monitore anlegen. Danach gefragt, sagt es das, prüft den aktuellen Wert und bietet an, eine Warnung auszulösen, wenn er schon darüber liegt.
 

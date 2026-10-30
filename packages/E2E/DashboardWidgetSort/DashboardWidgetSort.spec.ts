@@ -741,6 +741,40 @@ test.describe("the headers take no more room than plain ones", () => {
     });
   };
 
+  /*
+   * The table's box once the dashboard has given its widgets their widths.
+   * The canvas draws its widgets small first and gives them their widths a
+   * moment later (the layout shift 14.0.95's gate trace showed), and the
+   * rows can already be there: master's run of 10-30 read the box while
+   * its trace still drew every widget a few pixels across, and found 174
+   * pixels of rows in a 153-pixel box. So this asks, for up to 10 seconds,
+   * until two reads in a row find the same box and the table fits it, and
+   * returns that box - a header that does widen its table never fits, and
+   * fails here.
+   */
+  const measureSettled: (table: Locator) => Promise<TableBox> = async (
+    table: Locator,
+  ): Promise<TableBox> => {
+    let box: TableBox = await measure(table);
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          const previous: TableBox = box;
+          box = await measure(table);
+          const moved: boolean =
+            box.boxWidth !== previous.boxWidth ||
+            box.scrollWidth !== previous.scrollWidth;
+          // How far the rows run past the box: no answer yet while it moves.
+          return moved
+            ? Number.POSITIVE_INFINITY
+            : box.scrollWidth - box.boxWidth;
+        },
+        { timeout: 10000 },
+      )
+      .toBeLessThanOrEqual(1);
+    return box;
+  };
+
   // A header's words: the one element in it a screen reader reads.
   const wordsOf: (button: Locator) => Locator = (button: Locator): Locator => {
     return button.locator("span:not([aria-hidden])");
@@ -767,6 +801,8 @@ test.describe("the headers take no more room than plain ones", () => {
     await openNarrow(page);
 
     const table: Locator = tableWith(page, "col:requests");
+    // Both reads below are of the widget at the width it settles at.
+    const box: TableBox = await measureSettled(table);
 
     // "Requests per minute" takes two lines in a 4-unit widget...
     const words: Locator = wordsOf(header(table, "col:requests"));
@@ -774,7 +810,6 @@ test.describe("the headers take no more room than plain ones", () => {
     expect((await words.boundingBox())!.height).toBeGreaterThanOrEqual(28);
 
     // ...so the table fits its widget, as it did before headers sorted.
-    const box: TableBox = await measure(table);
     expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
 
     await shoot(page, testInfo, "narrow-metric-table", table);
@@ -819,7 +854,7 @@ test.describe("the headers take no more room than plain ones", () => {
     expect(arrowBox.x).toBeGreaterThanOrEqual(cellBox.x - 0.5);
 
     // The last column's arrow never draws past the table's edge.
-    const box: TableBox = await measure(table);
+    const box: TableBox = await measureSettled(table);
     expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
   });
 

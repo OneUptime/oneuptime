@@ -87,7 +87,7 @@ Cosa può fare Chiedi all'IA quando una modalità lo consente:
 - Pubblicare una nota interna su un incidente o un avviso. Le note interne non compaiono mai su una pagina di stato.
 - Pubblicare un aggiornamento di stato pubblico su un incidente. È un'azione a parte, perché avvisa gli iscritti alla pagina di stato.
 - Chiamare una policy di reperibilità, eseguire un runbook o avviare un'indagine IA su un incidente o un avviso.
-- Proporre una modifica al codice: fare un commit su un nuovo branch di un repository collegato e aprire una pull request. Non scrive mai sul branch predefinito né su uno protetto, quindi è sempre una persona a fare il merge della modifica.
+- Proporre una modifica al codice: fare un commit su un nuovo branch di un repository su GitHub, GitLab, Forgejo o Gitea e aprire una pull request (una merge request su GitLab). Non scrive mai sul branch predefinito né su uno protetto, quindi è sempre una persona a fare il merge della modifica.
 
 Chiedi un incidente quando gli utenti sono colpiti, e un avviso quando qualcosa richiede prima l'attenzione del tuo team, come la memoria di un host che continua a salire. Entrambi vengono creati una volta e non sorvegliano nulla: per essere avvisato ogni volta che la memoria di un host supera il 75%, crea un [monitor host](/docs/monitor/host-monitor#modelli-di-avviso-pronti) dal suo modello per la memoria, con il 75% come soglia. Chiedi all'IA non può creare monitor. Se gliene chiedi uno, lo dice, controlla il valore attuale e propone di creare un avviso se è già oltre.
 

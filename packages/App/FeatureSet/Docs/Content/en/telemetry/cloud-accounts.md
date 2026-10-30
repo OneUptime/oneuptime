@@ -8,6 +8,7 @@ Connect an AWS account, an Azure subscription or a Google Cloud project from the
 - [Google Cloud](#google-cloud): A service account with four read-only roles.
 - [What OneUptime reads](#what-oneuptime-reads): Resources, metrics, changes and health events, how often, and what it costs.
 - [Data security](#data-security): What the connection lets Data Security read, and what each level adds to the command.
+- [Let AI fix problems](#let-ai-fix-problems): One more command, and OneUptime AI can fix what it finds.
 :::
 
 ## How it works
@@ -21,7 +22,7 @@ flowchart TB
     ou --> chg["Changes and<br/>health events"]
 ```
 
-- **The access can only read.** The command creates access that reads your resources and how they are set up, their metrics, what changed and your provider's health events, and nothing else: the actions listed below on AWS, the **Monitoring Reader** role on Azure and four viewer roles on Google Cloud. It never reads data or secrets, unless you turn on content samples for [Data security](#data-security). Delete it to cut OneUptime off.
+- **The access can only read.** The command creates access that reads your resources and how they are set up, their metrics, what changed and your provider's health events, and nothing else: the actions listed below on AWS, the **Monitoring Reader** role on Azure and four viewer roles on Google Cloud. OneUptime never reads data or secrets with it, except log lines when you let AI read an account's logs, and content samples when you turn them on for [Data security](#data-security). Delete it to cut OneUptime off.
 - **OneUptime reads on a schedule.** Every 5 minutes for Azure and Google Cloud, and every 10 minutes for AWS, unless you pick another interval when you connect. Each read also records what changed since the last one, and every 30 minutes a read lists every resource again.
 - **Each resource has a page of its own.** Resources appear under **Cloud → All Resources** with their key metrics, owners and labels. A listed resource's page also shows its **Connected Resources** (what it runs in, what sends it traffic), its endpoints, tags and settings, and its **Incidents**, **Alerts** and **Changes**.
 - **Each account has a page of its own.** Accounts appear under **Cloud → Accounts** with their resources by type and Region, their **Changes**, and a **Topology** of how their resources fit together.
@@ -49,7 +50,7 @@ Use an **Access key** when a role is not possible: it reads its own account only
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -71,6 +72,9 @@ The role and the user can do these things, and nothing else:
 | List every resource and how it is configured, through Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Read what changed: the account's management events | `cloudtrail:LookupEvents` |
 | Read AWS's own health events for the account | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Read a resource's live status and recent events during an investigation | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
+| Read the account's quotas during an investigation | `servicequotas:ListServiceQuotas` |
+| Read log lines, only when you let AI read an account's logs | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | List the organization's accounts, from its management account | `organizations:ListAccounts` |
 
 `apigateway:GET` is allowed on the APIs' own definitions only, never on their keys, and only the management account's role may list the organization's accounts. AWS Health answers only accounts on a Business, Enterprise On-Ramp or Enterprise support plan: without one, OneUptime asks again a day later.
@@ -258,9 +262,25 @@ The calls OneUptime makes are billed to your cloud account, at your cloud's pric
 
 ## What you see in OneUptime
 
-- **An account's page.** Under **Cloud → Accounts**, an account's Overview counts its resources by type and Region and says when a connection last read it. Its **Resources** lists them, its **Changes** lists what changed in it, newest first, and its **Topology** draws its Regions, the networks in them and what runs in each, with the open incidents and alerts on the resources they are linked to.
+- **An account's page.** Under **Cloud → Accounts**, an account's Overview counts its resources by type and Region and says when a connection last read it. Its **Resources** lists them, its **Changes** lists what changed in it, newest first, and its **Topology** draws its Regions, the networks in them and what runs in each, with the open incidents and alerts on the resources they are linked to. Its **Feed** records how the account came to OneUptime, its Cloud AI agent connecting or being reset, and who changed what OneUptime AI may do in it.
 - **A resource's changes.** A change is kept as a change event tied to the resource it changed and to its account, and drawn as a marker on the resource's metric charts with its incidents and alerts. Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 - **Incidents and alerts.** Link a cloud resource to a monitor, an incident or an alert under its linked resources, and its incidents and alerts are listed on the resource's page. A website, API, SSL, ping or port monitor whose host leads to a resource's endpoint, directly or through its DNS, lists the resource under **Suggested Cloud Resources** on its **Linked Resources** card: select **Link resource** to link it.
+
+## Let AI fix problems
+
+OneUptime AI reads every connected account while it investigates, with the read-only access above. To let it fix problems too, such as restarting a service, scaling it out or rolling it back, open the account under **Cloud → Accounts** and select **Let AI fix problems** in the **AI agent** card of its **Overview**.
+
+The dialog asks one question, **How far may AI go?**: **Ask me first**, the default, where OneUptime AI proposes each fix and a person approves it with one click, or **Fix safe problems on its own**, where safe changes run on their own and riskier ones still wait for approval. Everything else has a safe default under **More fields**. It then shows one command, written for this account: run it in AWS CloudShell, Azure Cloud Shell or Google Cloud Shell, signed in as someone who may create roles in the account. The command creates a role that may make only the changes turned on, and starts the Cloud AI agent with it in your account. The agent connects on its own within a few minutes, and the dialog says so: there is nothing to paste back.
+
+The agent is one small container that runs all month in your account, billed by your cloud at its list prices:
+
+| Cloud | What runs | About |
+| --- | --- | --- |
+| AWS | One ECS Fargate task of 0.25 vCPU and 0.5 GB, and its public IPv4 address, at `us-east-1` prices | $13 a month |
+| Azure | One Container Apps replica of 0.25 vCPU and 0.5 GiB, after the subscription's monthly free grant of 180,000 vCPU-seconds and 360,000 GiB-seconds | $14 a month |
+| Google Cloud | One Cloud Run instance of 1 vCPU and 0.5 GiB with CPU always allocated, which takes a whole vCPU, after the monthly free tier of 240,000 vCPU-seconds and 450,000 GiB-seconds | $45 a month |
+
+What the agent may change, how each change is tiered and undone, and how to read its logs: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#in-a-cloud-account).
 
 ## Troubleshooting
 

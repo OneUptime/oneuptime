@@ -10,6 +10,9 @@ import AlertFeed, {
 import CephClusterFeed, {
   CephClusterFeedEventType,
 } from "../../../../Models/DatabaseModels/CephClusterFeed";
+import CloudAccountFeed, {
+  CloudAccountFeedEventType,
+} from "../../../../Models/DatabaseModels/CloudAccountFeed";
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../../Models/DatabaseModels/CloudResourceFeed";
@@ -189,6 +192,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(CephClusterFeedEventType),
     resourceIdColumn: "cephClusterId",
     eventTypeColumn: "cephClusterFeedEventType",
+  },
+  {
+    file: "CloudAccountFeed",
+    enumName: "CloudAccountFeedEventType",
+    modelType: CloudAccountFeed,
+    eventTypes: Object.values(CloudAccountFeedEventType),
+    resourceIdColumn: "cloudAccountId",
+    eventTypeColumn: "cloudAccountFeedEventType",
   },
   {
     file: "CloudResourceFeed",

@@ -78,7 +78,7 @@ sequenceDiagram
 | Contents | Read and write | خواندن فایل‌های مخزن و push کردن شاخه‌های pull requestهای رفع با هوش مصنوعی |
 | Pull requests | Read and write | باز کردن و به‌روزرسانی pull requestها و انتشار بازبینی‌ها |
 | Issues | Read and write | انتشار نظرهای برنامه — **از جمله روی pull requestها**، که GitHub گفت‌وگوی آن‌ها را از راه API مربوط به issues می‌گذراند |
-| Checks | Read-only | اختیاری. خواندن نتیجهٔ CI در pull requestهای رفع. بدون آن، وضعیت CI آن‌ها تأییدنشده می‌ماند |
+| Checks | Read and write | اختیاری. خواندن نتیجهٔ CI در pull requestهای رفع، و افزودن یک چک همراه هر بازبینی عملیاتی. با Read-only نتیجهٔ CI خوانده می‌شود اما چکی اضافه نمی‌شود؛ بدون آن، وضعیت CI در pull requestهای رفع تأییدنشده می‌ماند |
 | Metadata | Read-only | فرادادهٔ پایهٔ مخزن (GitHub آن را الزامی می‌داند) |
 
 **آنچه برنامه را تعاملی می‌کند Issues: Read and write است.** بدون آن، اشاره‌ها دریافت می‌شوند و سپس وقتی برنامه می‌خواهد پاسخ دهد بی‌صدا شکست می‌خورند — GitHub نظرهای گفت‌وگوی pull requestها را از API مربوط به issues ارائه می‌کند، پس همین یک مجوز سرنوشت هر پاسخی را که برنامه می‌نویسد تعیین می‌کند. [کار با OneUptime از GitHub](/docs/ai/github-app) را ببینید.

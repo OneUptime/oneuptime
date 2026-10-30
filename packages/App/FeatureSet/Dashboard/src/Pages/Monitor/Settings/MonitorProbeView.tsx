@@ -277,7 +277,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         fieldName={"key"}
         title={"Reset Probe Key"}
         description={
-          // A span: the card draws its description in a <p>.
           <span>
             {translator.translateText(
               "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.",

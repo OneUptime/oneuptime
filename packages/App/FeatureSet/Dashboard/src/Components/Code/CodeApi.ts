@@ -231,6 +231,23 @@ export default class CodeApi {
     await CodeApi.post(`/review-again/${taskId}`, {});
   }
 
+  /*
+   * Review one of a repository's pull requests against production, now,
+   * by its number: any of them, one from a fork or anyone else too.
+   * Answers with the review's task.
+   */
+  public static async reviewPullRequest(data: {
+    repositoryId: string;
+    number: number;
+  }): Promise<string> {
+    const response: JSONObject = await CodeApi.post(
+      `/review-pull-request/${data.repositoryId}`,
+      { number: data.number },
+    );
+
+    return response["taskId"] as string;
+  }
+
   private static async post(
     path: string,
     data: JSONObject,

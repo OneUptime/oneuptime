@@ -1,6 +1,8 @@
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  isCloudAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
@@ -150,7 +152,36 @@ interface InstallSpec {
   isStandalone: boolean;
 }
 
-const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
+/*
+ * The resources whose agent is installed beside their collector, with the
+ * docker-compose snippet below: every type but the cloud accounts, whose
+ * Cloud AI agent is set up in their cloud with one command
+ * (Components/Cloud/CloudAiAgentSetup).
+ */
+export type ComposeInstalledAiResourceType = Exclude<
+  AiResourceType,
+  | AiResourceType.AwsAccount
+  | AiResourceType.AzureSubscription
+  | AiResourceType.GoogleCloudProject
+>;
+
+export const COMPOSE_INSTALLED_AI_RESOURCE_TYPES: ReadonlyArray<ComposeInstalledAiResourceType> =
+  ALL_AI_RESOURCE_TYPES.filter(
+    (type: AiResourceType): type is ComposeInstalledAiResourceType => {
+      return !isCloudAiResourceType(type);
+    },
+  );
+
+// Whether a type's agent is installed with the compose snippet.
+export function isComposeInstalledAiResourceType(
+  type: AiResourceType,
+): type is ComposeInstalledAiResourceType {
+  return !isCloudAiResourceType(type);
+}
+
+const INSTALL_SPECS: Readonly<
+  Record<ComposeInstalledAiResourceType, InstallSpec>
+> = {
   [AiResourceType.DockerHost]: {
     directory: null,
     collectorName: translationKey("Docker agent"),
@@ -617,6 +648,20 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
 };
 
 /*
+ * A type's install spec. A cloud account's agent has none (it is set up
+ * with its cloud's command), so asking for one is a mistake in the caller.
+ */
+function getInstallSpec(type: AiResourceType): InstallSpec {
+  if (!isComposeInstalledAiResourceType(type)) {
+    throw new Error(
+      `The ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} is set up with its cloud's command, not installed beside a collector.`,
+    );
+  }
+
+  return INSTALL_SPECS[type];
+}
+
+/*
  * One `KEY=value` entry of the snippet's environment list, quoted for YAML
  * when the value needs it, with docker compose's interpolation character
  * doubled so a literal value holding `$` is kept as it is.
@@ -686,7 +731,7 @@ export function getResourceAiAgentComposeSnippet(data: {
   identity?: string | null | undefined;
 }): string {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
-  const spec: InstallSpec = INSTALL_SPECS[data.resourceType];
+  const spec: InstallSpec = getInstallSpec(data.resourceType);
   const service: string = getResourceAiAgentServiceName(data.resourceType);
 
   const lines: Array<string> = ["services:"];
@@ -752,7 +797,7 @@ export const COMPOSE_DIRECTORY_COMMENT: string =
   "# In the directory of your docker-compose.yml:";
 
 function composeCommand(resourceType: AiResourceType, command: string): string {
-  const spec: InstallSpec = INSTALL_SPECS[resourceType];
+  const spec: InstallSpec = getInstallSpec(resourceType);
   const location: string = spec.directory
     ? `cd ${spec.directory}`
     : COMPOSE_DIRECTORY_COMMENT;
@@ -769,7 +814,7 @@ ${spec.runtime} compose ${command}`;
 export function getResourceAiAgentLogsCommand(
   resourceType: AiResourceType,
 ): string {
-  const spec: InstallSpec = INSTALL_SPECS[resourceType];
+  const spec: InstallSpec = getInstallSpec(resourceType);
   const service: string = getResourceAiAgentServiceName(resourceType);
 
   return spec.hasContainerName
@@ -781,7 +826,7 @@ export function getResourceAiAgentLogsCommand(
 export function getResourceAiAgentStatusCommand(
   resourceType: AiResourceType,
 ): string {
-  const spec: InstallSpec = INSTALL_SPECS[resourceType];
+  const spec: InstallSpec = getInstallSpec(resourceType);
   const service: string = getResourceAiAgentServiceName(resourceType);
   const url: string = `http://127.0.0.1:${RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT}/status`;
 
@@ -796,7 +841,7 @@ export function getResourceAiAgentInstall(data: {
   identity?: string | null | undefined;
 }): ResourceAiAgentInstall {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
-  const spec: InstallSpec = INSTALL_SPECS[data.resourceType];
+  const spec: InstallSpec = getInstallSpec(data.resourceType);
   const identity: string | null = data.identity || null;
   const service: string = getResourceAiAgentServiceName(data.resourceType);
   const noun: string =
@@ -995,7 +1040,7 @@ export interface ResourceAiAgentWriteAccessCommands {
 export function getResourceAiAgentWriteAccessCommands(
   resourceType: AiResourceType,
 ): ResourceAiAgentWriteAccessCommands {
-  const spec: InstallSpec = INSTALL_SPECS[resourceType];
+  const spec: InstallSpec = getInstallSpec(resourceType);
   const service: string = getResourceAiAgentServiceName(resourceType);
   // Whole sentences: with or without targets, in the collector's directory or not.
   let envIntro: string;
@@ -1092,7 +1137,7 @@ export function getResourceAiAgentSettingsInstructions(data: {
   // False for an agent older than these settings (it reports none).
   doesAgentReportSettings: boolean;
 }): AgentAiSettingsInstructions {
-  const spec: InstallSpec = INSTALL_SPECS[data.resourceType];
+  const spec: InstallSpec = getInstallSpec(data.resourceType);
   const service: string = getResourceAiAgentServiceName(data.resourceType);
   const isAgentOlder: boolean = !data.doesAgentReportSettings;
 
@@ -1212,7 +1257,7 @@ docker compose pull
 docker compose up -d`;
   }
 
-  const spec: InstallSpec = INSTALL_SPECS[resourceType];
+  const spec: InstallSpec = getInstallSpec(resourceType);
   const service: string = getResourceAiAgentServiceName(resourceType);
 
   return `${composeCommand(resourceType, `pull ${service}`)}
@@ -1227,7 +1272,7 @@ ${spec.runtime} compose up -d ${service}`;
 export function doesInstallScriptStartResourceAiAgent(
   resourceType: AiResourceType,
 ): boolean {
-  return INSTALL_SPECS[resourceType].directory === null;
+  return getInstallSpec(resourceType).directory === null;
 }
 
 /*
@@ -1238,7 +1283,7 @@ export function doesInstallScriptStartResourceAiAgent(
 export function getResourceAiAgentWriteDisclosure(
   resourceType: AiResourceType,
 ): string {
-  return translateTemplate(INSTALL_SPECS[resourceType].writeDisclosure);
+  return translateTemplate(getInstallSpec(resourceType).writeDisclosure);
 }
 
 /*
@@ -1248,12 +1293,12 @@ export function getResourceAiAgentWriteDisclosure(
 export function getResourceAiAgentDirectory(
   resourceType: AiResourceType,
 ): string | null {
-  return INSTALL_SPECS[resourceType].directory;
+  return getInstallSpec(resourceType).directory;
 }
 
 // Whether the collector's own docker-compose.yml ships the agent's service.
 export function doesCollectorShipResourceAiAgent(
   resourceType: AiResourceType,
 ): boolean {
-  return INSTALL_SPECS[resourceType].collectorShipsAgent;
+  return getInstallSpec(resourceType).collectorShipsAgent;
 }

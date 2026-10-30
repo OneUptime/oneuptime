@@ -15,6 +15,8 @@ import { getRecentCloudChangesQuery } from "../../../../Components/Cloud/CloudCh
 import RankedBars, {
   RankedBarItem,
 } from "../../../../Components/SecurityOverview/RankedBars";
+import CloudAiAgentCard from "../../../../Components/Cloud/CloudAiAgentCard";
+import { readCloudProvider } from "../../../../Components/Cloud/CloudAiAgentSetup";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import Route from "Common/Types/API/Route";
@@ -24,7 +26,10 @@ import {
   CloudAccountTypeCount,
   readCloudAccountResourceSummary,
 } from "Common/Types/Cloud/CloudAccountSummary";
-import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudProvider,
+  getCloudProviderLabel,
+} from "Common/Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -163,6 +168,7 @@ const CloudAccountOverview: FunctionComponent<
           lastSeenAt: true,
           inventoryListedAt: true,
           cloudConnectionId: true,
+          isAiLogReadEnabled: true,
           cloudConnection: {
             name: true,
           },
@@ -242,6 +248,7 @@ const CloudAccountOverview: FunctionComponent<
   }
 
   const provider: string = (account.provider as string) || "";
+  const cloudProvider: CloudProvider | null = readCloudProvider(provider);
   const summary: CloudAccountResourceSummary = readCloudAccountResourceSummary(
     account.resourceSummary,
   );
@@ -418,6 +425,23 @@ const CloudAccountOverview: FunctionComponent<
           />
         </CardGrid>
       </div>
+
+      {/*
+       * What OneUptime AI may do in the account: it reads every connected
+       * account; a Cloud AI agent lets it fix problems too.
+       */}
+      {cloudProvider ? (
+        <div className="mt-6">
+          <CloudAiAgentCard
+            cloudAccountId={modelId}
+            provider={cloudProvider}
+            accountId={(account.accountId as string) || ""}
+            isAiLogReadEnabled={account.isAiLogReadEnabled === true}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
     </>
   );
 };

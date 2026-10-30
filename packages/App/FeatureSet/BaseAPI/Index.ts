@@ -1843,6 +1843,10 @@ import HostFeedService, {
   Service as HostFeedServiceType,
 } from "Common/Server/Services/HostFeedService";
 import CloudResourceFeed from "Common/Models/DatabaseModels/CloudResourceFeed";
+import CloudAccountFeed from "Common/Models/DatabaseModels/CloudAccountFeed";
+import CloudAccountFeedService, {
+  Service as CloudAccountFeedServiceType,
+} from "Common/Server/Services/CloudAccountFeedService";
 import CloudResourceFeedService, {
   Service as CloudResourceFeedServiceType,
 } from "Common/Server/Services/CloudResourceFeedService";
@@ -3443,6 +3447,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CloudAccountAPI().getRouter(),
+    );
+
+    // A cloud account's feed: its Cloud AI agent and what OneUptime AI may do there.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudAccountFeed, CloudAccountFeedServiceType>(
+        CloudAccountFeed,
+        CloudAccountFeedService,
+      ).getRouter(),
     );
 
     // Network controller connections: Meraki organizations read on a schedule.

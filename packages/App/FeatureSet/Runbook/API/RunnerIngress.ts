@@ -7,6 +7,7 @@ import RunnerService, {
   Service as RunnerServiceClass,
 } from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
@@ -546,6 +547,28 @@ export default class RunnerIngressAPI {
       });
 
       if (!job) {
+        return Response.sendJsonObjectResponse(req, res, { job: null });
+      }
+
+      /*
+       * Enable AI, read as an AI command leaves OneUptime: one enqueued
+       * before the project turned AI off is failed, never run. A runbook's
+       * own steps are not AI's and are never held by it (AiCommandKillSwitch).
+       */
+      const aiOffRefusal: string | null =
+        await AiCommandKillSwitch.getClaimRefusal({
+          job,
+          projectId: agent.projectId,
+        });
+
+      if (aiOffRefusal) {
+        await RunnerJobService.submitResult({
+          jobId: job.id!,
+          agentId: agent.id,
+          success: false,
+          errorMessage: aiOffRefusal,
+        });
+
         return Response.sendJsonObjectResponse(req, res, { job: null });
       }
 

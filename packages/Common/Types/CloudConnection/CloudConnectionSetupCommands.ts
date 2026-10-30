@@ -14,8 +14,12 @@ import {
  * browser terminal (AWS CloudShell, Azure Cloud Shell, Google Cloud Shell),
  * runs the command shown, and pastes back what it printed. Each command
  * creates access that can only read - metrics, the resources and how they
- * are configured, what changed and the provider's health events, never
- * data or secrets - and nothing more than a connection uses:
+ * are configured, what changed, the provider's health events, and, while
+ * OneUptime AI investigates, a resource's live status, recent events and
+ * quotas - and nothing more than a connection uses. OneUptime reads no
+ * data or secrets with it but for one thing: a resource's log lines, which
+ * can hold data, and which it reads only for an account whose AI log
+ * reading someone turned on.
  *
  *   - AWS, IAM role: a role trusting this OneUptime's AWS account with an
  *     external id only this project's connections use, with an inline
@@ -72,10 +76,28 @@ export interface AwsReadOnlyActionGroup {
 }
 
 /*
- * Every AWS action a connection uses, by what it is for. Each reads; none
- * reads data (an object, a row, a message) or a secret, and none writes.
+ * The one group that reads data: a resource's recent log lines, which can
+ * hold anything an application logs. OneUptime reads them only while it
+ * investigates an account whose AI log reading someone turned on; until
+ * then its read-logs live read is off, and these two actions go unused.
+ */
+export const AWS_LOG_READ_ACTION_GROUP: AwsReadOnlyActionGroup = {
+  purpose: "Read log lines, only when you let AI read an account's logs",
+  actions: ["logs:DescribeLogGroups", "logs:FilterLogEvents"],
+};
+
+/*
+ * Every AWS action a connection uses, by what it is for. Each reads, and
+ * none writes. None reads data (an object, a row, a message) or a secret
+ * store, but for the log lines of AWS_LOG_READ_ACTION_GROUP. Configuration
+ * is what a team wrote into it, though: a Lambda function's and a task
+ * definition's environment variables come with theirs.
+ *
  * Listing a resource type through Cloud Control calls that service's own
- * List or Describe action as the role, which is why those are here.
+ * List or Describe action as the role, which is why those are here. The
+ * groups after the health events are the live reads an investigation
+ * makes (the cloud catalog's describe, recent-events, quota-usage and
+ * read-logs), which run on the server through this connection.
  */
 export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
   {
@@ -138,6 +160,24 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
     purpose: "Read AWS's own health events for the account",
     actions: ["health:DescribeEvents", "health:DescribeEventDetails"],
   },
+  {
+    purpose:
+      "Read a resource's live status and recent events during an investigation",
+    actions: [
+      "rds:DescribeEvents",
+      "autoscaling:DescribeScalingActivities",
+      "ec2:DescribeInstanceStatus",
+      "ecs:DescribeTaskDefinition",
+      "lambda:GetFunctionConfiguration",
+      "lambda:GetFunctionConcurrency",
+      "lambda:GetAlias",
+    ],
+  },
+  {
+    purpose: "Read the account's quotas during an investigation",
+    actions: ["servicequotas:ListServiceQuotas"],
+  },
+  AWS_LOG_READ_ACTION_GROUP,
 ];
 
 /*
@@ -171,7 +211,15 @@ export const AWS_SCOPED_READ_RESOURCES: Record<string, Array<string>> = {
   ],
 };
 
-// The built-in roles Azure and Google Cloud connections are given.
+/*
+ * The built-in roles Azure and Google Cloud connections are given. They
+ * already cover an investigation's live reads: Monitoring Reader may read
+ * every resource provider's settings, which takes in the Resource Manager
+ * reads, Resource Health, the Activity Log, Compute usages and a
+ * resource's Log Analytics query; the four Google Cloud roles take in
+ * Cloud Asset's search, Logging's entries and Cloud Monitoring's time
+ * series.
+ */
 export const AZURE_READ_ONLY_ROLE: string = "Monitoring Reader";
 export const GCP_READ_ONLY_ROLE: string = "roles/monitoring.viewer";
 export const GCP_INVENTORY_ROLE: string = "roles/cloudasset.viewer";

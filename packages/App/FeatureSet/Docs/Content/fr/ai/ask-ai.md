@@ -87,7 +87,7 @@ Ce que Demander à l'IA peut faire quand un mode le permet :
 - Publier une note interne sur un incident ou une alerte. Les notes internes n'apparaissent jamais sur une page de statut.
 - Publier une mise à jour de statut publique sur un incident. C'est une action distincte, car elle prévient les abonnés de la page de statut.
 - Appeler une politique d'astreinte, exécuter un runbook ou lancer une investigation IA d'un incident ou d'une alerte.
-- Proposer un changement de code : committer sur une nouvelle branche d'un dépôt connecté et ouvrir une pull request. Il n'écrit jamais sur la branche par défaut ni sur une branche protégée, si bien qu'une personne fusionne toujours le changement.
+- Proposer un changement de code : committer sur une nouvelle branche d'un dépôt sur GitHub, GitLab, Forgejo ou Gitea et ouvrir une pull request (une demande de fusion sur GitLab). Il n'écrit jamais sur la branche par défaut ni sur une branche protégée, si bien qu'une personne fusionne toujours le changement.
 
 Demandez un incident quand des utilisateurs sont touchés, et une alerte quand quelque chose demande d'abord l'attention de votre équipe, comme la mémoire d'un hôte qui ne cesse de grimper. L'un comme l'autre est créé une fois et ne surveille rien : pour être alerté chaque fois que la mémoire d'un hôte dépasse 75 %, créez un [moniteur d'hôte](/docs/monitor/host-monitor#modèles-dalerte-prêts-à-lemploi) à partir de son modèle de mémoire, avec 75 % comme seuil. Demander à l'IA ne peut pas créer de moniteurs. Quand on lui en demande un, il le dit, vérifie la valeur actuelle et propose de lever une alerte si elle est déjà dépassée.
 

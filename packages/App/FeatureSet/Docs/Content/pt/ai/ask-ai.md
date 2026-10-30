@@ -87,7 +87,7 @@ O que o Pergunte à IA pode fazer quando um modo permite:
 - Publicar uma nota interna em um incidente ou alerta. Notas internas nunca aparecem em uma página de status.
 - Publicar uma atualização de status pública em um incidente. É uma ação separada, porque avisa os assinantes da página de status.
 - Acionar uma política de plantão, executar um runbook ou iniciar uma investigação de IA de um incidente ou alerta.
-- Propor uma mudança de código: fazer commit em um novo branch de um repositório conectado e abrir um pull request. Ele nunca escreve no branch padrão nem em um branch protegido, então uma pessoa ainda faz o merge da mudança.
+- Propor uma mudança de código: fazer commit em um novo branch de um repositório no GitHub, GitLab, Forgejo ou Gitea e abrir um pull request (um merge request no GitLab). Ele nunca escreve no branch padrão nem em um branch protegido, então uma pessoa ainda faz o merge da mudança.
 
 Peça um incidente quando os usuários forem afetados, e um alerta quando algo precisar primeiro da atenção da sua equipe, como a memória de um host que não para de subir. Os dois são criados uma vez e não vigiam nada: para ser alertado toda vez que a memória de um host passar de 75%, crie um [monitor de host](/docs/monitor/host-monitor#modelos-de-alerta-prontos) a partir do modelo de memória dele, com 75% como limite. O Pergunte à IA não consegue criar monitores. Quando você pede um, ele diz isso, verifica o valor atual e oferece criar um alerta se ele já tiver passado.
 

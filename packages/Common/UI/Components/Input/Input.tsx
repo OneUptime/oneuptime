@@ -93,6 +93,21 @@ export interface ComponentProps {
   // The most characters it takes, as the column it fills keeps them.
   maxLength?: number | undefined;
   /*
+   * Which keyboard a phone offers for it - "numeric" for a number typed as
+   * text (a pull request's), which keeps what is typed as it is, where a
+   * number input would not.
+   */
+  inputMode?:
+    | "text"
+    | "numeric"
+    | "decimal"
+    | "tel"
+    | "email"
+    | "url"
+    | "search"
+    | "none"
+    | undefined;
+  /*
    * A password field that holds the person's own password, on a page where
    * they sign in, sign up or change it: password managers may fill and save
    * it. Leave it unset everywhere else - see isStoredSecret below.
@@ -391,6 +406,7 @@ const Input: FunctionComponent<ComponentProps> = (
           }
           readOnly={props.readOnly || props.disabled || false}
           maxLength={props.maxLength}
+          inputMode={props.inputMode}
           type={props.type || "text"}
           step={
             props.type === InputType.DATETIME_LOCAL &&

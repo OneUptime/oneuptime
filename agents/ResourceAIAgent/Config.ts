@@ -3,7 +3,9 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  isCloudAiResourceType,
   isDefaultIdentityPlaceholder,
+  isIdentityResolvedByAgent,
   parseAiResourceType,
 } from "./Common/Types/ResourceAiAgent/AiResourceType";
 import {
@@ -14,8 +16,14 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "./Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  CloudCatalogProvider,
+  getCloudCatalogProvider,
+} from "./Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
+import { parseCloudAgentSettings } from "./Executors/Cloud/CloudSettings";
 import {
   AI_FIXES_ENV,
   AI_INVESTIGATION_ENV,
@@ -94,16 +102,19 @@ export interface AgentConfig {
   /*
    * The identity the agent registers with — the one the collector reports,
    * so the agent claims exactly the row the collector's telemetry created.
-   * Null for a Host whose HOST_NAME is unset: the agent then asks its
-   * executor (the host's own hostname) at start-up and writes the answer
-   * here, where the executor, which holds this same object, reads it too.
+   * Null for a Host whose HOST_NAME is unset, or a cloud account whose
+   * account variable is: the agent then asks its executor (the host's own
+   * hostname, the account its cloud says it is in) at start-up and writes
+   * the answer here, where the executor, which holds this same object,
+   * reads it too.
    */
   resourceIdentifier: string | null;
   // Where the identity came from (an env var name, "executor"), or null.
   identitySource: string | null;
   /*
    * The resource's OneUptime id when the operator pinned it
-   * (DATABASE_SERVER_ID), sent on registration; null otherwise.
+   * (DATABASE_SERVER_ID, a cloud agent's ONEUPTIME_AI_CLOUD_ACCOUNT_ID),
+   * sent on registration; null otherwise.
    */
   resourceId: string | null;
   /*
@@ -542,11 +553,96 @@ function resolveDatabaseIdentity(
   };
 }
 
+// How each cloud's account id looks, and how a message names it.
+const CLOUD_ACCOUNT_FORMATS: Readonly<
+  Record<CloudCatalogProvider, { pattern: RegExp; described: string }>
+> = {
+  aws: { pattern: /^[0-9]{12}$/, described: "an AWS account id (12 digits)" },
+  azure: {
+    pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    described: "an Azure subscription id (a GUID)",
+  },
+  gcp: {
+    pattern: /^(?:[a-z][a-z0-9-]{4,28}[a-z0-9]|[0-9]{1,20})$/,
+    described: "a Google Cloud project id or number",
+  },
+};
+
+/*
+ * A cloud account's identity: the account variable (AWS_ACCOUNT_ID,
+ * AZURE_SUBSCRIPTION_ID, GOOGLE_CLOUD_PROJECT) or
+ * RESOURCE_AI_AGENT_RESOURCE_NAME_ENV when set — never a problem when
+ * neither is, since the executor asks the cloud at start-up. A value that
+ * is not an account id of the cloud is a problem (an Azure subscription id
+ * is lowercased). RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV, the OneUptime id of the
+ * cloud account the setup command was written for, is the resource id
+ * sent on registration.
+ */
+function resolveCloudIdentity(
+  env: NodeJS.ProcessEnv,
+  type: AiResourceType,
+  provider: CloudCatalogProvider,
+  override: string,
+): ResolvedIdentity {
+  const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[type];
+  const resolved: ResolvedIdentity = {
+    identifier: null,
+    source: null,
+    resourceId: null,
+    details: {},
+    problems: [],
+    warnings: [],
+  };
+
+  if (override) {
+    resolved.identifier = override;
+    resolved.source = RESOURCE_AI_AGENT_RESOURCE_NAME_ENV;
+  } else {
+    for (const name of info.identityEnvVars) {
+      const value: string = readTrimmed(env, name);
+
+      if (value) {
+        resolved.identifier = value;
+        resolved.source = name;
+        break;
+      }
+    }
+  }
+
+  if (resolved.identifier !== null && provider === "azure") {
+    resolved.identifier = resolved.identifier.toLowerCase();
+  }
+
+  if (
+    resolved.identifier !== null &&
+    !CLOUD_ACCOUNT_FORMATS[provider].pattern.test(resolved.identifier)
+  ) {
+    resolved.problems.push(
+      `${resolved.source}="${resolved.identifier.slice(0, 64)}" is not ${CLOUD_ACCOUNT_FORMATS[provider].described}. Set it to the ${info.displayName} the agent serves, or leave it unset: the agent asks its cloud which one it is in.`,
+    );
+  }
+
+  const accountId: string = readTrimmed(env, RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV);
+
+  if (accountId) {
+    if (isUuid(accountId)) {
+      resolved.resourceId = accountId.toLowerCase();
+    } else {
+      resolved.warnings.push(
+        `${RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV}="${accountId.slice(0, 64)}" is not a OneUptime cloud account id (a UUID), so the agent ignores it and registers by the account its cloud says it is in. Copy the setup command again from the cloud account's AI agent page.`,
+      );
+    }
+  }
+
+  return resolved;
+}
+
 /*
  * Which resource this agent registers as: RESOURCE_AI_AGENT_RESOURCE_NAME_ENV
- * when set, else the type's collector variables (identityEnvVars). A Host
- * without HOST_NAME resolves to null without a problem — the executor reads
- * the host's own hostname at start-up.
+ * when set, else the type's collector variables (identityEnvVars). A type
+ * whose agent finds its identity itself (isIdentityResolvedByAgent: a Host
+ * without HOST_NAME, a cloud account without its account variable)
+ * resolves to null without a problem — the executor answers at start-up.
  */
 export function resolveIdentity(
   env: NodeJS.ProcessEnv,
@@ -558,9 +654,12 @@ export function resolveIdentity(
     RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   );
   let resolved: ResolvedIdentity;
+  const cloud: CloudCatalogProvider | null = getCloudCatalogProvider(type);
 
   if (type === AiResourceType.DatabaseServer) {
     resolved = resolveDatabaseIdentity(env, override);
+  } else if (cloud) {
+    resolved = resolveCloudIdentity(env, type, cloud, override);
   } else if (override) {
     resolved = {
       identifier: override,
@@ -590,7 +689,7 @@ export function resolveIdentity(
       }
     }
 
-    if (!resolved.identifier && type !== AiResourceType.Host) {
+    if (!resolved.identifier && !isIdentityResolvedByAgent(type)) {
       resolved.problems.push(
         `${info.identityEnvVars.join(" / ")} is not set. Set it ${WHERE_TO_SET} to the name the ${info.displayName}'s collector reports (or set ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}), so the agent serves the same ${info.displayName} in OneUptime.`,
       );
@@ -702,6 +801,16 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
   if (identity) {
     problems.push(...identity.problems);
     warnings.push(...identity.warnings);
+  }
+
+  // A cloud agent's own settings (what it may change), said once at start-up.
+  const cloudProvider: CloudCatalogProvider | null =
+    resourceType && isCloudAiResourceType(resourceType)
+      ? getCloudCatalogProvider(resourceType)
+      : null;
+
+  if (cloudProvider) {
+    warnings.push(...parseCloudAgentSettings(env, cloudProvider).warnings);
   }
 
   const allowWritesSetting: string | null =

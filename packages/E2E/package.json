@@ -52,6 +52,7 @@
     "test-security-operations-ui": "playwright test --config playwright.security-operations-ui.config.ts",
     "test-data-security-ui": "playwright test --config playwright.data-security-ui.config.ts",
     "test-security-hunts-ui": "playwright test --config playwright.security-hunts-ui.config.ts",
+    "test-security-cases-detections-ui": "playwright test --config playwright.security-cases-detections-ui.config.ts",
     "test-sharding": "playwright test --config playwright.sharding.config.ts",
     "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
     "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts",

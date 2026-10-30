@@ -20,6 +20,7 @@ import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -76,6 +77,8 @@ function row(
     aiRemediationMode: ResourceAiRemediationMode.Disabled,
     aiCommandAllowlist: [],
     isArchived: false,
+    // A cloud account's live reads go through its connection.
+    ...(isCloudAiResourceType(type) ? { hasCloudConnection: true } : {}),
     ...overrides,
   };
 }
@@ -316,12 +319,22 @@ describe("Needs attention, from the server's own statuses", () => {
           status,
           descriptor,
         );
+        /*
+         * A cloud account with fixes off is read without its agent, so a
+         * missing agent is its choice, not a step.
+         */
+        const isCloudReadOnly: boolean =
+          isCloudAiResourceType(type) &&
+          status.aiRemediationMode === ResourceAiRemediationMode.Disabled;
         const expectedCodes: Array<ResourceAiAccessGapCode> = status.gaps
           .map((gap: ResourceAiAccessGap): ResourceAiAccessGapCode => {
             return gap.code;
           })
           .filter((code: ResourceAiAccessGapCode): boolean => {
-            return code !== "remediation_disabled";
+            return (
+              code !== "remediation_disabled" &&
+              !(isCloudReadOnly && code === "ai_agent_not_connected")
+            );
           });
 
         expect({ name, codes: codesOf(attention) }).toEqual({
@@ -417,11 +430,34 @@ describe("Needs attention, from the server's own statuses", () => {
         getResourceAiAgentDescriptor(type);
       const agentName: string = AI_RESOURCE_TYPE_INFO[type].agentDisplayName;
 
-      expect(
-        textsOf(
+      if (isCloudAiResourceType(type)) {
+        // With fixes off, AI reads the account without its agent.
+        expect(
           getResourceAiAttention(serverStatus(row(type), null), descriptor),
-        ),
-      ).toEqual([`Install the ${agentName} with the instructions above.`]);
+        ).toBeNull();
+        // With fixes on, the agent is what they need.
+        expect(
+          textsOf(
+            getResourceAiAttention(
+              serverStatus(
+                row(type, {
+                  aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+                }),
+                null,
+              ),
+              descriptor,
+            ),
+          ),
+        ).toEqual([
+          `Start the ${agentName} in this ${descriptor.noun} with the command above.`,
+        ]);
+      } else {
+        expect(
+          textsOf(
+            getResourceAiAttention(serverStatus(row(type), null), descriptor),
+          ),
+        ).toEqual([`Install the ${agentName} with the instructions above.`]);
+      }
 
       expect(
         textsOf(

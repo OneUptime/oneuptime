@@ -87,7 +87,7 @@ Vad Fråga AI kan göra när ett läge tillåter det:
 - Lägga en intern anteckning på en incident eller ett larm. Interna anteckningar visas aldrig på en statussida.
 - Publicera en offentlig statusuppdatering på en incident. Det är en separat åtgärd, eftersom den meddelar statussidans prenumeranter.
 - Larma en jourpolicy, köra en runbook eller starta en AI-undersökning av en incident eller larm.
-- Föreslå en kodändring: committa till en ny gren i ett anslutet repositorium och öppna en pull request. Den skriver aldrig till standardgrenen eller en skyddad gren, så en människa slår fortfarande ihop ändringen.
+- Föreslå en kodändring: committa till en ny gren i ett repositorium på GitHub, GitLab, Forgejo eller Gitea och öppna en pull request (en merge request på GitLab). Den skriver aldrig till standardgrenen eller en skyddad gren, så en människa slår fortfarande ihop ändringen.
 
 Be om en incident när användare påverkas, och om ett larm när något först behöver ditt teams uppmärksamhet, till exempel en värds minne som bara stiger. Båda skapas en gång och övervakar ingenting: för att larmas varje gång en värds minne går över 75 %, skapar du en [värdmonitor](/docs/monitor/host-monitor#färdiga-larmmallar) från dess minnesmall, med 75 % som tröskel. Fråga AI kan inte skapa monitorer. Ombedd om en säger den det, kontrollerar det aktuella värdet och erbjuder sig att skapa ett larm om det redan är över.
 

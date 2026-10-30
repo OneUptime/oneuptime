@@ -2,6 +2,7 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAuthMethod } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { isAwsRoleArn } from "../../../Types/CloudConnection/CloudConnectionPaste";
 import {
+  AWS_LOG_READ_ACTION_GROUP,
   AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTIONS,
   AWS_READ_ONLY_ACTION_GROUPS,
@@ -35,17 +36,37 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * The one command each cloud's setup step shows creates access that can
  * only read, and nothing a connection does not use - and these hold it to
- * that: every AWS action reads (Describe, List, Get or Lookup), none reads
- * data or writes, and none is one no reader calls (no billing, no health
- * entities); API Gateway's one read action is held to the APIs' own
- * definitions; only an organization's management account may list its
- * accounts; the role trusts this OneUptime with this project's own
- * external id only, and a project's organization StackSet is its own;
+ * that: every AWS action reads (Describe, List, Get or Lookup, and the log
+ * group's FilterLogEvents), none writes, none reads data but the log lines
+ * read only when AI may read an account's logs, and none is one no reader
+ * calls (no billing, no health entities); an investigation's live reads
+ * have the actions they call; API Gateway's one read action is held to the
+ * APIs' own definitions; only an organization's management account may
+ * list its accounts; the role trusts this OneUptime with this project's
+ * own external id only, and a project's organization StackSet is its own;
  * Azure's app gets the built-in Monitoring Reader role, Google Cloud's
  * service account Monitoring Viewer, Cloud Asset Viewer, Logs Viewer and
  * Service Health Viewer. Each command can be run again, for one account or
  * a whole organization.
  */
+
+// What an investigation's live reads call on AWS, besides what listing calls.
+const AWS_LIVE_READ_ACTIONS: Array<string> = [
+  "rds:DescribeEvents",
+  "autoscaling:DescribeScalingActivities",
+  "ec2:DescribeInstanceStatus",
+  "ecs:DescribeTaskDefinition",
+  "lambda:GetFunctionConfiguration",
+  "lambda:GetFunctionConcurrency",
+  "lambda:GetAlias",
+  "servicequotas:ListServiceQuotas",
+  "logs:FilterLogEvents",
+  "logs:DescribeLogGroups",
+];
+
+function isLogReadAction(action: string): boolean {
+  return AWS_LOG_READ_ACTION_GROUP.actions.includes(action);
+}
 
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
 const OTHER_PROJECT: string = "22222222-2222-4222-8222-222222222222";
@@ -103,31 +124,73 @@ describe("the external id", () => {
 
 describe("AWS", () => {
   test("every action reads: Describe, List, Get or Lookup - and API Gateway's GET", () => {
-    for (const action of AWS_READ_ONLY_ACTIONS) {
+    for (const action of AWS_READ_ONLY_ACTIONS.filter(
+      (entry: string): boolean => {
+        return !isLogReadAction(entry);
+      },
+    )) {
       expect(action).toMatch(/^[a-z0-9-]+:(Describe|List|Get|Lookup|GET$)/);
     }
+
+    // The log lines: found with Describe, read with Filter.
+    expect(AWS_LOG_READ_ACTION_GROUP.actions).toEqual([
+      "logs:DescribeLogGroups",
+      "logs:FilterLogEvents",
+    ]);
   });
 
-  test("no action reads data or a secret, and none writes", () => {
+  test("no action reads data or a secret, but the log lines read only when AI may read an account's logs, and none writes", () => {
     for (const action of AWS_READ_ONLY_ACTIONS) {
       const [service, name] = action.split(":") as [string, string];
 
-      // Objects, rows, messages, secrets, parameters, logs' contents.
-      expect([
-        "s3",
-        "secretsmanager",
-        "ssm",
-        "kms",
-        "logs",
-        "athena",
-      ]).not.toContain(service);
+      // Objects, rows, messages, secrets, parameters, queries of data.
+      expect(["s3", "secretsmanager", "ssm", "kms", "athena"]).not.toContain(
+        service,
+      );
+      expect({ action, logs: service === "logs" }).toEqual({
+        action,
+        logs: isLogReadAction(action),
+      });
       expect(name).not.toMatch(
-        /^(Put|Create|Delete|Update|Modify|Start|Stop|Reboot|Terminate|Attach|Detach|Set|Send|Invoke|Receive|Scan|Query|GetItem|BatchGet|GetObject|GetSecret|Decrypt)/,
+        /^(Put|Create|Delete|Update|Modify|Start|Stop|Reboot|Terminate|Attach|Detach|Set|Send|Invoke|Receive|Scan|Query|GetItem|BatchGet|GetObject|GetSecret|GetLogEvents|GetQueryResults|Decrypt)/,
       );
     }
 
     expect(AWS_READ_ONLY_ACTIONS).not.toContain("*");
+    // GetFunction hands out a link to the function's code.
     expect(AWS_READ_ONLY_ACTIONS).not.toContain("lambda:GetFunction");
+    expect(AWS_READ_ONLY_ACTION_GROUPS).toContain(AWS_LOG_READ_ACTION_GROUP);
+    expect(AWS_LOG_READ_ACTION_GROUP.purpose).toBe(
+      "Read log lines, only when you let AI read an account's logs",
+    );
+  });
+
+  test("an investigation's live reads have the actions they call: a resource's status and recent events, the quotas, and the log lines", () => {
+    for (const action of AWS_LIVE_READ_ACTIONS) {
+      expect({
+        action,
+        granted: AWS_READ_ONLY_ACTIONS.includes(action),
+      }).toEqual({ action, granted: true });
+    }
+
+    expect(
+      AWS_READ_ONLY_ACTION_GROUPS.slice(-3).flatMap(
+        (group: { actions: Array<string> }): Array<string> => {
+          return group.actions;
+        },
+      ),
+    ).toEqual(expect.arrayContaining(AWS_LIVE_READ_ACTIONS));
+    expect(
+      AWS_READ_ONLY_ACTION_GROUPS.slice(-3).map(
+        (group: { purpose: string }): string => {
+          return group.purpose;
+        },
+      ),
+    ).toEqual([
+      "Read a resource's live status and recent events during an investigation",
+      "Read the account's quotas during an investigation",
+      "Read log lines, only when you let AI read an account's logs",
+    ]);
   });
 
   test("no action is one no reader calls: no billing, no health entities", () => {
@@ -203,6 +266,11 @@ describe("AWS", () => {
 
   test("the policy fits an IAM inline policy's 10,240 characters with room to spare", () => {
     expect(getAwsReadOnlyPolicyDocument().length).toBeLessThan(5000);
+  });
+
+  test("the access key's user takes the policy too: IAM holds a user's inline policies to 2,048 characters", () => {
+    expect(getAwsReadOnlyPolicyDocument()).not.toMatch(/\s/);
+    expect(getAwsReadOnlyPolicyDocument().length).toBeLessThanOrEqual(2048);
   });
 
   test("the trust policy names the principal and requires the external id", () => {

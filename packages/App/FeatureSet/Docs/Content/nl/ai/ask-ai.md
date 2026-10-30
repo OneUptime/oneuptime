@@ -87,7 +87,7 @@ Wat AI vragen kan doen als een modus het toestaat:
 - Een interne notitie plaatsen bij een incident of waarschuwing. Interne notities verschijnen nooit op een statuspagina.
 - Een openbare statusupdate bij een incident publiceren. Dat is een aparte actie, omdat de abonnees van de statuspagina een melding krijgen.
 - Een bereikbaarheidsbeleid oproepen, een runbook uitvoeren of een AI-onderzoek van een incident of waarschuwing starten.
-- Een codewijziging voorstellen: committen op een nieuwe branch van een gekoppelde repository en een pull request openen. Hij schrijft nooit naar de standaardbranch of een beschermde branch, dus een mens merget de wijziging nog altijd.
+- Een codewijziging voorstellen: committen op een nieuwe branch van een repository op GitHub, GitLab, Forgejo of Gitea en een pull request openen (een merge request op GitLab). Hij schrijft nooit naar de standaardbranch of een beschermde branch, dus een mens merget de wijziging nog altijd.
 
 Vraag om een incident als gebruikers geraakt worden, en om een waarschuwing als iets eerst de aandacht van je team nodig heeft, zoals het geheugen van een host dat blijft stijgen. Beide worden één keer aangemaakt en bewaken niets: om elke keer gewaarschuwd te worden als het geheugen van een host boven 75% komt, maak je een [host-monitor](/docs/monitor/host-monitor#kant-en-klare-waarschuwingssjablonen) vanuit zijn geheugensjabloon, met 75% als drempel. AI vragen kan geen monitoren aanmaken. Vraag je erom, dan zegt het dat, controleert het de huidige waarde en biedt het aan een waarschuwing aan te maken als die er al boven zit.
 

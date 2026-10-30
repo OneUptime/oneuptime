@@ -580,6 +580,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY]: `accounts/${RouteParams.ModelID}/topology`,
   [PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]: `accounts/${RouteParams.ModelID}/settings`,
   [PageMap.CLOUD_ACCOUNT_VIEW_DELETE]: `accounts/${RouteParams.ModelID}/delete`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: `accounts/${RouteParams.ModelID}/ai/agent`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -5770,6 +5773,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_FEED]
     }`,
   ),
 
