@@ -433,8 +433,9 @@ describe("analytics split-by Service", () => {
     expect(ANALYTICS_VIEW).toContain(
       "}, [tableData, props.serviceNameMap, entityNames]);",
     );
+    // An unsplit series is named for its measure in the reader's words (#5420).
     expect(ANALYTICS_VIEW).toContain(
-      "}, [timeseriesData, metric, props.serviceNameMap, entityNames]);",
+      "}, [timeseriesData, metricLabel, props.serviceNameMap, entityNames]);",
     );
   });
 });
