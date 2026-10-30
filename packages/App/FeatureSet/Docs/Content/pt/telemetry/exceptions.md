@@ -129,6 +129,8 @@ A explicação fica guardada na exceção, então a próxima pessoa que a abre j
 
 IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado, e dos atributos de um span só alguns são enviados, como a rota e o código de status. A explicação usa o provedor de LLM e os créditos de IA do projeto, e não é oferecida enquanto **Habilitar IA** estiver desligado. Qualquer pessoa que possa ler a exceção pode pedir uma.
 
+Abaixo dos cartões, **Exceções semelhantes** lista até cinco outras exceções parecidas com esta: a **Mesma mensagem** depois de tirados os valores, o **Mesmo local no código** do seu código, ou uma **Mensagem semelhante** com a maioria das mesmas palavras. Uma mesma causa pode cair em várias exceções, então **Verificar com a OneUptime AI** diz de cada uma se é **Provavelmente o mesmo bug**, **Um bug relacionado** ou **Um bug diferente**, e por quê. A verificação usa os créditos de IA do projeto e não é oferecida enquanto **Habilitar IA** está desligado.
+
 ## Corrigir com IA
 
 A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa de IA que abre um pull request no seu repositório de código:

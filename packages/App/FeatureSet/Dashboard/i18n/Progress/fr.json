@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 38829,
-    "untranslated": 7711
+    "keys": 38838,
+    "untranslated": 7709
   },
   "sameAsEnglish": [
     " incidents",
@@ -487,6 +487,8 @@
     "{{count}} incidents",
     "{{count}} minute",
     "{{count}} minutes",
+    "{{count}} occurrence",
+    "{{count}} occurrences",
     "{{count}} option",
     "{{count}} options",
     "{{count}} rotation",

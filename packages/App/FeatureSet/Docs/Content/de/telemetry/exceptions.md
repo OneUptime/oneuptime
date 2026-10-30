@@ -129,6 +129,8 @@ Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die
 
 IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesendet wird, und von den Attributen eines Spans werden nur wenige gesendet, etwa seine Route und sein Statuscode. Die Erklärung nutzt den LLM-Anbieter und die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Jeder, der die Ausnahme lesen kann, kann eine anfordern.
 
+Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
+
 ## Mit KI beheben
 
 Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe, die einen Pull Request in Ihrem Code-Repository öffnet:

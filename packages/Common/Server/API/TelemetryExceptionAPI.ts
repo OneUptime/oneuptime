@@ -39,6 +39,11 @@ import ExceptionExplainer, {
 import ExceptionDigester, {
   ExceptionDigestResult,
 } from "../Utils/AI/TelemetryAi/ExceptionDigest";
+import ExceptionDuplicateChecker, {
+  ExceptionDuplicateCheckResult,
+} from "../Utils/AI/TelemetryAi/ExceptionDuplicateCheck";
+import SimilarExceptionsReader from "../Utils/Telemetry/SimilarExceptionsReader";
+import { SimilarException } from "../../Types/Telemetry/SimilarExceptions";
 
 /*
  * User-facing wording for a code-fix run's status on the exception page —
@@ -162,6 +167,44 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     );
 
     /*
+     * The exceptions that look like this one (SimilarExceptionsReader), read
+     * as the caller: no AI, so anyone who may read the exception may ask.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/similar/:telemetryExceptionId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.findSimilar(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * OneUptime AI's verdict on each similar exception - duplicate, related
+     * or different (ExceptionDuplicateChecker). The project's Enable AI
+     * switch, credits and limits apply; with none similar, no model is
+     * asked.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/similar-ai-check/:telemetryExceptionId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.checkDuplicatesWithAI(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * OneUptime AI's summary of the project's exceptions that are new, or
      * came back after they were resolved, in the last day
      * (ExceptionDigester): read as the caller, not kept. The project's
@@ -224,6 +267,56 @@ export default class TelemetryExceptionAPI extends BaseAPI<
 
     return Response.sendJsonObjectResponse(req, res, {
       explanation: result.explanation as unknown as JSONObject,
+      generatedAt: result.generatedAt.toISOString(),
+    });
+  }
+
+  // The exception's id from the path; ObjectID takes any string.
+  private readExceptionId(req: ExpressRequest): ObjectID {
+    const idParam: string | undefined = req.params["telemetryExceptionId"];
+
+    if (!idParam) {
+      throw new BadDataException("Telemetry Exception ID is required");
+    }
+
+    if (!ObjectID.isValidUUID(idParam)) {
+      throw new BadDataException("Invalid Telemetry Exception ID");
+    }
+
+    return new ObjectID(idParam);
+  }
+
+  private async findSimilar(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const telemetryExceptionId: ObjectID = this.readExceptionId(req);
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const similar: Array<SimilarException> = await SimilarExceptionsReader.find(
+      { telemetryExceptionId, props },
+    );
+
+    return Response.sendJsonObjectResponse(req, res, {
+      similar: similar as unknown as JSONArray,
+    });
+  }
+
+  private async checkDuplicatesWithAI(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const telemetryExceptionId: ObjectID = this.readExceptionId(req);
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const result: ExceptionDuplicateCheckResult =
+      await ExceptionDuplicateChecker.check({ telemetryExceptionId, props });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      similar: result.similar as unknown as JSONArray,
+      verdicts: result.verdicts as unknown as JSONArray,
       generatedAt: result.generatedAt.toISOString(),
     });
   }
