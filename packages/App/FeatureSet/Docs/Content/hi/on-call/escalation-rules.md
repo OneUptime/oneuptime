@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+जब कोई आपको Slack या Microsoft Teams से पेज करता है, तो SMS `OneUptime:` के बाद बताता है कि किसने किसे पेज किया, और ये शब्द भी कभी छोटे नहीं किए जाते:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 SMS की सादी वर्णमाला से बाहर का एक भी वर्ण पूरे संदेश को 70 वर्णों के हिस्सों में भेजता है। इसलिए घुमावदार उद्धरण चिह्न और डैश `"`, `'` और `-` के रूप में लिखे जाते हैं, `…` को `...` के रूप में, और `ç` और `ł` जैसे अक्षर अपने चिह्न खो देते हैं; इमोजी छोड़ दिए जाते हैं। किसी दूसरी लिपि में शीर्षक, जैसे जापानी या रूसी, जैसा लिखा है वैसा ही भेजा जाता है, और दो या ज़्यादा हिस्से लेता है।
 
 OneUptime आपको जो दूसरे SMS भेजता है, जैसे आपकी किसी घटना में बदलाव या आपकी ऑन-कॉल शिफ़्ट की शुरुआत, वे भी `OneUptime:` से शुरू होते हैं और `Turn off in User Settings > Notification Settings.` पर ख़त्म होते हैं; जब इसी वाक्य को हटाने से SMS एक हिस्से में आ जाता है, तो इसे छोड़ दिया जाता है।
