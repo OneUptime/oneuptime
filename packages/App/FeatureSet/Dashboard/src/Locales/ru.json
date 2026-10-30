@@ -9816,7 +9816,6 @@
   "Detection Rules": "Правила обнаружения",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.",
   "Detection payloads with matched events.": "Detection payloads with matched events.",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "Правила обнаружения — это правила Sigma, которые OneUptime запускает по расписанию на ваших событиях безопасности. Когда правило срабатывает, оно может открыть оповещение, открыть инцидент и записать Detection Finding.",
   "Detections": "Обнаружения",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
   "Device Class": "Device Class",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "например, фид угроз партнёра",
   "Confidence {{from}}–{{to}}": "Уверенность {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "Каждые {{min}}–{{max}} минут (по умолчанию {{default}}) OneUptime скачивает список, опрашивает коллекцию TAXII 2.1 или читает то, что нашёл Google SecOps.",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "Каждые {{min}}–{{max}} минут (на ваш выбор) детекция Sigma правила проверяется на событиях с момента его последнего запуска.",
   "Full documentation": "Полная документация",
   "How severity levels are chosen": "Как выбираются уровни серьёзности",
   "How threat levels are chosen": "Как выбираются уровни угрозы",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "Завершить сеансы пользователя в Microsoft Entra ID",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "Завершить сеансы пользователя из кейса в Google Workspace во всех браузерах и на всех устройствах, не блокируя учётную запись.",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "Завершить все сеансы пользователя из кейса в Microsoft Entra ID и отозвать его токены обновления, не отключая учётную запись.",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "Шаг {{number}} выполняется только после результата этого шага. Сначала измените, когда выполняется шаг {{number}}.",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Заблокировать в Google Workspace пользователя, о котором кейс: того, по кому сгруппированы обнаружения, или известного разведке угроз. Запрещает вход до разблокировки.",
   "Suspend the user in Google Workspace": "Заблокировать пользователя в Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "Подключение Google Workspace, через которое выполняется действие. Его делегированию на уровне домена нужны области admin.directory.user и admin.directory.user.security. Добавить или проверить подключения можно в разделе Источники > Подключения.",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "Этот шаг выполняется только после результата шага {{number}}, поэтому остаётся под шагом {{number}}.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Разблокировать в Google Workspace пользователя из кейса, чтобы он снова мог входить: отмена шага «Заблокировать пользователя в Google Workspace».",
   "Unsuspend the user in Google Workspace": "Разблокировать пользователя в Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Кто выполняет задачи. Если оставить пустым, они достанутся тому, кто работает с кейсом.",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "Сохраняет события и записи сеансов, отмечает трассировки и исключения",
   "Real time": "В реальном времени",
   "Run in Real Time": "Выполнять в реальном времени",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "Подключение Microsoft Entra ID, через которое выполняется действие. Его приложению нужны разрешения User.Read.All, User.EnableDisableAccount.All и User.RevokeSessions.All. Добавить или проверить подключения можно в разделе Источники > Подключения."
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "Подключение Microsoft Entra ID, через которое выполняется действие. Его приложению нужны разрешения User.Read.All, User.EnableDisableAccount.All и User.RevokeSessions.All. Добавить или проверить подключения можно в разделе Источники > Подключения.",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "Правила обнаружения — это правила Sigma, которые OneUptime запускает на ваших событиях безопасности: по расписанию или на каждом событии сразу по поступлении. Когда правило срабатывает, оно может открыть оповещение, открыть инцидент и записать Detection Finding.",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "Каждые {{min}}–{{max}} минут (на ваш выбор) детекция Sigma правила проверяется на событиях с момента его последнего запуска. Правило в реальном времени проверяет каждое событие сразу по поступлении.",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "Шаг {{number}} ждёт результата этого шага. Сначала измените «Выполнять этот шаг» у шага {{number}}.",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "Этот шаг ждёт результата шага {{number}}, поэтому остаётся под шагом {{number}}."
 }

@@ -7,6 +7,7 @@ import {
   getStepMoveBlock,
   moveStep,
 } from "./SecurityPlaybookStepForm";
+import Flag from "./SecurityPlaybookStepFlag";
 import {
   StepNameLookup,
   summarizeSecurityPlaybookStep,
@@ -50,31 +51,6 @@ type StepDialog =
   | { kind: "edit"; index: number }
   | { kind: "delete"; index: number }
   | null;
-
-const Flag: FunctionComponent<{
-  icon: IconProp;
-  text: string;
-  // Words already in the reader's language, put together from translated parts.
-  isTranslated?: boolean | undefined;
-  dataTestId?: string | undefined;
-}> = (props: {
-  icon: IconProp;
-  text: string;
-  isTranslated?: boolean | undefined;
-  dataTestId?: string | undefined;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
-      data-testid={props.dataTestId}
-    >
-      <Icon icon={props.icon} className="h-3 w-3 flex-shrink-0" />
-      {props.isTranslated ? props.text : translator.translateText(props.text)}
-    </span>
-  );
-};
 
 /*
  * The whole list as it would be saved, held to the branching rule first: a
@@ -243,7 +219,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-gray-900">
                             <span className="mr-1.5 text-gray-400">
-                              {index + 1}.
+                              {translator.formatNumber(index + 1)}.
                             </span>
                             {translator.translateText(
                               definition?.title || step.action,

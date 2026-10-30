@@ -9816,7 +9816,6 @@
   "Detection Rules": "Detektionsregler",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.",
   "Detection payloads with matched events.": "Detection payloads with matched events.",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "Detekteringsregler är Sigma-regler som OneUptime kör enligt ett schema mot dina säkerhetshändelser. När en regel matchar kan den öppna ett larm, öppna en incident och registrera ett Detection Finding.",
   "Detections": "Detektioner",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
   "Device Class": "Device Class",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "t.ex. En partners hotflöde",
   "Confidence {{from}}–{{to}}": "Konfidens {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "Med {{min}}–{{max}} minuters mellanrum (standard {{default}}) laddar OneUptime ned listan, frågar TAXII 2.1-samlingen eller läser det Google SecOps hittade.",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "Med {{min}}–{{max}} minuters mellanrum (du väljer) kontrolleras regelns Sigma-detektering mot händelserna sedan den senaste körningen.",
   "Full documentation": "Fullständig dokumentation",
   "How severity levels are chosen": "Så väljs allvarlighetsnivåer",
   "How threat levels are chosen": "Så väljs hotnivåer",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "Logga ut användaren från Microsoft Entra ID",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "Logga ut användaren som ärendet gäller från Google Workspace i alla webbläsare och på alla enheter, utan att stänga av kontot.",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "Logga ut användaren som ärendet gäller från Microsoft Entra ID överallt och återkalla användarens uppdateringstoken, utan att inaktivera kontot.",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "Steg {{number}} körs bara efter det här stegets resultat. Ändra först när steg {{number}} körs.",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Stäng av användaren som ärendet gäller i Google Workspace: den som detektionerna grupperas efter, eller en som hotinformationen känner till. Blockerar inloggning tills avstängningen hävs.",
   "Suspend the user in Google Workspace": "Stäng av användaren i Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "Google Workspace-anslutningen som åtgärden går via. Dess domänomfattande delegering behöver omfången admin.directory.user och admin.directory.user.security. Lägg till eller testa anslutningar under Källor > Anslutningar.",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "Det här steget körs bara efter resultatet av steg {{number}}, så det stannar under steg {{number}}.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Häv i Google Workspace avstängningen av användaren som ärendet gäller, så att användaren kan logga in igen: ångrar Stäng av användaren i Google Workspace.",
   "Unsuspend the user in Google Workspace": "Häv avstängningen av användaren i Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Vem som gör uppgifterna. Lämnas fältet tomt är de för den som arbetar med ärendet.",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "Behåller händelser och session replays, antecknar spår och undantag",
   "Real time": "Realtid",
   "Run in Real Time": "Kör i realtid",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "Microsoft Entra ID-anslutningen som åtgärden går via. Dess app behöver behörigheterna User.Read.All, User.EnableDisableAccount.All och User.RevokeSessions.All. Lägg till eller testa anslutningar under Källor > Anslutningar."
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "Microsoft Entra ID-anslutningen som åtgärden går via. Dess app behöver behörigheterna User.Read.All, User.EnableDisableAccount.All och User.RevokeSessions.All. Lägg till eller testa anslutningar under Källor > Anslutningar.",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "Detekteringsregler är Sigma-regler som OneUptime kör mot dina säkerhetshändelser, enligt ett schema eller på varje händelse så fort den kommer in. När en regel matchar kan den öppna ett larm, öppna en incident och registrera ett Detection Finding.",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "Med {{min}}–{{max}} minuters mellanrum (du väljer) kontrolleras regelns Sigma-detektering mot händelserna sedan den senaste körningen. En regel som körs i realtid kontrollerar varje händelse så fort den kommer in.",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "Steg {{number}} väntar på det här stegets resultat. Ändra först ”Kör det här steget” på steg {{number}}.",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "Det här steget väntar på resultatet av steg {{number}}, så det stannar under steg {{number}}."
 }

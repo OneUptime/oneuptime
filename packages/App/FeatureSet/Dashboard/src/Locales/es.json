@@ -9816,7 +9816,6 @@
   "Detection Rules": "Reglas de detección",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "Las cargas útiles de detección se reconocen automáticamente y se almacenan como eventos de hallazgo de detección, con observables extraídos de los eventos coincidentes.",
   "Detection payloads with matched events.": "Cargas útiles de detección con eventos coincidentes.",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "Las reglas de detección son reglas Sigma que OneUptime ejecuta de forma programada sobre tus eventos de seguridad. Cuando una regla coincide, puede abrir una alerta, abrir un incidente y registrar un hallazgo de detección.",
   "Detections": "Detecciones",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Las reglas deterministas proponen o inician cada runbook seleccionado. Las reglas de IA eligen el más adecuado de esta lista (o de todos los runbooks habilitados cuando la lista está vacía).",
   "Device Class": "Clase de dispositivo",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "p. ej., feed de amenazas de un socio",
   "Confidence {{from}}–{{to}}": "Confianza {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "Cada {{min}}–{{max}} minutos ({{default}} por defecto), OneUptime descarga la lista, consulta la colección TAXII 2.1 o lee lo que encontró Google SecOps.",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "Cada {{min}}–{{max}} minutos (tú eliges), la detección Sigma de la regla se comprueba con los eventos desde su última ejecución.",
   "Full documentation": "Documentación completa",
   "How severity levels are chosen": "Cómo se eligen los niveles de gravedad",
   "How threat levels are chosen": "Cómo se eligen los niveles de amenaza",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "Cerrar la sesión del usuario en Microsoft Entra ID",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "Cierra la sesión de Google Workspace del usuario del caso en todos los navegadores y dispositivos, sin suspender la cuenta.",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "Cierra la sesión de Microsoft Entra ID del usuario del caso en todas partes y revoca sus tokens de actualización, sin deshabilitar la cuenta.",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "El paso {{number}} se ejecuta solo tras el resultado de este paso. Cambia primero cuándo se ejecuta el paso {{number}}.",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Suspende en Google Workspace al usuario del caso: aquel en el que se agrupan sus detecciones o uno que conoce la inteligencia de amenazas. Bloquea el inicio de sesión hasta que se reactive.",
   "Suspend the user in Google Workspace": "Suspender al usuario en Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "La conexión de Google Workspace a través de la que actuar. Su delegación de todo el dominio necesita los ámbitos admin.directory.user y admin.directory.user.security. Añade o prueba conexiones en Orígenes > Conexiones.",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "Este paso se ejecuta solo tras el resultado del paso {{number}}, así que se queda debajo del paso {{number}}.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Reactiva en Google Workspace al usuario del caso para que pueda volver a iniciar sesión: deshace Suspender al usuario en Google Workspace.",
   "Unsuspend the user in Google Workspace": "Reactivar al usuario en Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "Quién hace las tareas. Si lo dejas vacío, son para quien trabaje el caso.",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "Conserva eventos y reproducciones de sesiones, anota trazas y excepciones",
   "Real time": "Tiempo real",
   "Run in Real Time": "Ejecutar en tiempo real",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "La conexión de Microsoft Entra ID a través de la que actuar. Su aplicación necesita los permisos User.Read.All, User.EnableDisableAccount.All y User.RevokeSessions.All. Añade o prueba conexiones en Orígenes > Conexiones."
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "La conexión de Microsoft Entra ID a través de la que actuar. Su aplicación necesita los permisos User.Read.All, User.EnableDisableAccount.All y User.RevokeSessions.All. Añade o prueba conexiones en Orígenes > Conexiones.",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "Las reglas de detección son reglas Sigma que OneUptime ejecuta sobre tus eventos de seguridad, de forma programada o sobre cada evento en cuanto llega. Cuando una regla coincide, puede abrir una alerta, abrir un incidente y registrar un hallazgo de detección.",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "Cada {{min}}–{{max}} minutos (tú eliges), la detección Sigma de la regla se comprueba con los eventos desde su última ejecución. Una regla en tiempo real comprueba cada evento en cuanto llega.",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "El paso {{number}} espera el resultado de este paso. Cambia primero «Ejecutar este paso» en el paso {{number}}.",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "Este paso espera el resultado del paso {{number}}, así que se queda debajo del paso {{number}}."
 }

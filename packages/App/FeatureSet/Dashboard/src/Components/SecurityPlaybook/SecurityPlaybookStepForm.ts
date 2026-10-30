@@ -374,12 +374,22 @@ export function getRunIfOptions(data: {
 }
 
 /*
+ * A step as numbered in its playbook or run: what a condition names it by,
+ * and what it is.
+ */
+export interface NumberedStep {
+  id: string;
+  action: SecurityPlaybookActionType | string;
+}
+
+/*
  * What a step's card says of when it runs - "Only if step 1 found a
- * known-bad entity" - or nothing for a step that always runs.
+ * known-bad entity" - or nothing for a step that always runs. The run card
+ * says the same under a step it skipped for it (getSkippedRunIf).
  */
 export function describeRunIf(data: {
-  step: SecurityPlaybookStep;
-  steps: ReadonlyArray<SecurityPlaybookStep>;
+  step: Pick<SecurityPlaybookStep, "runIf" | "onlyIfThreatIntelMatched">;
+  steps: ReadonlyArray<NumberedStep>;
   translator: Translator;
 }): string {
   const { step, translator } = data;
@@ -387,11 +397,11 @@ export function describeRunIf(data: {
 
   if (condition) {
     const index: number = data.steps.findIndex(
-      (candidate: SecurityPlaybookStep): boolean => {
+      (candidate: NumberedStep): boolean => {
         return candidate.id === condition.stepId;
       },
     );
-    const earlier: SecurityPlaybookStep | undefined = data.steps[index];
+    const earlier: NumberedStep | undefined = data.steps[index];
 
     if (!earlier) {
       return (
@@ -415,14 +425,46 @@ export function describeRunIf(data: {
 }
 
 /*
+ * What Run This Step says on the folded More fields line: the step card's
+ * own words for what it holds ("Only if step 1 found a known-bad entity") -
+ * not the dropdown's longer choice, which a folded line cuts mid-title - or
+ * null while it holds Always, the choice nobody has to make.
+ */
+export function describeRunIfFormValue(data: {
+  value: unknown;
+  earlierSteps: ReadonlyArray<NumberedStep>;
+  translator: Translator;
+}): string | null {
+  const text: string = readFormId(data.value);
+
+  if (!text || text === RUN_ALWAYS) {
+    return null;
+  }
+
+  const runIf: SecurityPlaybookStepCondition | undefined = decodeRunIf(text);
+
+  return (
+    describeRunIf({
+      step: {
+        onlyIfThreatIntelMatched: text === RUN_IF_THREAT_INTEL_MATCHED,
+        ...(runIf ? { runIf } : {}),
+      },
+      steps: data.earlierSteps,
+      translator: data.translator,
+    }) || null
+  );
+}
+
+/*
  * Why a step cannot move, or be deleted, without breaking a branch - a
- * step may wait only on one before it - or undefined when it can.
+ * step may wait only on one before it - or undefined when it can. Each
+ * names the step in the way and the one thing that frees it.
  */
 export const STEP_WAITED_ON_REASON: string = translationKey(
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.",
 );
 export const STEP_WAITS_ON_REASON: string = translationKey(
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.",
 );
 
 export function getStepMoveBlock(data: {

@@ -175,7 +175,7 @@ describe("a playbook's steps, with a branch", () => {
       name: /Move Down/,
     });
     const reason: string =
-      "Step 2 runs only after this step's result. Change when step 2 runs first.";
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.";
 
     expect(deleteItem).toHaveAttribute("aria-disabled", "true");
     expect(deleteItem).toHaveAccessibleDescription(reason);
@@ -201,7 +201,7 @@ describe("a playbook's steps, with a branch", () => {
 
     expect(up).toHaveAttribute("aria-disabled", "true");
     expect(up).toHaveAccessibleDescription(
-      "This step runs only after step 1's result, so it stays below step 1.",
+      "This step waits on step 1's result, so it stays below step 1.",
     );
     // Down is free: nothing waits on it.
     expect(
@@ -278,6 +278,106 @@ describe("a playbook's steps, with a branch", () => {
     // The other steps are saved as they were.
     expect(saved[0]![1]!.runIf).toEqual(SUSPEND.runIf);
     expect(saved[0]![0]!.runIf).toBeUndefined();
+  });
+
+  test("folded, a step that waits names what it waits on in its card's words, never cut mid-title", async () => {
+    renderEditor([CHECK, SUSPEND, SLACK]);
+
+    const menu: HTMLElement = await openMenu(2);
+
+    await act(async () => {
+      fireEvent.click(
+        within(menu).getByRole("menuitem", { name: /Edit Step/ }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByTestId("modal");
+    const runIf: HTMLElement | undefined = within(dialog)
+      .getAllByTestId("folded-section-item")
+      .find((item: HTMLElement): boolean => {
+        return (item.textContent || "").startsWith("Run This Step");
+      });
+
+    // Set, so a shade darker, with the card's words cut at a word.
+    expect(runIf).toHaveAttribute("data-item-set", "true");
+    expect(runIf).toHaveTextContent(/^Run This Step: Only if step 1 found a/);
+    expect(runIf).not.toHaveTextContent("(");
+  });
+
+  test("a step that runs always lists Run This Step as not set", async () => {
+    renderEditor([CHECK, SLACK]);
+
+    const menu: HTMLElement = await openMenu(2);
+
+    await act(async () => {
+      fireEvent.click(
+        within(menu).getByRole("menuitem", { name: /Edit Step/ }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByTestId("modal");
+    const runIf: HTMLElement | undefined = within(dialog)
+      .getAllByTestId("folded-section-item")
+      .find((item: HTMLElement): boolean => {
+        return (item.textContent || "").startsWith("Run This Step");
+      });
+
+    expect(runIf).toHaveAttribute("data-item-set", "false");
+    expect(runIf).toHaveTextContent(/^Run This Step$/);
+  });
+
+  test("Run This Step always says when the step runs: no Optional mark, and cleared it reads and saves Always", async () => {
+    renderEditor([CHECK, SUSPEND, SLACK]);
+
+    const menu: HTMLElement = await openMenu(2);
+
+    await act(async () => {
+      fireEvent.click(
+        within(menu).getByRole("menuitem", { name: /Edit Step/ }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByTestId("modal");
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: /More fields/ }),
+      );
+    });
+
+    const picker: HTMLElement = await within(dialog).findByRole("combobox", {
+      name: /^Run This Step/,
+    });
+
+    // Never "(Optional)": there is always an answer.
+    expect(picker).toHaveAccessibleName("Run This Step");
+
+    const control: HTMLElement = picker.closest(".ou-select__control")!;
+
+    await act(async () => {
+      fireEvent.mouseDown(
+        control.querySelector(".ou-select__clear-indicator")!,
+        {
+          button: 0,
+        },
+      );
+    });
+
+    // Cleared, it reads what the step then does: Always.
+    expect(control.querySelector(".ou-select__placeholder")).toHaveTextContent(
+      "Always",
+    );
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(saved).toHaveLength(1);
+    });
+
+    expect(saved[0]![1]!.runIf).toBeUndefined();
+    expect(saved[0]![1]!.onlyIfThreatIntelMatched).toBe(false);
   });
 
   test("the first step has nothing before it to wait on: no Run This Step", async () => {

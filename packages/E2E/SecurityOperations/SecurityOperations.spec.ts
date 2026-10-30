@@ -65,6 +65,8 @@ const PLAYBOOKS_PATH: string = `${PRODUCT}/playbooks`;
 const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000003`;
 // Escalate Known-Bad Indicators: its two last steps run only when threat intel matched.
 const KNOWN_BAD_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000002`;
+// Contain Risky Sign-ins (the fixture's ?branching=1): an if and an else on threat intel.
+const BRANCHING_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000005`;
 // The runs held for an approval keep the runs page's old address.
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
@@ -203,6 +205,8 @@ interface OpenOptions {
   values?: "custom";
   // A rule of the team's own runs in real time (the fixture's ?realtime=1).
   realtime?: boolean;
+  // A playbook that branches, and its two runs on CASE-139 (the fixture's ?branching=1).
+  branching?: boolean;
   // Case numbers, comma separated, whose every change the server refuses.
   refuse?: string;
   // ATT&CK Coverage's address: the view, and the tactic it opens on.
@@ -349,6 +353,9 @@ async function open(
   }
   if (options.realtime) {
     params.set("realtime", "1");
+  }
+  if (options.branching) {
+    params.set("branching", "1");
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -4953,11 +4960,11 @@ test.describe("playbooks", () => {
     const remove: Locator = page.getByRole("menuitem", { name: "Delete Step" });
     await expect(moveDown).toHaveAttribute("aria-disabled", "true");
     await expect(moveDown).toHaveAccessibleDescription(
-      "Step 2 runs only after this step's result. Change when step 2 runs first.",
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.",
     );
     await expect(remove).toHaveAttribute("aria-disabled", "true");
     await expect(remove).toHaveAccessibleDescription(
-      "Step 2 runs only after this step's result. Change when step 2 runs first.",
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.",
     );
     await screenshot(page, "playbook-branch-locked-desktop", {
       fullPage: false,
@@ -4969,7 +4976,7 @@ test.describe("playbooks", () => {
     const moveUp: Locator = page.getByRole("menuitem", { name: "Move Up" });
     await expect(moveUp).toHaveAttribute("aria-disabled", "true");
     await expect(moveUp).toHaveAccessibleDescription(
-      "This step runs only after step 1's result, so it stays below step 1.",
+      "This step waits on step 1's result, so it stays below step 1.",
     );
     // ...and can still go: nothing waits on it.
     await expect(
@@ -5077,6 +5084,89 @@ test.describe("playbooks", () => {
     }>;
     expect(steps[2]!.runIf).toBeUndefined();
     expect(steps[1]!.runIf).toBeDefined();
+  });
+
+  /*
+   * A run of a playbook that branches (the fixture's ?branching=1): Contain
+   * Risky Sign-ins ran twice on CASE-139. Where threat intel knew nothing of
+   * the user, the run skipped the containment, and each skipped step says
+   * what it waits on in the step card's own words, as a chip in the
+   * reader's language - not the server's English sentence - and claims no
+   * approval it never asked for. Where it knew the user, the else was
+   * skipped, and the user it disabled in Microsoft Entra ID and suspended
+   * in Google Workspace can be given access back: Enable, Unsuspend.
+   */
+  test("a branching playbook's runs say why each skipped step did not run, and offer Enable and Unsuspend", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const user: string = "k.morgan@acme-commerce.example";
+
+    await open(page, BRANCHING_PLAYBOOK_PATH, { branching: true });
+    const runs: Locator = page.getByTestId("security-playbook-run-card");
+    await expect(runs).toHaveCount(2, { timeout: 30000 });
+    for (const run of await runs.all()) {
+      await run.getByTestId("security-playbook-run-steps-toggle").click();
+    }
+
+    // The latest run: threat intel knew the user. Contained; the else skipped.
+    const contained: Locator = runs.first();
+    await expect(
+      contained.getByTestId("security-playbook-run-step-3-run-if"),
+    ).toHaveText("Only if step 1 found nothing known-bad");
+    await expect(
+      contained
+        .getByTestId("security-playbook-run-step-1")
+        .getByTestId(`security-playbook-undo-${user}`),
+    ).toHaveText("Enable");
+    await expect(
+      contained
+        .getByTestId("security-playbook-run-step-2")
+        .getByTestId(`security-playbook-undo-${user}`),
+    ).toHaveText("Unsuspend");
+    // The containment that ran still says it needed an approval.
+    await expect(
+      contained.getByTestId("security-playbook-run-step-1"),
+    ).toContainText("Needs approval");
+
+    // The first run: threat intel knew nothing. No containment, the tasks instead.
+    const quiet: Locator = runs.nth(1);
+    for (const index of [1, 2]) {
+      const row: Locator = quiet.getByTestId(
+        `security-playbook-run-step-${index}`,
+      );
+      await expect(
+        row.getByTestId(`security-playbook-run-step-${index}-run-if`),
+      ).toHaveText("Only if step 1 found a known-bad entity");
+      await expect(row).toContainText("Skipped");
+      await expect(row).not.toContainText("Needs approval");
+    }
+    await expect(
+      quiet.getByTestId("security-playbook-run-step-3"),
+    ).toContainText("Added 2 tasks.");
+    await expect(page.getByText(/Skipped: it runs only if/)).toHaveCount(0);
+    await screenshot(page, "playbook-branch-runs-desktop");
+
+    // In German, the chip says it as the German step card does.
+    await open(page, BRANCHING_PLAYBOOK_PATH, { branching: true, lang: "de" });
+    await expect(runs).toHaveCount(2, { timeout: 30000 });
+    await runs.nth(1).getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(
+      runs.nth(1).getByTestId("security-playbook-run-step-1-run-if"),
+    ).toHaveText(
+      "Nur wenn Schritt 1 eine bekannt bösartige Entität gefunden hat",
+    );
+
+    // On a phone, nothing runs off the side.
+    await open(page, BRANCHING_PLAYBOOK_PATH, { branching: true, width: 390 });
+    await expect(runs).toHaveCount(2, { timeout: 30000 });
+    await runs.nth(1).getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(
+      runs.nth(1).getByTestId("security-playbook-run-step-2-run-if"),
+    ).toBeVisible();
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "playbook-branch-runs-phone");
   });
 
   /*

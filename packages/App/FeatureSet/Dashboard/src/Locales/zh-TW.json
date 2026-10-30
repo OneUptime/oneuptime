@@ -9816,7 +9816,6 @@
   "Detection Rules": "偵測規則",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.",
   "Detection payloads with matched events.": "Detection payloads with matched events.",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "偵測規則是 OneUptime 依排程對你的安全事件執行的 Sigma 規則。規則比對成功時，可以開啟警示、開啟事件，並記錄 Detection Finding。",
   "Detections": "偵測",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
   "Device Class": "Device Class",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "例如：合作夥伴威脅來源",
   "Confidence {{from}}–{{to}}": "信賴度 {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "每 {{min}}–{{max}} 分鐘（預設 {{default}} 分鐘），OneUptime 會下載清單、輪詢 TAXII 2.1 集合，或讀取 Google SecOps 發現的內容。",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "每 {{min}}–{{max}} 分鐘（由你選擇），規則的 Sigma 偵測會對其上次執行以來的事件進行檢查。",
   "Full documentation": "完整文件",
   "How severity levels are chosen": "嚴重性等級如何決定",
   "How threat levels are chosen": "威脅等級如何決定",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "將使用者從 Microsoft Entra ID 登出",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "在每個瀏覽器和裝置上將案例涉及的使用者從 Google Workspace 登出，但不停用帳戶。",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "將案例涉及的使用者從所有位置登出 Microsoft Entra ID 並撤銷其重新整理權杖，但不停用帳戶。",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "步驟 {{number}} 僅在此步驟得出結果後執行。請先變更步驟 {{number}} 的執行時機。",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "在 Google Workspace 中停用案例涉及的使用者：偵測所分組的使用者，或威脅情報已知的使用者。在解除停用之前阻止登入。",
   "Suspend the user in Google Workspace": "在 Google Workspace 中停用使用者",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "用於執行操作的 Google Workspace 連線。其全網域委派需要 admin.directory.user 和 admin.directory.user.security 範圍。在 來源 > 連線 中新增或測試連線。",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "此步驟僅在步驟 {{number}} 得出結果後執行，因此保持在步驟 {{number}} 下方。",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "在 Google Workspace 中解除停用案例涉及的使用者，使其可以重新登入：復原「在 Google Workspace 中停用使用者」。",
   "Unsuspend the user in Google Workspace": "在 Google Workspace 中解除停用使用者",
   "Who does the tasks. Left empty, they are for whoever works the case.": "由誰完成這些任務。留空時，任務歸處理案例的人。",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "保留事件和工作階段重播，記下追蹤和例外",
   "Real time": "即時",
   "Run in Real Time": "即時執行",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "用於執行操作的 Microsoft Entra ID 連線。其應用程式需要 User.Read.All、User.EnableDisableAccount.All 和 User.RevokeSessions.All 權限。在 來源 > 連線 中新增或測試連線。"
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "用於執行操作的 Microsoft Entra ID 連線。其應用程式需要 User.Read.All、User.EnableDisableAccount.All 和 User.RevokeSessions.All 權限。在 來源 > 連線 中新增或測試連線。",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "偵測規則是 OneUptime 依排程或在每個事件到達時對你的安全事件執行的 Sigma 規則。規則比對成功時，可以開啟警示、開啟事件，並記錄 Detection Finding。",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "每 {{min}}–{{max}} 分鐘（由你選擇），規則的 Sigma 偵測會對其上次執行以來的事件進行檢查。即時執行的規則會在每個事件到達時進行檢查。",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "步驟 {{number}} 等待此步驟的結果。請先變更步驟 {{number}} 的「執行此步驟」。",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "此步驟等待步驟 {{number}} 的結果，因此保持在步驟 {{number}} 下方。"
 }

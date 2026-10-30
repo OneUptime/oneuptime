@@ -100,7 +100,7 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
           // The triage checklist, as the case's own tasks to tick off.
           step(SecurityPlaybookActionType.AddCaseTasks, {
             tasks: [
-              "Check the activity is expected for these entities",
+              "Check that the activity is expected for these entities",
               "Check whether any entity matched threat intel",
               "Check what else in the project talks to them",
               "Contain them, or close the case with a verdict",
@@ -192,7 +192,7 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
             tasks: [
               "Open the traces in the evidence note: did any request reach the app, or the database?",
               "Watch the session replays: what did the attacker do before and after?",
-              "Block the source: a Run a runbook step with a runbook that blocks an address does it next time",
+              "Block the source address, and add a Run a runbook step to this playbook that does it next time",
               "Review the AI's fix before it is merged",
             ],
           }),

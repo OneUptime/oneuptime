@@ -9816,7 +9816,6 @@
   "Detection Rules": "قواعد تشخیص",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.",
   "Detection payloads with matched events.": "Detection payloads with matched events.",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "قواعد تشخیص، قواعد Sigma هستند که OneUptime طبق زمان‌بندی روی رویدادهای امنیتی شما اجرا می‌کند. وقتی قاعده‌ای منطبق شود، می‌تواند هشدار باز کند، حادثه باز کند و یک Detection Finding ثبت کند.",
   "Detections": "تشخیص‌ها",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
   "Device Class": "Device Class",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "مثلاً فید تهدید یک شریک",
   "Confidence {{from}}–{{to}}": "اطمینان {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "هر {{min}} تا {{max}} دقیقه (پیش‌فرض {{default}})، OneUptime فهرست را دانلود می‌کند، مجموعهٔ TAXII 2.1 را می‌پرسد یا آنچه Google SecOps یافته را می‌خواند.",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "هر {{min}} تا {{max}} دقیقه (به انتخاب شما)، تشخیص Sigma قاعده روی رویدادهای پس از آخرین اجرایش بررسی می‌شود.",
   "Full documentation": "مستندات کامل",
   "How severity levels are chosen": "سطوح شدت چگونه انتخاب می‌شوند",
   "How threat levels are chosen": "سطوح تهدید چگونه انتخاب می‌شوند",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "خارج کردن کاربر از Microsoft Entra ID",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "کاربری را که پرونده درباره اوست در همه مرورگرها و دستگاه‌ها از Google Workspace خارج کنید، بدون تعلیق حساب.",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "کاربری را که پرونده درباره اوست از همه‌جای Microsoft Entra ID خارج کنید و توکن‌های تازه‌سازی‌اش را لغو کنید، بدون غیرفعال کردن حساب.",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "گام {{number}} فقط پس از نتیجه این گام اجرا می‌شود. ابتدا زمان اجرای گام {{number}} را تغییر دهید.",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "کاربری را که پرونده درباره اوست در Google Workspace تعلیق کنید: همان که تشخیص‌ها بر اساس او گروه‌بندی شده‌اند، یا کسی که اطلاعات تهدید او را می‌شناسد. تا رفع تعلیق، ورود را مسدود می‌کند.",
   "Suspend the user in Google Workspace": "تعلیق کاربر در Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "اتصال Google Workspace که کار از طریق آن انجام می‌شود. تفویض اختیار در سطح دامنه آن به دامنه‌های دسترسی admin.directory.user و admin.directory.user.security نیاز دارد. اتصال‌ها را در منابع > اتصال‌ها اضافه یا آزمایش کنید.",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "این گام فقط پس از نتیجه گام {{number}} اجرا می‌شود، پس زیر گام {{number}} می‌ماند.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "تعلیق کاربری را که پرونده درباره اوست در Google Workspace لغو کنید تا دوباره وارد شود: برگرداندن تعلیق کاربر در Google Workspace.",
   "Unsuspend the user in Google Workspace": "لغو تعلیق کاربر در Google Workspace",
   "Who does the tasks. Left empty, they are for whoever works the case.": "چه کسی وظایف را انجام می‌دهد. اگر خالی بماند، برای هر کسی است که روی پرونده کار می‌کند.",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "رویدادها و بازپخش‌های نشست را نگه می‌دارد، ترِیس‌ها و استثناها را یادداشت می‌کند",
   "Real time": "بی‌درنگ",
   "Run in Real Time": "اجرا به‌صورت بی‌درنگ",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "اتصال Microsoft Entra ID که کار از طریق آن انجام می‌شود. برنامه آن به مجوزهای User.Read.All، User.EnableDisableAccount.All و User.RevokeSessions.All نیاز دارد. اتصال‌ها را در منابع > اتصال‌ها اضافه یا آزمایش کنید."
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "اتصال Microsoft Entra ID که کار از طریق آن انجام می‌شود. برنامه آن به مجوزهای User.Read.All، User.EnableDisableAccount.All و User.RevokeSessions.All نیاز دارد. اتصال‌ها را در منابع > اتصال‌ها اضافه یا آزمایش کنید.",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "قواعد تشخیص، قواعد Sigma هستند که OneUptime طبق زمان‌بندی، یا روی هر رویداد به‌محض رسیدنش، روی رویدادهای امنیتی شما اجرا می‌کند. وقتی قاعده‌ای منطبق شود، می‌تواند هشدار باز کند، حادثه باز کند و یک Detection Finding ثبت کند.",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "هر {{min}} تا {{max}} دقیقه (به انتخاب شما)، تشخیص Sigma قاعده روی رویدادهای پس از آخرین اجرایش بررسی می‌شود. قاعده‌ای که به‌صورت بی‌درنگ اجرا می‌شود، هر رویداد را به‌محض رسیدنش بررسی می‌کند.",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "گام {{number}} منتظر نتیجه این گام است. ابتدا «اجرای این گام» را در گام {{number}} تغییر دهید.",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "این گام منتظر نتیجه گام {{number}} است، پس زیر گام {{number}} می‌ماند."
 }

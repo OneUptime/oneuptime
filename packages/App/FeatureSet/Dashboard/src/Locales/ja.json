@@ -9816,7 +9816,6 @@
   "Detection Rules": "検出ルール",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "検出ペイロードは自動的に認識されて検出結果イベントとして保存され、一致したイベントから観測値が抽出されます。",
   "Detection payloads with matched events.": "一致したイベントを含む検出ペイロード。",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "検出ルールは、OneUptime がスケジュールに従ってセキュリティイベントに対して実行する Sigma ルールです。ルールが一致すると、アラートやインシデントを作成し、検出結果を記録できます。",
   "Detections": "検出",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "決定論的なルールは、選択したすべての Runbook を提案または開始します。AI ルールは、このリスト（リストが空の場合は有効なすべての Runbook）から最も適したものを選びます。",
   "Device Class": "デバイスクラス",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "例: パートナーの脅威フィード",
   "Confidence {{from}}–{{to}}": "信頼度 {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "{{min}}〜{{max}} 分ごと (既定は {{default}} 分) に、OneUptime はリストをダウンロードするか、TAXII 2.1 コレクションをポーリングするか、Google SecOps が見つけたものを読み込みます。",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "{{min}}〜{{max}} 分ごと (任意に選択) に、ルールの Sigma 検出が前回の実行以降のイベントに対してチェックされます。",
   "Full documentation": "完全なドキュメント",
   "How severity levels are chosen": "重大度レベルの決まり方",
   "How threat levels are chosen": "脅威レベルの決まり方",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "Microsoft Entra ID からユーザーをサインアウト",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "ケースの対象ユーザーを、すべてのブラウザーとデバイスで Google Workspace からサインアウトさせます。アカウントは停止しません。",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "ケースの対象ユーザーをすべての場所で Microsoft Entra ID からサインアウトさせ、更新トークンを取り消します。アカウントは無効にしません。",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "ステップ {{number}} はこのステップの結果を受けてのみ実行されます。先にステップ {{number}} を実行する条件を変更してください。",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "ケースの対象ユーザー (検出がグループ化されているユーザー、または脅威インテリジェンスが把握しているユーザー) を Google Workspace で停止します。停止が解除されるまでサインインをブロックします。",
   "Suspend the user in Google Workspace": "Google Workspace でユーザーを停止",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "操作に使う Google Workspace の接続。ドメイン全体の委任には admin.directory.user と admin.directory.user.security のスコープが必要です。接続の追加とテストは ソース > 接続 で行います。",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "このステップはステップ {{number}} の結果を受けてのみ実行されるため、ステップ {{number}} の下に置かれます。",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "ケースの対象ユーザーの停止を Google Workspace で解除し、再びサインインできるようにします。「Google Workspace でユーザーを停止」を元に戻す操作です。",
   "Unsuspend the user in Google Workspace": "Google Workspace でユーザーの停止を解除",
   "Who does the tasks. Left empty, they are for whoever works the case.": "タスクを行う人。空欄の場合は、ケースを担当する人のタスクになります。",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "イベントとセッションリプレイを保管し、トレースと例外をメモ",
   "Real time": "リアルタイム",
   "Run in Real Time": "リアルタイムで実行",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "操作に使う Microsoft Entra ID の接続。アプリには User.Read.All、User.EnableDisableAccount.All、User.RevokeSessions.All の権限が必要です。接続の追加とテストは ソース > 接続 で行います。"
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "操作に使う Microsoft Entra ID の接続。アプリには User.Read.All、User.EnableDisableAccount.All、User.RevokeSessions.All の権限が必要です。接続の追加とテストは ソース > 接続 で行います。",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "検出ルールは、OneUptime がスケジュールに従って、またはイベントが届くたびに、セキュリティイベントに対して実行する Sigma ルールです。ルールが一致すると、アラートやインシデントを作成し、検出結果を記録できます。",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "{{min}}〜{{max}} 分ごと (任意に選択) に、ルールの Sigma 検出が前回の実行以降のイベントに対してチェックされます。リアルタイムで実行するルールは、イベントが届くたびにチェックします。",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "ステップ {{number}} はこのステップの結果を待ちます。先にステップ {{number}} の「このステップの実行」を変更してください。",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "このステップはステップ {{number}} の結果を待つため、ステップ {{number}} の下に置かれます。"
 }

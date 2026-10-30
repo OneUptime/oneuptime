@@ -467,12 +467,12 @@ function emptyOr(value: string): string {
 }
 
 const overviewMarkdown: string = `
-A detection rule is a [Sigma](https://sigmahq.io/) rule — an open, vendor-neutral YAML format for describing suspicious activity — that OneUptime runs against your security events on a schedule. It is how "tell me when this happens" becomes an alert.
+A detection rule is a [Sigma](https://sigmahq.io/) rule — an open, vendor-neutral YAML format for describing suspicious activity — that OneUptime runs against your security events, on a schedule or as each event arrives. It is how "tell me when this happens" becomes an alert.
 
 #### From event to alert
 
 1. **Events arrive.** Events sent to the ingest API or pulled by a connection are normalized onto the same columns (\`className\`, \`principalUser\`, \`principalIp\`, ...) whatever format they arrived in. The rest of each payload is kept as flattened attributes.
-2. **The rule runs on its schedule.** Every *Evaluation Interval* minutes, the rule's \`detection\` block is turned into a query over the events since its previous run.
+2. **The rule runs on its schedule.** Every *Evaluation Interval* minutes, the rule's \`detection\` block is turned into a query over the events since its previous run. A rule that runs in real time checks each event as it arrives instead (see **Evaluation**).
 3. **Matches are counted.** Matching events are counted — separately for each value of the *Group By Field*, if you set one — and a group fires only when its count reaches the *Match Count Threshold*.
 4. **Actions fire.** Each firing group opens an alert (one per group, deduplicated while it stays open), optionally an incident, and writes a **${DETECTION_FINDING_CLASS_NAME}** event back into the event stream.
 
@@ -489,11 +489,11 @@ This rule matches failed authentication events from any IP outside \`10.x.x.x\`.
 | Column | What it tells you |
 | --- | --- |
 | **Type** | **Single event**, or a correlation's kind: **Event count**, **Distinct values**, **Events together**, **Sequence** or **First seen** (see **Correlation Rules**). |
-| **Status** | Whether the rule works: **Enabled** when its last run came back clean, **Run failed** when it failed, **Needs attention** when a run left a note, **Waiting for first run** while a new rule waits for its first run, and **Disabled**. |
+| **Status** | Whether the rule works: **Enabled** when its last run came back clean, **Real time** for a rule that checks each event as it arrives, **Run failed** when it failed, **Needs attention** when a run left a note, **Waiting for first run** while a new rule waits for its first run, and **Disabled**. |
 | **Last Match** | The last run in which at least one group fired. |
 | **Last Evaluated** | When the rule last ran. *Never* means it has not run yet; an enabled rule runs within a minute. |
 
-When a run fails or leaves a note, **View Error** in the rule's row shows its **Last Error** in full, e.g. a query that timed out. It clears on the next successful run. **Interval (Minutes)** and **Last Error** start hidden: turn them on under the table's **Columns**.
+When a run fails or leaves a note, **View Error** in the rule's row shows its **Last Error** in full, e.g. a query that timed out. It clears on the next successful run. **Interval (Minutes)** and **Last Error** start hidden: turn them on under the table's **Columns**. A real-time rule's interval reads **Real time**.
 
 Disabled rules are not evaluated. Use the **Create Monitor** row action to watch a rule's findings over time — see **Alerts & Findings**.
 `;
@@ -812,7 +812,7 @@ const detectionRuleLevels: Array<SecurityEventsGuideLevel> =
 // The second step's sentence, as the card looks it up in the reader's language.
 const RULE_RUNS: SecurityEventsGuideTemplate = {
   sentence:
-    "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.",
+    "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.",
   values: {
     min: DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
     max: DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
@@ -823,7 +823,7 @@ const DetectionRulesGuide: SecurityEventsGuide = {
   id: "detection-rules",
   title: "How detection rules work",
   summary:
-    "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.",
+    "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.",
   steps: [
     {
       title: "Events arrive",

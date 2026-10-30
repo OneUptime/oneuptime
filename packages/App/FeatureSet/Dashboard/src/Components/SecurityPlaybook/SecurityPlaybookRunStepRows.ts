@@ -12,6 +12,10 @@ import {
   parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
+  SecurityPlaybookStepCondition,
+  evaluateSecurityPlaybookStepCondition,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
   SecurityPlaybookStepResult,
   SecurityPlaybookTarget,
   SecurityPlaybookTargetState,
@@ -19,7 +23,8 @@ import {
   readStepTargets,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import ObjectID from "Common/Types/ObjectID";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { NumberedStep, describeRunIf } from "./SecurityPlaybookStepForm";
 
 // The one-click undo's button on a contained target, by the action it runs.
 export const UNDO_BUTTON_TITLES: Partial<
@@ -43,6 +48,8 @@ export interface RunStepRow {
   icon: IconProp;
   result: SecurityPlaybookStepResult | undefined;
   requiresApproval: boolean;
+  // The earlier step's result it ran only after (Run This Step), if any.
+  runIf?: SecurityPlaybookStepCondition | undefined;
 }
 
 const STEP_STATUSES: Array<string> = Object.values(SecurityPlaybookStepStatus);
@@ -125,10 +132,77 @@ export function getRunStepRows(data: {
       icon: definition?.icon || IconProp.Circle,
       result,
       requiresApproval: step ? doesStepNeedApproval(step) : false,
+      ...(step?.runIf ? { runIf: step.runIf } : {}),
     });
   }
 
   return rows;
+}
+
+/*
+ * Why a run skipped a step that waits on an earlier step's result (Run
+ * This Step), in the words of the step's card in the editor: "Only if step
+ * 1 found a known-bad entity", in the reader's language - where the run's
+ * own message is the server's English, and opens with the Skipped its pill
+ * already says. Worked out the way the engine decided it, from the results
+ * before the step. Undefined for a step that ran, and for one skipped for a
+ * reason of its own (nothing to act on), whose message says why.
+ */
+export function getSkippedRunIf(data: {
+  rows: ReadonlyArray<RunStepRow>;
+  row: RunStepRow;
+  translator: Translator;
+}): string | undefined {
+  const { row } = data;
+
+  if (row.result?.status !== SecurityPlaybookStepStatus.Skipped || !row.runIf) {
+    return undefined;
+  }
+
+  const steps: Array<NumberedStep> = data.rows.map(
+    (candidate: RunStepRow): NumberedStep => {
+      return { id: candidate.stepId, action: candidate.action };
+    },
+  );
+  const condition: { holds: boolean } = evaluateSecurityPlaybookStepCondition({
+    condition: row.runIf,
+    index: row.index,
+    steps: data.rows.map(
+      (
+        candidate: RunStepRow,
+      ): { id: string; action: SecurityPlaybookActionType } => {
+        return {
+          id: candidate.stepId,
+          action: candidate.action as SecurityPlaybookActionType,
+        };
+      },
+    ),
+    results: data.rows.map(
+      (
+        candidate: RunStepRow,
+      ): {
+        status: SecurityPlaybookStepStatus | undefined;
+        found?: boolean | undefined;
+      } => {
+        return {
+          status: candidate.result?.status,
+          found: candidate.result?.found,
+        };
+      },
+    ),
+  });
+
+  if (condition.holds) {
+    return undefined;
+  }
+
+  return (
+    describeRunIf({
+      step: { runIf: row.runIf, onlyIfThreatIntelMatched: false },
+      steps,
+      translator: data.translator,
+    }) || undefined
+  );
 }
 
 /*

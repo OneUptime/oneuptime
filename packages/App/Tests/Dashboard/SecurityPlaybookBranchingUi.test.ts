@@ -10,6 +10,7 @@ import {
   SecurityPlaybookStep,
   assertSecurityPlaybookStepConditions,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import { SecurityPlaybookStepStatus } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SecurityPlaybookStepOutcome,
   describeSecurityPlaybookStepOutcome,
@@ -29,6 +30,7 @@ import {
   STEP_ACTION_KEY,
   decodeRunIf,
   describeRunIf,
+  describeRunIfFormValue,
   encodeRunIf,
   formValuesToStep,
   getNewStepFormValues,
@@ -38,6 +40,11 @@ import {
   getStepMoveBlock,
   stepToFormValues,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookStepForm";
+import {
+  RunStepRow,
+  getRunStepRows,
+  getSkippedRunIf,
+} from "../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
 
 /*
  * RUN THIS STEP in the playbook editor: the one picker a step's branch is
@@ -47,6 +54,31 @@ import {
  */
 
 const ENGLISH: Translator = createTranslator(undefined, "en");
+
+// The words a Dashboard in this language ships, read from its locale file.
+function shippedTranslator(language: string): Translator {
+  const words: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+
+  return createTranslator((text: string): string | undefined => {
+    const translated: unknown = words[text];
+
+    return typeof translated === "string" ? translated : undefined;
+  }, language);
+}
 
 function step(
   id: string,
@@ -353,9 +385,7 @@ describe("moving or deleting a step a branch reads", () => {
         direction: -1,
         translator: ENGLISH,
       }),
-    ).toBe(
-      "This step runs only after step 1's result, so it stays below step 1.",
-    );
+    ).toBe("This step waits on step 1's result, so it stays below step 1.");
     // Moving it down is fine.
     expect(
       getStepMoveBlock({
@@ -376,7 +406,7 @@ describe("moving or deleting a step a branch reads", () => {
         translator: ENGLISH,
       }),
     ).toBe(
-      "Step 2 runs only after this step's result. Change when step 2 runs first.",
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.",
     );
     // The last step, and a step nothing waits on, move freely.
     expect(
@@ -401,7 +431,7 @@ describe("moving or deleting a step a branch reads", () => {
     expect(
       getStepDeleteBlock({ steps: STEPS, index: 0, translator: ENGLISH }),
     ).toBe(
-      "Step 2 runs only after this step's result. Change when step 2 runs first.",
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.",
     );
     expect(
       getStepDeleteBlock({ steps: STEPS, index: 1, translator: ENGLISH }),
@@ -409,6 +439,28 @@ describe("moving or deleting a step a branch reads", () => {
     expect(
       getStepDeleteBlock({ steps: STEPS, index: 9, translator: ENGLISH }),
     ).toBeUndefined();
+  });
+
+  test("a locked item names the step in the way, in the reader's words and digits", () => {
+    // German words it as the German Run This Step reads.
+    expect(
+      getStepDeleteBlock({
+        steps: STEPS,
+        index: 0,
+        translator: shippedTranslator("de"),
+      }),
+    ).toBe(
+      "Schritt 2 wartet auf das Ergebnis dieses Schritts. Ändern Sie zuerst „Diesen Schritt ausführen“ bei Schritt 2.",
+    );
+    // Persian writes the step's number in its own digits.
+    expect(
+      getStepMoveBlock({
+        steps: STEPS,
+        index: 1,
+        direction: -1,
+        translator: shippedTranslator("fa"),
+      }),
+    ).toContain("\u06f1");
   });
 
   test("every move the editor allows keeps the playbook saveable", () => {
@@ -445,6 +497,219 @@ describe("moving or deleting a step a branch reads", () => {
         }).not.toThrow();
       }
     }
+  });
+});
+
+describe("Run This Step on the folded More fields line", () => {
+  test("Always is no choice of the reader's: the line names the field alone", () => {
+    for (const value of [RUN_ALWAYS, "", undefined, null]) {
+      expect(
+        describeRunIfFormValue({
+          value,
+          earlierSteps: [CHECK],
+          translator: ENGLISH,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("a branch reads in the step card's words, never the picker's longer choice", () => {
+    expect(
+      describeRunIfFormValue({
+        value: "after:Found Nothing:check",
+        earlierSteps: [CHECK, NOTE],
+        translator: ENGLISH,
+      }),
+    ).toBe("Only if step 1 found nothing known-bad");
+    // As the dropdown hands its option back.
+    expect(
+      describeRunIfFormValue({
+        value: { value: "after:Failed:note", label: "x" },
+        earlierSteps: [CHECK, NOTE],
+        translator: ENGLISH,
+      }),
+    ).toBe("Only if step 2 failed");
+  });
+
+  test("the legacy switch, and a step no longer before it, say so", () => {
+    expect(
+      describeRunIfFormValue({
+        value: RUN_IF_THREAT_INTEL_MATCHED,
+        earlierSteps: [CHECK],
+        translator: ENGLISH,
+      }),
+    ).toBe("Only if threat intel matched");
+    expect(
+      describeRunIfFormValue({
+        value: "after:Succeeded:gone",
+        earlierSteps: [CHECK],
+        translator: ENGLISH,
+      }),
+    ).toBe("Only after a step that is no longer before it");
+  });
+
+  test("German reads the card's own German", () => {
+    expect(
+      describeRunIfFormValue({
+        value: "after:Found:check",
+        earlierSteps: [CHECK],
+        translator: shippedTranslator("de"),
+      }),
+    ).toBe("Nur wenn Schritt 1 eine bekannt bösartige Entität gefunden hat");
+  });
+});
+
+/*
+ * A run's card, under a step it skipped because of what an earlier step
+ * found: the step card's words in the reader's language, where the run's
+ * message is the server's English.
+ */
+describe("why a run skipped a step", () => {
+  const BRANCH: Array<SecurityPlaybookStep> = [
+    CHECK,
+    SUSPEND,
+    step("tasks", SecurityPlaybookActionType.AddCaseNote, {
+      runIf: {
+        stepId: "check",
+        outcome: SecurityPlaybookStepOutcome.FoundNothing,
+      },
+    }),
+    // Waits on the suspension, which never ran when nothing was found.
+    step("after-suspend", SecurityPlaybookActionType.AddCaseNote, {
+      runIf: {
+        stepId: "suspend",
+        outcome: SecurityPlaybookStepOutcome.Succeeded,
+      },
+    }),
+  ];
+
+  function rowsOf(
+    results: Array<{
+      status: SecurityPlaybookStepStatus;
+      found?: boolean;
+      message?: string;
+    }>,
+  ): Array<RunStepRow> {
+    return getRunStepRows({
+      steps: BRANCH as unknown as Array<JSONObject>,
+      stepResults: results.map(
+        (
+          result: {
+            status: SecurityPlaybookStepStatus;
+            found?: boolean;
+            message?: string;
+          },
+          index: number,
+        ): JSONObject => {
+          return {
+            stepId: BRANCH[index]!.id,
+            action: BRANCH[index]!.action,
+            ...result,
+          } as JSONObject;
+        },
+      ),
+    });
+  }
+
+  function reasons(
+    rows: Array<RunStepRow>,
+    translator: Translator = ENGLISH,
+  ): Array<string | undefined> {
+    return rows.map((row: RunStepRow): string | undefined => {
+      return getSkippedRunIf({ rows, row, translator });
+    });
+  }
+
+  test("threat intel found nothing: the containment says it runs only on a find, the else ran", () => {
+    expect(
+      reasons(
+        rowsOf([
+          { status: SecurityPlaybookStepStatus.Succeeded, found: false },
+          {
+            status: SecurityPlaybookStepStatus.Skipped,
+            message:
+              "Skipped: it runs only if step 1 (Check entities against threat intel) found a known-bad entity.",
+          },
+          { status: SecurityPlaybookStepStatus.Succeeded },
+          { status: SecurityPlaybookStepStatus.Skipped },
+        ]),
+      ),
+    ).toEqual([
+      undefined,
+      "Only if step 1 found a known-bad entity",
+      undefined,
+      // A step waiting on a step that was skipped is skipped too.
+      "Only if step 2 succeeded",
+    ]);
+  });
+
+  test("threat intel found something: the else says why it did not run", () => {
+    expect(
+      reasons(
+        rowsOf([
+          { status: SecurityPlaybookStepStatus.Succeeded, found: true },
+          { status: SecurityPlaybookStepStatus.Succeeded },
+          { status: SecurityPlaybookStepStatus.Skipped },
+          { status: SecurityPlaybookStepStatus.Succeeded },
+        ]),
+      ),
+    ).toEqual([
+      undefined,
+      undefined,
+      "Only if step 1 found nothing known-bad",
+      undefined,
+    ]);
+  });
+
+  test("a step skipped for a reason of its own keeps the run's message", () => {
+    /*
+     * Threat intel matched, so the suspension's condition held: it was
+     * skipped because it had nobody to act on, which its message says.
+     */
+    expect(
+      reasons(
+        rowsOf([
+          { status: SecurityPlaybookStepStatus.Succeeded, found: true },
+          {
+            status: SecurityPlaybookStepStatus.Skipped,
+            message: "No user to act on.",
+          },
+          { status: SecurityPlaybookStepStatus.Skipped },
+          { status: SecurityPlaybookStepStatus.Skipped },
+        ]),
+      )[1],
+    ).toBeUndefined();
+
+    // A step that waits on nothing has no condition to tell of.
+    const plain: Array<RunStepRow> = getRunStepRows({
+      steps: [CHECK] as unknown as Array<JSONObject>,
+      stepResults: [
+        {
+          stepId: "check",
+          action: SecurityPlaybookActionType.CheckThreatIntel,
+          status: SecurityPlaybookStepStatus.Skipped,
+        },
+      ],
+    });
+
+    expect(
+      getSkippedRunIf({ rows: plain, row: plain[0]!, translator: ENGLISH }),
+    ).toBeUndefined();
+  });
+
+  test("reads in the reader's language", () => {
+    const rows: Array<RunStepRow> = rowsOf([
+      { status: SecurityPlaybookStepStatus.Succeeded, found: false },
+      { status: SecurityPlaybookStepStatus.Skipped },
+      { status: SecurityPlaybookStepStatus.Succeeded },
+      { status: SecurityPlaybookStepStatus.Skipped },
+    ]);
+
+    expect(reasons(rows, shippedTranslator("de"))[1]).toBe(
+      "Nur wenn Schritt 1 eine bekannt bösartige Entität gefunden hat",
+    );
+    // Persian writes the step's number in its own digits.
+    expect(reasons(rows, shippedTranslator("fa"))[1]).toContain("\u06f1");
   });
 });
 

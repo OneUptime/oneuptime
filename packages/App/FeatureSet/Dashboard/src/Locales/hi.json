@@ -9816,7 +9816,6 @@
   "Detection Rules": "डिटेक्शन नियम",
   "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.": "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.",
   "Detection payloads with matched events.": "Detection payloads with matched events.",
-  "Detection rules are Sigma rules that OneUptime runs on a schedule against your security events. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "डिटेक्शन नियम Sigma नियम हैं जिन्हें OneUptime शेड्यूल पर आपके सुरक्षा इवेंट पर चलाता है। जब कोई नियम मेल खाता है, तो वह अलर्ट खोल सकता है, घटना खोल सकता है और Detection Finding दर्ज कर सकता है।",
   "Detections": "डिटेक्शन",
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
   "Device Class": "Device Class",
@@ -32720,7 +32719,6 @@
   "e.g. Partner threat feed": "जैसे, पार्टनर का थ्रेट फ़ीड",
   "Confidence {{from}}–{{to}}": "कॉन्फ़िडेंस {{from}}–{{to}}",
   "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.": "हर {{min}}–{{max}} मिनट (डिफ़ॉल्ट {{default}}) में OneUptime सूची डाउनलोड करता है, TAXII 2.1 संग्रह को पोल करता है या Google SecOps को जो मिला उसे पढ़ता है।",
-  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.": "हर {{min}}–{{max}} मिनट (आप चुनें) में नियम का Sigma डिटेक्शन उसके पिछले रन के बाद के इवेंट पर जाँचा जाता है।",
   "Full documentation": "पूरा दस्तावेज़ीकरण",
   "How severity levels are chosen": "गंभीरता स्तर कैसे चुने जाते हैं",
   "How threat levels are chosen": "खतरे के स्तर कैसे चुने जाते हैं",
@@ -38866,11 +38864,9 @@
   "Sign the user out of Microsoft Entra ID": "उपयोगकर्ता को Microsoft Entra ID से साइन आउट करें",
   "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.": "केस वाले उपयोगकर्ता को हर ब्राउज़र और डिवाइस पर Google Workspace से साइन आउट करें, खाता निलंबित किए बिना।",
   "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.": "केस वाले उपयोगकर्ता को हर जगह Microsoft Entra ID से साइन आउट करें और उसके रीफ़्रेश टोकन रद्द करें, खाता अक्षम किए बिना।",
-  "Step {{number}} runs only after this step's result. Change when step {{number}} runs first.": "चरण {{number}} सिर्फ़ इस चरण के नतीजे के बाद चलता है। पहले बदलें कि चरण {{number}} कब चलता है।",
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Google Workspace में उस उपयोगकर्ता को निलंबित करें जिसके बारे में केस है: जिस पर डिटेक्शन समूहित हैं, या जिसे थ्रेट इंटेल जानता है। निलंबन हटने तक साइन-इन रोकता है।",
   "Suspend the user in Google Workspace": "Google Workspace में उपयोगकर्ता निलंबित करें",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "वह Google Workspace कनेक्शन जिसके ज़रिए कार्रवाई होगी। उसके डोमेन-व्यापी डेलिगेशन को admin.directory.user और admin.directory.user.security स्कोप चाहिए। स्रोत > कनेक्शन में कनेक्शन जोड़ें या जाँचें।",
-  "This step runs only after step {{number}}'s result, so it stays below step {{number}}.": "यह चरण सिर्फ़ चरण {{number}} के नतीजे के बाद चलता है, इसलिए यह चरण {{number}} के नीचे रहता है।",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Google Workspace में केस वाले उपयोगकर्ता का निलंबन हटाएँ, ताकि वह फिर से साइन इन कर सके: Google Workspace में उपयोगकर्ता निलंबित करें का उलटा।",
   "Unsuspend the user in Google Workspace": "Google Workspace में उपयोगकर्ता का निलंबन हटाएँ",
   "Who does the tasks. Left empty, they are for whoever works the case.": "कार्य कौन करेगा। खाली छोड़ने पर, वे केस पर काम करने वाले के लिए होते हैं।",
@@ -38880,5 +38876,9 @@
   "Keeps events and session replays, notes traces and exceptions": "इवेंट और Session Replays रखता है, ट्रेस और अपवाद नोट करता है",
   "Real time": "रीयल-टाइम",
   "Run in Real Time": "रीयल-टाइम में चलाएँ",
-  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "वह Microsoft Entra ID कनेक्शन जिसके ज़रिए कार्रवाई होगी। उसके ऐप को User.Read.All, User.EnableDisableAccount.All और User.RevokeSessions.All अनुमतियाँ चाहिए। स्रोत > कनेक्शन में कनेक्शन जोड़ें या जाँचें।"
+  "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.": "वह Microsoft Entra ID कनेक्शन जिसके ज़रिए कार्रवाई होगी। उसके ऐप को User.Read.All, User.EnableDisableAccount.All और User.RevokeSessions.All अनुमतियाँ चाहिए। स्रोत > कनेक्शन में कनेक्शन जोड़ें या जाँचें।",
+  "Detection rules are Sigma rules that OneUptime runs against your security events, on a schedule or as each event arrives. When a rule matches, it can open an alert, open an incident, and record a Detection Finding.": "डिटेक्शन नियम Sigma नियम हैं जिन्हें OneUptime तय समय पर, या हर इवेंट के आते ही, आपके सुरक्षा इवेंट पर चलाता है। जब कोई नियम मेल खाता है, तो वह अलर्ट खोल सकता है, घटना खोल सकता है और Detection Finding दर्ज कर सकता है।",
+  "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "हर {{min}}–{{max}} मिनट (आप चुनें) में नियम का Sigma डिटेक्शन उसके पिछले रन के बाद के इवेंट पर जाँचा जाता है। रीयल-टाइम में चलने वाला नियम हर इवेंट को उसके आते ही जाँचता है।",
+  "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "चरण {{number}} इस चरण के नतीजे का इंतज़ार करता है। पहले चरण {{number}} में \"यह चरण चलाएँ\" बदलें।",
+  "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "यह चरण चरण {{number}} के नतीजे का इंतज़ार करता है, इसलिए यह चरण {{number}} के नीचे रहता है।"
 }

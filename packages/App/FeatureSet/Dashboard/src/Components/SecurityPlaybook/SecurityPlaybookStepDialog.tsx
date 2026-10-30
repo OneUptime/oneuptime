@@ -1,8 +1,10 @@
 import {
   CONNECTION_FIELD_BY_PROVIDER,
   RUN_ALWAYS,
+  RUN_ALWAYS_LABEL,
   RUN_IF_KEY,
   STEP_ACTION_KEY,
+  describeRunIfFormValue,
   formValuesToStep,
   getNewStepFormValues,
   getRunIfOptions,
@@ -277,6 +279,7 @@ export function getStepSettingsFields(
   };
 
   const earlierSteps: Array<SecurityPlaybookStep> = options.earlierSteps || [];
+  const translator: Translator | undefined = options.translator;
   /*
    * Run This Step and Carry On If It Fails: how a step runs, which most
    * steps leave as it is - folded under More fields, whose line says what
@@ -878,16 +881,35 @@ export function getStepSettingsFields(
         "Always, or only after an earlier step's result: contain only what threat intel knows is bad, and do something else when it finds nothing.",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
-      dropdownOptions: options.translator
+      dropdownOptions: translator
         ? getRunIfOptions({
             earlierSteps,
             step: options.step,
-            translator: options.translator,
+            translator,
           })
         : [],
       defaultValue: RUN_ALWAYS,
+      /*
+       * It always says when the step runs: Always, unless a branch is
+       * picked. So it carries no "(Optional)", and cleared with its × it
+       * reads Always - which is what a step with nothing picked does.
+       */
       required: false,
+      hideOptionalLabel: true,
+      placeholder: RUN_ALWAYS_LABEL,
       collapsibleSection: howItRuns,
+      // Folded, the line says what it waits on in the step card's words.
+      ...(translator
+        ? {
+            getFoldedValue: (values: FormValues<JSONObject>): string | null => {
+              return describeRunIfFormValue({
+                value: values[RUN_IF_KEY],
+                earlierSteps,
+                translator,
+              });
+            },
+          }
+        : {}),
       // The first step has nothing before it to wait on.
       showIf: (values: FormValues<JSONObject>): boolean => {
         return (
