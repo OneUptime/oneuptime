@@ -53,7 +53,7 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 | **Statussider** | Ingen | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |
 | **Planlagt vedlikehold** | **Maintenance reminder** | **Vedlikeholdshendelse opprettet**, **Vedlikeholdstilstand endret**, **Vedlikeholdsnotat publisert**, **Lagt til som vedlikeholdseier** |
 | **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vakttjeneste-retningslinje**, **Fjernet fra vaktordning-retningslinje**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
-| **Sikkerhet** | Også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg** | Ingen |
+| **Sikkerhet** | Også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg**, **En hunt fant sikkerhetshendelser** | Ingen |
 
 > [!IMPORTANT]
 > **Overvåkingsstatus endret** starter slått av. Vil du vite når en overvåking du eier går ned eller kommer opp igjen, slår du den på på fanen **Overvåking**.
