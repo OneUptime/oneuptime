@@ -11,8 +11,10 @@ import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import SecurityAdvisoryEmail, {
   SecurityAdvisoryEmailContent,
 } from "Common/Server/Utils/UpdateCheck/SecurityAdvisoryEmail";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import User from "Common/Models/DatabaseModels/User";
 import Route from "Common/Types/API/Route";
+import PartialEntity from "Common/Types/Database/PartialEntity";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -276,17 +278,22 @@ export async function notifyOwnersOfSecurityAdvisories(data: {
   }
 
   const emailedAt: string = OneUptimeDate.getCurrentDate().toISOString();
-  const record: Record<string, string> = { ...emailed };
+  const record: JSONObject = { ...emailed };
 
   for (const ghsaId of outcome.advisoryIds) {
     record[ghsaId] = emailedAt;
   }
 
+  /*
+   * Built as a plain record: checking a JSON value against the entity's
+   * deep-partial type makes TypeScript recurse without end.
+   */
+  const update: PartialEntity<GlobalConfig> = {};
+  (update as Record<string, unknown>)["securityAdvisoriesEmailed"] = record;
+
   await GlobalConfigService.updateOneById({
     id: ObjectID.getZeroObjectID(),
-    data: {
-      securityAdvisoriesEmailed: record,
-    },
+    data: update,
     props: {
       isRoot: true,
       ignoreHooks: true,

@@ -192,9 +192,12 @@ export async function runUpdateCheck(): Promise<void> {
 
       if (published.ok) {
         advisories = published.value;
-        update.securityAdvisories = published.value.map(
-          SecurityAdvisoryUtil.toJSON,
-        );
+        /*
+         * Set as a plain record: checking a JSON value against the entity's
+         * deep-partial type makes TypeScript recurse without end.
+         */
+        (update as Record<string, unknown>)["securityAdvisories"] =
+          published.value.map(SecurityAdvisoryUtil.toJSON);
         update.securityAdvisoriesCheckedAt = now;
       } else {
         failure = failure || published.failure;
