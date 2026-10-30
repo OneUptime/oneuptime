@@ -1231,6 +1231,7 @@ describe(`${KUBERNETES}: the form`, () => {
 
     for (const filter of [
       "Namespace",
+      "Workload Kind",
       "Workload Name",
       "Node Name",
       "Pod Name",
@@ -1246,7 +1247,7 @@ describe(`${KUBERNETES}: the form`, () => {
     ).toEqual([
       "—",
       "**Namespace**",
-      "**Namespace**, **Workload Name**",
+      "**Namespace**, **Workload Kind**, **Workload Name**",
       "**Node Name**",
       "**Namespace**, **Pod Name**",
     ]);
@@ -1650,19 +1651,31 @@ describe("the criteria of the telemetry-backed monitors", () => {
         FilterType.AnomalouslyHigh,
         FilterType.AnomalouslyLow,
         FilterType.Anomalous,
+        FilterType.IsEmpty,
+        FilterType.IsNotEmpty,
       ].sort(),
     );
 
     const written: string =
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**.";
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
 
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
       expect(englishPage(page)).toContain(written);
     }
 
     expect(englishPage(KUBERNETES)).toContain(
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**.",
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
     );
+
+    // The words the Condition dropdown draws for the two data conditions.
+    const labels: Array<string> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(CheckOn.MetricValue).map(
+        (option: DropdownOption): string => {
+          return option.label;
+        },
+      );
+    expect(labels).toContain("Has No Data");
+    expect(labels).toContain("Has Data");
   });
 
   it("aggregate the window as the pages list", () => {
@@ -1792,11 +1805,14 @@ describe("the criteria of the telemetry-backed monitors", () => {
 
       expect(criteria.data!.monitorCriteriaInstanceArray).toHaveLength(2);
 
+      /*
+       * Has No Data / Has Data: whether the agent sends anything, never
+       * "0 is offline" - a metric that is healthy at zero used to open
+       * "is offline" on a healthy resource.
+       */
       expect(offline.data!.name).toBe("Check if Acme is offline");
-      expect(comparisonOf(primary(offline))).toEqual({
-        filterType: FilterType.EqualTo,
-        value: 0,
-      });
+      expect(primary(offline).filterType).toBe(FilterType.IsEmpty);
+      expect(primary(offline).value).toBeUndefined();
       expect(windowAggregationOf(primary(offline))).toBe(
         EvaluateOverTimeType.AnyValue,
       );
@@ -1806,10 +1822,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
       expect(offline.data!.incidents[0]!.autoResolveIncident).toBe(true);
 
       expect(online.data!.name).toBe("Check if Acme is online");
-      expect(comparisonOf(primary(online))).toEqual({
-        filterType: FilterType.GreaterThan,
-        value: 0,
-      });
+      expect(primary(online).filterType).toBe(FilterType.IsNotEmpty);
+      expect(primary(online).value).toBeUndefined();
       expect(online.data!.monitorStatusId).toEqual(IDS.onlineMonitorStatusId);
       expect(online.data!.createIncidents).toBe(false);
 
@@ -1817,13 +1831,13 @@ describe("the criteria of the telemetry-backed monitors", () => {
         [
           "1",
           "Check if _monitor name_ is offline",
-          "Any value of the first query is `0`",
+          "The first query has no data for the whole window",
           'Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers.',
         ],
         [
           "2",
           "Check if _monitor name_ is online",
-          "Any value is above `0`",
+          "The first query has data",
           "Marks the monitor **Operational**.",
         ],
       ]);

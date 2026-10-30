@@ -65,7 +65,7 @@ Maak het formulier af en sla op. De monitor verschijnt onder **Monitoren**, en z
 | --- | --- | --- |
 | Cluster | Het hele cluster | — |
 | Naamruimte | Resources in een naamruimte | **Naamruimte** |
-| Werklast | Een deployment, statefulset, daemonset, job of cronjob | **Naamruimte**, **Workloadnaam** |
+| Werklast | Een deployment, statefulset, daemonset, job of cronjob | **Naamruimte**, **Workloadtype**, **Workloadnaam** |
 | Node | Een node van het cluster | **Nodenaam** |
 | Pod | Een pod | **Naamruimte**, **Pod-naam** |
 
@@ -112,7 +112,7 @@ Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfig
 
 ### Voorwaarden
 
-Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**.
+Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde.
 
 Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies een van deze voorwaarden, en het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster**:
 

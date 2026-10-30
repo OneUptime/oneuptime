@@ -219,7 +219,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må stemme, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. |
 | **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare for anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |
@@ -235,13 +235,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Treffer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornavn_ is offline | En verdi i den første spørringen er `0` | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ is offline", som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitornavn_ is online | En verdi er over `0` | Setter monitoren til **I drift**. |
-
-Disse standardene passer for få Ceph-metrikker: `ceph_health_status` er 0 når klyngen er frisk. Velg en mal, eller sett dine egne kriterier.
+| 1 | Check if _monitornavn_ is offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ is offline", som løser seg selv når monitoren kommer seg. |
+| 2 | Check if _monitornavn_ is online | Den første spørringen har data | Setter monitoren til **I drift**. |
 
 > [!IMPORTANT]
-> Stillhet treffer ingen av kriteriene: En klynge som slutter å sende data, lar monitoren stå som den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 

@@ -65,7 +65,7 @@ Finish the form and save. The monitor appears under **Monitors**, and its status
 | --- | --- | --- |
 | Cluster | The whole cluster | — |
 | Namespace | Resources in a namespace | **Namespace** |
-| Workload | A deployment, statefulset, daemonset, job or cronjob | **Namespace**, **Workload Name** |
+| Workload | A deployment, statefulset, daemonset, job or cronjob | **Namespace**, **Workload Kind**, **Workload Name** |
 | Node | A cluster node | **Node Name** |
 | Pod | A pod | **Namespace**, **Pod Name** |
 
@@ -112,7 +112,7 @@ These monitors always evaluate the **Metric Value** — the value of the configu
 
 ### Conditions
 
-Static thresholds are compared against the **Threshold** you enter: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**.
+Static thresholds are compared against the **Threshold** you enter: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.
 
 Baseline anomaly detection needs no threshold. Pick one of these conditions, and the form shows **Sensitivity** and **Baseline Window** instead:
 
