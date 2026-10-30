@@ -136,13 +136,13 @@ stateDiagram-v2
     state "स्वीकृत" as Accepted
     state "सुलझाया गया" as Resolved
     state "समस्या नहीं" as NotAnIssue
-    [*] --> Open: कोई जांच विफल होती है
+    [*] --> Open: कोई जांच<br/>विफल होती है
     Open --> Resolved: जांच पास होती है
-    Open --> Accepted: कोई जोखिम स्वीकार करता है
-    Open --> NotAnIssue: कोई कहता है कि यह समस्या नहीं है
-    Accepted --> Open: स्वीकृति की अवधि खत्म होती है
+    Open --> Accepted: कोई जोखिम<br/>स्वीकार करता है
+    Open --> NotAnIssue: कोई कहता है कि यह<br/>समस्या नहीं है
+    Accepted --> Open: स्वीकृति की अवधि<br/>खत्म होती है
     Accepted --> Resolved: जांच पास होती है
-    Resolved --> Open: जांच फिर से विफल होती है
+    Resolved --> Open: जांच फिर से<br/>विफल होती है
 ```
 
 OneUptime जांचें चलने के साथ समस्याएं खोलता, अपडेट करता और सुलझाता है। किसी समस्या पर व्यक्ति जो करता है, वह यह तय करना है कि आगे क्या होगा:

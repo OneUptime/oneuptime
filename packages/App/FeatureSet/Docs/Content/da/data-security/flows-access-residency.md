@@ -11,7 +11,7 @@ At vide, hvad et datalager indeholder, er kun halvdelen. Datasikkerhed finder og
 ## Datastrømme
 
 ```mermaid title="De fire slags datastrømme"
-flowchart TB
+flowchart LR
     service["En tjeneste"] -->|"Bruger"| db["En database"]
     service -->|"AI-udbyder"| ai["En AI-udbyder"]
     service -->|"Ekstern vært"| host["En ekstern vært"]

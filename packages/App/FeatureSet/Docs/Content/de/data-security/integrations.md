@@ -15,12 +15,12 @@ Datensicherheit betreibt keinen eigenen Pager und keine eigene Sicherheitswartes
 
 ```mermaid title="Was auf ein neues Problem folgt"
 flowchart TB
-    issue["Ein Problem öffnet sich<br/>oder öffnet sich erneut"] --> critical{"Ist es Kritisch?"}
-    critical -->|"Ja"| soc["Ein Sicherheitsfall<br/>zum Datenspeicher"]
-    critical -->|"Ja, wenn Warnungen an sind"| alert["Eine Warnung, die alarmiert,<br/>wer Bereitschaft hat"]
-    critical -->|"Ja, wenn Vorfälle an sind"| incident["Ein Vorfall, der Ihren<br/>Prozess durchläuft"]
-    issue --> owners["Eine E-Mail an die Eigentümer<br/>des Datenspeichers"]
-    issue --> flows["Workflows, die<br/>Probleme beobachten"]
+    issue["Ein Problem<br/>öffnet sich<br/>oder öffnet<br/>sich erneut"] --> critical{"Ist es Kritisch?"}
+    critical -->|"Ja"| soc["Ein<br/>Sicherheitsfall<br/>zum<br/>Datenspeicher"]
+    critical -->|"Ja, wenn<br/>Warnungen an sind"| alert["Eine Warnung,<br/>die alarmiert,<br/>wer Bereitschaft<br/>hat"]
+    critical -->|"Ja, wenn<br/>Vorfälle an sind"| incident["Ein Vorfall,<br/>der Ihren<br/>Prozess<br/>durchläuft"]
+    issue --> owners["Eine E-Mail an<br/>die Eigentümer<br/>des<br/>Datenspeichers"]
+    issue --> flows["Workflows, die<br/>Probleme<br/>beobachten"]
 ```
 
 Jede davon läuft, wenn eine Auswertung ein Problem eröffnet oder erneut öffnet. Jede arbeitet nach bestem Bemühen: Das Problem ist bereits offen und steht auf seiner Zeitachse, also wird eine fehlgeschlagene Integration protokolliert und übersprungen, nie erneut versucht, sodass kein zweiter Fall und keine zweite Alarmierung entsteht. Was jede getan hat, wird in die **Zeitachse** des Problems geschrieben, und die Seite des Problems verlinkt den Fall, die Warnung und den Vorfall, die es ausgelöst hat.

@@ -136,13 +136,13 @@ stateDiagram-v2
     state "Принят" as Accepted
     state "Устранён" as Resolved
     state "Не проблема" as NotAnIssue
-    [*] --> Open: Проверка не пройдена
+    [*] --> Open: Проверка не<br/>пройдена
     Open --> Resolved: Проверка пройдена
-    Open --> Accepted: Кто-то принимает риск
-    Open --> NotAnIssue: Кто-то говорит, что это не проблема
-    Accepted --> Open: Срок принятия истекает
+    Open --> Accepted: Кто-то<br/>принимает риск
+    Open --> NotAnIssue: Кто-то говорит,<br/>что это не проблема
+    Accepted --> Open: Срок принятия<br/>истекает
     Accepted --> Resolved: Проверка пройдена
-    Resolved --> Open: Проверка снова не пройдена
+    Resolved --> Open: Проверка снова<br/>не пройдена
 ```
 
 OneUptime открывает, обновляет и устраняет проблемы по мере выполнения проверок. От человека требуется решить, что будет с проблемой дальше:

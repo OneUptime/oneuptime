@@ -11,7 +11,7 @@
 ## Dataflyter
 
 ```mermaid title="De fire typene dataflyt"
-flowchart TB
+flowchart LR
     service["En tjeneste"] -->|"Bruker"| db["En database"]
     service -->|"AI-leverandør"| ai["En AI-leverandør"]
     service -->|"Ekstern vert"| host["En ekstern vert"]

@@ -11,7 +11,7 @@
 ## डेटा प्रवाह
 
 ```mermaid title="चार तरह के प्रवाह"
-flowchart TB
+flowchart LR
     service["एक सेवा"] -->|"उपयोग करता है"| db["एक डेटाबेस"]
     service -->|"AI प्रदाता"| ai["एक AI प्रदाता"]
     service -->|"बाहरी होस्ट"| host["एक बाहरी होस्ट"]

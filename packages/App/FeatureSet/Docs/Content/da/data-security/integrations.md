@@ -17,10 +17,10 @@ Datasikkerhed har ingen personsøger eller sikkerhedskø af sin egen. Den giver 
 flowchart TB
     issue["Et problem åbnes<br/>eller genåbnes"] --> critical{"Er det kritisk?"}
     critical -->|"Ja"| soc["En sikkerhedssag<br/>om datalageret"]
-    critical -->|"Ja, hvis advarsler er slået til"| alert["En advarsel, der tilkalder<br/>den, der har vagt"]
-    critical -->|"Ja, hvis hændelser er slået til"| incident["En hændelse, som din<br/>proces håndterer"]
-    issue --> owners["En e-mail til<br/>datalagerets ejere"]
-    issue --> flows["Workflows, der<br/>holder øje med problemer"]
+    critical -->|"Ja, hvis advarsler<br/>er slået til"| alert["En advarsel,<br/>der tilkalder<br/>den, der<br/>har vagt"]
+    critical -->|"Ja, hvis hændelser<br/>er slået til"| incident["En hændelse,<br/>som din<br/>proces håndterer"]
+    issue --> owners["En e-mail til<br/>datalagerets<br/>ejere"]
+    issue --> flows["Workflows, der<br/>holder øje<br/>med problemer"]
 ```
 
 Hver af disse kører, når en evaluering åbner et problem eller åbner det igen. Hver af dem er best effort: problemet er allerede åbent og står på sin tidslinje, så en integration, der fejler, logges og springes over i stedet for at blive forsøgt igen og give en ekstra sag eller en ekstra tilkaldelse. Det, hver af dem gjorde, skrives på problemets **Tidslinje**, og problemets side linker til den sag, den advarsel og den hændelse, det startede.

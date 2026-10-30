@@ -15,12 +15,12 @@ Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza
 
 ```mermaid title="Cosa segue un nuovo problema"
 flowchart TB
-    issue["Si apre un problema,<br/>o si riapre"] --> critical{"È Critico?"}
-    critical -->|"Sì"| soc["Un caso di sicurezza<br/>sull'archivio"]
-    critical -->|"Sì, se gli avvisi sono attivi"| alert["Un avviso che chiama<br/>chi è di reperibilità"]
-    critical -->|"Sì, se gli incidenti sono attivi"| incident["Un incidente gestito<br/>dal tuo processo"]
-    issue --> owners["Un'email ai proprietari<br/>dell'archivio"]
-    issue --> flows["I workflow che<br/>osservano i problemi"]
+    issue["Si apre un<br/>problema,<br/>o si riapre"] --> critical{"È Critico?"}
+    critical -->|"Sì"| soc["Un caso di<br/>sicurezza<br/>sull'archivio"]
+    critical -->|"Sì, se gli avvisi<br/>sono attivi"| alert["Un avviso<br/>che chiama<br/>chi è di<br/>reperibilità"]
+    critical -->|"Sì, se gli incidenti<br/>sono attivi"| incident["Un incidente<br/>gestito<br/>dal tuo processo"]
+    issue --> owners["Un'email ai<br/>proprietari<br/>dell'archivio"]
+    issue --> flows["I workflow che<br/>osservano<br/>i problemi"]
 ```
 
 Ognuna di queste viene eseguita quando una valutazione apre un problema, o lo riapre. Ognuna è best effort: il problema è già aperto e nella sua cronologia, quindi un'integrazione non riuscita viene registrata e saltata, mai ritentata fino a creare un secondo caso o una seconda chiamata. Ciò che ha fatto ognuna viene scritto nella **Cronologia** del problema, e la pagina del problema rimanda al caso, all'avviso e all'incidente che ha avviato.

@@ -11,7 +11,7 @@
 ## 数据流
 
 ```mermaid title="四种数据流"
-flowchart TB
+flowchart LR
     service["一个服务"] -->|"使用"| db["一个数据库"]
     service -->|"AI 提供商"| ai["一个 AI 提供商"]
     service -->|"外部主机"| host["一个外部主机"]

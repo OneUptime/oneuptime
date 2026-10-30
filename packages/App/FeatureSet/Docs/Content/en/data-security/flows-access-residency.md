@@ -11,7 +11,7 @@ Knowing what a store holds is half of it. Data Security also works out where tha
 ## Data flows
 
 ```mermaid title="The four kinds of flow"
-flowchart TB
+flowchart LR
     service["A service"] -->|"Uses"| db["A database"]
     service -->|"AI Provider"| ai["An AI provider"]
     service -->|"External Host"| host["An outside host"]

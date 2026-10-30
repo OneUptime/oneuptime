@@ -11,7 +11,7 @@
 ## 데이터 흐름
 
 ```mermaid title="네 가지 흐름"
-flowchart TB
+flowchart LR
     service["서비스"] -->|"사용"| db["데이터베이스"]
     service -->|"AI 공급자"| ai["AI 공급자"]
     service -->|"외부 호스트"| host["외부 호스트"]

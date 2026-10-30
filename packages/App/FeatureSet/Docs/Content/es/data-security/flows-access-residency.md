@@ -11,7 +11,7 @@ Saber qué contiene un almacén es la mitad del trabajo. Seguridad de datos tamb
 ## Flujos de datos
 
 ```mermaid title="Los cuatro tipos de flujo"
-flowchart TB
+flowchart LR
     service["Un servicio"] -->|"Usa"| db["Una base de datos"]
     service -->|"Proveedor de IA"| ai["Un proveedor de IA"]
     service -->|"Host externo"| host["Un host externo"]

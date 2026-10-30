@@ -11,7 +11,7 @@ Saber o que um repositório guarda é metade do trabalho. A Segurança de dados 
 ## Fluxos de dados
 
 ```mermaid title="Os quatro tipos de fluxo"
-flowchart TB
+flowchart LR
     service["Um serviço"] -->|"Usa"| db["Um banco de dados"]
     service -->|"Provedor de IA"| ai["Um provedor de IA"]
     service -->|"Host externo"| host["Um host externo"]

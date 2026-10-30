@@ -11,7 +11,7 @@
 ## データフロー
 
 ```mermaid title="4 種類のフロー"
-flowchart TB
+flowchart LR
     service["サービス"] -->|"使用"| db["データベース"]
     service -->|"AI プロバイダー"| ai["AI プロバイダー"]
     service -->|"外部ホスト"| host["外部のホスト"]

@@ -15,12 +15,12 @@ A Segurança de dados não tem um sistema de acionamento nem uma fila de seguran
 
 ```mermaid title="O que vem depois de um problema novo"
 flowchart TB
-    issue["Um problema abre,<br/>ou abre de novo"] --> critical{"Ele é Crítico?"}
-    critical -->|"Sim"| soc["Um caso de segurança<br/>sobre o repositório"]
-    critical -->|"Sim, com alertas ativados"| alert["Um alerta que aciona<br/>quem estiver de plantão"]
-    critical -->|"Sim, com incidentes ativados"| incident["Um incidente que o seu<br/>processo conduz"]
-    issue --> owners["Um e-mail aos proprietários<br/>do repositório"]
-    issue --> flows["Fluxos de trabalho que<br/>observam problemas"]
+    issue["Um problema<br/>abre,<br/>ou abre de novo"] --> critical{"Ele é Crítico?"}
+    critical -->|"Sim"| soc["Um caso de<br/>segurança<br/>sobre o<br/>repositório"]
+    critical -->|"Sim, com<br/>alertas ativados"| alert["Um alerta<br/>que aciona<br/>quem estiver<br/>de plantão"]
+    critical -->|"Sim, com incidentes<br/>ativados"| incident["Um incidente<br/>que o seu<br/>processo conduz"]
+    issue --> owners["Um e-mail aos<br/>proprietários<br/>do repositório"]
+    issue --> flows["Fluxos de<br/>trabalho que<br/>observam<br/>problemas"]
 ```
 
 Cada um deles roda quando uma avaliação abre um problema, ou o abre de novo. Cada um é de melhor esforço: o problema já está aberto e na linha do tempo dele, então uma integração que falha é registrada em log e ignorada, nunca repetida a ponto de gerar um segundo caso ou um segundo acionamento. O que cada um fez é gravado na **Linha do tempo** do problema, e a página do problema tem links para o caso, o alerta e o incidente que ele originou.

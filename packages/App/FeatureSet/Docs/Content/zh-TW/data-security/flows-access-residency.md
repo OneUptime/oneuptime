@@ -11,7 +11,7 @@
 ## 資料流
 
 ```mermaid title="四種資料流"
-flowchart TB
+flowchart LR
     service["服務"] -->|"使用"| db["資料庫"]
     service -->|"AI 供應商"| ai["AI 供應商"]
     service -->|"外部主機"| host["外部主機"]

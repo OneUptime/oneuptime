@@ -11,7 +11,7 @@ Zu wissen, was ein Datenspeicher enthält, ist nur die halbe Antwort. Datensiche
 ## Datenflüsse
 
 ```mermaid title="Die vier Arten von Datenflüssen"
-flowchart TB
+flowchart LR
     service["Ein Dienst"] -->|"Verwendet"| db["Eine Datenbank"]
     service -->|"KI-Anbieter"| ai["Ein KI-Anbieter"]
     service -->|"Externer Host"| host["Ein externer Host"]

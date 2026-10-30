@@ -15,11 +15,11 @@ Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det
 
 ```mermaid title="Vad som följer på ett nytt problem"
 flowchart TB
-    issue["Ett problem öppnas,<br/>eller öppnas igen"] --> critical{"Är det kritiskt?"}
-    critical -->|"Ja"| soc["Ett säkerhetsärende<br/>om datalagret"]
+    issue["Ett problem<br/>öppnas,<br/>eller<br/>öppnas igen"] --> critical{"Är det kritiskt?"}
+    critical -->|"Ja"| soc["Ett<br/>säkerhetsärende<br/>om datalagret"]
     critical -->|"Ja, om larm är på"| alert["Ett larm som når<br/>den som har jour"]
-    critical -->|"Ja, om incidenter är på"| incident["En incident som din<br/>process hanterar"]
-    issue --> owners["Ett e-postmeddelande<br/>till datalagrets ägare"]
+    critical -->|"Ja, om<br/>incidenter är på"| incident["En incident<br/>som din<br/>process hanterar"]
+    issue --> owners["Ett<br/>e-postmeddelande<br/>till datalagrets<br/>ägare"]
     issue --> flows["Arbetsflöden som<br/>bevakar problem"]
 ```
 

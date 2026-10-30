@@ -138,11 +138,11 @@ stateDiagram-v2
     state "Not an issue" as NotAnIssue
     [*] --> Open: A check fails
     Open --> Resolved: The check passes
-    Open --> Accepted: Someone accepts the risk
-    Open --> NotAnIssue: Someone says it is not an issue
-    Accepted --> Open: The acceptance expires
+    Open --> Accepted: Someone accepts<br/>the risk
+    Open --> NotAnIssue: Someone says it<br/>is not an issue
+    Accepted --> Open: The acceptance<br/>expires
     Accepted --> Resolved: The check passes
-    Resolved --> Open: The check fails again
+    Resolved --> Open: The check<br/>fails again
 ```
 
 OneUptime opens, updates and resolves issues as the checks run. What a person does to an issue is decide what happens next:
