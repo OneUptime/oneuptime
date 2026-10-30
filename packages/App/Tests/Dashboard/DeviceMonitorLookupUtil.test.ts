@@ -5,6 +5,8 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
+import URL from "Common/Types/API/URL";
 
 /*
  * DeviceMonitorLookupUtil.monitorWatchesDevice is pure, but the module also
@@ -27,7 +29,10 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
-import DeviceMonitorLookupUtil from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorLookupUtil";
+import DeviceMonitorLookupUtil, {
+  DeviceBinding,
+  WEB_UI_MONITOR_CANDIDATES_LIMIT,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorLookupUtil";
 
 const getListMock: jest.Mock = ModelAPI.getList as unknown as jest.Mock;
 const getItemMock: jest.Mock = ModelAPI.getItem as unknown as jest.Mock;
@@ -116,8 +121,18 @@ function boundPingMonitor(id: string, name: string): Monitor {
 function deviceRow(data: {
   monitoringMethod?: string | undefined;
   monitor?: Monitor | undefined;
+  name?: string | undefined;
+  hostname?: string | undefined;
 }): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice();
+
+  if (data.name !== undefined) {
+    device.name = data.name;
+  }
+
+  if (data.hostname !== undefined) {
+    device.hostname = data.hostname;
+  }
 
   /*
    * Assigned only when present: the project compiles with
@@ -362,6 +377,8 @@ describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
     ).resolves.toEqual({
       boundMonitor: bound,
       isMonitorBacked: true,
+      deviceName: "",
+      deviceAddress: "",
     });
   });
 
@@ -389,6 +406,8 @@ describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
     ).resolves.toEqual({
       boundMonitor: null,
       isMonitorBacked: true,
+      deviceName: "",
+      deviceAddress: "",
     });
   });
 
@@ -400,6 +419,8 @@ describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
     ).resolves.toEqual({
       boundMonitor: null,
       isMonitorBacked: false,
+      deviceName: "",
+      deviceAddress: "",
     });
   });
 
@@ -411,6 +432,8 @@ describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
     ).resolves.toEqual({
       boundMonitor: null,
       isMonitorBacked: false,
+      deviceName: "",
+      deviceAddress: "",
     });
   });
 });
@@ -662,5 +685,195 @@ describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the
     await expect(
       DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
     ).resolves.toEqual({ monitors: [ntp], isMonitorBacked: false });
+  });
+});
+
+/*
+ * The device's WEB UI monitor (#5281, the follow-up of #5145): "Monitor web
+ * UI" on its Monitors card makes a Website monitor of the device's
+ * management page. Nothing on a Website monitor names a device, so the
+ * lookup finds it by what it is - a Website monitor named after the
+ * device, with a step on the device's address - reading only the Website
+ * monitors whose name holds the device's, never the project's every one.
+ */
+describe("DeviceMonitorLookupUtil - the device's web UI monitor", () => {
+  const DEVICE_NAME: string = "core-sw-01";
+  const DEVICE_ADDRESS: string = "10.20.0.1";
+
+  function websiteMonitor(
+    id: string,
+    name: string,
+    destinations: Array<string>,
+  ): Monitor {
+    const monitor: Monitor = monitorWithSteps(
+      destinations.map((destination: string): MonitorStep => {
+        const step: MonitorStep = new MonitorStep();
+        step.data!.monitorDestination = URL.fromString(destination);
+        return step;
+      }),
+    );
+    monitor._id = id;
+    monitor.name = name;
+    monitor.monitorType = MonitorType.Website;
+    return monitor;
+  }
+
+  const WEB_UI: Monitor = websiteMonitor(
+    "9f1b6b0e-0000-4000-8000-00000000eb01",
+    "core-sw-01 web UI",
+    ["https://10.20.0.1/"],
+  );
+  const PORTAL: Monitor = websiteMonitor(
+    "9f1b6b0e-0000-4000-8000-00000000eb02",
+    "core-sw-01 vendor portal",
+    ["https://support.example.net/core-sw-01"],
+  );
+
+  let webUiCandidates: Array<Monitor> = [];
+  let failWebUiRead: boolean = false;
+
+  function isWebUiQuery(request: { query?: Record<string, unknown> }): boolean {
+    return request.query?.["monitorType"] === MonitorType.Website;
+  }
+
+  beforeEach(() => {
+    getListMock.mockReset();
+    getItemMock.mockReset();
+    madeForDevice = [];
+    webUiCandidates = [WEB_UI, PORTAL];
+    failWebUiRead = false;
+    getItemMock.mockResolvedValue(
+      deviceRow({ name: DEVICE_NAME, hostname: DEVICE_ADDRESS }),
+    );
+    getListMock.mockImplementation(
+      async (request: { query?: Record<string, unknown> }) => {
+        if (isWebUiQuery(request)) {
+          if (failWebUiRead) {
+            throw new Error("The monitors could not be read.");
+          }
+          return {
+            data: webUiCandidates,
+            count: webUiCandidates.length,
+            skip: 0,
+            limit: WEB_UI_MONITOR_CANDIDATES_LIMIT,
+          };
+        }
+
+        if (isMadeForDeviceQuery(request)) {
+          return {
+            data: madeForDevice,
+            count: madeForDevice.length,
+            skip: 0,
+            limit: 100,
+          };
+        }
+
+        return { data: [], count: 0, skip: 0, limit: 100 };
+      },
+    );
+  });
+
+  test("the device's binding names it and the address its probe polls", async () => {
+    const binding: DeviceBinding =
+      await DeviceMonitorLookupUtil.getDeviceBinding(DEVICE_ID);
+
+    expect(binding.deviceName).toBe(DEVICE_NAME);
+    expect(binding.deviceAddress).toBe(DEVICE_ADDRESS);
+    expect(
+      (getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toMatchObject({ name: true, hostname: true });
+  });
+
+  test("the Website monitor named after the device, on its address, is listed - the vendor portal is not", async () => {
+    await expect(
+      DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
+    ).resolves.toEqual([WEB_UI]);
+  });
+
+  test("it reads the Website monitors whose name holds the device's, with their steps, a handful at most", async () => {
+    await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
+
+    const webUiRead: {
+      query: Record<string, unknown>;
+      limit: number;
+      select: Record<string, unknown>;
+    } = getListMock.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          query: Record<string, unknown>;
+          limit: number;
+          select: Record<string, unknown>;
+        };
+      })
+      .find((request: { query: Record<string, unknown> }): boolean => {
+        return isWebUiQuery(request);
+      })!;
+
+    expect(webUiRead.query["monitorType"]).toBe(MonitorType.Website);
+    expect(webUiRead.query["name"]).toBeInstanceOf(Search);
+    expect((webUiRead.query["name"] as Search<string>).toString()).toBe(
+      DEVICE_NAME,
+    );
+    expect(webUiRead.limit).toBe(WEB_UI_MONITOR_CANDIDATES_LIMIT);
+    expect(WEB_UI_MONITOR_CANDIDATES_LIMIT).toBeLessThanOrEqual(50);
+    expect(webUiRead.select["monitorSteps"]).toBe(true);
+    expect(webUiRead.select["currentMonitorStatus"]).toEqual({
+      name: true,
+      color: true,
+    });
+  });
+
+  test("it comes after the device's other monitors, and once", async () => {
+    const port: Monitor = new Monitor();
+    port._id = "9f1b6b0e-0000-4000-8000-00000000eb03";
+    port.name = "core-sw-01 - SSH port";
+    port.monitorType = MonitorType.Port;
+    madeForDevice = [port];
+    webUiCandidates = [WEB_UI, WEB_UI];
+
+    await expect(
+      DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
+    ).resolves.toEqual([port, WEB_UI]);
+  });
+
+  test("a device with no name or no address has no web UI monitor to read for", async () => {
+    for (const row of [
+      deviceRow({ hostname: DEVICE_ADDRESS }),
+      deviceRow({ name: DEVICE_NAME }),
+      deviceRow({ name: "  ", hostname: DEVICE_ADDRESS }),
+    ]) {
+      getListMock.mockClear();
+      getItemMock.mockResolvedValue(row);
+
+      await expect(
+        DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
+      ).resolves.toEqual([]);
+
+      expect(
+        getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+          return isWebUiQuery(call[0] as { query?: Record<string, unknown> });
+        }),
+      ).toHaveLength(0);
+    }
+  });
+
+  test("a web UI read that fails leaves the device's other monitors listed", async () => {
+    const ntp: Monitor = new Monitor();
+    ntp._id = "9f1b6b0e-0000-4000-8000-00000000eb04";
+    ntp.name = "core-sw-01 - Time";
+    ntp.monitorType = MonitorType.NTP;
+    madeForDevice = [ntp];
+    failWebUiRead = true;
+
+    await expect(
+      DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
+    ).resolves.toEqual({ monitors: [ntp], isMonitorBacked: false });
+  });
+
+  test("the device's page context lists it", async () => {
+    await expect(
+      DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
+    ).resolves.toEqual({ monitors: [WEB_UI], isMonitorBacked: false });
   });
 });

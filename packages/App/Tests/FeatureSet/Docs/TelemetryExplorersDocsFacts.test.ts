@@ -52,6 +52,11 @@ import ErrorClass, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
 import { MAX_SIMILAR_EXCEPTIONS } from "Common/Types/Telemetry/SimilarExceptions";
+import { EXCEPTION_TREND_BUCKET_COUNT } from "Common/Types/Telemetry/ExceptionListStats";
+import {
+  EXCEPTION_USER_ID_ATTRIBUTE_KEYS,
+  readExceptionUserId,
+} from "Common/Utils/Exceptions/ExceptionUserId";
 import {
   CORE_LOGS_TABLE_COLUMN_OPTIONS,
   DEFAULT_LOGS_TABLE_COLUMNS,
@@ -2166,6 +2171,61 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(page).toContain(
       "**Assigned to me** shows only the exceptions assigned to you, and the sort menu orders the list by **Last seen**, **First seen** or **Most events**.",
     );
+  });
+
+  /*
+   * Each row's affected users and trend chart: counted over the list's own
+   * range, from the user attributes ingest reads, in the order it reads
+   * them, and shown only when an occurrence named a user.
+   */
+  it("shows each row's affected users and its occurrences over the range picked", () => {
+    const row: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRow.tsx",
+    );
+    const listStats: string = readDashboardSource(
+      "Utils/ExceptionListStats.ts",
+    );
+    const traces: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
+    );
+    const logs: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+    );
+    const users: string =
+      "An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted.";
+
+    expect(page).toContain(
+      "Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range.",
+    );
+    expect(page).toContain(users);
+
+    // The attributes named, in the order ingest prefers them.
+    expect(inlineCodes(users)).toEqual([...EXCEPTION_USER_ID_ATTRIBUTE_KEYS]);
+    // On the exception event, then its span or log record, then its resource.
+    expect(
+      readExceptionUserId([
+        { "enduser.id": "event" },
+        { "user.id": "span", "resource.user.id": "resource" },
+      ]),
+    ).toBe("event");
+    expect(
+      readExceptionUserId([{}, { "user.id": "span", "resource.user.id": "r" }]),
+    ).toBe("span");
+    expect(readExceptionUserId([{}, { "resource.enduser.id": "r" }])).toBe("r");
+    // An occurrence that names no user is not counted.
+    expect(readExceptionUserId([{ "user.email": "a@example.com" }])).toBe("");
+    expect(traces).toContain("userId: readExceptionUserId([");
+    expect(logs).toContain("userId: readExceptionUserId([finalAttributes])");
+    expect(row).toContain("affectedUsers > 0 &&");
+
+    // Over the range picked: the rows' own range goes with the request.
+    expect(exceptionsViewer).toContain("setListWindow(readWindow);");
+    expect(exceptionsViewer).toContain(
+      "buildExceptionListStatsRequest({ exceptions, window: listWindow })",
+    );
+    expect(listStats).toContain('"/telemetry-exception/list-stats"');
+    expect(EXCEPTION_TREND_BUCKET_COUNT).toBeGreaterThan(1);
+    expect(row).toContain("<ExceptionTrendSparkline");
   });
 
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {

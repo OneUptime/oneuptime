@@ -52,6 +52,8 @@ Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak**
 
 Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid. En rad merket **Regresjon** kom tilbake etter at den ble løst, og en merket **Ny** ble sett første gang i løpet av de siste 24 timene.
 
+Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke.
+
 ### Velg hva som teller som et problem
 
 **Problemer**, som er standard, skjuler brukerfeil og forventede avvisninger, slik at listen viser det som trenger retting. **User errors** viser bare dem, og **Alle** viser alle unntak.

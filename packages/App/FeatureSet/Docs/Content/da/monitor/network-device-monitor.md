@@ -394,6 +394,8 @@ Hver række fortæller, hvor dens OID er kendt: en værdi, som en leverandørs s
 - **Opret advarsel** vises, når OID'et indsamles, og åbner en ny netværksenheds-monitor for enheden med ét kriterium på OID'et. En tæller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en grænse, du selv sætter; en oppetid advarer under ti minutter (enheden er genstartet), alt andet når det ændrer sig fra den læste værdi.
 - **Kopiér OID**, i rækkens menu, kopierer OID'et.
 
+**Download**, ved siden af walkens opsummering, gemmer det, walken læste, som en fil: **snmpwalk-tekst (.txt)**, ét OID pr. linje, som `snmpwalk -On` skriver det, og som ethvert SNMP-værktøj og enhver leverandørsupport kan læse, eller **CSV-regneark (.csv)** med hvert OID's navn, MIB, type og værdi. Filen rummer hvert OID, walken læste, også fortsatte walks, uanset hvad filteret viser, og er opkaldt efter enheden, undertræet og tidspunktet, den blev gemt. Alle, der kan læse enhedens seneste walk, kan downloade den.
+
 En walk, der fejler, siger hvorfor, og hvad du skal kontrollere: en enhed, der ikke svarer (SNMP slået fra, UDP 161 blokeret eller, ved v1 og v2c, en forkert community-streng, som en agent ignorerer uden et ord), en SNMPv3-bruger, -adgangskode eller -protokol, som enheden afviste, eller en del af træet, som loginoplysningernes SNMP-visning udelader. En walk, der stopper undervejs, beholder det, den har læst. En walk kræver tilladelsen **Create Network Device Diagnostic** og en sonde, der er ny nok til SNMP-walks: med en ældre beder siden dig om at opdatere den.
 
 ### SNMP-tabeller
@@ -752,6 +754,8 @@ Uden politikker endnu tilbyder siden **Create the recommended policy**: en monit
 ### Én enhed ad gangen
 
 Åbn enhedens side, og klik på **Opret monitor** på kortet **Monitors alerting on this device**. Monitorformularen åbner med typen Network Device og enheden valgt og den [anbefalede advarselspakke](#anbefalet-advarselspakke) udfyldt: gennemgå den, sæt alvorsgrader og vagtpolitikker, og gem.
+
+De fleste switche, routere, firewalls og printere har også en webgrænseflade på deres egen adresse. **Overvåg webgrænseflade**, på samme kort, åbner en **Websted**-monitor for den: `https://` på enhedens adresse, med **Tillad selvsignerede certifikater** slået til, da en enheds webgrænseflade næsten altid har et, kontrolleret fra enhedens egen probe og opkaldt efter enheden. Ret URL'en, hvis grænsefladen svarer på `http`, på en anden port eller under en sti, og gem så. Kortet viser monitoren, så længe dens navn indeholder enhedens navn, og dens URL er på enhedens adresse; den ændrer ikke enhedens status.
 
 For at oprette en fra **Monitorer** i stedet:
 

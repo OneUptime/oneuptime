@@ -1040,7 +1040,17 @@ test.describe("an External Status Page monitor's Summary", () => {
     await expect(checkFacts).toContainText("Frankfurt (eu-central-1)");
     await expect(checkFacts).toContainText("Online");
     await expect(pageFacts).toContainText("OneUptime Status Page");
-    await expect(pageFacts).toContainText("under_maintenance");
+    /*
+     * The page's overall status in the same words and colour as its
+     * components' (#5281), not the provider's raw "under_maintenance";
+     * the raw value stays on the element, which the criteria compare.
+     */
+    const overall: Locator = pageFacts.getByTestId(
+      "external-status-page-overall-status",
+    );
+    await expect(overall).toHaveText("Under Maintenance");
+    await expect(overall).toHaveAttribute("data-status", "under_maintenance");
+    await expect(pageFacts).not.toContainText("under_maintenance");
     await expect(pageFacts).toContainText("Group: Core");
     expect(await factsInFirstRow(checkFacts)).toBe(2);
     expect(await factsInFirstRow(pageFacts)).toBe(2);

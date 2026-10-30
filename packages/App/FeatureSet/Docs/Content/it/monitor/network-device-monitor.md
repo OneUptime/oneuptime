@@ -394,6 +394,8 @@ Ogni riga dice dove il suo OID è noto: un valore che raccoglie un modello di sa
 - **Crea un avviso**, che compare quando l'OID viene raccolto, apre un nuovo monitor del dispositivo di rete per il dispositivo con un criterio sull'OID. Un contatore parte da **SNMP OID Rate (per second)** e un indicatore da **SNMP OID Value**, entrambi sopra una soglia che imposti tu; un uptime avvisa sotto i dieci minuti (il dispositivo si è riavviato), tutto il resto quando cambia rispetto al valore letto.
 - **Copia OID**, nel menu della riga, copia l'OID.
 
+**Scarica**, accanto al riepilogo del walk, salva ciò che il walk ha letto in un file: **Testo snmpwalk (.txt)**, un OID per riga come lo stampa `snmpwalk -On`, che ogni strumento SNMP e il supporto di ogni produttore sanno leggere, oppure **Foglio di calcolo CSV (.csv)**, con nome, MIB, tipo e valore di ogni OID. Il file contiene ogni OID letto dal walk, walk continuati compresi, qualunque cosa mostri il filtro, e prende il nome dal dispositivo, dal sottoalbero e dall'ora in cui è stato salvato. Chiunque possa leggere l'ultimo walk del dispositivo può scaricarlo.
+
 Un walk che fallisce dice perché, e cosa controllare: un dispositivo che non risponde (SNMP spento, UDP 161 bloccata o, in v1 e v2c, una community string errata, che un agente ignora senza dire nulla), un utente, una password o un protocollo SNMPv3 che il dispositivo ha rifiutato, o una parte dell'albero che la vista SNMP delle credenziali esclude. Un walk che si ferma a metà conserva ciò che ha letto. Per un walk servono l'autorizzazione **Create Network Device Diagnostic** e una sonda abbastanza recente da fare walk SNMP: con una più vecchia, la pagina ti chiede di aggiornarla.
 
 ### Tabelle SNMP
@@ -752,6 +754,8 @@ Finché non ci sono policy, la pagina offre **Create the recommended policy**: u
 ### Un dispositivo alla volta
 
 Apri la pagina del dispositivo e fai clic su **Crea monitor** nella scheda **Monitors alerting on this device**. Il modulo del monitor si apre con il tipo Network Device e il dispositivo già scelti, e con il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato) compilato: controllalo, imposta le gravità e le policy di reperibilità e salva.
+
+La maggior parte di switch, router, firewall e stampanti offre anche un'interfaccia web al proprio indirizzo. **Monitora l'interfaccia web**, nella stessa scheda, apre un monitor **Sito web** per essa: `https://` all'indirizzo del dispositivo, con **Consenti certificati autofirmati** attivo, perché l'interfaccia web di un dispositivo ne ha quasi sempre uno, controllato dalla sonda del dispositivo stesso e con il nome del dispositivo. Cambia l'URL se l'interfaccia risponde in `http`, su un'altra porta o sotto un percorso, poi salva. La scheda elenca il monitor finché il suo nome contiene il nome del dispositivo e il suo URL è all'indirizzo del dispositivo; non cambia lo stato del dispositivo.
 
 Per crearne uno invece da **Monitor**:
 
