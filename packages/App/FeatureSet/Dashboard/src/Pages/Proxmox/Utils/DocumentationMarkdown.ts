@@ -253,10 +253,10 @@ processors:
         value: "\${env:PROXMOX_CLUSTER_NAME}"
         action: upsert
       # Shown as the agent version on the cluster's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.1"
         action: upsert
       # The prometheus receiver synthesizes service.name (= the scrape job
       # name, "oneuptime-proxmox" or "oneuptime-proxmox-nodes") and
