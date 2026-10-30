@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "De grafiek toont hoeveel uitzonderingen er zijn opgetreden. Voor nieuwe uitzonderingen, teruggekomen uitzonderingen of een stijging boven het gewone wordt hij niet getekend.",
   "{{monitorName}}: a new exception": "{{monitorName}}: een nieuwe uitzondering",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: een opgeloste uitzondering is terug",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: uitzonderingen piekten"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: uitzonderingen piekten",
+  "Pick who to page.": "Kies wie er wordt opgeroepen.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Kies wie deze workflow oproept. Je kunt dit later wijzigen in de oproepstap in de Bouwer."
 }

@@ -16,10 +16,10 @@ flowchart TB
     declared["Incident gemeld"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["Bericht in<br/>je kanaal"]
-    step -->|"Error"| log["Log: waarom het<br/>niet is afgeleverd"]
+    step -->|"Error"| failed["De run mislukt<br/>en zegt waarom"]
 ```
 
-De stap post de **Message Text** naar de webhook van het kanaal. Hij neemt zijn uitgang **Success** wanneer Discord het bericht aanneemt, en zijn uitgang **Error**, met de reden van Discord, wanneer Discord het weigert. Het sjabloon verbindt een stap **Log** met **Error**, zodat een run die niet kon posten zegt waarom.
+De stap post de **Message Text** naar de webhook van het kanaal. Hij neemt zijn uitgang **Success** wanneer Discord het bericht aanneemt, en zijn uitgang **Error**, met de reden van Discord, wanneer Discord het weigert. Is er niets op **Error** aangesloten, zoals in het sjabloon, dan mislukt een run die niet kon posten, en zijn **Stappen** zeggen waarom.
 
 ## Voordat je begint
 
@@ -48,7 +48,7 @@ Begin vanuit het sjabloon, dat de hele workflow voor je bouwt, of vanaf nul.
 3. Houd de naam **Notify Discord on new incident** of wijzig hem, en klik op **Volgende**.
 4. Plak de URL in **Discord Webhook URL** en klik op **Workflow maken**.
 
-De workflow opent in de **Bouwer** met drie stappen: **On Create Incident**; **Send Message to Discord**, die het nummer, de titel, de ernst en de status van het incident post; en een stap **Log** op zijn uitgang **Error**. De URL wordt opgeslagen als geheime variabele `discordWebhookUrl` van de workflow.
+De workflow opent in de **Bouwer** met twee stappen: **On Create Incident** en **Send Message to Discord**, die het nummer, de titel, de ernst en de status van het incident post. De URL wordt opgeslagen als geheime variabele `discordWebhookUrl` van de workflow.
 @tab Vanaf nul
 1. Sla de URL op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflow Variabele aanmaken**, noem hem `DISCORD_WEBHOOK_URL` en klik op **Volgende**. Plak de URL in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
@@ -68,7 +68,7 @@ Een bericht vanaf nul leest de velden van het incident met verwijzingen zoals de
 
 Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Vanaf nu wordt elk nieuw incident in het kanaal gepost.
 
-Om te testen zonder een incident te openen, klik je op **Workflow uitvoeren** en kies je onder **Incident** een incident dat je al hebt: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een ander. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Het paneel **Workflow-uitvoering** volgt de run, en het bericht verschijnt in het kanaal. Neemt de stap in plaats daarvan **Error**, dan zegt de regel van de stap **Log** waarom: zie [Problemen oplossen](#problemen-oplossen).
+Om te testen zonder een incident te openen, klik je op **Workflow uitvoeren** en kies je onder **Incident** een incident dat je al hebt: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een ander. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Het paneel **Workflow-uitvoering** volgt de run, en het bericht verschijnt in het kanaal. Neemt de stap in plaats daarvan **Error**, dan mislukt de run, en de vermelding van de stap in **Stappen** zegt waarom: zie [Problemen oplossen](#problemen-oplossen).
 :::
 
 ## Tips
@@ -80,7 +80,7 @@ Om te testen zonder een incident te openen, klik je op **Workflow uitvoeren** en
 
 ## Problemen oplossen
 
-Wanneer de stap **Error** neemt, zegt de run waarom: de stap **Log** van het sjabloon schrijft `❌ Discord could not deliver the incident notification:` en de reden van Discord.
+Wanneer de stap **Error** neemt, mislukt de run, en de vermelding van de stap in de **Stappen** van de run geeft de reden van Discord.
 
 :::details Discord antwoordt "Unknown Webhook" of "Invalid Webhook Token"
 De webhook is verwijderd, of de URL is verkeerd gekopieerd. Maak een nieuwe webhook en vervang de URL: in de workflow van het sjabloon de variabele `discordWebhookUrl`, in een eigen workflow de inhoud van `DISCORD_WEBHOOK_URL`.

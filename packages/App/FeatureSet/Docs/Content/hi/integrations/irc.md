@@ -84,7 +84,7 @@ Template से शुरू कीजिए, जो पूरा workflow आ�
 3. नाम **Notify IRC on new incident** रहने दीजिए या बदल दीजिए, और **अगला** दबाइए।
 4. **IRC Server** और **IRC Channel** भरिए और **वर्कफ़्लो बनाएं** दबाइए।
 
-Workflow **बिल्डर** में तीन steps के साथ खुलता है: **On Create Incident**; **Send Message to IRC**, जो incident का number, title, severity और state दो lines में पोस्ट करता है; और उसके **त्रुटि** output पर एक **लॉग** step, जो लिखता है कि message क्यों नहीं पहुँचा। Server और channel workflow के variables `ircServer` और `ircChannel` में रखे जाते हैं। अगर पिछले step में आपने passwords रखे थे, तो **Send Message to IRC** पर क्लिक कीजिए, **और फ़ील्ड** खोलिए, और हर variable को उसकी setting के **{ }** बटन से चुनिए।
+Workflow **बिल्डर** में दो steps के साथ खुलता है: **On Create Incident**, और **Send Message to IRC**, जो incident का number, title, severity और state दो lines में पोस्ट करता है। जो message नहीं पहुँचता वह run को विफल कर देता है, और run का log बताता है कि क्यों। Server और channel workflow के variables `ircServer` और `ircChannel` में रखे जाते हैं। अगर पिछले step में आपने passwords रखे थे, तो **Send Message to IRC** पर क्लिक कीजिए, **और फ़ील्ड** खोलिए, और हर variable को उसकी setting के **{ }** बटन से चुनिए।
 @tab शुरू से
 1. **वर्कफ़्लो** खोलिए, **वर्कफ़्लो बनाएं** दबाइए, **शुरू से बनाएं** चुनिए, workflow को नाम दीजिए और **वर्कफ़्लो बनाएं** दबाइए।
 2. **बिल्डर** में **चुनें कि यह वर्कफ़्लो किससे शुरू हो** पर क्लिक कीजिए और **लोकप्रिय** के नीचे **On Create Incident** चुनिए। Trigger पर क्लिक कीजिए और **Fields to pass on** में incident के वे fields चुनिए जो आपका message दिखाता है, जैसे उसका title।

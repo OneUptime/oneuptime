@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "График показывает, сколько исключений произошло. Для новых исключений, вернувшихся исключений и роста выше обычного он не строится.",
   "{{monitorName}}: a new exception": "{{monitorName}}: новое исключение",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: устранённое исключение вернулось",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений",
+  "Pick who to page.": "Выберите, кого вызывать.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Выберите, кого вызывает этот рабочий процесс. Это можно изменить позже в шаге вызова в Конструкторе."
 }

@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "चार्ट दिखाता है कि कितने अपवाद हुए। नए अपवादों, फिर से आए अपवादों या सामान्य से ज़्यादा बढ़त के लिए यह नहीं बनाया जाता।",
   "{{monitorName}}: a new exception": "{{monitorName}}: एक नया अपवाद",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: सुलझाया गया अपवाद फिर से आया",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: अपवादों में उछाल"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: अपवादों में उछाल",
+  "Pick who to page.": "चुनें कि किसे पेज करना है।",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "चुनें कि यह वर्कफ़्लो किसे पेज करे। आप इसे बाद में बिल्डर में इसके पेज चरण में बदल सकते हैं।"
 }

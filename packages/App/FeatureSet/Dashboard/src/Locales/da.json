@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "Diagrammet viser, hvor mange undtagelser der skete. Det tegnes ikke for nye undtagelser, undtagelser, der kom tilbage, eller en stigning over det sædvanlige.",
   "{{monitorName}}: a new exception": "{{monitorName}}: en ny undtagelse",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: en løst undtagelse kom tilbage",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: undtagelser toppede"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: undtagelser toppede",
+  "Pick who to page.": "Vælg, hvem der skal kaldes op.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Vælg, hvem denne arbejdsgang kalder op. Du kan ændre det senere i dens opkaldstrin i Bygger."
 }

@@ -61,23 +61,22 @@ Begin met **Declare an incident for each Zabbix problem**, of met **Create an al
 ### Wat de sjablonen vragen
 
 - **Zabbix URL**: het adres waarop je Zabbix opent, zoals `https://zabbix.example.com`, of `https://example.com/zabbix` als Zabbix onder een pad draait. Links naar een probleem gaan daarheen, en de sjablonen die Zabbix aanroepen, sturen hun verzoeken naar zijn `api_jsonrpc.php`. Het veld weigert het adres van een pagina in Zabbix.
-- **Zabbix API Token**: een API-token van de Zabbix-gebruiker als wie de workflow handelt. [Het API-token maken](#het-api-token-maken) laat zien hoe. Het wordt opgeslagen als geheime variabele en alleen in de header `Authorization` verstuurd.
+- **Zabbix API Token**: een API-token van de Zabbix-gebruiker als wie de workflow handelt. [Het API-token maken](#het-api-token-maken) laat zien hoe. Het wordt opgeslagen als geheime variabele en alleen naar Zabbix verstuurd: in de header `Authorization`, of op Zabbix 6.0 in de body van het verzoek.
 
 ### Problemen ontvangen met het sjabloon
 
 :::steps
 1. Ga naar **Workflows** en klik op **Workflow maken**. Kies onder **Of begin met een sjabloon** de categorie **Zabbix**, klik op **Declare an incident for each Zabbix problem** en daarna op **Dit sjabloon gebruiken**.
-2. Vul **Zabbix URL** in en klik op **Workflow maken**. De workflow opent in de **Bouwer**, uitgeschakeld.
-3. Klik op de stap **Page an On-Call Policy**, kies het **Bereikbaarheidsbeleid** dat moet worden opgeroepen, en sla de stap op.
-4. Klik op de trigger **Webhook**, daarna op **URL kopiëren**, en bewaar de URL voor Zabbix.
-5. Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een workflow die uit staat, antwoordt Zabbix met `400`.
+2. Vul **Zabbix URL** in. Kies onder **Who to page for High and Disaster problems** het bereikbaarheidsbeleid dat moet worden opgeroepen, of niets om niemand op te roepen, en klik op **Workflow maken**. De workflow opent in de **Bouwer**, uitgeschakeld.
+3. Klik op de trigger **Webhook**, daarna op **URL kopiëren**, en bewaar de URL voor Zabbix.
+4. Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een workflow die uit staat, antwoordt Zabbix met `400`.
 :::
 
 Daarna [configureer je Zabbix](#zabbix-configureren) zodat het zijn problemen naar die URL stuurt.
 
 ### Wat de workflow doet
 
-Na de trigger **Webhook** neemt een blok **Switch / Case** een pad voor elke `event` die het mediatype stuurt:
+Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1` de `event` die het mediatype stuurt, en **Incident From Another Tool**, of **Alert From Another Tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de event-ID van het probleem:
 
 | Event | Wat de workflow doet |
 | --- | --- |
@@ -85,7 +84,7 @@ Na de trigger **Webhook** neemt een blok **Switch / Case** een pad voor elke `ev
 | `recovery` | Lost het incident van het probleem op, tenzij het al is opgelost. Waarom staat op de tijdlijn ervan. |
 | `update` | Voegt wat in Zabbix is gedaan als privénotitie aan het incident toe: wie het deed, wat diegene deed en wat diegene schreef. Als de update het probleem bevestigde, bevestigt hij ook het incident, waardoor de dienst niet verder escaleert. |
 
-Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid, en de laatste stap van de uitvoering zegt waarom. Elke uitvoering eindigt in een stap **Log** die zegt wat er gebeurde: `✅` hij deed zijn werk, `ℹ️` hij sloeg het event bewust over, `❌` een stap mislukte en het uitvoeringslogboek zegt waarom.
+Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **No**, en de **Stappen** van de uitvoering zeggen waarom. Een stap die mislukt, laat de uitvoering mislukken, en zijn vermelding in **Stappen** zegt waarom.
 
 ### Ernstniveaus
 
@@ -127,7 +126,7 @@ Het statussjabloon vraagt Zabbix eerst naar het probleem, dus een probleem dat Z
 
 ### Op Zabbix 6.0
 
-Zabbix 6.0 leest het API-token uit de body van het verzoek, niet uit de header `Authorization`. Voeg in elke API-stap van de sjablonen die Zabbix aanroepen `"auth": "{{local.variables.zabbixApiToken}}",` toe aan **Request Body**, na `"jsonrpc": "2.0",`, en verwijder de header. Zabbix 7.2 en later weigeren `auth`, dus verwijder het weer wanneer je upgradet.
+Zabbix 6.0 leest het API-token uit de body van het verzoek, niet uit de header `Authorization`. Zet in de stap **Update Zabbix Problem** van elk sjabloon dat Zabbix aanroept **Zabbix 6.0** aan, onder **Meer velden**. Zabbix 7.2 en later weigeren een token in de body, dus zet het weer uit wanneer je upgradet.
 
 ## Problemen ontvangen met een monitor
 
@@ -346,7 +345,7 @@ Waarschijnlijk heeft de actie twee bewerkingen die naar dezelfde gebruiker sture
 
 - **Behandel de URL als een wachtwoord.** Iedereen die hem heeft, kan incidenten openen. Lekt hij uit, stel hem dan opnieuw in: **URL opnieuw instellen** in de trigger **Webhook** van de workflow, of **Geheime sleutel voor inkomende aanvraag opnieuw instellen** op de pagina **Instellingen** van de monitor. Werk daarna **Send to** bij in het medium van de Zabbix-gebruiker.
 - **Links gaan naar jouw Zabbix.** Het sjabloon linkt een probleem op de site die zijn **Zabbix URL** noemt, wat een verzoek ook zegt, en schrijft wat Zabbix stuurde als tekst.
-- **Beperk het API-token tot wat de workflow doet.** Het is een geheime variabele, afgeschermd in uitvoeringslogboeken en alleen in de header `Authorization` verstuurd. Geef de gebruiker ervan een rol met niets meer dan de acties hierboven, en verwijder het token in **Users → API tokens** als het uitlekt.
+- **Beperk het API-token tot wat de workflow doet.** Het is een geheime variabele, afgeschermd in uitvoeringslogboeken en alleen naar Zabbix verstuurd, in de header `Authorization` tenzij **Zabbix 6.0** aanstaat. Geef de gebruiker ervan een rol met niets meer dan de acties hierboven, en verwijder het token in **Users → API tokens** als het uitlekt.
 - **Stuur alleen wat een incident nodig heeft.** Gebruik de voorwaarden van de actie, of de ernstniveaus van het medium van de gebruiker, om problemen met een lage ernst in Zabbix te houden.
 - **Zelfgehost?** Laat je Zabbix-server je OneUptime via HTTPS door je firewall bereiken. Om een Zabbix op een privénetwerk aan te roepen, heeft de workflow [uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang) nodig.
 

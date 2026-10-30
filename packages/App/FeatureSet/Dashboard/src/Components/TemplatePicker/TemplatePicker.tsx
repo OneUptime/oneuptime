@@ -55,6 +55,7 @@ import {
   templateCountText,
 } from "../../Utils/TemplatePicker/TemplatePickerUtil";
 import { isComposingKey } from "../../Utils/TemplatePicker/WizardKeys";
+import { CATALOG_TEXT_ALIGN_CLASS_NAME } from "./CatalogText";
 
 /** A template as the picker draws its row: an icon, a name and a line of description. */
 export interface TemplatePickerRowTemplate extends TemplatePickerTemplate {
@@ -237,9 +238,15 @@ const TemplateOption: (props: TemplateOptionProps) => ReactElement = (
           <Icon icon={template.icon} className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
+          {/*
+           * The template's own words, read the way they are written
+           * (CatalogText): on a Persian page too, an English line keeps its
+           * full stop at its end, and a line cut short loses its end.
+           */}
           <div
             id={`${optionId}-name`}
-            className="text-sm font-medium leading-5 text-gray-900"
+            dir="auto"
+            className={`text-sm font-medium leading-5 text-gray-900 ${CATALOG_TEXT_ALIGN_CLASS_NAME}`}
           >
             <HighlightedText
               text={template.name}
@@ -254,7 +261,8 @@ const TemplateOption: (props: TemplateOptionProps) => ReactElement = (
            */}
           <div
             id={`${optionId}-description`}
-            className={`mt-0.5 text-sm leading-5 text-gray-500 ${
+            dir="auto"
+            className={`mt-0.5 text-sm leading-5 text-gray-500 ${CATALOG_TEXT_ALIGN_CLASS_NAME} ${
               props.isActive ? "" : "truncate"
             }`}
           >

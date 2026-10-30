@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "نمودار نشان می‌دهد چند استثنا رخ داده است. برای استثناهای تازه، استثناهای برگشته یا افزایش بیش از معمول رسم نمی‌شود.",
   "{{monitorName}}: a new exception": "{{monitorName}}: یک استثنای تازه",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: یک استثنای برطرف‌شده برگشت",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها",
+  "Pick who to page.": "انتخاب کنید چه کسی فراخوانده شود.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "انتخاب کنید این گردش کاری چه کسی را فرا بخواند. می‌توانید بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید."
 }

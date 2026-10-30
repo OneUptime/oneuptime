@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "このグラフは発生した例外の件数を示します。新しい例外、再発した例外、通常を上回る増加では表示されません。",
   "{{monitorName}}: a new exception": "{{monitorName}}: 新しい例外",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 解決済みの例外が再発",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: 例外が急増"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: 例外が急増",
+  "Pick who to page.": "呼び出す相手を選んでください。",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "このワークフローが呼び出す相手を選んでください。後からビルダーの呼び出しステップで変更できます。"
 }

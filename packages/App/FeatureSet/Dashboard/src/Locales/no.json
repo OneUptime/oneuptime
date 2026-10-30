@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "Diagrammet viser hvor mange unntak som skjedde. Det tegnes ikke for nye unntak, unntak som kom tilbake eller en økning over det vanlige.",
   "{{monitorName}}: a new exception": "{{monitorName}}: et nytt unntak",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: et løst unntak kom tilbake",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: unntakene toppet seg"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: unntakene toppet seg",
+  "Pick who to page.": "Velg hvem som skal varsles.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Velg hvem denne arbeidsflyten varsler. Du kan endre det senere i varslingssteget i Bygger."
 }

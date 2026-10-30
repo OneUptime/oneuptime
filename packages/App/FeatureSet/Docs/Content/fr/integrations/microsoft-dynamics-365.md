@@ -133,7 +133,7 @@ Chaque workflow garde sa propre copie. Quand vous remplacez le secret client, ou
 4. Cliquez sur **Créer un flux de travail**. Chaque workflow est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. La dernière étape de l'exécution devrait indiquer `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Response Body** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
 
 ### Connecter les modèles de Dynamics 365 vers OneUptime
 
@@ -156,11 +156,11 @@ Dans [Power Automate](https://make.powerautomate.com), créez un **Automated clo
 
 | Modèle | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| Déclarer un incident / créer une alerte quand un dossier est créé | Added | Cases | | `{"incidentid": "<Case>"}` |
-| Résoudre l'incident / l'alerte quand son dossier est résolu | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| Ajouter les notes du dossier à l'incident / l'alerte en notes privées | Added | Notes | | `{"annotationid": "<Note>"}` |
+| Déclarer un incident / créer une alerte quand un dossier est créé | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| Résoudre l'incident / l'alerte quand son dossier est résolu | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| Ajouter les notes du dossier à l'incident / l'alerte en notes privées | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-Pour n'envoyer que certains dossiers, utilisez **Filter rows** du déclencheur, par exemple `prioritycode eq 1` pour les dossiers de priorité haute. Vous pouvez aussi publier toute la sortie du déclencheur : les modèles y lisent l'ID de la ligne et son `SdkMessage` de la même façon.
+Pour n'envoyer que certains dossiers, utilisez **Filter rows** du déclencheur, par exemple `prioritycode eq 1` pour les dossiers de priorité haute. Le corps désigne la ligne par `PrimaryEntityId`, comme le fait un webhook Dataverse : les modèles relisent la ligne elle-même depuis Dynamics 365.
 @tab Dataverse webhook
 Enregistrez l'URL avec le [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) : **Register New WebHook**, avec l'authentification **HttpHeader** et un en-tête de votre choix ; c'est l'URL elle-même qui est le secret. Enregistrez ensuite une étape dessus pour chaque événement ci-dessous, avec **Event Pipeline Stage of Execution** sur **PostOperation** et **Execution Mode** sur **Asynchronous**.
 
@@ -181,12 +181,12 @@ Avant de vous fier à l'un ou à l'autre :
 
 ### Vérifier que cela fonctionne
 
-Chaque modèle se termine par une étape **Log** qui dit ce qui s'est passé, c'est donc la dernière étape d'une exécution dans **Journaux → Exécutions** qu'il faut regarder :
+Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
 
-- `✅` — il a fait son travail, et nomme le dossier, l'incident ou l'alerte.
-- `ℹ️` — il a ignoré l'événement exprès, et dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou aucun statut de dossier ne correspond au nouvel état.
-- `❌` — un appel a échoué. Pour un appel à Dynamics 365, la ligne inclut la réponse de Dynamics 365.
-- `⚠️` — un modèle qui crée un enregistrement à partir d'un dossier l'a créé, mais Dynamics 365 n'a pas accepté le lien, donc les autres modèles ne peuvent pas encore le trouver. Saisissez le lien à la main dans la colonne du dossier.
+- **Exécuté** : il a fait son travail, et sa dernière étape nomme le dossier, l'incident ou l'alerte.
+- **Exécuté**, avec son étape **Check With JavaScript** sur **No** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
+- **Erreur** : une étape a échoué, et son entrée dans **Étapes** dit pourquoi. Pour un appel à Dynamics 365, elle inclut la réponse de Dynamics 365.
+- **Erreur** à `link-case-1` : un modèle qui crée un enregistrement à partir d'un dossier l'a créé, mais Dynamics 365 n'a pas accepté le lien, donc les autres modèles ne peuvent pas encore le trouver. Saisissez le lien à la main dans la colonne du dossier.
 
 Si une exécution s'arrête à la première étape Dynamics 365 avec `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`, les paramètres de connexion sont erronés, et le message cite la réponse de Microsoft Entra ID. Voir [Ce que demandent les modèles](#ce-que-demandent-les-modèles).
 
@@ -221,7 +221,7 @@ Gardez les marqueurs quand vous modifiez les modèles. Ce sont les constantes `F
 
 ### Changer ce que fait un modèle
 
-Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Run Custom JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
+Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
 
 | Constante | Modèle, et bloc | Ce qu'elle règle |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les r�
 | `CASE_ORIGIN`, `CASE_TYPE` | Créer un dossier Dynamics 365 — `prepare-case-1` | Le `caseorigincode` (`3`, Web) et le `casetypecode` (`2`, Problem) du nouveau dossier. Pour régler une autre colonne, ajoutez-la à `CASE` dans le même script, sous son nom logique. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Créer un dossier Dynamics 365 — `prepare-case-1` | Les limites propres à la table Case, 200 et 2000 caractères. La description garde le lien de retour vers OneUptime, quelle que soit la longueur coupée. Augmentez-les si votre table Case le permet. |
 | `RESOLVED_CASE_STATUS` | Résoudre le dossier Dynamics 365 — `plan-case-1` | Le statut avec lequel un enregistrement résolu ferme son dossier : `5` correspond à Problem Solved, `1000` à Information Provided. |
-| `STATE_TO_CASE_STATUS` | Résoudre le dossier Dynamics 365 — `plan-case-1` | Fait évoluer le dossier quand l'enregistrement atteint un autre état, par le nom de l'état : `{ Acknowledged: 4 }` le fait passer à Researching quand l'incident est pris en compte. Les statuts actifs de Dynamics 365 sont `1` In Progress, `2` On Hold, `3` Waiting for Details et `4` Researching. Un état résolu listé ici ferme le dossier avec le statut qu'il nomme. |
+| `STATE_TO_CASE_STATUS` | Résoudre le dossier Dynamics 365 — `plan-case-1` | Ferme le dossier avec un autre statut résolu à un état résolu qui vous est propre, par le nom de l'état : `{ Closed: 1000 }` le ferme comme Information Provided. Seule la résolution de l'enregistrement change son dossier : un statut actif comme Researching n'est jamais appliqué. |
 | `PRIORITY_RANK` | Créer à partir d'un dossier Dynamics 365 — `prepare-incident-1`, `prepare-alert-1` | Associe une priorité de dossier (`1` High, `2` Normal, `3` Low) à `0` (votre gravité la plus sévère), `1` ou `2` (la moins sévère). Les priorités non listées tombent au milieu. Avec les deux gravités d'alerte d'un nouveau projet, Normal devient Low sauf si vous changez `2: 1` en `2: 0`. |
 | `ONLY_PRIORITIES` | Créer à partir d'un dossier Dynamics 365 — `prepare-incident-1`, `prepare-alert-1` | Vide, elle prend chaque dossier qu'envoie le flux ou le webhook. `[1]` ne crée des enregistrements que pour les dossiers de priorité haute. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Résoudre quand le dossier Dynamics 365 est résolu — `decide-state-1` | Un statut de dossier, par son nom, vers un état OneUptime, par exemple `{ Researching: 'Acknowledged' }`. Sinon, c'est l'état du dossier qui décide : Resolved résout l'enregistrement. Ajoutez `2: 'isResolvedState'` pour le résoudre aussi quand son dossier est annulé. |
-| `MESSAGES` | Chaque modèle de Dynamics 365 vers OneUptime — `read-event-1` | Les événements sur lesquels le modèle agit. Ajoutez `'Update'` à la liste du modèle de notes pour copier aussi les notes modifiées : chaque modification devient une nouvelle note. |
+| `MESSAGES` | Chaque modèle de Dynamics 365 vers OneUptime — `read-event-1`, ou `prepare-incident-1` et `prepare-alert-1` | Les événements sur lesquels le modèle agit. Ajoutez `'Update'` à la liste du modèle de notes pour copier aussi les notes modifiées : chaque modification devient une nouvelle note. |
 | `MAX_NOTE_LENGTH` | Les modèles de notes — `build-note-1`, `read-note-1` | La note la plus longue que chacun écrit : 100 000 caractères vers Dynamics 365, la limite propre d'une note, et 30 000 vers OneUptime. |
 
 Les noms d'état et de statut utilisés comme clés doivent être écrits exactement comme ils sont nommés, majuscules comprises. Évitez `{{` dans le code : un script est rempli comme tout autre paramètre avant de s'exécuter, donc deux accolades ouvrantes à la suite seraient lues comme une référence.
@@ -242,7 +242,7 @@ Les noms d'état et de statut utilisés comme clés doivent être écrits exacte
 ### Limites
 
 - **Le cloud commercial de Microsoft.** L'URL de jeton est `login.microsoftonline.com`. Pour les clouds US Government (GCC High, DoD) ou Chine, ouvrez `dynamicsAccessToken`, utilisez **Modifier les paramètres** et remplacez l'URL de jeton par l'hôte de connexion de votre cloud, par exemple `login.microsoftonline.us`.
-- **Dynamics 365 peut refuser de résoudre un dossier.** Vos paramètres Customer Service peuvent empêcher de résoudre un dossier tant qu'il a des activités ouvertes ou des dossiers enfants ouverts, et une règle métier ou un plug-in peut aussi le refuser. L'exécution se termine par `❌ Dynamics 365 did not resolve the case`, avec la raison donnée par Dynamics 365, et le dossier reste tel quel.
+- **Dynamics 365 peut refuser de résoudre un dossier.** Vos paramètres Customer Service peuvent empêcher de résoudre un dossier tant qu'il a des activités ouvertes ou des dossiers enfants ouverts, et une règle métier ou un plug-in peut aussi le refuser. L'exécution échoue à `close-case-1`, avec la raison donnée par Dynamics 365, et le dossier reste tel quel.
 - **Enregistrements et dossiers ne reculent jamais.** Rouvrir un dossier ne change rien dans OneUptime, et un enregistrement résolu n'est jamais rouvert. Un dossier déjà résolu ou annulé n'est jamais rouvert pour être fermé de nouveau.
 - **Notes et descriptions sont du texte brut.** Une note écrite dans l'éditeur de texte enrichi de Dynamics 365 arrive dans OneUptime sous la forme du texte qu'il affiche, tout comme une description de dossier écrite dans l'éditeur ou tirée d'un e-mail : les paragraphes et les sauts de ligne restent, tandis que la mise en forme, les images et les styles propres à l'e-mail disparaissent. Une note OneUptime arrive dans Dynamics 365 avec ses caractères bruts, Markdown compris. Le texte venu de Dynamics 365 — le titre et la description d'un dossier, une note, les noms des statuts, priorités, clients et personnes — se lit exactement comme il a été écrit : une image, un lien, du HTML, un diagramme ou une mention de chat comme `<!channel>` qui y sont tapés s'affichent comme leurs caractères et ne font rien, car un gluon de mots invisible suit le caractère qui les ouvrirait. Une copie du texte garde ce gluon. Un workflow garde les scripts avec lesquels il a été créé, donc un workflow créé à partir d'une ancienne version d'un modèle écrit le texte comme le faisait cette version : recréez-le à partir de son modèle pour obtenir ce comportement. Les pièces jointes restent dans Dynamics 365 ; la note dans OneUptime nomme le fichier.
 - **Les notes modifiées ne sont pas copiées**, seulement les nouvelles, sauf si vous ajoutez `'Update'` à `MESSAGES`.

@@ -129,7 +129,7 @@ En Atlassian-**tjenestekonto** virker også. En organisationsadministrator opret
 4. Klik på **Opret arbejdsgang**. Hvert workflow oprettes slået fra: slå **Aktiveret** til øverst i dets **Bygger**.
 :::
 
-Start med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** til advarsler: alle andre skabeloner OneUptime → Jira af samme slags finder sagen via den etiket, som denne tilføjer. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslens sidste trin bør vise `✅ Created Jira issue` og nævne den nye sag.
+Start med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** til advarsler: alle andre skabeloner OneUptime → Jira af samme slags finder sagen via den etiket, som denne tilføjer. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Response Body** i dens sidste trin, `create-issue-1`, nævner den nye sag.
 
 Hvert workflow har sin egen kopi af disse værdier. Når du udskifter tokenet, opdaterer du `jiraBasicAuthToken` under **Arbejdsgangsvariabler** i hvert Jira-workflow, der bad om det. Hvis Jira flytter til en anden adresse, opdaterer du `jiraSiteUrl` og `jiraBaseUrl` på samme måde.
 
@@ -180,14 +180,14 @@ Før du stoler på det:
 
 ### Kontrollér, at det virker
 
-Hver skabelon slutter med et **Log**-trin, der siger, hvad der skete, så det sidste trin i en kørsel i **Protokoller → Kørsler** er stedet at kigge:
+Hver kørsels **Trin** siger, hvad skabelonen gjorde, så åbn kørslen i **Protokoller → Kørsler** og se, hvordan den sluttede:
 
-- `✅` — den gjorde sit arbejde og nævner sagen, hændelsen eller advarslen.
-- `ℹ️` — den sprang begivenheden over med vilje og siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra Jira, posten er privat, eller der er ingen Jira-status knyttet til den nye tilstand.
-- `❌` — et kald mislykkedes. Ved et Jira-kald indeholder linjen Jiras svar.
-- `⚠️` — en skabelon, der opretter en post ud fra en Jira-sag, oprettede den, men Jira tog ikke imod forbindelsesetiketterne, så de andre skabeloner kan ikke finde den endnu. Tilføj etiketterne i hånden.
+- **Udført**: den gjorde sit arbejde, og dens sidste trin nævner sagen, hændelsen eller advarslen.
+- **Udført**, med trinnet **Check With JavaScript** på **No**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra Jira, posten er privat, eller der er ingen Jira-status knyttet til den nye tilstand.
+- **Fejl**: et trin mislykkedes, og dets post under **Trin** siger hvorfor. Ved et Jira-kald indeholder den Jiras svar.
+- **Fejl** ved `link-issue-1`: en skabelon, der opretter en post ud fra en Jira-sag, oprettede den, men Jira tog ikke imod forbindelsesetiketterne, så de andre skabeloner kan ikke finde den endnu. Tilføj etiketterne i hånden.
 
-En kørsel, der springes over, slutter stadig som **Udført**. Det er normalt at springe over: de fleste Jira-begivenheder er ikke nogen, en given skabelon handler på. Se [Workflow-kørsler](/docs/workflows/runs-and-logs).
+Det er normalt at springe over: de fleste Jira-begivenheder er ikke nogen, en given skabelon handler på. Se [Workflow-kørsler](/docs/workflows/runs-and-logs).
 
 ## Sådan fungerer skabelonerne
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Ændr, hvad en skabelon gør
 
-Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript Code** i en **Run Custom JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler af en skabelon har de samme konstanter i de samme blokke:
+Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript Code** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler af en skabelon har de samme konstanter i de samme blokke:
 
 | Konstant | Skabelon og blok | Hvad den styrer |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | De statusnavne, skabelonen foretrækker, når den går efter betydning, og dem, den aldrig vælger, medmindre `STATE_TO_JIRA_STATUS` nævner dem. Begge er regulære udtryk, der matches mod statusnavnet uden hensyn til store og små bogstaver. |
 | `SYNC_PRIVATE_INCIDENTS` | Hver skabelon til hændelser OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` eller `build-comment-1` | `false` holder hændelser markeret som **Privat hændelse** ude af Jira: der oprettes ingen sag for dem, deres sag flyttes ikke, og hverken deres noter eller deres redigeringer sendes. Sæt den til `true` for at sende dem alligevel. Hver skabelon har sin egen kopi, så sæt den i hver skabelon, der skal sende dem. |
 | `SYNC_PRIVATE_ALERTS` | Hver skabelon til advarsler OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` eller `build-comment-1` | Det samme for advarsler markeret som **Privat advarsel**: `false` holder dem ude af Jira på samme måder, og `true` sender dem alligevel. Sæt den i hver skabelon til advarsler, der skal sende dem. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Knytter et Jira-statusnavn til et OneUptime-tilstandsnavn, f.eks. `{ 'In Review': 'Monitoring' }`. Statusser, der ikke står her, går efter Jiras statuskategori: In Progress kvitterer hændelsen eller advarslen, Done løser den, og To Do svarer til intet. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Knytter et Jira-statusnavn til et OneUptime-tilstandsnavn, f.eks. `{ 'In Review': 'Monitoring' }`. Statusser, der ikke står her, går efter Jiras statuskategori: In Progress kvitterer hændelsen eller advarslen, Done løser den, og To Do svarer til intet. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Knytter en Jira-prioritet, skrevet med små bogstaver, til `0` (din mest alvorlige alvorlighed), `1` eller `2` (den mindst alvorlige), med dem imellem fordelt over intervallet. Prioriteter, der ikke står her, lander i midten. Med de to alvorligheder for advarsler, et nyt projekt har, er `0` High, og både `1` og `2` er Low, så Medium bliver Low, medmindre du ændrer det til `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | De kommentarbegivenheder, der bliver til noter. Tilføj `'comment_updated'` for også at kopiere redigeringer — hver redigering bliver en ny note — og sæt også flueben ved **Comment updated** på Jira-webhooken. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | De Jira-felter, med små bogstaver, hvis ændringer ikke er en note værd. En ændring udelades, når enten dens felt-ID eller dens navn står på listen, og det er sådan, `'rank'` fanger Rank, et brugerdefineret felt, der kommer med et ID som `customfield_10019`. Status står på listen, fordi statusskabelonen håndterer den. |
@@ -271,7 +271,7 @@ Private noter og redigeringskommentarer markeres som interne af `properties`-pos
 ### Begrænsninger
 
 - **Kun Jira Cloud.** Skabelonerne kalder Jira Clouds REST API v3 med Basic-godkendelse. Data Center har ingen v3 og tager et personligt adgangstoken som `Bearer`, så hver API-blok har brug for ændringerne i [Jira Data Center](#jira-data-center): stier som `/rest/api/2/...`, almindelige strenge i stedet for brødtekster i Atlassian Document Format og headeren. Blokkene `find-issue-1` ændrer sig mest: Data Center har ingen `/search/jql`, så de skal i stedet lave en `POST` til `/rest/api/2/search`.
-- **Hændelser erklæret fra Jira er stille.** De oprettes skjult fra dine statussider uden at give statussidernes abonnenter besked, fordi en sags tekst ikke er skrevet til kunder. For at vise en slår du **Synlig på statussiden** til på hændelsens side **Indstillinger** (se [Hold en hændelse væk fra statussiden](/docs/incidents/states-and-severities#hold-en-hændelse-væk-fra-statussiden)), eller ændrer `isVisibleOnStatusPage` og `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` i skabelonens `create-incident-1`-blok.
+- **Hændelser erklæret fra Jira er stille.** De oprettes skjult fra dine statussider uden at give statussidernes abonnenter besked, fordi en sags tekst ikke er skrevet til kunder. For at vise en slår du **Synlig på statussiden** til på hændelsens side **Indstillinger** (se [Hold en hændelse væk fra statussiden](/docs/incidents/states-and-severities#hold-en-hændelse-væk-fra-statussiden)), eller slår **Show On Status Pages** til under **Flere felter** i skabelonens `incident-from-another-tool-1`-blok.
 - **Private hændelser og advarsler bliver i OneUptime.** Skabelonerne OneUptime → Jira springer dem over, og hver overspringning står i **Protokoller → Kørsler**. For at sende dem alligevel sætter du `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` til `true`. At gøre en post privat senere stopper synkroniseringen fra da af, men tager ikke det tilbage, som Jira allerede har. Skabelonerne Jira → OneUptime kontrollerer det ikke, så kommentarer, redigeringer og statusændringer på en forbundet sag når stadig en privat post.
 - **Intet går baglæns.** At genåbne en Jira-sag ændrer intet i OneUptime, og en status i kategorien To Do svarer ikke til nogen tilstand. Se [Rækkefølgen er en reel begrænsning](/docs/incidents/states-and-severities#rækkefølgen-er-en-reel-begrænsning-ikke-en-visningspræference). Overgangsskabelonerne flytter heller aldrig en sag til en tidligere statuskategori.
 - **Hver advarsel får en sag.** Bortset fra private advarsler opretter skabelonen til advarsler, der opretter sager, en sag for hver advarsel, også hver advarsel, en monitor udløser. [Hvad der er anderledes for advarsler](#hvad-der-er-anderledes-for-advarsler) viser, hvordan du tilføjer en betingelse.
@@ -286,7 +286,7 @@ Private noter og redigeringskommentarer markeres som interne af `properties`-pos
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **Den samme begivenhed kan komme to gange.** Jira prøver en levering igen, der mislykkedes med en serverfejl eller fik timeout. Hvis OneUptime allerede havde startet kørslen, tilføjer skabelonerne til kommentarer og sagsændringer en ekstra note. Skabelonerne, der opretter en post, opretter ikke en til: de spørger først Jira om sagens etiketter, og når et nyt forsøg kommer, har den første kørsel allerede sat etiket på sagen. Det hjælper ikke, når den første kørsel oprettede posten, men Jira afviste etiketterne: kørslen slutter med en `⚠️`-linje, og du skal tilføje etiketterne i hånden.
+- **Den samme begivenhed kan komme to gange.** Jira prøver en levering igen, der mislykkedes med en serverfejl eller fik timeout. Hvis OneUptime allerede havde startet kørslen, tilføjer skabelonerne til kommentarer og sagsændringer en ekstra note. Skabelonerne, der opretter en post, opretter ikke en til: de spørger først Jira om sagens etiketter, og når et nyt forsøg kommer, har den første kørsel allerede sat etiket på sagen. Det hjælper ikke, når den første kørsel oprettede posten, men Jira afviste etiketterne: kørslen mislykkes ved `link-issue-1`, og du skal tilføje etiketterne i hånden.
 
 ## Byg det selv
 

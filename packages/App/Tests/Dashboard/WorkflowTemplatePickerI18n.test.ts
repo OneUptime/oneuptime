@@ -63,6 +63,13 @@ const MODAL_PATH: string = path.join(
   "CreateWorkflowModal.tsx",
 );
 
+const CREATE_UTIL_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Utils",
+  "Workflow",
+  "WorkflowTemplateCreateUtil.ts",
+);
+
 /** Every string the picker translates that it writes out itself. */
 const PICKER_STRINGS: Array<string> = [
   "Start from scratch",
@@ -107,7 +114,19 @@ const MODAL_STRINGS: Array<string> = [
   "Back",
   "Create Workflow",
   "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+  /*
+   * A template that pages people asks who, on the Configure step: one
+   * sentence over the questions, with settings before them or not.
+   */
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.",
 ];
+
+/*
+ * What the Configure step says under a who-to-page question nobody
+ * answered: kept in English in the create util, as its key, and looked up
+ * where the step shows it.
+ */
+const CREATE_UTIL_STRINGS: Array<string> = ["Pick who to page."];
 
 /*
  * The category select's options - Recommended, each category, All
@@ -136,6 +155,7 @@ const STRINGS: Array<string> = Array.from(
   new Set([
     ...PICKER_STRINGS,
     ...MODAL_STRINGS,
+    ...CREATE_UTIL_STRINGS,
     /*
      * The Name step's Next, before Configure: the shared stepped footer's
      * (Forms/Utils/SteppedFormFooter), which the dialog translates.
@@ -186,6 +206,9 @@ const NEW_STRINGS: Array<string> = [
   "Integrations",
   // The Zabbix category, which came later.
   "Zabbix",
+  // Who a template pages, asked in the wizard.
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.",
+  "Pick who to page.",
 ];
 
 /*
@@ -254,6 +277,14 @@ const RETIRED_STRINGS: Array<string> = [
   "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
   // The note before test runs: off no longer means nothing runs.
   "Workflows are created switched off, so nothing runs until you turn them on.",
+  /*
+   * The who-to-page step's first two sentences: one glued the template's
+   * English name to a translated sentence ("Page whoever is on call when a
+   * critical incident is created pages people in this project"), and the
+   * other said the same again under the settings.
+   */
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.",
 ];
 
 // Retired strings no other part of the Dashboard draws, so no locale keeps them.
@@ -271,10 +302,20 @@ const RETIRED_KEYS: Array<string> = [
   "Start from",
   "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
   "Workflows are created switched off, so nothing runs until you turn them on.",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.",
 ];
 
 const CONFIGURE_SENTENCE: string =
   "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.";
+
+/*
+ * The sentence over the who-to-page questions, settings before them or
+ * not. It names no template: an English name inside a translated sentence
+ * read as two languages at once.
+ */
+const WHO_TO_PAGE_SENTENCE: string =
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.";
 
 type ReadLocaleFunction = (file: string) => Record<string, unknown>;
 
@@ -309,6 +350,9 @@ const PICKER_CODE: string = [PICKER_PATH, SHARED_PICKER_PATH]
   })
   .join("\n");
 const MODAL_CODE: string = stripComments(fs.readFileSync(MODAL_PATH, "utf8"));
+const CREATE_UTIL_CODE: string = stripComments(
+  fs.readFileSync(CREATE_UTIL_PATH, "utf8"),
+);
 
 type LiteralArgumentsFunction = (code: string, callee: string) => Array<string>;
 
@@ -362,12 +406,22 @@ describe("Create a workflow's strings", () => {
     );
 
     expect(translated).toEqual([CONFIGURE_SENTENCE]);
+    expect(literalArguments(MODAL_CODE, "translateString")).toContain(
+      WHO_TO_PAGE_SENTENCE,
+    );
 
     for (const text of MODAL_STRINGS) {
       expect({
         text: text,
         inWizard: MODAL_CODE.includes(`"${text}"`),
       }).toEqual({ text: text, inWizard: true });
+    }
+
+    for (const text of CREATE_UTIL_STRINGS) {
+      expect({
+        text: text,
+        inUtil: CREATE_UTIL_CODE.includes(`translationKey("${text}")`),
+      }).toEqual({ text: text, inUtil: true });
     }
   });
 
@@ -484,13 +538,14 @@ describe("Create a workflow's strings", () => {
   );
 
   test.each(NON_ENGLISH_FILES)(
-    "%s names the template in the Configure sentence exactly once",
+    "%s names the template in the Configure sentence exactly once, and not in the who-to-page one",
     (file: string) => {
       const locale: Record<string, unknown> = readLocale(file);
 
       expect(
         String(locale[CONFIGURE_SENTENCE]).split("{{templateName}}"),
       ).toHaveLength(2);
+      expect(String(locale[WHO_TO_PAGE_SENTENCE])).not.toContain("{{");
     },
   );
 

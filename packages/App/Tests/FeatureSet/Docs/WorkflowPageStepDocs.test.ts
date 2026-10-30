@@ -18,10 +18,13 @@ import OnCallComponents from "Common/Types/Workflow/Components/OnCall";
 import { PAGE_ARGUMENT_IDS } from "Common/Types/Workflow/Components/OnCallPageSettings";
 import { WorkflowDocsPaths } from "Common/Types/Workflow/Documentation/DocumentationLinks";
 import {
+  WorkflowTemplate,
   WorkflowTemplateCategory,
+  WorkflowTemplateWhoToPage,
   getTemplateGraphSpec,
   getWorkflowTemplate,
   getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplates,
 } from "Common/Types/Workflow/Templates";
 import { componentReturnValueReference } from "Common/Types/Workflow/TemplateSyntax";
 import { DIRECT_PAGE_LABEL } from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
@@ -353,6 +356,7 @@ describe("the Paging section of the Components guide", () => {
       for (const label of [
         "Add Component",
         "On-Call",
+        "Create a workflow",
         "Click to set up",
         "More fields",
         DIRECT_PAGE_LABEL,
@@ -403,7 +407,6 @@ describe("the Paging section of the Components guide", () => {
       "flowchart TB",
       '    trigger["On Create Incident"] -->|"Success"| check["If / Else"]',
       '    check -->|"Yes"| page["Page Whoever Is On Call"]',
-      '    check -->|"No"| log["Log"]',
     ]);
 
     for (const language of LANGUAGES) {
@@ -553,7 +556,8 @@ describe("the English section says what the code does", () => {
       ComponentID.IfElse,
     ]);
     expect(leadsTo("if-else-1", "yes")).toEqual([ComponentID.PageOnCall]);
-    expect(leadsTo("if-else-1", "no")).toEqual([ComponentID.Log]);
+    // Nothing on No: the run ends there, and No is not a failure.
+    expect(leadsTo("if-else-1", "no")).toEqual([]);
 
     // And the other one: a Switch / Case with a Page step on its cases.
     const bySeverity: Graph = getTemplateGraphSpec(
@@ -576,10 +580,49 @@ describe("the English section says what the code does", () => {
     );
   });
 
-  test("says a template leaves who to page, which its Page steps do", () => {
+  /*
+   * A template names no one to page: its Page steps leave who to page
+   * empty, and the create dialog asks for it, one question per Page step
+   * (WorkflowTemplate.whoToPage), so the workflow opens with them set.
+   */
+  test("says the create dialog asks who each of a template's Page steps pages, which every paging template asks", () => {
     type Graph = NonNullable<ReturnType<typeof getTemplateGraphSpec>>;
 
-    expect(section).toContain("A template leaves who to page for you");
+    expect(section).toContain(
+      "The **Create a workflow** dialog asks who each of a template's paging blocks pages, so the workflow opens with them set.",
+    );
+    expect(section).not.toContain("A template leaves who to page for you");
+
+    let pagingTemplates: number = 0;
+
+    for (const template of getWorkflowTemplates() as Array<WorkflowTemplate>) {
+      const graph: Graph = getTemplateGraphSpec(template.id) as Graph;
+      const asked: Array<string> = (template.whoToPage || []).map(
+        (ask: WorkflowTemplateWhoToPage): string => {
+          return ask.componentId;
+        },
+      );
+      const pageSteps: Array<string> = graph.nodes
+        .filter((node: Graph["nodes"][number]): boolean => {
+          return PAGE_STEPS.some((component: ComponentMetadata): boolean => {
+            return component.id === node.metadataId;
+          });
+        })
+        .map((node: Graph["nodes"][number]): string => {
+          return node.componentId;
+        });
+
+      if (pageSteps.length > 0) {
+        pagingTemplates++;
+      }
+
+      expect({ template: template.id, asked: [...asked].sort() }).toEqual({
+        template: template.id,
+        asked: [...pageSteps].sort(),
+      });
+    }
+
+    expect(pagingTemplates).toBeGreaterThanOrEqual(5);
 
     for (const templateId of [
       "incident-critical-page-on-call",

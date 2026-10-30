@@ -38954,5 +38954,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "O gráfico mostra quantas exceções aconteceram. Ele não é desenhado para exceções novas, exceções que voltaram ou um aumento acima do habitual.",
   "{{monitorName}}: a new exception": "{{monitorName}}: uma exceção nova",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: uma exceção resolvida voltou",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: pico de exceções"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: pico de exceções",
+  "Pick who to page.": "Escolha quem acionar.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Escolha quem este fluxo de trabalho aciona. Você pode alterar depois na etapa de acionamento, no Construtor."
 }
