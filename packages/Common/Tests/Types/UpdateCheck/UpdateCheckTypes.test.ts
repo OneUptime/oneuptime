@@ -118,8 +118,8 @@ describe("a stored advisory", () => {
     expect(
       SecurityAdvisoryUtil.fromJSON({
         ...STORED,
-        summary: "  First\r\nsecond
-third\u0007  ",
+        // A line separator (U+2028) and a bell (U+0007), as GitHub could send them.
+        summary: `  First\r\nsecond${String.fromCharCode(0x2028)}third${String.fromCharCode(0x0007)}  `,
       })?.summary,
     ).toBe("First second third");
 
