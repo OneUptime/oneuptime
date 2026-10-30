@@ -38798,5 +38798,18 @@
   "The {{plan}} plan": "{{plan}} प्लान",
   "Tick the responders to remind. Ready ones have nothing to set up.": "जिन प्रतिक्रियाकर्ताओं को याद दिलाना है, उन्हें चुनें। तैयार प्रतिक्रियाकर्ताओं को कुछ सेट अप नहीं करना है।",
   "Who is on call and when, with every layer applied.": "सभी परतें लागू करने पर कौन कब ऑन-कॉल है।",
-  "You do not have permission to page on-call policies.": "आपको ऑन-कॉल नीतियों से पेज करने की अनुमति नहीं है।"
+  "You do not have permission to page on-call policies.": "आपको ऑन-कॉल नीतियों से पेज करने की अनुमति नहीं है।",
+  "First seen in the last 24 hours.": "पिछले 24 घंटों में पहली बार देखा गया।",
+  "It came back after it was resolved.": "सुलझाए जाने के बाद यह फिर से आया।",
+  "It came back {{time}}, after it was resolved.": "सुलझाए जाने के बाद यह {{time}} फिर से आया।",
+  "Marked as Archived At": "संग्रहीत के रूप में चिह्नित करने का समय",
+  "Marked as Resolved At": "सुलझाया गया के रूप में चिह्नित करने का समय",
+  "More ways to resolve": "सुलझाने के और तरीके",
+  "No release is recorded for it.": "इसके लिए कोई रिलीज़ दर्ज नहीं है।",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "{{release}} की घटनाएं इसे फिर से नहीं खोलेंगी। किसी अन्य रिलीज़ की घटना खोलेगी।",
+  "Regressed": "दोबारा हुआ",
+  "Regressed At": "दोबारा होने का समय",
+  "Resolve in next release": "अगली रिलीज़ में सुलझाएं",
+  "Resolved in Release After": "इस रिलीज़ के बाद वाली में सुलझाया गया",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "अगली रिलीज़ में सुलझाया गया: {{release}} की घटनाएं इसे फिर से नहीं खोलतीं।"
 }

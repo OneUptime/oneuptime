@@ -38798,5 +38798,18 @@
   "The {{plan}} plan": "Abonnementet {{plan}}",
   "Tick the responders to remind. Ready ones have nothing to set up.": "Kryss av mottakerne som skal påminnes. De som er klare, har ingenting å sette opp.",
   "Who is on call and when, with every layer applied.": "Hvem som har vakt og når, med alle lag brukt.",
-  "You do not have permission to page on-call policies.": "Du har ikke tillatelse til å tilkalle via vaktretningslinjer."
+  "You do not have permission to page on-call policies.": "Du har ikke tillatelse til å tilkalle via vaktretningslinjer.",
+  "First seen in the last 24 hours.": "Sett første gang i løpet av de siste 24 timene.",
+  "It came back after it was resolved.": "Den kom tilbake etter at den ble løst.",
+  "It came back {{time}}, after it was resolved.": "Den kom tilbake {{time}}, etter at den ble løst.",
+  "Marked as Archived At": "Merket som arkivert den",
+  "Marked as Resolved At": "Merket som løst den",
+  "More ways to resolve": "Flere måter å løse på",
+  "No release is recorded for it.": "Ingen utgivelse er registrert for den.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Forekomster fra {{release}} gjenåpner den ikke. En fra en hvilken som helst annen utgivelse gjør det.",
+  "Regressed": "Regresjon",
+  "Regressed At": "Regresjon den",
+  "Resolve in next release": "Løs i neste utgivelse",
+  "Resolved in Release After": "Løst i utgivelsen etter",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Løst i neste utgivelse: forekomster fra {{release}} gjenåpner den ikke."
 }

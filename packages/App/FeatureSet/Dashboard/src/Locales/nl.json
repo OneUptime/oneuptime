@@ -38798,5 +38798,18 @@
   "The {{plan}} plan": "Het {{plan}}-abonnement",
   "Tick the responders to remind. Ready ones have nothing to set up.": "Vink de ontvangers aan die u wilt herinneren. Wie gereed is, hoeft niets in te stellen.",
   "Who is on call and when, with every layer applied.": "Wie wanneer dienst heeft, met alle lagen toegepast.",
-  "You do not have permission to page on-call policies.": "U hebt geen toestemming om via bereikbaarheidsbeleid op te roepen."
+  "You do not have permission to page on-call policies.": "U hebt geen toestemming om via bereikbaarheidsbeleid op te roepen.",
+  "First seen in the last 24 hours.": "Voor het eerst gezien in de afgelopen 24 uur.",
+  "It came back after it was resolved.": "Ze kwam terug nadat ze was opgelost.",
+  "It came back {{time}}, after it was resolved.": "Ze kwam {{time}} terug, nadat ze was opgelost.",
+  "Marked as Archived At": "Gemarkeerd als gearchiveerd op",
+  "Marked as Resolved At": "Gemarkeerd als opgelost op",
+  "More ways to resolve": "Meer manieren om op te lossen",
+  "No release is recorded for it.": "Er is geen release voor vastgelegd.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Voorvallen uit {{release}} heropenen haar niet. Een voorval uit elke andere release wel.",
+  "Regressed": "Regressie",
+  "Regressed At": "Regressie op",
+  "Resolve in next release": "Oplossen in volgende release",
+  "Resolved in Release After": "Opgelost in release na",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Opgelost in de volgende release: voorvallen uit {{release}} heropenen haar niet."
 }

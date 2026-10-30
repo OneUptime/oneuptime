@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Una excepción por servicio y error.** La huella se calcula a partir del servicio, el tipo de excepción, el mensaje y el stack trace. Antes se quitan los valores que cambian de una llamada a otra: UUID y otros identificadores, marcas de tiempo, direcciones IP y de correo, y números de siete o más dígitos. Así, `Order id=1042 not found` y `Order id=2077 not found` son una sola excepción.
-- **Una ocurrencia nueva reabre una excepción resuelta.** Si vuelve a ocurrir después de resolverla, la corrección no funcionó.
+- **Una ocurrencia nueva reabre una excepción resuelta.** Si vuelve a ocurrir después de resolverla, la corrección no funcionó, y la excepción se marca como **Regresión**. Una ocurrencia anterior a la resolución que llega tarde a OneUptime no la reabre.
 - **Una excepción archivada sigue archivada.** Sus nuevas ocurrencias se siguen contando, pero dejan de notificar.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Vaya a **Productos → Observabilidad → Excepciones**. La insignia de la pesta
 
 ### Elegir un estado
 
-Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo.
+Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo. Una fila marcada como **Regresión** volvió después de resolverse, y una marcada como **Nuevo** se vio por primera vez en las últimas 24 horas.
 
 ### Elegir qué cuenta como problema
 
@@ -86,9 +86,12 @@ Los botones de la parte superior de la página de la excepción, su página **Aj
 | Acción | Cuándo usarla | Qué pasa después |
 | --- | --- | --- |
 | **Resolver** | Desplegó la corrección. | Sale de la lista **Sin resolver**. Una ocurrencia nueva la reabre. |
+| **Resolver en la próxima versión** | La corrección sale en su próxima versión. | Sale de la lista **Sin resolver**. Las ocurrencias de la versión en la que se vio por última vez no la reabren, y una de cualquier otra versión sí. |
 | **Reabrir** | La corrección no funcionó. | Vuelve a estar sin resolver. |
 | **Archivar** | Es ruido que no piensa corregir. | Sale de la lista. Las ocurrencias nuevas se cuentan pero dejan de notificar. |
 | **Desarchivar** | Quiere volver a saber de ella. | Vuelve a la lista que le corresponde. |
+
+**Resolver en la próxima versión** está en el menú junto a **Resolver**, en el menú ⋯ de la fila, en **Acciones masivas** y en **Ajustes**, mientras las ocurrencias de la excepción indiquen su versión: el atributo de recurso `service.version`.
 
 **Ajustes** muestra quién resolvió o archivó la excepción por última vez, y cuándo. Sus botones dicen **Marcar como resuelto** o **Marcar como no resuelto**, y **Archivar** o **Desarchivar**.
 
@@ -173,7 +176,7 @@ La huella incluye el mensaje y el stack trace. Cuando difieren, por ejemplo cuan
 :::
 
 :::details Una excepción resuelta vuelve una y otra vez
-Una ocurrencia nueva reabre una excepción resuelta a propósito: el error sigue ocurriendo. Compruebe que la corrección llegó a la versión que la informa, o archive la excepción si ya no quiere saber de ella.
+Una ocurrencia nueva reabre una excepción resuelta a propósito: el error sigue ocurriendo. Compruebe que la corrección llegó a la versión que la informa, o archive la excepción si ya no quiere saber de ella. Si los pods antiguos de la versión siguen informándola durante un despliegue, use **Resolver en la próxima versión** en su lugar.
 :::
 
 ## Próximos pasos

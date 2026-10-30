@@ -19,6 +19,8 @@ import { getErrorClassBadgeLabel } from "../../Utils/ExceptionErrorClassLabels";
 import ExceptionResource from "./ExceptionResource";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ExceptionIssueBadge } from "Common/Utils/Exceptions/ExceptionIssueState";
+import { getExceptionIssueBadgePresentation } from "./ExceptionIssueBadges";
 
 export const EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT: number = 240;
 
@@ -125,6 +127,29 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
       label: translator.translateText("Archived") as string,
       className: "bg-amber-50 text-amber-700 ring-amber-600/20",
       testId: "exception-summary-archived",
+    });
+  }
+
+  /*
+   * Regressed or New, beside the status, as the list row shows them
+   * (ExceptionIssueBadges). Unhandled has its own pill below.
+   */
+  for (const badge of getExceptionIssueBadgePresentation(
+    props.exception,
+    translator,
+  )) {
+    if (badge.badge === ExceptionIssueBadge.Unhandled) {
+      continue;
+    }
+
+    pills.push({
+      label: badge.label,
+      className:
+        badge.badge === ExceptionIssueBadge.Regressed
+          ? "bg-orange-50 text-orange-700 ring-orange-600/20"
+          : "bg-sky-50 text-sky-700 ring-sky-600/20",
+      title: badge.title,
+      testId: `exception-summary-${badge.badge}`,
     });
   }
 

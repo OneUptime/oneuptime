@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak.
-- **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen.
+- **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen, og unntaket merkes som **Regresjon**. En forekomst fra før du løste det, som først når OneUptime senere, gjenåpner det ikke.
 - **Et arkivert unntak forblir arkivert.** De nye forekomstene telles fortsatt, men de sender ikke lenger varsler.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak**
 
 ### Velg en status
 
-Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid.
+Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid. En rad merket **Regresjon** kom tilbake etter at den ble løst, og en merket **Ny** ble sett første gang i løpet av de siste 24 timene.
 
 ### Velg hva som teller som et problem
 
@@ -86,9 +86,12 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 | Handling | Når du bruker den | Hva som skjer etterpå |
 | --- | --- | --- |
 | **Løs** | Du har rullet ut rettingen. | Det forlater listen **Uløst**. En ny forekomst gjenåpner det. |
+| **Løs i neste utgivelse** | Rettingen kommer i din neste utgivelse. | Det forlater listen **Uløst**. Forekomster fra utgivelsen det sist ble sett i, gjenåpner det ikke, men en fra en hvilken som helst annen utgivelse gjør det. |
 | **Gjenåpne** | Rettingen virket ikke. | Det er uløst igjen. |
 | **Arkiver** | Det er støy du ikke tenker å rette. | Det forlater listen. Nye forekomster telles, men sender ikke lenger varsler. |
 | **Fjern fra arkiv** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
+
+**Løs i neste utgivelse** ligger i menyen ved siden av **Løs**, i radens meny ⋯, under **Massehandlinger** og på **Innstillinger**, så lenge forekomstene av unntaket oppgir utgivelsen sin: ressursattributtet `service.version`.
 
 **Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
 
@@ -173,7 +176,7 @@ Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, fo
 :::
 
 :::details Et løst unntak kommer stadig tilbake
-En ny forekomst gjenåpner et løst unntak med vilje: feilen skjer fortsatt. Kontroller at rettingen nådde releasen som rapporterer den, eller arkiver unntaket hvis du ikke lenger vil høre om det.
+En ny forekomst gjenåpner et løst unntak med vilje: feilen skjer fortsatt. Kontroller at rettingen nådde releasen som rapporterer den, eller arkiver unntaket hvis du ikke lenger vil høre om det. Hvis gamle pods av utgivelsen fortsetter å rapportere det under en utrulling, bruker du **Løs i neste utgivelse** i stedet.
 :::
 
 ## Neste steg
