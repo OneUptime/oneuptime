@@ -4,7 +4,7 @@ En lagringsarray-monitor bevakar en lagringsarray och säger till när arrayen s
 
 :::cards
 - [Skapa monitorn](#skapa-en-lagringsarray-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Arton färdiga larm, en incident per volym, värd eller komponent.
+- [Mallar](#färdiga-larmmallar): Tjugo färdiga larm, en incident per volym, värd eller komponent.
 - [Så fungerar Pures serier](#så-är-pures-serier-uppbyggda): Ett mätvärdesnamn, många värden.
 - [Mätvärden](#insamlade-mätvärden): Varje serie som monitorn kan varna på.
 :::
@@ -109,7 +109,7 @@ I monitorfilter och grupperingsnycklar börjar agentens attribut med `resource.`
 
 ## Färdiga larmmallar
 
-OneUptime levererar 18 mallar — 11 för FlashArray och 7 för FlashBlade — och **Quick Setup** erbjuder dem för arrayens plattform. Var och en bygger en komplett monitor: mätvärdesfrågan, etikettfiltren, en gruppering på objektets egen etikett, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+OneUptime levererar 20 mallar — 12 för FlashArray och 8 för FlashBlade — och **Quick Setup** erbjuder dem för arrayens plattform. Var och en bygger en komplett monitor: mätvärdesfrågan, etikettfiltren, en gruppering på objektets egen etikett, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöser bara när villkoret gäller för **varje** värde i fönstret. En monitor som utlöstes på ett tröskelvärde för kapacitet, latens, eftersläpning eller kvot återhämtar sig först 10 % förbi det, så ett värde som pendlar kring tröskeln inte växlar fram och tillbaka; mallarna för larm och hårdvara återhämtar sig så snart tillståndet försvinner.
 
@@ -117,6 +117,7 @@ Ett kriterium utlöser bara när villkoret gäller för **varje** värde i föns
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när |
 | --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Tillgänglighet | Kritisk | `purefa_info`, Count, senaste 10 minuterna | Inga data under hela fönstret — Storage Array Agent har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, eller så har arrayen slutat svara den; återhämtar när data kommer in igen |
 | Critical Array Alert | Array Health | Kritisk | `purefa_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen kritiskt larm (en trasig komponent, en kapacitetskris, ett replikeringsfel). En incident per larm; återhämtar när larmet stängs |
 | Warning Array Alert | Array Health | Warning | `purefa_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
 | Capacity Above 80% | Kapacitet | Warning | `purefa_array_space_utilization`, Max, senaste 15 minuterna | > 80 — Pures egen första kapacitetströskel; återhämtar vid ≤ 72 |
@@ -133,6 +134,7 @@ Ett kriterium utlöser bara när villkoret gäller för **varje** värde i föns
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när |
 | --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Tillgänglighet | Kritisk | `purefb_info`, Count, senaste 10 minuterna | Inga data under hela fönstret — agenten, dess exporter eller FlashBladen har slutat svara; återhämtar när data kommer in igen |
 | Critical Array Alert | Array Health | Kritisk | `purefb_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen kritiskt larm. En incident per larm; återhämtar när larmet stängs |
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
 | Capacity Above 80% | Kapacitet | Warning | `purefb_array_space_utilization` filtrerat till `type=array`, Max, senaste 15 minuterna | > 80; återhämtar vid ≤ 72 |
@@ -143,6 +145,7 @@ Ett kriterium utlöser bara när villkoret gäller för **varje** värde i föns
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmnivå; ändra dem i kriteriet.
 
+- **Array Stopped Reporting** räknar plattformens identitetsserie (`purefa_info` eller `purefb_info`), som varje endpoint som agenten läser av exporterar vid varje avläsning. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **Öppna larm och hårdvarutillstånd använder Max** av en serie som bara finns så länge larmet är öppet eller komponenten är i det tillståndet, så en enda avläsning som visar den passerar tröskeln.
 - **Varje mall per objekt grupperar på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`), så det utlöses en incident per berört objekt, och incidenten nämner det.
 - **Latensmallar använder Avg** av arrayens eget genomsnitt per operation, och kapacitetsmallar **Max** av dess egen utnyttjandeprocent. Latenser är låsta till mikrosekunder och kapacitet till procent.

@@ -4,7 +4,7 @@ Un monitor Docker sorveglia i container di un host Docker e vi avvisa quando un 
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-docker): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-pronti): Sei avvisi pronti, un incidente per container.
+- [Modelli](#modelli-di-avviso-pronti): Sette avvisi pronti, un incidente per container.
 - [Metriche](#metriche-raccolte): Cosa raccoglie l'agente e cosa significa ogni metrica.
 - [Log](#log-raccolti): I log dei container e il driver di log di cui hanno bisogno.
 :::
@@ -84,12 +84,13 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre sei modelli. Ognuno costruisce un monitor completo: una query raggruppata per `resource.container.name`, un criterio che scatta e uno che ripristina. Ogni container viene giudicato separatamente, così un container occupato non ne nasconde un altro, e ogni container che supera la soglia riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+**Quick Setup** offre sette modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Host Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni container viene giudicato separatamente, un container occupato non ne nasconde un altro, e ogni container che supera la soglia riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container dell'host, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
 | Container Restart Loop | Critico | Crescita di `container.restarts` per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
@@ -98,6 +99,9 @@ Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condi
 | Container Down (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Uguale a 0 | Sopra 0 |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
+
+> [!NOTE]
+> **Host Stopped Reporting** scatta quando dall'host non arriva nulla per dieci minuti: l'host è giù, oppure l'agente si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala. Un host senza altri container continua comunque a inviare dati, perché l'agente gira come container e invia i propri.
 
 > [!NOTE]
 > `container.cpu.utilization` è il numero stampato da `docker stats`, in media sull'intervallo di 30 secondi dell'agente: il 100% è un core di CPU intero, non l'intero host, quindi un container che usa due core segna 200. Su un host multicore la soglia di 80 è un budget di CPU, non una quota della macchina.

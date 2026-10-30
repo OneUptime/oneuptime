@@ -4,7 +4,7 @@ Un monitor de host vigila una máquina – su CPU, su memoria, sus discos, su ca
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-host): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cinco alertas listas para usar para CPU, memoria, disco, carga y procesos.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Seis alertas listas para usar para un host silencioso, CPU, memoria, disco, carga y procesos.
 - [Métricas](#métricas-recopiladas): Las métricas de host sobre las que puede alertar, y sus unidades.
 - [¿Host o servidor / VM?](#monitor-de-host-o-monitor-de-servidor-vm): Cuál de los dos monitores de máquinas usar.
 :::
@@ -95,12 +95,13 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `system.memory.usage`, Count, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | High CPU Utilization | Advertencia | `system.cpu.utilization` para los estados `user` y `system`, sumados y mostrados como porcentaje, últimos 5 minutos | Por encima del 80 % | En el 72 % o menos |
 | High Memory Utilization | Advertencia | `system.memory.utilization` para el estado `used`, como porcentaje, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
 | High Filesystem Usage | Crítico | `system.filesystem.utilization`, Max por `mountpoint` y `device`, como porcentaje, últimos 5 minutos | Por encima del 90 % | En el 81 % o menos |
@@ -109,6 +110,7 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
+- **Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: la máquina está caída o inaccesible, o su colector se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **CPU** es el tiempo ocupado (`user` más `system`), la misma cifra que grafica la **Vista general** del host. La espera de E/S y el steal quedan fuera.
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
 - **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %; exclúyalos en el scraper `filesystem` del colector.

@@ -4,7 +4,7 @@ Un monitor Ceph sorveglia un cluster Ceph — il suo stato di salute, gli health
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-ceph): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-predefiniti): 23 avvisi pronti per stato, OSD, placement group e capacità.
+- [Modelli](#modelli-di-avviso-predefiniti): 24 avvisi pronti per un cluster silenzioso, stato, OSD, placement group e capacità.
 - [Health check](#serie-degli-health-check): Ricevere un avviso su qualsiasi health check di Ceph per nome.
 - [Metriche](#metriche-raccolte): Ogni serie `ceph_*` su cui il monitor può generare avvisi.
 :::
@@ -99,9 +99,17 @@ Le serie di dati dei pool hanno solo l'etichetta `pool_id`: il nome del pool esi
 
 ## Modelli di avviso predefiniti
 
-**Quick Setup** offre 23 modelli che coprono stato del cluster, OSD, placement group e capacità. Ognuno costruisce un monitor completo: query, filtri sulle etichette, un raggruppamento, un criterio che scatta e uno che rientra. Le soglie sono un punto di partenza modificabile.
+**Quick Setup** offre 24 modelli che coprono un cluster silenzioso, stato del cluster, OSD, placement group e capacità. Ognuno costruisce un monitor completo: query, filtri sulle etichette, un raggruppamento, un criterio che scatta e uno che rientra. Le soglie sono un punto di partenza modificabile.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo se la condizione vale per ogni minuto della sua finestra, e un criterio a soglia rientra il 10% oltre la propria soglia, così un valore che oscilla intorno al limite non va avanti e indietro. **Gravità** è l'etichetta che mostra il selettore; l'incidente e l'avviso creati da un modello partono con la gravità di incidente e di avviso più alta del tuo progetto.
+
+### Modelli per la disponibilità
+
+| Modello | Gravità | Sorveglia | Scatta quando | Rientra quando |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critico | `ceph_health_status`, Count, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
+
+**Cluster Stopped Reporting** scatta quando dal cluster non arriva nulla per dieci minuti: l'agente Ceph si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token, oppure nessun mgr serve il modulo `prometheus`. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, e i modelli degli health check leggono un cluster silenzioso come un cluster sano, quindi è questo il modello che te lo segnala.
 
 ### Modelli per lo stato del cluster
 

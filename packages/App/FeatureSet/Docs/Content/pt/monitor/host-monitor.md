@@ -4,7 +4,7 @@ Um monitor de host acompanha uma máquina – CPU, memória, discos, carga e pro
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-host): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Cinco alertas prontos para CPU, memória, disco, carga e processos.
+- [Modelos](#modelos-de-alerta-prontos): Seis alertas prontos para um host silencioso, CPU, memória, disco, carga e processos.
 - [Métricas](#métricas-coletadas): As métricas de host com que você pode alertar, e suas unidades.
 - [Host ou servidor / VM?](#monitor-de-host-ou-monitor-de-servidor-vm): Qual dos dois monitores de máquinas usar.
 :::
@@ -95,12 +95,13 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece cinco modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece seis modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Os limites são pontos de partida que você pode editar.
 
 Um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `system.memory.usage`, Count, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | High CPU Utilization | Warning | `system.cpu.utilization` para os estados `user` e `system`, somados e mostrados como porcentagem, últimos 5 minutos | Acima de 80% | Em 72% ou menos |
 | High Memory Utilization | Warning | `system.memory.utilization` para o estado `used`, como porcentagem, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
 | High Filesystem Usage | Crítico | `system.filesystem.utilization`, Max por `mountpoint` e `device`, como porcentagem, últimos 5 minutos | Acima de 90% | Em 81% ou menos |
@@ -109,6 +110,7 @@ Um critério só dispara quando a condição vale em todos os minutos da sua jan
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 
+- **Host Stopped Reporting** dispara quando nada chega do host por dez minutos: a máquina está fora do ar ou inacessível, ou o coletor dela parou, perdeu a rota até o OneUptime ou teve o token revogado. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 - **CPU** é o tempo ocupado (`user` mais `system`), o mesmo número que a **Visão geral** do host mostra em gráfico. Espera de E/S e steal ficam de fora.
 - **Memória** exclui buffers e cache de páginas, então um host ocupado principalmente por cache não o dispara.
 - **Sistema de arquivos** abre um incidente por montagem. Pseudo sistemas de arquivos somente leitura, como montagens snap `squashfs` ou `devfs` do macOS, estão sempre 100% cheios; exclua-os no scraper `filesystem` do coletor.

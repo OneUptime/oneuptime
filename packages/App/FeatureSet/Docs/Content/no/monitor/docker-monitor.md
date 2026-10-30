@@ -4,7 +4,7 @@ En Docker-monitor overvåker containerne på én Docker-vert og sier fra når en
 
 :::cards
 - [Opprett monitoren](#opprett-en-docker-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Seks ferdige varsler, én hendelse per container.
+- [Maler](#ferdige-varslingsmaler): Sju ferdige varsler, én hendelse per container.
 - [Metrikker](#innsamlede-metrikker): Hva agenten samler inn, og hva hver metrikk betyr.
 - [Logger](#innsamlede-logger): Containerlogger og loggdriveren de trenger.
 :::
@@ -84,12 +84,13 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr seks maler. Hver bygger en komplett monitor: en spørring gruppert etter `resource.container.name`, et kriterium som utløses, og et som gjenoppretter. Hver container vurderes for seg, så én travel container skjuler ikke en annen, og hver container over terskelen får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
+**Quick Setup** tilbyr sju maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Alle maler unntatt **Host Stopped Reporting** grupperer spørringen sin etter `resource.container.name`, så hver container vurderes for seg, én travel container skjuler ikke en annen, og hver container over terskelen får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
 
 Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på verten, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, siste 5 minutter | Over 85 % | På eller under 76,5 % |
 | Container Restart Loop | Kritisk | Vekst i `container.restarts` per container, siste 15 minutter | Mer enn 3 omstarter i vinduet (Sum) | 2,7 eller færre |
@@ -98,6 +99,9 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 | Container Down (Low Uptime) | Kritisk | `container.uptime`, Min per container, siste 1 minutt | Lik 0 | Over 0 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
+
+> [!NOTE]
+> **Host Stopped Reporting** utløses når ingenting kommer fra verten på ti minutter: verten er nede, eller agenten har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra. En vert uten andre containere rapporterer likevel, fordi agenten kjører som en container og rapporterer sin egen container.
 
 > [!NOTE]
 > `container.cpu.utilization` er tallet `docker stats` skriver ut, i snitt over agentens intervall på 30 sekunder: 100 % er én hel CPU-kjerne, ikke hele verten, så en container som bruker to kjerner, viser 200. På en vert med flere kjerner er terskelen på 80 et CPU-budsjett, ikke en andel av maskinen.

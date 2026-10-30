@@ -4,7 +4,7 @@ Um monitor de Ceph acompanha um cluster Ceph — a saúde, os health checks, o q
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-ceph): Seis etapas no painel.
-- [Modelos](#modelos-de-alerta-prontos): 23 alertas prontos para saúde, OSDs, placement groups e capacidade.
+- [Modelos](#modelos-de-alerta-prontos): 24 alertas prontos para um cluster silencioso, saúde, OSDs, placement groups e capacidade.
 - [Health checks](#séries-de-health-checks): Alertar sobre qualquer health check do Ceph pelo nome.
 - [Métricas](#métricas-coletadas): Cada série `ceph_*` sobre a qual o monitor pode alertar.
 :::
@@ -99,9 +99,17 @@ As séries de dados dos pools têm só o rótulo `pool_id`: o nome do pool exist
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 23 modelos que cobrem a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece 24 modelos que cobrem um cluster silencioso, a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério com limite recupera 10% além do limite, para que um valor que oscila na linha não fique alternando. **Gravidade** é o rótulo que o seletor mostra; o incidente e o alerta criados por um modelo começam com a gravidade de incidente e de alerta mais alta do seu projeto.
+
+### Modelos de disponibilidade
+
+| Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `ceph_health_status`, Count, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
+
+**Cluster Stopped Reporting** dispara quando nada chega do cluster por dez minutos: o agente Ceph parou, perdeu a rota até o OneUptime ou teve o token revogado, ou nenhum mgr atende o módulo `prometheus`. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, e os modelos de health checks leem um cluster silencioso como um cluster saudável, então é este que avisa você.
 
 ### Modelos de saúde do cluster
 

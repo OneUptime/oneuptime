@@ -5,7 +5,7 @@ Un monitor de Kubernetes alerta sobre las métricas que el agente de Kubernetes 
 :::cards
 - [Instalar el agente](/docs/monitor/kubernetes-agent): Un solo comando de Helm lleva el clúster a OneUptime.
 - [Crear el monitor](#crear-un-monitor-de-kubernetes): Elegir el clúster y luego una plantilla, una métrica o una consulta.
-- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Diecisiete alertas listas para usar, de CrashLoopBackOff a etcd.
+- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Dieciocho alertas listas para usar, de un clúster silencioso a etcd.
 - [Criterios](#criterios-de-monitoreo): Umbrales estáticos y detección de anomalías.
 :::
 
@@ -132,6 +132,7 @@ La pestaña **Quick Setup** enumera estas plantillas, agrupadas por categoría. 
 
 | Plantilla | Categoría | Se dispara cuando | Gravedad |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Disponibilidad | No llegan datos del agente del clúster durante 10 minutos | Crítico |
 | CrashLoopBackOff Detection | Carga de trabajo | Un contenedor se ha reiniciado más de 5 veces desde que se creó su pod | Crítico |
 | Pod Stuck in Pending | Programación | Algún pod está en la fase Pending en cada muestra de una ventana de 15 minutos | Advertencia |
 | Node Not Ready | Nodo | Un nodo informa NotReady | Crítico |
@@ -151,6 +152,8 @@ La pestaña **Quick Setup** enumera estas plantillas, agrupadas por categoría. 
 | Pod CPU Saturating Container Limit | Carga de trabajo | Un pod usa más del 90 % del límite de CPU de sus contenedores | Advertencia |
 
 Las plantillas sobre métricas por objeto evalúan cada nodo, pod, deployment, job, DaemonSet o HPA por separado, de modo que un clúster con varios pods en mal estado recibe un incidente por pod en lugar de uno para todo el clúster.
+
+**Cluster Stopped Reporting** se dispara cuando no llega nada del agente del clúster durante diez minutos: el agente se desinstaló o se cae una y otra vez, se revocó su clave de API, perdió su conexión con OneUptime, o el servidor de API del clúster dejó de responderle. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** lee el número de reinicios del contenedor durante toda la vida de su pod actual, no una tasa. Un contenedor que entró en un bucle de fallos y luego se recuperó mantiene la alerta abierta hasta que se sustituye su pod.

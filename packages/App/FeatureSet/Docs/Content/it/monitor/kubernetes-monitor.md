@@ -5,7 +5,7 @@ Un monitor Kubernetes avvisa sulle metriche che l'agente Kubernetes di OneUptime
 :::cards
 - [Installare l'agente](/docs/monitor/kubernetes-agent): Un solo comando Helm porta il cluster in OneUptime.
 - [Creare il monitor](#creare-un-monitor-kubernetes): Scegliere il cluster, poi un modello, una metrica o una query.
-- [Modelli di avviso](#modelli-di-avviso-pronti): Diciassette avvisi pronti, da CrashLoopBackOff a etcd.
+- [Modelli di avviso](#modelli-di-avviso-pronti): Diciotto avvisi pronti, da un cluster silenzioso a etcd.
 - [Criteri](#criteri-di-monitoraggio): Soglie statiche e rilevamento delle anomalie.
 :::
 
@@ -132,6 +132,7 @@ La scheda **Quick Setup** elenca questi modelli, raggruppati per categoria. Ognu
 
 | Modello | Categoria | Scatta quando | Gravità |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Disponibilità | Dall'agente del cluster non arrivano dati per 10 minuti | Critico |
 | CrashLoopBackOff Detection | Carico di lavoro | Un container si è riavviato più di 5 volte da quando è stato creato il suo pod | Critico |
 | Pod Stuck in Pending | Pianificazione | Un pod è nella fase Pending in ogni campione di una finestra di 15 minuti | Warning |
 | Node Not Ready | Nodo | Un nodo segnala NotReady | Critico |
@@ -151,6 +152,8 @@ La scheda **Quick Setup** elenca questi modelli, raggruppati per categoria. Ognu
 | Pod CPU Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di CPU dei suoi container | Warning |
 
 I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, job, DaemonSet o HPA separatamente, quindi un cluster con diversi pod non sani riceve un incidente per pod invece di uno per l'intero cluster.
+
+**Cluster Stopped Reporting** scatta quando dall'agente del cluster non arriva nulla per dieci minuti: l'agente è stato disinstallato o va continuamente in crash, la sua chiave API è stata revocata, ha perso la connessione a OneUptime, oppure il server API del cluster ha smesso di rispondergli. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** legge il numero di riavvii del container per tutta la vita del suo pod attuale, non un tasso. Un container che è andato in crash loop e poi si è ripreso mantiene l'avviso aperto finché il suo pod non viene sostituito.

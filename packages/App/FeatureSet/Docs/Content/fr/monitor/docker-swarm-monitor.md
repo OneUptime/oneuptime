@@ -4,7 +4,7 @@ Un moniteur Docker Swarm surveille les conteneurs derrière les tâches de servi
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-docker-swarm): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Quatre alertes prêtes à l'emploi, un incident par tâche.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Cinq alertes prêtes à l'emploi, un incident par tâche.
 - [Métriques](#métriques-collectées): Les métriques de conteneurs sur lesquelles vous pouvez alerter.
 - [Filtres](#paramètres-du-moniteur): Restreindre un moniteur à un service, une tâche ou une image.
 :::
@@ -92,18 +92,22 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose quatre modèles. Chacun construit un moniteur complet : une requête regroupée par `resource.container.name`, un critère qui se déclenche et un autre qui rétablit. Chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
+**Quick Setup** propose cinq modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Cluster Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
 
 Sauf indication contraire dans le tableau, un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs du cluster, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | Task Down (Low Uptime) | Critique | `container.uptime`, Min par tâche, dernière 1 minute | Une valeur quelconque est sous 60 secondes | Chaque valeur est à 66 secondes ou plus |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg par tâche, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg par tâche, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
 | High Task Process Count | Warning | `container.pids.count`, Max par tâche, 5 dernières minutes | Au-dessus de 500 | À 450 ou moins |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** se déclenche quand rien n'arrive du cluster pendant dix minutes : les nœuds qui exécutent l'agent sont en panne, ou l'agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient. Un nœud sans tâche envoie quand même des données, car l'agent s'exécute lui-même comme conteneur et remonte les siennes.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** se déclenche sur une seule mesure récente, car un redémarrage est un événement, pas un niveau. Swarm donne à une tâche de remplacement un nouveau conteneur, donc une nouvelle série ; c'est pourquoi le modèle cherche une durée de fonctionnement inférieure à une minute plutôt qu'un 0. Un déploiement ou une montée en charge le déclenche aussi, et il se rétablit une fois que les nouvelles tâches dépassent une minute de fonctionnement. Une tâche qui meurt sans être remplacée n'envoie rien et n'est donc pas détectée.

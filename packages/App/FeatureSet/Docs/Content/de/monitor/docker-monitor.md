@@ -4,7 +4,7 @@ Ein Docker-Monitor überwacht die Container auf einem Docker-Host und meldet Ihn
 
 :::cards
 - [Den Monitor erstellen](#einen-docker-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Sechs fertige Warnungen, ein Vorfall pro Container.
+- [Vorlagen](#fertige-warnungsvorlagen): Sieben fertige Warnungen, ein Vorfall pro Container.
 - [Metriken](#erfasste-metriken): Was der Agent erfasst und was jede Metrik bedeutet.
 - [Protokolle](#erfasste-protokolle): Container-Protokolle und der Log-Treiber, den sie brauchen.
 :::
@@ -84,12 +84,13 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet sechs Vorlagen. Jede baut einen vollständigen Monitor: eine nach `resource.container.name` gruppierte Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jeder Container wird einzeln beurteilt, sodass ein ausgelasteter Container keinen anderen verdeckt, und jeder Container über dem Schwellenwert erhält seinen eigenen Vorfall und seine eigene Warnung. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+**Quick Setup** bietet sieben Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jede Vorlage außer **Host Stopped Reporting** gruppiert ihre Abfrage nach `resource.container.name`, sodass jeder Container einzeln beurteilt wird, ein ausgelasteter Container keinen anderen verdeckt und jeder Container über dem Schwellenwert seinen eigenen Vorfall und seine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisch | `container.memory.percent`, Count über alle Container des Hosts, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | High Container CPU Usage | Warnung | `container.cpu.utilization`, Max pro Container, letzte 5 Minuten | Über 80 (% eines Kerns) | Bei oder unter 72 |
 | High Container Memory Usage | Warnung | `container.memory.percent`, Max pro Container, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
 | Container Restart Loop | Kritisch | Zuwachs von `container.restarts` pro Container, letzte 15 Minuten | Mehr als 3 Neustarts im Zeitfenster (Summe) | 2,7 oder weniger |
@@ -98,6 +99,9 @@ Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Be
 | Container Down (Low Uptime) | Kritisch | `container.uptime`, Min pro Container, letzte 1 Minute | Gleich 0 | Über 0 |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
+
+> [!NOTE]
+> **Host Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Host eintrifft: Der Host ist ausgefallen, oder der Agent läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet. Ein Host ohne weitere Container sendet trotzdem Daten, denn der Agent läuft selbst als Container und meldet seine eigenen Metriken.
 
 > [!NOTE]
 > `container.cpu.utilization` ist die Zahl, die `docker stats` ausgibt, gemittelt über das 30-Sekunden-Intervall des Agenten: 100 % ist ein voller CPU-Kern, nicht der ganze Host, ein Container mit zwei Kernen liest also 200. Auf einem Host mit mehreren Kernen ist der Schwellenwert 80 ein CPU-Budget, kein Anteil an der Maschine.

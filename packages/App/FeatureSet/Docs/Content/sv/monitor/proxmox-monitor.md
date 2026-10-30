@@ -4,7 +4,7 @@ En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och L
 
 :::cards
 - [Skapa monitorn](#skapa-en-proxmox-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Elva färdiga larm, en incident per nod, gäst eller volym.
+- [Mallar](#färdiga-larmmallar): Tolv färdiga larm, en incident per nod, gäst eller volym.
 - [Resursidentitet](#resursidentitet): Så riktar du in dig på en nod, gäst eller lagringsvolym.
 - [Mätvärden](#insamlade-mätvärden): Varje serie `pve_*` som monitorn kan varna på.
 :::
@@ -109,12 +109,13 @@ Filtrera på `pve.scope` eller `pve.type` för en typ av resurs, på `pve.id` el
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 11 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder 12 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och ett tröskelkriterium återställs 10 % förbi sin tröskel, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `pve_up`, Count över hela klustret, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | Node Offline | Kritisk | `pve_up` för `pve.scope = node`, Min per `id` | Under 1 | Vid 1 |
 | Guest Down | Warning | `pve_up` och `pve_onboot_status` för `pve.scope = guest`, Min per `id` | `pve_up` är under 1 medan `pve_onboot_status` är 1 | `pve_up` är tillbaka på 1, eller start vid uppstart är avstängd |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 för `pve.scope = node` (båda Summa): andelen noder som är online | 50 % eller mindre | Över 55 % |
@@ -129,6 +130,7 @@ Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
+- **Cluster Stopped Reporting** utlöses när ingenting kommer från klustret på tio minuter: Proxmox-agenten eller dess pve-exporter har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, Proxmox-API:t har slutat svara den, eller varje nod i en inbyggd push har tystnat. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **Mallarna för nedtid använder Minimum**, så att en enda insamling där resursen var nere utlöser dem i stället för att döljas av insamlingar där den var igång.
 - **Guest Down** tittar bara på gäster som är inställda på att starta vid uppstart, så en gäst som du har stoppat med avsikt larmar aldrig någon.
 - **Cluster Quorum at Risk** är en approximation: pve-exporter har inget corosync-mått, så mallen räknar de noder som är online.

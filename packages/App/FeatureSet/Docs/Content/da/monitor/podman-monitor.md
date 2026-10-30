@@ -4,7 +4,7 @@ En Podman-monitor overvåger containerne på én Podman-vært og giver dig beske
 
 :::cards
 - [Opret monitoren](#opret-en-podman-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Fem færdige advarsler, én hændelse pr. container.
+- [Skabeloner](#færdige-advarselsskabeloner): Seks færdige advarsler, én hændelse pr. container.
 - [Metrikker](#indsamlede-metrikker): Hvad agenten indsamler, og hvad hver metrik betyder.
 - [Logs](#indsamlede-logs): Containerlogs og den logdriver, de kræver.
 :::
@@ -84,12 +84,13 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel grupperet efter `resource.container.name`, et kriterium, der udløses, og et, der genopretter. Hver container bedømmes for sig og får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Host Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver container bedømmes for sig og får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på værten, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
 | High Container Restart Count | Kritisk | `container.restarts`, Max pr. container, seneste 5 minutter | Over 5 genstarter i alt | 4,5 eller færre |
@@ -97,6 +98,8 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min pr. container, seneste 1 minut | Under 120 sekunder | Ved eller over 132 sekunder |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
+
+**Host Stopped Reporting** udløses, når der ikke kommer noget fra værten i ti minutter: værten er nede, eller agenten er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked. En vært uden andre containere rapporterer stadig, fordi agenten selv kører som en container og rapporterer sine egne data.
 
 De to procentskabeloner bruger **Gennemsnit**: deres metrikker er allerede procenter pr. container, så gennemsnittet for et minut er den vedvarende værdi. Antal genstarter og antal processer bruger **Maksimum**, hvor én måling over tærsklen er signalet.
 

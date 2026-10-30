@@ -5,7 +5,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 :::cards
 - [Installer l'agent](/docs/monitor/kubernetes-agent): Une seule commande Helm fait entrer le cluster dans OneUptime.
 - [Créer le moniteur](#créer-un-moniteur-kubernetes): Choisir le cluster, puis un modèle, une métrique ou une requête.
-- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Dix-sept alertes prêtes à l'emploi, de CrashLoopBackOff à etcd.
+- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Dix-huit alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
 - [Critères](#critères-de-surveillance): Seuils statiques et détection d'anomalies.
 :::
 
@@ -132,6 +132,7 @@ L'onglet **Quick Setup** liste ces modèles, regroupés par catégorie. Chacun r
 
 | Modèle | Catégorie | Se déclenche quand | Gravité |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Disponibilité | Aucune donnée n'arrive de l'agent du cluster pendant 10 minutes | Critique |
 | CrashLoopBackOff Detection | Charge de travail | Un conteneur a redémarré plus de 5 fois depuis la création de son pod | Critique |
 | Pod Stuck in Pending | Planification | Un pod est en phase Pending dans chaque mesure d'une fenêtre de 15 minutes | Warning |
 | Node Not Ready | Nœud | Un nœud signale NotReady | Critique |
@@ -151,6 +152,8 @@ L'onglet **Quick Setup** liste ces modèles, regroupés par catégorie. Chacun r
 | Pod CPU Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de CPU de ses conteneurs | Warning |
 
 Les modèles fondés sur des métriques par objet évaluent chaque nœud, pod, deployment, job, DaemonSet ou HPA séparément, si bien qu'un cluster avec plusieurs pods défaillants reçoit un incident par pod plutôt qu'un seul pour tout le cluster.
+
+**Cluster Stopped Reporting** se déclenche quand rien n'arrive de l'agent du cluster pendant dix minutes : l'agent a été désinstallé ou plante en boucle, sa clé d'API a été révoquée, il a perdu sa connexion à OneUptime, ou le serveur d'API du cluster ne lui répond plus. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** lit le nombre de redémarrages du conteneur sur toute la vie de son pod actuel, et non un taux. Un conteneur qui a bouclé sur des plantages puis s'est rétabli garde l'alerte ouverte jusqu'à ce que son pod soit remplacé.

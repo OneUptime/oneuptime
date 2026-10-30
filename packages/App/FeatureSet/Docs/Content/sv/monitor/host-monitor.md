@@ -4,7 +4,7 @@ En värdmonitor övervakar en maskin – dess CPU, minne, diskar, belastning och
 
 :::cards
 - [Skapa monitorn](#skapa-en-värdmonitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Fem färdiga larm för CPU, minne, disk, belastning och processer.
+- [Mallar](#färdiga-larmmallar): Sex färdiga larm för en tyst värd, CPU, minne, disk, belastning och processer.
 - [Mätvärden](#insamlade-mätvärden): De värdmått som du kan varna på, och deras enheter.
 - [Värd eller Server / VM?](#värdmonitor-eller-server-vm-monitor): Vilken av de två maskinmonitorerna du ska använda.
 :::
@@ -95,12 +95,13 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder fem mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | High CPU Utilization | Warning | `system.cpu.utilization` för tillstånden `user` och `system`, adderade och visade som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
 | High Memory Utilization | Warning | `system.memory.utilization` för tillståndet `used`, som procent, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max per `mountpoint` och `device`, som procent, senaste 5 minuterna | Över 90 % | Vid eller under 81 % |
@@ -109,6 +110,7 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
+- **Host Stopped Reporting** utlöses när ingenting kommer från värden på tio minuter: maskinen är nere eller onåbar, eller dess collector har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **CPU** är upptagen tid (`user` plus `system`), samma siffra som värdens **Översikt** visar i diagram. Iowait och steal är utelämnade.
 - **Minne** utesluter buffertar och sidcache, så att en värd som mest innehåller cache inte utlöser den.
 - **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla; uteslut dem i collectorns skrapa `filesystem`.

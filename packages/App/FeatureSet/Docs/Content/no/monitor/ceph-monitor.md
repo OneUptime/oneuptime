@@ -4,7 +4,7 @@ En Ceph-monitor følger med på én Ceph-klynge — helsen, health checks, monit
 
 :::cards
 - [Opprett monitoren](#opprett-en-ceph-monitor): Seks steg i dashbordet.
-- [Maler](#ferdige-varselmaler): 23 ferdige varsler for helse, OSD-er, placement groups og kapasitet.
+- [Maler](#ferdige-varselmaler): 24 ferdige varsler for en taus klynge, helse, OSD-er, placement groups og kapasitet.
 - [Health checks](#serier-for-health-checks): Varsle på et hvilket som helst Ceph-health check etter navn.
 - [Metrikker](#innsamlede-metrikker): Hver `ceph_*`-serie monitoren kan varsle på.
 :::
@@ -99,9 +99,17 @@ Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_
 
 ## Ferdige varselmaler
 
-**Quick Setup** tilbyr 23 maler som dekker klyngens helse, OSD-er, placement groups og kapasitet. Hver bygger en komplett monitor — spørringer, etikettfiltre, en gruppering, et kriterium som utløses og et som gjenoppretter. Tersklene er startpunkter du kan endre.
+**Quick Setup** tilbyr 24 maler som dekker en taus klynge, klyngens helse, OSD-er, placement groups og kapasitet. Hver bygger en komplett monitor — spørringer, etikettfiltre, en gruppering, et kriterium som utløses og et som gjenoppretter. Tersklene er startpunkter du kan endre.
 
 Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter først 10 % forbi terskelen, slik at en verdi som svinger rundt grensen, ikke flagrer. **Alvorlighetsgrad** er etiketten velgeren viser; hendelsen og varselet en mal oppretter, starter på prosjektets høyeste alvorlighetsgrad for hendelser og varsler.
+
+### Tilgjengelighetsmaler
+
+| Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `ceph_health_status`, Count, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
+
+**Cluster Stopped Reporting** utløses når ingenting kommer fra klyngen på ti minutter: Ceph Agent har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, eller ingen mgr betjener `prometheus`-modulen. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, og malene for health checks leser en taus klynge som en frisk klynge, så det er denne som sier fra.
 
 ### Maler for klyngens helse
 

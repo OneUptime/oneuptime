@@ -5,7 +5,7 @@ Kubernetes 监视器根据 OneUptime Kubernetes 代理从集群发送的指标�
 :::cards
 - [安装代理](/docs/monitor/kubernetes-agent): 一条 Helm 命令即可把集群接入 OneUptime。
 - [创建监视器](#创建-kubernetes-监视器): 选择集群，然后选择模板、指标或查询。
-- [警报模板](#现成的警报模板): 十七个现成的警报，从 CrashLoopBackOff 到 etcd。
+- [警报模板](#现成的警报模板): 十八个现成的警报，从停止报告的集群到 etcd。
 - [条件](#监控条件): 静态阈值和异常检测。
 :::
 
@@ -132,6 +132,7 @@ flowchart TB
 
 | 模板 | 类别 | 触发时机 | 严重程度 |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 可用性 | 10 分钟内没有从集群的代理收到任何数据 | 严重 |
 | CrashLoopBackOff Detection | 工作负载 | 自 Pod 创建以来，某个容器重启超过 5 次 | 严重 |
 | Pod Stuck in Pending | 正在调度 | 在 15 分钟窗口的每个样本中，都有某个 Pod 处于 Pending 阶段 | Warning |
 | Node Not Ready | 节点 | 某个节点报告 NotReady | 严重 |
@@ -151,6 +152,8 @@ flowchart TB
 | Pod CPU Saturating Container Limit | 工作负载 | Pod 使用了超过其容器 CPU 限制的 90% | Warning |
 
 基于单个对象指标的模板会分别评估每个节点、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多个不健康 Pod 的集群会为每个 Pod 创建一个事件，而不是为整个集群只创建一个。
+
+**Cluster Stopped Reporting** 会在集群的代理 10 分钟内没有任何数据到达时触发：代理被卸载或不断崩溃、它的 API 密钥被撤销、它失去了通往 OneUptime 的路由，或者集群的 API 服务器不再响应它。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** 模板读取的是容器在当前 Pod 中的累计重启次数，而不是速率。一个陷入崩溃循环后又恢复的容器，会让警报一直保持打开，直到它的 Pod 被替换。

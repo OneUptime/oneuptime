@@ -4,7 +4,7 @@ En Docker Swarm-monitor övervakar containrarna bakom ett Swarm-klusters tjänst
 
 :::cards
 - [Skapa monitorn](#skapa-en-docker-swarm-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Fyra färdiga larm, en incident per uppgift.
+- [Mallar](#färdiga-larmmallar): Fem färdiga larm, en incident per uppgift.
 - [Mätvärden](#insamlade-mätvärden): De containermått som du kan varna på.
 - [Filter](#monitorinställningar): Begränsa en monitor till en tjänst, en uppgift eller en avbildning.
 :::
@@ -92,18 +92,22 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder fyra mallar. Varje mall bygger en komplett monitor: en fråga grupperad efter `resource.container.name`, ett kriterium som utlöses och ett som återställer. Varje uppgift bedöms för sig och får en egen incident och ett eget larm, vars grundorsak listar de berörda uppgifterna och deras värden. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder fem mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Cluster Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje uppgift bedöms för sig och får en egen incident och ett eget larm, vars grundorsak listar de berörda uppgifterna och deras värden. Trösklarna är utgångspunkter som du kan redigera.
 
 Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar i klustret, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min per uppgift, senaste 1 minuten | Något värde är under 60 sekunder | Varje värde är vid eller över 66 sekunder |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per uppgift, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per uppgift, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | High Task Process Count | Warning | `container.pids.count`, Max per uppgift, senaste 5 minuterna | Över 500 | Vid eller under 450 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** utlöses när ingenting kommer från klustret på tio minuter: noderna som kör agenten är nere, eller agenten har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till. En nod utan uppgifter rapporterar ändå, eftersom agenten själv körs som en container och rapporterar sina egna data.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** utlöses på en enda ung mätning, eftersom en omstart är en händelse och inte en nivå. Swarm ger en ersättningsuppgift en ny container, och därmed en ny serie, vilket är varför mallen letar efter en drifttid under en minut i stället för en nolla. En driftsättning eller en uppskalning utlöser den också, och den upphör när de nya uppgifterna har passerat en minuts drifttid. En uppgift som dör och inte ersätts skickar ingenting, så den fångas inte.

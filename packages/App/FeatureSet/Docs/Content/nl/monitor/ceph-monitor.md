@@ -4,7 +4,7 @@ Een Ceph-monitor bewaakt één Ceph-cluster — de gezondheid, de health checks,
 
 :::cards
 - [De monitor maken](#een-ceph-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): 23 kant-en-klare waarschuwingen voor gezondheid, OSD's, placement groups en capaciteit.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): 24 kant-en-klare waarschuwingen voor een stil cluster, gezondheid, OSD's, placement groups en capaciteit.
 - [Health checks](#reeksen-van-health-checks): Waarschuwen op elke Ceph-health check op naam.
 - [Metrics](#verzamelde-metrics): Elke `ceph_*`-reeks waarop de monitor kan waarschuwen.
 :::
@@ -99,9 +99,17 @@ Gegevensreeksen van pools dragen alleen het label `pool_id`: de naam van de pool
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt 23 sjablonen voor clustergezondheid, OSD's, placement groups en capaciteit. Elk bouwt een complete monitor — query's, labelfilters, een groepering, een criterium dat afgaat en een dat herstelt. De drempels zijn startpunten die je kunt aanpassen.
+**Quick Setup** biedt 24 sjablonen voor een stil cluster, clustergezondheid, OSD's, placement groups en capaciteit. Elk bouwt een complete monitor — query's, labelfilters, een groepering, een criterium dat afgaat en een dat herstelt. De drempels zijn startpunten die je kunt aanpassen.
 
 Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster, en een drempelcriterium herstelt pas 10% voorbij zijn drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt. **Ernst** is het label dat de keuzelijst toont; het incident en de waarschuwing die een sjabloon maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project.
+
+### Beschikbaarheidssjablonen
+
+| Sjabloon | Ernst | Bewaakt | Gaat af bij | Herstelt bij |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritiek | `ceph_health_status`, Count, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
+
+**Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de Ceph Agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, of geen enkele mgr bedient de `prometheus`-module. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, en de sjablonen voor health checks lezen een stil cluster als een gezond cluster, dus dit is het sjabloon dat het je laat weten.
 
 ### Sjablonen voor clustergezondheid
 

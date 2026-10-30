@@ -5,7 +5,7 @@ Ein Kubernetes-Monitor warnt anhand der Metriken, die der OneUptime-Kubernetes-A
 :::cards
 - [Den Agent installieren](/docs/monitor/kubernetes-agent): Ein Helm-Befehl bringt den Cluster in OneUptime.
 - [Den Monitor erstellen](#einen-kubernetes-monitor-erstellen): Den Cluster wählen, dann eine Vorlage, eine Metrik oder eine Abfrage.
-- [Warnungsvorlagen](#fertige-warnungsvorlagen): Siebzehn fertige Warnungen, von CrashLoopBackOff bis etcd.
+- [Warnungsvorlagen](#fertige-warnungsvorlagen): Achtzehn fertige Warnungen, von einem verstummten Cluster bis etcd.
 - [Kriterien](#überwachungskriterien): Statische Schwellenwerte und Anomalieerkennung.
 :::
 
@@ -132,6 +132,7 @@ Der Tab **Quick Setup** listet diese Vorlagen auf, gruppiert nach Kategorie. Jed
 
 | Vorlage | Kategorie | Löst aus, wenn | Schweregrad |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Verfügbarkeit | Vom Agent des Clusters 10 Minuten lang keine Daten eintreffen | Kritisch |
 | CrashLoopBackOff Detection | Workload | Ein Container seit der Erstellung seines Pods mehr als 5-mal neu gestartet wurde | Kritisch |
 | Pod Stuck in Pending | Planung | Ein Pod in jedem Messwert eines 15-Minuten-Zeitfensters in der Phase Pending ist | Warnung |
 | Node Not Ready | Knoten | Ein Knoten NotReady meldet | Kritisch |
@@ -151,6 +152,8 @@ Der Tab **Quick Setup** listet diese Vorlagen auf, gruppiert nach Kategorie. Jed
 | Pod CPU Saturating Container Limit | Workload | Ein Pod mehr als 90 % seines Container-CPU-Limits nutzt | Warnung |
 
 Vorlagen auf objektbezogenen Metriken werten jeden Knoten, Pod, jedes Deployment, jeden Job, jedes DaemonSet oder jeden HPA einzeln aus, sodass ein Cluster mit mehreren fehlerhaften Pods einen Vorfall pro Pod erhält statt eines für den ganzen Cluster.
+
+**Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Agent des Clusters eintrifft: Der Agent wurde deinstalliert oder stürzt immer wieder ab, sein API-Schlüssel wurde widerrufen, er hat die Verbindung zu OneUptime verloren, oder der API-Server des Clusters antwortet ihm nicht mehr. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** liest die Neustartzahl des Containers über die gesamte Lebensdauer seines aktuellen Pods, keine Rate. Ein Container, der in einer Crash-Schleife war und sich dann erholt hat, hält die Warnung offen, bis sein Pod ersetzt wird.

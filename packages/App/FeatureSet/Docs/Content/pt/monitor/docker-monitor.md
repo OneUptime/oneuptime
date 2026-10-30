@@ -4,7 +4,7 @@ Um monitor de Docker acompanha os contêineres de um host Docker e avisa você q
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-docker): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Seis alertas prontos, um incidente por contêiner.
+- [Modelos](#modelos-de-alerta-prontos): Sete alertas prontos, um incidente por contêiner.
 - [Métricas](#métricas-coletadas): O que o agente coleta e o que cada métrica significa.
 - [Logs](#logs-coletados): Os logs dos contêineres e o driver de log de que eles precisam.
 :::
@@ -84,12 +84,13 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece seis modelos. Cada um monta um monitor completo: uma consulta agrupada por `resource.container.name`, um critério que dispara e outro que se recupera. Cada contêiner é avaliado separadamente, então um contêiner ocupado não esconde outro, e cada contêiner que ultrapassa o limite recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece sete modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Host Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada contêiner é avaliado separadamente, um contêiner ocupado não esconde outro, e cada contêiner que ultrapassa o limite recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
 
 Salvo indicação contrária na tabela, um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do host, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max por contêiner, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max por contêiner, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
 | Container Restart Loop | Crítico | Crescimento de `container.restarts` por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
@@ -98,6 +99,9 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 | Container Down (Low Uptime) | Crítico | `container.uptime`, Min por contêiner, último 1 minuto | Igual a 0 | Acima de 0 |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
+
+> [!NOTE]
+> **Host Stopped Reporting** dispara quando nada chega do host por dez minutos: o host está fora do ar, ou o agente parou, perdeu a rota até o OneUptime ou teve o token revogado. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você. Um host sem outros contêineres continua enviando dados, porque o agente roda como um contêiner e envia os do seu próprio contêiner.
 
 > [!NOTE]
 > `container.cpu.utilization` é o número que o `docker stats` imprime, em média no intervalo de 30 segundos do agente: 100% é um núcleo de CPU inteiro, não o host inteiro, então um contêiner usando dois núcleos marca 200. Em um host com vários núcleos, o limite de 80 é um orçamento de CPU, não uma fatia da máquina.

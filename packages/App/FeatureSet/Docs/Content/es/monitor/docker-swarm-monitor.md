@@ -4,7 +4,7 @@ Un monitor de Docker Swarm vigila los contenedores que hay detrás de las tareas
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-docker-swarm): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cuatro alertas listas para usar, un incidente por tarea.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cinco alertas listas para usar, un incidente por tarea.
 - [Métricas](#métricas-recopiladas): Las métricas de contenedores sobre las que puede alertar.
 - [Filtros](#ajustes-del-monitor): Restringir un monitor a un servicio, una tarea o una imagen.
 :::
@@ -92,18 +92,22 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece cuatro plantillas. Cada una crea un monitor completo: una consulta agrupada por `resource.container.name`, un criterio que se dispara y otro que se recupera. Cada tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz enumera las tareas afectadas y sus valores. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Cluster Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz enumera las tareas afectadas y sus valores. Los umbrales son puntos de partida que puede editar.
 
 Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del clúster, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarea, último 1 minuto | Cualquier valor está por debajo de 60 segundos | Cada valor está en 66 segundos o más |
 | High Task CPU Usage | Advertencia | `container.cpu.utilization`, Avg por tarea, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Task Memory Usage | Advertencia | `container.memory.percent`, Avg por tarea, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
 | High Task Process Count | Advertencia | `container.pids.count`, Max por tarea, últimos 5 minutos | Por encima de 500 | En 450 o menos |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** se dispara cuando no llega nada del clúster durante diez minutos: los nodos que ejecutan el agente están caídos, o el agente se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa. Un nodo sin tareas sigue enviando datos, porque el agente se ejecuta como contenedor e informa de los suyos.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** se dispara con una sola muestra joven porque un reinicio es un evento, no un nivel. Swarm da a una tarea de sustitución un contenedor nuevo, y por tanto una serie nueva, por eso la plantilla busca un tiempo de actividad inferior a un minuto en lugar de un 0. Un despliegue o un escalado también la disparan, y se resuelve en cuanto las tareas nuevas superan un minuto de actividad. Una tarea que muere y no se sustituye no envía nada, así que no se detecta.

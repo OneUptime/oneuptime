@@ -5,7 +5,7 @@ Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 
 :::cards
 - [에이전트 설치](/docs/monitor/kubernetes-agent): Helm 명령 하나로 클러스터를 OneUptime에 연결합니다.
 - [모니터 만들기](#kubernetes-모니터-만들기): 클러스터를 고른 다음 템플릿, 메트릭, 쿼리 중 하나를 고릅니다.
-- [알림 템플릿](#미리-만들어진-알림-템플릿): CrashLoopBackOff부터 etcd까지 17개의 미리 만들어진 알림.
+- [알림 템플릿](#미리-만들어진-알림-템플릿): 보고를 멈춘 클러스터부터 etcd까지 18개의 미리 만들어진 알림.
 - [기준](#모니터링-기준): 정적 임계값과 이상 탐지.
 :::
 
@@ -132,6 +132,7 @@ flowchart TB
 
 | 템플릿 | 범주 | 작동 조건 | 심각도 |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 가용성 | 클러스터의 에이전트에서 10분 동안 데이터가 들어오지 않음 | 심각 |
 | CrashLoopBackOff Detection | 워크로드 | Pod가 생성된 이후 컨테이너가 5번 넘게 다시 시작됨 | 심각 |
 | Pod Stuck in Pending | 예약 중 | 15분 기간의 모든 샘플에서 어떤 Pod가 Pending 단계에 있음 | Warning |
 | Node Not Ready | 노드 | 노드가 NotReady를 보고함 | 심각 |
@@ -151,6 +152,8 @@ flowchart TB
 | Pod CPU Saturating Container Limit | 워크로드 | Pod가 컨테이너 CPU 한도의 90% 넘게 사용함 | Warning |
 
 객체별 메트릭을 쓰는 템플릿은 노드, Pod, Deployment, Job, DaemonSet, HPA를 각각 따로 평가합니다. 그래서 비정상 Pod가 여러 개인 클러스터는 클러스터 전체에 하나가 아니라 Pod마다 인시던트를 받습니다.
+
+**Cluster Stopped Reporting** 템플릿은 클러스터의 에이전트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트가 제거되었거나 계속 충돌하는 경우, API 키가 취소된 경우, OneUptime으로 가는 경로를 잃은 경우, 또는 클러스터의 API 서버가 에이전트에 더 이상 응답하지 않는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** 템플릿은 비율이 아니라 현재 Pod에서 컨테이너가 다시 시작된 누적 횟수를 읽습니다. 크래시 루프에 빠졌다가 회복한 컨테이너는 그 Pod가 교체될 때까지 알림을 열어 둡니다.

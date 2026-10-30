@@ -5,7 +5,7 @@ Um monitor de Kubernetes alerta com base nas métricas que o agente de Kubernete
 :::cards
 - [Instalar o agente](/docs/monitor/kubernetes-agent): Um único comando do Helm coloca o cluster no OneUptime.
 - [Criar o monitor](#criar-um-monitor-de-kubernetes): Escolher o cluster e depois um modelo, uma métrica ou uma consulta.
-- [Modelos de alerta](#modelos-de-alerta-prontos): Dezessete alertas prontos, de CrashLoopBackOff a etcd.
+- [Modelos de alerta](#modelos-de-alerta-prontos): Dezoito alertas prontos, de um cluster silencioso a etcd.
 - [Critérios](#critérios-de-monitoramento): Limites estáticos e detecção de anomalias.
 :::
 
@@ -132,6 +132,7 @@ A aba **Quick Setup** lista estes modelos, agrupados por categoria. Cada um pree
 
 | Modelo | Categoria | Dispara quando | Gravidade |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Disponibilidade | Nenhum dado chega do agente do cluster por 10 minutos | Crítico |
 | CrashLoopBackOff Detection | Carga de trabalho | Um contêiner reiniciou mais de 5 vezes desde que seu pod foi criado | Crítico |
 | Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Warning |
 | Node Not Ready | Nó | Um nó informa NotReady | Crítico |
@@ -151,6 +152,8 @@ A aba **Quick Setup** lista estes modelos, agrupados por categoria. Cada um pree
 | Pod CPU Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de CPU dos seus contêineres | Warning |
 
 Os modelos baseados em métricas por objeto avaliam cada nó, pod, deployment, job, DaemonSet ou HPA separadamente, então um cluster com vários pods com problema recebe um incidente por pod em vez de um único para o cluster inteiro.
+
+**Cluster Stopped Reporting** dispara quando nada chega do agente do cluster por dez minutos: o agente foi desinstalado ou falha repetidamente, sua chave de API foi revogada, ele perdeu a rota até o OneUptime ou o servidor de API do cluster parou de responder a ele. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** lê a contagem de reinícios do contêiner ao longo da vida do pod atual, não uma taxa. Um contêiner que entrou em loop de falhas e depois se recuperou mantém o alerta aberto até que o pod seja substituído.

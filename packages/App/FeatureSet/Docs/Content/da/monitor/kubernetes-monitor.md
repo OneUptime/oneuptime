@@ -5,7 +5,7 @@ En Kubernetes-monitor advarer på de metrikker, som OneUptimes Kubernetes-agent 
 :::cards
 - [Installér agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando bringer klyngen ind i OneUptime.
 - [Opret monitoren](#opret-en-kubernetes-monitor): Vælg klyngen, og derefter en skabelon, en metrik eller en forespørgsel.
-- [Advarselsskabeloner](#færdige-advarselsskabeloner): Sytten færdige advarsler, fra CrashLoopBackOff til etcd.
+- [Advarselsskabeloner](#færdige-advarselsskabeloner): Atten færdige advarsler, fra en tavs klynge til etcd.
 - [Kriterier](#overvågningskriterier): Statiske tærskler og anomalidetektion.
 :::
 
@@ -132,6 +132,7 @@ Fanen **Quick Setup** viser disse skabeloner, grupperet efter kategori. Hver udf
 
 | Skabelon | Kategori | Udløses, når | Alvorlighed |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Tilgængelighed | Der kommer ingen data fra klyngens agent i 10 minutter | Kritisk |
 | CrashLoopBackOff Detection | Arbejdsbyrde | En container er genstartet mere end 5 gange, siden dens pod blev oprettet | Kritisk |
 | Pod Stuck in Pending | Planlægning | En pod er i fasen Pending i hver måling i et vindue på 15 minutter | Warning |
 | Node Not Ready | Node | En node melder NotReady | Kritisk |
@@ -151,6 +152,8 @@ Fanen **Quick Setup** viser disse skabeloner, grupperet efter kategori. Hver udf
 | Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Warning |
 
 Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for sig, så en klynge med flere usunde pods får en hændelse pr. pod i stedet for én for hele klyngen.
+
+**Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngens agent i ti minutter: agenten er afinstalleret eller går ned igen og igen, dens API-nøgle er tilbagekaldt, den har mistet sin rute til OneUptime, eller klyngens API-server er holdt op med at svare den. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** læser containerens samlede antal genstarter for dens nuværende pod, ikke en rate. En container, der sad fast i en crash-løkke og derefter kom sig, holder advarslen åben, indtil dens pod erstattes.

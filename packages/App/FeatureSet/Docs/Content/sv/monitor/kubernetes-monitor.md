@@ -5,7 +5,7 @@ En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent 
 :::cards
 - [Installera agenten](/docs/monitor/kubernetes-agent): Ett Helm-kommando tar in klustret i OneUptime.
 - [Skapa monitorn](#skapa-en-kubernetes-monitor): Välj klustret, sedan en mall, ett mätvärde eller en fråga.
-- [Larmmallar](#färdiga-larmmallar): Sjutton färdiga larm, från CrashLoopBackOff till etcd.
+- [Larmmallar](#färdiga-larmmallar): Arton färdiga larm, från ett tyst kluster till etcd.
 - [Kriterier](#övervakningskriterier): Statiska trösklar och avvikelseidentifiering.
 :::
 
@@ -132,6 +132,7 @@ Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje
 
 | Mall | Kategori | Utlöses när | Allvarlighetsgrad |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Tillgänglighet | Inga data kommer från klustrets agent på 10 minuter | Kritisk |
 | CrashLoopBackOff Detection | Arbetsbelastning | En container har startats om mer än 5 gånger sedan dess podd skapades | Kritisk |
 | Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Warning |
 | Node Not Ready | Nod | En nod rapporterar NotReady | Kritisk |
@@ -151,6 +152,8 @@ Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje
 | Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Warning |
 
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
+
+**Cluster Stopped Reporting** utlöses när ingenting kommer från klustrets agent på tio minuter: agenten har avinstallerats eller kraschar hela tiden, dess API-nyckel har återkallats, den har tappat sin väg till OneUptime, eller klustrets API-server har slutat svara den. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** läser containerns totala antal omstarter för dess nuvarande podd, inte en takt. En container som har fastnat i en kraschloop och sedan återhämtat sig håller larmet öppen tills dess podd ersätts.

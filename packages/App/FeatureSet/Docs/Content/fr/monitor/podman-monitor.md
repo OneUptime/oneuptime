@@ -4,7 +4,7 @@ Un moniteur Podman surveille les conteneurs d'un hôte Podman et vous prévient 
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-podman): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Cinq alertes prêtes à l'emploi, un incident par conteneur.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Six alertes prêtes à l'emploi, un incident par conteneur.
 - [Métriques](#métriques-collectées): Ce que collecte l'agent, et ce que signifie chaque métrique.
 - [Journaux](#journaux-collectés): Les journaux des conteneurs, et le pilote de journalisation dont ils ont besoin.
 :::
@@ -84,12 +84,13 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose cinq modèles. Chacun construit un moniteur complet : une requête regroupée par `resource.container.name`, un critère qui se déclenche et un autre qui rétablit. Chaque conteneur est jugé séparément et reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+**Quick Setup** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Host Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque conteneur est jugé séparément et reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
 | High Container Restart Count | Critique | `container.restarts`, Max par conteneur, 5 dernières minutes | Au-dessus de 5 redémarrages au total | 4,5 ou moins |
@@ -97,6 +98,8 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Sous 120 secondes | À 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
+
+**Host Stopped Reporting** se déclenche quand rien n'arrive de l'hôte pendant dix minutes : l'hôte est en panne, ou l'agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient. Un hôte sans autre conteneur envoie quand même des données, car l'agent s'exécute lui-même comme conteneur et remonte les siennes.
 
 Les deux modèles en pourcentage utilisent **Moyenne** : leurs métriques sont déjà des pourcentages par conteneur, donc la moyenne d'une minute est la valeur soutenue. Le nombre de redémarrages et le nombre de processus utilisent **Maximum**, pour lesquels une seule mesure au-dessus du seuil est le signal.
 

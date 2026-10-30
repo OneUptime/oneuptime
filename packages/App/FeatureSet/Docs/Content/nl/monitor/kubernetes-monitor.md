@@ -5,7 +5,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 :::cards
 - [De agent installeren](/docs/monitor/kubernetes-agent): Eén Helm-opdracht brengt het cluster in OneUptime.
 - [De monitor maken](#een-kubernetes-monitor-maken): Het cluster kiezen, dan een sjabloon, een metriek of een query.
-- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Zeventien kant-en-klare waarschuwingen, van CrashLoopBackOff tot etcd.
+- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Achttien kant-en-klare waarschuwingen, van een stil cluster tot etcd.
 - [Criteria](#bewakingscriteria): Statische drempels en anomaliedetectie.
 :::
 
@@ -132,6 +132,7 @@ Het tabblad **Quick Setup** toont deze sjablonen, gegroepeerd per categorie. Elk
 
 | Sjabloon | Categorie | Gaat af als | Ernst |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Beschikbaarheid | Er 10 minuten lang geen gegevens van de agent van het cluster binnenkomen | Kritiek |
 | CrashLoopBackOff Detection | Werklast | Een container meer dan 5 keer is herstart sinds zijn pod is gemaakt | Kritiek |
 | Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Warning |
 | Node Not Ready | Node | Een node NotReady meldt | Kritiek |
@@ -151,6 +152,8 @@ Het tabblad **Quick Setup** toont deze sjablonen, gegroepeerd per categorie. Elk
 | Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Warning |
 
 Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, DaemonSet of HPA afzonderlijk, zodat een cluster met meerdere ongezonde pods een incident per pod krijgt in plaats van één voor het hele cluster.
+
+**Cluster Stopped Reporting** gaat af als er tien minuten lang niets van de agent van het cluster binnenkomt: de agent is verwijderd of crasht steeds, zijn API-sleutel is ingetrokken, hij is zijn route naar OneUptime kwijtgeraakt, of de API-server van het cluster antwoordt hem niet meer. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** leest het aantal herstarts van de container over de hele levensduur van zijn huidige pod, geen tempo. Een container die in een crashlus zat en daarna herstelde, houdt de waarschuwing open tot zijn pod wordt vervangen.

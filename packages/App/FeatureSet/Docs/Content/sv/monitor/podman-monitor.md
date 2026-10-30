@@ -4,7 +4,7 @@ En Podman-monitor övervakar containrarna på en Podman-värd och säger till n�
 
 :::cards
 - [Skapa monitorn](#skapa-en-podman-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Fem färdiga larm, en incident per container.
+- [Mallar](#färdiga-larmmallar): Sex färdiga larm, en incident per container.
 - [Mätvärden](#insamlade-mätvärden): Vad agenten samlar in och vad varje mätvärde betyder.
 - [Loggar](#insamlade-loggar): Containerloggar och den loggdrivrutin de behöver.
 :::
@@ -84,12 +84,13 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder fem mallar. Varje mall bygger en komplett monitor: en fråga grupperad efter `resource.container.name`, ett kriterium som utlöses och ett som återställer. Varje container bedöms för sig och får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Host Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje container bedöms för sig och får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar på värden, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | High Container Restart Count | Kritisk | `container.restarts`, Max per container, senaste 5 minuterna | Över 5 omstarter totalt | 4,5 eller färre |
@@ -97,6 +98,8 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Under 120 sekunder | Vid eller över 132 sekunder |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
+
+**Host Stopped Reporting** utlöses när ingenting kommer från värden på tio minuter: värden är nere, eller agenten har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till. En värd utan andra containrar rapporterar ändå, eftersom agenten själv körs som en container och rapporterar sina egna data.
 
 De två procentmallarna använder **Genomsnitt**: deras mätvärden är redan procentsatser per container, så genomsnittet för en minut är det ihållande värdet. Antal omstarter och antal processer använder **Maximum**, där en enda mätning över tröskeln är signalen.
 

@@ -5,7 +5,7 @@ En Kubernetes-monitor varsler på metrikkene som OneUptimes Kubernetes-agent sen
 :::cards
 - [Installer agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando tar klyngen inn i OneUptime.
 - [Opprett monitoren](#opprett-en-kubernetes-monitor): Velg klyngen, og deretter en mal, en metrikk eller en spørring.
-- [Varslingsmaler](#ferdige-varslingsmaler): Sytten ferdige varsler, fra CrashLoopBackOff til etcd.
+- [Varslingsmaler](#ferdige-varslingsmaler): Atten ferdige varsler, fra en taus klynge til etcd.
 - [Kriterier](#overvåkingskriterier): Statiske terskler og avviksdeteksjon.
 :::
 
@@ -132,6 +132,7 @@ Fanen **Quick Setup** viser disse malene, gruppert etter kategori. Hver fyller i
 
 | Mal | Kategori | Utløses når | Alvorlighetsgrad |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Tilgjengelighet | Ingen data kommer fra klyngens agent på 10 minutter | Kritisk |
 | CrashLoopBackOff Detection | Arbeidsbelastning | En container har startet på nytt mer enn 5 ganger siden poden ble opprettet | Kritisk |
 | Pod Stuck in Pending | Planlegging | En pod er i fasen Pending i hver måling i et vindu på 15 minutter | Warning |
 | Node Not Ready | Node | En node melder NotReady | Kritisk |
@@ -151,6 +152,8 @@ Fanen **Quick Setup** viser disse malene, gruppert etter kategori. Hver fyller i
 | Pod CPU Saturating Container Limit | Arbeidsbelastning | En pod bruker mer enn 90 % av CPU-grensen til containerne sine | Warning |
 
 Maler på metrikker per objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for seg, slik at en klynge med flere usunne poder får én hendelse per pod i stedet for én for hele klyngen.
+
+**Cluster Stopped Reporting** utløses når ingenting kommer fra klyngens agent på ti minutter: agenten ble avinstallert eller krasjer gang på gang, API-nøkkelen dens ble tilbakekalt, den mistet ruten sin til OneUptime, eller klyngens API-server sluttet å svare den. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** leser containerens totale antall omstarter for den nåværende poden, ikke en rate. En container som satt fast i en krasjløkke og deretter kom seg, holder varselet åpent til poden erstattes.

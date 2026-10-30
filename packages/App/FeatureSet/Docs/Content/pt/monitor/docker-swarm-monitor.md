@@ -4,7 +4,7 @@ Um monitor de Docker Swarm acompanha os contêineres por trás das tarefas de se
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-docker-swarm): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Quatro alertas prontos, um incidente por tarefa.
+- [Modelos](#modelos-de-alerta-prontos): Cinco alertas prontos, um incidente por tarefa.
 - [Métricas](#métricas-coletadas): As métricas de contêiner com que você pode alertar.
 - [Filtros](#configurações-do-monitor): Restringir um monitor a um serviço, uma tarefa ou uma imagem.
 :::
@@ -92,18 +92,22 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece quatro modelos. Cada um monta um monitor completo: uma consulta agrupada por `resource.container.name`, um critério que dispara e outro que se recupera. Cada tarefa é avaliada separadamente e recebe seu próprio incidente e seu próprio alerta, cuja causa raiz lista as tarefas afetadas e seus valores. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece cinco modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Cluster Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada tarefa é avaliada separadamente e recebe seu próprio incidente e seu próprio alerta, cuja causa raiz lista as tarefas afetadas e seus valores. Os limites são pontos de partida que você pode editar.
 
 Salvo indicação contrária na tabela, um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do cluster, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarefa, último 1 minuto | Qualquer valor está abaixo de 60 segundos | Todos os valores estão em 66 segundos ou mais |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg por tarefa, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg por tarefa, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
 | High Task Process Count | Warning | `container.pids.count`, Max por tarefa, últimos 5 minutos | Acima de 500 | Em 450 ou menos |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** dispara quando nada chega do cluster por dez minutos: os nós que executam o agente estão fora do ar, ou o agente parou, perdeu a rota até o OneUptime ou teve o token revogado. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você. Um nó sem tarefas continua enviando dados, porque o agente roda como um contêiner e envia os do seu próprio contêiner.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** dispara com uma única amostra recente porque um reinício é um evento, não um nível. O Swarm dá a uma tarefa substituta um contêiner novo, e portanto uma série nova, e é por isso que o modelo procura um tempo de atividade abaixo de um minuto, e não um 0. Uma implantação ou um aumento de escala também o disparam, e ele se resolve quando as novas tarefas passam de um minuto de atividade. Uma tarefa que morre e não é substituída não envia nada, então não é detectada.

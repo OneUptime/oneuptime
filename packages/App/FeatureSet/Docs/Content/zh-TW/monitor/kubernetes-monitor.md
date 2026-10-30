@@ -5,7 +5,7 @@ Kubernetes 監測器依據 OneUptime Kubernetes 代理程式從叢集傳送的�
 :::cards
 - [安裝代理程式](/docs/monitor/kubernetes-agent): 一個 Helm 指令就能把叢集接入 OneUptime。
 - [建立監測器](#建立-kubernetes-監測器): 選擇叢集，然後選擇範本、指標或查詢。
-- [警示範本](#現成的警示範本): 十七個現成的警示，從 CrashLoopBackOff 到 etcd。
+- [警示範本](#現成的警示範本): 十八個現成的警示，從停止回報的叢集到 etcd。
 - [條件](#監控條件): 靜態閾值和異常偵測。
 :::
 
@@ -132,6 +132,7 @@ flowchart TB
 
 | 範本 | 類別 | 觸發時機 | 嚴重程度 |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 可用性 | 10 分鐘內沒有從叢集的代理程式收到任何資料 | 嚴重 |
 | CrashLoopBackOff Detection | 工作負載 | 自 Pod 建立以來，某個容器重新啟動超過 5 次 | 嚴重 |
 | Pod Stuck in Pending | 排程中 | 在 15 分鐘視窗的每個樣本中，都有某個 Pod 處於 Pending 階段 | Warning |
 | Node Not Ready | 節點 | 某個節點回報 NotReady | 嚴重 |
@@ -151,6 +152,8 @@ flowchart TB
 | Pod CPU Saturating Container Limit | 工作負載 | Pod 使用了超過其容器 CPU 限制的 90% | Warning |
 
 以個別物件指標為基礎的範本會分別評估每個節點、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多個不健康 Pod 的叢集會為每個 Pod 建立一個事件，而不是整個叢集只建立一個。
+
+**Cluster Stopped Reporting** 會在叢集的代理程式 10 分鐘內沒有任何資料送達時觸發：代理程式被解除安裝或不斷當機、它的 API 金鑰被撤銷、它失去通往 OneUptime 的路由，或者叢集的 API 伺服器不再回應它。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** 範本讀取的是容器在目前 Pod 中的累計重新啟動次數，而不是速率。一個陷入當機迴圈後又恢復的容器，會讓警示一直保持開啟，直到它的 Pod 被取代為止。
