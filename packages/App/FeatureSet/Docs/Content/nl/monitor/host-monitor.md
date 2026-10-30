@@ -61,19 +61,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Host** onder **Inf
 
 ### De host kiezen
 
-Kies onder **Host Monitor Configuration** de machine in **Host**. Elke host die gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Host Monitor Configuration** de machine in **Host**. Elke host die gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Host toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Host Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metriek, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
-- **Custom Metric** – kies één metriek in **Host Metric** en stel dan **Aggregatie** en **Tijdsbereik** in.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een filter op `state` of een groepering op `mountpoint`.
+- **Wijzigen** – kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metriek, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) – kies één metriek in **Host Metric** en stel dan **Aggregatie** en **Tijdsbereik** in.
+- **Geavanceerd** (onder **Meer velden**) – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een filter op `state` of een groepering op `mountpoint`.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat de metriek geen gegevens stuurt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -95,7 +95,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt zes sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt zes sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
@@ -113,13 +113,13 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 - **Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de machine is uitgevallen of onbereikbaar, of de collector is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **CPU** is bezette tijd (`user` plus `system`), hetzelfde cijfer dat het **Overzicht** van de host in grafieken toont. Iowait en steal tellen niet mee.
 - **Geheugen** sluit buffers en paginacache uit, zodat een host die grotendeels cache bevat het sjabloon niet laat afgaan.
-- **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol; sluit ze uit in de scraper `filesystem` van de collector.
+- **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol: de collectorconfiguraties van OneUptime laten ze met `exclude_fs_types` buiten de scraper `filesystem`, en een eigen configuratie heeft hetzelfde nodig.
 - **Belastingsgemiddelde** is een ruwe lengte van de uitvoerwachtrij, niet gedeeld door het aantal kernen: 4 is verzadiging op een host met 2 kernen en routine op een host met 32; verhoog de drempel daarom op grote hosts.
 - **Aantal processen** vergelijkt de grootste afzonderlijke procestoestand (`running`, `sleeping`, …), niet het totaal van de host, en komt dus niet overeen met een proceslijst. De processcraper rapporteert alleen op Linux.
 
 ## Verzamelde metrieken
 
-De lijst **Host Metric** biedt deze metrieken. Elk draagt `resource.host.name`, waarmee de monitor zijn query's tot één host beperkt.
+De lijst **Host Metric** biedt deze metrieken. Elk draagt `resource.host.name`, waarmee de monitor zijn query's tot één host beperkt. Daar gekozen telt CPU de toestand `user`, geheugen- en bestandssysteemgebruik de toestand `used`, en geven bestandssystemen en processen één reeks per koppelpunt en status.
 
 > [!IMPORTANT]
 > De gebruiksmetrieken zijn een verhouding van 0 tot 1, geen percentage: gebruik `0.8` voor 80% in een drempel op de ruwe metriek. De sjablonen rekenen met een formule om naar een percentage, dus hun drempels zijn 80, 85 en 90.
@@ -212,7 +212,7 @@ De monitor beperkt elke query met `resource.host.name` gelijk aan de host die u 
 :::
 
 :::details High Filesystem Usage gaat af voor een mount die altijd vol is
-Alleen-lezen pseudobestandssystemen, zoals snap-loopmounts van het type `squashfs` onder `/snap` of `devfs` op macOS, zijn bewust 100% vol en herstellen nooit. Sluit ze uit in de scraper `filesystem` van de collector.
+Alleen-lezen pseudobestandssystemen, zoals snap-loopmounts van het type `squashfs` onder `/snap` of `devfs` op macOS, zijn bewust 100% vol en herstellen nooit. De configuraties die OneUptime draait en uitdeelt, laten ze weg met `exclude_fs_types`; een eigen configuratie, of een Collectorconfiguratie die daarvoor is gemaakt, heeft hetzelfde nodig: kopieer het uit [Hostmetrics](/docs/telemetry/host-otel-collector#hostmetrics). Laat een andere mount die altijd vol is, zoals een gemounte `.dmg`, weg met `exclude_mount_points`.
 :::
 
 ## Volgende stappen

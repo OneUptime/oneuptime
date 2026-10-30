@@ -47,19 +47,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Lagringsarray*
 
 ### Velg arrayet
 
-Velg arrayet i **Lagringsarray** under **Storage Array Monitor Configuration**. Hvert array som har sendt data, står i listen. Plattformen avgjør hvilke metrikker og maler skjemaet tilbyr.
+Velg arrayet i **Lagringsarray** under **Storage Array Monitor Configuration**. Hvert array som har sendt data, står i listen. Plattformen avgjør hvilke metrikker og maler skjemaet tilbyr. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til lagringsarray** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Array Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, etikettfiltrene, aggregeringen, tidsintervallet og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** - velg én metrikk i **Storage Array Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til ett volum, én vert, én pod, én komponent, ett filsystem eller én bucket.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, for eksempel brukt kapasitet som `purefa_array_space_bytes` filtrert til `space=capacity` minus den samme metrikken filtrert til `space=empty`. Bruk **Grupper etter** med et objekts etikett for å vurdere hvert objekt for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, etikettfiltrene, aggregeringen, tidsintervallet og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én metrikk i **Storage Array Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til ett volum, én vert, én pod, én komponent, ett filsystem eller én bucket.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, for eksempel brukt kapasitet som `purefa_array_space_bytes` filtrert til `space=capacity` minus den samme metrikken filtrert til `space=empty`. Bruk **Grupper etter** med et objekts etikett for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -109,7 +109,7 @@ I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resourc
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 20 maler — 12 for FlashArray og 8 for FlashBlade — og **Quick Setup** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: metrikkspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 20 maler — 12 for FlashArray og 8 for FlashBlade — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: metrikkspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet. En monitor som utløste på en terskel for kapasitet, latens, etterslep eller forhold, gjenoppretter først 10 % forbi den, så en verdi som svinger rundt terskelen, ikke skifter fram og tilbake; malene for varsler og maskinvare gjenoppretter så snart tilstanden forsvinner.
 
@@ -228,7 +228,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `purefa_pod_replica_links_lag_max_msec`              | —                                      | FlashArray | `ms`      | Største replikeringsetterslep for hver pod-replikalenke (ActiveDR / asynkron), med etikettene `local_pod`, `remote_pod`, `remote`, `direction` og `status` — grupper etter `local_pod` |
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Gjennomsnittlig replikeringsetterslep for hver pod-replikalenke                                                                                              |
-| `purefa_pod_performance_replication_bandwidth_bytes` | —                                      | FlashArray | `bytes/s` | Replikeringstrafikken til hver pod, med etikettene `direction` og `dimension`                                                                                |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replikeringstrafikken til hver pod, med etikettene `direction` og `dimension`                                                                                |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Gjennomsnittlig latens for speilede skrivinger for hver ActiveCluster-pod                                                                                    |
 
 ### Hardware

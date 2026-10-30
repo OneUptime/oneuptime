@@ -465,7 +465,7 @@ const guestDownTemplate: ProxmoxAlertTemplate = {
   name: "Guest Down",
   summary: "A VM or container set to start on boot stops running.",
   description:
-    "Alert when a VM or container that is configured to start on boot stops running (pve_up = 0 while pve_onboot_status = 1, scoped to guests via pve.scope). One incident per guest. Guests you stopped on purpose are excluded automatically — a guest with onboot disabled never fires.",
+    "Alert when a VM or container that is configured to start on boot stops running (pve_up = 0 while pve_onboot_status = 1, scoped to guests via pve.scope). One incident per guest. A guest with start on boot disabled never fires; one with it enabled fires even when stopped on purpose, so turn start on boot off first.",
   category: "Availability",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -583,7 +583,7 @@ const quorumRiskTemplate: ProxmoxAlertTemplate = {
   name: "Cluster Quorum at Risk",
   summary: "50% or fewer of the cluster's nodes are online.",
   description:
-    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count) — pve-exporter exposes no corosync metric, so this is the honest quorum proxy: at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops. On the Proxmox VE native OpenTelemetry push, a node that stops reporting counts as offline (the nodes still alive report it); a whole cluster going silent turns the cluster Disconnected instead.",
+    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count): at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops. pve-exporter also reports quorum itself, as pve_up for the cluster (id cluster/<name>, 1 while quorate), which a metric monitor of your own can watch. On the Proxmox VE native OpenTelemetry push, a node that stops reporting counts as offline (the nodes still alive report it); a whole cluster going silent turns the cluster Disconnected instead.",
   category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -961,8 +961,8 @@ const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         /*
          * Cluster-level gauge from the backup-info collector — one
-         * series, no `id` label, so no groupBy: one incident per
-         * cluster. Per-guest naming belongs to the Affected Resources list
+         * series, the cluster's own (`id` cluster/<name>), so no groupBy:
+         * one incident per cluster. Per-guest naming belongs to the Affected Resources list
          * (pve_not_backed_up_info grouped by `id`), not the alert.
          */
         metricName: "pve_not_backed_up_total",

@@ -34,7 +34,24 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- if .Values.controlPlane.enabled }}
-  - Control plane metrics: etcd, API server, scheduler, controller manager (prometheus)
+{{- /* Only a component with endpoints is scraped (configmap-deployment.yaml):
+       etcd, the scheduler and the controller manager have none by default. */}}
+{{- $scraped := list }}
+{{- $notScraped := list }}
+{{- range $component := list "apiServer" "etcd" "scheduler" "controllerManager" }}
+{{- $label := get (dict "apiServer" "API server" "etcd" "etcd" "scheduler" "scheduler" "controllerManager" "controller manager") $component }}
+{{- if (get $.Values.controlPlane $component | default dict).endpoints }}
+{{- $scraped = append $scraped $label }}
+{{- else }}
+{{- $notScraped = append $notScraped $label }}
+{{- end }}
+{{- end }}
+{{- if $scraped }}
+  - Control plane metrics: {{ join ", " $scraped }} (prometheus)
+{{- end }}
+{{- if $notScraped }}
+  - Control plane, not scraped until you list where it answers: {{ join ", " $notScraped }} (controlPlane.<component>.endpoints, an address this cluster collector's pod can reach)
+{{- end }}
 {{- end }}
 {{- if .Values.logs.enabled }}
 {{- $logMode := include "kubernetes-agent.logMode" . }}

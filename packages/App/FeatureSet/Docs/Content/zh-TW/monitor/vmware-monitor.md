@@ -48,19 +48,19 @@ flowchart TB
 
 ### 選擇 vCenter
 
-在 **VMware Monitor Configuration** 下，從 **vCenter** 中選擇 vCenter。每個傳送過資料或你在免代理程式的情況下連接的 vCenter 都在清單中。
+在 **VMware Monitor Configuration** 下，從 **vCenter** 中選擇 vCenter。每個傳送過資料或你在免代理程式的情況下連接的 vCenter 都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 vCenter** 會開啟 vCenter 頁面，你可以在那裡連接一個。
 
 ### 選擇要監看的內容
 
-選擇三個索引標籤之一：
+新監測器從 **告警內容** 下的 **vCenter Stopped Reporting** 開始。要監測其他內容：
 
-- **Quick Setup**：點選一個 [範本](#預建警示範本)。它會設定指標、屬性篩選器、彙總、時間範圍、分組和臨界值，並用自己的條件取代下面的條件。你仍然可以修改 **時間範圍**。
-- **Custom Metric**：從 **VMware Metric** 中選擇一個指標，然後設定 **彙總** 和 **時間範圍**。表單會依它描述的物件分組，因此每台主機、每個 VM 或每個資料存放區都會單獨判斷，而 [篩選器](#監測器設定) 可以把它縮小到一個資料中心、叢集、主機、VM、資料存放區或資源集區。
-- **進階**：在 **選擇指標** 下自行建構查詢和公式，並依 `disk_state`、`power_state` 或 `status` 等屬性篩選。以一個 [識別屬性](#識別屬性) 進行 **分組依據**，即可分別判斷每個物件。
+- **變更**：選擇另一個 [範本](#預建警示範本)。它會設定指標、屬性篩選器、彙總、時間範圍、分組和臨界值，並用自己的條件取代下面的條件。你仍然可以修改 **時間範圍**。
+- **Custom Metric**（在 **更多欄位** 下）：從 **VMware Metric** 中選擇一個指標，然後設定 **彙總** 和 **時間範圍**。表單會依它描述的物件分組，因此每台主機、每個 VM 或每個資料存放區都會單獨判斷，而 [篩選器](#監測器設定) 可以把它縮小到一個資料中心、叢集、主機、VM、資料存放區或資源集區。
+- **進階**（在 **更多欄位** 下）：在 **選擇指標** 下自行建構查詢和公式，並依 `disk_state`、`power_state` 或 `status` 等屬性篩選。以一個 [識別屬性](#識別屬性) 進行 **分組依據**，即可分別判斷每個物件。
 
 ### 檢查條件
 
-開啟 **監測器條件** 下的每個條件，檢查其 **指標**、**彙總**、**條件** 和 **閾值**。範本會填入這些內容。使用 **Custom Metric** 或 **進階** 時，監測器會從 [預設條件](#預設條件) 開始，它只會注意到指標降為零，所以請設定你自己的臨界值。
+開啟 **監測器條件** 下的每個條件，檢查其 **指標**、**彙總**、**條件** 和 **閾值**。範本會填入這些內容。使用 **Custom Metric** 或 **進階** 時，監測器會從 [預設條件](#預設條件) 開始，它只會注意到指標不再傳送資料，所以請設定你自己的臨界值。
 
 ### 建立監測器
 
@@ -106,7 +106,7 @@ vCenter 每個收集間隔(預設 2 分鐘)讀取一次，因此 1 分鐘的視�
 
 ## 預建警示範本
 
-OneUptime 為常見的 VMware 問題提供 24 個範本，**Quick Setup** 會提供全部範本。每個範本都會建構一個完整的監測器：指標查詢、其屬性篩選器、依物件自身識別屬性的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
+OneUptime 為常見的 VMware 問題提供 24 個範本，**告警內容** 清單會提供全部範本。每個範本都會建構一個完整的監測器：指標查詢、其屬性篩選器、依物件自身識別屬性的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
 
 除非表格另有說明，範本讀取過去 5 分鐘。只有當條件在視窗的每一分鐘都成立時，條件才會觸發；臨界值條件會在超過臨界值 10% 之後復原，因此在這條線附近徘徊的值不會來回切換。
 
@@ -130,11 +130,11 @@ OneUptime 為常見的 VMware 問題提供 24 個範本，**Quick Setup** 會提
 | Cluster Host Not Effective | 叢集 | 嚴重 | `vcenter.cluster.host.count` 篩選到 `effective = false`，依 `resource.vcenter.cluster.name` 取 Max | 高於 0：某台主機處於維護模式、已中斷連線或沒有回應，因此叢集以低於其設計容量的容量運作 | 恢復為 0 |
 | Datacenter Hosts Unhealthy | 資料中心 | 嚴重 | `vcenter.datacenter.host.count` 篩選到 `status = red`，依 `resource.vcenter.datacenter.name` 取 Max | 高於 0：某台主機有嚴重警報，例如硬體感測器、遺失的儲存路徑或 HA 代理程式錯誤 | 恢復為 0 |
 | Datacenter Hosts Degraded | 資料中心 | Warning | `vcenter.datacenter.host.count` 篩選到 `status = yellow`，依資料中心取 Max | 高於 0：某台主機有警告層級警報 | 恢復為 0 |
-| Datacenter Hosts Powered Off | 資料中心 | Warning | `vcenter.datacenter.host.count` 篩選到 `power_state = off`，依資料中心取 Max | 高於 0：某台主機已關機——它當機了、斷電了，或被 DPM 置於待命狀態 | 恢復為 0 |
+| Datacenter Hosts Not Responding | 資料中心 | 嚴重 | `vcenter.datacenter.host.count` 篩選到 `power_state = unknown`，依資料中心取 Max | 高於 0：vCenter 與某台主機失去聯繫——它當機了、斷電或管理網路中斷，或已中斷連線。刻意關機或被 DPM 置於待命狀態的主機不計入 | 恢復為 0 |
 | Datacenter VMs Unhealthy | 資料中心 | Warning | `vcenter.datacenter.vm.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個 VM 有嚴重警報，例如 HA 重新啟動失敗、遺失的資料存放區或遺失的 Tools 活動訊號 | 恢復為 0 |
 | Datacenter Clusters Unhealthy | 資料中心 | 嚴重 | `vcenter.datacenter.cluster.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個叢集有嚴重警報，例如 HA 容錯移轉資源不足、HA 選舉失敗或嚴重的 vSAN 健康狀態檢查 | 恢復為 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，依叢集取 Avg | 高於 20 000 µs (20 ms)：vSAN 資料存放區上每個 VM 的儲存都變慢。在沒有 vSAN 的叢集上保持靜默 | 達到或低於 18 000 µs |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，依叢集取 Max | 高於 0：某個磁碟群組跟不上，vSAN 正在減慢其用戶端的 I/O | 恢復為 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，依叢集取 Avg，**過去 15 分鐘** | 高於 20 000 µs (20 ms)：vSAN 資料存放區上每個 VM 的儲存都變慢。在沒有 vSAN 的叢集上保持靜默 | 達到或低於 18 000 µs |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，依叢集取 Max，**過去 15 分鐘** | 高於 0：某個磁碟群組跟不上，vSAN 正在減慢其用戶端的 I/O | 恢復為 0 |
 | Resource Pool Memory Swapped | 叢集 | Warning | `vcenter.resource_pool.memory.swapped`，依 `resource.vcenter.resource_pool.inventory_path` 取 Max | 高於 0：資源集區的 VM 正從主機置換空間取得記憶體，通常是因為資源集區的記憶體限制或配額過低 | 恢復為 0 |
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。

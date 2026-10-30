@@ -47,19 +47,19 @@ flowchart TB
 
 ### 选择阵列
 
-在 **Storage Array Monitor Configuration** 下，从 **存储阵列** 中选择阵列。每个发送过数据的阵列都在列表中。阵列的平台决定了表单提供哪些指标和模板。
+在 **Storage Array Monitor Configuration** 下，从 **存储阵列** 中选择阵列。每个发送过数据的阵列都在列表中。阵列的平台决定了表单提供哪些指标和模板。选好后，字段下方的一行会显示是否有数据到达。**添加存储阵列** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监视的内容
 
-选择三个选项卡之一：
+新监视器从 **告警内容** 下的 **Array Stopped Reporting** 开始。要监视其他内容：
 
-- **Quick Setup**：点击一个 [模板](#预置告警模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
-- **Custom Metric**：从 **Storage Array Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把它缩小到一个卷、主机、Pod、组件、文件系统或存储桶。
-- **高级**：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **分组依据**，即可分别判断每个对象。
+- **更改**：选择另一个 [模板](#预置告警模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
+- **Custom Metric**（在 **更多字段** 下）：从 **Storage Array Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把它缩小到一个卷、主机、Pod、组件、文件系统或存储桶。
+- **高级**（在 **更多字段** 下）：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **分组依据**，即可分别判断每个对象。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标不再发送数据，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -109,7 +109,7 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 ## 预置告警模板
 
-OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**Quick Setup** 会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**告警内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
 只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换；告警和硬件模板会在状态消失时立即恢复。
 
@@ -228,7 +228,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | --- | --- | --- | --- | --- |
 | `purefa_pod_replica_links_lag_max_msec` | — | FlashArray | `ms` | 每条 Pod 副本链接(ActiveDR / 异步)的最大复制滞后，带有标签 `local_pod`、`remote_pod`、`remote`、`direction` 和 `status`——按 `local_pod` 分组 |
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 每条 Pod 副本链接的平均复制滞后 |
-| `purefa_pod_performance_replication_bandwidth_bytes` | — | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每个 ActiveCluster Pod 的镜像写平均延迟 |
 
 ### Hardware

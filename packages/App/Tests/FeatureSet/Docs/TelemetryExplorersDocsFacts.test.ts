@@ -51,6 +51,7 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
+import { MAX_SIMILAR_EXCEPTIONS } from "Common/Types/Telemetry/SimilarExceptions";
 import {
   CORE_LOGS_TABLE_COLUMN_OPTIONS,
   DEFAULT_LOGS_TABLE_COLUMNS,
@@ -2296,6 +2297,42 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
     expect(page).toContain(
       "It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.",
+    );
+  });
+
+  /*
+   * Similar exceptions on the Overview, with why each is listed, and
+   * OneUptime AI's verdict on each, as the card and the scorer have them.
+   */
+  it("lists similar exceptions with why, and OneUptime AI's verdict on each", () => {
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const card: string = readDashboardSource(
+      "Components/Exceptions/ExceptionSimilar.tsx",
+    );
+
+    expect(explorer).toContain(
+      "<ExceptionSimilar telemetryExceptionId={props.telemetryExceptionId} />",
+    );
+    expect(card).toContain('title="Similar exceptions"');
+    for (const label of [
+      '"Same message"',
+      '"Same code location"',
+      '"Similar message"',
+      '"Check with OneUptime AI"',
+      '"Likely the same bug"',
+      '"A related bug"',
+      '"A different bug"',
+    ]) {
+      expect(card).toContain(label);
+    }
+    expect(MAX_SIMILAR_EXCEPTIONS).toBe(5);
+    expect(page).toContain(
+      "Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words.",
+    );
+    expect(page).toContain(
+      "**Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off.",
     );
   });
 

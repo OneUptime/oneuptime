@@ -2,6 +2,11 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import TimeRange from "Common/Types/Time/TimeRange";
+import {
+  ComposedValue,
+  composedValue,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure helpers for the exception detail pages (header, Overview trend,
@@ -38,6 +43,15 @@ function plural(count: number, unit: string): string {
 export function formatRelativeTime(
   value: unknown,
   now: Date = new Date(),
+  /*
+   * The reader's language ("de", "pt-BR"): the words are Intl's, which
+   * knows every locale's plural rules ("vor 4 Minuten", "4 分钟前"). Left
+   * out, or English, the English below. A sentence the time goes into is
+   * written in one language, so a caller passes the language the sentence
+   * is read in (exceptionTimeValue), never the page's when the sentence is
+   * still English.
+   */
+  language?: string | undefined,
 ): string | null {
   const date: Date | null = toValidDate(value);
 
@@ -47,26 +61,82 @@ export function formatRelativeTime(
 
   const diffMs: number = now.getTime() - date.getTime();
   const absMs: number = Math.abs(diffMs);
+  const inReadersWords: (
+    count: number,
+    unit: Intl.RelativeTimeFormatUnit,
+  ) => string | null = (
+    count: number,
+    unit: Intl.RelativeTimeFormatUnit,
+  ): string | null => {
+    if (!language || language.toLowerCase().startsWith("en")) {
+      return null;
+    }
+
+    try {
+      return new Intl.RelativeTimeFormat(language, { numeric: "auto" }).format(
+        diffMs >= 0 ? -count : count,
+        unit,
+      );
+    } catch {
+      return null;
+    }
+  };
 
   if (absMs < 45 * SECOND_MS) {
-    return "just now";
+    return inReadersWords(0, "second") || "just now";
   }
 
-  let phrase: string;
+  let count: number;
+  let unit: "minute" | "hour" | "day" | "month" | "year";
 
   if (absMs < 45 * MINUTE_MS) {
-    phrase = plural(Math.max(1, Math.round(absMs / MINUTE_MS)), "minute");
+    count = Math.max(1, Math.round(absMs / MINUTE_MS));
+    unit = "minute";
   } else if (absMs < 22 * HOUR_MS) {
-    phrase = plural(Math.max(1, Math.round(absMs / HOUR_MS)), "hour");
+    count = Math.max(1, Math.round(absMs / HOUR_MS));
+    unit = "hour";
   } else if (absMs < 26 * DAY_MS) {
-    phrase = plural(Math.max(1, Math.round(absMs / DAY_MS)), "day");
+    count = Math.max(1, Math.round(absMs / DAY_MS));
+    unit = "day";
   } else if (absMs < 320 * DAY_MS) {
-    phrase = plural(Math.max(1, Math.round(absMs / (30 * DAY_MS))), "month");
+    count = Math.max(1, Math.round(absMs / (30 * DAY_MS)));
+    unit = "month";
   } else {
-    phrase = plural(Math.max(1, Math.round(absMs / (365 * DAY_MS))), "year");
+    count = Math.max(1, Math.round(absMs / (365 * DAY_MS)));
+    unit = "year";
   }
 
+  const translated: string | null = inReadersWords(count, unit);
+
+  if (translated) {
+    return translated;
+  }
+
+  const phrase: string = plural(count, unit);
+
   return diffMs >= 0 ? `${phrase} ago` : `in ${phrase}`;
+}
+
+/*
+ * A relative time for a translated sentence ("Resolved {{time}} by Ana"):
+ * written in the language the sentence is filled in, so a locale that has
+ * the sentence reads "vor 4 Minuten" and one that does not yet reads
+ * "4 minutes ago", never a German time in an English sentence. Undefined
+ * for a missing time.
+ */
+export function exceptionTimeValue(
+  value: unknown,
+  now?: Date | undefined,
+): ComposedValue | undefined {
+  if (formatRelativeTime(value, now || new Date()) === null) {
+    return undefined;
+  }
+
+  return composedValue((translator: Translator): string => {
+    return (
+      formatRelativeTime(value, now || new Date(), translator.language) || ""
+    );
+  });
 }
 
 /*

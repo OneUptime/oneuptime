@@ -23,7 +23,7 @@ flowchart TB
 ## Antes de empezar
 
 - El agente de Kubernetes de OneUptime en ejecución en el clúster. Consulte [Agente de Kubernetes (instalación con Helm)](/docs/monitor/kubernetes-agent); el clúster aparece en **Kubernetes** unos minutos después de la instalación.
-- Para las plantillas del plano de control (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): la recopilación del plano de control del agente, `controlPlane.enabled`. Los clústeres gestionados (EKS, GKE, AKS) no exponen estos endpoints, así que esos monitores nunca reciben datos allí.
+- Para las plantillas del plano de control (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): la recopilación del plano de control del agente, `controlPlane.enabled`, que lee el API server desde el primer momento; etcd y el scheduler también necesitan que se indiquen sus endpoints (consulte [Activar la supervisión del plano de control](/docs/telemetry/kubernetes-agent#activar-la-supervisión-del-plano-de-control)). Los clústeres gestionados (EKS, GKE, AKS) no exponen estos endpoints, así que esos monitores nunca reciben datos allí.
 
 ## Crear un monitor de Kubernetes
 
@@ -34,15 +34,15 @@ Vaya a **Monitores** y haga clic en **Crear monitor**. En **Más tipos de monito
 
 ### Elegir el clúster
 
-Selecciónelo en **Clúster de Kubernetes**. La lista contiene cada clúster desde el que ha informado el agente.
+Selecciónelo en **Clúster de Kubernetes**. La lista contiene cada clúster desde el que ha informado el agente. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir clúster de Kubernetes** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Use una de las tres pestañas:
+Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué alertar**; **Cambiar** elige otra plantilla. **Custom Metric** y **Avanzado** están en **Más campos**:
 
-| Pestaña | Qué elige |
+| Dónde | Qué elige |
 | --- | --- |
-| **Quick Setup** | Una [plantilla de alerta lista para usar](#plantillas-de-alerta-listas-para-usar). Rellena la métrica, el ámbito, el intervalo de tiempo y los criterios; aún puede cambiar el **Intervalo de tiempo**. |
+| **Sobre qué alertar** | Una [plantilla de alerta lista para usar](#plantillas-de-alerta-listas-para-usar). Rellena la métrica, el ámbito, el intervalo de tiempo y los criterios; aún puede cambiar el **Intervalo de tiempo**. |
 | **Custom Metric** | Una métrica del [catálogo de métricas](#catálogo-de-métricas) y luego su **Ámbito del recurso**, filtros, **Agregación** (Promedio, Máximo, Mínimo, Suma o Recuento) e **Intervalo de tiempo**. |
 | **Avanzado** | El **Ámbito del recurso**, los filtros y el **Intervalo de tiempo**, y sus propias consultas de métricas y fórmulas en **Seleccionar métricas**, con un gráfico en vivo del resultado. |
 
@@ -128,7 +128,7 @@ Cada muestra se compara con una referencia de la misma hora de la semana constru
 
 ## Plantillas de alerta listas para usar
 
-La pestaña **Quick Setup** enumera estas plantillas, agrupadas por categoría. Cada una rellena dos criterios: uno que marca el monitor como sin conexión y abre un incidente y una alerta mientras se cumple la condición, y otro que lo vuelve a poner en línea cuando deja de cumplirse.
+La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categoría. Cada una rellena dos criterios: uno que marca el monitor como sin conexión y abre un incidente y una alerta mientras se cumple la condición, y otro que lo vuelve a poner en línea cuando deja de cumplirse.
 
 | Plantilla | Categoría | Se dispara cuando | Gravedad |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ Los clústeres se registran solos a partir de los datos del agente, con el `clus
 :::
 
 :::details Una plantilla del plano de control nunca se dispara
-**etcd No Leader**, **API Server Request Saturation** y **Scheduler Backlog** leen métricas que solo recopila la recopilación del plano de control del agente. Active `controlPlane.enabled` en los valores de Helm del agente; está desactivada de forma predeterminada. Los clústeres gestionados (EKS, GKE, AKS) no exponen estos endpoints, así que en ellos estos monitores nunca reciben datos.
+**etcd No Leader**, **API Server Request Saturation** y **Scheduler Backlog** leen métricas que solo recopila la recopilación del plano de control del agente. Active `controlPlane.enabled` en los valores de Helm del agente; está desactivada de forma predeterminada. Eso lee el API server. etcd y el scheduler se ejecutan en los nodos del plano de control, así que **etcd No Leader** y **Scheduler Backlog** también necesitan `controlPlane.etcd.endpoints` y `controlPlane.scheduler.endpoints` establecidos en direcciones a las que pueda llegar el pod del agente (consulte [Activar la supervisión del plano de control](/docs/telemetry/kubernetes-agent#activar-la-supervisión-del-plano-de-control)). Los clústeres gestionados (EKS, GKE, AKS) no exponen estos endpoints, así que en ellos estos monitores nunca reciben datos.
 :::
 
 :::details Un umbral de CPU nunca se dispara

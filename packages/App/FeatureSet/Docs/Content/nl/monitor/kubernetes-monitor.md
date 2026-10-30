@@ -23,7 +23,7 @@ flowchart TB
 ## Voordat u begint
 
 - De OneUptime-Kubernetes-agent draait in het cluster. Zie [Kubernetes-agent (Helm-installatie)](/docs/monitor/kubernetes-agent); het cluster verschijnt een paar minuten na de installatie onder **Kubernetes**.
-- Voor de control-plane-sjablonen (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): het uitlezen van het control plane door de agent, `controlPlane.enabled`. Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen die monitors nooit gegevens.
+- Voor de control-plane-sjablonen (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): het uitlezen van het control plane door de agent, `controlPlane.enabled`, dat de API-server direct leest; etcd en de scheduler hebben daarnaast hun opgegeven endpoints nodig (zie [Controlevlakmonitoring inschakelen](/docs/telemetry/kubernetes-agent#controlevlakmonitoring-inschakelen)). Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen die monitors nooit gegevens.
 
 ## Een Kubernetes-monitor maken
 
@@ -34,15 +34,15 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Meer monitortyp
 
 ### Het cluster kiezen
 
-Selecteer het in **Kubernetes-cluster**. De lijst bevat elk cluster waaruit de agent heeft gerapporteerd.
+Selecteer het in **Kubernetes-cluster**. De lijst bevat elk cluster waaruit de agent heeft gerapporteerd. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Kubernetes-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Gebruik een van de drie tabbladen:
+Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**; **Wijzigen** kiest een ander sjabloon. **Custom Metric** en **Geavanceerd** staan onder **Meer velden**:
 
-| Tabblad | Wat u kiest |
+| Waar | Wat u kiest |
 | --- | --- |
-| **Quick Setup** | Een [kant-en-klaar waarschuwingssjabloon](#kant-en-klare-waarschuwingssjablonen). Het vult de metriek, het bereik, het tijdsbereik en de criteria in; het **Tijdsbereik** kunt u nog wijzigen. |
+| **Waarover te waarschuwen** | Een [kant-en-klaar waarschuwingssjabloon](#kant-en-klare-waarschuwingssjablonen). Het vult de metriek, het bereik, het tijdsbereik en de criteria in; het **Tijdsbereik** kunt u nog wijzigen. |
 | **Custom Metric** | Eén metriek uit de [metriekcatalogus](#metriekcatalogus), dan het **Resourcebereik**, de filters, de **Aggregatie** (Gemiddelde, Maximum, Minimum, Som of Aantal) en het **Tijdsbereik**. |
 | **Geavanceerd** | Het **Resourcebereik**, de filters en het **Tijdsbereik**, plus uw eigen metriekquery's en formules onder **Selecteer metrieken**, met een live grafiek van het resultaat. |
 
@@ -128,7 +128,7 @@ Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, op
 
 ## Kant-en-klare waarschuwingssjablonen
 
-Het tabblad **Quick Setup** toont deze sjablonen, gegroepeerd per categorie. Elk vult twee criteria in: één die de monitor offline markeert en een incident en een waarschuwing opent zolang de voorwaarde geldt, en één die hem weer online zet als ze niet meer geldt.
+De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per categorie. Elk vult twee criteria in: één die de monitor offline markeert en een incident en een waarschuwing opent zolang de voorwaarde geldt, en één die hem weer online zet als ze niet meer geldt.
 
 | Sjabloon | Categorie | Gaat af als | Ernst |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ Clusters registreren zichzelf uit de gegevens van de agent, onder de `clusterNam
 :::
 
 :::details Een control-plane-sjabloon gaat nooit af
-**etcd No Leader**, **API Server Request Saturation** en **Scheduler Backlog** lezen metrieken die alleen het uitlezen van het control plane door de agent verzamelt. Zet `controlPlane.enabled` aan in de Helm-waarden van de agent; standaard staat het uit. Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen deze monitors nooit gegevens.
+**etcd No Leader**, **API Server Request Saturation** en **Scheduler Backlog** lezen metrieken die alleen het uitlezen van het control plane door de agent verzamelt. Zet `controlPlane.enabled` aan in de Helm-waarden van de agent; standaard staat het uit. Dat leest de API-server. etcd en de scheduler draaien op de control-plane-nodes, dus **etcd No Leader** en **Scheduler Backlog** hebben ook `controlPlane.etcd.endpoints` en `controlPlane.scheduler.endpoints` nodig, ingesteld op adressen die de pod van de agent kan bereiken (zie [Controlevlakmonitoring inschakelen](/docs/telemetry/kubernetes-agent#controlevlakmonitoring-inschakelen)). Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen deze monitors nooit gegevens.
 :::
 
 :::details Een CPU-drempel gaat nooit af

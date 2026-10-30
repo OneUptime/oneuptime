@@ -85,6 +85,13 @@ spec:
             - name: config
               mountPath: /etc/otel
               readOnly: true
+            {{- if and .Values.controlPlane.enabled .Values.controlPlane.etcd.clientCertSecret }}
+            # The client certificate the etcd scrape presents
+            # (controlPlane.etcd.clientCertSecret).
+            - name: etcd-client-cert
+              mountPath: /etc/oneuptime/etcd-client-cert
+              readOnly: true
+            {{- end }}
         {{- if .Values.debug.enabled }}
         {{- include "kubernetes-agent.debugContainer" . | nindent 8 }}
         {{- end }}
@@ -92,3 +99,8 @@ spec:
         - name: config
           configMap:
             name: {{ include "kubernetes-agent.fullname" . }}-deployment
+        {{- if and .Values.controlPlane.enabled .Values.controlPlane.etcd.clientCertSecret }}
+        - name: etcd-client-cert
+          secret:
+            secretName: {{ .Values.controlPlane.etcd.clientCertSecret | quote }}
+        {{- end }}

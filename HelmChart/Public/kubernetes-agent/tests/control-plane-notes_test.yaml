@@ -1,0 +1,46 @@
+# What the notes say control-plane monitoring collects. They used to list
+# etcd, the API server, the scheduler and the controller manager whenever
+# controlPlane.enabled was on, while every one of them was scraped at the
+# collector pod's own localhost and none arrived. Only a component with
+# endpoints is scraped now (control-plane_test.yaml): the API server by
+# default, the others once their addresses are listed. The notes name what
+# is scraped, and what is not and why.
+suite: the notes name the control-plane components the agent scrapes
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: names the API server as scraped, and the other three as waiting for their endpoints
+    set:
+      controlPlane.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane metrics: API server \\(prometheus\\)\\n"
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane, not scraped until you list where it answers: etcd, scheduler, controller manager \\(controlPlane\\.<component>\\.endpoints, an address this cluster collector's pod can reach\\)\\n"
+
+  - it: names every component that has endpoints as scraped
+    set:
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - http://10.0.0.10:2381
+      controlPlane.scheduler.endpoints:
+        - https://10.0.0.10:10259
+      controlPlane.controllerManager.endpoints:
+        - https://10.0.0.10:10257
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane metrics: API server, etcd, scheduler, controller manager \\(prometheus\\)\\n"
+      - notMatchRegexRaw:
+          pattern: "not scraped until you list where it answers"
+
+  - it: says nothing of the control plane while it is off
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Control plane"

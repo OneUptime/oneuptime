@@ -57,19 +57,19 @@ Klikk på **Flere monitortyper** under **Monitortype** og velg **Ceph** under **
 
 ### Velg klyngen
 
-Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger som har sendt data, står i listen.
+Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Ceph-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg én av de tre fanene:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** — klikk på en [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool.
-- **Avansert** — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
+- **Endre** — velg en annen [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool.
+- **Avansert** (under **Flere felt**) — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -99,7 +99,7 @@ Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_
 
 ## Ferdige varselmaler
 
-**Quick Setup** tilbyr 24 maler som dekker en taus klynge, klyngens helse, OSD-er, placement groups og kapasitet. Hver bygger en komplett monitor — spørringer, etikettfiltre, en gruppering, et kriterium som utløses og et som gjenoppretter. Tersklene er startpunkter du kan endre.
+Listen under **Hva det skal varsles om** tilbyr 24 maler som dekker en taus klynge, klyngens helse, OSD-er, placement groups og kapasitet. Hver bygger en komplett monitor — spørringer, etikettfiltre, en gruppering, et kriterium som utløses og et som gjenoppretter. Tersklene er startpunkter du kan endre.
 
 Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter først 10 % forbi terskelen, slik at en verdi som svinger rundt grensen, ikke flagrer. **Alvorlighetsgrad** er etiketten velgeren viser; hendelsen og varselet en mal oppretter, starter på prosjektets høyeste alvorlighetsgrad for hendelser og varsler.
 
@@ -175,7 +175,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_healthcheck_slow_ops` | antall | Trege OSD- og monitoroperasjoner som checken `SLOW_OPS` rapporterer. |
 | `ceph_daemon_health_metrics` | antall | Helsemetrikker per daemon, med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antall | 1 når monitoren er i quorum, per `ceph_daemon` (for eksempel `mon.a`). |
-| `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1. Summer dem for å telle monitorer. |
+| `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1 mens monitoren rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke monitorer. |
 | `ceph_cluster_total_bytes` | byte | Samlet rå kapasitet. |
 | `ceph_cluster_total_used_bytes` | byte | Rå kapasitet i bruk. |
 
@@ -190,7 +190,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_osd_stat_bytes` | byte | Rå kapasitet for OSD-ens enhet. |
 | `ceph_osd_stat_bytes_used` | byte | Rå byte brukt på OSD-en. Sammenlign med totalen for å finne skjevt fylte eller nesten fulle OSD-er. |
 | `ceph_osd_numpg` | antall | Placement groups på OSD-en. |
-| `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1. Summer dem for å telle OSD-er. |
+| `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1 mens OSD-en rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke OSD-er. |
 
 ### Poolmetrikker
 
@@ -207,7 +207,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 
 ### Metrikker for placement groups
 
-Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`; summer på tvers av pooler for et tall for hele klyngen.
+Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`. En sum legger sammen både hver skraping i et minutt og hver pool, så sammenlign pool for pool, gruppert etter `pool_id`, slik PG-malene gjør.
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |

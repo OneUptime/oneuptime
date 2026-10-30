@@ -291,6 +291,10 @@
             },
             "insecureSkipVerify": {
               "type": "boolean"
+            },
+            "clientCertSecret": {
+              "type": "string",
+              "description": "A Secret in the release's namespace holding the client certificate etcd asks for over HTTPS: ca.crt, tls.crt and tls.key. Mounted into the cluster collector and presented by the etcd scrape."
             }
           },
           "additionalProperties": false

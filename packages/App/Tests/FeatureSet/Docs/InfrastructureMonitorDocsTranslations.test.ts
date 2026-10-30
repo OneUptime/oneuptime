@@ -63,8 +63,8 @@ import { describe, expect, it } from "@jest/globals";
  *     pages ("**Low** (4σ)"). The Dashboard draws each as a whole option
  *     ("Low (4σ — egregious deviations only)"), so a translation names the
  *     start of that option as drawn, not the unrelated "Low" key.
- *   - The type picker's Docker Container and Podman Container, the tabs
- *     Quick Setup and Custom Metric, the Past 1 Minute and Past 365 Days
+ *   - The type picker's Docker Container and Podman Container, the tab
+ *     Custom Metric under More fields, the Past 1 Minute and Past 365 Days
  *     windows, the criteria's anomaly conditions and window aggregates, the
  *     template names and the Kubernetes metric names have no Dashboard
  *     locale key: every language's Dashboard shows them in English, so
@@ -128,7 +128,7 @@ const DEFAULT_CRITERIA_TYPES: Record<string, MonitorType> = {
   [SWARM]: MonitorType.DockerSwarm,
 };
 
-// The Quick Setup templates a page's template table lists, by page.
+// The templates a page's template table lists, by page.
 const TEMPLATE_NAMES: Record<string, () => Array<string>> = {
   [KUBERNETES]: (): Array<string> => {
     return getAllKubernetesAlertTemplates().map((t: { name: string }) => {
@@ -179,9 +179,8 @@ const UNKEYED_AGGREGATES: Array<string> = [
 // The If No Data options with no locale key; Trigger has one.
 const UNKEYED_NO_DATA: Array<string> = ["Ignore", "Treat As Zero"];
 
-// The step forms' tabs and windows with no locale key.
+// The step forms' tab and windows with no locale key.
 const FORM_NAMES: Array<string> = [
-  "Quick Setup",
   "Custom Metric",
   "Past 1 Minute",
   "Past 365 Days",

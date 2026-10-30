@@ -47,19 +47,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Opslagarray** onde
 
 ### De array kiezen
 
-Kies onder **Storage Array Monitor Configuration** de array uit **Opslagarray**. Elke array die gegevens heeft gestuurd, staat in de lijst. Het platform ervan bepaalt welke metrieken en templates het formulier aanbiedt.
+Kies onder **Storage Array Monitor Configuration** de array uit **Opslagarray**. Elke array die gegevens heeft gestuurd, staat in de lijst. Het platform ervan bepaalt welke metrieken en templates het formulier aanbiedt. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Opslagarray toevoegen** opent installatiestappen met je sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat je in de gaten houdt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Array Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de labelfilters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
-- **Custom Metric** - kies één metriek uit **Storage Array Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één volume, host, pod, component, bestandssysteem of bucket.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, bijvoorbeeld de gebruikte capaciteit als `purefa_array_space_bytes` gefilterd op `space=capacity` min dezelfde metriek gefilterd op `space=empty`. Gebruik **Groeperen op** met het label van een object om elk object afzonderlijk te beoordelen.
+- **Wijzigen** - kies een andere [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de labelfilters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
+- **Custom Metric** (onder **Meer velden**) - kies één metriek uit **Storage Array Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één volume, host, pod, component, bestandssysteem of bucket.
+- **Geavanceerd** (onder **Meer velden**) - bouw zelf queries en formules onder **Selecteer metrieken**, bijvoorbeeld de gebruikte capaciteit als `purefa_array_space_bytes` gefilterd op `space=capacity` min dezelfde metriek gefilterd op `space=empty`. Gebruik **Groeperen op** met het label van een object om elk object afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -109,7 +109,7 @@ In monitorfilters en groeperingssleutels beginnen de attributen van de agent met
 
 ## Kant-en-klare waarschuwingstemplates
 
-OneUptime levert 20 templates — 12 voor FlashArray en 8 voor FlashBlade — en **Quick Setup** biedt die voor het platform van de array aan. Elk template bouwt een volledige monitor: de metriekquery, de labelfilters, een groepering op het eigen label van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+OneUptime levert 20 templates — 12 voor FlashArray en 8 voor FlashBlade — en de lijst onder **Waarover te waarschuwen** biedt die voor het platform van de array aan. Elk template bouwt een volledige monitor: de metriekquery, de labelfilters, een groepering op het eigen label van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zijn venster. Een monitor die afging op een drempel voor capaciteit, latentie, achterstand of verhouding herstelt pas 10 % voorbij die drempel, zodat een waarde die rond de drempel schommelt niet heen en weer springt; de templates voor waarschuwingen en hardware herstellen zodra de toestand verdwijnt.
 
@@ -228,7 +228,7 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `purefa_pod_replica_links_lag_max_msec`              | —                                      | FlashArray | `ms`      | Grootste replicatieachterstand van elke podreplicakoppeling (ActiveDR / asynchroon), met de labels `local_pod`, `remote_pod`, `remote`, `direction` en `status` — groepeer op `local_pod` |
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Gemiddelde replicatieachterstand van elke podreplicakoppeling                                                                                                |
-| `purefa_pod_performance_replication_bandwidth_bytes` | —                                      | FlashArray | `bytes/s` | Replicatieverkeer van elke pod, met de labels `direction` en `dimension`                                                                                     |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replicatieverkeer van elke pod, met de labels `direction` en `dimension`                                                                                     |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Gemiddelde latentie van gespiegelde schrijfacties van elke ActiveCluster-pod                                                                                 |
 
 ### Hardware
