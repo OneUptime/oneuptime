@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import * as React from "react";
 import ProbePicker, {
   PROBE_PICKER_CLASS_NAME,
@@ -137,5 +139,49 @@ describe("the Monitor Summary probe picker", () => {
         name: "N. Virginia (us-east-1) (disabled)",
       }),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The label in every language the Dashboard speaks. It was English in
+ * thirteen of them, and a Persian page drew it ":Showing results from", the
+ * colon pushed to the wrong end by the right-to-left line around it.
+ */
+describe("the probe picker's label in every Dashboard language", () => {
+  const LOCALES: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+  const LABEL: string = "Showing results from:";
+  const LANGUAGES: ReadonlyArray<string> = fs
+    .readdirSync(LOCALES)
+    .filter((file: string): boolean => {
+      return file.endsWith(".json") && file !== "en.json";
+    })
+    .map((file: string): string => {
+      return file.slice(0, -".json".length);
+    })
+    .sort();
+
+  test("the Dashboard speaks sixteen languages besides English", () => {
+    expect(LANGUAGES).toHaveLength(16);
+  });
+
+  test.each(LANGUAGES)("%s words it, ending in a colon", (code: string) => {
+    const locale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES, `${code}.json`), "utf8"),
+    ) as Record<string, unknown>;
+    const value: unknown = locale[LABEL];
+
+    expect(typeof value).toBe("string");
+    expect({ code, translated: value !== LABEL }).toEqual({
+      code,
+      translated: true,
+    });
+    // A colon, or the full-width one Chinese and Japanese write.
+    expect({
+      code,
+      endsInColon: [":", "\u{FF1A}"].includes((value as string).slice(-1)),
+    }).toEqual({ code, endsInColon: true });
   });
 });

@@ -122,12 +122,27 @@ interface PollData {
 }
 
 /*
- * The actions beside what the last walk read: Download, and Continue
- * walking when there is more. On a phone they go under the summary, one a
- * line and each as wide as the card, as a phone's buttons are; from sm up
- * they sit at the summary's end, side by side, each its own width. The
- * gap spaces them, so Button's own dialog-footer margin (md:ml-3) is
- * cleared.
+ * The line that opens the results: what the last walk read (the summary)
+ * and the actions on it. From sm up the actions sit at the summary's end
+ * while the summary keeps at least 18rem beside them; on a narrower card -
+ * the device page beside its side menu leaves the card 430px at a 768px
+ * window - they go under the summary, at its start, instead of squeezing it
+ * into a column a few words wide ("1,000 OIDs read / under / 1.3.6.1.2.1.2
+ * so / far."). On a phone the two are always one over the other.
+ */
+export const SNMP_WALK_RESULT_HEADER_CLASS_NAME: string =
+  "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between";
+
+// The summary's share of that line: what the actions leave, 18rem at least.
+export const SNMP_WALK_RESULT_SUMMARY_CLASS_NAME: string =
+  "min-w-0 sm:grow sm:basis-72";
+
+/*
+ * The actions: Download, and Continue walking when there is more. On a
+ * phone, one a line and each as wide as the card, as a phone's buttons
+ * are; from sm up side by side, each its own width, at the summary's end
+ * or under it. The gap spaces them, so Button's own dialog-footer margin
+ * (md:ml-3) is cleared.
  */
 export const SNMP_WALK_RESULT_ACTIONS_CLASS_NAME: string =
   "grid grid-cols-1 gap-2 sm:flex sm:flex-none sm:flex-wrap sm:items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>button]:sm:w-auto";
@@ -1154,8 +1169,11 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
         className="mt-6 border-t border-gray-100 pt-5"
         data-testid="snmp-walk-result"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
+        <div
+          className={SNMP_WALK_RESULT_HEADER_CLASS_NAME}
+          data-testid="snmp-walk-result-header"
+        >
+          <div className={SNMP_WALK_RESULT_SUMMARY_CLASS_NAME}>
             {/*
              * A count reads as the results' title; "nothing under it, and
              * why that may be" is an explanation, and reads as one.

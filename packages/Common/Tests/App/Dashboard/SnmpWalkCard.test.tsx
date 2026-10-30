@@ -19,6 +19,8 @@ import * as React from "react";
 import SnmpWalkCard, {
   SNMP_WALK_DOWNLOAD_TRIGGER_CLASS_NAME,
   SNMP_WALK_RESULT_ACTIONS_CLASS_NAME,
+  SNMP_WALK_RESULT_HEADER_CLASS_NAME,
+  SNMP_WALK_RESULT_SUMMARY_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkCard";
 import {
   CSV_BYTE_ORDER_MARK,
@@ -1537,6 +1539,25 @@ describe("saving what a walk read", () => {
     expect(actions.getAttribute("class")).toBe(
       SNMP_WALK_RESULT_ACTIONS_CLASS_NAME,
     );
+    /*
+     * One line with the summary, which keeps 18rem beside the actions: on a
+     * card too narrow for both (beside the device page's side menu) they
+     * wrap under it rather than squeezing it to a few words a line.
+     */
+    const header: HTMLElement = screen.getByTestId("snmp-walk-result-header");
+    expect(header.getAttribute("class")).toBe(
+      SNMP_WALK_RESULT_HEADER_CLASS_NAME,
+    );
+    expect(header).toHaveClass("sm:flex-row", "sm:flex-wrap");
+    expect(header.lastElementChild).toBe(actions);
+    const summaryBox: Element = header.firstElementChild!;
+    expect(summaryBox.getAttribute("class")).toBe(
+      SNMP_WALK_RESULT_SUMMARY_CLASS_NAME,
+    );
+    expect(summaryBox).toHaveClass("min-w-0", "sm:grow", "sm:basis-72");
+    expect(
+      within(summaryBox as HTMLElement).getByTestId("snmp-walk-summary"),
+    ).toBeVisible();
     // A bordered button, as wide as the card on a phone like the one beside it.
     for (const className of SNMP_WALK_DOWNLOAD_TRIGGER_CLASS_NAME.split(" ")) {
       expect(trigger).toHaveClass(className);

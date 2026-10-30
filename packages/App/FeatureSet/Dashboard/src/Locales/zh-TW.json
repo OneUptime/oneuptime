@@ -16346,7 +16346,7 @@
   "Show uptime percentage beside every monitor this rule adds.": "在此規則新增的每個監測器旁顯示正常運作時間百分比。",
   "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.",
   "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.",
-  "Showing results from:": "Showing results from:",
+  "Showing results from:": "結果來源：",
   "Showing results that match": "顯示符合以下條件的結果",
   "Showing the last known progress. Updates will retry automatically.": "正在顯示最後已知的進度。更新會自動重試。",
   "Showing up to 2,000 endpoints because this network is large.": "Showing up to 2,000 endpoints because this network is large.",

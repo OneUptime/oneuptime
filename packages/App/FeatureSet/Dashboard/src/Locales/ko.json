@@ -16346,7 +16346,7 @@
   "Show uptime percentage beside every monitor this rule adds.": "이 규칙이 추가하는 모든 모니터 옆에 가동률을 표시합니다.",
   "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.",
   "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.",
-  "Showing results from:": "Showing results from:",
+  "Showing results from:": "결과 출처:",
   "Showing results that match": "다음 조건과 일치하는 결과 표시 중",
   "Showing the last known progress. Updates will retry automatically.": "마지막으로 알려진 진행 상황을 보여 줍니다. 업데이트는 자동으로 다시 시도합니다.",
   "Showing up to 2,000 endpoints because this network is large.": "Showing up to 2,000 endpoints because this network is large.",

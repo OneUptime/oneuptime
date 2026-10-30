@@ -16346,7 +16346,7 @@
   "Show uptime percentage beside every monitor this rule adds.": "यह नियम जो भी मॉनिटर जोड़े, हर एक के पास अपटाइम प्रतिशत दिखाएँ।",
   "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.",
   "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.",
-  "Showing results from:": "Showing results from:",
+  "Showing results from:": "परिणामों का स्रोत:",
   "Showing results that match": "इनसे मेल खाने वाले परिणाम दिखाए जा रहे हैं",
   "Showing the last known progress. Updates will retry automatically.": "आख़िरी ज्ञात प्रगति दिखाई जा रही है। अपडेट अपने आप फिर से आज़माए जाएँगे।",
   "Showing up to 2,000 endpoints because this network is large.": "Showing up to 2,000 endpoints because this network is large.",

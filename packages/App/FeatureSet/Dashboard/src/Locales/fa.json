@@ -16346,7 +16346,7 @@
   "Show uptime percentage beside every monitor this rule adds.": "درصد زمان کارکرد را کنار هر مانیتوری که این قاعده اضافه می‌کند نشان بده.",
   "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.",
   "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.",
-  "Showing results from:": "Showing results from:",
+  "Showing results from:": "نمایش نتایج از:",
   "Showing results that match": "نمایش نتایج منطبق با",
   "Showing the last known progress. Updates will retry automatically.": "آخرین پیشرفت شناخته‌شده نمایش داده می‌شود. به‌روزرسانی‌ها خودکار دوباره امتحان می‌شوند.",
   "Showing up to 2,000 endpoints because this network is large.": "Showing up to 2,000 endpoints because this network is large.",

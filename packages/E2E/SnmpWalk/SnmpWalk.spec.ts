@@ -1073,6 +1073,116 @@ test.describe("saving a walk", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("beside the device page's side menu, the summary keeps the card's width and Download goes under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * A 768-pixel window leaves the card 478 pixels beside the side menu.
+     * There Download and Continue walking beside the summary left it a
+     * column a few words wide ("1,000 OIDs read / under / 1.3.6.1.2.1.2 so
+     * / far."). They go under it now, side by side at its start; with room
+     * - the card at 890 pixels, a 1280-pixel window - they sit at its end.
+     */
+    interface HeaderBoxes {
+      header: { x: number; width: number };
+      summary: { x: number; y: number; width: number; height: number };
+      download: { x: number; y: number; width: number; height: number };
+      continueWalking: { x: number; y: number; width: number };
+    }
+
+    const readBoxes: () => Promise<HeaderBoxes> =
+      async (): Promise<HeaderBoxes> => {
+        // In one frame: the header and what is in it.
+        return await page
+          .getByTestId("snmp-walk-result-header")
+          .evaluate((header: Element): HeaderBoxes => {
+            const box: (element: Element) => {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+            } = (element: Element) => {
+              const rect: DOMRect = element.getBoundingClientRect();
+              return {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+              };
+            };
+
+            return {
+              header: box(header),
+              summary: box(header.firstElementChild!),
+              download: box(
+                header.querySelector(
+                  "[data-testid='snmp-walk-download-button']",
+                )!,
+              ),
+              continueWalking: box(
+                header.querySelector("[data-testid='snmp-walk-continue']")!,
+              ),
+            };
+          });
+      };
+
+    await page.setViewportSize({ width: 768, height: 1000 });
+    await open(page, "?scenario=more&frame=478");
+    await expect(page.getByTestId("snmp-walk-summary")).toHaveText(
+      "1,000 OIDs read under 1.3.6.1.2.1.2 so far. There is more to read.",
+    );
+
+    let boxes: HeaderBoxes = await readBoxes();
+
+    // The summary has the card's width, and reads in two lines at most.
+    expect(boxes.summary.width).toBeGreaterThanOrEqual(boxes.header.width - 1);
+    const summaryLines: number = await page
+      .getByTestId("snmp-walk-summary")
+      .evaluate((element: Element): number => {
+        return Math.round(
+          element.getBoundingClientRect().height /
+            parseFloat(getComputedStyle(element).lineHeight),
+        );
+      });
+    expect(summaryLines).toBeLessThanOrEqual(2);
+
+    // Download and Continue walking under it, side by side, at its start.
+    expect(boxes.download.y).toBeGreaterThanOrEqual(
+      boxes.summary.y + boxes.summary.height,
+    );
+    expect(Math.abs(boxes.download.x - boxes.header.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(boxes.continueWalking.y - boxes.download.y),
+    ).toBeLessThanOrEqual(1);
+    expect(boxes.continueWalking.x).toBeGreaterThan(
+      boxes.download.x + boxes.download.width,
+    );
+    expect(boxes.download.width).toBeLessThan(boxes.header.width / 2);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "download-768-side-menu");
+
+    // With room, at the summary's end, on its first line.
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await open(page, "?scenario=more&frame=890");
+    boxes = await readBoxes();
+
+    expect(boxes.download.y).toBeLessThan(
+      boxes.summary.y + boxes.summary.height / 2,
+    );
+    expect(boxes.download.x).toBeGreaterThanOrEqual(
+      boxes.summary.x + boxes.summary.width,
+    );
+    expect(
+      Math.abs(
+        boxes.continueWalking.x +
+          boxes.continueWalking.width -
+          (boxes.header.x + boxes.header.width),
+      ),
+    ).toBeLessThanOrEqual(1);
+  });
+
   test("Download is dark in the dark theme, and reads in German", async ({
     page,
   }: {

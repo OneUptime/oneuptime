@@ -16346,7 +16346,7 @@
   "Show uptime percentage beside every monitor this rule adds.": "Toon het uptimepercentage naast elke monitor die deze regel toevoegt.",
   "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Docker host. Specific container filtering is unavailable until the agent reports container metadata.",
   "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.": "Showing logs for this Podman host. Specific container filtering is unavailable until the agent reports container metadata.",
-  "Showing results from:": "Showing results from:",
+  "Showing results from:": "Resultaten van:",
   "Showing results that match": "Resultaten gefilterd op",
   "Showing the last known progress. Updates will retry automatically.": "De laatst bekende voortgang wordt getoond. Updates worden automatisch opnieuw geprobeerd.",
   "Showing up to 2,000 endpoints because this network is large.": "Showing up to 2,000 endpoints because this network is large.",

@@ -287,6 +287,15 @@ test.describe("the Monitor Summary card's probe picker", () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
+  /*
+   * The label in the page's language: Persian drew the English one, its
+   * colon pushed to the wrong end by the right-to-left line around it.
+   */
+  const LABELS: Record<string, string> = {
+    de: "Ergebnisse aus:",
+    fa: "نمایش نتایج از:",
+  };
+
   for (const lang of ["de", "fa"]) {
     test(`in ${lang === "de" ? "German" : "Persian"} on a phone the label goes over the list too`, async ({
       page,
@@ -294,6 +303,10 @@ test.describe("the Monitor Summary card's probe picker", () => {
       page: Page;
     }) => {
       await openOverview(page, { width: 390, query: `lang=${lang}` });
+
+      await expect(
+        page.getByTestId("probe-picker").locator("label"),
+      ).toHaveText(LABELS[lang]!);
 
       const layout: PickerLayout = await pickerLayout(page);
 

@@ -34,6 +34,13 @@ export interface ComponentProps {
    * has to branch on it — see the note below.
    */
   isMonitorBacked?: boolean | undefined;
+  /*
+   * Whether the reader may create monitors. "Monitor web UI" is offered
+   * only then - hidden, not locked, as the device's other on-demand actions
+   * are (its SNMP Walk page's "Alert on it"): it opens a form that only
+   * saves for someone who may create monitors.
+   */
+  canCreateMonitor: boolean;
 }
 
 /*
@@ -191,22 +198,24 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
   /*
    * "Monitor web UI": Create Monitor on a Website monitor of the device's
    * management page (DeviceWebUiUtil), whatever else watches the device -
-   * in the header, so it is there with or without monitors listed.
+   * in the header, so it is there with or without monitors listed. For a
+   * reader who may create monitors.
    */
-  const webUiButton: ReactElement | null = props.networkDeviceId ? (
-    <Button
-      key="monitor-web-ui"
-      title="Monitor web UI"
-      icon={IconProp.Globe}
-      buttonStyle={ButtonStyleType.NORMAL}
-      dataTestId="device-monitors-web-ui"
-      onClick={() => {
-        Navigation.navigate(
-          getDeviceWebUiMonitorRoute(props.networkDeviceId as string),
-        );
-      }}
-    />
-  ) : null;
+  const webUiButton: ReactElement | null =
+    props.networkDeviceId && props.canCreateMonitor ? (
+      <Button
+        key="monitor-web-ui"
+        title="Monitor web UI"
+        icon={IconProp.Globe}
+        buttonStyle={ButtonStyleType.NORMAL}
+        dataTestId="device-monitors-web-ui"
+        onClick={() => {
+          Navigation.navigate(
+            getDeviceWebUiMonitorRoute(props.networkDeviceId as string),
+          );
+        }}
+      />
+    ) : null;
 
   return (
     <Card
