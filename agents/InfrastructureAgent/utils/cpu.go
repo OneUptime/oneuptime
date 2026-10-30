@@ -6,7 +6,7 @@ import (
 	"oneuptime-infrastructure-agent/model"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v4/cpu"
 )
 
 func GetCpuMetrics() *model.CPUMetrics {

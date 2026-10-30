@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
 // Disk collection is only as good as its handling of what gopsutil returns, and
@@ -771,10 +771,11 @@ func TestListDiskMetricsReportsDisksWhenIOCountersAreUnavailable(t *testing.T) {
 	}
 }
 
-// The released macOS agent is built without cgo, where gopsutil cannot read I/O
-// counters at all and says "not implemented yet" on every run. That is how the
-// platform is, not a problem that can clear, so it must not be a warning
-// repeating in every macOS agent's log forever: it is said once, at Info.
+// On a platform where gopsutil cannot read I/O counters at all - the macOS
+// agent, built without cgo, until gopsutil v4 - it says "not implemented yet"
+// on every run. That is how the platform is, not a problem that can clear, so
+// it must not be a warning repeating in every such agent's log forever: it is
+// said once, at Info.
 func TestListDiskMetricsNotesUnsupportedIOCountersOnce(t *testing.T) {
 	logs := diskCaptureLogs(t)
 	diskInstallStubs(t, diskStubs{

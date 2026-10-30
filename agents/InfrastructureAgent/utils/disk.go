@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
 // The gopsutil calls disk collection is built on. They are variables so tests
@@ -44,8 +44,9 @@ var diskProblems = newDiskProblemLog(diskProblemRepeatInterval)
 
 // ioCountersNotImplemented is the text of gopsutil's ErrNotImplementedError,
 // which lives in an internal package and so cannot be matched with errors.Is.
-// The released macOS agent returns it: it is built without cgo, and gopsutil
-// has no cgo-free way to read I/O counters there.
+// gopsutil returns it on a platform it cannot read I/O counters on. The macOS
+// agent, built without cgo, did until gopsutil v4, which reads them (and the
+// CPU times) there without cgo.
 const ioCountersNotImplemented = "not implemented yet"
 
 // GetDiskMetrics retrieves disk metrics for a given path

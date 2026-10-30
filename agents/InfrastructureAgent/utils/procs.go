@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 // processCPUReading is a process's CPU time at one collection: the seconds it

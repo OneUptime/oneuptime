@@ -12,7 +12,7 @@ import (
 
 	"oneuptime-infrastructure-agent/model"
 
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 // A process's CPU% is the CPU it used since the previous collection, as a
