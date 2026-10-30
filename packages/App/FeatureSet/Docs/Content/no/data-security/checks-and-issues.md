@@ -138,11 +138,11 @@ stateDiagram-v2
     state "Ikke et problem" as NotAnIssue
     [*] --> Open: En kontroll feiler
     Open --> Resolved: Kontrollen består
-    Open --> Accepted: Noen godtar risikoen
-    Open --> NotAnIssue: Noen sier at det ikke er et problem
-    Accepted --> Open: Godkjenningen utløper
+    Open --> Accepted: Noen godtar<br/>risikoen
+    Open --> NotAnIssue: Noen sier at det<br/>ikke er et problem
+    Accepted --> Open: Godkjenningen<br/>utløper
     Accepted --> Resolved: Kontrollen består
-    Resolved --> Open: Kontrollen feiler igjen
+    Resolved --> Open: Kontrollen<br/>feiler igjen
 ```
 
 OneUptime åpner, oppdaterer og løser problemer etter hvert som kontrollene kjører. Det en person gjør med et problem, er å bestemme hva som skjer videre:

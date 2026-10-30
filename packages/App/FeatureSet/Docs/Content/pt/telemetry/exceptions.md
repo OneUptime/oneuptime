@@ -52,6 +52,8 @@ Acesse **Produtos → Observabilidade → Exceções**. O selo da aba **Exceçõ
 
 Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo. Uma linha marcada como **Regressão** voltou depois de ser resolvida, e uma marcada como **Novo** foi vista pela primeira vez nas últimas 24 horas.
 
+Cada linha mostra também quantos usuários a exceção afetou no intervalo escolhido e um pequeno gráfico das suas ocorrências nesse intervalo. Uma ocorrência indica o seu usuário com o atributo `user.id`, `enduser.id` ou `enduser.pseudo.id`, no evento da exceção, no seu span ou registro de log, ou no seu recurso; ocorrências que não indicam nenhum usuário não são contadas.
+
 ### Escolher o que conta como problema
 
 **Problemas**, o padrão, oculta erros de usuário e negações esperadas, para que a lista mostre o que precisa de correção. **User errors** mostra só esses, e **Todos** mostra todas as exceções.

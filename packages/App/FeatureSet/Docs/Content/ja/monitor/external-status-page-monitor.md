@@ -135,7 +135,7 @@ flowchart TB
 | **External Status Page Active Incidents** | ステータスページで現在アクティブなインシデントの数 (コンポーネントやグループを選んでいる場合は、範囲内のコンポーネントに影響するものだけ) | 等しい、等しくない、および数値の比較 |
 | **External Status Page Response Time (in ms)** | ステータスページのデータの取得にかかる時間 | より大きい、より小さい、以上、以下 |
 
-全体のステータスはページに書かれているそのままなので、値はプロバイダーによって異なります。Atlassian Statuspage は `All Systems Operational` のような独自の説明を、OneUptime のステータスページは `under_maintenance` のような対象範囲内のコンポーネントのうち最も悪いステータスを、フィードは `operational` や `degraded_performance` を、到達可能性のチェックは `reachable` や `unreachable` を報告します。コンポーネントやグループを選んでいる場合は、どのページでも、それらの中で最も悪いステータスになります。これらの比較は大文字と小文字を区別します。障害でアラートを出すには、通常は **External Status Page Active Incidents** と **External Status Page Component Status** のほうが信頼できます。
+全体のステータスはページに書かれているそのままなので、値はプロバイダーによって異なります。Atlassian Statuspage は `All Systems Operational` のような独自の説明を、OneUptime のステータスページは `under_maintenance` のような対象範囲内のコンポーネントのうち最も悪いステータスを、フィードは `operational` や `degraded_performance` を、到達可能性のチェックは `reachable` や `unreachable` を報告します。コンポーネントやグループを選んでいる場合は、どのページでも、それらの中で最も悪いステータスになります。これらの比較は大文字と小文字を区別します。モニターの概要では、各コンポーネントと同じく全体のステータスも言葉と色で表示されます (`under_maintenance` は **メンテナンス中** と表示されます) が、条件はページが報告する値そのものを比較します。障害でアラートを出すには、通常は **External Status Page Active Incidents** と **External Status Page Component Status** のほうが信頼できます。
 
 RSS や Atom のフィードでは、直近 24 時間の項目がアクティブなインシデントとして数えられます。RSS の項目は公開日で、Atom のエントリーは更新日で判断します。日付が未来の項目は、その日付になるまで数えられません。
 

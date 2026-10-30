@@ -303,7 +303,10 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Podman Host"
         placeholder="Select a Podman host..."
         options={resources.options}
-        value={monitorStepPodmanMonitor.hostIdentifier}
+        value={resources.valueOf({
+          value: monitorStepPodmanMonitor.hostIdentifier,
+          resourceId: monitorStepPodmanMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

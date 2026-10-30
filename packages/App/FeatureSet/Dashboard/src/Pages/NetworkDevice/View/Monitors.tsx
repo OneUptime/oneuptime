@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -33,6 +34,15 @@ const NetworkDeviceMonitors: FunctionComponent<
   const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * "Monitor web UI" is for a reader who may create monitors - hidden, not
+   * locked, as on the device's Overview.
+   */
+  const canCreateMonitor: boolean = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  ).isAllowed;
 
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
@@ -62,6 +72,7 @@ const NetworkDeviceMonitors: FunctionComponent<
         error={error}
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
+        canCreateMonitor={canCreateMonitor}
       />
     </Fragment>
   );

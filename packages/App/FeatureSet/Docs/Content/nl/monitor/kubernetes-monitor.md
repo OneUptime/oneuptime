@@ -153,6 +153,8 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 
 Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, DaemonSet of HPA afzonderlijk, zodat een cluster met meerdere ongezonde pods een incident per pod krijgt in plaats van één voor het hele cluster.
 
+**High Node CPU Request Commitment** en **High Node Memory Request Commitment** tellen alleen de requests van pods die nog niet klaar zijn, zoals de scheduler dat doet. Het cluster blijft de requests melden van een pod die Succeeded of Failed is, zoals die van een afgeronde Job, tot de pod wordt verwijderd: die tellen niet mee.
+
 **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van de agent van het cluster binnenkomt: de agent is verwijderd of crasht steeds, zijn API-sleutel is ingetrokken, hij is zijn route naar OneUptime kwijtgeraakt, of de API-server van het cluster antwoordt hem niet meer. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 
 > [!NOTE]

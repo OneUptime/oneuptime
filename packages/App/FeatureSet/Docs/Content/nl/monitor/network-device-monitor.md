@@ -394,6 +394,8 @@ Elke rij zegt waar zijn OID bekend is: een waarde die een gezondheidssjabloon va
 - **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium op de OID. Een teller begint op **SNMP OID Rate (per second)** en een meter op **SNMP OID Value**, elk boven een zelf gekozen drempel; een uptime waarschuwt onder tien minuten (het apparaat is herstart), al het andere wanneer het afwijkt van de gelezen waarde.
 - **OID kopiëren**, in het menu van de rij, kopieert de OID.
 
+**Downloaden**, naast de samenvatting van de walk, slaat op wat de walk heeft gelezen als bestand: **snmpwalk-tekst (.txt)**, één OID per regel zoals `snmpwalk -On` die afdrukt, die elk SNMP-hulpmiddel en elke leverancierssupport leest, of **CSV-spreadsheet (.csv)**, met de naam, MIB, het type en de waarde van elke OID. Het bestand bevat elke OID die de walk heeft gelezen, voortgezette walks inbegrepen, wat het filter ook toont, en is genoemd naar het apparaat, de subboom en het tijdstip waarop het is opgeslagen. Iedereen die de laatste walk van het apparaat kan lezen, kan hem downloaden.
+
 Een mislukte walk zegt waarom, en wat je moet controleren: een apparaat dat niet antwoordt (SNMP uit, UDP 161 geblokkeerd of, bij v1 en v2c, een verkeerde communitystring, die een agent zonder melding negeert), een SNMPv3-gebruiker, -wachtwoord of -protocol dat het apparaat weigerde, of een deel van de boom dat de SNMP-view van de inloggegevens weglaat. Een walk die halverwege stopt, houdt wat hij las. Een walk vraagt de machtiging **Create Network Device Diagnostic** en een sonde die recent genoeg is voor SNMP-walks: bij een oudere vraagt de pagina je die bij te werken.
 
 ### SNMP-tabellen
@@ -753,6 +755,8 @@ Zolang er nog geen beleid is, biedt de pagina **Create the recommended policy** 
 
 Open de pagina van het apparaat en klik op **Monitor maken** op de kaart **Monitors alerting on this device**. Het monitorformulier opent met het type Network Device en het apparaat gekozen, en het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket) ingevuld: bekijk het, stel ernstniveaus en dienstroosterbeleid in, en sla op.
 
+De meeste switches, routers, firewalls en printers bieden op hun eigen adres ook een webinterface. **Webinterface monitoren**, op dezelfde kaart, opent daarvoor een **Website**-monitor: `https://` op het adres van het apparaat, met **Zelfondertekende certificaten toestaan** aan, omdat de webinterface van een apparaat er bijna altijd een heeft, gecontroleerd vanaf de eigen probe van het apparaat en genoemd naar het apparaat. Pas de URL aan als de interface antwoordt via `http`, op een andere poort of onder een pad, en sla daarna op. De kaart toont de monitor zolang zijn naam de naam van het apparaat bevat en zijn URL op het adres van het apparaat ligt; de status van het apparaat verandert er niet door.
+
 Om er een te maken vanuit **Monitoren**:
 
 1. Ga naar **Monitoren** en klik op **Monitor maken**.
@@ -760,6 +764,8 @@ Om er een te maken vanuit **Monitoren**:
 3. Kies het netwerkapparaat waarop gewaarschuwd moet worden. Alles over het verzamelen van gegevens — hostnaam, inloggegevens, schema, interfacewalks, gezondheids-OID's — komt van het apparaat; de monitor kiest alleen waarop gewaarschuwd wordt, via zijn criteria.
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
+
+Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors elke vijf minuten beoordeeld als een poll die het apparaat niet kon bereiken: een criterium dat past bij **SNMP Device Is Online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
 
 ### Incidenten en waarschuwingen van een apparaat
 

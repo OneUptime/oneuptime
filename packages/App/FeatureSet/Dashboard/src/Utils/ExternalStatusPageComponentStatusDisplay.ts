@@ -45,6 +45,50 @@ const COLORS: ReadonlyArray<[string, Color]> = [
 // Runs of underscores in a value, read as spaces ("partial_outage").
 const UNDERSCORES: RegExp = /_+/g;
 
+/*
+ * What the reachability check says of a page it could not read as any
+ * known format: only whether it answered.
+ */
+const REACHABILITY_DISPLAYS: ReadonlyArray<
+  [string, ExternalStatusPageComponentStatusDisplay]
+> = [
+  ["reachable", { label: "Reachable", color: Green }],
+  ["unreachable", { label: "Unreachable", color: Red }],
+];
+
+/*
+ * An Atlassian Statuspage's indicator - which a check reports only when the
+ * page's status has no description - read in the components' words.
+ */
+const INDICATOR_VALUES: ReadonlyArray<[string, string]> = [
+  ["none", ExternalStatusPageComponentStatusValue.Operational],
+  ["minor", ExternalStatusPageComponentStatusValue.DegradedPerformance],
+  ["major", ExternalStatusPageComponentStatusValue.PartialOutage],
+  ["critical", ExternalStatusPageComponentStatusValue.MajorOutage],
+  ["maintenance", ExternalStatusPageComponentStatusValue.UnderMaintenance],
+];
+
+/*
+ * The colour of a page's own description of itself - an Atlassian
+ * Statuspage's "All Systems Operational", "Partial System Outage" - by the
+ * first of these words in it: "Major Service Outage" is red,
+ * "Partially Degraded Service" and "Minor Service Outage" yellow, "Service
+ * Under Maintenance" blue. Words it does not know stay grey: the words
+ * themselves say what they mean.
+ */
+const DESCRIPTION_COLORS: ReadonlyArray<[string, Color]> = [
+  ["maintenance", Blue],
+  ["critical", Moroon],
+  ["major", Red],
+  ["unreachable", Red],
+  ["degraded", Yellow],
+  ["minor", Yellow],
+  ["partial", Orange],
+  ["outage", Orange],
+  ["operational", Green],
+  ["reachable", Green],
+];
+
 export default class ExternalStatusPageComponentStatusDisplayUtil {
   public static getDisplay(
     status: string | undefined,
@@ -79,6 +123,60 @@ export default class ExternalStatusPageComponentStatusDisplayUtil {
       label: words.charAt(0).toUpperCase() + words.slice(1),
       color: color,
     };
+  }
+
+  /*
+   * The page's overall status, read like its components' (getDisplay)
+   * instead of as the value a check reports. A value the components share
+   * - under_maintenance, which a page whose status is worked out from its
+   * components reports - reads by the same words in the same colour; the
+   * reachability check's reachable / unreachable and an Atlassian
+   * indicator read by their meaning; and a page's own description of
+   * itself - an Atlassian Statuspage's "All Systems Operational" - reads as
+   * written, in the colour its words name. The criteria still compare the
+   * value as the check reported it (see the docs' list of values).
+   */
+  public static getOverallDisplay(
+    status: string | undefined,
+  ): ExternalStatusPageComponentStatusDisplay {
+    const value: string = (status || "").trim();
+    const lowerCased: string = value.toLowerCase();
+
+    const reachability:
+      | [string, ExternalStatusPageComponentStatusDisplay]
+      | undefined = REACHABILITY_DISPLAYS.find(
+      (entry: [string, ExternalStatusPageComponentStatusDisplay]): boolean => {
+        return entry[0] === lowerCased;
+      },
+    );
+
+    if (reachability) {
+      return reachability[1];
+    }
+
+    const indicator: [string, string] | undefined = INDICATOR_VALUES.find(
+      (entry: [string, string]): boolean => {
+        return entry[0] === lowerCased;
+      },
+    );
+
+    const display: ExternalStatusPageComponentStatusDisplay =
+      ExternalStatusPageComponentStatusDisplayUtil.getDisplay(
+        indicator ? indicator[1] : value,
+      );
+
+    // A value the components share, an indicator, or no status at all.
+    if (indicator || display.color !== Gray500 || display.label === "Unknown") {
+      return display;
+    }
+
+    // A page's own words: as written, coloured by what they say.
+    const color: Color =
+      DESCRIPTION_COLORS.find((entry: [string, Color]): boolean => {
+        return lowerCased.includes(entry[0]);
+      })?.[1] || Gray500;
+
+    return { label: display.label, color: color };
   }
 
   /*

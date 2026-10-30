@@ -306,7 +306,10 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Ceph Cluster"
         placeholder="Select a Ceph cluster..."
         options={resources.options}
-        value={monitorStepCephMonitor.clusterIdentifier}
+        value={resources.valueOf({
+          value: monitorStepCephMonitor.clusterIdentifier,
+          resourceId: monitorStepCephMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

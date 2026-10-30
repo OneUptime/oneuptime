@@ -6,6 +6,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useCallback, useEffect, useState } from "react";
+import boundResourceValue from "./BoundResourceValue";
 
 /*
  * The hosts, clusters, vCenters, arrays or fleets an infrastructure monitor
@@ -20,6 +21,8 @@ export interface InfrastructureResources<T extends BaseModel> {
   lastSeenAtByValue: Record<string, Date | undefined>;
   isLoading: boolean;
   reload: () => Promise<Array<T>>;
+  // The option a step's resource field shows (BoundResourceValue).
+  valueOf: (step: { value: string; resourceId?: string | undefined }) => string;
 }
 
 export default function useInfrastructureResources<T extends BaseModel>(input: {
@@ -74,11 +77,27 @@ export default function useInfrastructureResources<T extends BaseModel>(input: {
       input.getLastSeenAt(record);
   }
 
+  const valueOf: (step: {
+    value: string;
+    resourceId?: string | undefined;
+  }) => string = (step: {
+    value: string;
+    resourceId?: string | undefined;
+  }): string => {
+    return boundResourceValue<T>({
+      step,
+      options,
+      records,
+      toOption: input.toOption,
+    });
+  };
+
   return {
     records: records,
     options: options,
     lastSeenAtByValue: lastSeenAtByValue,
     isLoading: isLoading,
     reload: reload,
+    valueOf: valueOf,
   };
 }

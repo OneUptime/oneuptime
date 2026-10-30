@@ -94,6 +94,8 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 The **What to alert on** list offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Cluster Stopped Reporting** groups its query by `resource.container.name`, so every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
 
+Those templates also read only Swarm's tasks: a container started any other way on a node, the agent's own among them, is left out. A **Custom Metric** or **Advanced** query reads every container the agent reports; the **Service Name** filter narrows it to one service's tasks.
+
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |

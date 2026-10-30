@@ -88,6 +88,11 @@ export default interface MonitorStepVMwareMonitor {
    * agent connects to.
    */
   vcenterIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   resourceFilters: VMwareResourceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;

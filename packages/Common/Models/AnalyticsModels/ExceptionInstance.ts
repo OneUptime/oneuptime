@@ -468,6 +468,31 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * The user this occurrence happened to: the first of user.id, enduser.id
+     * and enduser.pseudo.id the occurrence carries, on its exception event,
+     * its span or log record, or its resource (Common/Utils/Exceptions/
+     * ExceptionUserId), as stored - after the project's scrub rules. ''
+     * when none names one. The exceptions list counts its distinct values
+     * per exception: the row's affected users.
+     *
+     * Non-Nullable String with a '' default, as sessionId above: rows
+     * written before it existed read '' (nobody named) and there is no
+     * backfill. No skip index: it is only ever counted, never searched,
+     * so the add stays metadata-only. Never part of the fingerprint.
+     */
+    const userIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "userId",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "User ID",
+      description:
+        "The user this exception happened to: the occurrence's user.id, enduser.id or enduser.pseudo.id attribute; '' when it names no user.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: sessionIdColumn.accessControl,
+    });
+
     const fingerprintColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "fingerprint",
       title: "Fingerprint",
@@ -860,6 +885,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         traceIdColumn,
         spanIdColumn,
         sessionIdColumn,
+        userIdColumn,
         fingerprintColumn,
         spanNameColumn,
         releaseColumn,
@@ -955,6 +981,15 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set sessionId(v: string | undefined) {
     this.setColumnValue("sessionId", v);
+  }
+
+  // The user the occurrence happened to; '' when it names none.
+  public get userId(): string | undefined {
+    return this.getColumnValue("userId") as string | undefined;
+  }
+
+  public set userId(v: string | undefined) {
+    this.setColumnValue("userId", v);
   }
 
   public get exceptionType(): string | undefined {

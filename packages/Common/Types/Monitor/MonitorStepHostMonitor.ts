@@ -4,6 +4,11 @@ import RollingTime from "../RollingTime/RollingTime";
 
 export default interface MonitorStepHostMonitor {
   hostIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
 }

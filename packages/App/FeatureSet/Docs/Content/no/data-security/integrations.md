@@ -15,12 +15,12 @@ Datasikkerhet har ingen egen personsøking eller egen sikkerhetskø. Den gir det
 
 ```mermaid title="Hva som følger et nytt problem"
 flowchart TB
-    issue["Et problem åpnes,<br/>eller åpnes igjen"] --> critical{"Er det Kritisk?"}
+    issue["Et problem<br/>åpnes,<br/>eller<br/>åpnes igjen"] --> critical{"Er det Kritisk?"}
     critical -->|"Ja"| soc["En sikkerhetssak<br/>om datalageret"]
-    critical -->|"Ja, hvis varsler er på"| alert["Et varsel som når<br/>vakthavende"]
-    critical -->|"Ja, hvis hendelser er på"| incident["En hendelse som<br/>prosessen din håndterer"]
-    issue --> owners["En e-post til<br/>eierne av datalageret"]
-    issue --> flows["Arbeidsflyter som<br/>følger med på problemer"]
+    critical -->|"Ja, hvis<br/>varsler er på"| alert["Et varsel<br/>som når<br/>vakthavende"]
+    critical -->|"Ja, hvis<br/>hendelser er på"| incident["En hendelse som<br/>prosessen<br/>din håndterer"]
+    issue --> owners["En e-post til<br/>eierne av<br/>datalageret"]
+    issue --> flows["Arbeidsflyter<br/>som<br/>følger med<br/>på problemer"]
 ```
 
 Hver av disse kjører når en evaluering åpner et problem, eller åpner et på nytt. Hver av dem gjøres så godt det lar seg gjøre: problemet er allerede åpent og står på tidslinjen sin, så en integrasjon som feiler, logges og hoppes over, og prøves aldri på nytt slik at det blir en sak eller et varsel til. Hva hver av dem gjorde, skrives til problemets **Tidslinje**, og siden til problemet lenker til saken, varselet og hendelsen det startet.

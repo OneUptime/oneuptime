@@ -52,6 +52,8 @@ Ouvrez **Produits → Observabilité → Exceptions**. Le badge de l'onglet **Ex
 
 Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps. Une ligne marquée **Régression** est revenue après avoir été résolue, et une ligne marquée **Nouveau** a été vue pour la première fois au cours des dernières 24 heures.
 
+Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la période choisie, avec un petit graphique de ses occurrences sur cette période. Une occurrence nomme son utilisateur avec l'attribut `user.id`, `enduser.id` ou `enduser.pseudo.id`, sur l'événement d'exception, son span ou son enregistrement de log, ou sa ressource ; les occurrences qui ne nomment aucun utilisateur ne sont pas comptées.
+
 ### Choisir ce qui compte comme un problème
 
 **Problèmes**, la vue par défaut, masque les erreurs d'utilisateur et les refus attendus, pour que la liste montre ce qui demande un correctif. **User errors** ne montre qu'eux, et **Tous** montre chaque exception.

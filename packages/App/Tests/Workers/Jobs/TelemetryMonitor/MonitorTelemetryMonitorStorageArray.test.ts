@@ -64,6 +64,7 @@ import {
   applyStorageArrayResourceFilters,
   monitorStorageArray,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
 
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
@@ -91,9 +92,23 @@ function row(value: number, attributes: JSONObject): RawRow {
   return { time: sampleTime, value: value, attributes: attributes };
 }
 
+interface AggregateArgs extends FoldedReadArgs {
+  query: { name: string };
+}
+
+/*
+ * What the store holds: the breakdown's scan reads the raw rows (findBy),
+ * and the monitor's reads the same rows folded by ClickHouse (aggregateBy).
+ */
 function mockRawRows(rowsByMetricName: Dictionary<Array<RawRow>>): void {
   metricFindBy.mockImplementation(async (args: unknown) => {
     return rowsByMetricName[(args as QueryArgs).query.name] || [];
+  });
+  metricAggregateBy.mockImplementation(async (args: unknown) => {
+    return foldRowsAsSqlRead(
+      rowsByMetricName[(args as AggregateArgs).query.name] || [],
+      args as AggregateArgs,
+    );
   });
 }
 

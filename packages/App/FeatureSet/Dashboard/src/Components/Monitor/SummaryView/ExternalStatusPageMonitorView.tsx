@@ -27,6 +27,8 @@ export const EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID: string =
   "external-status-page-unmatched-components";
 export const EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID: string =
   "external-status-page-incidents-outside-scope";
+export const EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID: string =
+  "external-status-page-overall-status";
 
 /*
  * What a check watched of the page: the components it chose (a check made
@@ -147,39 +149,10 @@ export interface ComponentProps {
  * in places of very different widths at one screen width - the overview's
  * Summary card (two thirds of the page), Test Monitor's result and
  * Monitoring Logs' View Summary (wide dialogs) - so its own width decides,
- * not the screen's: four to a row in the Summary card left a value such as
- * degraded_performance no room. A fact's title may break inside a word,
- * hyphenated in the reader's language: two cards to a row on a phone leave
+ * not the screen's. A fact's title may break inside a word, hyphenated in
+ * the reader's language: two cards to a row on a phone leave
  * "GELTUNGSBEREICH" (Scope, in German) no room on one line.
  */
-
-// Runs of underscores in a status value ("degraded_performance").
-const UNDERSCORES: RegExp = /(_+)/;
-
-/*
- * A status value as the criteria compare it - under_maintenance - with a
- * line break allowed after each underscore, so a narrow card wraps it as
- * "under_" / "maintenance" instead of cutting it. <wbr> adds no character:
- * the value copies as it is.
- */
-const withBreaksAfterUnderscores: (value: string) => ReactElement = (
-  value: string,
-): ReactElement => {
-  return (
-    <>
-      {value
-        .split(UNDERSCORES)
-        .map((part: string, index: number): ReactElement => {
-          return (
-            <React.Fragment key={index}>
-              {part}
-              {part.startsWith("_") ? <wbr /> : <></>}
-            </React.Fragment>
-          );
-        })}
-    </>
-  );
-};
 
 /*
  * What one check of an external status page found: on the monitor's
@@ -228,6 +201,19 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
    */
   const incidentsOutsideScope: number =
     externalStatusPageResponse?.incidentsOutsideScopeCount || 0;
+
+  /*
+   * The page's overall status, in the words and colour its components'
+   * statuses are drawn in (getOverallDisplay): it was the value the probe
+   * reported - "under_maintenance" - above components that read "Under
+   * Maintenance". The criteria still compare that value.
+   */
+  const overallStatus: string =
+    externalStatusPageResponse?.overallStatus?.trim() || "";
+  const overallStatusDisplay: ExternalStatusPageComponentStatusDisplay =
+    ExternalStatusPageComponentStatusDisplayUtil.getOverallDisplay(
+      overallStatus,
+    );
 
   // The chosen names the page does not list: watched, they watch nothing.
   const unmatchedNames: Array<string> =
@@ -303,11 +289,20 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         <SummaryFact
           title="Overall Status"
           value={
-            externalStatusPageResponse?.overallStatus
-              ? withBreaksAfterUnderscores(
-                  externalStatusPageResponse.overallStatus,
-                )
-              : "-"
+            overallStatus ? (
+              <div
+                data-testid={EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID}
+                data-status={overallStatus}
+              >
+                <Statusbubble
+                  text={overallStatusDisplay.label}
+                  color={overallStatusDisplay.color}
+                  shouldAnimate={false}
+                />
+              </div>
+            ) : (
+              "-"
+            )
           }
         />
         <SummaryFact

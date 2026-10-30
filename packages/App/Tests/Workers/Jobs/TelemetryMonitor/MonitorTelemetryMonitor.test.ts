@@ -92,6 +92,7 @@ import TelemetryExceptionService from "Common/Server/Services/TelemetryException
 import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import {
+  GROUPED_READ_ROW_LIMIT,
   monitorLogs,
   monitorTrace,
   monitorException,
@@ -700,6 +701,22 @@ describe("monitorVMware", () => {
   });
 
   test("a shipped template groups by the object's resource attribute and takes the grouped path", async () => {
+    // The grouped read: a row per host and minute, grouped in SQL.
+    metricAggregateBy.mockResolvedValue({
+      data: [
+        {
+          timestamp: new Date(),
+          value: 97.25,
+          attributes: { "resource.vcenter.host.name": "esx-02" },
+        },
+        {
+          timestamp: new Date(),
+          value: 27.5,
+          attributes: { "resource.vcenter.host.name": "esx-01" },
+        },
+      ],
+    });
+    // The breakdown's scan of raw rows (limit 100).
     metricFindBy.mockResolvedValue([
       {
         time: new Date(),
@@ -740,12 +757,29 @@ describe("monitorVMware", () => {
       projectId,
     });
 
-    // Grouped: raw rows are aggregated per series in the worker, never via aggregateBy.
-    expect(metricAggregateBy).not.toHaveBeenCalled();
-    // One raw fetch for the per-series aggregation, one (limit 100) for the breakdown.
-    expect(metricFindBy).toHaveBeenCalledTimes(2);
+    /*
+     * Grouped: one SQL aggregate, GROUP BY the host's name, up to the
+     * grouped read's limit (#5281) - never raw rows aggregated in the
+     * worker, which were cut at 10,000 rows.
+     */
+    expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+    const aggregate: Record<string, unknown> = metricAggregateBy.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(aggregate["groupByAttributeKeys"]).toEqual([
+      "resource.vcenter.host.name",
+    ]);
+    expect(aggregate["limit"]).toBe(GROUPED_READ_ROW_LIMIT);
+    expect(aggregate["timeoutOverflowMode"]).toBe("throw");
+    // The raw rows feed only the breakdown (limit 100).
+    expect(metricFindBy).toHaveBeenCalledTimes(1);
+    expect(
+      (metricFindBy.mock.calls[0]![0] as Record<string, unknown>)["limit"],
+    ).toBe(100);
 
-    for (const call of metricFindBy.mock.calls) {
+    for (const call of [
+      ...metricAggregateBy.mock.calls,
+      ...metricFindBy.mock.calls,
+    ]) {
       const query: Record<string, unknown> = (
         call[0] as Record<string, unknown>
       )["query"] as Record<string, unknown>;

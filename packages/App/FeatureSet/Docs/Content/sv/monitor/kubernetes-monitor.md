@@ -153,6 +153,8 @@ Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter 
 
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
 
+**High Node CPU Request Commitment** och **High Node Memory Request Commitment** räknar bara requests från poddar som inte är klara, så som schemaläggaren gör. Klustret fortsätter att rapportera requests från en podd som är Succeeded eller Failed, till exempel från ett avslutat Job, tills podden tas bort: de räknas inte.
+
 **Cluster Stopped Reporting** utlöses när ingenting kommer från klustrets agent på tio minuter: agenten har avinstallerats eller kraschar hela tiden, dess API-nyckel har återkallats, den har tappat sin väg till OneUptime, eller klustrets API-server har slutat svara den. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 
 > [!NOTE]

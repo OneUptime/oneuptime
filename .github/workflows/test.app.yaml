@@ -308,7 +308,10 @@ jobs:
           # about a minute more here. Master's run of 12:26 on 2026-10-29
           # took this group 21.3 minutes (its half of Event Overview 18.0,
           # SNMP Walk 1.3, Traces AI 1.9), so Traces AI moved to group 14:
-          # about 20.5.
+          # about 20.5. #5281's follow-ups grew SNMP Walk by 8 tests on
+          # 2026-10-30 (saving a walk as snmpwalk text or CSV, at 1280, 768
+          # beside the side menu and 390 pixels, dark and German: about 27
+          # seconds locally, the suite 1.6 minutes with its bundle): about 21.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
@@ -402,7 +405,14 @@ jobs:
           # on each of its two Chromium projects with its UI review's, about 37
           # seconds locally), so Status Page Search (34.9 seconds on master's
           # run of 03:08 on 2026-10-26, 1.2 minutes with its new spec) moved to
-          # group 11: about 20.5.
+          # group 11: about 20.5. #5281's follow-ups added
+          # MonitorSummaryProbePicker.spec.ts and NetworkDeviceLink.spec.ts to
+          # Monitor Overview on 2026-10-30 (14 tests, 53 seconds locally: the
+          # Monitor Summary's probe picker from 320 to 1280 pixels, in German
+          # and Persian, Show More Details' contrast, Monitor web UI from a
+          # network device and its alert pack's filters on a phone): about 21,
+          # from the 20.3 this group kept once Value Picker and List Delete
+          # left for group 14.
           - group: 3
             suites: >-
               test-monitor-overview-ui
@@ -1020,14 +1030,17 @@ jobs:
           # Data Security (59 tests, 3.3 minutes locally) joined them from
           # group 2 on 2026-10-30 and moved on to group 10 the same day: this
           # group had taken 21.6 minutes on master's run of 09:50 that day,
-          # about 26 with it on a slow runner.
-          # Custom Field Files (26 tests, 1.5 minutes locally with its two
+          # about 26 with it on a slow runner. #5281's follow-ups added 2
+          # tests to Shared UI on 2026-10-30 (a secondary link's contrast,
+          # light and dark: about 6 seconds).
+          # Custom Field Files (28 tests, 1.5 minutes locally with its two
           # bundles, Chromium only: an incident's File and Multiple files
           # custom fields on its card and in its Edit dialog - uploads and
           # their progress, Replace, Remove, a full field, refused kinds and
-          # sizes - and a public form's file questions sent with the answers,
-          # at 1280 and 390 pixels, dark, German and Persian) joined them on
-          # 2026-10-30, the lightest group: about 17.
+          # sizes, the drop zone's click and key - and a public form's file
+          # questions sent with the answers, at 1280 and 390 pixels, dark,
+          # German and Persian) joined them on 2026-10-30, the lightest group:
+          # about 17.
           - group: 14
             suites: >-
               test-value-picker-ui

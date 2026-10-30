@@ -394,6 +394,8 @@ Varje rad säger var dess OID är känd: ett värde som en leverantörs hälsoma
 - **Skapa larm** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium på OID:n. En räknare börjar på **SNMP OID Rate (per second)** och en mätare på **SNMP OID Value**, båda över ett tröskelvärde du själv anger; en drifttid varnar under tio minuter (enheten startade om), allt annat när det ändras från det lästa värdet.
 - **Kopiera OID**, i radens meny, kopierar OID:n.
 
+**Ladda ner**, bredvid walkens sammanfattning, sparar det walken läste som en fil: **snmpwalk-text (.txt)**, en OID per rad så som `snmpwalk -On` skriver ut den, som alla SNMP-verktyg och all leverantörssupport kan läsa, eller **CSV-kalkylblad (.csv)** med varje OID:s namn, MIB, typ och värde. Filen innehåller varje OID som walken läste, fortsatta walkar inräknade, oavsett vad filtret visar, och har namn efter enheten, underträdet och tiden då den sparades. Alla som kan läsa enhetens senaste walk kan ladda ner den.
+
 En walk som misslyckas säger varför, och vad du ska kontrollera: en enhet som inte svarar (SNMP avstängt, UDP 161 blockerad eller, för v1 och v2c, en felaktig community-sträng, som en agent ignorerar utan ett ord), en SNMPv3-användare, ett lösenord eller ett protokoll som enheten avvisade, eller en del av trädet som autentiseringsuppgifternas SNMP-vy utelämnar. En walk som stannar halvvägs behåller det den har läst. En walk kräver behörigheten **Create Network Device Diagnostic** och en sond som är ny nog för SNMP-walk: med en äldre ber sidan dig att uppdatera den.
 
 ### SNMP-tabeller
@@ -753,6 +755,8 @@ Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en 
 
 Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
 
+De flesta switchar, routrar, brandväggar och skrivare har också ett webbgränssnitt på sin egen adress. **Övervaka webbgränssnitt**, på samma kort, öppnar en **Webbplats**-monitor för det: `https://` på enhetens adress, med **Tillåt självsignerade certifikat** påslaget, eftersom en enhets webbgränssnitt nästan alltid har ett, kontrollerad från enhetens egen probe och med namn efter enheten. Ändra URL:en om gränssnittet svarar på `http`, på en annan port eller under en sökväg, och spara sedan. Kortet visar monitorn så länge dess namn innehåller enhetens namn och dess URL ligger på enhetens adress; den ändrar inte enhetens status.
+
 För att i stället skapa en från **Monitorer**:
 
 1. Gå till **Monitorer** och klicka på **Skapa monitor**.
@@ -760,6 +764,8 @@ För att i stället skapa en från **Monitorer**:
 3. Välj den nätverksenhet som ska varnas för. Allt som rör insamling av data — värdnamn, autentiseringsuppgifter, schema, gränssnittswalks, hälso-OID:er — kommer från enheten; monitorn väljer bara vad som ska varnas för, genom sina kriterier.
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
+
+När avsökningarna slutar utvärderas monitorn ändå. När en enhet har gått tre avsökningsintervall, och minst tio minuter, utan avsökning utvärderas dess monitorer var femte minut som en avsökning som inte nådde den: ett kriterium som matchar att **SNMP Device Is Online** är False, till exempel **Device unreachable**, utlöses, och incidenten säger varför ingen avsökning kom, till exempel att sonden är nere eller att enheten saknar sond. En enhet med avsökning avstängd, eller med [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor), lämnas i fred. Nästa avsökning utvärderar monitorn som vanligt.
 
 ### En enhets incidenter och larm
 

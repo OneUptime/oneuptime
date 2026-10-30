@@ -324,7 +324,10 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Docker Swarm Cluster"
         placeholder="Select a Docker Swarm cluster..."
         options={resources.options}
-        value={monitorStepDockerSwarmMonitor.clusterIdentifier}
+        value={resources.valueOf({
+          value: monitorStepDockerSwarmMonitor.clusterIdentifier,
+          resourceId: monitorStepDockerSwarmMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
