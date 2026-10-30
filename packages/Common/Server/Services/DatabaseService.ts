@@ -10539,7 +10539,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     props: DatabaseCommonInteractionProps;
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
   }): Promise<string | null> {
-    if (!PrivateRecordPermission.narrows(this.modelType, data.props, data.type)) {
+    if (
+      !PrivateRecordPermission.narrows(this.modelType, data.props, data.type)
+    ) {
       return null;
     }
 
@@ -10586,13 +10588,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
-      const unreachable: Array<string> =
-        await DatabaseService.findIdsInProject({
+      const unreachable: Array<string> = await DatabaseService.findIdsInProject(
+        {
           modelType: column.recordModelType,
           ids: [recordId],
           query: query,
           projectId: data.props.tenantId || null,
-        });
+        },
+      );
 
       if (unreachable.length === 0) {
         continue;

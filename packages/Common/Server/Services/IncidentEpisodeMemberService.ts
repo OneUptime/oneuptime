@@ -1,4 +1,3 @@
-import DatabaseService from "./DatabaseService";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import PrivateRecordPermission from "../Types/Database/Permissions/PrivateRecordPermission";
@@ -72,7 +71,7 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import type { PendingRecord } from "./DatabaseService";
+import DatabaseService, { PendingRecord } from "./DatabaseService";
 import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
 /*
@@ -514,6 +513,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.assertEpisodeReached({
       episode: episode,
+      episodeId: data.incidentEpisodeId,
       props: createBy.props,
     });
 
@@ -1118,6 +1118,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.assertEpisodeReached({
       episode: episode,
+      episodeId: incidentEpisodeId,
       props: data.props,
     });
 
@@ -1337,13 +1338,14 @@ export class Service extends ProjectReferencesService<Model> {
      * them add it to an episode refuses the whole create, as one they cannot
      * see does (PrivateRecordPermission).
      */
-    const outOfReach: Set<string> = await PrivateRecordWriteCheck.findUnreachable({
-      modelType: Model,
-      type: DatabaseRequestType.Create,
-      recordService: IncidentService as unknown as DatabaseService<BaseModel>,
-      records: incidents,
-      props: data.props,
-    });
+    const outOfReach: Set<string> =
+      await PrivateRecordWriteCheck.findUnreachable({
+        modelType: Model,
+        type: DatabaseRequestType.Create,
+        recordService: IncidentService as unknown as DatabaseService<BaseModel>,
+        records: incidents,
+        props: data.props,
+      });
 
     if (outOfReach.size > 0) {
       throw new NotAuthorizedException(
@@ -1657,13 +1659,15 @@ export class Service extends ProjectReferencesService<Model> {
    */
   private async assertEpisodeReached(data: {
     episode: IncidentEpisode;
+    episodeId: ObjectID | string;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const reaches: boolean = await PrivateRecordWriteCheck.reaches({
       modelType: Model,
       type: DatabaseRequestType.Create,
-      recordService: IncidentEpisodeService as unknown as DatabaseService<BaseModel>,
-      recordId: new ObjectID(data.episode._id!.toString()),
+      recordService:
+        IncidentEpisodeService as unknown as DatabaseService<BaseModel>,
+      recordId: new ObjectID(data.episodeId.toString()),
       props: data.props,
       readRecord: data.episode,
     });

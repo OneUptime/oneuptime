@@ -77,7 +77,10 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
   protected override async onBeforeFind(
     findBy: FindBy<AlertStateTimeline>,
   ): Promise<OnFind<AlertStateTimeline>> {
-    findBy.query = applyAlertRelatedRecordPrivacyFilter(findBy.query, findBy.props);
+    findBy.query = applyAlertRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
     return { findBy, carryForward: null };
   }
 
@@ -85,7 +88,10 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public override async countBy(
     countBy: CountBy<AlertStateTimeline>,
   ): Promise<PositiveNumber> {
-    countBy.query = applyAlertRelatedRecordPrivacyFilter(countBy.query, countBy.props);
+    countBy.query = applyAlertRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
     return super.countBy(countBy);
   }
 

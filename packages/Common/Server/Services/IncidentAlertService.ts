@@ -1315,15 +1315,14 @@ export class Service extends ProjectReferencesService<Model> {
      * links are written as OneUptime, so it is asked here.
      */
     if (!data.props.isRoot) {
-      const outOfReach: Set<string> = await PrivateRecordWriteCheck.findUnreachable(
-        {
+      const outOfReach: Set<string> =
+        await PrivateRecordWriteCheck.findUnreachable({
           modelType: Model,
           type: DatabaseRequestType.Create,
           recordService: AlertService as unknown as DatabaseService<BaseModel>,
           records: alerts || [],
           props: data.props,
-        },
-      );
+        });
 
       if (outOfReach.size > 0) {
         throw new NotAuthorizedException(PRIVATE_ALERTS_TO_LINK_MESSAGE);

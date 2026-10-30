@@ -75,7 +75,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
-    findBy.query = applyIncidentRelatedRecordPrivacyFilter(findBy.query, findBy.props);
+    findBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
     return { findBy, carryForward: null };
   }
 
@@ -83,7 +86,10 @@ export class Service extends DatabaseService<Model> {
   public override async countBy(
     countBy: CountBy<Model>,
   ): Promise<PositiveNumber> {
-    countBy.query = applyIncidentRelatedRecordPrivacyFilter(countBy.query, countBy.props);
+    countBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
     return super.countBy(countBy);
   }
 

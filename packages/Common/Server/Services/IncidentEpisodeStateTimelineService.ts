@@ -88,7 +88,10 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
   protected override async onBeforeFind(
     findBy: FindBy<IncidentEpisodeStateTimeline>,
   ): Promise<OnFind<IncidentEpisodeStateTimeline>> {
-    findBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(findBy.query, findBy.props);
+    findBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
     return { findBy, carryForward: null };
   }
 
@@ -96,7 +99,10 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
   public override async countBy(
     countBy: CountBy<IncidentEpisodeStateTimeline>,
   ): Promise<PositiveNumber> {
-    countBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(countBy.query, countBy.props);
+    countBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
     return super.countBy(countBy);
   }
 

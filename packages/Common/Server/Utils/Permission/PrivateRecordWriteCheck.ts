@@ -59,8 +59,7 @@ export default class PrivateRecordWriteCheck {
 
     if (
       data.readRecord &&
-      (data.readRecord as unknown as { isPrivate?: unknown }).isPrivate !==
-        true
+      (data.readRecord as unknown as { isPrivate?: unknown }).isPrivate !== true
     ) {
       return true;
     }
