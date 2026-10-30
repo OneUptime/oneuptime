@@ -26,6 +26,7 @@ import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationTyp
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../Types/ObjectID";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import { evaluateTemplateCriteria } from "./Utils/TemplateCriteriaEvaluation";
 
 /*
  * Lock in the VMware alert-template contracts (design spec §6). Two layers:
@@ -548,26 +549,30 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
-    id: "vmware-datacenter-hosts-powered-off",
+    /*
+     * A crashed or unreachable host reads power_state = unknown; off is a
+     * deliberate power-off, standby is DPM.
+     */
+    id: "vmware-datacenter-hosts-not-responding",
     category: "Datacenter",
-    severity: "Warning",
+    severity: "Critical",
     rollingTime: RollingTime.Past5Minutes,
     queries: [
       {
         metricName: "vcenter.datacenter.host.count",
         aggregation: MetricsAggregationType.Max,
-        attributes: { power_state: "off" },
+        attributes: { power_state: "unknown" },
         legendUnit: undefined,
       },
     ],
     groupBy: DATACENTER,
     fire: {
-      alias: "datacenter_hosts_powered_off",
+      alias: "datacenter_hosts_not_responding",
       filterType: FilterType.GreaterThan,
       value: 0,
     },
     recover: {
-      alias: "datacenter_hosts_powered_off",
+      alias: "datacenter_hosts_not_responding",
       filterType: FilterType.EqualTo,
       value: 0,
     },
@@ -630,7 +635,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     id: "vmware-vsan-latency-high",
     category: "vSAN",
     severity: "Warning",
-    rollingTime: RollingTime.Past5Minutes,
+    rollingTime: RollingTime.Past15Minutes,
     queries: [
       {
         metricName: "vcenter.cluster.vsan.latency.avg",
@@ -655,7 +660,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     id: "vmware-vsan-congestion",
     category: "vSAN",
     severity: "Warning",
-    rollingTime: RollingTime.Past5Minutes,
+    rollingTime: RollingTime.Past15Minutes,
     queries: [
       {
         metricName: "vcenter.cluster.vsan.congestions",
@@ -773,6 +778,20 @@ function expectedRecoveryValue(recover: {
 }
 
 const ALL_TEMPLATES: Array<VMwareAlertTemplate> = getAllVMwareAlertTemplates();
+
+const VSAN_TEMPLATE_IDS: Array<string> = [
+  "vmware-vsan-latency-high",
+  "vmware-vsan-congestion",
+];
+
+// The datacenter count templates, each with the query alias it reads.
+const DATACENTER_COUNT_TEMPLATES: Array<[string, string]> = [
+  ["vmware-datacenter-hosts-unhealthy", "datacenter_hosts_red"],
+  ["vmware-datacenter-hosts-degraded", "datacenter_hosts_yellow"],
+  ["vmware-datacenter-hosts-not-responding", "datacenter_hosts_not_responding"],
+  ["vmware-datacenter-vms-unhealthy", "datacenter_vms_red"],
+  ["vmware-datacenter-clusters-unhealthy", "datacenter_clusters_red"],
+];
 
 // Every template that watches vSphere objects: all but the heartbeat.
 const PER_OBJECT_TEMPLATES: Array<VMwareAlertTemplate> = ALL_TEMPLATES.filter(
@@ -1386,7 +1405,10 @@ describe("VMwareAlertTemplates - VM vs host CPU asymmetry (regression)", () => {
 
   test("every other per-object template uses the 5-minute window", () => {
     for (const template of PER_OBJECT_TEMPLATES) {
-      if (template.id === "vmware-vm-cpu-saturation") {
+      if (
+        template.id === "vmware-vm-cpu-saturation" ||
+        VSAN_TEMPLATE_IDS.includes(template.id)
+      ) {
         continue;
       }
       expect(
@@ -1452,7 +1474,7 @@ describe("VMwareAlertTemplates - attribute-filtered count templates (regression)
     ["vmware-cluster-host-not-effective", { effective: "false" }],
     ["vmware-datacenter-hosts-unhealthy", { status: "red" }],
     ["vmware-datacenter-hosts-degraded", { status: "yellow" }],
-    ["vmware-datacenter-hosts-powered-off", { power_state: "off" }],
+    ["vmware-datacenter-hosts-not-responding", { power_state: "unknown" }],
     ["vmware-datacenter-vms-unhealthy", { status: "red" }],
     ["vmware-datacenter-clusters-unhealthy", { status: "red" }],
   ])(
@@ -1649,5 +1671,89 @@ describe("VMwareAlertTemplates - coverage fingerprints", () => {
     );
 
     expect(metricNames.size).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe("VMwareAlertTemplates - datacenter counts recover once their series is gone (regression)", () => {
+  /*
+   * vcenter.datacenter.{host,vm,cluster}.count is recorded only for the
+   * (status, power_state) pairs that exist. When the last red host turns
+   * green, the `status = red` series stops - it never reads 0 - so an
+   * `= 0` recovery that ignores a silent window never matched, and the
+   * incident stayed open until someone closed it by hand.
+   */
+  test.each(DATACENTER_COUNT_TEMPLATES)(
+    "%s fires on a count above 0, and recovers when its series is gone",
+    async (id: string, alias: string) => {
+      const step: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+      const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(step);
+
+      expect(
+        await evaluateTemplateCriteria({
+          step: step,
+          viewConfig: monitor.metricViewConfig,
+          samplesByAlias: { [alias]: [1, 1, 1, 1, 1] },
+          windowMinutes: 5,
+        }),
+      ).toEqual({ breached: true, healthy: false });
+
+      expect(
+        await evaluateTemplateCriteria({
+          step: step,
+          viewConfig: monitor.metricViewConfig,
+          samplesByAlias: { [alias]: [] },
+          windowMinutes: 5,
+        }),
+      ).toEqual({ breached: false, healthy: true });
+    },
+  );
+});
+
+describe("VMwareAlertTemplates - Datacenter Hosts Not Responding (regression)", () => {
+  /*
+   * vSphere reports poweredOff only for a host someone powered off through
+   * vCenter, and standBy for DPM. The template used to watch `off`: it paged
+   * on planned shutdowns and never on a crash, which reads `unknown`.
+   */
+  const template: VMwareAlertTemplate = getTemplate(
+    "vmware-datacenter-hosts-not-responding",
+  );
+
+  test("watches hosts vCenter has lost contact with, not ones powered off or in standby", () => {
+    const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(
+      template.getMonitorStep(buildArgs()),
+    );
+
+    expect(
+      monitor.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+        .attributes,
+    ).toEqual({ power_state: "unknown" });
+    expect(template.description).toContain("power_state = unknown");
+    expect(template.description).not.toContain("power_state = off");
+    expect(template.description).toContain("does not count");
+  });
+
+  test("is Critical, like the other host outages", () => {
+    expect(template.severity).toBe("Critical");
+    expect(
+      getVMwareAlertTemplateById("vmware-datacenter-hosts-powered-off"),
+    ).toBe(undefined);
+  });
+});
+
+describe("VMwareAlertTemplates - vSAN windows hold more than one vSAN sample (regression)", () => {
+  /*
+   * vSAN publishes a performance sample every 5 minutes, and each collection
+   * reads the latest one, stamped with vSAN's own sample time. A 5-minute
+   * window holds one sample at most, and none while vSAN lags.
+   */
+  test.each(VSAN_TEMPLATE_IDS)("%s reads the past 15 minutes", (id: string) => {
+    const template: VMwareAlertTemplate = getTemplate(id);
+
+    expect(
+      getVMwareMonitor(template.getMonitorStep(buildArgs())).rollingTime,
+    ).toBe(RollingTime.Past15Minutes);
+    expect(template.description).toContain("for 15 minutes");
+    expect(template.description).not.toContain("for 5 minutes");
   });
 });

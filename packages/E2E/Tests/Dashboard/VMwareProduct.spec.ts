@@ -174,15 +174,24 @@ test.describe.skip("VMware Product Onboarding", () => {
     await expect(page.getByText("VMware Monitor Configuration")).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("Quick Setup")).toBeVisible();
+    /*
+     * A new monitor starts on the Stopped Reporting alert, folded under
+     * "What to alert on"; Change opens the list.
+     */
+    await expect(page.getByText("What to alert on")).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "vCenter Stopped Reporting",
+    );
+    await page.getByTestId("alert-template-change").click();
 
     /*
-     * Every template VMwareTemplatePicker renders — all 23 from
+     * Every template VMwareTemplatePicker renders — all 24 from
      * Common/Types/Monitor/VMwareAlertTemplates.ts (getAllVMwareAlertTemplates),
-     * in catalog order: Host, Virtual Machine, Datastore, Cluster,
-     * Datacenter, vSAN and the resource-pool template.
+     * in catalog order: vCenter Stopped Reporting, Host, Virtual Machine,
+     * Datastore, Cluster, Datacenter, vSAN and the resource-pool template.
      */
     const expectedTemplateNames: Array<string> = [
+      "vCenter Stopped Reporting",
       "Host CPU Saturation",
       "Host Memory Saturation",
       "Host Disk Latency High",
@@ -200,7 +209,7 @@ test.describe.skip("VMware Product Onboarding", () => {
       "Cluster Host Not Effective",
       "Datacenter Hosts Unhealthy",
       "Datacenter Hosts Degraded",
-      "Datacenter Hosts Powered Off",
+      "Datacenter Hosts Not Responding",
       "Datacenter VMs Unhealthy",
       "Datacenter Clusters Unhealthy",
       "vSAN Latency High",

@@ -48,19 +48,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **VMware*
 
 ### Elegir el vCenter
 
-En **Configuración del monitor de VMware**, elija el vCenter en **vCenter**. Cada vCenter que ha enviado datos, o que conectó sin agente, está en la lista.
+En **Configuración del monitor de VMware**, elija el vCenter en **vCenter**. Cada vCenter que ha enviado datos, o que conectó sin agente, está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir vCenter** abre la página de vCenters, donde conecta uno.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **vCenter Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** - haga clic en una [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, los filtros de atributos, la agregación, el intervalo de tiempo, la agrupación y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** - elija una métrica en **Métrica de VMware** y luego establezca **Agregación** e **Intervalo de tiempo**. El formulario la agrupa por el objeto que describe, así que cada host, VM o almacén de datos se juzga por separado, y los [filtros](#configuración-del-monitor) la acotan a un centro de datos, clúster, host, VM, almacén de datos o pool de recursos.
-- **Avanzado** - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, con filtros sobre atributos como `disk_state`, `power_state` o `status`. Use **Agrupar por** con un [atributo de identidad](#atributos-de-identidad) para juzgar cada objeto por separado.
+- **Cambiar** - elija otra [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, los filtros de atributos, la agregación, el intervalo de tiempo, la agrupación y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) - elija una métrica en **Métrica de VMware** y luego establezca **Agregación** e **Intervalo de tiempo**. El formulario la agrupa por el objeto que describe, así que cada host, VM o almacén de datos se juzga por separado, y los [filtros](#configuración-del-monitor) la acotan a un centro de datos, clúster, host, VM, almacén de datos o pool de recursos.
+- **Avanzado** (en **Más campos**) - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, con filtros sobre atributos como `disk_state`, `power_state` o `status`. Use **Agrupar por** con un [atributo de identidad](#atributos-de-identidad) para juzgar cada objeto por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que cae a cero, así que establezca su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
 
 ### Crear el monitor
 
@@ -106,7 +106,7 @@ En los filtros del monitor y en las claves de agrupación, los atributos de recu
 
 ## Plantillas de alerta predefinidas
 
-OneUptime incluye 24 plantillas para problemas comunes de VMware, y **Quick Setup** las ofrece todas. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de atributos, una agrupación por el atributo de identidad propio del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+OneUptime incluye 24 plantillas para problemas comunes de VMware, y la lista de **Sobre qué alertar** las ofrece todas. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de atributos, una agrupación por el atributo de identidad propio del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un criterio solo dispara cuando la condición se cumple en cada minuto de su ventana, y un criterio de umbral se recupera un 10 % más allá de su umbral, así que un valor que oscila en la línea no parpadea.
 
@@ -130,11 +130,11 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un
 | Cluster Host Not Effective | Clúster | Crítico | `vcenter.cluster.host.count` filtrada a `effective = false`, Max por `resource.vcenter.cluster.name` | Por encima de 0: un host está en modo de mantenimiento, desconectado o sin respuesta, así que el clúster funciona con menos capacidad de la prevista | En 0 |
 | Datacenter Hosts Unhealthy | Centro de datos | Crítico | `vcenter.datacenter.host.count` filtrada a `status = red`, Max por `resource.vcenter.datacenter.name` | Por encima de 0: un host tiene una alarma crítica, como un sensor de hardware, una ruta de almacenamiento perdida o un error del agente de HA | En 0 |
 | Datacenter Hosts Degraded | Centro de datos | Advertencia | `vcenter.datacenter.host.count` filtrada a `status = yellow`, Max por centro de datos | Por encima de 0: un host tiene una alarma de advertencia | En 0 |
-| Datacenter Hosts Powered Off | Centro de datos | Advertencia | `vcenter.datacenter.host.count` filtrada a `power_state = off`, Max por centro de datos | Por encima de 0: un host está apagado - falló, se quedó sin corriente o DPM lo puso en espera | En 0 |
+| Datacenter Hosts Not Responding | Centro de datos | Crítico | `vcenter.datacenter.host.count` filtrada a `power_state = unknown`, Max por centro de datos | Por encima de 0: vCenter ha perdido el contacto con un host: falló, se quedó sin corriente o sin su red de administración, o se desconectó. Un host apagado a propósito o puesto en espera por DPM no cuenta | En 0 |
 | Datacenter VMs Unhealthy | Centro de datos | Advertencia | `vcenter.datacenter.vm.count` filtrada a `status = red`, Max por centro de datos | Por encima de 0: una VM tiene una alarma crítica, como un reinicio de HA fallido, un almacén de datos perdido o un heartbeat de Tools perdido | En 0 |
 | Datacenter Clusters Unhealthy | Centro de datos | Crítico | `vcenter.datacenter.cluster.count` filtrada a `status = red`, Max por centro de datos | Por encima de 0: un clúster tiene una alarma crítica, como recursos de conmutación de HA insuficientes, una elección de HA fallida o una comprobación de salud de vSAN crítica | En 0 |
-| vSAN Latency High | vSAN | Advertencia | `vcenter.cluster.vsan.latency.avg`, Avg por clúster | Por encima de 20 000 µs (20 ms): el almacenamiento se ralentiza para cada VM del almacén de datos vSAN. Silencioso en clústeres sin vSAN | En 18 000 µs o menos |
-| vSAN Congestion | vSAN | Advertencia | `vcenter.cluster.vsan.congestions`, Max por clúster | Por encima de 0: un grupo de discos no da abasto, y vSAN ralentiza la E/S de sus clientes | En 0 |
+| vSAN Latency High | vSAN | Advertencia | `vcenter.cluster.vsan.latency.avg`, Avg por clúster, **últimos 15 minutos** | Por encima de 20 000 µs (20 ms): el almacenamiento se ralentiza para cada VM del almacén de datos vSAN. Silencioso en clústeres sin vSAN | En 18 000 µs o menos |
+| vSAN Congestion | vSAN | Advertencia | `vcenter.cluster.vsan.congestions`, Max por clúster, **últimos 15 minutos** | Por encima de 0: un grupo de discos no da abasto, y vSAN ralentiza la E/S de sus clientes | En 0 |
 | Resource Pool Memory Swapped | Clúster | Advertencia | `vcenter.resource_pool.memory.swapped`, Max por `resource.vcenter.resource_pool.inventory_path` | Por encima de 0: las VM del pool toman memoria del swap del host, normalmente porque el límite o las participaciones de memoria del pool son demasiado bajos | En 0 |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan en la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en el criterio.

@@ -48,19 +48,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Podman 
 
 ### Elegir el host
 
-En **Configuración del monitor de Podman**, elija el host en **Host de Podman**. Cada host que ha enviado datos está en la lista.
+En **Configuración del monitor de Podman**, elija el host en **Host de Podman**. Cada host que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir host de Podman** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Host Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** – haga clic en una [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** – elija una métrica en **Métrica de Podman** y luego fije la **Agregación** y el **Intervalo de tiempo**. **Nombre del contenedor** e **Imagen del contenedor** la restringen a algunos contenedores.
-- **Avanzado** – cree usted mismo consultas y fórmulas en **Seleccionar métricas**. Use **Agrupar por** `resource.container.name` para juzgar cada contenedor por separado.
+- **Cambiar** – elija otra [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) – elija una métrica en **Métrica de Podman** y luego fije la **Agregación** y el **Intervalo de tiempo**. **Nombre del contenedor** e **Imagen del contenedor** la restringen a algunos contenedores.
+- **Avanzado** (en **Más campos**) – cree usted mismo consultas y fórmulas en **Seleccionar métricas**. Use **Agrupar por** `resource.container.name` para juzgar cada contenedor por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que fije su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que fije su propio umbral.
 
 ### Crear el monitor
 
@@ -84,7 +84,7 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Host Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada contenedor se juzga por separado y recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Host Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada contenedor se juzga por separado y recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 

@@ -50,19 +50,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Disposi
 
 ### Elegir la flota
 
-En **Configuración del monitor de IoT**, elija la flota en **Flota IoT**. Cada flota que ha enviado datos está en la lista.
+En **Configuración del monitor de IoT**, elija la flota en **Flota IoT**. Cada flota que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir flota IoT** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Device Offline**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** - haga clic en una [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, la agregación, el intervalo de tiempo, una agrupación por `device.id` y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** - elija una métrica en **Métrica de IoT** y luego establezca **Agregación** e **Intervalo de tiempo**. Los [filtros](#configuración-del-monitor) la acotan a un dispositivo o a un tipo de dispositivo. Una métrica personalizada no se agrupa: juzga la flota en su conjunto.
-- **Avanzado** - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, también sobre nombres de métricas propios, por ejemplo la memoria en uso como porcentaje del tamaño de memoria de un dispositivo. Use **Agrupar por** `device.id` para juzgar cada dispositivo por separado.
+- **Cambiar** - elija otra [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, la agregación, el intervalo de tiempo, una agrupación por `device.id` y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) - elija una métrica en **Métrica de IoT** y luego establezca **Agregación** e **Intervalo de tiempo**. Los [filtros](#configuración-del-monitor) la acotan a un dispositivo o a un tipo de dispositivo. Una métrica personalizada no se agrupa: juzga la flota en su conjunto.
+- **Avanzado** (en **Más campos**) - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, también sobre nombres de métricas propios, por ejemplo la memoria en uso como porcentaje del tamaño de memoria de un dispositivo. Use **Agrupar por** `device.id` para juzgar cada dispositivo por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Seleccionar variable de métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que cae a cero, así que establezca su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Seleccionar variable de métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
 
 ### Crear el monitor
 
@@ -88,7 +88,7 @@ Los filtros actúan juntos: con un **ID del dispositivo** y un **Tipo de disposi
 
 ## Plantillas de alerta predefinidas
 
-**Quick Setup** ofrece 5 plantillas. Cada una construye un monitor completo: la consulta de la métrica, una agrupación por `device.id`, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece 5 plantillas. Cada una construye un monitor completo: la consulta de la métrica, una agrupación por `device.id`, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo dispara cuando la condición se cumple en cada minuto de su ventana - salvo **Device Offline**, que dispara con la primera lectura por debajo de 1. Un criterio de umbral se recupera un 10 % más allá de su umbral, así que un valor que oscila en la línea no parpadea.
 

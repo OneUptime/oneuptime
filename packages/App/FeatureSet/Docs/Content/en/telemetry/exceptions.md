@@ -129,6 +129,8 @@ The explanation is kept on the exception, so the next person who opens it reads 
 
 IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent. The explanation uses the project's LLM provider and AI credits, and is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.
 
+Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words. One root cause can land in several exceptions, so **Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off.
+
 ## Fix it with AI
 
 The **AI Assistance** page offers three tasks. Each runs as an AI task that opens a pull request in your code repository:

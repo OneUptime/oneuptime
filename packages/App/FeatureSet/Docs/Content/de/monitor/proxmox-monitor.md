@@ -48,19 +48,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Den Cluster wählen
 
-Wählen Sie unter **Proxmox-Monitor-Konfiguration** den Cluster aus **Proxmox-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **Proxmox-Monitor-Konfiguration** den Cluster aus **Proxmox-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Proxmox-Cluster hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** – klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie legt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** – wählen Sie eine Metrik unter **Proxmox-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf eine Art von Ressource oder auf eine einzelne Ressource ein.
-- **Erweitert** – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Speicherprozentsatz aus `pve_memory_usage_bytes / pve_memory_size_bytes`. Verwenden Sie **Gruppieren nach** `id`, um jede Ressource einzeln zu beurteilen.
+- **Ändern** – wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie legt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) – wählen Sie eine Metrik unter **Proxmox-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf eine Art von Ressource oder auf eine einzelne Ressource ein.
+- **Erweitert** (unter **Weitere Felder**) – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Speicherprozentsatz aus `pve_memory_usage_bytes / pve_memory_size_bytes`. Verwenden Sie **Gruppieren nach** `id`, um jede Ressource einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn eine Metrik auf null fällt; legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Den Monitor erstellen
 
@@ -95,7 +95,7 @@ Jede Reihe trägt ein Datenpunkt-Label `id`, das die Proxmox-Ressource nennt, zu
 | `lxc/<vmid>` | Ein LXC-Container, zum Beispiel `lxc/101`. |
 | `storage/<node>/<storage>` | Ein Speicher-Volume auf einem Knoten, zum Beispiel `storage/pve1/local`. |
 
-Zwei Ausnahmen: Replikationsreihen (`pve_replication_*`) tragen die ID des Replikations-**Jobs** in `id` (zum Beispiel `100-0`), und das clusterweite `pve_not_backed_up_total` hat überhaupt kein `id`.
+Eine Ausnahme: Replikationsreihen (`pve_replication_*`) tragen die ID des Replikations-**Jobs** in `id` (zum Beispiel `100-0`). Die eigenen Reihen des Clusters, etwa das Quorum (`pve_up`) und `pve_not_backed_up_total`, tragen `cluster/<name>`.
 
 Filter vergleichen auf Gleichheit, nicht auf ein Präfix; daher teilt der Agent `id` zusätzlich in drei Attribute auf, nach denen Sie filtern können. Die Vorlagen stützen sich darauf:
 
@@ -109,7 +109,7 @@ Filtern Sie nach `pve.scope` oder `pve.type` für eine Art von Ressource, nach `
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und ein Schwellenwert-Kriterium wird 10 % jenseits seines Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
@@ -132,8 +132,8 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 
 - **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Cluster eintrifft: Der Proxmox-Agent oder sein pve-exporter läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen, die Proxmox-API antwortet ihm nicht mehr, oder jeder Knoten einer nativen Übertragung ist verstummt. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Die Ausfall-Vorlagen verwenden Minimum**, sodass eine einzige Abfrage, bei der die Ressource ausgefallen war, sie auslöst, statt von den Abfragen verdeckt zu werden, bei denen sie lief.
-- **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen, sodass ein Gast, den Sie absichtlich gestoppt haben, nie jemanden alarmiert.
-- **Cluster Quorum at Risk** ist ein Näherungswert: pve-exporter hat keine corosync-Metrik, daher zählt die Vorlage die Knoten, die online sind.
+- **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen: Stoppen Sie einen davon absichtlich, alarmiert er trotzdem, schalten Sie also zuerst seinen Start beim Booten ab.
+- **Cluster Quorum at Risk** zählt die Knoten, die online sind. pve-exporter meldet das Quorum auch selbst, als `pve_up` für `cluster/<name>`: 1, solange der Cluster ein Quorum hat.
 - **High Guest CPU Usage** ist höher und langsamer als die Knotenvorlage: Ein Gast soll seine vCPUs nutzen, daher alarmiert nur einer, der nie herunterkommt.
 - **Verhältnisformeln** nehmen auf beiden Seiten die **Summe**. Beide stammen aus derselben Abfrage, das Ergebnis ist also ein echter Prozentsatz.
 - **Container Root Disk Near Full** lässt QEMU-VMs aus: Ihre Festplattennutzung liest ohne den QEMU-Gastagenten 0.
@@ -154,7 +154,7 @@ Der Agent fragt prometheus-pve-exporter alle 30 Sekunden ab: seine Cluster-Kolle
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_up` | — | 1, wenn der Knoten oder Gast in Betrieb ist oder läuft, sonst 0. |
+| `pve_up` | — | 1, wenn der Knoten, Gast oder Speicher in Betrieb ist, sonst 0. Für `cluster/<name>` 1, solange der Cluster ein Quorum hat. |
 | `pve_uptime_seconds` | seconds | Betriebszeit des Knotens oder Gasts. |
 | `pve_version_info` | count | Die Proxmox-VE-Version, in ihren Labels. Immer 1. |
 
@@ -162,7 +162,7 @@ Der Agent fragt prometheus-pve-exporter alle 30 Sekunden ab: seine Cluster-Kolle
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadaten des Knotens, immer 1. Summieren Sie sie, um die meldenden Knoten zu zählen. |
+| `pve_node_info` | count | Metadaten des Knotens, immer 1, solange der Knoten meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Knoten. |
 | `pve_cpu_usage_ratio` | ratio | Genutzte CPU als Verhältnis von 0–1 zur verfügbaren CPU. |
 | `pve_cpu_usage_limit` | cores | Verfügbare CPU, in Kernen. Bei einem Gast seine vCPUs. |
 | `pve_memory_usage_bytes` | bytes | Belegter Arbeitsspeicher. |
@@ -187,7 +187,7 @@ Die CPU- und Speicherreihen werden auch für jeden Gast gemeldet, unter den IDs 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Auf der Festplatte oder dem Speicher belegte Bytes. Bei einem QEMU-Gast liest sie 0, sofern der QEMU-Gastagent nicht installiert ist. |
 | `pve_disk_size_bytes` | bytes | Gesamtgröße der Festplatte oder des Speichers. |
-| `pve_storage_info` | count | Metadaten des Speichers, immer 1. Summieren Sie sie, um die Speicher-Volumes zu zählen. |
+| `pve_storage_info` | count | Metadaten des Speichers, immer 1, solange der Speicher existiert. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Volumes. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Aus dem clusterweiten Kollektor `backup-info` des Exporters. Sie melden nur die 
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Gäste in keinem Backup-Job. Eine clusterweite Reihe ohne `id`. |
+| `pve_not_backed_up_total` | count | Gäste in keinem Backup-Job. Eine clusterweite Reihe, `id` `cluster/<name>`, die auch bei 0 gemeldet wird. |
 | `pve_not_backed_up_info` | count | Eine Reihe pro nicht abgedecktem Gast, immer 1, mit der `id` des Gasts als Label. Sie verschwindet, sobald der Gast einem Backup-Job beitritt. |
 
 ### Replikation

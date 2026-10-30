@@ -48,19 +48,19 @@ flowchart TB
 
 ### vCenter 선택
 
-**VMware Monitor Configuration** 에서 **vCenter** 로 vCenter를 선택합니다. 데이터를 보낸 적이 있거나 에이전트 없이 연결한 모든 vCenter가 목록에 있습니다.
+**VMware Monitor Configuration** 에서 **vCenter** 로 vCenter를 선택합니다. 데이터를 보낸 적이 있거나 에이전트 없이 연결한 모든 vCenter가 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **vCenter 추가** 는 vCenter 페이지를 열며, 거기서 하나를 연결합니다.
 
 ### 감시할 대상 선택
 
-세 탭 중 하나를 선택합니다.
+새 모니터는 **알림 대상** 아래의 **vCenter Stopped Reporting** 에서 시작합니다. 다른 것을 감시하려면 다음 중 하나를 사용합니다.
 
-- **Quick Setup**: [템플릿](#미리-만든-알림-템플릿)을 클릭합니다. 템플릿은 메트릭, 속성 필터, 집계, 시간 범위, 그룹화, 임계값을 설정하고 아래의 기준을 자신의 기준으로 바꿉니다. **시간 범위** 는 나중에도 바꿀 수 있습니다.
-- **Custom Metric**: **VMware Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. 양식은 메트릭이 설명하는 개체로 그룹화하므로 각 호스트, VM, 데이터스토어가 따로 판단되며, [필터](#모니터-설정)로 데이터센터, 클러스터, 호스트, VM, 데이터스토어, 리소스 풀 하나로 좁힙니다.
-- **고급**: **메트릭 선택** 에서 쿼리와 수식을 직접 만들고, `disk_state`, `power_state`, `status` 같은 속성으로 필터링합니다. [식별 속성](#식별-속성)으로 **그룹화 기준** 하면 각 개체를 따로 판단합니다.
+- **변경**: 다른 [템플릿](#미리-만든-알림-템플릿)을 고릅니다. 템플릿은 메트릭, 속성 필터, 집계, 시간 범위, 그룹화, 임계값을 설정하고 아래의 기준을 자신의 기준으로 바꿉니다. **시간 범위** 는 나중에도 바꿀 수 있습니다.
+- **Custom Metric** (**추가 필드** 안): **VMware Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. 양식은 메트릭이 설명하는 개체로 그룹화하므로 각 호스트, VM, 데이터스토어가 따로 판단되며, [필터](#모니터-설정)로 데이터센터, 클러스터, 호스트, VM, 데이터스토어, 리소스 풀 하나로 좁힙니다.
+- **고급** (**추가 필드** 안): **메트릭 선택** 에서 쿼리와 수식을 직접 만들고, `disk_state`, `power_state`, `status` 같은 속성으로 필터링합니다. [식별 속성](#식별-속성)으로 **그룹화 기준** 하면 각 개체를 따로 판단합니다.
 
 ### 기준 확인
 
-**모니터 기준** 의 각 기준을 열고 **메트릭**, **집계**, **조건**, **임계값** 을 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric** 이나 **고급** 에서는 모니터가 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 0으로 떨어지는 것만 알아차리므로 직접 임계값을 설정하세요.
+**모니터 기준** 의 각 기준을 열고 **메트릭**, **집계**, **조건**, **임계값** 을 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric** 이나 **고급** 에서는 모니터가 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 데이터를 보내지 않는 것만 알아차리므로 직접 임계값을 설정하세요.
 
 ### 모니터 만들기
 
@@ -106,7 +106,7 @@ vCenter는 수집 간격(기본 2분)마다 한 번 읽히므로, 1분 기간에
 
 ## 미리 만든 알림 템플릿
 
-OneUptime은 흔한 VMware 문제를 위한 템플릿 24개를 제공하며, **Quick Setup** 은 그 전부를 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 속성 필터, 개체 자체의 식별 속성으로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
+OneUptime은 흔한 VMware 문제를 위한 템플릿 24개를 제공하며, **알림 대상** 목록은 그 전부를 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 속성 필터, 개체 자체의 식별 속성으로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
 
 템플릿은 표에 따로 적혀 있지 않으면 최근 5분을 읽습니다. 기준은 기간의 모든 분에서 조건이 성립할 때만 발생하며, 임계값 기준은 임계값에서 10% 벗어난 지점에서 복구되므로 경계 근처를 오가는 값 때문에 상태가 흔들리지 않습니다.
 
@@ -130,11 +130,11 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 24개를 제공하며, **Q
 | Cluster Host Not Effective | 클러스터 | 심각 | `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, `resource.vcenter.cluster.name` 별 Max | 0 초과: 호스트가 유지 관리 모드이거나, 연결이 끊겼거나, 응답하지 않아 클러스터가 설계보다 적은 용량으로 동작함 | 다시 0 |
 | Datacenter Hosts Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.host.count` 를 `status = red` 로 필터링, `resource.vcenter.datacenter.name` 별 Max | 0 초과: 호스트에 심각 경보가 있음(하드웨어 센서, 끊긴 스토리지 경로, HA 에이전트 오류 등) | 다시 0 |
 | Datacenter Hosts Degraded | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `status = yellow` 로 필터링, 데이터센터별 Max | 0 초과: 호스트에 경고 경보가 있음 | 다시 0 |
-| Datacenter Hosts Powered Off | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `power_state = off` 로 필터링, 데이터센터별 Max | 0 초과: 호스트의 전원이 꺼짐(충돌, 전원 상실, DPM에 의한 대기) | 다시 0 |
+| Datacenter Hosts Not Responding | 데이터센터 | 심각 | `vcenter.datacenter.host.count` 를 `power_state = unknown` 로 필터링, 데이터센터별 Max | 0 초과: vCenter가 호스트와의 연결을 잃음(충돌, 전원 또는 관리 네트워크 상실, 연결 해제). 일부러 전원을 끈 호스트나 DPM에 의한 대기 호스트는 세지 않음 | 다시 0 |
 | Datacenter VMs Unhealthy | 데이터센터 | Warning | `vcenter.datacenter.vm.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: VM에 심각 경보가 있음(실패한 HA 재시작, 잃어버린 데이터스토어, 끊긴 Tools 하트비트 등) | 다시 0 |
 | Datacenter Clusters Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.cluster.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: 클러스터에 심각 경보가 있음(HA 장애 조치 리소스 부족, HA 선출 실패, 심각한 vSAN 상태 검사 등) | 다시 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, 클러스터별 Avg | 20 000 µs (20 ms) 초과: vSAN 데이터스토어의 모든 VM에서 스토리지가 느려짐. vSAN이 없는 클러스터에서는 조용함 | 18 000 µs 이하 |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, 클러스터별 Max | 0 초과: 디스크 그룹이 따라가지 못해 vSAN이 클라이언트의 I/O를 늦춤 | 다시 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, 클러스터별 Avg, **최근 15분** | 20 000 µs (20 ms) 초과: vSAN 데이터스토어의 모든 VM에서 스토리지가 느려짐. vSAN이 없는 클러스터에서는 조용함 | 18 000 µs 이하 |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, 클러스터별 Max, **최근 15분** | 0 초과: 디스크 그룹이 따라가지 못해 vSAN이 클라이언트의 I/O를 늦춤 | 다시 0 |
 | Resource Pool Memory Swapped | 클러스터 | Warning | `vcenter.resource_pool.memory.swapped`, `resource.vcenter.resource_pool.inventory_path` 별 Max | 0 초과: 풀의 VM이 호스트 스왑에서 메모리를 얻음. 대개 풀의 메모리 제한이나 공유가 너무 낮기 때문 | 다시 0 |
 
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하며, 기준에서 바꿀 수 있습니다.

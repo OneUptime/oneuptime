@@ -6,7 +6,7 @@ import RollingTime from "../RollingTime/RollingTime";
  * The kind of Proxmox resource a metric series belongs to. Enum values are
  * byte-equal to the `pve.scope` datapoint attribute stamped by the agent's
  * OTTL transform processor (which splits pve-exporter's `id` label —
- * `node/pve1`, `qemu/100`, `lxc/101`, `storage/local` — into `pve.scope`,
+ * `node/pve1`, `qemu/100`, `lxc/101`, `storage/pve1/local` — into `pve.scope`,
  * `pve.type` and `pve.id`), so the monitor worker can map a scope filter to
  * an attribute-equality clause with no translation.
  */
@@ -33,8 +33,9 @@ export interface ProxmoxResourceFilters {
   scope?: ProxmoxResourceScope | undefined;
   /**
    * → equality on the `pve.id` datapoint attribute — the part of the `id`
-   * label after the slash ("pve1" for node/pve1, "100" for qemu/100,
-   * "local" for storage/local). Pair with `scope` to target one resource.
+   * label after the first slash ("pve1" for node/pve1, "100" for qemu/100,
+   * "pve1/local" for storage/pve1/local: a storage is named with its node).
+   * Pair with `scope` to target one resource.
    */
   pveId?: string | undefined;
   /**

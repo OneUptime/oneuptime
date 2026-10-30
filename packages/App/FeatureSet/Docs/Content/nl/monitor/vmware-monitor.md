@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **VMware** onder **I
 
 ### Het vCenter kiezen
 
-Kies onder **VMware Monitor Configuration** het vCenter uit **vCenter**. Elk vCenter dat gegevens heeft gestuurd, of dat je zonder agent hebt gekoppeld, staat in de lijst.
+Kies onder **VMware Monitor Configuration** het vCenter uit **vCenter**. Elk vCenter dat gegevens heeft gestuurd, of dat je zonder agent hebt gekoppeld, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **vCenter toevoegen** opent de pagina met vCenters, waar je er een koppelt.
 
 ### Kiezen wat je in de gaten houdt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **vCenter Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de attribuutfilters, de aggregatie, het tijdsbereik, de groepering en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
-- **Custom Metric** - kies één metriek uit **VMware Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. Het formulier groepeert haar op het object dat ze beschrijft, zodat elke host, VM of datastore afzonderlijk wordt beoordeeld, en de [filters](#monitorinstellingen) beperken haar tot één datacenter, cluster, host, VM, datastore of resourcepool.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, met filters op attributen zoals `disk_state`, `power_state` of `status`. Gebruik **Groeperen op** met een [identiteitsattribuut](#identiteitsattributen) om elk object afzonderlijk te beoordelen.
+- **Wijzigen** - kies een andere [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de attribuutfilters, de aggregatie, het tijdsbereik, de groepering en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
+- **Custom Metric** (onder **Meer velden**) - kies één metriek uit **VMware Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. Het formulier groepeert haar op het object dat ze beschrijft, zodat elke host, VM of datastore afzonderlijk wordt beoordeeld, en de [filters](#monitorinstellingen) beperken haar tot één datacenter, cluster, host, VM, datastore of resourcepool.
+- **Geavanceerd** (onder **Meer velden**) - bouw zelf queries en formules onder **Selecteer metrieken**, met filters op attributen zoals `disk_state`, `power_state` of `status`. Gebruik **Groeperen op** met een [identiteitsattribuut](#identiteitsattributen) om elk object afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -106,7 +106,7 @@ In monitorfilters en groeperingssleutels beginnen resource-attributen met `resou
 
 ## Kant-en-klare waarschuwingstemplates
 
-OneUptime levert 24 templates voor veelvoorkomende VMware-problemen, en **Quick Setup** biedt ze allemaal aan. Elk template bouwt een volledige monitor: de metriekquery, de attribuutfilters, een groepering op het eigen identiteitsattribuut van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+OneUptime levert 24 templates voor veelvoorkomende VMware-problemen, en de lijst onder **Waarover te waarschuwen** biedt ze allemaal aan. Elk template bouwt een volledige monitor: de metriekquery, de attribuutfilters, een groepering op het eigen identiteitsattribuut van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster, en een drempelcriterium herstelt 10 % voorbij zijn drempel, zodat een waarde die rond de lijn schommelt niet heen en weer springt.
 
@@ -130,11 +130,11 @@ Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 | Cluster Host Not Effective | Cluster | Kritiek | `vcenter.cluster.host.count` gefilterd op `effective = false`, Max per `resource.vcenter.cluster.name` | Boven 0: een host staat in onderhoudsmodus, is losgekoppeld of reageert niet, dus het cluster draait met minder capaciteit dan waarvoor het is ontworpen | Op 0 |
 | Datacenter Hosts Unhealthy | Datacenter | Kritiek | `vcenter.datacenter.host.count` gefilterd op `status = red`, Max per `resource.vcenter.datacenter.name` | Boven 0: een host heeft een kritiek alarm, zoals een hardwaresensor, een verloren opslagpad of een fout van de HA-agent | Op 0 |
 | Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` gefilterd op `status = yellow`, Max per datacenter | Boven 0: een host heeft een waarschuwingsalarm | Op 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` gefilterd op `power_state = off`, Max per datacenter | Boven 0: een host staat uit - hij crashte, verloor stroom, of werd door DPM in stand-by gezet | Op 0 |
+| Datacenter Hosts Not Responding | Datacenter | Kritiek | `vcenter.datacenter.host.count` gefilterd op `power_state = unknown`, Max per datacenter | Boven 0: vCenter heeft het contact met een host verloren - hij crashte, verloor stroom of zijn beheernetwerk, of werd losgekoppeld. Een host die bewust is uitgezet of door DPM in stand-by is gezet, telt niet mee | Op 0 |
 | Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` gefilterd op `status = red`, Max per datacenter | Boven 0: een VM heeft een kritiek alarm, zoals een mislukte HA-herstart, een verloren datastore of een verloren Tools-heartbeat | Op 0 |
 | Datacenter Clusters Unhealthy | Datacenter | Kritiek | `vcenter.datacenter.cluster.count` gefilterd op `status = red`, Max per datacenter | Boven 0: een cluster heeft een kritiek alarm, zoals te weinig HA-failoverbronnen, een mislukte HA-verkiezing of een kritieke vSAN-statuscontrole | Op 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per cluster | Boven 20 000 µs (20 ms): opslag wordt trager voor elke VM op de vSAN-datastore. Stil op clusters zonder vSAN | Op 18 000 µs of lager |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per cluster | Boven 0: een schijfgroep kan het niet bijhouden, en vSAN remt de I/O van zijn clients af | Op 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per cluster, **laatste 15 minuten** | Boven 20 000 µs (20 ms): opslag wordt trager voor elke VM op de vSAN-datastore. Stil op clusters zonder vSAN | Op 18 000 µs of lager |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per cluster, **laatste 15 minuten** | Boven 0: een schijfgroep kan het niet bijhouden, en vSAN remt de I/O van zijn clients af | Op 0 |
 | Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Boven 0: de VM's van de pool halen geheugen uit de swap van de host, meestal omdat de geheugenlimiet of de shares van de pool te laag zijn | Op 0 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.

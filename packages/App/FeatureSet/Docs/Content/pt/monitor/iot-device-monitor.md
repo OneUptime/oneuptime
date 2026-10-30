@@ -50,19 +50,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Disposit
 
 ### Escolher a frota
 
-Em **IoT Monitor Configuration**, escolha a frota em **IoT Fleet**. Toda frota que enviou dados está na lista.
+Em **IoT Monitor Configuration**, escolha a frota em **IoT Fleet**. Toda frota que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar frota IoT** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que observar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Device Offline**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** - clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo, um agrupamento por `device.id` e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** - escolha uma métrica em **IoT Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um dispositivo ou a um tipo de dispositivo. Uma métrica personalizada não é agrupada: ela avalia a frota como um todo.
-- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, inclusive sobre nomes de métricas próprios, por exemplo a memória em uso como porcentagem do tamanho da memória de um dispositivo. Use **Agrupar por** `device.id` para avaliar cada dispositivo separadamente.
+- **Alterar** - escolha outro [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo, um agrupamento por `device.id` e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) - escolha uma métrica em **IoT Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um dispositivo ou a um tipo de dispositivo. Uma métrica personalizada não é agrupada: ela avalia a frota como um todo.
+- **Avançado** (em **Mais campos**) - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, inclusive sobre nomes de métricas próprios, por exemplo a memória em uso como porcentagem do tamanho da memória de um dispositivo. Use **Agrupar por** `device.id` para avaliar cada dispositivo separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Select Metric Variable**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Select Metric Variable**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -88,7 +88,7 @@ Os filtros atuam juntos: com um **Device ID** e um **Device Type**, um dispositi
 
 ## Modelos de alerta prontos
 
-O **Quick Setup** oferece 5 modelos. Cada um monta um monitor completo: a consulta da métrica, um agrupamento por `device.id`, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece 5 modelos. Cada um monta um monitor completo: a consulta da métrica, um agrupamento por `device.id`, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Um critério só dispara quando a condição vale em cada minuto da sua janela - exceto o **Device Offline**, que dispara na primeira leitura abaixo de 1. Um critério de limite se recupera 10 % além do seu limite, então um valor que oscila na linha não fica alternando.
 

@@ -169,7 +169,7 @@ Der Collector scrapt den Exporter alle 30 Sekunden: seine Cluster-Collectors ein
 | Gast (VM oder LXC) | `pve_guest_info` sowie CPU-, Speicher- und Netzwerkserien auf den IDs `qemu/*` und `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Speicher | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Backup-Abdeckung | `pve_not_backed_up_total` (die Gäste, die kein Backup-Job abdeckt; eine Serie auf Clusterebene, ohne Label `id`) und `pve_not_backed_up_info` (eine Serie pro nicht abgedecktem Gast, mit seiner `id`). Abgedeckt heißt, dass mindestens ein Job den Gast auswählt: Ob Backups kürzlich liefen oder erfolgreich waren, gibt der Exporter nicht preis. |
+| Backup-Abdeckung | `pve_not_backed_up_total` (die Gäste, die kein Backup-Job abdeckt; eine Serie auf Clusterebene, `id` `cluster/<name>`) und `pve_not_backed_up_info` (eine Serie pro nicht abgedecktem Gast, mit seiner `id`). Abgedeckt heißt, dass mindestens ein Job den Gast auswählt: Ob Backups kürzlich liefen oder erfolgreich waren, gibt der Exporter nicht preis. |
 | Start beim Booten | `pve_onboot_status`, eine Serie pro Gast: 1, wenn der Gast beim Booten starten soll. **Guest Down** alarmiert nur für diese Gäste. |
 | Replikation | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, pro Speicher-Replikationsjob. Ihr Label `id` ist die Job-ID (etwa `100-0`), keine Ressource. |
 

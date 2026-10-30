@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Proxmox** unde
 
 ### Velg klyngen
 
-Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen.
+Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Proxmox-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** – klikk på en [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
-- **Avansert** – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
+- **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -95,7 +95,7 @@ Hver serie bærer en datapunktetikett `id` som navngir Proxmox-ressursen den til
 | `lxc/<vmid>` | En LXC-container, for eksempel `lxc/101`. |
 | `storage/<node>/<storage>` | Et lagringsvolum på en node, for eksempel `storage/pve1/local`. |
 
-To unntak: replikeringsserier (`pve_replication_*`) bærer replikerings-**jobbens** id i `id` (for eksempel `100-0`), og den klyngeomfattende `pve_not_backed_up_total` har ingen `id` i det hele tatt.
+Ett unntak: replikeringsserier (`pve_replication_*`) bærer replikerings-**jobbens** id i `id` (for eksempel `100-0`). Klyngens egne serier, som quorum (`pve_up`) og `pve_not_backed_up_total`, bærer `cluster/<name>`.
 
 Filtre samsvarer på likhet, ikke på et prefiks, så agenten deler også `id` i tre attributter du kan filtrere på. Malene bygger på dem:
 
@@ -109,7 +109,7 @@ Filtrer på `pve.scope` eller `pve.type` for én type ressurs, på `pve.id` elle
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
@@ -132,8 +132,8 @@ Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteri
 
 - **Cluster Stopped Reporting** utløses når ingenting kommer fra klyngen på ti minutter: Proxmox-agenten eller pve-exporteren dens har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, Proxmox-API-et sluttet å svare den, eller hver node i et innebygd push ble stille. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Nedemalene bruker Minimum**, så én innsamling der ressursen var nede, utløser dem i stedet for å skjules av innsamlinger der den kjørte.
-- **Guest Down** ser bare på gjester som er satt til å starte ved oppstart, så en gjest du har stoppet med vilje, varsler aldri noen.
-- **Cluster Quorum at Risk** er en tilnærming: pve-exporter har ingen corosync-metrikk, så malen teller nodene som er tilkoblet.
+- **Guest Down** ser bare på gjester som er satt til å starte ved oppstart: stopper du en av dem med vilje, varsler den likevel, så slå av start ved oppstart først.
+- **Cluster Quorum at Risk** teller nodene som er tilkoblet. pve-exporter rapporterer også selve quorum, som `pve_up` for `cluster/<name>`: 1 mens klyngen har quorum.
 - **High Guest CPU Usage** ligger høyere og reagerer tregere enn nodemalen: en gjest er ment å bruke vCPU-ene sine, så bare en som aldri går ned igjen, varsler noen.
 - **Forholdsformler** tar **Sum** av begge sider. Begge kommer fra samme innsamling, så resultatet er en ekte prosent.
 - **Container Root Disk Near Full** utelater QEMU-VM-er: diskbruken deres viser 0 uten QEMU-gjesteagenten.
@@ -154,7 +154,7 @@ Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: klyngeinnsamle
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `pve_up` | — | 1 når noden eller gjesten er oppe eller kjører, ellers 0. |
+| `pve_up` | — | 1 når noden, gjesten eller lagringen er oppe, ellers 0. For `cluster/<name>` 1 mens klyngen har quorum. |
 | `pve_uptime_seconds` | sekunder | Oppetid for noden eller gjesten. |
 | `pve_version_info` | antall | Proxmox VE-utgivelsen, i etikettene. Alltid 1. |
 
@@ -162,7 +162,7 @@ Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: klyngeinnsamle
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `pve_node_info` | antall | Nodemetadata, alltid 1. Summer den for å telle nodene som rapporterer. |
+| `pve_node_info` | antall | Nodemetadata, alltid 1 mens noden rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke noder. |
 | `pve_cpu_usage_ratio` | forhold | CPU i bruk som et forhold på 0–1 av tilgjengelig CPU. |
 | `pve_cpu_usage_limit` | kjerner | Tilgjengelig CPU, i kjerner. For en gjest dens vCPU-er. |
 | `pve_memory_usage_bytes` | byte | Minne i bruk. |
@@ -187,7 +187,7 @@ CPU- og minneseriene rapporteres også for hver gjest, på id-ene `qemu/*` og `l
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | byte | Brukte byte på disken eller lagringen. For en QEMU-gjest viser den 0 med mindre QEMU-gjesteagenten er installert. |
 | `pve_disk_size_bytes` | byte | Total størrelse på disken eller lagringen. |
-| `pve_storage_info` | antall | Lagringsmetadata, alltid 1. Summer den for å telle lagringsvolumer. |
+| `pve_storage_info` | antall | Lagringsmetadata, alltid 1 mens lagringen finnes. En sum legger sammen hver skraping i et minutt, så den teller ikke volumer. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Fra exporterens innsamler `backup-info` på klyngenivå. De rapporterer bare dek
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | antall | Gjester som ikke er med i noen sikkerhetskopijobb. Én klyngeomfattende serie uten `id`. |
+| `pve_not_backed_up_total` | antall | Gjester som ikke er med i noen sikkerhetskopijobb. Én klyngeomfattende serie, `id` `cluster/<name>`, som også rapporteres ved 0. |
 | `pve_not_backed_up_info` | antall | Én serie per udekket gjest, alltid 1, merket med gjestens `id`. Den forsvinner så snart gjesten blir med i en sikkerhetskopijobb. |
 
 ### Replikering

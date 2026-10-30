@@ -169,7 +169,7 @@ O coletor coleta o exportador a cada 30 segundos: os coletores de cluster dele u
 | Convidado (VM ou LXC) | `pve_guest_info`, e séries de CPU, memória e rede nos IDs `qemu/*` e `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Armazenamento | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Cobertura de backups | `pve_not_backed_up_total` (os convidados que nenhum job de backup cobre; uma série de nível de cluster, sem rótulo `id`) e `pve_not_backed_up_info` (uma série por convidado não coberto, com o `id` dele). Coberto significa que pelo menos um job seleciona o convidado: se os backups foram executados recentemente ou tiveram sucesso não é exposto pelo exportador. |
+| Cobertura de backups | `pve_not_backed_up_total` (os convidados que nenhum job de backup cobre; uma série de nível de cluster, `id` `cluster/<name>`) e `pve_not_backed_up_info` (uma série por convidado não coberto, com o `id` dele). Coberto significa que pelo menos um job seleciona o convidado: se os backups foram executados recentemente ou tiveram sucesso não é exposto pelo exportador. |
 | Inicialização no boot | `pve_onboot_status`, uma série por convidado: 1 quando o convidado está configurado para iniciar no boot. O **Guest Down** só alerta para esses convidados. |
 | Replicação | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, por job de replicação de armazenamento. O rótulo `id` delas é o ID do job (como `100-0`), não um recurso. |
 

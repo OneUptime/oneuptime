@@ -57,19 +57,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Den Cluster wählen
 
-Wählen Sie unter **Ceph-Monitor-Konfiguration** den Cluster in **Ceph-Cluster**. Jeder Cluster, der bereits Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **Ceph-Monitor-Konfiguration** den Cluster in **Ceph-Cluster**. Jeder Cluster, der bereits Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Ceph-Cluster hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** — klicken Sie auf eine [Vorlage](#fertige-alarmvorlagen). Sie setzt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** — wählen Sie eine Metrik in **Ceph-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. **OSD** und **Pool-ID** grenzen sie auf einen Daemon oder Pool ein.
-- **Erweitert** — bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, zum Beispiel ein Verhältnis der belegten Kapazität aus `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Mit **Gruppieren nach** `ceph_daemon` oder `pool_id` wird jeder Daemon oder Pool einzeln bewertet.
+- **Ändern** — wählen Sie eine andere [Vorlage](#fertige-alarmvorlagen). Sie setzt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) — wählen Sie eine Metrik in **Ceph-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. **OSD** und **Pool-ID** grenzen sie auf einen Daemon oder Pool ein.
+- **Erweitert** (unter **Weitere Felder**) — bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, zum Beispiel ein Verhältnis der belegten Kapazität aus `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Mit **Gruppieren nach** `ceph_daemon` oder `pool_id` wird jeder Daemon oder Pool einzeln bewertet.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese Felder aus. Mit **Custom Metric** oder **Erweitert** startet der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn eine Metrik auf null fällt — setzen Sie also Ihren eigenen Schwellenwert.
+Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese Felder aus. Mit **Custom Metric** oder **Erweitert** startet der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet — setzen Sie also Ihren eigenen Schwellenwert.
 
 ### Den Monitor anlegen
 
@@ -99,7 +99,7 @@ Datenserien von Pools tragen nur das Label `pool_id`: Der Name des Pools existie
 
 ## Fertige Alarmvorlagen
 
-**Quick Setup** bietet 24 Vorlagen für einen verstummten Cluster, Cluster-Zustand, OSDs, Placement Groups und Kapazität. Jede baut einen vollständigen Monitor — Abfragen, Label-Filter, eine Gruppierung, ein auslösendes und ein erholendes Kriterium. Die Schwellenwerte sind Ausgangspunkte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet 24 Vorlagen für einen verstummten Cluster, Cluster-Zustand, OSDs, Placement Groups und Kapazität. Jede baut einen vollständigen Monitor — Abfragen, Label-Filter, eine Gruppierung, ein auslösendes und ein erholendes Kriterium. Die Schwellenwerte sind Ausgangspunkte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Fensters zutrifft, und ein Schwellenwert-Kriterium erholt sich erst 10 % jenseits seines Schwellenwerts, damit ein Wert, der um die Linie pendelt, nicht flattert. **Schweregrad** ist die Bezeichnung, die die Auswahl zeigt; der Vorfall und die Warnung, die eine Vorlage erzeugt, beginnen mit dem höchsten Vorfall- und Warnungsschweregrad Ihres Projekts.
 
@@ -175,7 +175,7 @@ Der Agent fragt alle 30 Sekunden jeden mgr-Daemon ab und behält die Labels von 
 | `ceph_healthcheck_slow_ops` | Anzahl | Langsame OSD- und Monitor-Operationen, die der Check `SLOW_OPS` meldet. |
 | `ceph_daemon_health_metrics` | Anzahl | Zustandsmetriken pro Daemon, mit `type` (zum Beispiel `SLOW_OPS`) und `ceph_daemon`. |
 | `ceph_mon_quorum_status` | Anzahl | 1, wenn der Monitor im Quorum ist, pro `ceph_daemon` (zum Beispiel `mon.a`). |
-| `ceph_mon_metadata` | Anzahl | Metadaten des Monitors, immer 1. Summieren Sie sie, um Monitore zu zählen. |
+| `ceph_mon_metadata` | Anzahl | Metadaten des Monitors, immer 1, solange der Monitor meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Monitore. |
 | `ceph_cluster_total_bytes` | Bytes | Gesamte Rohkapazität. |
 | `ceph_cluster_total_used_bytes` | Bytes | Belegte Rohkapazität. |
 
@@ -190,7 +190,7 @@ Der Agent fragt alle 30 Sekunden jeden mgr-Daemon ab und behält die Labels von 
 | `ceph_osd_stat_bytes` | Bytes | Rohkapazität des OSD-Geräts. |
 | `ceph_osd_stat_bytes_used` | Bytes | Belegte Roh-Bytes auf dem OSD. Mit der Gesamtmenge vergleichen, um ungleich gefüllte oder fast volle OSDs zu erkennen. |
 | `ceph_osd_numpg` | Anzahl | Placement Groups auf dem OSD. |
-| `ceph_osd_metadata` | Anzahl | Metadaten des OSD (Hostname, Geräteklasse, Version), immer 1. Summieren Sie sie, um OSDs zu zählen. |
+| `ceph_osd_metadata` | Anzahl | Metadaten des OSD (Hostname, Geräteklasse, Version), immer 1, solange das OSD meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine OSDs. |
 
 ### Pool-Metriken
 
@@ -207,7 +207,7 @@ Der Agent fragt alle 30 Sekunden jeden mgr-Daemon ab und behält die Labels von 
 
 ### Placement-Group-Metriken
 
-Jede `ceph_pg_*`-Serie gibt es pro Pool, mit dem Label `pool_id`; summieren Sie über die Pools für einen clusterweiten Wert.
+Jede `ceph_pg_*`-Serie gibt es pro Pool, mit dem Label `pool_id`. Eine Summe addiert jeden Scrape einer Minute und jeden Pool; vergleichen Sie daher Pool für Pool, gruppiert nach `pool_id`, wie es die PG-Vorlagen tun.
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |

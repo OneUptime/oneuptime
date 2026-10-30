@@ -34,15 +34,15 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Kubernetes** un
 
 ### Välj klustret
 
-Välj det i **Kubernetes-kluster**. Listan innehåller varje kluster som agenten har rapporterat från.
+Välj det i **Kubernetes-kluster**. Listan innehåller varje kluster som agenten har rapporterat från. När du har valt visar en rad under fältet om data kommer in. **Lägg till Kubernetes-kluster** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Använd en av de tre flikarna:
+En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larmas om**; **Ändra** väljer en annan mall. **Custom Metric** och **Avancerad** finns under **Fler fält**:
 
-| Flik | Vad du väljer |
+| Var | Vad du väljer |
 | --- | --- |
-| **Quick Setup** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
+| **Vad som ska larmas om** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
 | **Custom Metric** | Ett mätvärde från [måttkatalogen](#måttkatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
 | **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna måttfrågor och formler under **Välj mått**, med ett livediagram över resultatet. |
 
@@ -128,7 +128,7 @@ Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från 
 
 ## Färdiga larmmallar
 
-Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje mall fyller i två kriterier: ett som markerar monitorn som offline och öppnar en incident och ett larm medan villkoret gäller, och ett som tar den online igen när villkoret upphör.
+Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter kategori. Varje mall fyller i två kriterier: ett som markerar monitorn som offline och öppnar en incident och ett larm medan villkoret gäller, och ett som tar den online igen när villkoret upphör.
 
 | Mall | Kategori | Utlöses när | Allvarlighetsgrad |
 | --- | --- | --- | --- |

@@ -34,15 +34,15 @@ Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Plus de t
 
 ### Choisir le cluster
 
-Sélectionnez-le dans **Cluster Kubernetes**. La liste contient chaque cluster depuis lequel l'agent a envoyé des données.
+Sélectionnez-le dans **Cluster Kubernetes**. La liste contient chaque cluster depuis lequel l'agent a envoyé des données. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un cluster Kubernetes** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Utilisez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter** ; **Modifier** choisit un autre modèle. **Custom Metric** et **Avancé** sont sous **Plus de champs** :
 
-| Onglet | Ce que vous choisissez |
+| Où | Ce que vous choisissez |
 | --- | --- |
-| **Quick Setup** | Un [modèle d'alerte prêt à l'emploi](#modèles-dalerte-prêts-à-lemploi). Il remplit la métrique, la portée, la plage temporelle et les critères ; vous pouvez toujours changer la **Plage temporelle**. |
+| **Sur quoi alerter** | Un [modèle d'alerte prêt à l'emploi](#modèles-dalerte-prêts-à-lemploi). Il remplit la métrique, la portée, la plage temporelle et les critères ; vous pouvez toujours changer la **Plage temporelle**. |
 | **Custom Metric** | Une métrique du [catalogue de métriques](#catalogue-de-métriques), puis sa **Portée de la ressource**, ses filtres, son **Agrégation** (Moyenne, Maximum, Minimum, Somme ou Comptage) et sa **Plage temporelle**. |
 | **Avancé** | La **Portée de la ressource**, les filtres et la **Plage temporelle**, ainsi que vos propres requêtes de métriques et formules sous **Sélectionner les métriques**, avec un graphique en direct du résultat. |
 
@@ -128,7 +128,7 @@ Chaque mesure est comparée à une référence de la même heure de la semaine, 
 
 ## Modèles d'alerte prêts à l'emploi
 
-L'onglet **Quick Setup** liste ces modèles, regroupés par catégorie. Chacun remplit deux critères : l'un marque le moniteur hors ligne et ouvre un incident et une alerte tant que la condition est remplie, l'autre le remet en ligne quand elle cesse de l'être.
+La liste de **Sur quoi alerter** présente ces modèles, regroupés par catégorie. Chacun remplit deux critères : l'un marque le moniteur hors ligne et ouvre un incident et une alerte tant que la condition est remplie, l'autre le remet en ligne quand elle cesse de l'être.
 
 | Modèle | Catégorie | Se déclenche quand | Gravité |
 | --- | --- | --- | --- |

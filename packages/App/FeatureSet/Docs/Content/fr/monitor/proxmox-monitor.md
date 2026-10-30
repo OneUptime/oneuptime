@@ -48,19 +48,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir le cluster
 
-Sous **Proxmox Monitor Configuration**, choisissez le cluster dans **Cluster Proxmox**. Chaque cluster qui a envoyé des données figure dans la liste.
+Sous **Proxmox Monitor Configuration**, choisissez le cluster dans **Cluster Proxmox**. Chaque cluster qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un cluster Proxmox** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** – cliquez sur un [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
-- **Custom Metric** – choisissez une métrique dans **Proxmox Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un type de ressource ou à une seule ressource.
-- **Avancé** – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**, par exemple un pourcentage de mémoire à partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Utilisez **Regrouper par** `id` pour juger chaque ressource séparément.
+- **Modifier** – choisissez un autre [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) – choisissez une métrique dans **Proxmox Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un type de ressource ou à une seule ressource.
+- **Avancé** (sous **Plus de champs**) – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**, par exemple un pourcentage de mémoire à partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Utilisez **Regrouper par** `id` pour juger chaque ressource séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données ; définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -95,7 +95,7 @@ Chaque série porte une étiquette de point de données `id` qui nomme la ressou
 | `lxc/<vmid>` | Un conteneur LXC, par exemple `lxc/101`. |
 | `storage/<node>/<storage>` | Un volume de stockage sur un nœud, par exemple `storage/pve1/local`. |
 
-Deux exceptions : les séries de réplication (`pve_replication_*`) portent l'identifiant de la **tâche** de réplication dans `id` (par exemple `100-0`), et `pve_not_backed_up_total`, à l'échelle du cluster, n'a pas d'`id` du tout.
+Une exception : les séries de réplication (`pve_replication_*`) portent l'identifiant de la **tâche** de réplication dans `id` (par exemple `100-0`). Les séries propres au cluster, comme le quorum (`pve_up`) et `pve_not_backed_up_total`, portent `cluster/<name>`.
 
 Les filtres comparent par égalité, et non par préfixe ; l'agent découpe donc aussi `id` en trois attributs sur lesquels vous pouvez filtrer. Les modèles s'appuient dessus :
 
@@ -109,7 +109,7 @@ Filtrez sur `pve.scope` ou `pve.type` pour un type de ressource, sur `pve.id` ou
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
@@ -132,8 +132,8 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le 
 
 - **Cluster Stopped Reporting** se déclenche quand rien n'arrive du cluster pendant dix minutes : l'agent Proxmox ou son pve-exporter s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, l'API de Proxmox ne lui répond plus, ou tous les nœuds d'un envoi natif se sont tus. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **Les modèles de panne utilisent Minimum**, si bien qu'une seule collecte où la ressource était en panne les déclenche au lieu d'être masquée par les collectes où elle fonctionnait.
-- **Guest Down** ne regarde que les invités configurés pour démarrer au boot, si bien qu'un invité que vous avez arrêté volontairement n'alerte jamais personne.
-- **Cluster Quorum at Risk** est une approximation : pve-exporter n'a pas de métrique corosync, le modèle compte donc les nœuds en ligne.
+- **Guest Down** ne regarde que les invités configurés pour démarrer au boot : si vous en arrêtez un volontairement, il alerte quand même, désactivez donc d'abord son démarrage au boot.
+- **Cluster Quorum at Risk** compte les nœuds en ligne. pve-exporter remonte aussi le quorum lui-même, sous la forme de `pve_up` pour `cluster/<name>` : 1 tant que le cluster a le quorum.
 - **High Guest CPU Usage** est plus élevé et plus lent que le modèle des nœuds : un invité est censé utiliser ses vCPU, donc seul un invité qui ne redescend jamais déclenche une alerte.
 - **Les formules de ratio** prennent la **Somme** des deux côtés. Les deux proviennent de la même collecte, le résultat est donc un vrai pourcentage.
 - **Container Root Disk Near Full** exclut les VM QEMU : leur utilisation de disque vaut 0 sans l'agent invité QEMU.
@@ -154,7 +154,7 @@ L'agent interroge prometheus-pve-exporter toutes les 30 secondes : ses collecteu
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `pve_up` | — | 1 quand le nœud ou l'invité est actif ou en cours d'exécution, 0 sinon. |
+| `pve_up` | — | 1 quand le nœud, l'invité ou le stockage est actif, 0 sinon. Pour `cluster/<name>`, 1 tant que le cluster a le quorum. |
 | `pve_uptime_seconds` | secondes | Durée de fonctionnement du nœud ou de l'invité. |
 | `pve_version_info` | count | La version de Proxmox VE, dans ses étiquettes. Toujours 1. |
 
@@ -162,7 +162,7 @@ L'agent interroge prometheus-pve-exporter toutes les 30 secondes : ses collecteu
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `pve_node_info` | count | Métadonnées du nœud, toujours 1. Additionnez-la pour compter les nœuds qui remontent des données. |
+| `pve_node_info` | count | Métadonnées du nœud, toujours 1 tant que le nœud remonte des données. Une somme additionne chaque collecte d'une minute : elle ne compte pas les nœuds. |
 | `pve_cpu_usage_ratio` | ratio | CPU utilisé, en ratio de 0 à 1 du CPU disponible. |
 | `pve_cpu_usage_limit` | cores | CPU disponible, en cœurs. Pour un invité, ses vCPU. |
 | `pve_memory_usage_bytes` | bytes | Mémoire utilisée. |
@@ -187,7 +187,7 @@ Les séries de CPU et de mémoire sont aussi remontées pour chaque invité, sur
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Octets utilisés sur le disque ou le stockage. Pour un invité QEMU, vaut 0 sauf si l'agent invité QEMU est installé. |
 | `pve_disk_size_bytes` | bytes | Taille totale du disque ou du stockage. |
-| `pve_storage_info` | count | Métadonnées du stockage, toujours 1. Additionnez-la pour compter les volumes de stockage. |
+| `pve_storage_info` | count | Métadonnées du stockage, toujours 1 tant qu'il existe. Une somme additionne chaque collecte d'une minute : elle ne compte pas les volumes. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Proviennent du collecteur `backup-info` de l'exportateur, au niveau du cluster. 
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Invités ne figurant dans aucune tâche de sauvegarde. Une seule série pour le cluster, sans `id`. |
+| `pve_not_backed_up_total` | count | Invités ne figurant dans aucune tâche de sauvegarde. Une seule série pour le cluster, `id` `cluster/<name>`, remontée aussi à 0. |
 | `pve_not_backed_up_info` | count | Une série par invité non couvert, toujours 1, étiquetée avec l'`id` de l'invité. Elle disparaît dès que l'invité rejoint une tâche de sauvegarde. |
 
 ### Réplication

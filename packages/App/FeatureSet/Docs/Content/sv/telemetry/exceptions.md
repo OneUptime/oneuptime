@@ -129,6 +129,8 @@ Förklaringen sparas på undantaget, så nästa person som öppnar det läser de
 
 ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
+Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+
 ## Rätta det med AI
 
 Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgift som öppnar en pull request i ditt kodförråd:

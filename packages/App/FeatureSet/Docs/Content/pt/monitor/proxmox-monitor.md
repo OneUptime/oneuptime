@@ -48,19 +48,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Proxmox*
 
 ### Escolher o cluster
 
-Em **Proxmox Monitor Configuration**, escolha o cluster em **Cluster Proxmox**. Todo cluster que enviou dados está na lista.
+Em **Proxmox Monitor Configuration**, escolha o cluster em **Cluster Proxmox**. Todo cluster que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Proxmox** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que monitorar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** – clique em um [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** – escolha uma métrica em **Proxmox Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um tipo de recurso ou a um único recurso.
-- **Avançado** – monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma porcentagem de memória a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para avaliar cada recurso separadamente.
+- **Alterar** – escolha outro [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) – escolha uma métrica em **Proxmox Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um tipo de recurso ou a um único recurso.
+- **Avançado** (em **Mais campos**) – monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma porcentagem de memória a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para avaliar cada recurso separadamente.
 
 ### Revisar os critérios
 
-Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -95,7 +95,7 @@ Toda série traz um rótulo de ponto de dados `id` que nomeia o recurso do Proxm
 | `lxc/<vmid>` | Um contêiner LXC, por exemplo `lxc/101`. |
 | `storage/<node>/<storage>` | Um volume de armazenamento em um nó, por exemplo `storage/pve1/local`. |
 
-Duas exceções: as séries de replicação (`pve_replication_*`) trazem o id do **job** de replicação em `id` (por exemplo `100-0`), e `pve_not_backed_up_total`, do cluster inteiro, não tem `id`.
+Uma exceção: as séries de replicação (`pve_replication_*`) trazem o id do **job** de replicação em `id` (por exemplo `100-0`). As séries do próprio cluster, como o quórum (`pve_up`) e `pve_not_backed_up_total`, trazem `cluster/<name>`.
 
 Os filtros comparam por igualdade, não por prefixo, então o agente também divide `id` em três atributos que você pode filtrar. Os modelos dependem deles:
 
@@ -109,7 +109,7 @@ Filtre por `pve.scope` ou `pve.type` para um tipo de recurso, por `pve.id` ou `i
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 12 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece 12 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério de limite se recupera 10% além do seu limite para que um valor oscilando na linha não fique mudando de estado.
 
@@ -132,8 +132,8 @@ Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. U
 
 - **Cluster Stopped Reporting** dispara quando nada chega do cluster por dez minutos: o agente Proxmox ou o pve-exporter dele parou, perdeu a rota até o OneUptime ou teve o token revogado, a API do Proxmox parou de responder a ele, ou todos os nós de um envio nativo ficaram em silêncio. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 - **Os modelos de queda usam Mínimo**, então uma única coleta em que o recurso estava fora do ar já os dispara, em vez de ficar escondida pelas coletas em que ele estava no ar.
-- **Guest Down** só olha os convidados configurados para iniciar no boot, então um convidado que você parou de propósito nunca aciona ninguém.
-- **Cluster Quorum at Risk** é uma aproximação: o pve-exporter não tem métrica de corosync, então o modelo conta os nós online.
+- **Guest Down** só olha os convidados configurados para iniciar no boot: se você parar um deles de propósito, ele aciona alguém mesmo assim, então desative antes o início no boot.
+- **Cluster Quorum at Risk** conta os nós online. O pve-exporter também informa o próprio quórum, como `pve_up` de `cluster/<name>`: 1 enquanto o cluster tem quórum.
 - **High Guest CPU Usage** é mais alto e mais lento que o modelo de nós: um convidado deve usar suas vCPUs, então só aciona um que nunca baixa.
 - **As fórmulas de razão** usam a **Soma** dos dois lados. Os dois vêm da mesma coleta, então o resultado é uma porcentagem real.
 - **Container Root Disk Near Full** deixa as VMs QEMU de fora: o uso de disco delas marca 0 sem o agente convidado do QEMU.
@@ -154,7 +154,7 @@ O agente consulta o prometheus-pve-exporter a cada 30 segundos: os coletores de 
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
-| `pve_up` | — | 1 quando o nó ou o convidado está ativo ou em execução, 0 caso contrário. |
+| `pve_up` | — | 1 quando o nó, o convidado ou o armazenamento está ativo, 0 caso contrário. Para `cluster/<name>`, 1 enquanto o cluster tem quórum. |
 | `pve_uptime_seconds` | segundos | Tempo de atividade do nó ou do convidado. |
 | `pve_version_info` | count | A versão do Proxmox VE, nos rótulos. Sempre 1. |
 
@@ -162,7 +162,7 @@ O agente consulta o prometheus-pve-exporter a cada 30 segundos: os coletores de 
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadados do nó, sempre 1. Some para contar os nós que estão informando. |
+| `pve_node_info` | count | Metadados do nó, sempre 1 enquanto o nó informa. Uma soma junta cada coleta de um minuto, então não conta nós. |
 | `pve_cpu_usage_ratio` | ratio | CPU em uso como razão de 0 a 1 da CPU disponível. |
 | `pve_cpu_usage_limit` | cores | CPU disponível, em núcleos. Para um convidado, suas vCPUs. |
 | `pve_memory_usage_bytes` | bytes | Memória em uso. |
@@ -187,7 +187,7 @@ As séries de CPU e memória também são informadas para cada convidado, nos id
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes usados no disco ou no armazenamento. Para um convidado QEMU, marca 0 a menos que o agente convidado do QEMU esteja instalado. |
 | `pve_disk_size_bytes` | bytes | Tamanho total do disco ou do armazenamento. |
-| `pve_storage_info` | count | Metadados do armazenamento, sempre 1. Some para contar os volumes de armazenamento. |
+| `pve_storage_info` | count | Metadados do armazenamento, sempre 1 enquanto ele existe. Uma soma junta cada coleta de um minuto, então não conta volumes. |
 
 ### HA
 
@@ -201,7 +201,7 @@ Vêm do coletor `backup-info` do exportador, no nível do cluster. Elas informam
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Convidados fora de qualquer job de backup. Uma única série do cluster, sem `id`. |
+| `pve_not_backed_up_total` | count | Convidados fora de qualquer job de backup. Uma única série do cluster, `id` `cluster/<name>`, informada também em 0. |
 | `pve_not_backed_up_info` | count | Uma série por convidado sem cobertura, sempre 1, rotulada com o `id` do convidado. Ela desaparece quando o convidado entra em um job de backup. |
 
 ### Replicação

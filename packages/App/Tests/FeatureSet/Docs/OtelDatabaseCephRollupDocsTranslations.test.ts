@@ -46,7 +46,7 @@ import { describe, expect, it } from "@jest/globals";
  *     (drawnDashboardLabel). Menu paths ("A → B → C") are drawn segment by
  *     segment.
  *   - A bold name the Dashboard has no locale key for is drawn in English in
- *     every language - the Ceph form's Quick Setup tab, the criteria's
+ *     every language - the Ceph form's Custom Metric tab, the criteria's
  *     filter types and aggregations, the database metric picker's names -
  *     so the translations keep it exactly (SHOWN_IN_ENGLISH). If the
  *     Dashboard starts translating one, "names only bold text with no
@@ -141,8 +141,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Ignore",
   ],
   [CEPH_PAGE]: [
-    // The Ceph form's tabs that have no locale key (Advanced has one).
-    "Quick Setup",
+    // The Ceph form's More fields tab that has no locale key (Advanced has one).
     "Custom Metric",
     // The Time Range picker's ends.
     "Past 1 Minute",
@@ -157,7 +156,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Anomalous",
     "Ignore",
     "Treat As Zero",
-    // Templates' names, as the Quick Setup picker shows them.
+    // Templates' names, as the template picker shows them.
     "Inactive Placement Groups",
     "Cluster Stopped Reporting",
   ],

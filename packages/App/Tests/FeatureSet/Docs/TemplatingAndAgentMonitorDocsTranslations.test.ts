@@ -117,9 +117,8 @@ const UNKEYED_AGGREGATES: Array<string> = [
 // The If No Data options with no locale key; Trigger has one.
 const UNKEYED_NO_DATA: Array<string> = ["Ignore", "Treat As Zero"];
 
-// The step forms' tabs and windows with no locale key.
+// The step forms' tab and windows with no locale key.
 const FORM_NAMES: Array<string> = [
-  "Quick Setup",
   "Custom Metric",
   "Past 1 Minute",
   "Past 365 Days",
@@ -136,7 +135,7 @@ const CRITERIA_NAMES: Array<string> = [
  * locale has no key for them, by page.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  // A template's name, as the Quick Setup picker shows it.
+  // A template's name, as the template picker shows it.
   [STORAGE]: [...FORM_NAMES, "Array Stopped Reporting", ...CRITERIA_NAMES],
   [IOT]: [
     ...FORM_NAMES,
@@ -145,7 +144,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Metric Value",
     ...CRITERIA_NAMES,
   ],
-  // A template's name, as the Quick Setup picker shows it.
+  // A template's name, as the template picker shows it.
   [VMWARE]: [...FORM_NAMES, "vCenter Stopped Reporting", ...CRITERIA_NAMES],
 };
 

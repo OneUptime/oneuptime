@@ -48,19 +48,19 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Pod
 
 ### Scegliere l'host
 
-In **Podman Monitor Configuration**, scegliete l'host da **Host Podman**. Ogni host che ha inviato dati è nell'elenco.
+In **Podman Monitor Configuration**, scegliete l'host da **Host Podman**. Ogni host che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi host Podman** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Scegliete una delle tre schede:
+Un nuovo monitor parte da **Host Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup** – fate clic su un [modello](#modelli-di-avviso-pronti). Imposta la metrica, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** – scegliete una metrica da **Podman Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. **Nome del container** e **Immagine del container** la restringono ad alcuni container.
-- **Avanzato** – costruite voi query e formule in **Seleziona metriche**. Usate **Raggruppa per** `resource.container.name` per giudicare ogni container separatamente.
+- **Cambia** – scegliete un altro [modello](#modelli-di-avviso-pronti). Imposta la metrica, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**) – scegliete una metrica da **Podman Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. **Nome del container** e **Immagine del container** la restringono ad alcuni container.
+- **Avanzato** (in **Altri campi**) – costruite voi query e formule in **Seleziona metriche**. Usate **Raggruppa per** `resource.container.name` per giudicare ogni container separatamente.
 
 ### Rivedere i criteri
 
-Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
+Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi impostate la vostra soglia.
 
 ### Creare il monitor
 
@@ -84,7 +84,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre sei modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Host Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni container viene giudicato separatamente e riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+L'elenco di **Su cosa avvisare** offre sei modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Host Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni container viene giudicato separatamente e riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
