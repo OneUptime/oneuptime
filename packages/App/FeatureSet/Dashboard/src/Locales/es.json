@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "Una correlación lee varios eventos juntos a lo largo de su ventana de tiempo, así que se ejecuta en su intervalo.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Cuenta valores distintos, así que se ejecuta en su intervalo: vacía «Campo de recuento distinto» para ejecutarla en tiempo real.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Usa una expresión regular (|re), que solo se ejecuta de forma programada: usa contains, startswith o endswith para ejecutarla en tiempo real.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Espera un número de coincidencias, así que se ejecuta en su intervalo: pon «Umbral de número de coincidencias» en 1 para ejecutarla en tiempo real."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Espera un número de coincidencias, así que se ejecuta en su intervalo: pon «Umbral de número de coincidencias» en 1 para ejecutarla en tiempo real.",
+  "This incident is private, so public notes cannot be added to it.": "Este incidente es privado, así que no se le pueden añadir notas públicas.",
+  "This episode is private, so public notes cannot be added to it.": "Este episodio es privado, así que no se le pueden añadir notas públicas."
 }

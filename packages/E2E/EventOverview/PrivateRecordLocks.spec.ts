@@ -68,6 +68,13 @@ const STATE_SENTENCE_KEY: string =
   "You do not have permission to change this incident's state.";
 const OWNING_TEAM: string = "Checkout SRE";
 
+// A private incident's locked Add Public Note, for a reader who may write a private note.
+const PUBLIC_NOTE_REFUSAL: string =
+  "This incident is private, so public notes cannot be added to it. Use a private note.";
+// The same, for one who may not: why, and no private note to go to.
+const PUBLIC_NOTE_REFUSAL_ALONE: string =
+  "This incident is private, so public notes cannot be added to it.";
+
 // The dark theme's class on the page's root element.
 const DARK_THEME_CLASS: RegExp = /(^|\s)dark(\s|$)/;
 
@@ -161,6 +168,14 @@ function card(page: Page, heading: string): Locator {
   return page.getByTestId("card").filter({
     has: page.getByRole("heading", { level: 2, name: heading, exact: true }),
   });
+}
+
+// The Ask OneUptime AI chips at the foot of the AI card.
+function suggestions(page: Page): Locator {
+  return page
+    .getByTestId("investigation-conversation")
+    .getByRole("group", { name: "Suggested questions" })
+    .getByRole("button");
 }
 
 function whatHappenedEdit(page: Page): Locator {
@@ -344,6 +359,40 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
         page.getByRole("menuitem", { name: action, exact: true }),
       ).toHaveAttribute("aria-disabled", "true");
     }
+
+    /*
+     * Add Public Note says why, and - since no private note goes on it
+     * either - does not send the reader to one: "Use a private note." over
+     * a locked Add Private Note was a dead end.
+     */
+    await expect(
+      page.getByRole("menuitem", { name: "Add Public Note", exact: true }),
+    ).toHaveAccessibleDescription(PUBLIC_NOTE_REFUSAL_ALONE);
+    await expect(
+      page.getByRole("menuitem", { name: "Add Private Note", exact: true }),
+    ).toHaveAccessibleDescription(
+      `You do not have permission to create this Incident Internal Note. ${why("en")}`,
+    );
+  });
+
+  /*
+   * OneUptime AI acts within the asker's permissions, so the AI card's
+   * conversation does not offer to have it acknowledge an incident the
+   * reader may not: it would only refuse. The questions are all there.
+   */
+  test("Ask OneUptime AI offers its questions, and no request to acknowledge it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openIncident(page, MAINTAINERS_CASE);
+
+    await expect(suggestions(page)).toHaveText([
+      "What should I do right now?",
+      "What changed just before this?",
+      "Is anything else affected?",
+      "Draft a status update",
+    ]);
   });
 
   test("its owners are read, and nobody is offered as one to add", async ({
@@ -375,6 +424,22 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
       ).toHaveCount(0);
     }
     await expect(whatHappenedEdit(page)).toBeEnabled();
+
+    // OneUptime AI may be asked to acknowledge it.
+    await expect(
+      suggestions(page).filter({ hasText: "Acknowledge this incident" }),
+    ).toHaveCount(1);
+
+    // A private note goes on it, and a locked Add Public Note says to use one.
+    await card(page, "Incident Feed")
+      .getByTestId("feed-actions-button")
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Add Private Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+    await expect(
+      page.getByRole("menuitem", { name: "Add Public Note", exact: true }),
+    ).toHaveAccessibleDescription(PUBLIC_NOTE_REFUSAL);
   });
 
   test("a public incident Checkout SRE owns is changed through Incident Response, as before", async ({

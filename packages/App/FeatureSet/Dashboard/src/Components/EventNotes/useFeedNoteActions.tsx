@@ -5,7 +5,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
 import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import React, { ReactElement, useEffect, useState } from "react";
-import { getNoteKindCreateGate, NoteCreateGate } from "./EventNoteComposer";
+import {
+  getNoteKindCreateGate,
+  isNoteCreateOffered,
+  NoteCreateGate,
+} from "./EventNoteComposer";
 import EventNoteComposerDialog, {
   NOTE_COMPOSER_DIALOG_TITLES,
 } from "./EventNoteComposerDialog";
@@ -86,6 +90,18 @@ export default function useFeedNoteActions(
 
   kinds.push({ visibility: "private", kind: options.privateNoteKind });
 
+  /*
+   * Whether the reader may add a private note: a private event's locked
+   * "Add Public Note" points them to one only then.
+   */
+  const isPrivateNoteOffered: boolean = isNoteCreateOffered(
+    getNoteKindCreateGate(
+      options.privateNoteKind,
+      translator,
+      privateRecordGate(new options.privateNoteKind.modelType()),
+    ),
+  );
+
   const menuItems: Array<ReactElement> = [];
 
   for (const entry of kinds) {
@@ -93,6 +109,7 @@ export default function useFeedNoteActions(
       entry.kind,
       translator,
       privateRecordGate(new entry.kind.modelType()),
+      isPrivateNoteOffered,
     );
 
     if (!gate.isShown) {

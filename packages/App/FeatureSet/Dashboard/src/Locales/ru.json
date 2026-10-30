@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "Корреляция рассматривает несколько событий вместе в пределах своего окна, поэтому выполняется по своему интервалу.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Оно считает разные значения, поэтому выполняется по своему интервалу: очистите «Поле подсчёта уникальных значений», чтобы выполнять его в реальном времени.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Оно использует регулярное выражение (|re), которое выполняется только по расписанию: используйте contains, startswith или endswith, чтобы выполнять его в реальном времени.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Оно ждёт определённого числа совпадений, поэтому выполняется по своему интервалу: установите «Порог числа совпадений» в 1, чтобы выполнять его в реальном времени."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Оно ждёт определённого числа совпадений, поэтому выполняется по своему интервалу: установите «Порог числа совпадений» в 1, чтобы выполнять его в реальном времени.",
+  "This incident is private, so public notes cannot be added to it.": "Этот инцидент приватный, поэтому к нему нельзя добавлять публичные заметки.",
+  "This episode is private, so public notes cannot be added to it.": "Этот эпизод приватный, поэтому к нему нельзя добавлять публичные заметки."
 }

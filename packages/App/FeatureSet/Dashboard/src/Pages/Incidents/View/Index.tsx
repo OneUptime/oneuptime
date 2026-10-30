@@ -989,6 +989,18 @@ const IncidentView: FunctionComponent<
     resolvedStateIds: resolvedStateIds,
   });
 
+  /*
+   * Whether the reader may change the incident's state, as its header's
+   * Acknowledge asks it: the conversation asks OneUptime AI to acknowledge
+   * it only for a reader who may, since it acts within their permissions
+   * (on a private incident, those of their teams that own it).
+   */
+  const mayChangeState: boolean = PermissionGate.check(
+    new IncidentStateTimeline(),
+    ModelAction.Create,
+    privateRecordOptions,
+  ).isAllowed;
+
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
 
   const formatDate: FormatDateFunction = (
@@ -1323,6 +1335,7 @@ const IncidentView: FunctionComponent<
                   investigationStage={slot.investigationStage}
                   fold={slot.fold}
                   standing={standing}
+                  mayChangeState={mayChangeState}
                 />
               );
             }}

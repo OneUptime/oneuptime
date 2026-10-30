@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "關聯規則會在其時間範圍內將多個事件放在一起讀取，因此依其間隔執行。",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "它統計不同的值，因此依其間隔執行：清空「去重計數欄位」即可即時執行。",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "它使用了正規表示式 (|re)，而正規表示式只能依排程執行：改用 contains、startswith 或 endswith 即可即時執行。",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "它要等待一定的符合次數，因此依其間隔執行：將「符合次數閾值」設為 1 即可即時執行。"
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "它要等待一定的符合次數，因此依其間隔執行：將「符合次數閾值」設為 1 即可即時執行。",
+  "This incident is private, so public notes cannot be added to it.": "此事件為私人事件，因此無法新增公開備註。",
+  "This episode is private, so public notes cannot be added to it.": "此片段為私人片段，因此無法新增公開備註。"
 }

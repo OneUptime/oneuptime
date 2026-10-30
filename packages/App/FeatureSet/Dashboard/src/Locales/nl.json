@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "Een correlatie leest meerdere gebeurtenissen samen over haar tijdsbestek, dus draait die volgens haar interval.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Hij telt verschillende waarden, dus draait hij volgens zijn interval: maak ‘Veld voor unieke telling’ leeg om hem in realtime uit te voeren.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Hij gebruikt een reguliere expressie (|re), die alleen volgens een schema draait: gebruik contains, startswith of endswith om hem in realtime uit te voeren.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Hij wacht op een aantal treffers, dus draait hij volgens zijn interval: zet ‘Drempel voor aantal treffers’ op 1 om hem in realtime uit te voeren."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Hij wacht op een aantal treffers, dus draait hij volgens zijn interval: zet ‘Drempel voor aantal treffers’ op 1 om hem in realtime uit te voeren.",
+  "This incident is private, so public notes cannot be added to it.": "Dit incident is privé, dus er kunnen geen openbare notities aan worden toegevoegd.",
+  "This episode is private, so public notes cannot be added to it.": "Deze episode is privé, dus er kunnen geen openbare notities aan worden toegevoegd."
 }

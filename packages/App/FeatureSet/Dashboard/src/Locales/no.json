@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "En korrelasjon leser flere hendelser sammen over tidsrommet sitt, så den kjører etter intervallet sitt.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Den teller ulike verdier, så den kjører etter intervallet sitt: tøm «Felt for unik telling» for å kjøre den i sanntid.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Den bruker et regulært uttrykk (|re), som bare kjører etter en tidsplan: bruk contains, startswith eller endswith for å kjøre den i sanntid.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Den venter på et antall treff, så den kjører etter intervallet sitt: sett «Terskel for antall treff» til 1 for å kjøre den i sanntid."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Den venter på et antall treff, så den kjører etter intervallet sitt: sett «Terskel for antall treff» til 1 for å kjøre den i sanntid.",
+  "This incident is private, so public notes cannot be added to it.": "Denne hendelsen er privat, så det kan ikke legges til offentlige notater på den.",
+  "This episode is private, so public notes cannot be added to it.": "Denne episoden er privat, så det kan ikke legges til offentlige notater på den."
 }

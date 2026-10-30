@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "相関ルールはその期間内の複数のイベントをまとめて読むため、評価間隔ごとに実行されます。",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "異なる値を数えるため、評価間隔ごとに実行されます。リアルタイムで実行するには「ユニーク数を数えるフィールド」を空にしてください。",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "正規表現 (|re) はスケジュール実行でしか使えないため、評価間隔ごとに実行されます。リアルタイムで実行するには contains、startswith、endswith を使ってください。",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "一致件数を待つため、評価間隔ごとに実行されます。リアルタイムで実行するには「一致件数のしきい値」を 1 にしてください。"
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "一致件数を待つため、評価間隔ごとに実行されます。リアルタイムで実行するには「一致件数のしきい値」を 1 にしてください。",
+  "This incident is private, so public notes cannot be added to it.": "このインシデントは非公開のため、公開メモを追加できません。",
+  "This episode is private, so public notes cannot be added to it.": "このエピソードは非公開のため、公開メモを追加できません。"
 }

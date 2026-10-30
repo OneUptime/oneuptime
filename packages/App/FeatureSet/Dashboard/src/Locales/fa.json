@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "همبستگی چند رویداد را در بازه زمانی خود با هم می‌خواند، پس طبق فاصله ارزیابی خود اجرا می‌شود.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "این قاعده مقدارهای متفاوت را می‌شمارد، پس طبق فاصله ارزیابی خود اجرا می‌شود: برای اجرای بی‌درنگ، «فیلد شمارش یکتا» را خالی کنید.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "این قاعده از یک عبارت باقاعده (|re) استفاده می‌کند که فقط طبق زمان‌بندی اجرا می‌شود: برای اجرای بی‌درنگ، از contains، startswith یا endswith استفاده کنید.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "این قاعده منتظر تعدادی تطبیق است، پس طبق فاصله ارزیابی خود اجرا می‌شود: برای اجرای بی‌درنگ، «آستانه تعداد تطبیق» را روی ۱ بگذارید."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "این قاعده منتظر تعدادی تطبیق است، پس طبق فاصله ارزیابی خود اجرا می‌شود: برای اجرای بی‌درنگ، «آستانه تعداد تطبیق» را روی ۱ بگذارید.",
+  "This incident is private, so public notes cannot be added to it.": "این حادثه خصوصی است، بنابراین نمی‌توان یادداشت عمومی به آن افزود.",
+  "This episode is private, so public notes cannot be added to it.": "این اپیزود خصوصی است، بنابراین نمی‌توان یادداشت عمومی به آن افزود."
 }

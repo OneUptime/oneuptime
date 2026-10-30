@@ -38938,5 +38938,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "कोरिलेशन अपनी समय-सीमा में कई इवेंट को साथ पढ़ता है, इसलिए यह अपने अंतराल पर चलता है।",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "यह अलग-अलग मानों को गिनता है, इसलिए यह अपने अंतराल पर चलता है: इसे रीयल-टाइम में चलाने के लिए \"अलग-अलग गिनती फ़ील्ड\" खाली करें।",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "यह रेगुलर एक्सप्रेशन (|re) इस्तेमाल करता है, जो सिर्फ़ शेड्यूल पर चलता है: इसे रीयल-टाइम में चलाने के लिए contains, startswith या endswith इस्तेमाल करें।",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "यह मिलानों की एक संख्या का इंतज़ार करता है, इसलिए यह अपने अंतराल पर चलता है: इसे रीयल-टाइम में चलाने के लिए \"मिलान संख्या सीमा\" को 1 करें।"
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "यह मिलानों की एक संख्या का इंतज़ार करता है, इसलिए यह अपने अंतराल पर चलता है: इसे रीयल-टाइम में चलाने के लिए \"मिलान संख्या सीमा\" को 1 करें।",
+  "This incident is private, so public notes cannot be added to it.": "यह घटना निजी है, इसलिए इसमें सार्वजनिक नोट नहीं जोड़े जा सकते।",
+  "This episode is private, so public notes cannot be added to it.": "यह एपिसोड निजी है, इसलिए इसमें सार्वजनिक नोट नहीं जोड़े जा सकते।"
 }

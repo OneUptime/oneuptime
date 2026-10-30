@@ -127,23 +127,35 @@ export function getNoteCreateGate(
   return { isShown: false, isDisabled: true };
 }
 
+// Whether a note gate offers the note: shown, and not locked.
+export function isNoteCreateOffered(gate: NoteCreateGate): boolean {
+  return gate.isShown && !gate.isDisabled;
+}
+
 /*
  * The same, for one kind of note on one event: a private incident or
  * episode takes no public notes (EventNoteKind.isPrivateEvent), so its
  * "Add Public Note" is locked with why, whatever the permissions say - the
- * server refuses one with the same words.
+ * server refuses one with the same words. They point to a private note
+ * instead, unless `isPrivateNoteOffered` is false: the reader may not add
+ * one either (on a private record's page, their team that owns it may not).
  */
 export function getNoteKindCreateGate(
   kind: EventNoteKind<BaseModel>,
   translator?: Translator | undefined,
   // The page's private record scope, when it is open on one.
   options?: PermissionGateOptions | undefined,
+  isPrivateNoteOffered?: boolean | undefined,
 ): NoteCreateGate {
   if (kind.isPrivateEvent && kind.visibility === "public") {
     return {
       isShown: true,
       isDisabled: true,
-      tooltip: getPrivateEventPublicNoteRefusal(kind.eventNoun, translator),
+      tooltip: getPrivateEventPublicNoteRefusal(
+        kind.eventNoun,
+        translator,
+        isPrivateNoteOffered !== false,
+      ),
     };
   }
 
@@ -217,13 +229,29 @@ function EventNoteComposer<TNote extends BaseModel>(
   );
 
   /*
+   * Whether the reader may write the event's private notes instead, where
+   * this kind names them (siblingModelType): on a private record's page,
+   * only a team of theirs that owns it may. Not known - as if they may.
+   */
+  const isPrivateNoteOffered: boolean =
+    !kind.siblingModelType ||
+    isNoteCreateOffered(
+      getNoteCreateGate(kind.siblingModelType, privateRecordOptions),
+    );
+
+  /*
    * Why no note of this kind is written here: a private incident or episode
    * takes no public notes. Said where the composer would be, with the way to
-   * the event's private notes; null for every other event.
+   * the event's private notes - for a reader who may write one; null for
+   * every other event.
    */
   const privateEventReason: string | null =
     kind.isPrivateEvent && kind.visibility === "public"
-      ? getPrivateEventPublicNoteRefusal(kind.eventNoun, translator)
+      ? getPrivateEventPublicNoteRefusal(
+          kind.eventNoun,
+          translator,
+          isPrivateNoteOffered,
+        )
       : null;
 
   const isCreateAttachmentsEnabled: boolean =
@@ -518,7 +546,7 @@ function EventNoteComposer<TNote extends BaseModel>(
           />
           <span>{reason}</span>
         </div>
-        {kind.siblingRoute && (
+        {kind.siblingRoute && isPrivateNoteOffered && (
           <Link
             to={getRouteWithComposerOpen(kind.siblingRoute)}
             className="inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:self-auto"

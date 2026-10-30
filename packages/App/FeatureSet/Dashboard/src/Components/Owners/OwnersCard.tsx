@@ -25,7 +25,8 @@ import {
   getAnchoredPopupTriggerProps,
 } from "Common/UI/Types/UseAnchoredFieldPopup";
 import API from "Common/UI/Utils/API/API";
-import {
+import PermissionGate, {
+  ModelAction,
   PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
@@ -103,7 +104,8 @@ interface OwnerCircle extends PeopleAvatarItem {
 interface OwnerCircleViewProps {
   item: OwnerCircle;
   isOverlapping: boolean;
-  onRemoveClick: () => void;
+  // Left out for a reader who may not remove this owner: no remove button.
+  onRemoveClick?: (() => void) | undefined;
 }
 
 const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
@@ -191,16 +193,22 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
           </div>
         </div>
       </Tooltip>
-      <button
-        type="button"
-        onClick={props.onRemoveClick}
-        aria-label={translator.translateTemplate("Remove {{name}}", {
-          name: item.name,
-        })}
-        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-md opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:bg-red-600 focus:opacity-100 focus:scale-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-150"
-      >
-        <Icon icon={IconProp.Close} className="h-3 w-3" size={SizeProp.Small} />
-      </button>
+      {props.onRemoveClick && (
+        <button
+          type="button"
+          onClick={props.onRemoveClick}
+          aria-label={translator.translateTemplate("Remove {{name}}", {
+            name: item.name,
+          })}
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-md opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:bg-red-600 focus:opacity-100 focus:scale-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-150"
+        >
+          <Icon
+            icon={IconProp.Close}
+            className="h-3 w-3"
+            size={SizeProp.Small}
+          />
+        </button>
+      )}
     </div>
   );
 };
@@ -267,17 +275,46 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     resourceId: props.resourceId,
   };
 
-  // Locked, with why, for a reader who may add neither people nor teams.
   /*
-   * On a private record's page, adding owners takes the permission of a
-   * team of the reader's that owns it (PrivateRecordScope).
+   * On a private record's page, adding and removing owners take the
+   * permission of a team of the reader's that owns it (PrivateRecordScope).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
     usePrivateRecordGateOptions(new props.ownerUserModelType());
 
+  // Locked, with why, for a reader who may add neither people nor teams.
   const addGate: PermissionGateResult = getAddOwnersGate(
     target,
     privateRecordOptions,
+  );
+
+  /*
+   * An owner's remove button, for each kind of owner: not offered to a
+   * reader who may not remove that kind - a shortcut to a change, never to
+   * a refusal. It is a hover shortcut on the avatar, so such a reader is
+   * shown none rather than a locked one; the locked Add owner says why.
+   * Before the permissions are known it is offered, as Add owner is
+   * (getAddOwnersGate): the server decides, and the confirmation says why
+   * it refused (a permission limited to what the reader owns, say).
+   */
+  const isRemoveOffered: (gate: PermissionGateResult) => boolean = (
+    gate: PermissionGateResult,
+  ): boolean => {
+    return gate.isAllowed || !gate.disabledReason;
+  };
+  const mayRemovePeople: boolean = isRemoveOffered(
+    PermissionGate.check(
+      new props.ownerUserModelType(),
+      ModelAction.Delete,
+      privateRecordOptions,
+    ),
+  );
+  const mayRemoveTeams: boolean = isRemoveOffered(
+    PermissionGate.check(
+      new props.ownerTeamModelType(),
+      ModelAction.Delete,
+      privateRecordOptions,
+    ),
   );
 
   const loadOwners: () => Promise<void> =
@@ -611,10 +648,18 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                     key={`${item.kind}-${item.rowId.toString()}`}
                     item={item}
                     isOverlapping={true}
-                    onRemoveClick={() => {
-                      setRemoveError("");
-                      setConfirmRemove(item);
-                    }}
+                    onRemoveClick={
+                      (
+                        item.kind === PeoplePickerKind.Team
+                          ? mayRemoveTeams
+                          : mayRemovePeople
+                      )
+                        ? () => {
+                            setRemoveError("");
+                            setConfirmRemove(item);
+                          }
+                        : undefined
+                    }
                   />
                 );
               })}
