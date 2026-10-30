@@ -38868,7 +38868,6 @@
   "Summarizing…": "Summarizing…",
   "What's new": "What's new",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Who it pages is kept on its Page step, where you can change it later in the Builder.",
-  "Pick who to page.": "Pick who to page."
+  "Pick who to page.": "Pick who to page.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Pick who this workflow pages. You can change it later on its Page step in the Builder."
 }

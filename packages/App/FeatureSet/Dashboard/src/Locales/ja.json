@@ -38868,7 +38868,6 @@
   "Summarizing…": "要約しています…",
   "What's new": "新着",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "OneUptime AI が {{time}} に、直近 {{hours}} 時間に初めて確認された例外と再発した例外から作成しました。",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} はこのプロジェクトのメンバーを呼び出します。ここで呼び出す相手を選ぶか、後からビルダーの呼び出しステップで変更してください。",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "呼び出す相手は呼び出しステップに保存され、後からビルダーで変更できます。",
-  "Pick who to page.": "呼び出す相手を選んでください。"
+  "Pick who to page.": "呼び出す相手を選んでください。",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "このワークフローが呼び出す相手を選んでください。後からビルダーの呼び出しステップで変更できます。"
 }

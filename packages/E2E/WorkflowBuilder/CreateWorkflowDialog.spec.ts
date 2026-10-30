@@ -32,6 +32,10 @@ const SLACK_WEBHOOK_URL: string =
 
 const RECOMMENDED_COUNT: number = 6;
 
+// The one sentence over the who-to-page questions, settings before them or not.
+const WHO_TO_PAGE_INTRO: string =
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.";
+
 // What the fixture recorded the dialog sending, in order.
 interface CreatedRecord {
   kind: "workflow" | "variable" | "deleted";
@@ -107,6 +111,73 @@ function submitButton(dialog: Locator): Locator {
  */
 function nextButton(dialog: Locator): Locator {
   return dialog.getByTestId("modal-footer-next-button");
+}
+
+// How a line of a template's own words is laid out, as the browser draws it.
+interface TextLayout {
+  direction: string;
+  textAlign: string;
+  // Its last character, a full stop, drawn after the one before it.
+  fullStopLast: boolean;
+  // Wider than its box, as a row cut to one line is.
+  overflows: boolean;
+  // Its first character drawn inside its box: cut, if at all, at its end.
+  startsInView: boolean;
+}
+
+async function textLayoutOf(locator: Locator): Promise<TextLayout> {
+  return locator.evaluate((element: Element): TextLayout => {
+    // Every character of the text, in the order it is written.
+    const characters: Array<{ node: Text; offset: number }> = [];
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      const text: string = node.textContent || "";
+
+      for (let offset: number = 0; offset < text.length; offset++) {
+        if (text.charAt(offset).trim()) {
+          characters.push({ node: node as Text, offset: offset });
+        }
+      }
+    }
+
+    const rectOf: (at: { node: Text; offset: number }) => DOMRect = (at: {
+      node: Text;
+      offset: number;
+    }): DOMRect => {
+      const range: Range = document.createRange();
+
+      range.setStart(at.node, at.offset);
+      range.setEnd(at.node, at.offset + 1);
+
+      return range.getBoundingClientRect();
+    };
+
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    const box: DOMRect = element.getBoundingClientRect();
+    const first: { node: Text; offset: number } = characters[0]!;
+    const last: { node: Text; offset: number } =
+      characters[characters.length - 1]!;
+    const beforeLast: { node: Text; offset: number } =
+      characters[characters.length - 2]!;
+
+    return {
+      direction: style.direction,
+      textAlign: style.textAlign,
+      fullStopLast:
+        last.node.textContent?.charAt(last.offset) === "." &&
+        rectOf(last).left >= rectOf(beforeLast).left,
+      overflows: element.scrollWidth > element.clientWidth + 1,
+      startsInView: rectOf(first).left >= box.left - 1,
+    };
+  });
 }
 
 test.describe("Create a workflow", () => {
@@ -440,21 +511,37 @@ test.describe("Create a workflow", () => {
     );
 
     await expect(question).toBeVisible();
-    await expect(dialog).toContainText(
-      "Page whoever is on call when a critical incident is created pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+    await expect(dialog.getByTestId("workflow-who-to-page-intro")).toHaveText(
+      WHO_TO_PAGE_INTRO,
     );
     await expect(
       dialog.locator("#workflow-who-to-page-page-on-call-1-label"),
     ).toContainText("Who to page for critical incidents");
+
+    /*
+     * The step is for the question: the keyboard starts on the button that
+     * opens its list, as a step with settings starts in its first field.
+     */
+    const add: Locator = question.getByRole("button", {
+      name: "Add on-call schedule",
+    });
+
+    await expect(add).toBeFocused();
+
+    // The gap a field leaves between its help and its control.
+    const helpBox: Box = await boxOf(
+      dialog.locator("#workflow-who-to-page-page-on-call-1-description"),
+    );
+    const addBox: Box = await boxOf(add);
+
+    expect(addBox.y - (helpBox.y + helpBox.height)).toBeGreaterThanOrEqual(6);
 
     // Nobody picked: the dialog says so where the question is, and creates nothing.
     await submitButton(dialog).click();
     await expect(dialog).toContainText("Pick who to page.");
     expect(await createdRecords(page)).toEqual([]);
 
-    await question
-      .getByRole("button", { name: "Add on-call schedule" })
-      .click();
+    await add.click();
 
     const list: Locator = page.getByRole("dialog", {
       name: "Add on-call schedule",
@@ -722,9 +809,9 @@ test.describe("Create a workflow", () => {
     await expect(
       dialog.getByTestId("workflow-variable-zabbixApiToken"),
     ).toHaveCount(0);
-    // Who to page comes after the settings, and is kept on the Page step.
+    // Who to page comes after the settings, under the same sentence.
     await expect(dialog.getByTestId("workflow-who-to-page-intro")).toHaveText(
-      "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+      WHO_TO_PAGE_INTRO,
     );
     await expect(
       dialog.getByTestId("workflow-who-to-page-page-on-call-policy-1"),
@@ -1029,6 +1116,87 @@ test.describe("Create a workflow", () => {
       rowBox.x + rowBox.width + 1,
     );
     expect(detailsBox.y).toBeGreaterThan(rowBox.y);
+  });
+
+  /*
+   * A template's own words - its name, its description, the help of what it
+   * asks - are catalog content, written in English whatever the page's
+   * language. Laid out right to left on a Persian page, an English sentence
+   * put its full stop at its start, and a row cut to one line showed its end
+   * ("...abbix problem when the incident is acknowledged"). They read left to
+   * right now, and still line up on the right, where that page's lines start.
+   */
+  test("on a right-to-left page, a template's own words read left to right, lined up on the right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDialog(page, "&dir=rtl");
+
+    await dialog
+      .getByTestId("workflow-template-view-select")
+      .selectOption("Zabbix");
+
+    const row: Locator = templateRow(
+      dialog,
+      "Declare an incident for each Zabbix problem",
+    );
+
+    await row.click();
+    await expect(row.getByTestId("workflow-template-details")).toBeVisible();
+
+    // The picked row's description, whole: its full stop at its end.
+    expect(
+      await textLayoutOf(
+        dialog.locator(
+          "#workflow-template-option-zabbix-declare-incident-from-problem-description",
+        ),
+      ),
+    ).toMatchObject({
+      direction: "ltr",
+      textAlign: "right",
+      fullStopLast: true,
+    });
+
+    // A row not picked, cut to one line: cut at its end, so it starts in view.
+    expect(
+      await textLayoutOf(
+        dialog.locator(
+          "#workflow-template-option-zabbix-update-problem-on-incident-state-description",
+        ),
+      ),
+    ).toMatchObject({
+      direction: "ltr",
+      textAlign: "right",
+      overflows: true,
+      startsInView: true,
+    });
+
+    // The template's line on the Name step.
+    await nextButton(dialog).click();
+
+    const chosen: Locator = dialog.getByTestId("workflow-template-chosen");
+
+    await expect(chosen).toBeVisible();
+    expect(await textLayoutOf(chosen.locator("p").nth(1))).toMatchObject({
+      direction: "ltr",
+      textAlign: "right",
+      fullStopLast: true,
+    });
+
+    // And the help of the question on the step after it.
+    await nextButton(dialog).click();
+
+    const help: Locator = dialog.locator(
+      "#workflow-who-to-page-page-on-call-policy-1-description [dir='auto']",
+    );
+
+    await expect(help).toBeVisible();
+    expect(await textLayoutOf(help)).toMatchObject({
+      direction: "ltr",
+      textAlign: "right",
+      fullStopLast: true,
+    });
   });
 
   test("in the dark theme, nothing in it is left white", async ({

@@ -38868,7 +38868,6 @@
   "Summarizing…": "Oppsummerer…",
   "What's new": "Hva er nytt",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Skrevet av OneUptime AI {{time}}, ut fra unntakene som først ble sett eller kom tilbake de siste {{hours}} timene.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} varsler personer i dette prosjektet. Velg her hvem den varsler, eller endre det senere i varslingssteget i Bygger.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Hvem den varsler, lagres i varslingssteget, der du kan endre det senere i Bygger.",
-  "Pick who to page.": "Velg hvem som skal varsles."
+  "Pick who to page.": "Velg hvem som skal varsles.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Velg hvem denne arbeidsflyten varsler. Du kan endre det senere i varslingssteget i Bygger."
 }

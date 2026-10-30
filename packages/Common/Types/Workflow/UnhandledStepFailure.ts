@@ -44,8 +44,8 @@ export const getUnhandledStepFailureLogLine: GetUnhandledStepFailureLogLineFunct
       .join(", ");
 
     return failures.length === 1
-      ? `The run failed: step ${steps} failed, and nothing is connected to its Error output. Why is in its Steps entry above.`
-      : `The run failed: steps ${steps} failed, and nothing is connected to their Error outputs. Why is in their Steps entries above.`;
+      ? `The run failed: step ${steps} failed, and nothing is connected to its Error output. Its entry in Steps says why.`
+      : `The run failed: steps ${steps} failed, and nothing is connected to their Error outputs. Their entries in Steps say why.`;
   };
 
 export type ReadUnhandledStepFailuresFunction = (

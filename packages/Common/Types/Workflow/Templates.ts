@@ -4850,7 +4850,7 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         componentId: "page-on-call-policy-1",
         title: "Who to page for high and critical reports",
         description:
-          "The on-call policies paged for a new incident from a high or critical report. Pick none to page nobody.",
+          "The on-call policies paged for a new incident from a high or critical report. Leave it empty to page nobody.",
         required: false,
         leftOutWhenNobody: ["if-page-1"],
       },
@@ -5504,7 +5504,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
       {
         componentId: "page-on-call-policy-1",
         title: "Who to page for High and Disaster problems",
-        description: `The on-call policies paged for a new ${r} from a High or Disaster problem. Pick none to page nobody.`,
+        description: `The on-call policies paged for a new ${r} from a High or Disaster problem. Leave it empty to page nobody.`,
         required: false,
         leftOutWhenNobody: ["if-page-1"],
       },

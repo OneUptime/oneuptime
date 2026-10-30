@@ -114,9 +114,11 @@ const MODAL_STRINGS: Array<string> = [
   "Back",
   "Create Workflow",
   "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
-  // A template that pages people asks who, on the Configure step.
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+  /*
+   * A template that pages people asks who, on the Configure step: one
+   * sentence over the questions, with settings before them or not.
+   */
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.",
 ];
 
 /*
@@ -205,8 +207,7 @@ const NEW_STRINGS: Array<string> = [
   // The Zabbix category, which came later.
   "Zabbix",
   // Who a template pages, asked in the wizard.
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.",
   "Pick who to page.",
 ];
 
@@ -276,6 +277,14 @@ const RETIRED_STRINGS: Array<string> = [
   "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
   // The note before test runs: off no longer means nothing runs.
   "Workflows are created switched off, so nothing runs until you turn them on.",
+  /*
+   * The who-to-page step's first two sentences: one glued the template's
+   * English name to a translated sentence ("Page whoever is on call when a
+   * critical incident is created pages people in this project"), and the
+   * other said the same again under the settings.
+   */
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.",
 ];
 
 // Retired strings no other part of the Dashboard draws, so no locale keeps them.
@@ -293,14 +302,20 @@ const RETIRED_KEYS: Array<string> = [
   "Start from",
   "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
   "Workflows are created switched off, so nothing runs until you turn them on.",
+  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
+  "Who it pages is kept on its Page step, where you can change it later in the Builder.",
 ];
 
 const CONFIGURE_SENTENCE: string =
   "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.";
 
-// The Configure step's sentence for a template that only pages: no settings, so no variables.
-const PAGES_SENTENCE: string =
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.";
+/*
+ * The sentence over the who-to-page questions, settings before them or
+ * not. It names no template: an English name inside a translated sentence
+ * read as two languages at once.
+ */
+const WHO_TO_PAGE_SENTENCE: string =
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.";
 
 type ReadLocaleFunction = (file: string) => Record<string, unknown>;
 
@@ -390,7 +405,10 @@ describe("Create a workflow's strings", () => {
       "translateTemplate",
     );
 
-    expect(translated).toEqual([CONFIGURE_SENTENCE, PAGES_SENTENCE]);
+    expect(translated).toEqual([CONFIGURE_SENTENCE]);
+    expect(literalArguments(MODAL_CODE, "translateString")).toContain(
+      WHO_TO_PAGE_SENTENCE,
+    );
 
     for (const text of MODAL_STRINGS) {
       expect({
@@ -520,16 +538,14 @@ describe("Create a workflow's strings", () => {
   );
 
   test.each(NON_ENGLISH_FILES)(
-    "%s names the template in the Configure sentences exactly once",
+    "%s names the template in the Configure sentence exactly once, and not in the who-to-page one",
     (file: string) => {
       const locale: Record<string, unknown> = readLocale(file);
 
       expect(
         String(locale[CONFIGURE_SENTENCE]).split("{{templateName}}"),
       ).toHaveLength(2);
-      expect(
-        String(locale[PAGES_SENTENCE]).split("{{templateName}}"),
-      ).toHaveLength(2);
+      expect(String(locale[WHO_TO_PAGE_SENTENCE])).not.toContain("{{");
     },
   );
 

@@ -530,7 +530,7 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
     {
       id: ids.whatHappened,
       name: "What Happened",
-      description: `open, acknowledge, resolve or note. The tool's own words work too, such as problem, firing or recovery, and a state's name moves it there.`,
+      description: `One of open, acknowledge, resolve or note. The tool's own words work too, such as problem, firing or recovery, and a state's name moves the ${n} there.`,
       type: ComponentInputType.Text,
       required: true,
       placeholder: "problem",
@@ -585,7 +585,7 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
     {
       id: ids.recordId,
       name: `${kind.Noun} ID`,
-      description: `Act on this ${n} instead of the one Outside ID finds: its ID, as the other tool keeps it.`,
+      description: `Act on the ${n} with this ID instead of the one Outside ID finds, when the other tool keeps the ${n}'s ID.`,
       type: ComponentInputType.Text,
       required: false,
       isAdvanced: true,
@@ -593,7 +593,7 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
     {
       id: ids.outsideIdField,
       name: "Outside ID Field",
-      description: `The ${n} custom field that keeps the Outside ID, so later events find it. Empty: externalId.`,
+      description: `The ${n} custom field that keeps the Outside ID, so later events find it. Left empty, externalId.`,
       type: ComponentInputType.Text,
       required: false,
       isAdvanced: true,

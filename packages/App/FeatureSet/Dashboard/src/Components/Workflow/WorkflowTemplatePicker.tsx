@@ -45,6 +45,7 @@ import {
   WorkflowTemplatePreviewBlock,
   getWorkflowTemplatePreview,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
+import { CATALOG_TEXT_ALIGN_CLASS_NAME } from "../TemplatePicker/CatalogText";
 import TemplatePicker, {
   getTemplatePickerIds,
   templateOptionDomId,
@@ -200,10 +201,11 @@ const WorkflowTemplateDetails: FunctionComponent<
                       ) : (
                         <></>
                       )}
+                      {/* After the title as the page reads: on its left on a Persian page. */}
                       {variable.required ? (
                         <></>
                       ) : (
-                        <span className="ml-1 text-gray-400">
+                        <span className="ms-1 text-gray-400">
                           ({tx("Optional")})
                         </span>
                       )}
@@ -230,7 +232,7 @@ const WorkflowTemplateDetails: FunctionComponent<
                       {ask.required ? (
                         <></>
                       ) : (
-                        <span className="ml-1 text-gray-400">
+                        <span className="ms-1 text-gray-400">
                           ({tx("Optional")})
                         </span>
                       )}
@@ -245,7 +247,8 @@ const WorkflowTemplateDetails: FunctionComponent<
         )}
         {setUpInBuilder ? (
           <p
-            className="text-sm text-gray-600"
+            dir="auto"
+            className={`text-sm text-gray-600 ${CATALOG_TEXT_ALIGN_CLASS_NAME}`}
             data-testid="workflow-template-details-in-builder"
           >
             {setUpInBuilder}

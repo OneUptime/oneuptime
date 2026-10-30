@@ -381,7 +381,7 @@ describe("the Zabbix templates, as the picker lists them", () => {
                 title: "Who to page for High and Disaster problems",
                 description: `The on-call policies paged for a new ${
                   candidate.subcategory === "Alerts" ? "alert" : "incident"
-                } from a High or Disaster problem. Pick none to page nobody.`,
+                } from a High or Disaster problem. Leave it empty to page nobody.`,
                 required: false,
                 leftOutWhenNobody: ["if-page-1"],
               },

@@ -38868,7 +38868,6 @@
   "Summarizing…": "Resumindo…",
   "What's new": "Novidades",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Escrito pela OneUptime AI {{time}}, a partir das exceções vistas pela primeira vez ou que voltaram nas últimas {{hours}} horas.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} aciona pessoas deste projeto. Escolha aqui quem ele aciona, ou altere depois na etapa de acionamento, no Construtor.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Quem ele aciona fica salvo na etapa de acionamento, onde você pode alterar depois no Construtor.",
-  "Pick who to page.": "Escolha quem acionar."
+  "Pick who to page.": "Escolha quem acionar.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Escolha quem este fluxo de trabalho aciona. Você pode alterar depois na etapa de acionamento, no Construtor."
 }

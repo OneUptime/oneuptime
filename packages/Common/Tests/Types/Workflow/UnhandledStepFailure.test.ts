@@ -90,7 +90,7 @@ describe("UnhandledStepFailure", () => {
           { componentId: "api-get-1", title: "API GET" },
         ]),
       ).toBe(
-        "The run failed: step api-get-1 (API GET) failed, and nothing is connected to its Error output. Why is in its Steps entry above.",
+        "The run failed: step api-get-1 (API GET) failed, and nothing is connected to its Error output. Its entry in Steps says why.",
       );
     });
 
@@ -101,7 +101,7 @@ describe("UnhandledStepFailure", () => {
       ]);
 
       expect(line).toBe(
-        "The run failed: steps a (API GET), b (Send Message to Slack) failed, and nothing is connected to their Error outputs. Why is in their Steps entries above.",
+        "The run failed: steps a (API GET), b (Send Message to Slack) failed, and nothing is connected to their Error outputs. Their entries in Steps say why.",
       );
       expect(line).not.toContain("\n");
     });

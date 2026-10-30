@@ -408,7 +408,7 @@ const components: Array<ComponentMetadata> = [
         id: ZABBIX_UPDATE_ARGUMENT_IDS.whatToDo,
         name: "What To Do",
         description:
-          "acknowledge, close or message. Empty, Zabbix is not updated.",
+          "One of acknowledge, close or message. Left empty, Zabbix is not updated.",
         type: ComponentInputType.Text,
         required: false,
         placeholder: "close",

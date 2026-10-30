@@ -2085,7 +2085,7 @@ describe.each(
 
       // A question nobody may answer says what picking nobody does.
       if (!ask.required) {
-        expect(ask.description).toContain("Pick none to page nobody.");
+        expect(ask.description).toContain("Leave it empty to page nobody.");
       }
     }
   });

@@ -109,6 +109,11 @@ export interface ComponentProps {
    * a workflow step's { } button.
    */
   trailing?: ReactElement | undefined;
+  /*
+   * Focus the button that opens the list as the field is drawn: on a
+   * dialog step that asks for nothing else, as a form's first input is.
+   */
+  autoFocus?: boolean | undefined;
 }
 
 // The button of a single-pick picker once something is picked.
@@ -277,6 +282,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         data-testid="people-picker-add-button"
+        autoFocus={props.autoFocus}
         disabled={!isInteractive}
         aria-haspopup="dialog"
         aria-expanded={popup.isPopupOpen}

@@ -38868,7 +38868,6 @@
   "Summarizing…": "Résumé en cours…",
   "What's new": "Quoi de neuf",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Écrit par OneUptime AI {{time}}, à partir des exceptions vues pour la première fois ou revenues dans les dernières {{hours}} heures.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} alerte des personnes de ce projet. Choisissez ici qui il alerte, ou modifiez-le plus tard dans son étape d'alerte, dans le Constructeur.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Les personnes qu'il alerte sont enregistrées dans son étape d'alerte, où vous pourrez les modifier plus tard dans le Constructeur.",
-  "Pick who to page.": "Choisissez qui alerter."
+  "Pick who to page.": "Choisissez qui alerter.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Choisissez qui ce flux de travail alerte. Vous pourrez le modifier plus tard dans son étape d'alerte, dans le Constructeur."
 }

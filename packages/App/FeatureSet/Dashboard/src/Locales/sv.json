@@ -38868,7 +38868,6 @@
   "Summarizing…": "Sammanfattar…",
   "What's new": "Vad är nytt",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Skrivet av OneUptime AI {{time}}, utifrån de undantag som först sågs eller kom tillbaka de senaste {{hours}} timmarna.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} larmar personer i det här projektet. Välj här vem det larmar, eller ändra det senare i larmsteget i Byggare.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Vem det larmar sparas i larmsteget, där du kan ändra det senare i Byggare.",
-  "Pick who to page.": "Välj vem som ska larmas."
+  "Pick who to page.": "Välj vem som ska larmas.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Välj vem det här arbetsflödet larmar. Du kan ändra det senare i larmsteget i Byggare."
 }

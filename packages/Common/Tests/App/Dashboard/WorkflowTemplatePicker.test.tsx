@@ -1717,3 +1717,69 @@ describe("the state it reports", () => {
     expect(getScratch()).toHaveFocus();
   });
 });
+
+/*
+ * A template's own words - its name, its description, what it says is set
+ * up in the Builder - are catalog content, written in English whatever the
+ * page's language. Laid out by a Persian page, an English sentence put its
+ * full stop at its start, and a row cut to one line lost its start instead
+ * of its end. Each reads its own way (dir="auto"), lined up where the
+ * page's lines start (TemplatePicker/CatalogText); the browser test in
+ * packages/E2E/WorkflowBuilder/CreateWorkflowDialog.spec.ts measures it on
+ * a right-to-left page.
+ */
+describe("a template's own words, read the way they are written", () => {
+  const RTL_ALIGNED: string = "rtl:[text-align:right]";
+
+  test("every row's name and description", () => {
+    renderPicker();
+    showView(WorkflowTemplateCollection.All);
+
+    for (const templateId of listedIds()) {
+      for (const part of ["name", "description"]) {
+        const element: HTMLElement = document.getElementById(
+          `${workflowTemplateOptionDomId(templateId)}-${part}`,
+        ) as HTMLElement;
+
+        expect({
+          templateId: templateId,
+          part: part,
+          dir: element.getAttribute("dir"),
+          aligned: element.className.includes(RTL_ALIGNED),
+        }).toEqual({
+          templateId: templateId,
+          part: part,
+          dir: "auto",
+          aligned: true,
+        });
+      }
+    }
+  });
+
+  test("what a template leaves for the Builder", () => {
+    renderPicker();
+
+    const line: HTMLElement = within(
+      pick("huntress-incident-report-to-incident"),
+    ).getByTestId("workflow-template-details-in-builder");
+
+    expect(line).toHaveAttribute("dir", "auto");
+    expect(line.className).toContain(RTL_ALIGNED);
+  });
+
+  // "(Optional)" keeps its gap from the title on either side of it.
+  test("an optional ask's mark is spaced at its start, whichever way the page reads", () => {
+    renderPicker();
+    showView(WorkflowTemplateCategory.Zabbix);
+
+    const ask: HTMLElement = within(
+      pick("zabbix-declare-incident-from-problem"),
+    ).getByTestId(
+      "workflow-template-details-who-to-page-page-on-call-policy-1",
+    );
+    const mark: HTMLElement = within(ask).getByText("(Optional)");
+
+    expect(mark).toHaveClass("ms-1");
+    expect(mark).not.toHaveClass("ml-1");
+  });
+});

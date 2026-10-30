@@ -38868,7 +38868,6 @@
   "Summarizing…": "सारांश बन रहा है…",
   "What's new": "नया क्या है",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "OneUptime AI ने {{time}} लिखा, पिछले {{hours}} घंटों में पहली बार देखे गए या लौटे अपवादों से।",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} इस प्रोजेक्ट के लोगों को पेज करता है। यहां चुनें कि यह किसे पेज करे, या बाद में बिल्डर में इसके पेज चरण में इसे बदलें।",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "यह किसे पेज करता है, यह इसके पेज चरण में सहेजा जाता है, जहां आप इसे बाद में बिल्डर में बदल सकते हैं।",
-  "Pick who to page.": "चुनें कि किसे पेज करना है।"
+  "Pick who to page.": "चुनें कि किसे पेज करना है।",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "चुनें कि यह वर्कफ़्लो किसे पेज करे। आप इसे बाद में बिल्डर में इसके पेज चरण में बदल सकते हैं।"
 }

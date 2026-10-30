@@ -252,6 +252,20 @@ function nameOf(templateId: string): string {
   return getWorkflowTemplate(templateId)?.name as string;
 }
 
+/*
+ * The one sentence over the who-to-page questions, with settings before
+ * them or not. It names no template: "Page whoever is on call when a
+ * critical incident is created pages people in this project" read as two
+ * sentences run together, and as two languages on a German page.
+ */
+const WHO_TO_PAGE_INTRO: string =
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.";
+
+// The button that opens a question's search list.
+function addButtonOf(componentId: string): HTMLElement {
+  return within(question(componentId)).getByTestId("people-picker-add-button");
+}
+
 // The graph the dialog asked the API to create.
 function createdGraph(): JSONObject {
   const workflow: Workflow = (
@@ -342,8 +356,11 @@ describe("a template whose whole job is to page", () => {
     );
 
     // It asks for nothing saved as a variable, so it says what it does ask.
-    expect(content).toHaveTextContent(
-      `${nameOf("incident-critical-page-on-call")} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.`,
+    expect(screen.getByTestId("workflow-who-to-page-intro")).toHaveTextContent(
+      WHO_TO_PAGE_INTRO,
+    );
+    expect(content).not.toHaveTextContent(
+      nameOf("incident-critical-page-on-call"),
     );
     expect(content).not.toHaveTextContent("saved as workflow variables");
     expect(
@@ -360,6 +377,53 @@ describe("a template whose whole job is to page", () => {
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
       "Create Workflow",
     );
+  });
+
+  /*
+   * The step is for the question, as a step with settings is for its first
+   * field: the keyboard starts on the button that opens the search list,
+   * not on the page behind the dialog.
+   */
+  test("starts with the focus on the first question's button", () => {
+    renderModal();
+    goToConfigure("incident-severity-page");
+
+    expect(document.activeElement).toBe(addButtonOf("page-on-call-policy-1"));
+    expect(addButtonOf("page-on-call-policy-1")).toHaveTextContent(
+      "Add on-call policy",
+    );
+  });
+
+  // The gap every field leaves between its help and its control.
+  test("draws each question's picker a field's gap under its help", () => {
+    renderModal();
+    goToConfigure("incident-severity-page");
+
+    for (const componentId of ["page-on-call-policy-1", "page-team-1"]) {
+      expect(question(componentId).parentElement).toHaveClass("mt-2");
+    }
+  });
+
+  /*
+   * The question's help is the template's, in English on every page: it
+   * reads its own way, so on a Persian page its full stop stays at its end,
+   * and lines up where the page's lines start.
+   */
+  test("lays the question's help out the way it is written", () => {
+    renderModal();
+    goToConfigure("incident-critical-page-on-call");
+
+    const help: HTMLElement = screen.getByText(
+      "The on-call schedules whose person on call right now is paged for a critical incident.",
+    );
+
+    expect(help).toHaveAttribute("dir", "auto");
+    expect(help.className).toContain("rtl:[text-align:right]");
+    expect(
+      document.getElementById(
+        "workflow-who-to-page-page-on-call-1-description",
+      ),
+    ).toContainElement(help);
   });
 
   test("creates nothing until somebody is picked, and says so under the question", async () => {
@@ -475,8 +539,16 @@ describe("a template that pages on the side", () => {
     );
 
     expect(content).toHaveTextContent("saved as workflow variables");
+    // The same sentence as a template that only pages, under a line of its own.
     expect(screen.getByTestId("workflow-who-to-page-intro")).toHaveTextContent(
-      "Who it pages is kept on its Page step, where you can change it later in the Builder.",
+      WHO_TO_PAGE_INTRO,
+    );
+    expect(screen.getByTestId("workflow-who-to-page-intro")).toHaveClass(
+      "border-t",
+    );
+    // The step starts in its first setting, not on the question after it.
+    expect(document.activeElement).toBe(
+      screen.getByTestId("workflow-variable-zabbixUrl"),
     );
     // The Zabbix URL first, then who to page.
     expect(
@@ -485,7 +557,7 @@ describe("a template that pages on the side", () => {
         .compareDocumentPosition(question("page-on-call-policy-1")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(content).toHaveTextContent("Pick none to page nobody.");
+    expect(content).toHaveTextContent("Leave it empty to page nobody.");
   });
 
   test("picking nobody leaves paging out, and the rest of the workflow whole", async () => {
@@ -546,9 +618,14 @@ describe("a template that pages on the side", () => {
     const harness: Harness = renderModal();
     goToConfigure("huntress-incident-report-to-incident");
 
-    expect(
-      screen.getByTestId("workflow-wizard-step-content"),
-    ).toHaveTextContent("pages people in this project");
+    // Its only question, so no line over the sentence, and the focus on it.
+    expect(screen.getByTestId("workflow-who-to-page-intro")).toHaveTextContent(
+      WHO_TO_PAGE_INTRO,
+    );
+    expect(screen.getByTestId("workflow-who-to-page-intro")).not.toHaveClass(
+      "border-t",
+    );
+    expect(document.activeElement).toBe(addButtonOf("page-on-call-policy-1"));
 
     submit();
 
@@ -649,13 +726,13 @@ describe("in German", () => {
     renderModal(instance);
     goToConfigure("incident-critical-page-on-call");
 
-    expect(
-      screen.getByTestId("workflow-wizard-step-content"),
-    ).toHaveTextContent(
-      de(
-        "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.",
-      ).replace("{{templateName}}", nameOf("incident-critical-page-on-call")),
+    // German through and through: no English template name inside it.
+    expect(screen.getByTestId("workflow-who-to-page-intro")).toHaveTextContent(
+      de(WHO_TO_PAGE_INTRO),
     );
+    expect(
+      screen.getByTestId("workflow-who-to-page-intro"),
+    ).not.toHaveTextContent(nameOf("incident-critical-page-on-call"));
 
     submit();
 
@@ -669,9 +746,7 @@ describe("in German", () => {
     goToConfigure("zabbix-declare-incident-from-problem");
 
     expect(screen.getByTestId("workflow-who-to-page-intro")).toHaveTextContent(
-      de(
-        "Who it pages is kept on its Page step, where you can change it later in the Builder.",
-      ),
+      de(WHO_TO_PAGE_INTRO),
     );
   });
 });

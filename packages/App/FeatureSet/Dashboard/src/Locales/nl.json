@@ -38868,7 +38868,6 @@
   "Summarizing…": "Samenvatten…",
   "What's new": "Wat is er nieuw",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Geschreven door OneUptime AI {{time}}, op basis van de uitzonderingen die in de laatste {{hours}} uur voor het eerst gezien zijn of terugkwamen.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} roept mensen in dit project op. Kies hier wie het oproept, of wijzig dit later in de oproepstap in de Bouwer.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Wie het oproept, wordt bewaard in de oproepstap, waar je het later in de Bouwer kunt wijzigen.",
-  "Pick who to page.": "Kies wie er wordt opgeroepen."
+  "Pick who to page.": "Kies wie er wordt opgeroepen.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Kies wie deze workflow oproept. Je kunt dit later wijzigen in de oproepstap in de Bouwer."
 }

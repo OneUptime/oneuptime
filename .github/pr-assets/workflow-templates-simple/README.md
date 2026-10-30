@@ -38,3 +38,24 @@ the Dashboard's own i18n set up first for `?lang=de|fa`.
 The template's own words (names, descriptions, the who-to-page question)
 are catalog content, written in English in every language, as the other
 template text is.
+
+## UI review
+
+Taken the same way after the UI review, from the review branch:
+
+- `who-to-page-required-*-after`, `zabbix-settings-*-after`: retaken. The
+  step's sentence is now one sentence for every template that pages, with no
+  template name in it ("Pick who this workflow pages. You can change it later
+  on its Page step in the Builder."), the picker sits a field's gap under its
+  help, and on a Persian page the question's English help reads left to right
+  with its full stop at its end.
+- `review-who-to-page-1280-before` / `who-to-page-required-1280-after`, and
+  `review-zabbix-settings-1280-before` / `zabbix-settings-1280-after`: the
+  builder's version of the step, then the reviewed one.
+- `review-picker-fa-1280-before` / `-after`: the template picker on a Persian
+  page. Before, the English rows were laid out right to left: full stops at
+  the start of a line and one-line rows cut at their start; after, each reads
+  left to right, lined up on the right.
+- `review-who-to-page-fa-390-before` / `-after`: the paging step on a phone,
+  in Persian: no English template name inside the Persian sentence, and the
+  help's full stop at its end.

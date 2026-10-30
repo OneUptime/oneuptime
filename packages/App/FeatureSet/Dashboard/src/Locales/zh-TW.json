@@ -38868,7 +38868,6 @@
   "Summarizing…": "正在摘要…",
   "What's new": "最新動態",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "由 OneUptime AI 於 {{time}} 根據最近 {{hours}} 小時內首次出現或再次出現的例外產生。",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} 會呼叫此專案中的人員。請在此處選擇要呼叫的人，或稍後在建構器的呼叫步驟中變更。",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "要呼叫的人儲存在呼叫步驟中，你可以稍後在建構器中變更。",
-  "Pick who to page.": "請選擇要呼叫的人。"
+  "Pick who to page.": "請選擇要呼叫的人。",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "請選擇此工作流程要呼叫的人。你可以稍後在建構器的呼叫步驟中變更。"
 }

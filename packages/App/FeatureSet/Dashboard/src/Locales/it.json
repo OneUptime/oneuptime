@@ -38868,7 +38868,6 @@
   "Summarizing…": "Riepilogo in corso…",
   "What's new": "Novità",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Scritto da OneUptime AI {{time}}, dalle eccezioni viste per la prima volta o tornate nelle ultime {{hours}} ore.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} avvisa persone di questo progetto. Scegli qui chi avvisa, oppure cambialo in seguito nel suo passaggio di avviso, nel Costruttore.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Chi avvisa viene salvato nel suo passaggio di avviso, dove puoi cambiarlo in seguito nel Costruttore.",
-  "Pick who to page.": "Scegli chi avvisare."
+  "Pick who to page.": "Scegli chi avvisare.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Scegli chi avvisa questo flusso di lavoro. Puoi cambiarlo in seguito nel suo passaggio di avviso, nel Costruttore."
 }

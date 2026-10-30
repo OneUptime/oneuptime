@@ -38868,7 +38868,6 @@
   "Summarizing…": "در حال خلاصه کردن…",
   "What's new": "چه خبر تازه‌ای هست",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "نوشته‌شده توسط OneUptime AI {{time}}، از استثناهایی که در {{hours}} ساعت گذشته نخستین بار دیده شده‌اند یا برگشته‌اند.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "{{templateName}} افرادی از این پروژه را فرا می‌خواند. اینجا انتخاب کنید چه کسی را فرا بخواند، یا بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "اینکه چه کسی را فرا می‌خواند در مرحلهٔ فراخوانی آن ذخیره می‌شود و می‌توانید بعداً در سازنده تغییرش دهید.",
-  "Pick who to page.": "انتخاب کنید چه کسی فراخوانده شود."
+  "Pick who to page.": "انتخاب کنید چه کسی فراخوانده شود.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "انتخاب کنید این گردش کاری چه کسی را فرا بخواند. می‌توانید بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید."
 }

@@ -38868,7 +38868,6 @@
   "Summarizing…": "Подводим итог…",
   "What's new": "Что нового",
   "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Написано OneUptime AI {{time}} по исключениям, впервые замеченным или вернувшимся за последние {{hours}} ч.",
-  "{{templateName}} pages people in this project. Pick who it pages here, or change it later on its Page step in the Builder.": "Шаблон «{{templateName}}» вызывает людей из этого проекта. Выберите здесь, кого он вызывает, или измените это позже в шаге вызова в Конструкторе.",
-  "Who it pages is kept on its Page step, where you can change it later in the Builder.": "Кого он вызывает, сохраняется в шаге вызова, где это можно изменить позже в Конструкторе.",
-  "Pick who to page.": "Выберите, кого вызывать."
+  "Pick who to page.": "Выберите, кого вызывать.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Выберите, кого вызывает этот рабочий процесс. Это можно изменить позже в шаге вызова в Конструкторе."
 }

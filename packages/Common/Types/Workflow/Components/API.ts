@@ -539,7 +539,7 @@ const components: Array<ComponentMetadata> = [
       {
         id: "error",
         name: "Error",
-        description: "Error, if there is any.",
+        description: "Why nothing was read, when it continues on Error.",
         type: ComponentInputType.Text,
         required: false,
       },
@@ -570,8 +570,7 @@ const components: Array<ComponentMetadata> = [
     inPorts: [
       {
         title: "In",
-        description:
-          "Please connect components to this port for this component to work.",
+        description: "Connect the step that runs before this one.",
         id: "in",
       },
     ],

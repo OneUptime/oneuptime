@@ -24,7 +24,7 @@ export const getZabbixUpdateProblemDocumentation: ZabbixDocumentationFunction =
       steps: [
         "Fill in **Zabbix URL**, and **API Token** with a secret variable that holds a Zabbix API token.",
         "Put the problem's event ID in **Event ID**, usually the one an incident keeps in its custom fields.",
-        "Set **What To Do** to acknowledge, close or message, and write the **Message** Zabbix keeps on the problem.",
+        "Set **What To Do** to `acknowledge`, `close` or `message`, and write the **Message** Zabbix keeps on the problem.",
       ],
       examples: [
         {
