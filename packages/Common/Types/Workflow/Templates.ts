@@ -36,6 +36,23 @@ import {
 } from "./Components/OnCallPageSettings";
 import { SWITCH_DEFAULT_PORT_ID } from "./Components/Switch";
 import { HuntressTriggerEvent, HuntressTriggerValue } from "./HuntressTrigger";
+import { PageStepTarget, getPageStepTarget } from "./Components/OnCall";
+import ObjectID from "../ObjectID";
+import {
+  FROM_ANOTHER_TOOL_ARGUMENT_IDS,
+  FROM_ANOTHER_TOOL_PORT_IDS,
+  FROM_ANOTHER_TOOL_RETURN_VALUE_IDS,
+} from "./Components/FromAnotherTool";
+import { JAVASCRIPT_CHECK_PORT_IDS } from "./Components/JavaScriptCheck";
+import {
+  ZABBIX_ACTION_ACKNOWLEDGE,
+  ZABBIX_ACTION_CLOSE,
+  ZABBIX_ACTION_MESSAGE,
+  ZABBIX_MESSAGE_MAX_LENGTH,
+  ZABBIX_UPDATE_ARGUMENT_IDS,
+  ZabbixProblemUpdate,
+} from "./Components/Zabbix";
+import { TemplateColumn, layOutTemplateColumn } from "./TemplateLayout";
 import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
@@ -314,19 +331,53 @@ export interface WorkflowTemplate {
   /** Configuration the wizard collects before creating. Empty means it asks for nothing. */
   variables: Array<WorkflowTemplateVariable>;
   /**
-   * What the created workflow still needs that the wizard cannot ask for,
-   * because it is picked from the project's own records in the Builder: who
-   * a Page step pages. A short sentence or two, shown under "What you'll
-   * need" where a template that runs as it is created says "Nothing to fill
-   * in.". Absent on the templates that leave nothing to set up.
+   * What the created workflow still needs that the wizard cannot ask for: a
+   * short sentence or two, shown under "What you'll need" where a template
+   * that runs as it is created says "Nothing to fill in.". Absent on the
+   * templates that leave nothing to set up - every template but the Huntress
+   * one, whose signing secret is added in the Builder.
    */
   setUpInBuilder?: string | undefined;
+  /**
+   * Who each of the template's Page steps pages, asked for in the create
+   * wizard and picked from the project's own people, teams, schedules or
+   * on-call policies - so a template that pages opens in the Builder with
+   * nothing left to fill in. Absent on templates that page nobody.
+   */
+  whoToPage?: Array<WorkflowTemplateWhoToPage> | undefined;
   /**
    * OAuth 2.0 variables the wizard writes beside the static ones, built from
    * the values typed into `variables`. Absent on templates that need none.
    */
   oauth2Variables?: Array<WorkflowTemplateOAuth2Variable> | undefined;
 }
+
+/*
+ * One Page step's who-to-page, as the create wizard asks for it. The wizard
+ * draws the people picker the Builder draws for the step (RecordListField's
+ * kinds), and writes what is picked into the step's who-to-page setting.
+ */
+export interface WorkflowTemplateWhoToPage {
+  /** The Page step's component id in the graph: "page-on-call-policy-1". */
+  componentId: string;
+  /** The question, as the wizard's field label: "Who to page for High and Disaster problems". */
+  title: string;
+  /** Help under it: when the step pages them, and what picking nobody does. */
+  description: string;
+  /**
+   * Whether somebody must be picked. A template whose whole job is to page
+   * requires it. One that pages on the side - for the worst problems a tool
+   * sends - does not: picking nobody leaves the Page step out, with the steps
+   * that are only there for it (leftOutWhenNobody), and the workflow does the
+   * rest of its job.
+   */
+  required: boolean;
+  /** The steps besides the Page step that go when nobody is picked: the If / Else in front of it. */
+  leftOutWhenNobody?: Array<string> | undefined;
+}
+
+/** Who was picked in the wizard, by the Page step's component id: the records' ids. */
+export type WhoToPagePicks = Record<string, Array<string> | undefined>;
 
 /*
  * The {name} placeholders of an OAuth 2.0 variable's settings. Single braces,
@@ -7754,15 +7805,15 @@ export const ZABBIX_SEVERITY_NAMES: ReadonlyArray<string> = [
 export const ZABBIX_PAGE_FROM_SEVERITY: number = 4;
 
 /*
- * The flags of event.acknowledge's action, a bitmask: the templates close,
- * acknowledge and add a message.
+ * The flags of event.acknowledge's action, and the longest message Zabbix
+ * keeps: Update Zabbix Problem's own, which the templates send through.
  */
-export const ZABBIX_ACTION_CLOSE: number = 1;
-export const ZABBIX_ACTION_ACKNOWLEDGE: number = 2;
-export const ZABBIX_ACTION_MESSAGE: number = 4;
-
-/** The longest message Zabbix keeps on a problem: its column holds 2,048 characters. */
-export const ZABBIX_MESSAGE_MAX_LENGTH: number = 2048;
+export {
+  ZABBIX_ACTION_ACKNOWLEDGE,
+  ZABBIX_ACTION_CLOSE,
+  ZABBIX_ACTION_MESSAGE,
+  ZABBIX_MESSAGE_MAX_LENGTH,
+};
 
 /** The component id of the Zabbix templates' Webhook trigger, which the problem's values are read from. */
 export const ZABBIX_WEBHOOK_COMPONENT_ID: string = "webhook-1";
@@ -7847,36 +7898,6 @@ const ZABBIX_API_TOKEN: WorkflowTemplateVariable = {
     message:
       "Paste the 64-character API token Zabbix showed when you created it.",
   },
-};
-
-type ZabbixHeadersFunction = () => JSONObject;
-
-/*
- * An object rather than JSON text, as the Jira steps' headers are: the
- * argument is marked sensitive, so the whole header set is kept out of
- * the run log.
- */
-const zabbixHeaders: ZabbixHeadersFunction = (): JSONObject => {
-  return {
-    Authorization: "Bearer {{local.variables.zabbixApiToken}}",
-  };
-};
-
-// Where every API step sends its request: Zabbix's one JSON-RPC endpoint.
-const ZABBIX_API_URL: string = "{{local.variables.zabbixUrl}}/api_jsonrpc.php";
-
-type ZabbixRequestBodyFunction = (method: string, params: JSONObject) => string;
-
-/*
- * A JSON-RPC 2.0 request, as Zabbix's API takes one. Zabbix reads a number
- * sent as text ("6") as the number, so the action a script chooses can be
- * quoted into the body like any other value.
- */
-const zabbixRequestBody: ZabbixRequestBodyFunction = (
-  method: string,
-  params: JSONObject,
-): string => {
-  return jsonText({ jsonrpc: "2.0", method: method, params: params, id: 1 });
 };
 
 type ZabbixScriptFunction = (kind: TemplateRecordKind, body: string) => string;
@@ -7984,8 +8005,10 @@ type ZabbixKindScriptFunction = (kind: TemplateRecordKind) => string;
 
 /*
  * Zabbix -> OneUptime: reads what the OneUptime media type posted, works
- * out which event it is, and shapes what each path writes: a new record's
- * title, description and severity, a note's text, a state change's cause.
+ * out which event it is, and shapes what the From Another Tool step does
+ * with it - a new record's title, description and severity, a note, the
+ * reason a record is acknowledged or resolved. The step finds the record by
+ * the problem's event ID, opens it, moves it forward or notes it.
  */
 const zabbixReadEventScript: ZabbixKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -7996,17 +8019,17 @@ const zabbixReadEventScript: ZabbixKindScriptFunction = (
     kind,
     String.raw`
 // Reads an event the OneUptime media type posted: a new Zabbix problem, its recovery, or an
-// update someone made to it in Zabbix.
+// update someone made to it in Zabbix. The next step opens, resolves, acknowledges or notes the
+// ${r} by the problem's event ID.
 // Zabbix numbers its severities 0 to 5, and names them as below unless an administrator
 // renamed them. A media type that sends no number is read by these names.
 const ZABBIX_SEVERITIES = ${JSON.stringify(ZABBIX_SEVERITY_NAMES)};
-// Zabbix severity to OneUptime severity: 0 is your most severe ${r} severity and 2 your
-// least, with the ones in between spread across the range. Disaster and High go to the
-// most severe, Average and Warning to the middle, Information and Not classified to the
-// least.
-const SEVERITY_RANK = { 5: 0, 4: 0, 3: 1, 2: 1, 1: 2, 0: 2 };
+// Zabbix severity to OneUptime severity, by where it sits among your ${r} severities: Disaster
+// and High go to your most severe, Average and Warning to the middle one, and Information and
+// Not classified to your least severe.
+const SEVERITY_PLACE = { 5: 'most severe', 4: 'most severe', 3: 'middle', 2: 'middle', 1: 'least severe', 0: 'least severe' };
 // To open one Zabbix severity at one of your severities by name, list it here, for example
-// { 2: 'Minor Incident' }. Names listed here win over the ranks above.
+// { 2: 'Minor Incident' }. Names listed here win over the places above.
 const SEVERITY_BY_NAME = {};
 const KINDS = ${JSON.stringify([
       ZabbixEventKind.Problem,
@@ -8014,31 +8037,41 @@ const KINDS = ${JSON.stringify([
       ZabbixEventKind.Update,
     ])};
 
-const ignore = (reason) => ({ kind: 'ignored', reason: defuse(asText(reason)) });
+// Every value the next step reads, so each is there: a value with no key here would reach it
+// as written, braces and all.
+const NOTHING = { whatHappened: '', eventId: '', title: '', description: '', severity: '', severityNumber: -1, zabbixSeverity: '', note: '', reason: '' };
+const event = (values) => Object.assign({}, NOTHING, values, { proceed: true });
 
 const payload = readJson(args.payload) || {};
 if (oneLine(payload.source).toLowerCase() !== 'zabbix') {
-  return ignore('The request did not come from the OneUptime media type in Zabbix, so it was ignored.');
+  return skip('The request did not come from the OneUptime media type in Zabbix, so it was ignored.');
 }
 
 const eventId = oneLine(payload.event_id);
-if (!ZABBIX_ID.test(eventId)) return ignore('The Zabbix event named no event ID, so it was ignored.');
+if (!ZABBIX_ID.test(eventId)) return skip('The Zabbix event named no event ID, so it was ignored.');
 
 // The media type says which event it is. One that does not (as this guide's first media type
 // did not) is a problem when its status is 1, and its recovery when the status is 0.
-const event = oneLine(payload.event).toLowerCase();
+const eventKind = oneLine(payload.event).toLowerCase();
 const status = oneLine(payload.status);
-const kind = KINDS.indexOf(event) !== -1 ? event : status === '1' ? 'problem' : status === '0' ? 'recovery' : '';
+const kind = KINDS.indexOf(eventKind) !== -1 ? eventKind : status === '1' ? 'problem' : status === '0' ? 'recovery' : '';
 if (!kind) {
-  return ignore('Zabbix event ' + eventId + ' is not a problem, a recovery or an update, so it was ignored.');
+  return skip('Zabbix event ' + eventId + ' is not a problem, a recovery or an update, so it was ignored.');
 }
 
 const triggerId = ZABBIX_ID.test(oneLine(payload.trigger_id)) ? oneLine(payload.trigger_id) : '';
 const problem = 'problem ' + eventId;
 const problemLink = problemLinkOf(args.zabbixUrl, triggerId, eventId);
 
-// A recovery resolves the problem's record (decide-state-1 says why on its timeline).
-if (kind === 'recovery') return { kind: kind, eventId: eventId, triggerId: triggerId, target: 'resolved' };
+// A recovery resolves the problem's ${r}, with why on its timeline.
+if (kind === 'recovery') {
+  return event({
+    kind: kind,
+    whatHappened: 'resolve',
+    eventId: eventId,
+    reason: limit(defuse(FROM_ZABBIX + ': ' + problemLink + ' recovered.'), 1000),
+  });
+}
 
 if (kind === 'update') {
   const update = payload.update && typeof payload.update === 'object' ? payload.update : {};
@@ -8046,43 +8079,31 @@ if (kind === 'update') {
   const message = clean(update.message).trim();
   // Messages OneUptime added to the problem carry this marker. Copying them back would loop.
   if (message.indexOf(FROM_ONEUPTIME) !== -1) {
-    return ignore('This update to Zabbix ' + problem + ' came from OneUptime, so it was not copied back.');
+    return skip('This update to Zabbix ' + problem + ' came from OneUptime, so it was not copied back.');
   }
-  if (!action && !message) return ignore('The update to Zabbix ' + problem + ' said nothing, so no note was added.');
+  if (!action && !message) return skip('The update to Zabbix ' + problem + ' said nothing, so no note was added.');
   // What the person did, and their name, are Zabbix's text, placed as written (asWritten).
   const user = oneLine(update.user);
   // Zabbix says what an update did in words: acknowledged, commented, closed and the like.
   const words = ' ' + action.toLowerCase().replace(/[^a-z]+/g, ' ') + ' ';
   const acknowledged = words.indexOf(' acknowledged ') !== -1;
-  return {
+  // An update that acknowledged the problem acknowledges its ${r} as well, with why on its timeline.
+  const who = asWritten(oneLine(defuse(limit(user, 300)))) || 'Someone';
+  return event({
     kind: kind,
+    whatHappened: acknowledged ? 'acknowledge' : 'note',
     eventId: eventId,
-    triggerId: triggerId,
     note: limit(defuse(FROM_ZABBIX + ': ' + (asWritten(user) || 'Someone') + ' updated Zabbix ' + problemLink + (action ? ': ' + asWritten(action) : '') + '.' + (message ? '\n\n' + asWritten(message) : '')), 30000),
-    // An update that acknowledged the problem acknowledges its record (decide-state-2).
-    target: acknowledged ? 'acknowledged' : '',
-    // The name of whoever did it, which decide-state-2 places in the cause it writes.
-    user: defuse(limit(user, 300)),
-  };
+    reason: acknowledged ? limit(defuse(FROM_ZABBIX + ': ' + who + ' acknowledged ' + problemLink + '.'), 1000) : '',
+  });
 }
 
 // A new problem: the ${r}'s severity, title and description.
-const found = readJson(args.severities);
-const severities = (Array.isArray(found) ? found : [])
-  .filter((severity) => severity && asText(severity._id))
-  .sort((a, b) => Number(a.order) - Number(b.order));
-if (!severities.length) throw new Error('This project has no ${r} severities to ${kind.create} the ${r} at.');
-
 const givenNumber = oneLine(payload.severity_number);
 const namedNumber = ZABBIX_SEVERITIES.map((name) => name.toLowerCase()).indexOf(oneLine(payload.severity).toLowerCase());
 // A severity Zabbix does not name is Not classified, as Zabbix itself calls an unknown one.
 const severityNumber = /^[0-5]$/.test(givenNumber) ? Number(givenNumber) : namedNumber !== -1 ? namedNumber : 0;
 const zabbixSeverity = oneLine(payload.severity) || ZABBIX_SEVERITIES[severityNumber];
-const wantedName = oneLine(SEVERITY_BY_NAME[severityNumber]).toLowerCase();
-const named = wantedName ? severities.find((severity) => oneLine(severity.name).toLowerCase() === wantedName) : null;
-const rankValue = SEVERITY_RANK[severityNumber];
-const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
-const severity = named || severities[Math.round((rank / 2) * (severities.length - 1))];
 
 // The problem's name, its host's, its operational data and its tags are Zabbix's text, placed as
 // written (asWritten). The link to the problem is the template's own.
@@ -8101,81 +8122,25 @@ const tags = (Array.isArray(payload.tags) ? payload.tags : [])
   .map((tag) => oneLine(tag.tag) + (oneLine(tag.value) ? ': ' + oneLine(tag.value) : ''));
 if (tags.length) lines.push('- Tags: ' + asWritten(limit(tags.join(', '), 2000)));
 
-return {
+return event({
   kind: kind,
+  whatHappened: 'open',
   eventId: eventId,
   title: limit(defuse('Zabbix: ' + asWritten(name || 'Problem ' + eventId) + (host ? ' on ' + asWritten(host) : '')), 500),
   description: limit(defuse(lines.join('\n')), 20000),
-  ${kind.severityIdColumn}: asText(severity._id),
-  severityName: defuse(oneLine(severity.name)),
-  zabbixSeverity: defuse(zabbixSeverity),
+  severity: defuse(oneLine(SEVERITY_BY_NAME[severityNumber])) || SEVERITY_PLACE[severityNumber],
   severityNumber: severityNumber,
-};
+  zabbixSeverity: defuse(zabbixSeverity),
+});
 `,
   );
 };
 
 /*
- * Zabbix -> OneUptime: moves the record forward to the state the event
- * asks for - resolved on a recovery, acknowledged when an update
- * acknowledged the problem - by the one rule OneUptime moves records by
- * (the Huntress template's): the state is the first one from the top
- * flagged so, and a record at it or past it is left as it is.
- */
-const zabbixDecideStateScript: ZabbixKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  const r: string = kind.noun;
-
-  return zabbixScript(
-    kind,
-    String.raw`
-// Moves the ${r} forward to the state Zabbix asks for: resolved when its problem recovered,
-// acknowledged when someone acknowledged the problem in Zabbix. The project's resolved state is
-// the first one from the top flagged resolved, and its acknowledged state the first one flagged
-// acknowledged. An ${r} at that state or past it is left as it is: it never moves back.
-const record = readJson(args.${r}) || {};
-const event = readJson(args.event) || {};
-const list = readJson(args.states);
-const states = (Array.isArray(list) ? list : [])
-  .filter((state) => state && typeof state === 'object')
-  .sort((a, b) => Number(a.order) - Number(b.order));
-const number = numbered(record.${kind.numberField}) || 'The ${r}';
-const target = asText(event.target);
-const flag = target === 'resolved' ? 'isResolvedState' : target === 'acknowledged' ? 'isAcknowledgedState' : '';
-if (!flag) return skip(number + ' was left as it is: Zabbix asked for no other state.');
-
-const wanted = states.find((state) => state[flag] === true);
-if (!wanted) throw new Error('This project has no ' + target + ' ${r} state.');
-
-const current = record.${kind.stateRelation} || {};
-if (current.isResolvedState === true || Number(current.order) >= Number(wanted.order)) {
-  return skip(number + ' is already ' + (oneLine(current.name) || 'past ' + oneLine(wanted.name)) + ', so it was left as it is.');
-}
-
-// Why, on the ${r}'s timeline. The name of whoever acknowledged the problem is Zabbix's text,
-// placed as written (asWritten); the link to the problem is the template's own.
-const link = problemLinkOf(args.zabbixUrl, event.triggerId, asText(event.eventId));
-const cause = target === 'resolved'
-  ? FROM_ZABBIX + ': ' + link + ' recovered.'
-  : FROM_ZABBIX + ': ' + (asWritten(oneLine(event.user)) || 'Someone') + ' acknowledged ' + link + '.';
-
-return {
-  proceed: true,
-  ${r}Id: asText(record._id),
-  stateId: valueOf(wanted._id),
-  stateName: defuse(oneLine(wanted.name)),
-  number: defuse(number),
-  rootCause: limit(defuse(cause), 1000),
-};
-`,
-  );
-};
-
-/*
- * OneUptime -> Zabbix: whether the record's new state means anything in
- * Zabbix, before a request is sent: only a record opened for a Zabbix
- * problem, and only when it is acknowledged or resolved.
+ * OneUptime -> Zabbix: what the record's new state means in Zabbix, before
+ * Update Zabbix Problem reads the problem and sends it: an acknowledged
+ * record acknowledges its problem, a resolved one closes it - only for a
+ * record opened for a Zabbix problem, and not for a private one.
  */
 const zabbixPlanStateScript: ZabbixKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -8186,7 +8151,8 @@ const zabbixPlanStateScript: ZabbixKindScriptFunction = (
     kind,
     String.raw`
 // Plans what the ${r}'s new state means in Zabbix: an acknowledged ${r} acknowledges its
-// problem, and a resolved one closes it.
+// problem, and a resolved one closes it. The next step reads the problem first, so a problem
+// Zabbix already acknowledged or resolved is left as it is.
 // Private ${kind.plural} stay in OneUptime. Set this to true to update Zabbix for them too.
 const SYNC_PRIVATE_${kind.pluralUpper} = false;
 
@@ -8200,84 +8166,16 @@ const eventId = eventIdOf(record);
 if (!eventId) return skip(number + ' was not ${kind.created} for a Zabbix problem, so there is nothing to update in Zabbix.');
 
 const state = record.${kind.stateRelation} || {};
-const wanted = state.isResolvedState === true ? 'close' : state.isAcknowledgedState === true ? 'acknowledge' : '';
-if (!wanted) {
+const whatToDo = state.isResolvedState === true ? 'close' : state.isAcknowledgedState === true ? 'acknowledge' : '';
+if (!whatToDo) {
   return skip(number + ' moved to ' + (oneLine(state.name) || 'a new state') + ': only acknowledging or resolving the ${r} updates Zabbix.');
 }
 
-return { proceed: true, eventId: eventId, wanted: wanted, number: defuse(number) };
-`,
-  );
-};
-
-/*
- * OneUptime -> Zabbix: reads the problem as Zabbix has it, then chooses
- * what to send. A problem Zabbix already acknowledged or resolved is left
- * as it is - which is also what settles the echo of a change that came
- * from Zabbix - and one whose trigger does not allow closing problems by
- * hand is acknowledged, with a message, instead of closed: Zabbix refuses
- * a close for those, and nothing would reach Zabbix at all.
- */
-const zabbixChooseActionScript: ZabbixKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  const r: string = kind.noun;
-
-  return zabbixScript(
-    kind,
-    String.raw`
-// Reads the problem as Zabbix has it now, and chooses what to send: acknowledge it, close it, or
-// add a message. The flags of event.acknowledge's action add up.
-const CLOSE = ${ZABBIX_ACTION_CLOSE};
-const ACKNOWLEDGE = ${ZABBIX_ACTION_ACKNOWLEDGE};
-const MESSAGE = ${ZABBIX_ACTION_MESSAGE};
-
-const plan = readJson(args.plan) || {};
-const eventId = asText(plan.eventId);
-const number = asText(plan.number) || 'The ${r}';
-const result = readAnswer(args.answer);
-const events = Array.isArray(result) ? result : [];
-const problem = events.find((candidate) => candidate && asText(candidate.eventid) === eventId);
-if (!problem) {
-  return skip('Zabbix has no problem with event ID ' + eventId + ', or the API token\'s user cannot see it, so Zabbix was not updated.');
-}
-
-const resolved = ZABBIX_ID.test(asText(problem.r_eventid)) && asText(problem.r_eventid) !== '0';
-const acknowledged = asText(problem.acknowledged) === '1';
-const trigger = problem.relatedObject && typeof problem.relatedObject === 'object' ? problem.relatedObject : {};
-const canClose = asText(trigger.manual_close) === '1';
-
-if (resolved) return skip('Zabbix problem ' + eventId + ' is already resolved in Zabbix, so it was left as it is.');
-
-if (asText(plan.wanted) === 'acknowledge') {
-  if (acknowledged) return skip('Zabbix problem ' + eventId + ' is already acknowledged in Zabbix, so it was left as it is.');
-  return {
-    proceed: true,
-    eventId: eventId,
-    action: ACKNOWLEDGE + MESSAGE,
-    message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was acknowledged in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
-    done: defuse('Acknowledged Zabbix problem ' + eventId + ': ' + number + ' was acknowledged.'),
-  };
-}
-
-if (canClose) {
-  return {
-    proceed: true,
-    eventId: eventId,
-    action: CLOSE + ACKNOWLEDGE + MESSAGE,
-    message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was resolved in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
-    done: defuse('Closed Zabbix problem ' + eventId + ': ' + number + ' was resolved.'),
-  };
-}
-
-// Zabbix refuses to close a problem whose trigger does not allow closing problems by hand, so the
-// problem is acknowledged, and says why it stays open.
 return {
   proceed: true,
   eventId: eventId,
-  action: ACKNOWLEDGE + MESSAGE,
-  message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was resolved in OneUptime. Its trigger does not allow closing problems by hand, so the problem stays open until Zabbix sees it recover.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
-  done: defuse('Acknowledged Zabbix problem ' + eventId + ': ' + number + ' was resolved, and its trigger does not allow closing problems by hand.'),
+  whatToDo: whatToDo,
+  message: limit(defuse(FROM_ONEUPTIME + ': ' + number + (whatToDo === 'close' ? ' was resolved' : ' was acknowledged') + ' in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
 };
 `,
   );
@@ -8328,27 +8226,6 @@ return {
   );
 };
 
-/*
- * OneUptime -> Zabbix: reads Zabbix's answer to event.acknowledge. Zabbix
- * answers a refused request with HTTP 200 and the reason in the body, so
- * the API step's own Error output only covers a request that never got an
- * answer; this step's covers Zabbix saying no.
- */
-const zabbixCheckAnswerScript: ZabbixKindScriptFunction = (
-  kind: TemplateRecordKind,
-): string => {
-  return zabbixScript(
-    kind,
-    String.raw`
-// Reads Zabbix's answer to event.acknowledge: the IDs of the events it updated, or why it did not.
-const result = readAnswer(args.answer);
-const updated = result && Array.isArray(result.eventids) ? result.eventids.map(asText) : [];
-if (!updated.length) throw new Error('Zabbix answered, but did not say it updated the problem.');
-return { eventIds: updated };
-`,
-  );
-};
-
 type ZabbixTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
 
 type ZabbixPageArgsFunction = (
@@ -8374,34 +8251,29 @@ const zabbixPageArgs: ZabbixPageArgsFunction = (
   };
 };
 
+type FromAnotherToolStepIdFunction = (kind: TemplateRecordKind) => string;
+
 /*
- * WHERE THE ZABBIX STEPS SIT ON THE CANVAS.
- *
- * On a grid, so that no card lies on another and every connection has room
- * to turn between two cards. Rows are ZABBIX_CANVAS_ROW apart: the tallest
- * card these steps draw is 192 px (a title on two lines), and a connection
- * turns 20 px under the card it leaves. A Page step is drawn taller, 218 px,
- * until someone picks who it pages - which is how the template leaves it -
- * so what follows it is ZABBIX_CANVAS_PAGE_ROW further down. A path's steps
- * run straight down one column; what ends a path early - a failure, a skip,
- * the No of an If / Else - sits one slot (ZABBIX_CANVAS_SLOT) to the right,
- * a row below the step it comes from, which is where that step's right-hand
- * output leads.
+ * The From Another Tool step's id in a template: the id the Builder gives
+ * the first one added, "incident-from-another-tool-1".
  */
-const ZABBIX_CANVAS_ROW: number = 220;
-const ZABBIX_CANVAS_PAGE_ROW: number = 260;
-const ZABBIX_CANVAS_SLOT: number = 300;
+const fromAnotherToolStepId: FromAnotherToolStepIdFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return `${kind.noun}-from-another-tool-1`;
+};
 
-type ZabbixCanvasRowFunction = (row: number) => number;
+type FromAnotherToolMetadataIdFunction = (kind: TemplateRecordKind) => string;
 
-// The top of a row: the trigger's is 100, as in every template.
-const zabbixCanvasRow: ZabbixCanvasRowFunction = (row: number): number => {
-  return 100 + row * ZABBIX_CANVAS_ROW;
+const fromAnotherToolMetadataId: FromAnotherToolMetadataIdFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return kind.noun === ALERT_KIND.noun
+    ? ComponentID.AlertFromAnotherTool
+    : ComponentID.IncidentFromAnotherTool;
 };
 
 /* ----------------------- Zabbix -> OneUptime ----------------------- */
-
-type ZabbixRecordReferenceFunction = (componentId: string) => string;
 
 type ZabbixEventValueFunction = (key: string) => string;
 
@@ -8410,654 +8282,101 @@ const zabbixEventValue: ZabbixEventValueFunction = (key: string): string => {
   return `{{local.components.read-event-1.returnValues.returnValue.${key}}}`;
 };
 
-const ZABBIX_PROBLEM: string = `Zabbix problem ${zabbixEventValue("eventId")}`;
-
+/*
+ * Five steps, one under the other: the Webhook Zabbix calls, the step that
+ * reads what it sent (read-event-1), the step that keeps one record per
+ * problem by its event ID (opens it, resolves it, acknowledges or notes it),
+ * and, for a new High or Disaster problem, an If / Else and the Page step.
+ * Nobody picked to page in the wizard leaves the last two out.
+ */
 const zabbixProblemTemplate: ZabbixTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
-  const nodes: Array<TemplateNodeSpec> = [];
-  const edges: Array<TemplateEdgeSpec> = [];
+  const step: string = fromAnotherToolStepId(kind);
 
-  type AddNodeFunction = (node: TemplateNodeSpec) => void;
-
-  const addNode: AddNodeFunction = (node: TemplateNodeSpec): void => {
-    nodes.push(node);
-  };
-
-  type ConnectFunction = (from: string, port: string, to: string) => void;
-
-  const connect: ConnectFunction = (
-    from: string,
-    port: string,
-    to: string,
-  ): void => {
-    edges.push({ fromComponentId: from, toComponentId: to, fromPort: port });
-  };
-
-  type LogFunction = (
-    componentId: string,
-    position: { x: number; y: number },
-    value: string,
-  ) => void;
-
-  const log: LogFunction = (
-    componentId: string,
-    position: { x: number; y: number },
-    value: string,
-  ): void => {
-    addNode({
-      componentId: componentId,
-      metadataId: ComponentID.Log,
-      componentType: ComponentType.Component,
-      position: position,
-      args: { value: value },
-    });
-  };
-
-  /*
-   * Where each step sits (ZABBIX_CANVAS_ROW): the trigger, the read and the
-   * Switch / Case in one column at the top, then a column per path under
-   * the Switch / Case's outputs, left to right as they are - problem,
-   * recovery, update - with what is ignored at the top right.
-   *
-   * The recovery and update columns start a row lower than the problem
-   * column, so that no two of the Switch / Case's connections run along the
-   * same line: the recovery's runs straight down from its output, the
-   * problem's and what is ignored turn above the first row, and the
-   * update's turns below it, where nothing is in its way.
-   */
-  const P: number = -640;
-  const R: number = 0;
-  const U: number = 640;
-
-  const numberOf: ZabbixRecordReferenceFunction = (
-    componentId: string,
-  ): string => {
-    return `{{local.components.${componentId}.returnValues.model.${kind.numberField}}}`;
-  };
-
-  // How each path finds the record a problem opened: by the event ID its custom fields keep.
-  const findRecordArgs: JSONObject = {
-    query: {
-      customFields: {
-        [ZABBIX_EVENT_ID_CUSTOM_FIELD]: zabbixEventValue("eventId"),
-      },
-    },
-    select: {
-      _id: true,
-      [kind.numberField]: true,
-      [kind.stateRelation]: {
-        name: true,
-        order: true,
-        isAcknowledgedState: true,
-        isResolvedState: true,
-      },
-    },
-  };
-
-  const foundCondition: (findComponentId: string) => JSONObject = (
-    findComponentId: string,
-  ): JSONObject => {
-    return {
-      "input-1-type": ConditionValueType.Text,
-      "input-1": `{{local.components.${findComponentId}.returnValues.model}}`,
-      operator: ConditionOperator.IsNotEmpty,
-    };
-  };
-
-  // Every row of the project's states, for a decision made by the rule above.
-  const findStatesArgs: JSONObject = {
-    query: { _id: { _type: "NotNull", value: null } },
-    select: {
-      _id: true,
-      name: true,
-      order: true,
-      isAcknowledgedState: true,
-      isResolvedState: true,
-    },
-    limit: 50,
-  };
-
-  type DecideStateArgsFunction = (
-    findComponentId: string,
-    statesComponentId: string,
-  ) => JSONObject;
-
-  const decideStateArgs: DecideStateArgsFunction = (
-    findComponentId: string,
-    statesComponentId: string,
-  ): JSONObject => {
-    return {
-      code: zabbixDecideStateScript(kind),
-      /*
-       * What read-event-1 read goes last: the name of whoever acknowledged
-       * the problem came from outside.
-       */
-      arguments: jsonText({
-        [r]: `{{local.components.${findComponentId}.returnValues.model}}`,
-        states: `{{local.components.${statesComponentId}.returnValues.models}}`,
-        zabbixUrl: "{{local.variables.zabbixUrl}}",
-        event: "{{local.components.read-event-1.returnValues.returnValue}}",
-      }),
-    };
-  };
-
-  type ChangeStateArgsFunction = (decideComponentId: string) => JSONObject;
-
-  /*
-   * A state change is a new timeline row, not an edit of the record: the
-   * timeline is what records it, notifies, and says why.
-   */
-  const changeStateArgs: ChangeStateArgsFunction = (
-    decideComponentId: string,
-  ): JSONObject => {
-    const decided: (key: string) => string = (key: string): string => {
-      return `{{local.components.${decideComponentId}.returnValues.returnValue.${key}}}`;
-    };
-
-    return {
-      json: jsonText({
-        [kind.idColumn]: decided(`${r}Id`),
-        [kind.timelineStateColumn]: decided("stateId"),
-        rootCause: decided("rootCause"),
-      }),
-    };
-  };
-
-  /* ---- The trigger, the project's severities, and which event it is ---- */
-
-  addNode({
-    componentId: ZABBIX_WEBHOOK_COMPONENT_ID,
-    metadataId: ComponentID.Webhook,
-    componentType: ComponentType.Trigger,
-    position: { x: 100, y: 100 },
-  });
-
-  addNode({
-    componentId: "find-severities-1",
-    metadataId: `${r}-severity-find-many`,
-    componentType: ComponentType.Component,
-    position: { x: 100, y: zabbixCanvasRow(1) },
-    args: {
-      // Every row. Query cannot be left empty, so it asks for any id.
-      query: { _id: { _type: "NotNull", value: null } },
-      select: { _id: true, name: true, order: true },
-      limit: 50,
-    },
-  });
-  connect(ZABBIX_WEBHOOK_COMPONENT_ID, "out", "find-severities-1");
-
-  log(
-    "log-severities-failed",
-    { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
-    `❌ Could not read this project's ${r} severities, so nothing Zabbix sent was read. Why is in the run log above.`,
-  );
-  connect("find-severities-1", "error", "log-severities-failed");
-
-  addNode({
-    componentId: "read-event-1",
-    metadataId: ComponentID.JavaScriptCode,
-    componentType: ComponentType.Component,
-    position: { x: 100, y: zabbixCanvasRow(2) },
-    args: {
-      code: zabbixReadEventScript(kind),
-      /*
-       * The request goes last: what it says came from outside, and text
-       * from outside is only ever substituted after everything else in an
-       * argument.
-       */
-      arguments: jsonText({
-        severities:
-          "{{local.components.find-severities-1.returnValues.models}}",
-        zabbixUrl: "{{local.variables.zabbixUrl}}",
-        payload: `{{local.components.${ZABBIX_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
-      }),
-    },
-  });
-  connect("find-severities-1", "success", "read-event-1");
-
-  log(
-    "log-read-failed",
-    { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
-    "❌ Could not read what Zabbix sent: {{local.components.read-event-1.returnValues.error}}",
-  );
-  connect("read-event-1", "error", "log-read-failed");
-
-  addNode({
-    componentId: "switch-1",
-    metadataId: ComponentID.Switch,
-    componentType: ComponentType.Component,
-    /*
-     * Wider than the step above it, as its cases' names make it
-     * (Workflow/PortLayout): 288px. read-event-1 leads into it from its
-     * Success output, a quarter across that card (x 164), so it starts at
-     * 20 and the connection runs straight down into the middle of it.
-     * Its recovery output is then right above the recovery column.
-     */
-    position: { x: 20, y: zabbixCanvasRow(3) },
-    args: {
-      value: zabbixEventValue("kind"),
-      cases: [
-        {
-          id: "case-1",
-          comparison: ConditionOperator.EqualTo,
-          value: ZabbixEventKind.Problem,
-          compareAs: ConditionValueType.Text,
-        },
-        {
-          id: "case-2",
-          comparison: ConditionOperator.EqualTo,
-          value: ZabbixEventKind.Recovery,
-          compareAs: ConditionValueType.Text,
-        },
-        {
-          id: "case-3",
-          comparison: ConditionOperator.EqualTo,
-          value: ZabbixEventKind.Update,
-          compareAs: ConditionValueType.Text,
-        },
-      ],
-    },
-  });
-  connect("read-event-1", "success", "switch-1");
-
-  /*
-   * Default: a request that is not a Zabbix event, or not one of the three.
-   * Above the update column and to the right of where its connection comes
-   * down, so the two never share a line.
-   */
-  log(
-    "log-ignored",
-    { x: U + 160, y: zabbixCanvasRow(4) },
-    `ℹ️ ${zabbixEventValue("reason")}`,
-  );
-  connect("switch-1", SWITCH_DEFAULT_PORT_ID, "log-ignored");
-
-  /* ---- problem: declare the record, unless the problem has one, and page ---- */
-
-  addNode({
-    componentId: `find-${r}-0`,
-    metadataId: `${r}-find-one`,
-    componentType: ComponentType.Component,
-    position: { x: P, y: zabbixCanvasRow(4) },
-    args: findRecordArgs,
-  });
-  connect("switch-1", "case-1", `find-${r}-0`);
-
-  /*
-   * A lookup that fails still declares the record: a problem that pages
-   * nobody is worse than a problem with two records. The log says so, for
-   * whoever finds two.
-   */
-  log(
-    "log-lookup-failed",
-    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
-    `⚠️ Could not check whether ${ZABBIX_PROBLEM} has an ${r} already, so a new one is ${kind.created}. Why the check failed is in the run log above.`,
-  );
-  connect(`find-${r}-0`, "error", "log-lookup-failed");
-
-  addNode({
-    componentId: "if-found-0",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: P, y: zabbixCanvasRow(5) },
-    args: foundCondition(`find-${r}-0`),
-  });
-  connect(`find-${r}-0`, "success", "if-found-0");
-
-  // Yes is the If / Else's left output, so the step it leads to is on the left.
-  log(
-    "log-already-open",
-    { x: P - ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
-    `ℹ️ ${ZABBIX_PROBLEM} has an ${r} already, ${numberOf(`find-${r}-0`)}, so no other was ${kind.created}.`,
-  );
-  connect("if-found-0", "yes", "log-already-open");
-
-  addNode({
-    componentId: `create-${r}-1`,
-    metadataId: `${r}-create-one`,
-    componentType: ComponentType.Component,
-    position: { x: P, y: zabbixCanvasRow(6) },
-    args: {
-      /*
-       * The problem's event ID in customFields is what the recovery and
-       * update paths, and the templates that write to Zabbix, find the
-       * record by.
-       */
-      json: jsonText({
-        [kind.severityIdColumn]: zabbixEventValue(kind.severityIdColumn),
-        customFields: {
-          [ZABBIX_EVENT_ID_CUSTOM_FIELD]: zabbixEventValue("eventId"),
-        },
-        // A Zabbix problem's name was written for the people who run the host, not for customers.
-        ...kind.quietCreateFields,
-        title: zabbixEventValue("title"),
-        description: zabbixEventValue("description"),
-      }),
-    },
-  });
-  connect("if-found-0", "no", `create-${r}-1`);
-  connect("log-lookup-failed", "out", `create-${r}-1`);
-
-  log(
-    "log-create-failed",
-    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
-    `❌ Could not ${kind.create} an ${r} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
-  );
-  connect(`create-${r}-1`, "error", "log-create-failed");
-
-  addNode({
-    componentId: "if-page-1",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: P, y: zabbixCanvasRow(7) },
-    args: {
-      "input-1-type": ConditionValueType.Number,
-      "input-1": zabbixEventValue("severityNumber"),
-      operator: ConditionOperator.GreaterThanOrEqualTo,
-      "input-2-type": ConditionValueType.Number,
-      "input-2": String(ZABBIX_PAGE_FROM_SEVERITY),
-    },
-  });
-  connect(`create-${r}-1`, "success", "if-page-1");
-
-  addNode({
-    componentId: "page-on-call-policy-1",
-    metadataId: ComponentID.PageOnCallPolicy,
-    componentType: ComponentType.Component,
-    position: { x: P, y: zabbixCanvasRow(8) },
-    args: zabbixPageArgs(
-      kind,
-      `{{local.components.create-${r}-1.returnValues.model._id}}`,
-    ),
-  });
-  connect("if-page-1", "yes", "page-on-call-policy-1");
-
-  log(
-    "log-not-paged",
-    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
-    `ℹ️ ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. It is ${zabbixEventValue("zabbixSeverity")} in Zabbix, so nobody was paged.`,
-  );
-  connect("if-page-1", "no", "log-not-paged");
-
-  log(
-    "log-paged",
-    { x: P, y: zabbixCanvasRow(8) + ZABBIX_CANVAS_PAGE_ROW },
-    `📟 ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
-  );
-  connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
-
-  log(
-    "log-nobody-paged",
+  const column: TemplateColumn = layOutTemplateColumn([
     {
-      x: P + ZABBIX_CANVAS_SLOT,
-      y: zabbixCanvasRow(8) + ZABBIX_CANVAS_PAGE_ROW,
+      componentId: ZABBIX_WEBHOOK_COMPONENT_ID,
+      metadataId: ComponentID.Webhook,
+      componentType: ComponentType.Trigger,
     },
-    `❌ ${kind.Created} an ${r} for ${ZABBIX_PROBLEM}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
-  );
-  connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");
-
-  /* ---- recovery: resolve the problem's record ---- */
-
-  addNode({
-    componentId: `find-${r}-1`,
-    metadataId: `${r}-find-one`,
-    componentType: ComponentType.Component,
-    position: { x: R, y: zabbixCanvasRow(5) },
-    args: findRecordArgs,
-  });
-  connect("switch-1", "case-2", `find-${r}-1`);
-
-  log(
-    "log-find-failed-1",
-    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
-    `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so it was not resolved. Why is in the run log above.`,
-  );
-  connect(`find-${r}-1`, "error", "log-find-failed-1");
-
-  addNode({
-    componentId: "if-found-1",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: R, y: zabbixCanvasRow(6) },
-    args: foundCondition(`find-${r}-1`),
-  });
-  connect(`find-${r}-1`, "success", "if-found-1");
-
-  addNode({
-    componentId: "find-states-1",
-    metadataId: `${r}-state-find-many`,
-    componentType: ComponentType.Component,
-    position: { x: R, y: zabbixCanvasRow(7) },
-    args: findStatesArgs,
-  });
-  connect("if-found-1", "yes", "find-states-1");
-
-  log(
-    `log-no-${r}-1`,
-    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
-    `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so its recovery changed nothing.`,
-  );
-  connect("if-found-1", "no", `log-no-${r}-1`);
-
-  log(
-    "log-states-failed-1",
-    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
-    `❌ Could not read this project's ${r} states, so ${numberOf(`find-${r}-1`)} was not resolved. Why is in the run log above.`,
-  );
-  connect("find-states-1", "error", "log-states-failed-1");
-
-  addNode({
-    componentId: "decide-state-1",
-    metadataId: ComponentID.JavaScriptCode,
-    componentType: ComponentType.Component,
-    position: { x: R, y: zabbixCanvasRow(8) },
-    args: decideStateArgs(`find-${r}-1`, "find-states-1"),
-  });
-  connect("find-states-1", "success", "decide-state-1");
-
-  log(
-    "log-decide-failed-1",
-    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(9) },
-    `❌ Could not tell whether ${numberOf(`find-${r}-1`)} is resolved, so it was not resolved: {{local.components.decide-state-1.returnValues.error}}`,
-  );
-  connect("decide-state-1", "error", "log-decide-failed-1");
-
-  addNode({
-    componentId: "if-change-1",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: R, y: zabbixCanvasRow(9) },
-    args: proceedCondition("decide-state-1"),
-  });
-  connect("decide-state-1", "success", "if-change-1");
-
-  addNode({
-    componentId: "change-state-1",
-    metadataId: `${r}-state-timeline-create-one`,
-    componentType: ComponentType.Component,
-    position: { x: R, y: zabbixCanvasRow(10) },
-    args: changeStateArgs("decide-state-1"),
-  });
-  connect("if-change-1", "yes", "change-state-1");
-
-  log(
-    "log-unchanged-1",
-    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(10) },
-    "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
-  );
-  connect("if-change-1", "no", "log-unchanged-1");
-
-  log(
-    "log-resolved",
-    { x: R, y: zabbixCanvasRow(11) },
-    `✅ Resolved ${numberOf(`find-${r}-1`)}: ${ZABBIX_PROBLEM} recovered.`,
-  );
-  connect("change-state-1", "success", "log-resolved");
-
-  log(
-    "log-resolve-failed",
-    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(11) },
-    `❌ Could not resolve ${numberOf(`find-${r}-1`)} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
-  );
-  connect("change-state-1", "error", "log-resolve-failed");
-
-  /* ---- update: a private note, and an acknowledgment ---- */
-
-  addNode({
-    componentId: `find-${r}-2`,
-    metadataId: `${r}-find-one`,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(5) },
-    args: findRecordArgs,
-  });
-  connect("switch-1", "case-3", `find-${r}-2`);
-
-  log(
-    "log-find-failed-2",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
-    `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so the update was not noted. Why is in the run log above.`,
-  );
-  connect(`find-${r}-2`, "error", "log-find-failed-2");
-
-  addNode({
-    componentId: "if-found-2",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(6) },
-    args: foundCondition(`find-${r}-2`),
-  });
-  connect(`find-${r}-2`, "success", "if-found-2");
-
-  addNode({
-    componentId: "add-note-2",
-    metadataId: `${r}-internal-note-create-one`,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(7) },
-    args: {
-      json: jsonText({
-        [kind.idColumn]: `{{local.components.find-${r}-2.returnValues.model._id}}`,
-        note: zabbixEventValue("note"),
-      }),
+    {
+      componentId: "read-event-1",
+      metadataId: ComponentID.JavaScriptCheck,
+      componentType: ComponentType.Component,
+      from: "out",
+      args: {
+        code: zabbixReadEventScript(kind),
+        /*
+         * The request goes last: what it says came from outside, and text
+         * from outside is only ever substituted after everything else in an
+         * argument.
+         */
+        arguments: jsonText({
+          zabbixUrl: "{{local.variables.zabbixUrl}}",
+          payload: `{{local.components.${ZABBIX_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
+        }),
+      },
     },
-  });
-  connect("if-found-2", "yes", "add-note-2");
-
-  log(
-    `log-no-${r}-2`,
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
-    `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so the update was not noted.`,
-  );
-  connect("if-found-2", "no", `log-no-${r}-2`);
-
-  log(
-    "log-note-failed",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
-    `❌ Could not add the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)}. Why is in the run log above.`,
-  );
-  connect("add-note-2", "error", "log-note-failed");
-
-  addNode({
-    componentId: "if-acknowledged-2",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(8) },
-    args: {
-      "input-1-type": ConditionValueType.Text,
-      "input-1": zabbixEventValue("target"),
-      operator: ConditionOperator.EqualTo,
-      "input-2-type": ConditionValueType.Text,
-      "input-2": "acknowledged",
+    {
+      componentId: step,
+      metadataId: fromAnotherToolMetadataId(kind),
+      componentType: ComponentType.Component,
+      from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+      args: {
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.whatHappened]:
+          zabbixEventValue("whatHappened"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideId]: zabbixEventValue("eventId"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideIdField]:
+          ZABBIX_EVENT_ID_CUSTOM_FIELD,
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.title]: zabbixEventValue("title"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.description]:
+          zabbixEventValue("description"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.severity]: zabbixEventValue("severity"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.note]: zabbixEventValue("note"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.reason]: zabbixEventValue("reason"),
+      },
     },
-  });
-  connect("add-note-2", "success", "if-acknowledged-2");
-
-  addNode({
-    componentId: "find-states-2",
-    metadataId: `${r}-state-find-many`,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(9) },
-    args: findStatesArgs,
-  });
-  connect("if-acknowledged-2", "yes", "find-states-2");
-
-  log(
-    "log-noted",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(9) },
-    `✅ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note.`,
-  );
-  connect("if-acknowledged-2", "no", "log-noted");
-
-  log(
-    "log-states-failed-2",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(10) },
-    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not read this project's ${r} states, so it was not acknowledged. Why is in the run log above.`,
-  );
-  connect("find-states-2", "error", "log-states-failed-2");
-
-  addNode({
-    componentId: "decide-state-2",
-    metadataId: ComponentID.JavaScriptCode,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(10) },
-    args: decideStateArgs(`find-${r}-2`, "find-states-2"),
-  });
-  connect("find-states-2", "success", "decide-state-2");
-
-  log(
-    "log-decide-failed-2",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(11) },
-    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not tell whether it is acknowledged, so it was not acknowledged: {{local.components.decide-state-2.returnValues.error}}`,
-  );
-  connect("decide-state-2", "error", "log-decide-failed-2");
-
-  addNode({
-    componentId: "if-change-2",
-    metadataId: ComponentID.IfElse,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(11) },
-    args: proceedCondition("decide-state-2"),
-  });
-  connect("decide-state-2", "success", "if-change-2");
-
-  addNode({
-    componentId: "change-state-2",
-    metadataId: `${r}-state-timeline-create-one`,
-    componentType: ComponentType.Component,
-    position: { x: U, y: zabbixCanvasRow(12) },
-    args: changeStateArgs("decide-state-2"),
-  });
-  connect("if-change-2", "yes", "change-state-2");
-
-  log(
-    "log-unchanged-2",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(12) },
-    `ℹ️ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note. {{local.components.decide-state-2.returnValues.returnValue.reason}}`,
-  );
-  connect("if-change-2", "no", "log-unchanged-2");
-
-  log(
-    "log-acknowledged",
-    { x: U, y: zabbixCanvasRow(13) },
-    `✅ Acknowledged ${numberOf(`find-${r}-2`)}, and added the update to ${ZABBIX_PROBLEM} to it as a private note: the problem was acknowledged in Zabbix.`,
-  );
-  connect("change-state-2", "success", "log-acknowledged");
-
-  log(
-    "log-acknowledge-failed",
-    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(13) },
-    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not acknowledge it. Why is in the run log above.`,
-  );
-  connect("change-state-2", "error", "log-acknowledge-failed");
+    {
+      componentId: "if-page-1",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      from: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+      args: {
+        "input-1-type": ConditionValueType.Number,
+        "input-1": zabbixEventValue("severityNumber"),
+        operator: ConditionOperator.GreaterThanOrEqualTo,
+        "input-2-type": ConditionValueType.Number,
+        "input-2": String(ZABBIX_PAGE_FROM_SEVERITY),
+      },
+    },
+    {
+      componentId: "page-on-call-policy-1",
+      metadataId: ComponentID.PageOnCallPolicy,
+      componentType: ComponentType.Component,
+      from: "yes",
+      args: zabbixPageArgs(
+        kind,
+        `{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
+      ),
+    },
+  ]);
 
   return {
     id: `zabbix-${kind.create}-${r}-from-problem`,
     name: `${kind.Create} an ${r} for each Zabbix problem`,
     description: `Pages on-call for High and Disaster problems, adds updates made in Zabbix as private notes, and resolves the ${r} when the problem recovers.`,
-    teaches:
-      "How one workflow follows a Zabbix problem from start to end: a Switch / Case takes a path for each event. Open the trigger for its URL, and the Page step to pick who to page.",
-    setUpInBuilder: "An on-call policy to page. You pick it in the Builder.",
+    teaches: `How one step keeps an ${r} in step with a Zabbix problem, by the problem's event ID. Open the trigger for its URL.`,
+    whoToPage: [
+      {
+        componentId: "page-on-call-policy-1",
+        title: "Who to page for High and Disaster problems",
+        description: `The on-call policies paged for a new ${r} from a High or Disaster problem. Pick none to page nobody.`,
+        required: false,
+        leftOutWhenNobody: ["if-page-1"],
+      },
+    ],
     category: WorkflowTemplateCategory.Zabbix,
     icon: IconProp.ServerStack,
     workflowName: `Zabbix problems to ${kind.plural}`,
@@ -9067,12 +8386,40 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
      */
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Zabbix problem sent to this workflow's URL, and pages the on-call policy you pick for High and Disaster problems. Updates made in Zabbix become private notes, acknowledging the problem in Zabbix acknowledges the ${r}, and the problem's recovery resolves it.`,
     variables: [zabbixUrlVariable("Links to problems go there.")],
-    graph: { nodes: nodes, edges: edges },
+    graph: { nodes: column.nodes, edges: column.edges },
   };
 };
 
 /* ----------------------- OneUptime -> Zabbix ----------------------- */
 
+type ZabbixUpdateArgsFunction = (data: {
+  eventId: string;
+  whatToDo: string;
+  message: string;
+}) => JSONObject;
+
+// Update Zabbix Problem, sent to the Zabbix the workflow's settings name.
+const zabbixUpdateArgs: ZabbixUpdateArgsFunction = (data: {
+  eventId: string;
+  whatToDo: string;
+  message: string;
+}): JSONObject => {
+  return {
+    [ZABBIX_UPDATE_ARGUMENT_IDS.zabbixUrl]: "{{local.variables.zabbixUrl}}",
+    [ZABBIX_UPDATE_ARGUMENT_IDS.apiToken]:
+      "{{local.variables.zabbixApiToken}}",
+    [ZABBIX_UPDATE_ARGUMENT_IDS.eventId]: data.eventId,
+    [ZABBIX_UPDATE_ARGUMENT_IDS.whatToDo]: data.whatToDo,
+    [ZABBIX_UPDATE_ARGUMENT_IDS.message]: data.message,
+  };
+};
+
+/*
+ * Three steps: the record's state changed, a check of what that means in
+ * Zabbix, and Update Zabbix Problem - which reads the problem first, leaves
+ * one Zabbix already acknowledged or resolved as it is, and acknowledges one
+ * whose trigger cannot be closed by hand instead of closing it.
+ */
 const zabbixStateTemplate: ZabbixTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
@@ -9081,16 +8428,58 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
   const planned: (key: string) => string = (key: string): string => {
     return `{{local.components.plan-state-1.returnValues.returnValue.${key}}}`;
   };
-  const chosen: (key: string) => string = (key: string): string => {
-    return `{{local.components.choose-action-1.returnValues.returnValue.${key}}}`;
-  };
+
+  const column: TemplateColumn = layOutTemplateColumn([
+    {
+      componentId: trigger,
+      metadataId: `${r}-on-update`,
+      componentType: ComponentType.Trigger,
+      args: {
+        "listen-on": { [kind.stateIdColumn]: true },
+        select: {
+          _id: true,
+          [kind.numberField]: true,
+          isPrivate: true,
+          customFields: true,
+          [kind.stateRelation]: {
+            name: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
+          },
+        },
+      },
+    },
+    {
+      componentId: "plan-state-1",
+      metadataId: ComponentID.JavaScriptCheck,
+      componentType: ComponentType.Component,
+      from: "success",
+      args: {
+        code: zabbixPlanStateScript(kind),
+        arguments: jsonText({
+          [r]: `{{local.components.${trigger}.returnValues.model}}`,
+        }),
+      },
+    },
+    {
+      componentId: "update-problem-1",
+      metadataId: ComponentID.ZabbixUpdateProblem,
+      componentType: ComponentType.Component,
+      from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+      args: zabbixUpdateArgs({
+        eventId: planned("eventId"),
+        whatToDo: planned("whatToDo"),
+        message: planned("message"),
+      }),
+    },
+  ]);
 
   return {
     id: `zabbix-update-problem-on-${r}-state`,
     name: `Acknowledge or close the Zabbix problem with the ${r}`,
     description: `Acknowledges the Zabbix problem when the ${r} is acknowledged, and closes it when the ${r} is resolved.`,
     teaches:
-      "How to call a JSON-RPC API with a token, and read an answer that reports errors in its body.",
+      "How one step updates a problem in Zabbix: it reads the problem first, so one Zabbix already closed is left as it is.",
     category: WorkflowTemplateCategory.Zabbix,
     icon: IconProp.CheckCircle,
     workflowName: `Sync ${r} state to Zabbix`,
@@ -9099,265 +8488,15 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
       zabbixUrlVariable("The workflow calls Zabbix's API there."),
       ZABBIX_API_TOKEN,
     ],
-    graph: {
-      nodes: [
-        {
-          componentId: trigger,
-          metadataId: `${r}-on-update`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            "listen-on": { [kind.stateIdColumn]: true },
-            select: {
-              _id: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              customFields: true,
-              [kind.stateRelation]: {
-                name: true,
-                isAcknowledgedState: true,
-                isResolvedState: true,
-              },
-            },
-          },
-        },
-        {
-          componentId: "plan-state-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(1) },
-          args: {
-            code: zabbixPlanStateScript(kind),
-            arguments: jsonText({
-              [r]: `{{local.components.${trigger}.returnValues.model}}`,
-            }),
-          },
-        },
-        {
-          componentId: "log-plan-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
-          args: {
-            value: `❌ Could not tell what the ${r}'s new state means in Zabbix: {{local.components.plan-state-1.returnValues.error}}`,
-          },
-        },
-        {
-          componentId: "if-linked-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(2) },
-          args: proceedCondition("plan-state-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
-          args: { value: `ℹ️ ${planned("reason")}` },
-        },
-        {
-          /*
-           * Zabbix is asked first: a problem it already acknowledged or
-           * resolved is left as it is, and a close is only sent where the
-           * problem's trigger allows closing it by hand.
-           */
-          componentId: "get-problem-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(3) },
-          args: {
-            url: ZABBIX_API_URL,
-            "request-headers": zabbixHeaders(),
-            "request-body": zabbixRequestBody("event.get", {
-              eventids: [planned("eventId")],
-              output: ["eventid", "r_eventid", "acknowledged"],
-              selectRelatedObject: ["triggerid", "manual_close"],
-            }),
-          },
-        },
-        {
-          componentId: "log-get-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(4) },
-          args: {
-            value: `❌ Could not reach Zabbix to read problem ${planned("eventId")}: {{local.components.get-problem-1.returnValues.error}}\nZabbix said: {{local.components.get-problem-1.returnValues.response-body}}`,
-          },
-        },
-        {
-          componentId: "choose-action-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(4) },
-          args: {
-            code: zabbixChooseActionScript(kind),
-            // Zabbix's answer goes last: it came from outside.
-            arguments: jsonText({
-              plan: "{{local.components.plan-state-1.returnValues.returnValue}}",
-              answer:
-                "{{local.components.get-problem-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-choose-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
-          args: {
-            value: `❌ Could not read Zabbix problem ${planned("eventId")}, so Zabbix was not updated: {{local.components.choose-action-1.returnValues.error}}`,
-          },
-        },
-        {
-          componentId: "if-update-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(5) },
-          args: proceedCondition("choose-action-1"),
-        },
-        {
-          componentId: "log-unchanged",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
-          args: { value: `ℹ️ ${chosen("reason")}` },
-        },
-        {
-          componentId: "update-problem-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(6) },
-          args: {
-            url: ZABBIX_API_URL,
-            "request-headers": zabbixHeaders(),
-            "request-body": zabbixRequestBody("event.acknowledge", {
-              eventids: [chosen("eventId")],
-              action: chosen("action"),
-              message: chosen("message"),
-            }),
-          },
-        },
-        {
-          componentId: "log-update-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
-          args: {
-            value: `❌ Could not reach Zabbix to update problem ${chosen("eventId")}: {{local.components.update-problem-1.returnValues.error}}\nZabbix said: {{local.components.update-problem-1.returnValues.response-body}}`,
-          },
-        },
-        {
-          componentId: "check-answer-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(7) },
-          args: {
-            code: zabbixCheckAnswerScript(kind),
-            arguments: jsonText({
-              answer:
-                "{{local.components.update-problem-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-updated",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(8) },
-          args: { value: `✅ ${chosen("done")}` },
-        },
-        {
-          componentId: "log-refused",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
-          args: {
-            value: `❌ Zabbix did not update problem ${chosen("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: trigger,
-          toComponentId: "plan-state-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "plan-state-1",
-          toComponentId: "if-linked-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "plan-state-1",
-          toComponentId: "log-plan-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: "get-problem-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-linked-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "get-problem-1",
-          toComponentId: "choose-action-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "get-problem-1",
-          toComponentId: "log-get-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "choose-action-1",
-          toComponentId: "if-update-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "choose-action-1",
-          toComponentId: "log-choose-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-update-1",
-          toComponentId: "update-problem-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-update-1",
-          toComponentId: "log-unchanged",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "update-problem-1",
-          toComponentId: "check-answer-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "update-problem-1",
-          toComponentId: "log-update-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "check-answer-1",
-          toComponentId: "log-updated",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "check-answer-1",
-          toComponentId: "log-refused",
-          fromPort: "error",
-        },
-      ],
-    },
+    graph: { nodes: column.nodes, edges: column.edges },
   };
 };
 
+/*
+ * Four steps: a new private note, the record it is on (read by itself: a
+ * step may not read whether a record is private, or its custom fields,
+ * through the note), the message, and Update Zabbix Problem adding it.
+ */
 const zabbixNoteTemplate: ZabbixTemplateFunction = (
   kind: TemplateRecordKind,
 ): TemplateDefinition => {
@@ -9365,6 +8504,63 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
   const built: (key: string) => string = (key: string): string => {
     return `{{local.components.build-message-1.returnValues.returnValue.${key}}}`;
   };
+
+  const column: TemplateColumn = layOutTemplateColumn([
+    {
+      componentId: "note-on-create-1",
+      metadataId: `${r}-internal-note-on-create`,
+      componentType: ComponentType.Trigger,
+      args: {
+        select: {
+          _id: true,
+          note: true,
+          [kind.idColumn]: true,
+          createdByUser: { name: true },
+        },
+      },
+    },
+    {
+      componentId: `find-${r}-1`,
+      metadataId: `${r}-find-one`,
+      componentType: ComponentType.Component,
+      from: "success",
+      args: {
+        query: {
+          _id: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
+        },
+        select: {
+          _id: true,
+          [kind.numberField]: true,
+          isPrivate: true,
+          customFields: true,
+        },
+      },
+    },
+    {
+      componentId: "build-message-1",
+      metadataId: ComponentID.JavaScriptCheck,
+      componentType: ComponentType.Component,
+      from: "success",
+      args: {
+        code: zabbixNoteMessageScript(kind),
+        arguments: jsonText({
+          [r]: `{{local.components.find-${r}-1.returnValues.model}}`,
+          note: "{{local.components.note-on-create-1.returnValues.model}}",
+        }),
+      },
+    },
+    {
+      componentId: "update-problem-1",
+      metadataId: ComponentID.ZabbixUpdateProblem,
+      componentType: ComponentType.Component,
+      from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+      args: zabbixUpdateArgs({
+        eventId: built("eventId"),
+        whatToDo: ZabbixProblemUpdate.Message,
+        message: built("message"),
+      }),
+    },
+  ]);
 
   return {
     id: `zabbix-message-from-${r}-private-note`,
@@ -9380,205 +8576,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
       zabbixUrlVariable("The workflow calls Zabbix's API there."),
       ZABBIX_API_TOKEN,
     ],
-    graph: {
-      nodes: [
-        {
-          componentId: "note-on-create-1",
-          metadataId: `${r}-internal-note-on-create`,
-          componentType: ComponentType.Trigger,
-          position: { x: 100, y: 100 },
-          args: {
-            select: {
-              _id: true,
-              note: true,
-              [kind.idColumn]: true,
-              createdByUser: { name: true },
-            },
-          },
-        },
-        {
-          /*
-           * The record, read by itself: whether it is private, and the
-           * event ID its custom fields keep, are not read through the
-           * note's relation, which a step - reading as a Project Admin of
-           * the project - is not allowed to read them through.
-           */
-          componentId: `find-${r}-1`,
-          metadataId: `${r}-find-one`,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(1) },
-          args: {
-            query: {
-              _id: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
-            },
-            select: {
-              _id: true,
-              [kind.numberField]: true,
-              isPrivate: true,
-              customFields: true,
-            },
-          },
-        },
-        {
-          componentId: `log-find-${r}-failed`,
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
-          args: {
-            value: `❌ Could not read the ${r} the note is on, so it was not posted to Zabbix. Why is in the run log above.`,
-          },
-        },
-        {
-          componentId: "build-message-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(2) },
-          args: {
-            code: zabbixNoteMessageScript(kind),
-            arguments: jsonText({
-              [r]: `{{local.components.find-${r}-1.returnValues.model}}`,
-              note: "{{local.components.note-on-create-1.returnValues.model}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-build-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
-          args: {
-            value:
-              "❌ Could not write the Zabbix message: {{local.components.build-message-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "if-post-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(3) },
-          args: proceedCondition("build-message-1"),
-        },
-        {
-          componentId: "log-skipped",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(4) },
-          args: { value: `ℹ️ ${built("reason")}` },
-        },
-        {
-          componentId: "post-message-1",
-          metadataId: ComponentID.ApiPost,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(4) },
-          args: {
-            url: ZABBIX_API_URL,
-            "request-headers": zabbixHeaders(),
-            "request-body": zabbixRequestBody("event.acknowledge", {
-              eventids: [built("eventId")],
-              action: String(ZABBIX_ACTION_MESSAGE),
-              message: built("message"),
-            }),
-          },
-        },
-        {
-          componentId: "log-post-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
-          args: {
-            value: `❌ Could not reach Zabbix to add the note to problem ${built("eventId")}: {{local.components.post-message-1.returnValues.error}}\nZabbix said: {{local.components.post-message-1.returnValues.response-body}}`,
-          },
-        },
-        {
-          componentId: "check-answer-1",
-          metadataId: ComponentID.JavaScriptCode,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(5) },
-          args: {
-            code: zabbixCheckAnswerScript(kind),
-            arguments: jsonText({
-              answer:
-                "{{local.components.post-message-1.returnValues.response-body}}",
-            }),
-          },
-        },
-        {
-          componentId: "log-posted",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: zabbixCanvasRow(6) },
-          args: {
-            value: `✅ Added the note to Zabbix problem ${built("eventId")} as a message.`,
-          },
-        },
-        {
-          componentId: "log-refused",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
-          args: {
-            value: `❌ Zabbix did not add the note to problem ${built("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
-          },
-        },
-      ],
-      edges: [
-        {
-          fromComponentId: "note-on-create-1",
-          toComponentId: `find-${r}-1`,
-          fromPort: "success",
-        },
-        {
-          fromComponentId: `find-${r}-1`,
-          toComponentId: "build-message-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: `find-${r}-1`,
-          toComponentId: `log-find-${r}-failed`,
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "build-message-1",
-          toComponentId: "if-post-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "build-message-1",
-          toComponentId: "log-build-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "post-message-1",
-          fromPort: "yes",
-        },
-        {
-          fromComponentId: "if-post-1",
-          toComponentId: "log-skipped",
-          fromPort: "no",
-        },
-        {
-          fromComponentId: "post-message-1",
-          toComponentId: "check-answer-1",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "post-message-1",
-          toComponentId: "log-post-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "check-answer-1",
-          toComponentId: "log-posted",
-          fromPort: "success",
-        },
-        {
-          fromComponentId: "check-answer-1",
-          toComponentId: "log-refused",
-          fromPort: "error",
-        },
-      ],
-    },
+    graph: { nodes: column.nodes, edges: column.edges },
   };
 };
 
@@ -9973,16 +8971,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "✅ JavaScript transform completed\n\nResult: {{local.components.javascript-1.returnValues.returnValue}}",
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ JavaScript transform failed: {{local.components.javascript-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -9994,11 +8982,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "javascript-1",
           toComponentId: "log-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "javascript-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10042,27 +9025,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Slack could not deliver the incident notification: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10103,27 +9071,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Microsoft Teams could not deliver the incident notification: {{local.components.teams-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-1",
           toComponentId: "teams-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "teams-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10165,27 +9118,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Discord could not deliver the incident notification: {{local.components.discord-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-1",
           toComponentId: "discord-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "discord-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10227,27 +9165,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ IRC could not deliver the incident notification: {{local.components.irc-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-1",
           toComponentId: "irc-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "irc-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10289,27 +9212,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Mattermost could not deliver the incident notification: {{local.components.mattermost-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-1",
           toComponentId: "mattermost-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "mattermost-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10404,26 +9312,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so it was not posted to Slack.",
           },
         },
-        {
-          componentId: "log-critical-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -260, y: 800 },
-          args: {
-            value:
-              "❌ Slack could not deliver the critical incident: {{local.components.slack-critical.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "log-major-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 800 },
-          args: {
-            value:
-              "❌ Slack could not deliver the major incident: {{local.components.slack-major.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -10445,16 +9333,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "switch-1",
           toComponentId: "log-other-severity",
           fromPort: SWITCH_DEFAULT_PORT_ID,
-        },
-        {
-          fromComponentId: "slack-critical",
-          toComponentId: "log-critical-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "slack-major",
-          toComponentId: "log-major-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10498,27 +9376,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Slack could not deliver the incident state update: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-update-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10562,27 +9425,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Mattermost could not deliver the incident state update: {{local.components.mattermost-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-update-1",
           toComponentId: "mattermost-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "mattermost-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10637,27 +9485,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Could not forward the incident: {{local.components.api-post-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-1",
           toComponentId: "api-post-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "api-post-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10728,27 +9561,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Could not send the incident: {{local.components.api-post-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "incident-on-create-or-update-1",
           toComponentId: "api-post-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "api-post-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10803,26 +9621,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Could not generate an incident summary: {{local.components.ai-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 700 },
-          args: {
-            value:
-              "❌ Slack could not deliver the AI incident brief: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -10834,16 +9632,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "ai-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "ai-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10886,27 +9674,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Slack could not deliver the alert notification: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "alert-on-create-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -10967,27 +9740,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Telegram could not deliver the alert notification: {{local.components.telegram-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "alert-on-create-1",
           toComponentId: "telegram-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "telegram-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11030,27 +9788,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Mattermost could not deliver the alert notification: {{local.components.mattermost-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "alert-on-create-1",
           toComponentId: "mattermost-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "mattermost-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11093,27 +9836,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Slack could not deliver the monitor status update: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "monitor-status-timeline-on-create-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11178,16 +9906,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "ℹ️ Status changed to {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}, which is not offline. No notification sent.",
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 700 },
-          args: {
-            value:
-              "❌ Slack could not deliver the offline monitor alert: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -11204,11 +9922,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "if-else-1",
           toComponentId: "log-online",
           fromPort: "no",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11249,27 +9962,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Mattermost could not deliver the monitor status update: {{local.components.mattermost-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "monitor-status-timeline-on-create-1",
           toComponentId: "mattermost-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "mattermost-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11322,27 +10020,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Could not forward the monitor status change: {{local.components.api-post-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "monitor-status-timeline-on-create-1",
           toComponentId: "api-post-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "api-post-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11392,27 +10075,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Slack could not deliver the on-call status update: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "oncall-execution-on-update-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11838,26 +10506,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "ℹ️ Subscriber update was not a confirmed email subscription. No Slack message sent.",
           },
         },
-        {
-          componentId: "log-normalize-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 500, y: 500 },
-          args: {
-            value:
-              "❌ Could not inspect the subscriber update: {{local.components.subscriber-normalize-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 900 },
-          args: {
-            value:
-              "❌ Slack could not deliver the subscriber notification: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -11871,11 +10519,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromPort: "success",
         },
         {
-          fromComponentId: "subscriber-normalize-1",
-          toComponentId: "log-normalize-failed",
-          fromPort: "error",
-        },
-        {
           fromComponentId: "if-confirmed-email-1",
           toComponentId: "slack-1",
           fromPort: "yes",
@@ -11884,11 +10527,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "if-confirmed-email-1",
           toComponentId: "log-skipped",
           fromPort: "no",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -11992,26 +10630,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "ℹ️ Subscriber update was not a confirmed email subscription. Nothing forwarded.",
           },
         },
-        {
-          componentId: "log-normalize-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 500, y: 500 },
-          args: {
-            value:
-              "❌ Could not inspect the subscriber update: {{local.components.subscriber-normalize-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 900 },
-          args: {
-            value:
-              "❌ Could not forward the subscriber: {{local.components.api-post-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -12025,11 +10643,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromPort: "success",
         },
         {
-          fromComponentId: "subscriber-normalize-1",
-          toComponentId: "log-normalize-failed",
-          fromPort: "error",
-        },
-        {
           fromComponentId: "if-confirmed-email-1",
           toComponentId: "api-post-1",
           fromPort: "yes",
@@ -12038,11 +10651,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "if-confirmed-email-1",
           toComponentId: "log-skipped",
           fromPort: "no",
-        },
-        {
-          fromComponentId: "api-post-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12093,27 +10701,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Slack could not deliver the maintenance announcement: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "maintenance-on-create-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12163,27 +10756,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Mattermost could not deliver the maintenance announcement: {{local.components.mattermost-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "maintenance-on-create-1",
           toComponentId: "mattermost-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "mattermost-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12242,16 +10820,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "✅ API check succeeded\nStatus: {{local.components.api-get-1.returnValues.response-status}}\nResponse: {{local.components.api-get-1.returnValues.response-body}}",
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ API check failed: {{local.components.api-get-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -12263,11 +10831,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "api-get-1",
           toComponentId: "log-ok",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "api-get-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12340,16 +10903,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-notification-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 700 },
-          args: {
-            value:
-              "❌ Slack could not deliver the scheduled check alert: {{local.components.slack-failed.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -12365,11 +10918,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         {
           fromComponentId: "api-get-1",
           toComponentId: "slack-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "slack-failed",
-          toComponentId: "log-notification-failed",
           fromPort: "error",
         },
       ],
@@ -12417,27 +10965,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             url: "{{local.variables.heartbeatUrl}}",
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            value:
-              "❌ Heartbeat ping failed: {{local.components.api-get-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "schedule-1",
           toComponentId: "api-get-1",
           fromPort: "execute",
-        },
-        {
-          fromComponentId: "api-get-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12543,27 +11076,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             "smtp-password": "{{local.variables.smtpPassword}}",
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            value:
-              "❌ The daily email could not be sent: {{local.components.send-email-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
           fromComponentId: "schedule-1",
           toComponentId: "send-email-1",
           fromPort: "execute",
-        },
-        {
-          fromComponentId: "send-email-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12627,26 +11145,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             ].join("\n"),
           },
         },
-        {
-          componentId: "log-format-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 300, y: 500 },
-          args: {
-            value:
-              "❌ Could not format the webhook payload: {{local.components.format-payload-1.returnValues.error}}",
-          },
-        },
-        {
-          componentId: "log-delivery-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: -100, y: 700 },
-          args: {
-            value:
-              "❌ Slack could not deliver the webhook payload: {{local.components.slack-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -12658,16 +11156,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "format-payload-1",
           toComponentId: "slack-1",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "format-payload-1",
-          toComponentId: "log-format-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "slack-1",
-          toComponentId: "log-delivery-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12723,16 +11211,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
               "✅ Webhook relayed successfully with status {{local.components.api-post-1.returnValues.response-status}}.",
           },
         },
-        {
-          componentId: "log-failed",
-          metadataId: ComponentID.Log,
-          componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
-          args: {
-            value:
-              "❌ Webhook relay failed: {{local.components.api-post-1.returnValues.error}}",
-          },
-        },
       ],
       edges: [
         {
@@ -12744,11 +11222,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "api-post-1",
           toComponentId: "log-forwarded",
           fromPort: "success",
-        },
-        {
-          fromComponentId: "api-post-1",
-          toComponentId: "log-failed",
-          fromPort: "error",
         },
       ],
     },
@@ -12822,20 +11295,117 @@ export const getTemplateGraphSpec: GetTemplateGraphSpecFunction = (
   return definition ? definition.graph : null;
 };
 
+export type ApplyWhoToPageFunction = (data: {
+  spec: TemplateGraphSpec;
+  whoToPage: Array<WorkflowTemplateWhoToPage>;
+  picks: WhoToPagePicks;
+}) => TemplateGraphSpec;
+
+/*
+ * The graph with who was picked in the wizard: each Page step's who-to-page
+ * setting holds the ids picked for it, as the Builder stores a pick. A Page
+ * step nobody was picked for is left as the template has it when somebody
+ * is required - the Builder asks for it - and is left out otherwise, with
+ * the steps that are only there for it and every connection to or from
+ * them. Only ids are taken: anything else in a pick is dropped.
+ */
+export const applyWhoToPage: ApplyWhoToPageFunction = (data: {
+  spec: TemplateGraphSpec;
+  whoToPage: Array<WorkflowTemplateWhoToPage>;
+  picks: WhoToPagePicks;
+}): TemplateGraphSpec => {
+  const leftOut: Set<string> = new Set<string>();
+  const nodes: Array<TemplateNodeSpec> = data.spec.nodes.map(
+    (node: TemplateNodeSpec): TemplateNodeSpec => {
+      return node.args
+        ? { ...node, args: JSON.parse(JSON.stringify(node.args)) as JSONObject }
+        : { ...node };
+    },
+  );
+
+  for (const ask of data.whoToPage) {
+    const node: TemplateNodeSpec | undefined = nodes.find(
+      (candidate: TemplateNodeSpec): boolean => {
+        return candidate.componentId === ask.componentId;
+      },
+    );
+    const target: PageStepTarget | null = node
+      ? getPageStepTarget(node.metadataId)
+      : null;
+
+    if (!node || !target) {
+      throw new Error(`${ask.componentId} is not a Page step of this template.`);
+    }
+
+    const picked: Array<string> = Array.from(
+      new Set(
+        (data.picks[ask.componentId] || []).filter(
+          (id: unknown): id is string => {
+            return typeof id === "string" && ObjectID.isValidUUID(id);
+          },
+        ),
+      ),
+    );
+
+    if (picked.length > 0) {
+      node.args = { ...(node.args || {}), [target.argumentId]: picked };
+      continue;
+    }
+
+    if (!ask.required) {
+      leftOut.add(ask.componentId);
+
+      for (const componentId of ask.leftOutWhenNobody || []) {
+        leftOut.add(componentId);
+      }
+    }
+  }
+
+  return {
+    nodes: nodes.filter((node: TemplateNodeSpec): boolean => {
+      return !leftOut.has(node.componentId);
+    }),
+    edges: data.spec.edges.filter((edge: TemplateEdgeSpec): boolean => {
+      return (
+        !leftOut.has(edge.fromComponentId) && !leftOut.has(edge.toComponentId)
+      );
+    }),
+  };
+};
+
 export type BuildGraphForTemplateFunction = (
   templateId: string,
   generateId: () => string,
+  picks?: WhoToPagePicks | undefined,
 ) => JSONObject | null;
 
+/*
+ * The graph the create wizard builds: the template's, with who was picked
+ * for its Page steps (applyWhoToPage). Without picks, the template's own.
+ */
 export const buildGraphForTemplate: BuildGraphForTemplateFunction = (
   templateId: string,
   generateId: () => string,
+  picks?: WhoToPagePicks | undefined,
 ): JSONObject | null => {
-  const spec: TemplateGraphSpec | null = getTemplateGraphSpec(templateId);
+  const definition: TemplateDefinition | undefined = TEMPLATE_DEFINITIONS.find(
+    (candidate: TemplateDefinition) => {
+      return candidate.id === templateId;
+    },
+  );
 
-  if (!spec) {
+  if (!definition) {
     return null;
   }
+
+  const spec: TemplateGraphSpec =
+    picks && definition.whoToPage
+      ? applyWhoToPage({
+          spec: definition.graph,
+          whoToPage: definition.whoToPage,
+          picks: picks,
+        })
+      : definition.graph;
 
   return buildTemplateGraph(spec, generateId);
 };

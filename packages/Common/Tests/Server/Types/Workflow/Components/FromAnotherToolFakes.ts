@@ -23,6 +23,7 @@ import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSever
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import NotNull from "../../../../../Types/BaseDatabase/NotNull";
 import {
   ALERT_RECORD_MODEL,
   FromAnotherToolRecordModel,
@@ -120,6 +121,23 @@ export class FakeTable {
 
       const value: unknown =
         key === "_id" ? row.id?.toString() : row.getColumnValue(key);
+
+      /*
+       * "Has a value", as a database step's query writes it: the old
+       * templates read every state and severity with _id NotNull.
+       */
+      if (
+        wanted instanceof NotNull ||
+        (Boolean(wanted) &&
+          typeof wanted === "object" &&
+          (wanted as JSONObject)["_type"] === "NotNull")
+      ) {
+        if (value === null || value === undefined) {
+          return false;
+        }
+
+        continue;
+      }
 
       if (String(value) !== String(wanted)) {
         return false;

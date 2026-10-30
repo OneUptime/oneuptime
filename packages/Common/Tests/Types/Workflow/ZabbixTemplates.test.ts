@@ -1,12 +1,19 @@
 /*
  * The Zabbix templates, as the catalog holds them: the category the picker
  * shows, the six templates and what each asks for, the Zabbix URL and API
- * token their wizard takes, what they send Zabbix's API, their scripts,
- * what their steps read and write as the workflow's principal, and where
- * their cards lie on the canvas.
+ * token their wizard takes, how they reach Zabbix's API, their scripts,
+ * what their steps read as the workflow's principal, and where their cards
+ * lie on the canvas.
  *
- * What they do when they run is ZabbixTemplateSimulation's; what each
- * script decides is ZabbixTemplateScripts'. Templates.test.ts holds every
+ * They were made simple (the maintainer: "4-5 components max"): the
+ * workflow Zabbix sends its problems to is five steps - the Webhook,
+ * read-event-1, Incident (or Alert) From Another Tool, and an If / Else and
+ * a Page step for High and Disaster problems - where it was 48; the two that
+ * write back to Zabbix are three and four, through Update Zabbix Problem.
+ *
+ * What they do when they run is ZabbixTemplateSimulation's, and that they
+ * do what the old ones did is ZabbixTemplateEquivalence's; what each script
+ * decides is ZabbixTemplateScripts'. Templates.test.ts holds every
  * template, these too, to the component registry and the builder's checks.
  */
 
@@ -38,6 +45,11 @@ import ComponentMetadata, {
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
+import { FROM_ANOTHER_TOOL_ARGUMENT_IDS } from "../../../Types/Workflow/Components/FromAnotherTool";
+import {
+  ZABBIX_UPDATE_ARGUMENT_IDS,
+  ZabbixProblemUpdate,
+} from "../../../Types/Workflow/Components/Zabbix";
 import {
   ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER,
   WorkflowTemplate,
@@ -55,7 +67,6 @@ import {
   ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER,
   ZABBIX_URL_PATTERN,
   ZABBIX_WEBHOOK_COMPONENT_ID,
-  ZabbixEventKind,
   buildGraphForTemplate,
   getTemplateGraphSpec,
   getWorkflowTemplateCategoryInfo,
@@ -172,7 +183,7 @@ function stringsOf(value: JSONValue | undefined): Array<string> {
 function scriptsOf(templateId: string): Array<[string, string]> {
   return spec(templateId)
     .nodes.filter((candidate: TemplateNodeSpec): boolean => {
-      return candidate.metadataId === ComponentID.JavaScriptCode;
+      return candidate.metadataId === ComponentID.JavaScriptCheck;
     })
     .map((candidate: TemplateNodeSpec): [string, string] => {
       return [candidate.componentId, String(candidate.args?.["code"])];
@@ -353,15 +364,31 @@ describe("the Zabbix templates, as the picker lists them", () => {
     }
   });
 
-  test("only the workflow that pages leaves something for the Builder: who to page", () => {
+  test("none leaves anything for the Builder: the wizard asks who to page", () => {
     for (const candidate of ZABBIX) {
       expect({
         id: candidate.id,
         setUpInBuilder: candidate.setUpInBuilder,
-      }).toEqual({
+      }).toEqual({ id: candidate.id, setUpInBuilder: undefined });
+    }
+  });
+
+  test("only the workflow Zabbix sends its problems to pages, for High and Disaster, and picking nobody pages nobody", () => {
+    for (const candidate of ZABBIX) {
+      expect({ id: candidate.id, whoToPage: candidate.whoToPage }).toEqual({
         id: candidate.id,
-        setUpInBuilder: PROBLEM_TEMPLATES.includes(candidate.id)
-          ? "An on-call policy to page. You pick it in the Builder."
+        whoToPage: PROBLEM_TEMPLATES.includes(candidate.id)
+          ? [
+              {
+                componentId: "page-on-call-policy-1",
+                title: "Who to page for High and Disaster problems",
+                description: `The on-call policies paged for a new ${
+                  candidate.subcategory === "Alerts" ? "alert" : "incident"
+                } from a High or Disaster problem. Pick none to page nobody.`,
+                required: false,
+                leftOutWhenNobody: ["if-page-1"],
+              },
+            ]
           : undefined,
       });
     }
@@ -496,12 +523,12 @@ describe("the Zabbix API token the wizard takes", () => {
 
 /* --------------------------- What they send Zabbix --------------------------- */
 
-describe("what the templates send Zabbix's API", () => {
-  const apiSteps: Array<[string, TemplateNodeSpec]> = ZABBIX_IDS.flatMap(
+describe("how the templates reach Zabbix's API", () => {
+  const updateSteps: Array<[string, TemplateNodeSpec]> = ZABBIX_IDS.flatMap(
     (templateId: string): Array<[string, TemplateNodeSpec]> => {
       return spec(templateId)
         .nodes.filter((candidate: TemplateNodeSpec): boolean => {
-          return candidate.metadataId === ComponentID.ApiPost;
+          return candidate.metadataId === ComponentID.ZabbixUpdateProblem;
         })
         .map((candidate: TemplateNodeSpec): [string, TemplateNodeSpec] => {
           return [templateId, candidate];
@@ -509,59 +536,54 @@ describe("what the templates send Zabbix's API", () => {
     },
   );
 
-  test("only the two that call Zabbix call it: an event.get and an event.acknowledge, or one event.acknowledge", () => {
+  test("only the two that write to Zabbix call it, each through one Update Zabbix Problem step", () => {
     expect(
-      apiSteps.map(([templateId, step]: [string, TemplateNodeSpec]): string => {
-        const body: JSONObject = JSON.parse(
-          String(step.args?.["request-body"]),
-        ) as JSONObject;
-
-        return `${templateId} ${step.componentId} ${String(body["method"])}`;
+      updateSteps.map(([templateId, step]: [string, TemplateNodeSpec]): string => {
+        return `${templateId} ${step.componentId}`;
       }),
     ).toEqual([
-      "zabbix-update-problem-on-incident-state get-problem-1 event.get",
-      "zabbix-update-problem-on-incident-state update-problem-1 event.acknowledge",
-      "zabbix-message-from-incident-private-note post-message-1 event.acknowledge",
-      "zabbix-update-problem-on-alert-state get-problem-1 event.get",
-      "zabbix-update-problem-on-alert-state update-problem-1 event.acknowledge",
-      "zabbix-message-from-alert-private-note post-message-1 event.acknowledge",
+      "zabbix-update-problem-on-incident-state update-problem-1",
+      "zabbix-message-from-incident-private-note update-problem-1",
+      "zabbix-update-problem-on-alert-state update-problem-1",
+      "zabbix-message-from-alert-private-note update-problem-1",
     ]);
-  });
 
-  test("each is a JSON-RPC 2.0 request to <Zabbix URL>/api_jsonrpc.php, with the token as a bearer token and never in the body", () => {
-    for (const [, step] of apiSteps) {
-      expect(step.args?.["url"]).toBe(
-        "{{local.variables.zabbixUrl}}/api_jsonrpc.php",
-      );
-      expect(step.args?.["request-headers"]).toEqual({
-        Authorization: "Bearer {{local.variables.zabbixApiToken}}",
-      });
-
-      const body: JSONObject = JSON.parse(
-        String(step.args?.["request-body"]),
-      ) as JSONObject;
-
-      expect(Object.keys(body).sort()).toEqual([
-        "id",
-        "jsonrpc",
-        "method",
-        "params",
-      ]);
-      expect(body["jsonrpc"]).toBe("2.0");
+    for (const templateId of ZABBIX_IDS) {
+      expect({
+        templateId,
+        apiSteps: spec(templateId).nodes.filter(
+          (candidate: TemplateNodeSpec): boolean => {
+            return candidate.metadataId.startsWith("api-");
+          },
+        ).length,
+      }).toEqual({ templateId, apiSteps: 0 });
     }
   });
 
-  test("the request headers, where the token goes, are kept out of the run log", () => {
-    const headers: Argument | undefined = metadataOf(
-      ComponentID.ApiPost,
-    ).arguments.find((argument: Argument): boolean => {
-      return argument.id === "request-headers";
-    });
-
-    expect(headers?.isSensitive).toBe(true);
+  test("each sends to the Zabbix URL the workflow's settings hold, with the API token", () => {
+    for (const [, step] of updateSteps) {
+      expect(step.args?.[ZABBIX_UPDATE_ARGUMENT_IDS.zabbixUrl]).toBe(
+        "{{local.variables.zabbixUrl}}",
+      );
+      expect(step.args?.[ZABBIX_UPDATE_ARGUMENT_IDS.apiToken]).toBe(
+        "{{local.variables.zabbixApiToken}}",
+      );
+      // Zabbix 6.4 and later: the token goes in a header, unless someone turns Zabbix 6.0 on.
+      expect(step.args?.[ZABBIX_UPDATE_ARGUMENT_IDS.zabbix60]).toBeUndefined();
+    }
   });
 
-  test("the token is read in the Authorization header and nowhere else", () => {
+  test("the API token setting, where the token goes, is kept out of the run log", () => {
+    const token: Argument | undefined = metadataOf(
+      ComponentID.ZabbixUpdateProblem,
+    ).arguments.find((argument: Argument): boolean => {
+      return argument.id === ZABBIX_UPDATE_ARGUMENT_IDS.apiToken;
+    });
+
+    expect(token?.isSensitive).toBe(true);
+  });
+
+  test("the token is read in Update Zabbix Problem's API Token and nowhere else", () => {
     for (const templateId of ZABBIX_IDS) {
       for (const step of spec(templateId).nodes) {
         for (const [argumentId, value] of Object.entries(step.args || {})) {
@@ -573,7 +595,7 @@ describe("what the templates send Zabbix's API", () => {
 
           if (naming) {
             expect(`${step.metadataId} ${argumentId}`).toBe(
-              `${ComponentID.ApiPost} request-headers`,
+              `${ComponentID.ZabbixUpdateProblem} ${ZABBIX_UPDATE_ARGUMENT_IDS.apiToken}`,
             );
           }
         }
@@ -581,41 +603,46 @@ describe("what the templates send Zabbix's API", () => {
     }
   });
 
-  test("the add-a-message call sends the message flag alone: a note acknowledges nothing", () => {
+  test("the note templates add a message, and acknowledge nothing", () => {
     for (const templateId of [
       "zabbix-message-from-incident-private-note",
       "zabbix-message-from-alert-private-note",
     ]) {
-      const body: JSONObject = JSON.parse(
-        String(node(templateId, "post-message-1").args?.["request-body"]),
-      ) as JSONObject;
-
-      expect((body["params"] as JSONObject)["action"]).toBe(
-        String(ZABBIX_ACTION_MESSAGE),
+      expect(
+        node(templateId, "update-problem-1").args?.[
+          ZABBIX_UPDATE_ARGUMENT_IDS.whatToDo
+        ],
+      ).toBe(ZabbixProblemUpdate.Message);
+      expect(
+        node(templateId, "update-problem-1").args?.[
+          ZABBIX_UPDATE_ARGUMENT_IDS.message
+        ],
+      ).toBe(
+        "{{local.components.build-message-1.returnValues.returnValue.message}}",
       );
     }
   });
 
-  test("event.get asks for what the choice needs: whether the problem is resolved or acknowledged, and whether its trigger may be closed by hand", () => {
+  test("the state templates acknowledge or close as plan-state-1 says, for the problem it names", () => {
     for (const templateId of [
       "zabbix-update-problem-on-incident-state",
       "zabbix-update-problem-on-alert-state",
     ]) {
-      const body: JSONObject = JSON.parse(
-        String(node(templateId, "get-problem-1").args?.["request-body"]),
-      ) as JSONObject;
+      const planned: (key: string) => string = (key: string): string => {
+        return `{{local.components.plan-state-1.returnValues.returnValue.${key}}}`;
+      };
 
-      expect(body["params"]).toEqual({
-        eventids: [
-          "{{local.components.plan-state-1.returnValues.returnValue.eventId}}",
-        ],
-        output: ["eventid", "r_eventid", "acknowledged"],
-        selectRelatedObject: ["triggerid", "manual_close"],
-      });
+      expect(node(templateId, "update-problem-1").args).toEqual(
+        expect.objectContaining({
+          [ZABBIX_UPDATE_ARGUMENT_IDS.eventId]: planned("eventId"),
+          [ZABBIX_UPDATE_ARGUMENT_IDS.whatToDo]: planned("whatToDo"),
+          [ZABBIX_UPDATE_ARGUMENT_IDS.message]: planned("message"),
+        }),
+      );
     }
   });
 
-  test("the flags the scripts add up are Zabbix's: 1 closes, 2 acknowledges, 4 adds a message", () => {
+  test("the flags Update Zabbix Problem adds up are Zabbix's: 1 closes, 2 acknowledges, 4 adds a message", () => {
     expect([
       ZABBIX_ACTION_CLOSE,
       ZABBIX_ACTION_ACKNOWLEDGE,
@@ -637,8 +664,21 @@ describe("the Zabbix templates' scripts", () => {
     },
   );
 
-  test("there are sixteen: three where Zabbix's events arrive, and five in the two that call Zabbix, for each kind", () => {
-    expect(scripts).toHaveLength(16);
+  test("there are six, one in each template: read-event-1, plan-state-1 and build-message-1, for each kind", () => {
+    expect(
+      scripts.map(
+        ([templateId, componentId]: [string, string, string]): string => {
+          return `${templateId} ${componentId}`;
+        },
+      ),
+    ).toEqual([
+      "zabbix-declare-incident-from-problem read-event-1",
+      "zabbix-update-problem-on-incident-state plan-state-1",
+      "zabbix-message-from-incident-private-note build-message-1",
+      "zabbix-create-alert-from-problem read-event-1",
+      "zabbix-update-problem-on-alert-state plan-state-1",
+      "zabbix-message-from-alert-private-note build-message-1",
+    ]);
   });
 
   test("hold no double braces, which the runner would read as references before the script runs", () => {
@@ -679,7 +719,7 @@ describe("the Zabbix templates' scripts", () => {
     for (const [templateId, componentId, code] of scripts) {
       if (
         componentId !== "build-message-1" &&
-        componentId !== "choose-action-1"
+        componentId !== "plan-state-1"
       ) {
         continue;
       }
@@ -713,38 +753,73 @@ describe("the Zabbix templates' scripts", () => {
 
 describe("the workflow Zabbix sends its problems to", () => {
   test.each(PROBLEM_TEMPLATES)(
-    "%s starts from a Webhook, and takes a path for each event the media type names",
+    "%s is five steps, one after the other: the Webhook, read-event-1, the step that keeps the record, the If / Else and the Page step",
     (templateId: string) => {
-      const trigger: TemplateNodeSpec = node(
-        templateId,
-        ZABBIX_WEBHOOK_COMPONENT_ID,
-      );
+      const r: string = templateId.includes("incident") ? "incident" : "alert";
 
-      expect(trigger.metadataId).toBe(ComponentID.Webhook);
-      expect(trigger.componentType).toBe(ComponentType.Trigger);
-
-      const switchStep: TemplateNodeSpec = node(templateId, "switch-1");
-
-      expect(switchStep.args?.["value"]).toBe(
-        "{{local.components.read-event-1.returnValues.returnValue.kind}}",
-      );
       expect(
-        (switchStep.args?.["cases"] as Array<JSONObject>).map(
-          (entry: JSONObject): unknown => {
-            return entry["value"];
+        spec(templateId).nodes.map(
+          (candidate: TemplateNodeSpec): [string, string] => {
+            return [candidate.componentId, candidate.metadataId];
           },
         ),
       ).toEqual([
-        ZabbixEventKind.Problem,
-        ZabbixEventKind.Recovery,
-        ZabbixEventKind.Update,
+        [ZABBIX_WEBHOOK_COMPONENT_ID, ComponentID.Webhook],
+        ["read-event-1", ComponentID.JavaScriptCheck],
+        [
+          `${r}-from-another-tool-1`,
+          r === "incident"
+            ? ComponentID.IncidentFromAnotherTool
+            : ComponentID.AlertFromAnotherTool,
+        ],
+        ["if-page-1", ComponentID.IfElse],
+        ["page-on-call-policy-1", ComponentID.PageOnCallPolicy],
       ]);
+      expect(
+        spec(templateId).edges.map(
+          (edge: { fromComponentId: string; fromPort: string; toComponentId: string }): string => {
+            return `${edge.fromComponentId} ${edge.fromPort} ${edge.toComponentId}`;
+          },
+        ),
+      ).toEqual([
+        `${ZABBIX_WEBHOOK_COMPONENT_ID} out read-event-1`,
+        `read-event-1 yes ${r}-from-another-tool-1`,
+        `${r}-from-another-tool-1 opened if-page-1`,
+        "if-page-1 yes page-on-call-policy-1",
+      ]);
+      expect(node(templateId, ZABBIX_WEBHOOK_COMPONENT_ID).componentType).toBe(
+        ComponentType.Trigger,
+      );
     },
   );
 
   test.each(PROBLEM_TEMPLATES)(
-    "%s pages for Zabbix's High and Disaster problems: severity 4 and up",
+    "%s keeps one record per problem by the event ID, and hands it what read-event-1 read",
     (templateId: string) => {
+      const r: string = templateId.includes("incident") ? "incident" : "alert";
+      const read: (key: string) => string = (key: string): string => {
+        return `{{local.components.read-event-1.returnValues.returnValue.${key}}}`;
+      };
+
+      expect(node(templateId, `${r}-from-another-tool-1`).args).toEqual({
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.whatHappened]: read("whatHappened"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideId]: read("eventId"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideIdField]:
+          ZABBIX_EVENT_ID_CUSTOM_FIELD,
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.title]: read("title"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.description]: read("description"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.severity]: read("severity"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.note]: read("note"),
+        [FROM_ANOTHER_TOOL_ARGUMENT_IDS.reason]: read("reason"),
+      });
+    },
+  );
+
+  test.each(PROBLEM_TEMPLATES)(
+    "%s pages for Zabbix's High and Disaster problems: severity 4 and up, about the record it opened",
+    (templateId: string) => {
+      const r: string = templateId.includes("incident") ? "incident" : "alert";
+
       expect(node(templateId, "if-page-1").args).toEqual({
         "input-1-type": "number",
         "input-1":
@@ -754,29 +829,38 @@ describe("the workflow Zabbix sends its problems to", () => {
         "input-2": String(ZABBIX_PAGE_FROM_SEVERITY),
       });
       expect(ZABBIX_SEVERITY_NAMES[ZABBIX_PAGE_FROM_SEVERITY]).toBe("High");
+      expect(node(templateId, "page-on-call-policy-1").args).toEqual({
+        about: r,
+        [`${r}-id`]: `{{local.components.${r}-from-another-tool-1.returnValues.record._id}}`,
+      });
     },
   );
 
-  test("every path finds the problem's record by the event ID its custom fields keep", () => {
-    for (const templateId of PROBLEM_TEMPLATES) {
-      const finds: Array<TemplateNodeSpec> = spec(templateId).nodes.filter(
-        (candidate: TemplateNodeSpec): boolean => {
-          return candidate.metadataId.endsWith("-find-one");
+  test.each(PROBLEM_TEMPLATES)(
+    "%s with nobody picked to page is three steps, and pages nobody",
+    (templateId: string) => {
+      let counter: number = 0;
+      const graph: JSONObject = buildGraphForTemplate(
+        templateId,
+        (): string => {
+          counter++;
+          return `nobody-${counter}`;
         },
-      );
+        {},
+      ) as JSONObject;
 
-      expect(finds).toHaveLength(3);
-
-      for (const find of finds) {
-        expect(find.args?.["query"]).toEqual({
-          customFields: {
-            [ZABBIX_EVENT_ID_CUSTOM_FIELD]:
-              "{{local.components.read-event-1.returnValues.returnValue.eventId}}",
-          },
-        });
-      }
-    }
-  });
+      expect(
+        (graph["nodes"] as Array<JSONObject>).map((built: JSONObject): string => {
+          return (built["data"] as JSONObject)["id"] as string;
+        }),
+      ).toEqual([
+        ZABBIX_WEBHOOK_COMPONENT_ID,
+        "read-event-1",
+        `${templateId.includes("incident") ? "incident" : "alert"}-from-another-tool-1`,
+      ]);
+      expect(graph["edges"] as Array<JSONObject>).toHaveLength(2);
+    },
+  );
 });
 
 /* ---------------------- What the steps read and write ---------------------- */
@@ -932,39 +1016,19 @@ describe("what the steps read and write, as the workflow's principal", () => {
     }
   });
 
-  test("every record written - a new incident or alert, a note, a state change - writes only columns the principal may set", () => {
-    let writes: number = 0;
-
+  /*
+   * The records themselves are written by Incident and Alert From Another
+   * Tool, through the records' own services, as the same principal: its
+   * own suite (FromAnotherTool.test.ts) holds what it writes to the
+   * principal's column permissions.
+   */
+  test("no Zabbix template writes a record through a Create One step any longer", () => {
     for (const [templateId, step] of databaseSteps()) {
-      if (!step.metadataId.endsWith("-create-one")) {
-        continue;
-      }
-
-      writes++;
-
-      const modelType: { new (): BaseModel } = modelOf(step.metadataId);
-      const data: JSONObject = JSON.parse(String(step.args?.["json"]));
-
       expect({
         step: `${templateId} ${step.componentId}`,
-        refused: refusalOf((): void => {
-          TablePermission.checkTableLevelPermissions(
-            modelType,
-            PRINCIPAL,
-            DatabaseRequestType.Create,
-          );
-          ColumnPermissions.checkDataColumnPermissions(
-            modelType,
-            data as never,
-            PRINCIPAL,
-            DatabaseRequestType.Create,
-          );
-        }),
-      }).toEqual({ step: `${templateId} ${step.componentId}`, refused: null });
+        writes: step.metadataId.endsWith("-create-one"),
+      }).toEqual({ step: `${templateId} ${step.componentId}`, writes: false });
     }
-
-    // Per kind: the record, its note, and two state changes.
-    expect(writes).toBe(8);
   });
 });
 
@@ -1101,19 +1165,45 @@ describe("the Zabbix templates on the canvas", () => {
     },
   );
 
-  test.each(PROBLEM_TEMPLATES)(
-    "%s: the three paths and what is ignored lie side by side, left to right as the Switch / Case's outputs",
+  test.each(ZABBIX_IDS)(
+    "%s: one column, each connection running straight down from the output it leaves by",
     (templateId: string) => {
-      const left: (componentId: string) => number = (
-        componentId: string,
-      ): number => {
-        return node(templateId, componentId).position.x;
-      };
-      const r: string = templateId.includes("incident") ? "incident" : "alert";
+      const graph: JSONObject = graphOf(templateId);
+      const cards: Array<Card> = cardsOf(graph);
+      const byNodeId: Map<string, [Card, JSONObject]> = new Map();
 
-      expect(left(`find-${r}-0`)).toBeLessThan(left(`find-${r}-1`));
-      expect(left(`find-${r}-1`)).toBeLessThan(left(`find-${r}-2`));
-      expect(left(`find-${r}-2`)).toBeLessThan(left("log-ignored"));
+      (graph["nodes"] as Array<JSONObject>).forEach(
+        (built: JSONObject, index: number): void => {
+          byNodeId.set(built["id"] as string, [cards[index] as Card, built]);
+        },
+      );
+
+      for (const edge of graph["edges"] as Array<JSONObject>) {
+        const [from, fromNode] = byNodeId.get(edge["source"] as string) as [
+          Card,
+          JSONObject,
+        ];
+        const [to] = byNodeId.get(edge["target"] as string) as [
+          Card,
+          JSONObject,
+        ];
+        const data: JSONObject = fromNode["data"] as JSONObject;
+        const ports: Array<Port> = getComponentOutPorts({
+          metadata: metadataOf(data["metadataId"] as string),
+          arguments: data["arguments"] as JSONObject,
+        });
+        const index: number = ports.findIndex((port: Port): boolean => {
+          return port.id === edge["sourceHandle"];
+        });
+        const dot: number =
+          from.left + ((index + 0.5) / ports.length) * (from.right - from.left);
+        const inDot: number = (to.left + to.right) / 2;
+
+        expect({
+          edge: `${from.id} to ${to.id}`,
+          offBy: Math.abs(dot - inDot) <= 1 ? 0 : dot - inDot,
+        }).toEqual({ edge: `${from.id} to ${to.id}`, offBy: 0 });
+      }
     },
   );
 });

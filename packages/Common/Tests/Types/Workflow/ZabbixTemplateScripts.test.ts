@@ -2,15 +2,21 @@
  * Each script of the Zabbix templates, run in the workflow sandbox on the
  * arguments the runner hands it, and held to what it decides:
  *
- *   - read-event-1: which event Zabbix sent; the severity a new record opens
- *     at, for every Zabbix severity and any number of project severities;
- *     the title, the description, the note and the link to the problem;
- *     what it ignores, and why;
- *   - decide-state-1 / -2: the state a recovery or an acknowledgment moves
- *     the record to, forward only, and the cause it writes;
- *   - plan-state-1, choose-action-1 and check-answer-1: what a record's new
- *     state means in Zabbix, what is sent, and how Zabbix's answer is read;
+ *   - read-event-1: which event Zabbix sent, and what Incident or Alert From
+ *     Another Tool does with it - open, resolve, acknowledge or note; the
+ *     severity a new record opens at, for every Zabbix severity and any
+ *     number of project severities (the place the script names, as the step
+ *     picks it: pickSeverityIndex); the title, the description, the note,
+ *     the reason on the timeline and the link to the problem; what it
+ *     ignores, and why;
+ *   - plan-state-1: what a record's new state means in Zabbix, and the
+ *     message Update Zabbix Problem sends with it;
  *   - build-message-1: the message a private note becomes.
+ *
+ * Moving a record forward, and only forward, is Incident From Another
+ * Tool's (FromAnotherTool.test.ts); reading a problem in Zabbix, choosing
+ * what to send and reading Zabbix's answer is Update Zabbix Problem's
+ * (ZabbixUpdateProblem.test.ts): the scripts that did both are gone.
  *
  * The scripts read text somebody outside wrote, so each is also given about
  * 400,000 characters of the shapes that cost a pattern the most, and has to
@@ -18,6 +24,7 @@
  */
 
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { pickSeverityIndex } from "../../../Types/Workflow/Components/FromAnotherTool";
 import {
   ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER,
   ZABBIX_EVENT_ID_CUSTOM_FIELD,
@@ -45,6 +52,7 @@ import {
   zabbixPostedBody,
 } from "./ZabbixTemplateFixtures";
 import { describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 
 // The sandbox boots a fresh isolate per run, which is far slower than plain JS.
 jest.setTimeout(120000);
@@ -64,7 +72,6 @@ async function read(
     templateId: kind.problemTemplateId,
     componentId: "read-event-1",
     args: {
-      severities: quoted(props.severities || kind.severities),
       zabbixUrl: props.zabbixUrl === undefined ? ZABBIX_URL : props.zabbixUrl,
       // The webhook's body, quoted into the arguments: JSON text, or text as it came.
       payload: typeof payload === "string" ? payload : quoted(payload),
@@ -75,6 +82,39 @@ async function read(
 
 function event(props: ZabbixEventProps = {}): JSONObject {
   return zabbixPostedBody(props);
+}
+
+/*
+ * The severity a problem opens at: the one the script names, by name or by
+ * its place, as Incident From Another Tool picks it among the project's.
+ */
+async function opensAt(
+  kind: ZabbixKindFixture,
+  payload: JSONValue,
+  props: {
+    severities?: Array<JSONObject> | undefined;
+    editCode?: ((code: string) => string) | undefined;
+  } = {},
+): Promise<string> {
+  const result: JSONObject = await read(kind, payload, {
+    editCode: props.editCode,
+  });
+  const ordered: Array<JSONObject> = [
+    ...(props.severities || kind.severities),
+  ].sort((a: JSONObject, b: JSONObject): number => {
+    return Number(a["order"]) - Number(b["order"]);
+  });
+
+  return String(
+    ordered[
+      pickSeverityIndex({
+        given: String(result["severity"]),
+        severities: ordered.map((severity: JSONObject) => {
+          return { id: String(severity["_id"]), name: String(severity["name"]) };
+        }),
+      }).index
+    ]?.["name"],
+  );
 }
 
 // A project's severities, most severe first: "S1", "S2", ...
@@ -110,13 +150,11 @@ describe("read-event-1: the severity a problem opens at", () => {
       const landed: Array<string> = [];
 
       for (const severityNumber of [5, 4, 3, 2, 1, 0]) {
-        const result: JSONObject = await read(
-          INCIDENT,
-          event({ severityNumber }),
-          { severities: severities(count) },
+        landed.push(
+          await opensAt(INCIDENT, event({ severityNumber }), {
+            severities: severities(count),
+          }),
         );
-
-        landed.push(String(result["severityName"]));
       }
 
       expect(landed).toEqual(EXPECTED_SEVERITY[count]);
@@ -129,14 +167,7 @@ describe("read-event-1: the severity a problem opens at", () => {
       const landed: Array<string> = [];
 
       for (const severityNumber of [5, 4, 3, 2, 1, 0]) {
-        const result: JSONObject = await read(kind, event({ severityNumber }));
-
-        landed.push(String(result["severityName"]));
-        expect(result[kind.severityIdColumn]).toBe(
-          kind.severities.find((severity: JSONObject): boolean => {
-            return severity["name"] === result["severityName"];
-          })!["_id"],
-        );
+        landed.push(await opensAt(kind, event({ severityNumber })));
       }
 
       expect(landed).toEqual(
@@ -161,9 +192,31 @@ describe("read-event-1: the severity a problem opens at", () => {
     );
 
     expect(result["severityNumber"]).toBe(5);
-    expect(result["severityName"]).toBe("Critical Incident");
+    expect(result["severity"]).toBe("most severe");
     expect(result["zabbixSeverity"]).toBe("P1 - wake everyone");
+    expect(
+      await opensAt(
+        INCIDENT,
+        event({ severityNumber: 5, severityName: "P1 - wake everyone" }),
+      ),
+    ).toBe("Critical Incident");
   });
+
+  test.each([
+    [5, "most severe"],
+    [4, "most severe"],
+    [3, "middle"],
+    [2, "middle"],
+    [1, "least severe"],
+    [0, "least severe"],
+  ])(
+    "Zabbix severity %p is named by its place among the project's: %p",
+    async (severityNumber: number, place: string) => {
+      expect(
+        (await read(INCIDENT, event({ severityNumber })))["severity"],
+      ).toBe(place);
+    },
+  );
 
   test.each(
     ZABBIX_SEVERITY_NAMES.map((name: string, index: number) => {
@@ -189,7 +242,12 @@ describe("read-event-1: the severity a problem opens at", () => {
     });
 
     expect(result["severityNumber"]).toBe(0);
-    expect(result["severityName"]).toBe("Minor Incident");
+    expect(
+      await opensAt(INCIDENT, {
+        ...zabbixFirstMediaTypeBody(),
+        severity: "Catastrophic",
+      }),
+    ).toBe("Minor Incident");
   });
 
   test.each(["6", "-1", "4.5", "high", ""])(
@@ -204,29 +262,31 @@ describe("read-event-1: the severity a problem opens at", () => {
     },
   );
 
-  test("a severity listed by name in SEVERITY_BY_NAME wins over the ranks, as its comment says", async () => {
-    const result: JSONObject = await read(
-      INCIDENT,
-      event({ severityNumber: 2 }),
-      {
-        editCode: (code: string): string => {
-          return code.replace(
-            "const SEVERITY_BY_NAME = {};",
-            "const SEVERITY_BY_NAME = { 2: 'minor incident' };",
-          );
-        },
-      },
-    );
+  test("a severity listed by name in SEVERITY_BY_NAME wins over the places, as its comment says", async () => {
+    const editCode: (code: string) => string = (code: string): string => {
+      return code.replace(
+        "const SEVERITY_BY_NAME = {};",
+        "const SEVERITY_BY_NAME = { 2: 'minor incident' };",
+      );
+    };
 
-    expect(result["severityName"]).toBe("Minor Incident");
-    expect(result["incidentSeverityId"]).toBe(
-      INCIDENT.severities.find((severity: JSONObject): boolean => {
-        return severity["name"] === "Minor Incident";
-      })!["_id"],
-    );
+    expect(
+      (await read(INCIDENT, event({ severityNumber: 2 }), { editCode }))[
+        "severity"
+      ],
+    ).toBe("minor incident");
+    expect(
+      await opensAt(INCIDENT, event({ severityNumber: 2 }), { editCode }),
+    ).toBe("Minor Incident");
   });
 
-  test("a name listed that the project does not have falls back to the ranks", async () => {
+  /*
+   * A name the project does not have reaches the step as written, and the
+   * step opens the record at the most severe and says so in the run log
+   * (FromAnotherTool.test.ts). The old script fell back to the place
+   * silently; a misspelt name is said now.
+   */
+  test("a name listed that the project does not have is handed on as written", async () => {
     const result: JSONObject = await read(
       INCIDENT,
       event({ severityNumber: 2 }),
@@ -240,13 +300,14 @@ describe("read-event-1: the severity a problem opens at", () => {
       },
     );
 
-    expect(result["severityName"]).toBe("Major Incident");
+    expect(result["severity"]).toBe("Sev 9");
   });
 
-  test("a project with no severities stops the step, saying so", async () => {
-    await expect(read(ALERT, event(), { severities: [] })).rejects.toThrow(
-      "This project has no alert severities to create the alert at.",
-    );
+  test("needs none of the project's severities: it names a place, and the step picks the severity", async () => {
+    const result: JSONObject = await read(ALERT, event());
+
+    expect(result["severity"]).toBe("most severe");
+    expect(Object.keys(result)).not.toContain("severities");
   });
 });
 
@@ -330,7 +391,7 @@ describe("read-event-1: which event Zabbix sent", () => {
     "%s is ignored, and says why",
     async (_name: string, payload: JSONObject, reason: string) => {
       expect(await read(INCIDENT, payload)).toEqual({
-        kind: "ignored",
+        proceed: false,
         reason: reason,
       });
     },
@@ -344,7 +405,7 @@ describe("read-event-1: which event Zabbix sent", () => {
       "{{local.components.webhook-1.returnValues.request-body}}",
     ],
   ])("%s is ignored", async (_name: string, payload: string) => {
-    expect((await read(INCIDENT, payload))["kind"]).toBe("ignored");
+    expect((await read(INCIDENT, payload))["proceed"]).toBe(false);
   });
 });
 
@@ -547,17 +608,52 @@ describe("read-event-1: the link to the problem in Zabbix", () => {
 });
 
 describe("read-event-1: an update made in Zabbix", () => {
-  test("is a note saying who did what, then what they wrote, and acknowledges when it acknowledged", async () => {
+  test("is a note saying who did what, then what they wrote, and acknowledges when it acknowledged, saying who did", async () => {
     expect(
       await read(INCIDENT, event({ kind: ZabbixEventKind.Update })),
     ).toEqual({
+      proceed: true,
       kind: "update",
+      whatHappened: "acknowledge",
       eventId: EVENT_ID,
-      triggerId: TRIGGER_ID,
+      title: "",
+      description: "",
+      severity: "",
+      severityNumber: -1,
+      zabbixSeverity: "",
       note: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Ada Lovelace (ada) updated Zabbix ${PROBLEM_LINK}: acknowledged and commented.\n\nLooking into it: the checkout pods are being restarted.`,
-      target: "acknowledged",
-      user: "Ada Lovelace (ada)",
+      reason: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Ada Lovelace (ada) acknowledged ${PROBLEM_LINK}.`,
     });
+  });
+
+  test("an acknowledgment by nobody Zabbix names is Someone's, and without a trigger ID the problem is named without a link", async () => {
+    expect(
+      (
+        await read(INCIDENT, {
+          ...event({ kind: ZabbixEventKind.Update, updateUser: "" }),
+          trigger_id: "",
+        })
+      )["reason"],
+    ).toBe(
+      `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Someone acknowledged problem ${EVENT_ID}.`,
+    );
+  });
+
+  test("the name in the reason has its braces broken up, so no later step reads it as a reference", async () => {
+    const reason: string = String(
+      (
+        await read(
+          INCIDENT,
+          event({
+            kind: ZabbixEventKind.Update,
+            updateUser: "**{{local.variables.zabbixApiToken}}**",
+          }),
+        )
+      )["reason"],
+    );
+
+    expect(reason).not.toContain("{" + "{");
+    expect(reason).toContain("{ {local.variables.zabbixApiToken} }");
   });
 
   test.each([
@@ -577,14 +673,16 @@ describe("read-event-1: an update made in Zabbix", () => {
   ])(
     "%j acknowledges the record: %j",
     async (action: string, target: string) => {
-      expect(
-        (
-          await read(
-            INCIDENT,
-            event({ kind: ZabbixEventKind.Update, updateAction: action }),
-          )
-        )["target"],
-      ).toBe(target);
+      const result: JSONObject = await read(
+        INCIDENT,
+        event({ kind: ZabbixEventKind.Update, updateAction: action }),
+      );
+
+      expect(result["whatHappened"]).toBe(
+        target === "acknowledged" ? "acknowledge" : "note",
+      );
+      // A reason only for a move: a note alone has none.
+      expect(result["reason"] !== "").toBe(target === "acknowledged");
     },
   );
 
@@ -630,7 +728,7 @@ describe("read-event-1: an update made in Zabbix", () => {
         }),
       ),
     ).toEqual({
-      kind: "ignored",
+      proceed: false,
       reason: `This update to Zabbix problem ${EVENT_ID} came from OneUptime, so it was not copied back.`,
     });
   });
@@ -646,7 +744,7 @@ describe("read-event-1: an update made in Zabbix", () => {
         }),
       ),
     ).toEqual({
-      kind: "ignored",
+      proceed: false,
       reason: `The update to Zabbix problem ${EVENT_ID} said nothing, so no note was added.`,
     });
   });
@@ -670,200 +768,35 @@ describe("read-event-1: an update made in Zabbix", () => {
 });
 
 describe("read-event-1: a recovery", () => {
-  test("names the problem to resolve, and nothing else", async () => {
+  test("resolves the problem's record, with Zabbix's recovery as the reason, and nothing else", async () => {
     expect(
       await read(ALERT, event({ kind: ZabbixEventKind.Recovery })),
     ).toEqual({
+      proceed: true,
       kind: "recovery",
+      whatHappened: "resolve",
       eventId: EVENT_ID,
-      triggerId: TRIGGER_ID,
-      target: "resolved",
+      title: "",
+      description: "",
+      severity: "",
+      severityNumber: -1,
+      zabbixSeverity: "",
+      note: "",
+      reason: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: ${PROBLEM_LINK} recovered.`,
     });
   });
 
-  test("needs no severity: a project with none still resolves", async () => {
+  test("a recovery with no trigger ID names the problem without a link", async () => {
     expect(
       (
-        await read(ALERT, event({ kind: ZabbixEventKind.Recovery }), {
-          severities: [],
+        await read(ALERT, {
+          ...event({ kind: ZabbixEventKind.Recovery }),
+          trigger_id: "",
         })
-      )["kind"],
-    ).toBe("recovery");
+      )["reason"],
+    ).toBe(`${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: problem ${EVENT_ID} recovered.`);
   });
 });
-
-/* -------------------------------- decide-state -------------------------------- */
-
-async function decide(data: {
-  kind: ZabbixKindFixture;
-  componentId?: string | undefined;
-  state?: string | undefined;
-  states?: Array<JSONObject> | undefined;
-  target: string;
-  user?: string | undefined;
-  triggerId?: string | undefined;
-}): Promise<JSONObject> {
-  return await runZabbixScript({
-    templateId: data.kind.problemTemplateId,
-    componentId: data.componentId || "decide-state-1",
-    args: {
-      [data.kind.noun]: quoted(recordModel(data.kind, { state: data.state })),
-      states: quoted(
-        data.states || (data.kind.states as unknown as Array<JSONObject>),
-      ),
-      zabbixUrl: ZABBIX_URL,
-      event: quoted({
-        kind: data.target === "resolved" ? "recovery" : "update",
-        eventId: EVENT_ID,
-        triggerId: data.triggerId === undefined ? TRIGGER_ID : data.triggerId,
-        target: data.target,
-        user: data.user === undefined ? "Ada Lovelace (ada)" : data.user,
-      }),
-    },
-  });
-}
-
-describe.each(KINDS)(
-  "decide-state: the $noun's next state",
-  (kind: ZabbixKindFixture) => {
-    test("a recovery moves it to Resolved, with Zabbix's recovery as the cause", async () => {
-      expect(await decide({ kind, target: "resolved" })).toEqual({
-        proceed: true,
-        [`${kind.noun}Id`]: kind.recordId,
-        stateId: stateNamed(kind, "Resolved")._id,
-        stateName: "Resolved",
-        number: kind.number,
-        rootCause: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: ${PROBLEM_LINK} recovered.`,
-      });
-    });
-
-    test("an acknowledgment moves it to Acknowledged, saying who acknowledged the problem", async () => {
-      const result: JSONObject = await decide({
-        kind,
-        componentId: "decide-state-2",
-        target: "acknowledged",
-      });
-
-      expect(result["stateId"]).toBe(stateNamed(kind, "Acknowledged")._id);
-      expect(result["rootCause"]).toBe(
-        `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Ada Lovelace (ada) acknowledged ${PROBLEM_LINK}.`,
-      );
-    });
-
-    test.each([
-      ["Acknowledged", "acknowledged"],
-      ["Resolved", "acknowledged"],
-      ["Resolved", "resolved"],
-    ])(
-      "an %s record is left as it is by what asks for %s: it never moves back",
-      async (state: string, target: string) => {
-        expect(await decide({ kind, state, target })).toEqual({
-          proceed: false,
-          reason: `${kind.number} is already ${state}, so it was left as it is.`,
-        });
-      },
-    );
-
-    test("the state is the first one from the top flagged so, wherever the list puts it", async () => {
-      const states: Array<JSONObject> = [
-        ...(kind.states as unknown as Array<JSONObject>),
-        {
-          _id: "99999999-0000-4000-8000-000000000001",
-          name: "Archived",
-          order: 9,
-          isAcknowledgedState: false,
-          isResolvedState: true,
-        },
-        {
-          _id: "99999999-0000-4000-8000-000000000002",
-          name: "Seen",
-          order: 0,
-          isAcknowledgedState: false,
-          isResolvedState: false,
-        },
-      ];
-
-      expect(
-        (await decide({ kind, states, target: "resolved" }))["stateId"],
-      ).toBe(stateNamed(kind, "Resolved")._id);
-    });
-
-    test("a record past the resolved state, in a state of the project's own, is resolved already", async () => {
-      const states: Array<JSONObject> = [
-        ...(kind.states as unknown as Array<JSONObject>),
-        {
-          _id: "99999999-0000-4000-8000-000000000003",
-          name: "Closed",
-          order: 4,
-          isAcknowledgedState: false,
-          isResolvedState: false,
-        },
-      ];
-      const result: JSONObject = await runZabbixScript({
-        templateId: kind.problemTemplateId,
-        componentId: "decide-state-1",
-        args: {
-          [kind.noun]: quoted({
-            ...recordModel(kind),
-            [kind.stateRelation]: {
-              name: "Closed",
-              order: 4,
-              isResolvedState: false,
-            },
-          }),
-          states: quoted(states),
-          zabbixUrl: ZABBIX_URL,
-          event: quoted({
-            eventId: EVENT_ID,
-            triggerId: TRIGGER_ID,
-            target: "resolved",
-          }),
-        },
-      });
-
-      expect(result).toEqual({
-        proceed: false,
-        reason: `${kind.number} is already Closed, so it was left as it is.`,
-      });
-    });
-
-    test("a project without the state stops the step, saying which", async () => {
-      await expect(
-        decide({
-          kind,
-          target: "acknowledged",
-          states: (kind.states as unknown as Array<JSONObject>).filter(
-            (state: JSONObject): boolean => {
-              return state["isAcknowledgedState"] !== true;
-            },
-          ),
-        }),
-      ).rejects.toThrow(`This project has no acknowledged ${kind.noun} state.`);
-    });
-
-    test("an event that asks for no state moves nothing", async () => {
-      expect(await decide({ kind, target: "" })).toEqual({
-        proceed: false,
-        reason: `${kind.number} was left as it is: Zabbix asked for no other state.`,
-      });
-    });
-
-    test("an acknowledgment by nobody Zabbix names is Someone's, and without a trigger ID the problem is named without a link", async () => {
-      expect(
-        (
-          await decide({
-            kind,
-            target: "acknowledged",
-            user: "",
-            triggerId: "",
-          })
-        )["rootCause"],
-      ).toBe(
-        `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: Someone acknowledged problem ${EVENT_ID}.`,
-      );
-    });
-  },
-);
 
 /* ------------------------------ plan-state-1 ------------------------------ */
 
@@ -889,12 +822,17 @@ describe.each(KINDS)(
       ).toEqual({
         proceed: true,
         eventId: EVENT_ID,
-        wanted: "acknowledge",
-        number: kind.number,
+        whatToDo: "acknowledge",
+        message: `${ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER}: ${kind.number} was acknowledged in OneUptime.`,
       });
       expect(
-        (await plan(kind, recordModel(kind, { state: "Resolved" })))["wanted"],
-      ).toBe("close");
+        await plan(kind, recordModel(kind, { state: "Resolved" })),
+      ).toEqual({
+        proceed: true,
+        eventId: EVENT_ID,
+        whatToDo: "close",
+        message: `${ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER}: ${kind.number} was resolved in OneUptime.`,
+      });
     });
 
     test("a record no Zabbix problem opened, or one whose custom field holds no event ID, asks nothing", async () => {
@@ -953,273 +891,30 @@ describe.each(KINDS)(
         [kind.numberField]: "#12",
       });
 
-      expect(result["number"]).toBe(`${kind.Noun} #12`);
+      expect(result["message"]).toBe(
+        `${ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER}: ${kind.Noun} #12 was acknowledged in OneUptime.`,
+      );
+    });
+
+    test("another state asks nothing, and says why", async () => {
+      expect(
+        await plan(kind, recordModel(kind, { state: "Created" })),
+      ).toEqual({
+        proceed: false,
+        reason: `${kind.number} moved to Created: only acknowledging or resolving the ${kind.noun} updates Zabbix.`,
+      });
+    });
+
+    test("double braces in the record's number are broken up in the message", async () => {
+      const result: JSONObject = await plan(kind, {
+        ...recordModel(kind, { state: "Resolved" }),
+        [kind.numberField]: "{{local.variables.zabbixApiToken}}",
+      });
+
+      expect(String(result["message"])).not.toContain("{" + "{");
     });
   },
 );
-
-/* ----------------------------- choose-action-1 ----------------------------- */
-
-async function choose(
-  kind: ZabbixKindFixture,
-  wanted: string,
-  answer: JSONValue,
-): Promise<JSONObject> {
-  return await runZabbixScript({
-    templateId: kind.stateTemplateId,
-    componentId: "choose-action-1",
-    args: {
-      plan: quoted({
-        proceed: true,
-        eventId: EVENT_ID,
-        wanted: wanted,
-        number: kind.number,
-      }),
-      answer: typeof answer === "string" ? answer : quoted(answer),
-    },
-  });
-}
-
-function problemAnswer(props: {
-  acknowledged?: string;
-  resolved?: boolean;
-  manualClose?: string;
-}): JSONObject {
-  return {
-    jsonrpc: "2.0",
-    result: [
-      {
-        eventid: EVENT_ID,
-        r_eventid: props.resolved ? "99001" : "0",
-        acknowledged: props.acknowledged || "0",
-        relatedObject: {
-          triggerid: TRIGGER_ID,
-          manual_close: props.manualClose || "0",
-        },
-      },
-    ],
-    id: 1,
-  };
-}
-
-describe("choose-action-1: what is sent to Zabbix", () => {
-  test.each([
-    ["acknowledge", {}, "6", "was acknowledged in OneUptime."],
-    ["close", { manualClose: "1" }, "7", "was resolved in OneUptime."],
-    [
-      "close",
-      { manualClose: "1", acknowledged: "1" },
-      "7",
-      "was resolved in OneUptime.",
-    ],
-    [
-      "close",
-      { manualClose: "0" },
-      "6",
-      "was resolved in OneUptime. Its trigger does not allow closing problems by hand, so the problem stays open until Zabbix sees it recover.",
-    ],
-  ])(
-    "to %s a problem that is %j, it sends action %s",
-    async (
-      wanted: string,
-      problem: JSONObject,
-      action: string,
-      said: string,
-    ) => {
-      const result: JSONObject = await choose(
-        INCIDENT,
-        wanted,
-        problemAnswer(problem),
-      );
-
-      expect(result["proceed"]).toBe(true);
-      expect(String(result["action"])).toBe(action);
-      expect(result["message"]).toBe(
-        `${ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER}: ${INCIDENT.number} ${said}`,
-      );
-    },
-  );
-
-  test("a problem Zabbix already acknowledged is not acknowledged again, nor messaged", async () => {
-    expect(
-      await choose(
-        INCIDENT,
-        "acknowledge",
-        problemAnswer({ acknowledged: "1" }),
-      ),
-    ).toEqual({
-      proceed: false,
-      reason: `Zabbix problem ${EVENT_ID} is already acknowledged in Zabbix, so it was left as it is.`,
-    });
-  });
-
-  test.each(["acknowledge", "close"])(
-    "a resolved problem is left as it is, asked to %s",
-    async (wanted: string) => {
-      expect(
-        await choose(
-          ALERT,
-          wanted,
-          problemAnswer({ resolved: true, manualClose: "1" }),
-        ),
-      ).toEqual({
-        proceed: false,
-        reason: `Zabbix problem ${EVENT_ID} is already resolved in Zabbix, so it was left as it is.`,
-      });
-    },
-  );
-
-  test("a problem Zabbix does not return is one the token's user cannot see", async () => {
-    expect(
-      await choose(INCIDENT, "acknowledge", {
-        jsonrpc: "2.0",
-        result: [],
-        id: 1,
-      }),
-    ).toEqual({
-      proceed: false,
-      reason: `Zabbix has no problem with event ID ${EVENT_ID}, or the API token's user cannot see it, so Zabbix was not updated.`,
-    });
-  });
-
-  test("another event in the answer is not taken for the problem", async () => {
-    const answer: JSONObject = problemAnswer({});
-
-    ((answer["result"] as Array<JSONObject>)[0] as JSONObject)["eventid"] = "1";
-
-    expect((await choose(INCIDENT, "acknowledge", answer))["proceed"]).toBe(
-      false,
-    );
-  });
-
-  test.each([
-    [
-      "Zabbix refused the request",
-      {
-        jsonrpc: "2.0",
-        error: {
-          code: -32602,
-          message: "Invalid params.",
-          data: "Not authorized.",
-        },
-        id: 1,
-      },
-      "Zabbix said: Invalid params. Not authorized.",
-    ],
-    [
-      "Zabbix refused it with no detail",
-      {
-        jsonrpc: "2.0",
-        error: { code: -32500, message: "Application error." },
-        id: 1,
-      },
-      "Zabbix said: Application error.",
-    ],
-    [
-      "the answer was a web page",
-      "<!doctype html><html><body>Sign in</body></html>",
-      "The answer did not come from Zabbix's API. Check that the Zabbix URL is the address you open Zabbix at.",
-    ],
-    [
-      "the answer was JSON from something else",
-      { status: "ok" },
-      "The answer did not come from Zabbix's API. Check that the Zabbix URL is the address you open Zabbix at.",
-    ],
-  ])(
-    "%s stops the step, saying why",
-    async (_name: string, answer: JSONValue, message: string) => {
-      await expect(choose(INCIDENT, "acknowledge", answer)).rejects.toThrow(
-        message,
-      );
-    },
-  );
-
-  test("Zabbix's words are cut to 500 characters, and their braces broken up", async () => {
-    let thrown: string = "";
-
-    try {
-      await choose(INCIDENT, "acknowledge", {
-        jsonrpc: "2.0",
-        error: {
-          code: 1,
-          message: "{{local.variables.zabbixApiToken}}",
-          data: "x".repeat(2000),
-        },
-        id: 1,
-      });
-    } catch (error) {
-      thrown = (error as Error).message;
-    }
-
-    expect(
-      thrown.startsWith("Zabbix said: { {local.variables.zabbixApiToken} } x"),
-    ).toBe(true);
-    expect(thrown.length).toBeLessThanOrEqual("Zabbix said: ".length + 500);
-  });
-});
-
-/* ------------------------------ check-answer-1 ------------------------------ */
-
-describe("check-answer-1: Zabbix's answer to event.acknowledge", () => {
-  async function check(answer: JSONValue): Promise<JSONObject> {
-    return await runZabbixScript({
-      templateId: INCIDENT.stateTemplateId,
-      componentId: "check-answer-1",
-      args: { answer: typeof answer === "string" ? answer : quoted(answer) },
-    });
-  }
-
-  test("the events Zabbix updated pass", async () => {
-    expect(
-      await check({ jsonrpc: "2.0", result: { eventids: [EVENT_ID] }, id: 1 }),
-    ).toEqual({ eventIds: [EVENT_ID] });
-  });
-
-  test("a refusal stops the step, in Zabbix's words", async () => {
-    await expect(
-      check({
-        jsonrpc: "2.0",
-        error: {
-          code: -32602,
-          message: "Invalid params.",
-          data: "Cannot close problem: trigger does not allow manual closing.",
-        },
-        id: 1,
-      }),
-    ).rejects.toThrow(
-      "Zabbix said: Invalid params. Cannot close problem: trigger does not allow manual closing.",
-    );
-  });
-
-  test("an answer that does not say it updated anything stops the step", async () => {
-    await expect(
-      check({ jsonrpc: "2.0", result: { eventids: [] }, id: 1 }),
-    ).rejects.toThrow(
-      "Zabbix answered, but did not say it updated the problem.",
-    );
-    await expect(check("")).rejects.toThrow("did not come from Zabbix's API");
-  });
-
-  test("every Zabbix template that calls Zabbix carries the same check", async () => {
-    for (const kind of KINDS) {
-      for (const templateId of [kind.stateTemplateId, kind.noteTemplateId]) {
-        await expect(
-          runZabbixScript({
-            templateId: templateId,
-            componentId: "check-answer-1",
-            args: {
-              answer: quoted({
-                jsonrpc: "2.0",
-                result: { eventids: ["7"] },
-                id: 1,
-              }),
-            },
-          }),
-        ).resolves.toEqual({ eventIds: ["7"] });
-      }
-    }
-  });
-});
 
 /* ----------------------------- build-message-1 ----------------------------- */
 
@@ -1330,33 +1025,37 @@ describe("time", () => {
   ])(
     "%s, in every part a problem and an update carry, read in under two seconds",
     async (_name: string, text: string) => {
-      const started: number = Date.now();
+      const timed: FastestRun<[JSONObject, JSONObject]> = await fastestRunAsync({
+        limitInMs: 2000 * 2,
+        run: async (): Promise<[JSONObject, JSONObject]> => {
+          return [
+            await read(
+              INCIDENT,
+              event({
+                name: text,
+                host: text,
+                opdata: text,
+                tags: [{ tag: text, value: text }],
+              }),
+            ),
+            await read(
+              INCIDENT,
+              event({
+                kind: ZabbixEventKind.Update,
+                updateAction: text,
+                updateMessage: text,
+                updateUser: text,
+              }),
+            ),
+          ];
+        },
+      });
+      const [problem, update] = timed.result;
 
-      const problem: JSONObject = await read(
-        INCIDENT,
-        event({
-          name: text,
-          host: text,
-          opdata: text,
-          tags: [{ tag: text, value: text }],
-        }),
-      );
-      const update: JSONObject = await read(
-        INCIDENT,
-        event({
-          kind: ZabbixEventKind.Update,
-          updateAction: text,
-          updateMessage: text,
-          updateUser: text,
-        }),
-      );
-
-      expect(Date.now() - started).toBeLessThan(2000 * 2);
+      expect(timed.inMs).toBeLessThan(2000 * 2);
       expect(problem["kind"]).toBe("problem");
       // An update made of nothing but control characters says nothing once they are dropped.
-      expect(update["kind"]).toBe(
-        text.charCodeAt(0) === 1 ? "ignored" : "update",
-      );
+      expect(update["proceed"]).toBe(text.charCodeAt(0) !== 1);
     },
   );
 
