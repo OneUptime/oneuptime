@@ -932,16 +932,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * A record may point only at its own files: a project's record at files
-   * uploaded in its project, a person at a picture they uploaded (see
-   * FileOwnership). Asked of every create and update that points one of the
-   * model's File columns at a file - root and hook-free writes too, since a
-   * workflow or an API call can carry any id - once the caller is known to
-   * be allowed the write, so a refusal tells nobody else anything. The
-   * refusal is the same for a file of another owner, of none, or one that
-   * does not exist.
-   */
-  /*
    * The statements CustomFieldFiles runs, on this table's own connection.
    */
   private getCustomFieldFileQuery(): CustomFieldFileQuery {
@@ -1124,6 +1114,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * A record may point only at its own files: a project's record at files
+   * uploaded in its project, a person at a picture they uploaded (see
+   * FileOwnership). Asked of every create and update that points one of the
+   * model's File columns at a file - root and hook-free writes too, since a
+   * workflow or an API call can carry any id - once the caller is known to
+   * be allowed the write, so a refusal tells nobody else anything. The
+   * refusal is the same for a file of another owner, of none, or one that
+   * does not exist.
+   */
   private async assertFileReferencesOwnedOnCreate(
     data: TBaseModel,
   ): Promise<void> {
