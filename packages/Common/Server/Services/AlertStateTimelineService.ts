@@ -516,6 +516,13 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         stateId: createdItem.alertStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.alertStateId,
+        /*
+         * Who changed it: a person paged about the alert by a page a person
+         * asked for who acknowledges it answers their page
+         * (OnCallPersonPageAnswer).
+         */
+        changedByUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       });
     }
 

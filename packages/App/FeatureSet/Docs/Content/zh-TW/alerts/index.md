@@ -46,7 +46,7 @@ flowchart TB
 - **手動。** 在警示清單中，或在監測器、主機、網路裝置或其他資源的 **警示** 分頁上按一下 **建立警示**，後者會替你選好該資源。請參閱 [手動建立警示](#手動建立警示)。
 - **SLO 的消耗率。** 當 SLO 太快花掉其錯誤預算時，消耗率規則可以建立警示。請參閱 [消耗率警示與事件](/docs/slo/burn-rate-alerts)。
 - **網路站點和安全性事件。** 設定為在不健康時發出警示的網路站點，會在其彙總狀態不再正常運作時開啟一個警示；你的安全性偵測規則也會開啟警示。請參閱 [網路站點(健康彙總與正常運作時間)](/docs/monitor/network-sites) 和 [安全性事件(SIEM)](/docs/telemetry/security-events)。
-- **呼叫。** Slack 或 Microsoft Teams 中的 `/oneuptime page` 會開啟一個以你的訊息為標題的警示，並呼叫你點名的人。工作流程的呼叫區塊會用你提供的標題和訊息做同樣的事。請參閱 [從 Slack 呼叫他人](/docs/workspace-connections/slack#從-slack-呼叫他人) 和 [Paging](/docs/workflows/components#paging)。
+- **呼叫。** Slack 或 Microsoft Teams 中的 `/oneuptime page`，在事件或警示的專屬頻道之外的任何地方，會開啟一個以你的訊息為標題的警示，並呼叫你點名的人。工作流程的呼叫區塊會用你提供的標題和訊息做同樣的事。請參閱 [從 Slack 呼叫他人](/docs/workspace-connections/slack#從-slack-呼叫他人) 和 [Paging](/docs/workflows/components#paging)。
 - **API、Terraform 和工作流程。** 警示是一種一般資源：`/api/alert`、Terraform 資源 `oneuptime_alert`，以及工作流程的 **Create One Alert** 步驟。
 
 ## 警示在儀表板中的位置

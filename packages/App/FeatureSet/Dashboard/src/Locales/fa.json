@@ -38429,6 +38429,7 @@
   "Didn't work": "کارساز نبود",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "وقتی OneUptime AI این هشدار را بررسی کرد، «فعال‌سازی هوش مصنوعی» خاموش بود. اکنون روشن است.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "وقتی OneUptime AI این حادثه را بررسی کرد، «فعال‌سازی هوش مصنوعی» خاموش بود. اکنون روشن است.",
+  "Every operation, including database calls and internal steps.": "هر عملیات، از جمله فراخوانی‌های پایگاه داده و گام‌های داخلی.",
   "Fix applied": "اصلاح اعمال شد",
   "Fixed": "اصلاح شد",
   "Fixing…": "در حال اصلاح…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "وقتی کسی با دسترسی نوشتن یک Merge Request باز یا به‌روز می‌کند، OneUptime آنچه محیط عملیاتی از کد تغییریافته نشان می‌دهد را در یک دیدگاه می‌نویسد.",
   "Where Its Data Comes From": "داده‌های آن از کجا می‌آیند",
   "Where Its Data Goes": "داده‌های آن به کجا می‌روند",
+  "Where a request or message enters a service.": "جایی که یک درخواست یا پیام وارد یک سرویس می‌شود.",
+  "Where a trace starts.": "جایی که یک ترِیس آغاز می‌شود.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "جایی که داده می‌تواند نگهداری شود: مناطقی که یک دسته داده، یا داده‌های افراد در برخی کشورها، می‌تواند در آن‌ها ذخیره و به آن‌ها کپی شود.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "جایی که داده می‌تواند نگهداری شود: مناطقی که یک مخزن می‌تواند داده‌های شخصی، یا دسته‌ای از آن را، در آن‌ها نگه دارد و به آن‌ها کپی کند.",
   "Where it lives, how OneUptime found it, and when it last looked.": "محل نگهداری آن، نحوه یافتن آن توسط OneUptime و آخرین زمانی که بررسی شد.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "پرریسک‌ترین مسائل باز، با امتیاز 0 تا 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "آنچه برچسب‌ها و اسکن‌های آن همیشه نمی‌توانند تشخیص دهند. هر کدام نتیجه بررسی‌های آن را تغییر می‌دهد.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "اینکه آیا نمونه‌هایی از محتوای آن برای یافتن داده‌های حساس خوانده می‌شود و اسکن‌ها چه چیزهایی را نادیده می‌گیرند.",
-  "{{confidence}} confidence": "اطمینان: {{confidence}}"
+  "{{confidence}} confidence": "اطمینان: {{confidence}}",
+  "Page Message": "Page Message"
 }

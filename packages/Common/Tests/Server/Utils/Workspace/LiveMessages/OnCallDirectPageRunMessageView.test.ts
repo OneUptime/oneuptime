@@ -7,6 +7,7 @@ import OnCallPolicyRunMessageView, {
   OnCallPolicyRun,
   OnCallPolicyRunAlarm,
   OnCallPolicyRunOutcome,
+  OnCallPolicyRunPagedPerson,
 } from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessageView";
 
 /*
@@ -334,7 +335,7 @@ describe("a direct page that somebody answered", () => {
     );
   });
 
-  test("a person's page: the paging stopped - the person did not stop it", () => {
+  test("a person's page: the paging stopped - the person did not stop it - and Nitin acknowledged the page", () => {
     expect(
       OnCallPolicyRunMessageView.getMarkdown(
         page({
@@ -343,7 +344,9 @@ describe("a direct page that somebody answered", () => {
           acknowledgedByName: "Nitin",
         }),
       ).split("\n\n")[0],
-    ).toBe(`✅ **Nitin** acknowledged ${RECORD}, so paging stopped`);
+    ).toBe(
+      `✅ **Nitin** acknowledged the page for ${RECORD}, so paging stopped`,
+    );
   });
 
   test("the people stay listed once it is over, with who acknowledged", () => {
@@ -724,17 +727,21 @@ describe("a direct page a person started", () => {
     );
   });
 
-  test("acknowledged: who acknowledged, and that paging stopped", () => {
+  test("acknowledged: who acknowledged the page, and that paging stopped", () => {
     const run: OnCallPolicyRun = samPage({
       outcome: OnCallPolicyRunOutcome.Acknowledged,
       acknowledgedByName: "Nitin",
     });
 
+    /*
+     * The page, not the incident: somebody else may have acknowledged the
+     * incident long before Sam paged Nitin into it.
+     */
     expect(headline(run)).toBe(
-      `✅ **Nitin** acknowledged ${RECORD}, so paging stopped`,
+      `✅ **Nitin** acknowledged the page for ${RECORD}, so paging stopped`,
     );
     expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
-      "Nitin acknowledged Incident INC-8",
+      "Nitin acknowledged the page for Incident INC-8",
     );
     expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([]);
   });
@@ -906,5 +913,480 @@ describe("a direct page a person started", () => {
     ).toBe(
       `✅ **Nitin** acknowledged ${RECORD}, so workflow ${WORKFLOW_LINK} stopped paging`,
     );
+  });
+});
+
+/*
+ * A PAGE FROM AN INCIDENT'S OWN CHANNEL (block 31) goes on until somebody
+ * it paged answers it, whoever else acknowledges the incident
+ * (OnCallPersonPage). When it ends unanswered while somebody is on the
+ * incident, nobody needs to take the incident: the person who paged needs
+ * somebody else.
+ */
+describe("a person's page nobody answered, about a record somebody else is on", () => {
+  const BY_SAM: OnCallDirectPageRun = { startedByPersonName: "Sam Lee" };
+
+  function unanswered(
+    overrides: Partial<OnCallPolicyRun> = {},
+  ): OnCallPolicyRun {
+    return page({
+      directPage: BY_SAM,
+      outcome: OnCallPolicyRunOutcome.NobodyAnswered,
+      ...overrides,
+    });
+  }
+
+  test("its headline says the page went unanswered - not that the incident needs taking", () => {
+    const run: OnCallPolicyRun = unanswered();
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[0]).toBe(
+      `⚠️ Nobody answered the page from **Sam Lee** for ${RECORD}`,
+    );
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Nobody answered the page from Sam Lee for Incident INC-8",
+    );
+  });
+
+  test("one alarm: who was paged, that paging stopped, and what to do next", () => {
+    expect(OnCallPolicyRunMessageView.getAlarms(unanswered())).toEqual([
+      {
+        key: ON_CALL_RUN_ALARM_OUTCOME,
+        markdown: `⚠️ Nobody answered the page for ${RECORD}: **Sam Lee** paged Nitin and Jane Doe, and paging has stopped. Page someone else, or reach them another way.`,
+        text: "Nobody answered the page from Sam Lee for Incident INC-8",
+      },
+    ]);
+  });
+
+  test("it never asks for somebody to take the record, nor says the person stopped paging", () => {
+    const run: OnCallPolicyRun = unanswered();
+    const said: string = [
+      OnCallPolicyRunMessageView.getMarkdown(run),
+      OnCallPolicyRunMessageView.getPlainText(run),
+      ...OnCallPolicyRunMessageView.getAlarms(run).map(
+        (alarm: OnCallPolicyRunAlarm): string => {
+          return alarm.markdown;
+        },
+      ),
+    ].join("\n");
+
+    expect(said).not.toContain("Someone needs to take it");
+    expect(said).not.toContain("Nobody has acknowledged");
+    expect(said).not.toContain("Sam Lee** stopped paging");
+  });
+
+  test("the people of a team it paged are named after the team", () => {
+    const run: OnCallPolicyRun = unanswered({
+      paged: [
+        { ...page().paged[0]!, name: "Test User 4", teams: ["Team X"] },
+        { ...page().paged[0]!, name: "Test User 3", teams: ["Team X"] },
+      ],
+    });
+
+    expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.markdown).toContain(
+      "**Sam Lee** paged Team X (Test User 4 and Test User 3), and paging has stopped.",
+    );
+  });
+});
+
+/*
+ * WHAT THE PERSON WHO PAGED WROTE (pageMessage): quoted under the first
+ * line, wherever the run's message is - the incident's own channel
+ * included, where a page about something new quotes nothing.
+ */
+describe("the page's message", () => {
+  const BY_SAM: OnCallDirectPageRun = { startedByPersonName: "Sam Lee" };
+
+  test("quoted under the headline, everywhere the message is", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: BY_SAM,
+      pageMessage: "Can you check the database?",
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")).toEqual([
+      `📟 **Sam Lee** is paging for ${RECORD}`,
+      "“Can you check the database?”",
+      "- **Nitin**: paged once · by SMS and email\n- **Jane Doe** (covering for Alex Kim): being paged now\n- **NB User 2**: not paged · not a member of this project\n- Nobody was on call in schedule **Secondary**\n- Team **Platform** has no members",
+      `[See every step in OneUptime](${RUN_URL})`,
+    ]);
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Sam Lee is paging for Incident INC-8: Can you check the database?",
+    );
+  });
+
+  test("where somebody paged from a chat it is the quote, not the record's title", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: BY_SAM,
+      pageMessage: "Can you check the database?",
+    });
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run, {
+      recordTitle: "Checkout is down",
+    });
+
+    expect(markdown).toContain("“Can you check the database?”");
+    expect(markdown).not.toContain("Checkout is down");
+  });
+
+  test("still told once the page ends", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: BY_SAM,
+      pageMessage: "Can you check the database?",
+      outcome: OnCallPolicyRunOutcome.Acknowledged,
+      acknowledgedByName: "Nitin",
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[1]).toBe(
+      "“Can you check the database?”",
+    );
+  });
+
+  test("on one line, cut where a chat line reads at a glance", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: BY_SAM,
+      pageMessage: `${"word ".repeat(100)}\nend`,
+    });
+
+    const quote: string =
+      OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[1]!;
+
+    expect(quote.startsWith("“word word")).toBe(true);
+    expect(quote.endsWith("…”")).toBe(true);
+    expect(quote.length).toBeLessThanOrEqual(202);
+    expect(quote).not.toContain("\n");
+  });
+
+  test("a message is text: nothing in it becomes a link or formatting", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: BY_SAM,
+      pageMessage: "**urgent** see [this](https://evil.example)",
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[1]).toBe(
+      "“\\*\\*urgent\\*\\* see \\[this\\](https://evil.example)”",
+    );
+  });
+
+  test("no message, and no record title: nothing quoted", () => {
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(
+        page({ directPage: BY_SAM }),
+      ).split("\n\n")[1],
+    ).toMatch(/^- /);
+  });
+});
+
+/*
+ * A PAGED TEAM, BY ITS NAME (block 31): "If I page a team name / group,
+ * the Slack message unfurls it into members. Would be nice to also show the
+ * team name." A page of one team says the team once - in its first line,
+ * whom it pages - and lists its people: each line of a team of six said
+ * "(member of Platform)" once, two lines long on a phone (UI review).
+ * People paged through different teams, or some by name, each say their
+ * own, as a person covering for somebody says whom.
+ */
+describe("a paged team, named by its name", () => {
+  function member(
+    name: string,
+    teams: Array<string>,
+    overrides: Partial<OnCallPolicyRunPagedPerson> = {},
+  ): OnCallPolicyRunPagedPerson {
+    return {
+      name: name,
+      timesPaged: 1,
+      isBeingPaged: false,
+      acknowledged: false,
+      methods: [],
+      coveringFor: [],
+      teams: teams,
+      ...overrides,
+    };
+  }
+
+  // Team X, as in the maintainer's screenshot: two of its people paged.
+  function teamX(overrides: Partial<OnCallPolicyRun> = {}): OnCallPolicyRun {
+    return page({
+      paged: [
+        member("Test User 4", ["Team X"]),
+        member("Test User 3", ["Team X"], { methods: ["SMS"] }),
+      ],
+      notPaged: [],
+      ...overrides,
+    });
+  }
+
+  const BY_JANE: OnCallDirectPageRun = { startedByPersonName: "Jane Doe" };
+  const POLICY_URL: string =
+    "https://oneuptime.test/dashboard/p/on-call-duty/policies/1";
+
+  test("a page of one team names it in its first line, and lists its people without it", () => {
+    const run: OnCallPolicyRun = teamX();
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")).toEqual([
+      `📟 Workflow ${WORKFLOW_LINK} is paging **Team X** for ${RECORD}`,
+      [
+        "- **Test User 4**: paged once",
+        "- **Test User 3**: paged once · by SMS",
+      ].join("\n"),
+      `[See every step in OneUptime](${RUN_URL})`,
+    ]);
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Workflow Page the on-call engineer is paging Team X for Incident INC-8",
+    );
+  });
+
+  test("a person's page of one team: who pages whom, for what - and her message under it", () => {
+    const run: OnCallPolicyRun = teamX({
+      directPage: BY_JANE,
+      pageMessage: "Can you check the database?",
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")).toEqual([
+      `📟 **Jane Doe** is paging **Team X** for ${RECORD}`,
+      "“Can you check the database?”",
+      [
+        "- **Test User 4**: paged once",
+        "- **Test User 3**: paged once · by SMS",
+      ].join("\n"),
+      `[See every step in OneUptime](${RUN_URL})`,
+    ]);
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Jane Doe is paging Team X for Incident INC-8: Can you check the database?",
+    );
+  });
+
+  test("people paged through different teams, or by name: each line says its own, and the first line names no team", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: BY_JANE,
+      paged: [
+        member("Nitin", ["Platform"]),
+        member("Alex Kim", []),
+        member("Priya", ["Database"]),
+      ],
+      notPaged: [],
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")).toEqual([
+      `📟 **Jane Doe** is paging for ${RECORD}`,
+      [
+        "- **Nitin** (member of Platform): paged once",
+        "- **Alex Kim**: paged once",
+        "- **Priya** (member of Database): paged once",
+      ].join("\n"),
+      `[See every step in OneUptime](${RUN_URL})`,
+    ]);
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Jane Doe is paging for Incident INC-8",
+    );
+  });
+
+  test("somebody paged through two teams names both; covering for somebody, says that first", () => {
+    const run: OnCallPolicyRun = page({
+      paged: [
+        member("Sam", ["Platform", "Database"], {
+          acknowledged: true,
+          methods: ["push"],
+          coveringFor: ["Alex Kim"],
+        }),
+      ],
+      notPaged: [],
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[1]).toBe(
+      "- **Sam** (covering for Alex Kim; member of Platform and Database): acknowledged · paged once · by push",
+    );
+  });
+
+  test("ended with nobody answering while somebody else is on the record: nobody in the team answered", () => {
+    const run: OnCallPolicyRun = teamX({
+      directPage: BY_JANE,
+      outcome: OnCallPolicyRunOutcome.NobodyAnswered,
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[0]).toBe(
+      `⚠️ Nobody in **Team X** answered the page from **Jane Doe** for ${RECORD}`,
+    );
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Nobody in Team X answered the page from Jane Doe for Incident INC-8",
+    );
+    expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([
+      {
+        key: ON_CALL_RUN_ALARM_OUTCOME,
+        markdown: `⚠️ Nobody answered the page for ${RECORD}: **Jane Doe** paged Team X (Test User 4 and Test User 3), and paging has stopped. Page someone else, or reach them another way.`,
+        text: "Nobody in Team X answered the page from Jane Doe for Incident INC-8",
+      },
+    ]);
+  });
+
+  test("ended with nobody acknowledging: the first line says the team it paged", () => {
+    const run: OnCallPolicyRun = teamX({
+      outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[0]).toBe(
+      `⚠️ Workflow ${WORKFLOW_LINK} paged **Team X** for ${RECORD} and nobody acknowledged`,
+    );
+  });
+
+  test("once somebody answers, the first line says who did - and no line says the team", () => {
+    const run: OnCallPolicyRun = teamX({
+      directPage: BY_JANE,
+      outcome: OnCallPolicyRunOutcome.Acknowledged,
+      acknowledgedByName: "Test User 3",
+      paged: [
+        member("Test User 4", ["Team X"]),
+        member("Test User 3", ["Team X"], { acknowledged: true }),
+      ],
+    });
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
+
+    expect(markdown.split("\n\n")[0]).toBe(
+      `✅ **Test User 3** acknowledged the page for ${RECORD}, so paging stopped`,
+    );
+    expect(markdown).not.toContain("member of");
+  });
+
+  test("a policy's run names its policy first: a level of one team lists its people as it always did", () => {
+    const run: OnCallPolicyRun = teamX({
+      directPage: undefined,
+      policyName: "Production on-call",
+      policyUrl: POLICY_URL,
+      ruleCount: 2,
+      escalateAfterInMinutes: 10,
+      currentRule: { order: 1, name: "" },
+      nextRule: { order: 2, name: "" },
+    });
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
+
+    expect(markdown.split("\n\n")[0]).toBe(
+      `📟 **[Production on-call](${POLICY_URL})** is paging for ${RECORD}`,
+    );
+    expect(markdown).toContain("- **Test User 4**: paged once");
+    expect(markdown).not.toContain("member of");
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Production on-call is paging for Incident INC-8",
+    );
+  });
+
+  test("a policy's level of two teams: each line says its own", () => {
+    const run: OnCallPolicyRun = page({
+      directPage: undefined,
+      policyName: "Production on-call",
+      policyUrl: POLICY_URL,
+      ruleCount: 1,
+      currentRule: { order: 1, name: "" },
+      paged: [member("Nitin", ["Platform"]), member("Priya", ["Database"])],
+      notPaged: [],
+    });
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
+
+    expect(markdown).toContain("- **Nitin** (member of Platform): paged once");
+    expect(markdown).toContain("- **Priya** (member of Database): paged once");
+  });
+
+  test("a team's name is text, in the first line and on a line alike", () => {
+    const evil: string = "*Ops* [team](https://evil.example)";
+
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(
+        page({ paged: [member("Sam", [evil])], notPaged: [] }),
+      ),
+    ).toContain("is paging **\\*Ops\\* \\[team\\](https://evil.example)** for");
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(
+        page({
+          paged: [member("Sam", [evil]), member("Alex Kim", [])],
+          notPaged: [],
+        }),
+      ),
+    ).toContain("(member of \\*Ops\\* \\[team\\](https://evil.example))");
+  });
+
+  test.each([
+    ["nobody paged yet", [], null],
+    ["everybody through one team", [["Team X"], ["Team X"]], "Team X"],
+    ["somebody by name", [["Team X"], []], null],
+    ["somebody through another team", [["Team X"], ["Platform"]], null],
+    ["somebody through two teams at once", [["Team X", "Platform"]], null],
+  ] as Array<[string, Array<Array<string>>, string | null]>)(
+    "the one team of everybody paged: %s",
+    (_what: string, teams: Array<Array<string>>, expected: string | null) => {
+      expect(
+        OnCallPolicyRunMessageView.getTeamOfEveryonePaged(
+          page({
+            paged: teams.map(
+              (
+                names: Array<string>,
+                index: number,
+              ): OnCallPolicyRunPagedPerson => {
+                return member(`Person ${index + 1}`, names);
+              },
+            ),
+          }),
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  test("somebody named on their own says no team", () => {
+    expect(OnCallPolicyRunMessageView.getMarkdown(page())).toContain(
+      "- **Nitin**: paged once · by SMS and email",
+    );
+  });
+
+  test("an alarm names a team first, then its people; somebody named alone, alone", () => {
+    const run: OnCallPolicyRun = page({
+      outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+      paged: [
+        { ...page().paged[0]!, name: "Test User 4", teams: ["Team X"] },
+        { ...page().paged[0]!, name: "Alex Kim" },
+        { ...page().paged[0]!, name: "Test User 3", teams: ["Team X"] },
+      ],
+    });
+
+    expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.markdown).toContain(
+      `paged Team X (Test User 4 and Test User 3) and Alex Kim, and has stopped paging.`,
+    );
+  });
+
+  test("an alarm names at most five, people or teams, then how many more", () => {
+    const run: OnCallPolicyRun = page({
+      outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+      paged: ["A", "B", "C", "D", "E", "F", "G"].map((name: string) => {
+        return { ...page().paged[0]!, name: name };
+      }),
+    });
+
+    expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.markdown).toContain(
+      "paged A, B, C, D, E and 2 others, and has stopped paging.",
+    );
+  });
+
+  test("a team of many: its first five, then how many more", () => {
+    const run: OnCallPolicyRun = page({
+      outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+      paged: ["A", "B", "C", "D", "E", "F"].map((name: string) => {
+        return { ...page().paged[0]!, name: name, teams: ["Platform"] };
+      }),
+    });
+
+    expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.markdown).toContain(
+      "paged Platform (A, B, C, D, E and 1 other), and has stopped paging.",
+    );
+  });
+
+  test("the reason a team pages somebody, as other places say it", () => {
+    expect(
+      OnCallPolicyRunMessageView.getTeamReason(["Platform"]).toString(),
+    ).toBe("member of Platform");
+    expect(
+      OnCallPolicyRunMessageView.getTeamReason([
+        "Platform",
+        "Database",
+        "Edge",
+      ]).toString(),
+    ).toBe("member of Platform, Database and Edge");
   });
 });

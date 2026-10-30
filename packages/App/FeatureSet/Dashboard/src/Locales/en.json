@@ -38429,6 +38429,7 @@
   "Didn't work": "Didn't work",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "Enable AI was off when OneUptime AI checked this alert. It is on now.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "Enable AI was off when OneUptime AI checked this incident. It is on now.",
+  "Every operation, including database calls and internal steps.": "Every operation, including database calls and internal steps.",
   "Fix applied": "Fix applied",
   "Fixed": "Fixed",
   "Fixing…": "Fixing…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.",
   "Where Its Data Comes From": "Where Its Data Comes From",
   "Where Its Data Goes": "Where Its Data Goes",
+  "Where a request or message enters a service.": "Where a request or message enters a service.",
+  "Where a trace starts.": "Where a trace starts.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.",
   "Where it lives, how OneUptime found it, and when it last looked.": "Where it lives, how OneUptime found it, and when it last looked.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "The riskiest open issues, scored from 0 to 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "What its tags and scans cannot always tell. Each changes what its checks find.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Whether samples of its content are read to find sensitive data, and what the scans skip.",
-  "{{confidence}} confidence": "{{confidence}} confidence"
+  "{{confidence}} confidence": "{{confidence}} confidence",
+  "Page Message": "Page Message"
 }

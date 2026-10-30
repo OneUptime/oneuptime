@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+When somebody pages you from Slack or Microsoft Teams, the text says who paged whom after `OneUptime:`, and those words are never cut either:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 One character outside the plain alphabet of text messages makes the whole text go out in parts of 70 characters. So curly quotes and dashes are written as `"`, `'` and `-`, `…` as `...`, and letters such as `ç` and `ł` lose their accents; emoji are left out. A title in another script, such as Japanese or Russian, is sent as written, and takes two parts or more.
 
 The other text messages OneUptime sends you, such as a change to an incident you own or the start of your on-call shift, start with `OneUptime:` too and end with `Turn off in User Settings > Notification Settings.`, a sentence that is left out when that is what makes the text fit in one part.

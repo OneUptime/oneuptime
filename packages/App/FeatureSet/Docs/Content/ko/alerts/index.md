@@ -46,7 +46,7 @@ flowchart TB
 - **직접.** 경고 목록에서, 또는 모니터, 호스트, 네트워크 디바이스, 기타 리소스의 **알림** 탭에서 **알림 생성**을 클릭하세요. 후자의 경우 해당 리소스가 자동으로 선택됩니다. [직접 경고 만들기](#직접-경고-만들기)를 참고하세요.
 - **SLO 의 소진율.** 소진율 규칙은 SLO 가 오류 예산을 너무 빨리 쓸 때 경고를 생성할 수 있습니다. [소진율 경고 및 인시던트](/docs/slo/burn-rate-alerts)를 참고하세요.
 - **네트워크 사이트와 보안 이벤트.** 비정상일 때 경고하도록 설정한 네트워크 사이트는 상태 요약이 정상 운영이 아니게 되면 경고를 엽니다. 보안 이벤트 탐지 규칙도 경고를 엽니다. [네트워크 사이트(상태 요약 및 가동 시간)](/docs/monitor/network-sites)와 [보안 이벤트(SIEM)](/docs/telemetry/security-events)를 참고하세요.
-- **호출.** Slack 또는 Microsoft Teams 의 `/oneuptime page`는 메시지를 제목으로 한 경고를 열고, 지정한 사람을 호출합니다. 워크플로우의 호출 블록도 전달한 제목과 메시지로 같은 일을 합니다. [Slack 에서 누군가 호출하기](/docs/workspace-connections/slack#slack-에서-누군가-호출하기)와 [Paging](/docs/workflows/components#paging)을 참고하세요.
+- **호출.** Slack 또는 Microsoft Teams 의 `/oneuptime page`는 인시던트나 경고의 전용 채널이 아닌 곳에서 메시지를 제목으로 한 경고를 열고, 지정한 사람을 호출합니다. 워크플로우의 호출 블록도 전달한 제목과 메시지로 같은 일을 합니다. [Slack 에서 누군가 호출하기](/docs/workspace-connections/slack#slack-에서-누군가-호출하기)와 [Paging](/docs/workflows/components#paging)을 참고하세요.
 - **API, Terraform, 워크플로우.** 경고는 일반 리소스입니다. `/api/alert`, Terraform 리소스 `oneuptime_alert`, 그리고 워크플로우의 **Create One Alert** 단계가 있습니다.
 
 ## 대시보드에서 경고의 위치

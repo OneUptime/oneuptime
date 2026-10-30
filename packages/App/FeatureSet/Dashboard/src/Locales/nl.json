@@ -38429,6 +38429,7 @@
   "Didn't work": "Werkte niet",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "‘AI inschakelen’ stond uit toen OneUptime AI deze waarschuwing controleerde. Nu staat het aan.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "‘AI inschakelen’ stond uit toen OneUptime AI dit incident controleerde. Nu staat het aan.",
+  "Every operation, including database calls and internal steps.": "Elke bewerking, inclusief databaseaanroepen en interne stappen.",
   "Fix applied": "Herstel toegepast",
   "Fixed": "Hersteld",
   "Fixing…": "Bezig met herstellen…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Wanneer iemand met schrijfrechten een merge request opent of bijwerkt, reageert OneUptime met wat productie laat zien van de gewijzigde code.",
   "Where Its Data Comes From": "Waar de gegevens vandaan komen",
   "Where Its Data Goes": "Waar de gegevens naartoe gaan",
+  "Where a request or message enters a service.": "Waar een verzoek of bericht een service binnenkomt.",
+  "Where a trace starts.": "Waar een trace begint.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "Waar gegevens mogen staan: de regio's waar een gegevenscategorie, of gegevens over personen in bepaalde landen, mogen worden opgeslagen en naartoe mogen worden gekopieerd.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "Waar gegevens mogen staan: de regio's waar een opslag persoonsgegevens, of een categorie daarvan, mag bewaren en naartoe mag kopiëren.",
   "Where it lives, how OneUptime found it, and when it last looked.": "Waar het zich bevindt, hoe OneUptime het heeft gevonden en wanneer het voor het laatst is bekeken.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "De riskantste openstaande problemen, gescoord van 0 tot 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Wat de tags en scans niet altijd kunnen vertellen. Elk ervan verandert wat de controles vinden.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Of voorbeelden van de inhoud worden gelezen om gevoelige gegevens te vinden, en wat de scans overslaan.",
-  "{{confidence}} confidence": "Betrouwbaarheid: {{confidence}}"
+  "{{confidence}} confidence": "Betrouwbaarheid: {{confidence}}",
+  "Page Message": "Page Message"
 }

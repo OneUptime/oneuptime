@@ -38429,6 +38429,7 @@
   "Didn't work": "Virket ikke",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "«Aktiver AI» var slått av da OneUptime AI sjekket dette varselet. Nå er det slått på.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "«Aktiver AI» var slått av da OneUptime AI sjekket denne hendelsen. Nå er det slått på.",
+  "Every operation, including database calls and internal steps.": "Hver operasjon, inkludert databasekall og interne trinn.",
   "Fix applied": "Retting utført",
   "Fixed": "Rettet",
   "Fixing…": "Retter…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Når noen med skrivetilgang åpner eller oppdaterer en merge request, kommenterer OneUptime med det produksjon viser om den endrede koden.",
   "Where Its Data Comes From": "Hvor dataene kommer fra",
   "Where Its Data Goes": "Hvor dataene går",
+  "Where a request or message enters a service.": "Der en forespørsel eller melding kommer inn i en tjeneste.",
+  "Where a trace starts.": "Der et spor starter.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "Hvor data kan ligge: regionene en datakategori, eller data om personer i visse land, kan lagres og kopieres til.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "Hvor data kan ligge: regionene et datalager kan oppbevare personopplysninger, eller en kategori av dem, i og kopiere dem til.",
   "Where it lives, how OneUptime found it, and when it last looked.": "Hvor det ligger, hvordan OneUptime fant det, og når den sist så etter.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "De mest risikable åpne problemene, med poengsum fra 0 til 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Det taggene og skanningene ikke alltid kan avgjøre. Hver av dem endrer hva kontrollene finner.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Om prøver av innholdet leses for å finne sensitive data, og hva skanningene hopper over.",
-  "{{confidence}} confidence": "Sikkerhet: {{confidence}}"
+  "{{confidence}} confidence": "Sikkerhet: {{confidence}}",
+  "Page Message": "Page Message"
 }

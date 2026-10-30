@@ -38429,6 +38429,7 @@
   "Didn't work": "Não funcionou",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "\"Ativar IA\" estava desativado quando o OneUptime AI verificou este alerta. Agora está ativado.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "\"Ativar IA\" estava desativado quando o OneUptime AI verificou este incidente. Agora está ativado.",
+  "Every operation, including database calls and internal steps.": "Cada operação, incluindo chamadas ao banco de dados e etapas internas.",
   "Fix applied": "Correção aplicada",
   "Fixed": "Corrigido",
   "Fixing…": "Corrigindo…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Quando alguém com acesso de escrita abre ou atualiza um merge request, o OneUptime comenta o que a produção mostra do código alterado.",
   "Where Its Data Comes From": "De onde vêm os dados dele",
   "Where Its Data Goes": "Para onde vão os dados dele",
+  "Where a request or message enters a service.": "Onde uma requisição ou mensagem entra em um serviço.",
+  "Where a trace starts.": "Onde um traço começa.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "Onde os dados podem ficar: as regiões em que uma categoria de dados, ou dados sobre pessoas de alguns países, podem ser armazenados e copiados.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "Onde os dados podem ficar: as regiões em que um repositório pode guardar dados pessoais, ou uma categoria deles, e para onde pode copiá-los.",
   "Where it lives, how OneUptime found it, and when it last looked.": "Onde ele fica, como o OneUptime o encontrou e quando o analisou pela última vez.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "Os problemas abertos mais arriscados, pontuados de 0 a 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "O que as tags e as varreduras dele nem sempre conseguem dizer. Cada um muda o que as verificações dele encontram.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Se amostras do conteúdo dele são lidas para encontrar dados sensíveis, e o que as varreduras ignoram.",
-  "{{confidence}} confidence": "Confiança: {{confidence}}"
+  "{{confidence}} confidence": "Confiança: {{confidence}}",
+  "Page Message": "Page Message"
 }

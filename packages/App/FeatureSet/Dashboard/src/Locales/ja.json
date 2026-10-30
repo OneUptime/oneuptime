@@ -38429,6 +38429,7 @@
   "Didn't work": "効果なし",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "OneUptime AI がこのアラートを確認したとき、「AI を有効にする」はオフでした。現在はオンです。",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "OneUptime AI がこのインシデントを確認したとき、「AI を有効にする」はオフでした。現在はオンです。",
+  "Every operation, including database calls and internal steps.": "データベース呼び出しや内部ステップを含む、すべての操作。",
   "Fix applied": "修正を適用済み",
   "Fixed": "修正済み",
   "Fixing…": "修正しています…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "書き込み権限のある人がマージリクエストを作成または更新すると、変更されたコードについて本番環境が示す情報を OneUptime がコメントします。",
   "Where Its Data Comes From": "データの取得元",
   "Where Its Data Goes": "データの送信先",
+  "Where a request or message enters a service.": "リクエストやメッセージがサービスに入るスパン。",
+  "Where a trace starts.": "トレースが始まるスパン。",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "データを保存できる場所：特定のカテゴリのデータ、または特定の国の人々に関するデータを保存・コピーできるリージョン。",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "データを保存できる場所：データストアが個人データ (またはその特定のカテゴリ) を保持・コピーできるリージョン。",
   "Where it lives, how OneUptime found it, and when it last looked.": "所在、OneUptime が見つけた方法、最後に確認した日時。",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "リスクが最も高いオープンな問題 (0～100 でスコア化)。",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "タグやスキャンだけでは判断できない情報です。それぞれの設定によってチェックの結果が変わります。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "機密データを見つけるためにコンテンツのサンプルを読み取るかどうかと、スキャンでスキップする対象。",
-  "{{confidence}} confidence": "信頼度: {{confidence}}"
+  "{{confidence}} confidence": "信頼度: {{confidence}}",
+  "Page Message": "Page Message"
 }

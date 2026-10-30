@@ -38429,6 +38429,7 @@
   "Didn't work": "Hjälpte inte",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "”Aktivera AI” var avstängt när OneUptime AI kontrollerade det här larmet. Nu är det påslaget.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "”Aktivera AI” var avstängt när OneUptime AI kontrollerade den här incidenten. Nu är det påslaget.",
+  "Every operation, including database calls and internal steps.": "Varje operation, inklusive databasanrop och interna steg.",
   "Fix applied": "Åtgärd utförd",
   "Fixed": "Åtgärdat",
   "Fixing…": "Åtgärdar…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "När någon med skrivbehörighet öppnar eller uppdaterar en merge request kommenterar OneUptime med det som produktion visar om den ändrade koden.",
   "Where Its Data Comes From": "Var dess data kommer ifrån",
   "Where Its Data Goes": "Vart dess data går",
+  "Where a request or message enters a service.": "Där en förfrågan eller ett meddelande kommer in i en tjänst.",
+  "Where a trace starts.": "Där ett spår börjar.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "Var data får finnas: de regioner där en kategori av data, eller data om personer i vissa länder, får lagras och kopieras till.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "Var data får finnas: de regioner där ett datalager får förvara personuppgifter, eller en kategori av dem, och kopiera dem till.",
   "Where it lives, how OneUptime found it, and when it last looked.": "Var det finns, hur OneUptime hittade det och när OneUptime senast kontrollerade det.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "De mest riskfyllda öppna problemen, poängsatta från 0 till 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "Det som dess taggar och skanningar inte alltid kan avgöra. Var och en ändrar vad dess kontroller hittar.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Om prover av dess innehåll läses för att hitta känsliga data, och vad skanningarna hoppar över.",
-  "{{confidence}} confidence": "Konfidens: {{confidence}}"
+  "{{confidence}} confidence": "Konfidens: {{confidence}}",
+  "Page Message": "Page Message"
 }

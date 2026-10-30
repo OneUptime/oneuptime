@@ -38429,6 +38429,7 @@
   "Didn't work": "काम नहीं आया",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "जब OneUptime AI ने इस अलर्ट की जाँच की, तब \"AI सक्षम करें\" बंद था। अब यह चालू है।",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "जब OneUptime AI ने इस घटना की जाँच की, तब \"AI सक्षम करें\" बंद था। अब यह चालू है।",
+  "Every operation, including database calls and internal steps.": "हर ऑपरेशन, जिसमें डेटाबेस कॉल और आंतरिक चरण भी शामिल हैं।",
   "Fix applied": "सुधार लागू किया गया",
   "Fixed": "ठीक किया गया",
   "Fixing…": "ठीक किया जा रहा है…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "जब लिखने की अनुमति वाला कोई व्यक्ति मर्ज रिक्वेस्ट खोलता या अपडेट करता है, तो OneUptime टिप्पणी में बताता है कि प्रोडक्शन बदले गए कोड के बारे में क्या दिखाता है।",
   "Where Its Data Comes From": "इसका डेटा कहां से आता है",
   "Where Its Data Goes": "इसका डेटा कहां जाता है",
+  "Where a request or message enters a service.": "जहाँ कोई अनुरोध या संदेश किसी सेवा में प्रवेश करता है।",
+  "Where a trace starts.": "जहाँ कोई ट्रेस शुरू होता है।",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "डेटा कहां रह सकता है: वे क्षेत्र जिनमें किसी श्रेणी का डेटा, या कुछ देशों के लोगों का डेटा, संग्रहीत और कॉपी किया जा सकता है।",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "डेटा कहां रह सकता है: वे क्षेत्र जिनमें कोई स्टोर व्यक्तिगत डेटा, या उसकी कोई श्रेणी, रख और कॉपी कर सकता है।",
   "Where it lives, how OneUptime found it, and when it last looked.": "यह कहां है, OneUptime ने इसे कैसे खोजा, और आख़िरी बार कब देखा।",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "सबसे अधिक जोखिम वाली खुली समस्याएं, 0 से 100 तक स्कोर की गईं।",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "जो इसके टैग और स्कैन हमेशा नहीं बता सकते। हर एक से इसकी जांचों के नतीजे बदलते हैं।",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "क्या संवेदनशील डेटा खोजने के लिए इसकी सामग्री के नमूने पढ़े जाते हैं, और स्कैन क्या छोड़ते हैं।",
-  "{{confidence}} confidence": "भरोसा: {{confidence}}"
+  "{{confidence}} confidence": "भरोसा: {{confidence}}",
+  "Page Message": "Page Message"
 }

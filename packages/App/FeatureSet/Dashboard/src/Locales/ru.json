@@ -38429,6 +38429,7 @@
   "Didn't work": "Не помогло",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "Параметр «Включить ИИ» был выключен, когда OneUptime AI проверял это оповещение. Сейчас он включён.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "Параметр «Включить ИИ» был выключен, когда OneUptime AI проверял этот инцидент. Сейчас он включён.",
+  "Every operation, including database calls and internal steps.": "Каждая операция, включая обращения к базе данных и внутренние шаги.",
   "Fix applied": "Исправление применено",
   "Fixed": "Исправлено",
   "Fixing…": "Исправляется…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Когда человек с правом записи открывает или обновляет запрос на слияние, OneUptime пишет комментарий о том, что продакшен показывает об изменённом коде.",
   "Where Its Data Comes From": "Откуда поступают его данные",
   "Where Its Data Goes": "Куда уходят его данные",
+  "Where a request or message enters a service.": "Где запрос или сообщение входит в сервис.",
+  "Where a trace starts.": "Где начинается трассировка.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "Где могут находиться данные: регионы, в которых можно хранить и в которые можно копировать определённую категорию данных или данные о людях из определённых стран.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "Где могут находиться данные: регионы, в которых хранилище может держать персональные данные или их определённую категорию и в которые может их копировать.",
   "Where it lives, how OneUptime found it, and when it last looked.": "Где оно находится, как OneUptime его нашёл и когда проверял в последний раз.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "Самые рискованные открытые проблемы, с оценкой от 0 до 100.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "То, что не всегда можно определить по тегам и сканированиям. Каждый параметр влияет на результаты проверок.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "Читаются ли образцы содержимого для поиска конфиденциальных данных и что пропускают сканирования.",
-  "{{confidence}} confidence": "Достоверность: {{confidence}}"
+  "{{confidence}} confidence": "Достоверность: {{confidence}}",
+  "Page Message": "Page Message"
 }

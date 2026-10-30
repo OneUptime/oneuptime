@@ -38429,6 +38429,7 @@
   "Didn't work": "未奏效",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "OneUptime AI 檢查此警示時，「啟用 AI」處於關閉狀態。現在已開啟。",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "OneUptime AI 檢查此事件時，「啟用 AI」處於關閉狀態。現在已開啟。",
+  "Every operation, including database calls and internal steps.": "每一項操作，包括資料庫呼叫和內部步驟。",
   "Fix applied": "已套用修正",
   "Fixed": "已修正",
   "Fixing…": "正在修正…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "當擁有寫入權限的人建立或更新合併請求時，OneUptime 會留言說明正式環境中與所改程式碼相關的資料。",
   "Where Its Data Comes From": "資料來源",
   "Where Its Data Goes": "資料去向",
+  "Where a request or message enters a service.": "請求或訊息進入某個服務的 span。",
+  "Where a trace starts.": "追蹤開始的 span。",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "資料可存放的位置：某類別的資料，或與特定國家/地區人員相關的資料，可儲存和複製到的地區。",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "資料可存放的位置：資料儲存區可存放及複製個人資料（或其中某類別）的地區。",
   "Where it lives, how OneUptime found it, and when it last looked.": "其所在位置、OneUptime 如何找到它，以及上次檢視的時間。",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "風險最高的開啟中問題，以 0 到 100 評分。",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "其標籤和掃描不一定能判斷的資訊。每一項都會改變其檢查結果。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "是否讀取其內容樣本以找出敏感資料，以及掃描會略過哪些內容。",
-  "{{confidence}} confidence": "信賴度：{{confidence}}"
+  "{{confidence}} confidence": "信賴度：{{confidence}}",
+  "Page Message": "Page Message"
 }

@@ -38429,6 +38429,7 @@
   "Didn't work": "효과 없음",
   "Enable AI was off when OneUptime AI checked this alert. It is on now.": "OneUptime AI가 이 경고를 확인할 때 \"AI 사용\"이 꺼져 있었습니다. 지금은 켜져 있습니다.",
   "Enable AI was off when OneUptime AI checked this incident. It is on now.": "OneUptime AI가 이 인시던트를 확인할 때 \"AI 사용\"이 꺼져 있었습니다. 지금은 켜져 있습니다.",
+  "Every operation, including database calls and internal steps.": "데이터베이스 호출과 내부 단계를 포함한 모든 작업입니다.",
   "Fix applied": "수정 적용됨",
   "Fixed": "수정됨",
   "Fixing…": "수정 중…",
@@ -38534,6 +38535,8 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "쓰기 권한이 있는 사람이 머지 리퀘스트를 열거나 업데이트하면, OneUptime이 변경된 코드에 대해 프로덕션이 보여 주는 내용을 댓글로 남깁니다.",
   "Where Its Data Comes From": "데이터 유입 출처",
   "Where Its Data Goes": "데이터 전송 대상",
+  "Where a request or message enters a service.": "요청이나 메시지가 서비스로 들어오는 스팬입니다.",
+  "Where a trace starts.": "트레이스가 시작되는 스팬입니다.",
   "Where data may live: the regions a category of data, or data about people in some countries, may be stored and copied to.": "데이터가 위치할 수 있는 곳입니다. 특정 범주의 데이터나 특정 국가 사람에 관한 데이터를 저장하고 복사할 수 있는 지역입니다.",
   "Where data may live: the regions a store may keep personal data in, or a category of it, and copy it to.": "데이터가 위치할 수 있는 곳입니다. 저장소가 개인 데이터 또는 그 범주를 보관하고 복사할 수 있는 지역입니다.",
   "Where it lives, how OneUptime found it, and when it last looked.": "위치, OneUptime이 발견한 방법, 마지막으로 확인한 시점입니다.",
@@ -38740,5 +38743,6 @@
   "The riskiest open issues, scored from 0 to 100.": "위험도가 가장 높은 열린 이슈로, 0에서 100까지 점수가 매겨집니다.",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "태그와 스캔만으로는 항상 알 수 없는 정보입니다. 각 항목에 따라 검사 결과가 달라집니다.",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "민감한 데이터를 찾기 위해 콘텐츠 샘플을 읽을지 여부와 스캔에서 건너뛸 항목입니다.",
-  "{{confidence}} confidence": "신뢰도: {{confidence}}"
+  "{{confidence}} confidence": "신뢰도: {{confidence}}",
+  "Page Message": "Page Message"
 }
