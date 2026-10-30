@@ -322,14 +322,19 @@ const DataStoreSettings: FunctionComponent<
         }}
       />
 
+      {/*
+       * Each card's button names what it edits: three cards all saying
+       * "Edit Data Store" read as three ways to do one thing.
+       */}
       <CardModelDetail<DataStore>
-        name="How Data Security Treats It"
+        name="Classification"
         cardProps={{
-          title: "How Data Security Treats It",
+          title: "Classification",
           description:
-            "What this store is for, which Data Security cannot always read from it. Each changes what its checks say.",
+            "What its tags and scans cannot always tell. Each changes what its checks find.",
         }}
         isEditable={true}
+        editButtonText="Edit Classification"
         formFields={[
           {
             field: { environment: true },
@@ -431,13 +436,14 @@ const DataStoreSettings: FunctionComponent<
       />
 
       <CardModelDetail<DataStore>
-        name="Scanning"
+        name="Content Scans"
         cardProps={{
-          title: "Scanning",
+          title: "Content Scans",
           description:
-            "Whether this store's content is sampled to find sensitive data in it, and what the scans skip.",
+            "Whether samples of its content are read to find sensitive data, and what the scans skip.",
         }}
         isEditable={true}
+        editButtonText="Edit Content Scans"
         formFields={scanningFormFields}
         onSaveSuccess={(): void => {
           refresh();
@@ -462,6 +468,7 @@ const DataStoreSettings: FunctionComponent<
             "Why this store holds personal data and how long it keeps it, for the GDPR record of processing on Compliance.",
         }}
         isEditable={true}
+        editButtonText="Edit Record"
         formFields={[
           {
             field: { purpose: true },

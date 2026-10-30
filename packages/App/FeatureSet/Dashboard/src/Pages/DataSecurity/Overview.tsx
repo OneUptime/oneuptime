@@ -34,10 +34,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -91,6 +94,16 @@ const STORES_CHECKED: string = translationKey("stores checked");
 const STORES_CONTENT_SCANNED: string = translationKey(
   "stores with their content scanned",
 );
+
+/*
+ * The fourth figure: what turned up in the services' own telemetry and is
+ * not scrubbed yet, out of everything found there. Named as the menu names
+ * the page the figure is about, so its label fits its tile on one line.
+ */
+const NOT_SCRUBBED_OF_FINDINGS: PluralTemplate = {
+  one: "Not scrubbed, of {{count}} finding",
+  other: "Not scrubbed, of {{count}} findings",
+};
 
 export const DATA_SECURITY_OVERVIEW_CHARTS_ID: string =
   "data-security-overview-charts";
@@ -270,6 +283,8 @@ const DataSecurityOverviewPage: FunctionComponent<
           label: translator.translateText(entry.category) || entry.category,
           count: countOf(entry.storeCount),
           color: CATEGORY_COLORS[entry.category] || "#6366f1",
+          // Where each kind lives, store by store: Sensitive Data.
+          to: route(PageMap.DATA_SECURITY_SENSITIVE_DATA),
         };
       },
     );
@@ -281,7 +296,8 @@ const DataSecurityOverviewPage: FunctionComponent<
 
       return {
         key: issue.issueId,
-        label: issue.title,
+        // The check's title, in the reader's language, as the issue's page has it.
+        label: translator.translateText(issue.title) || issue.title,
         hint: issue.dataStoreName,
         count: riskScore,
         fillPercent: riskScore,
@@ -337,12 +353,12 @@ const DataSecurityOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           icon={IconProp.Globe}
-          label="Exposed Sensitive Stores"
+          label="Exposed Stores"
           value={translator.formatNumber(
             countOf(overview.exposedSensitiveStoreCount),
           )}
           description={translator.translateText(
-            "Public, or shared outside your accounts",
+            "Sensitive, and public or shared outside your accounts",
           )}
         />
         <EventStatTile
@@ -361,15 +377,12 @@ const DataSecurityOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           icon={IconProp.Logs}
-          label="Not Scrubbed in Telemetry"
+          label="In Your Telemetry"
           value={translator.formatNumber(
             countOf(overview.unscrubbedTelemetryFindingCount),
           )}
           description={translator.translatePlural(
-            {
-              one: "of {{count}} finding in your telemetry",
-              other: "of {{count}} findings in your telemetry",
-            },
+            NOT_SCRUBBED_OF_FINDINGS,
             countOf(overview.telemetryFindingCount),
           )}
         />
@@ -379,7 +392,7 @@ const DataSecurityOverviewPage: FunctionComponent<
         <Card
           headerLayout="stacked"
           title="Fix These First"
-          description="The open issues with the highest risk, from 0 to 100: how sensitive the data is, how exposed the store is, and what the check found."
+          description="The riskiest open issues, scored from 0 to 100."
           buttons={[
             {
               title: "See All Issues",
@@ -399,20 +412,8 @@ const DataSecurityOverviewPage: FunctionComponent<
         </Card>
         <Card
           headerLayout="stacked"
-          title="Stores by Data Category"
-          description="How many stores hold each kind of sensitive data. A store with several kinds is counted under each."
-          buttons={[
-            {
-              title: "See Sensitive Data",
-              icon: IconProp.Fingerprint,
-              buttonStyle: ButtonStyleType.NORMAL,
-              onClick: () => {
-                Navigation.navigate(
-                  route(PageMap.DATA_SECURITY_SENSITIVE_DATA),
-                );
-              },
-            },
-          ]}
+          title="Stores by Category"
+          description="How many stores hold each kind of sensitive data."
         >
           <RankedBars
             items={categoryItems}
@@ -436,7 +437,7 @@ const DataSecurityOverviewPage: FunctionComponent<
         <Card
           headerLayout="stacked"
           title="Scan Coverage"
-          description="How much of your data Data Security has looked at: every store's configuration is checked, and its content is sampled where OneUptime can read it."
+          description="A store is checked once its configuration is read, and scanned once samples of its content are."
           buttons={[
             {
               title: "See Scans",
@@ -461,24 +462,15 @@ const DataSecurityOverviewPage: FunctionComponent<
               suffix={STORES_CONTENT_SCANNED}
               size={ProgressBarSize.Small}
             />
-            <p className="text-sm text-gray-500">
-              <TranslatedSentence
-                template="A store is checked once its configuration is read, and scanned once samples of its content are. {{link}}"
-                slots={{
-                  link: (
-                    <AppLink
-                      to={route(PageMap.DATA_SECURITY_SETTINGS_SCANNING)}
-                      className="font-medium text-indigo-600 hover:text-indigo-700"
-                    >
-                      <span>
-                        {translator.translateText(
-                          "Change how stores are scanned",
-                        )}
-                      </span>
-                    </AppLink>
-                  ),
-                }}
-              />
+            <p className="text-sm">
+              <AppLink
+                to={route(PageMap.DATA_SECURITY_SETTINGS_SCANNING)}
+                className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              >
+                <span>
+                  {translator.translateText("Change how stores are scanned")}
+                </span>
+              </AppLink>
             </p>
           </div>
         </Card>

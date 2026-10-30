@@ -227,6 +227,7 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
           field: { grantedVia: true },
           title: "Granted Via",
           type: FieldType.Element,
+          isHiddenByDefault: true,
           disableSort: true,
           hideOnMobile: true,
           wrapContent: true,

@@ -84,10 +84,12 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
 );
 
 /*
- * Everything wrong with the project's data stores, riskiest first: what is
- * wrong, on which store, the data that makes it matter, who is on it and
- * where it stands. It opens on the open issues; the Status filter shows
- * the accepted, resolved and dismissed ones.
+ * Everything wrong with the project's data stores, riskiest first: how bad
+ * it is, what is wrong, on which store, and its risk score - what fits a
+ * laptop's card beside the side menu. The data that makes it matter, who is
+ * on it and where it stands are a click away in Columns. It opens on the
+ * open issues; the Status filter shows the accepted, resolved and dismissed
+ * ones, each saying so beside its title.
  *
  * Each row's ⋯ menu and Bulk Actions work the issues - Mark Resolved,
  * Accept Risk, Not an Issue (IssueListActions) - and the list shows the
@@ -222,7 +224,7 @@ const DataSecurityIssuesPage: FunctionComponent<
               const id: string = item._id?.toString() || "";
 
               return (
-                <div className="grid min-w-[14rem] grid-cols-1">
+                <div className="grid min-w-[13rem] grid-cols-1">
                   <AppLink
                     className="group block min-w-0"
                     to={getIssueViewRoute(id)}
@@ -234,6 +236,20 @@ const DataSecurityIssuesPage: FunctionComponent<
                     </span>
                   </AppLink>
                   <div className="mt-0.5 text-xs leading-5 text-gray-500">
+                    {/*
+                     * Where it stands, when that is not Open: the list
+                     * opens on the open issues, so its Status column is
+                     * left out until someone adds it, and an accepted or
+                     * resolved one a filter brings in still says so.
+                     */}
+                    {item.status &&
+                    item.status !== DataSecurityIssueStatus.Open ? (
+                      <span className="me-1.5 inline-flex align-middle">
+                        <IssueStatusPill status={item.status} />
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                     {item.checkGroup ? (
                       <span className="me-1.5 inline-flex items-center gap-1.5">
                         <span>
@@ -313,6 +329,7 @@ const DataSecurityIssuesPage: FunctionComponent<
             type: FieldType.Element,
             disableSort: true,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",
             getExportValue: (item: DataSecurityIssue): string => {
@@ -345,6 +362,7 @@ const DataSecurityIssuesPage: FunctionComponent<
             type: FieldType.Element,
             disableSort: true,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getExportValue: (item: DataSecurityIssue): string => {
               return (
                 item.assignedToUser?.name?.toString() ||
@@ -387,6 +405,7 @@ const DataSecurityIssuesPage: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             disableSort: true,
+            isHiddenByDefault: true,
             getElement: (item: DataSecurityIssue): ReactElement => {
               return <IssueStatusPill status={item.status} />;
             },

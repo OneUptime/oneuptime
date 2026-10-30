@@ -25,10 +25,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * on its page. Beside Issues, how many are still open, in red: that is
  * what needs someone.
  *
- * Settings, Rules, Help and Advanced fold by their titles; Scanning, whose
- * scans are looked at when something needs checking, folds on purpose. The
- * Advanced section holds Archived Stores (PageMap.DATA_SECURITY_STORES_ARCHIVED),
- * the stores gone from their clouds, which the Data Stores list leaves out.
+ * Settings, Rules, Help and Advanced fold by their titles. The Advanced
+ * section holds the Scans, looked at when something needs checking, and
+ * Archived Stores (PageMap.DATA_SECURITY_STORES_ARCHIVED), the stores gone
+ * from their clouds, which the Data Stores list leaves out.
  */
 
 interface MenuBadgeCount {

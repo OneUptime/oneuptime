@@ -35,7 +35,11 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -56,6 +60,20 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  */
 
 export const DATA_STORES_TABLE_ID: string = "data-security-stores-table";
+
+/*
+ * The list's columns at a laptop's width beside the side menu (a card about
+ * 875px wide): the store, how sensitive and how exposed it is, and its risk.
+ * Its owners, data types, environment and when it was last checked are a
+ * click away in Columns: drawn as well, the risk the list is sorted by ran
+ * off the card's edge. A long name is cut short at 14rem.
+ */
+export const STORE_NAME_CELL_WIDTH_CLASS_NAME: string = "max-w-[14rem]";
+
+const OPEN_ISSUES_ON_STORE: PluralTemplate = {
+  one: "{{count}} open issue",
+  other: "{{count}} open issues",
+};
 
 /*
  * Its environment, a description and how it is scanned: folded away, since
@@ -144,7 +162,7 @@ const DataSecurityDataStores: FunctionComponent<
         cardProps={{
           title: "Data Stores",
           description:
-            "Every bucket, database and telemetry stream Data Security knows, the riskiest first: what sensitive data each holds, how exposed it is and who owns it. Add a database you run yourself here.",
+            "Every bucket, database and telemetry stream Data Security knows, the riskiest first. Add a database you run yourself here.",
         }}
         noItemsMessage="No data stores yet. They appear once a cloud account with Data Security turned on is read, or when you add a database you run yourself."
         createFormTitle="Add a Database You Run"
@@ -281,6 +299,8 @@ const DataSecurityDataStores: FunctionComponent<
             field: { name: true },
             title: "Name",
             type: FieldType.Element,
+            // A long bucket name is cut short at 14rem, whole under the pointer.
+            contentClassName: STORE_NAME_CELL_WIDTH_CLASS_NAME,
             getElement: (item: DataStore): ReactElement => {
               return <StoreNameCell store={item} />;
             },
@@ -311,6 +331,7 @@ const DataSecurityDataStores: FunctionComponent<
             title: "Data Types",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: DataStore): ReactElement => {
               return <StoreDataTypeList dataTypeIds={item.dataTypeIds} />;
             },
@@ -328,6 +349,7 @@ const DataSecurityDataStores: FunctionComponent<
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: DataStore): ReactElement => {
               return (
                 <OwnersCell
@@ -342,6 +364,7 @@ const DataSecurityDataStores: FunctionComponent<
             title: "Environment",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: DataStore): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
@@ -355,6 +378,7 @@ const DataSecurityDataStores: FunctionComponent<
             title: "Last Checked",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: DataStore): ReactElement => {
               return <StoreLastCheckedCell store={item} />;
             },
@@ -363,6 +387,7 @@ const DataSecurityDataStores: FunctionComponent<
             field: { openIssueCount: true },
             title: "Open Issues",
             type: FieldType.Element,
+            isHiddenByDefault: true,
             getElement: (item: DataStore): ReactElement => {
               const count: number = item.openIssueCount || 0;
 
@@ -389,10 +414,49 @@ const DataSecurityDataStores: FunctionComponent<
             },
           },
           {
+            /*
+             * Why a store ranks where it does, in one column: its risk
+             * score (its worst open issue's), that issue's severity, and how
+             * many issues are open on it.
+             */
             field: { riskScore: true },
-            title: "Risk Score",
-            type: FieldType.Number,
-            hideOnMobile: true,
+            title: "Risk",
+            type: FieldType.Element,
+            headerTooltip: translationKey(
+              "From 0 to 100: its worst open issue's risk score.",
+            ),
+            getExportValue: (item: DataStore): string => {
+              return String(item.riskScore || 0);
+            },
+            getElement: (item: DataStore): ReactElement => {
+              const count: number = item.openIssueCount || 0;
+
+              if (count === 0) {
+                return (
+                  <TableEmptyValue
+                    screenReaderText={translationKey("No open issues.")}
+                  />
+                );
+              }
+
+              return (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold tabular-nums text-gray-900">
+                      {translator.formatNumber(item.riskScore || 0)}
+                    </span>
+                    {item.highestIssueSeverity ? (
+                      <SeverityPill severity={item.highestIssueSeverity} />
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {translator.translatePlural(OPEN_ISSUES_ON_STORE, count)}
+                  </div>
+                </div>
+              );
+            },
           },
         ]}
       />

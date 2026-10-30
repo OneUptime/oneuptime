@@ -14,7 +14,7 @@ import StorePostureChecklist, {
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import { ResourceOwnerEntry } from "../../../Components/ResourceOwners/OwnerEntry";
-import OwnersCell from "../../../Components/ResourceOwners/OwnersCell";
+import AppLink from "../../../Components/AppLink/AppLink";
 import RankedBars, {
   RankedBarItem,
 } from "../../../Components/SecurityOverview/RankedBars";
@@ -45,11 +45,19 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
+import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -104,6 +112,114 @@ interface StoreOverviewData {
   topIssues: Array<DataSecurityIssue>;
   owners: Array<ResourceOwnerEntry>;
 }
+
+/*
+ * How a store was found, in the reader's words: the server writes these
+ * (DataSecurityDiscovery, DataStoreService), and each is looked up here.
+ */
+export const STORE_FOUND_FROM_TERMS: ReadonlyArray<string> = [
+  translationKey("Cloud inventory"),
+  translationKey("Cloud read"),
+  translationKey("Database product"),
+  translationKey("Service map"),
+  translationKey("Telemetry"),
+  translationKey("Manual"),
+];
+
+// The owners the card names before "+2 more"; the Owners page has them all.
+export const STORE_OWNERS_SHOWN: number = 5;
+
+const MORE_OWNERS: PluralTemplate = {
+  one: "+{{count}} more",
+  other: "+{{count}} more",
+};
+
+const SEE_FINDINGS: string = translationKey("See every finding");
+
+/*
+ * A store's owners on its Overview: each a picture and a name, one a line,
+ * the way an incident's header names its owners - initials alone told
+ * nobody who they were. Past five, the rest are on the Owners page.
+ */
+const StoreOwnersList: FunctionComponent<{
+  owners: Array<ResourceOwnerEntry>;
+  ownersRoute: Route;
+}> = (props: {
+  owners: Array<ResourceOwnerEntry>;
+  ownersRoute: Route;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const shown: Array<ResourceOwnerEntry> = props.owners.slice(
+    0,
+    STORE_OWNERS_SHOWN,
+  );
+  const rest: number = props.owners.length - shown.length;
+
+  return (
+    <ul className="space-y-3" data-testid="data-store-owners-list">
+      {shown.map((owner: ResourceOwnerEntry, index: number): ReactElement => {
+        const isUser: boolean = owner.kind === "user";
+        const name: string =
+          owner.kind === "user"
+            ? owner.user.name?.toString() ||
+              owner.user.email?.toString() ||
+              (translator.translateText("User") || "User")
+            : owner.team.name || translator.translateText("Team") || "Team";
+        const detail: string =
+          owner.kind === "user"
+            ? owner.user.name && owner.user.email
+              ? owner.user.email.toString()
+              : ""
+            : translator.translateText("Team") || "Team";
+
+        return (
+          <li
+            key={`${owner.kind}-${index}`}
+            className="flex min-w-0 items-center gap-3"
+          >
+            <PeopleAvatar
+              item={{
+                kind: isUser ? PeoplePickerKind.User : PeoplePickerKind.Team,
+                name: name,
+                userId:
+                  owner.kind === "user"
+                    ? owner.user._id?.toString() || undefined
+                    : undefined,
+                hasProfilePicture:
+                  owner.kind === "user" && Boolean(owner.user.profilePictureId),
+              }}
+              size="sm"
+            />
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-gray-900">
+                <IsolatedText text={name} />
+              </div>
+              {detail ? (
+                <div className="truncate text-xs text-gray-500">
+                  <IsolatedText text={detail} />
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
+          </li>
+        );
+      })}
+      {rest > 0 ? (
+        <li>
+          <AppLink
+            to={props.ownersRoute}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+          >
+            <span>{translator.translatePlural(MORE_OWNERS, rest)}</span>
+          </AppLink>
+        </li>
+      ) : (
+        <></>
+      )}
+    </ul>
+  );
+};
 
 type ActionKind = "scan" | "check";
 
@@ -354,7 +470,8 @@ const DataStoreOverview: FunctionComponent<
 
       return {
         key: issue._id?.toString() || issue.title || "",
-        label: issue.title || "",
+        // The check's title, in the reader's language, as the issue's page has it.
+        label: translator.translateText(issue.title || "") || issue.title || "",
         count: riskScore,
         fillPercent: riskScore,
         color: SEVERITY_BAR_COLORS[severity],
@@ -448,19 +565,7 @@ const DataStoreOverview: FunctionComponent<
           headerLayout="stacked"
           title="What's Inside"
           description="The kinds of sensitive data its scans found, from samples of its content."
-          buttons={[
-            ...scanButtons,
-            {
-              title: "See Findings",
-              icon: IconProp.Fingerprint,
-              buttonStyle: ButtonStyleType.NORMAL,
-              onClick: () => {
-                Navigation.navigate(
-                  route(PageMap.DATA_SECURITY_STORE_VIEW_INSIDE),
-                );
-              },
-            },
-          ]}
+          buttons={scanButtons}
         >
           <div className="space-y-4">
             {categories.length > 0 ? (
@@ -499,26 +604,40 @@ const DataStoreOverview: FunctionComponent<
                       )}
               </p>
             )}
-            <dl className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  {translator.translateText("Findings")}
-                </dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {translator.formatNumber(findingCount)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  {translator.translateText("Estimated Sensitive Records")}
-                </dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {typeof store.estimatedRecords === "number"
-                    ? translator.formatNumber(store.estimatedRecords)
-                    : "—"}
-                </dd>
-              </div>
+            {/*
+             * The two figures side by side, their numbers on one line
+             * however many lines either label takes.
+             */}
+            <dl className="grid grid-flow-col grid-cols-2 grid-rows-[auto_auto] gap-x-4 gap-y-1 border-t border-gray-100 pt-4">
+              <dt className="self-end text-xs font-medium uppercase tracking-wide text-gray-500">
+                {translator.translateText("Findings")}
+              </dt>
+              <dd className="text-lg font-semibold text-gray-900">
+                {translator.formatNumber(findingCount)}
+              </dd>
+              <dt className="self-end text-xs font-medium uppercase tracking-wide text-gray-500">
+                {translator.translateText("Estimated Sensitive Records")}
+              </dt>
+              <dd className="text-lg font-semibold text-gray-900">
+                {typeof store.estimatedRecords === "number"
+                  ? translator.formatNumber(store.estimatedRecords)
+                  : "—"}
+              </dd>
             </dl>
+            {findingCount > 0 ? (
+              <AppLink
+                to={route(PageMap.DATA_SECURITY_STORE_VIEW_INSIDE)}
+                className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              >
+                <span>{translator.translateText(SEE_FINDINGS)}</span>
+                <Icon
+                  icon={IconProp.ChevronRight}
+                  className="h-4 w-4"
+                />
+              </AppLink>
+            ) : (
+              <></>
+            )}
           </div>
         </Card>
 
@@ -586,7 +705,10 @@ const DataStoreOverview: FunctionComponent<
           ]}
         >
           {data.owners.length > 0 ? (
-            <OwnersCell owners={data.owners} maxVisible={8} />
+            <StoreOwnersList
+              owners={data.owners}
+              ownersRoute={route(PageMap.DATA_SECURITY_STORE_VIEW_OWNERS)}
+            />
           ) : (
             <p className="text-sm text-gray-500">
               {translator.translateText(
@@ -643,12 +765,32 @@ const DataStoreOverview: FunctionComponent<
             {
               field: { environment: true },
               title: "Environment",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: DataStore): ReactElement => {
+                return (
+                  <span className="text-sm text-gray-900">
+                    {item.environment
+                      ? translator.translateText(item.environment) ||
+                        item.environment
+                      : "—"}
+                  </span>
+                );
+              },
             },
             {
               field: { discoveredFrom: true },
               title: "Found From",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: DataStore): ReactElement => {
+                return (
+                  <span className="text-sm text-gray-900">
+                    {item.discoveredFrom
+                      ? translator.translateText(item.discoveredFrom) ||
+                        item.discoveredFrom
+                      : "—"}
+                  </span>
+                );
+              },
             },
             {
               field: { providerResourceId: true },
@@ -659,7 +801,17 @@ const DataStoreOverview: FunctionComponent<
             {
               field: { contentScanStatus: true },
               title: "Last Content Scan",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: DataStore): ReactElement => {
+                return (
+                  <span className="text-sm text-gray-900">
+                    {item.contentScanStatus
+                      ? translator.translateText(item.contentScanStatus) ||
+                        item.contentScanStatus
+                      : "—"}
+                  </span>
+                );
+              },
             },
             {
               field: { configurationReadAt: true },

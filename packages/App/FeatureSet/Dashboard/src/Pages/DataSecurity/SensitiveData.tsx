@@ -357,8 +357,23 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
               getElement: (row: DataTypeRow): ReactElement => {
                 return (
                   <div className="min-w-[10rem]">
-                    <div className="text-sm font-medium text-gray-900">
-                      {row.name}
+                    {/*
+                     * Its category beside its name, as a store's What's
+                     * Inside tags it: a column of its own pushed the table
+                     * past its card beside the side menu.
+                     */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-sm font-medium text-gray-900">
+                        {row.name}
+                      </span>
+                      {row.category ? (
+                        <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                          {translator.translateText(row.category) ||
+                            row.category}
+                        </span>
+                      ) : (
+                        <></>
+                      )}
                     </div>
                     {row.description ? (
                       <div className="text-xs text-gray-500">
@@ -369,22 +384,6 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
                       <></>
                     )}
                   </div>
-                );
-              },
-            },
-            {
-              key: "category",
-              title: "Category",
-              type: FieldType.Element,
-              disableSort: true,
-              hideOnMobile: true,
-              getElement: (row: DataTypeRow): ReactElement => {
-                return (
-                  <span className="text-sm text-gray-700">
-                    {row.category
-                      ? translator.translateText(row.category) || row.category
-                      : "-"}
-                  </span>
                 );
               },
             },

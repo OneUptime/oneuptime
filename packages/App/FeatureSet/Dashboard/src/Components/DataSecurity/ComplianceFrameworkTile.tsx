@@ -32,6 +32,31 @@ const FAILING_REQUIREMENTS: PluralTemplate = {
 
 const NONE_FAILING: string = translationKey("No requirement failing");
 
+/*
+ * Why a framework has no score, in place of "No requirement failing", which
+ * read as a pass: none of the project's stores holds the data it protects,
+ * or the ones that do have not been read yet.
+ */
+const NOTHING_IN_SCOPE: string = translationKey(
+  "No store holds the data it protects",
+);
+
+const NOT_READ_YET: string = translationKey("Its stores are not read yet");
+
+export function getComplianceTileNote(
+  framework: DataSecurityComplianceFramework,
+  failing: number,
+): { text: string; isFailing: boolean } {
+  if (framework.score === null) {
+    return {
+      text: framework.storesInScope > 0 ? NOT_READ_YET : NOTHING_IN_SCOPE,
+      isFailing: false,
+    };
+  }
+
+  return { text: failing > 0 ? "" : NONE_FAILING, isFailing: failing > 0 };
+}
+
 export function getFailingRequirementCount(
   framework: DataSecurityComplianceFramework,
 ): number {
@@ -89,6 +114,12 @@ const ComplianceFrameworkTile: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const framework: DataSecurityComplianceFramework = props.framework;
   const failing: number = getFailingRequirementCount(framework);
+  const note: { text: string; isFailing: boolean } = getComplianceTileNote(
+    framework,
+    failing,
+  );
+  const fullName: string =
+    translator.translateText(framework.fullName) || framework.fullName;
 
   return (
     <button
@@ -105,13 +136,19 @@ const ComplianceFrameworkTile: FunctionComponent<ComponentProps> = (
       <span className="text-sm font-semibold text-gray-900">
         {framework.framework}
       </span>
-      <span className="line-clamp-1 text-xs text-gray-500">
-        {translator.translateText(framework.fullName) || framework.fullName}
+      <span className="line-clamp-1 text-xs text-gray-500" title={fullName}>
+        {fullName}
       </span>
+      {/*
+       * A score in large figures; "Not evaluated" quieter, on the score's
+       * line, so a tile with no score is as tall as its neighbours.
+       */}
       <span
-        className={`mt-1 text-2xl font-semibold tabular-nums ${getComplianceScoreClassName(
-          framework.score,
-        )}`}
+        className={`mt-1 tabular-nums leading-8 ${
+          framework.score === null
+            ? "text-base font-medium"
+            : "text-2xl font-semibold"
+        } ${getComplianceScoreClassName(framework.score)}`}
       >
         {framework.score === null
           ? translator.translateText(NOT_EVALUATED)
@@ -122,12 +159,12 @@ const ComplianceFrameworkTile: FunctionComponent<ComponentProps> = (
       </span>
       <span
         className={`text-xs font-medium ${
-          failing > 0 ? "text-red-600" : "text-gray-500"
+          note.isFailing ? "text-red-600" : "text-gray-500"
         }`}
       >
-        {failing > 0
+        {note.isFailing
           ? translator.translatePlural(FAILING_REQUIREMENTS, failing)
-          : translator.translateText(NONE_FAILING)}
+          : translator.translateText(note.text)}
       </span>
     </button>
   );

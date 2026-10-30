@@ -2396,17 +2396,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ],
       },
       {
-        title: "Scanning",
-        pages: [
-          {
-            page: PageMap.DATA_SECURITY_SCANS,
-            title: "Scans",
-            icon: IconProp.MagnifyingGlass,
-            keywords: ["scan history", "content scans", "what was read"],
-          },
-        ],
-      },
-      {
         title: "Settings",
         pages: [
           {
@@ -2429,9 +2418,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
-            title: "Scanning",
+            title: "Scan Settings",
             icon: IconProp.Clock,
-            keywords: ["scan schedule", "scan settings", "sampling"],
+            keywords: ["scan schedule", "scanning", "sampling"],
           },
         ],
       },
@@ -2449,6 +2438,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Advanced",
         pages: [
+          {
+            page: PageMap.DATA_SECURITY_SCANS,
+            title: "Scans",
+            icon: IconProp.MagnifyingGlass,
+            keywords: ["scan history", "content scans", "what was read"],
+          },
           {
             page: PageMap.DATA_SECURITY_STORES_ARCHIVED,
             title: "Archived Stores",

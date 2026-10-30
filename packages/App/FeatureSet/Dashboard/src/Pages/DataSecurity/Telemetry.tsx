@@ -57,7 +57,11 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -93,6 +97,12 @@ const SCRUB_LOCKED: string = translationKey(
 const VIEW_SCRUB_RULES: string = translationKey("View scrub rules");
 
 const SCRUBBED: string = translationKey("Scrubbed");
+
+// How many values matched, under where they were found.
+const MATCHES: PluralTemplate = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
 const NOT_SCRUBBED: string = translationKey("Not scrubbed");
 
 const PAGE_TITLE: string = translationKey("In Your Telemetry");
@@ -398,20 +408,40 @@ const DataSecurityTelemetryPage: FunctionComponent<
             getElement: (finding: DataStoreFinding): ReactElement => {
               const storeId: string = finding.dataStoreId?.toString() || "";
               const store: TelemetryStore | undefined = stores.get(storeId);
+              const kind: string = store?.kind || finding.dataStore?.kind || "";
+              const info: DataStoreKindInfo | undefined =
+                getDataStoreKindInfo(kind);
 
               if (!storeId) {
                 return <span className="text-sm text-gray-400">-</span>;
               }
 
+              /*
+               * The signal it was found in, under the service: a column of
+               * its own pushed the table past its card beside the side menu.
+               */
               return (
-                <AppLink
-                  className="block min-w-0 text-sm font-medium text-gray-900 hover:underline [overflow-wrap:anywhere]"
-                  to={getStoreViewRoute(storeId)}
-                >
-                  <IsolatedText
-                    text={store?.serviceName || store?.name || storeId}
-                  />
-                </AppLink>
+                <div className="min-w-0">
+                  <AppLink
+                    className="block min-w-0 text-sm font-medium text-gray-900 hover:underline [overflow-wrap:anywhere]"
+                    to={getStoreViewRoute(storeId)}
+                  >
+                    <IsolatedText
+                      text={store?.serviceName || store?.name || storeId}
+                    />
+                  </AppLink>
+                  {kind && store?.serviceName ? (
+                    <div className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                      <Icon
+                        icon={info?.icon || IconProp.Logs}
+                        className="h-3.5 w-3.5 text-gray-400"
+                      />
+                      <span>{translator.translateText(kind) || kind}</span>
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               );
             },
           },
@@ -420,6 +450,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
             title: "Signal",
             type: FieldType.Element,
             disableSort: true,
+            isHiddenByDefault: true,
             getExportValue: (finding: DataStoreFinding): string => {
               return (
                 stores.get(finding.dataStoreId?.toString() || "")?.kind || ""
@@ -458,17 +489,30 @@ const DataSecurityTelemetryPage: FunctionComponent<
             getElement: (finding: DataStoreFinding): ReactElement => {
               return (
                 <div className="min-w-0">
-                  <code className="break-all rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800">
+                  <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere] [box-decoration-break:clone]">
                     {finding.location || ""}
                   </code>
-                  {finding.locationKind ? (
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      {translator.translateText(finding.locationKind) ||
-                        finding.locationKind}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
+                  <div className="mt-0.5 text-xs text-gray-500">
+                    {finding.locationKind ? (
+                      <span>
+                        {translator.translateText(finding.locationKind) ||
+                          finding.locationKind}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                    {finding.locationKind ? (
+                      <span aria-hidden="true">{" · "}</span>
+                    ) : (
+                      <></>
+                    )}
+                    <span>
+                      {translator.translatePlural(
+                        MATCHES,
+                        finding.matchCount || 0,
+                      )}
+                    </span>
+                  </div>
                 </div>
               );
             },
@@ -502,6 +546,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
             type: FieldType.Element,
             disableSort: true,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (finding: DataStoreFinding): ReactElement => {
               return <ConfidencePill confidence={finding.confidence} />;
             },
@@ -511,6 +556,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
             title: "Matches",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (finding: DataStoreFinding): ReactElement => {
               return (
                 <span className="text-sm tabular-nums text-gray-700">

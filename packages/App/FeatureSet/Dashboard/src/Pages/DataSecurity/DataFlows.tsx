@@ -265,6 +265,7 @@ const FlowKindTable: FunctionComponent<{
       title: "Last Seen",
       type: FieldType.Element,
       hideOnMobile: true,
+      isHiddenByDefault: true,
       getElement: (flow: DataSecurityFlow): ReactElement => {
         return <IssueMoment value={flow.lastSeenAt} />;
       },

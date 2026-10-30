@@ -143,6 +143,7 @@ const DataSecurityScansPage: FunctionComponent<
           disableSort: true,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-xs",
+          contentClassName: "min-w-[8rem]",
           getExportValue: (scan: DataSecurityScan): string => {
             return scan.dataStore?.name || scan.cloudConnection?.name || "";
           },
@@ -220,6 +221,7 @@ const DataSecurityScansPage: FunctionComponent<
           title: "Duration",
           type: FieldType.Element,
           hideOnMobile: true,
+          isHiddenByDefault: true,
           getElement: (scan: DataSecurityScan): ReactElement => {
             if (scan.durationInMs === undefined || scan.durationInMs === null) {
               return <span className="text-sm text-gray-400">-</span>;
@@ -238,6 +240,7 @@ const DataSecurityScansPage: FunctionComponent<
           type: FieldType.Element,
           disableSort: true,
           hideOnMobile: true,
+          isHiddenByDefault: true,
           getElement: (scan: DataSecurityScan): ReactElement => {
             return <ScanReadSummary scan={scan} />;
           },
@@ -262,6 +265,8 @@ const DataSecurityScansPage: FunctionComponent<
           disableCsvExport: true,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-md",
+          // Show details takes 8rem: the table's 10rem floor ran it off the card.
+          contentClassName: "min-w-[8rem]",
           getElement: (scan: DataSecurityScan): ReactElement => {
             return <ScanDetails scan={scan} />;
           },

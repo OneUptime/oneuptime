@@ -1,5 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
-import { SeverityPill } from "../../../Components/DataSecurity/DataSecurityPills";
+import { SEVERITY_COLOR } from "../../../Components/DataSecurity/DataSecurityPills";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -208,9 +208,14 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
         </div>
       </div>
 
-      {/* The severity a failure gets, for each level of the store's sensitivity. */}
+      {/*
+       * The severity a failure gets, for each level of the store's
+       * sensitivity, on one quiet line under the check: four badges a check
+       * made every row three lines taller, and the page of 32 checks over
+       * twelve thousand pixels long on a phone.
+       */}
       <dl
-        className={`mt-3 grid grid-cols-2 gap-2 pl-14 sm:grid-cols-4 ${
+        className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 pl-14 text-xs ${
           props.choice.isEnabled ? "" : "opacity-50"
         }`}
         data-testid={`${testId}-severities`}
@@ -222,15 +227,29 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
               props.check.severityBySensitivity[sensitivity];
 
             return (
-              <div key={sensitivity} className="min-w-0">
-                <dt className="text-xs text-gray-500">
+              <div
+                key={sensitivity}
+                className="inline-flex min-w-0 items-center gap-1.5"
+              >
+                <dt className="text-gray-500">
                   {translator.translateText(sensitivity) || sensitivity}
                 </dt>
-                <dd className="mt-1">
+                <dd className="inline-flex items-center gap-1 font-medium text-gray-700">
                   {severity ? (
-                    <SeverityPill severity={severity} />
+                    <>
+                      <span
+                        className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: SEVERITY_COLOR[severity].toString(),
+                        }}
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {translator.translateText(severity) || severity}
+                      </span>
+                    </>
                   ) : (
-                    <span className="text-xs text-gray-400">
+                    <span className="font-normal text-gray-400">
                       {translator.translateText("No issue")}
                     </span>
                   )}

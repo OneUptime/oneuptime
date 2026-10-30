@@ -162,7 +162,6 @@ export function getDataSecurityBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_SCANS, [
       "Project",
       "Data Security",
-      "Scanning",
       "Scans",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES, [
@@ -187,7 +186,7 @@ export function getDataSecurityBreadcrumbs(
       "Project",
       "Data Security",
       "Settings",
-      "Scanning",
+      "Scan Settings",
     ]),
     /*
      * The rules live under settings/ in the address, so their trail goes

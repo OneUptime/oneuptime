@@ -21,6 +21,11 @@
  *   ?response= on (default) | off. Whether the bucket's cloud connection
  *              has "Data security response" on: off, Fix it from here
  *              says what to turn on, and links to the connection.
+ *   ?data=     default | empty | busy. "empty" is a new project: no cloud
+ *              connection and nothing found yet. "busy" adds 26 stores
+ *              with long names, and an open issue or two on each.
+ *   ?fail=     reads: every read fails, as when the API is down, so each
+ *              page shows how it says so.
  *
  * Every read and write is recorded on window.__dataSecurityFixture:
  * getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -65,11 +70,14 @@ import DataStoreFeed, {
   DataStoreFeedEventType,
 } from "Common/Models/DatabaseModels/DataStoreFeed";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
+import DataStoreLabelRule from "Common/Models/DatabaseModels/DataStoreLabelRule";
+import DataStoreOwnerRule from "Common/Models/DatabaseModels/DataStoreOwnerRule";
 import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -92,6 +100,11 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
+import {
+  ALL_COMPLIANCE_FRAMEWORKS,
+  COMPLIANCE_FRAMEWORK_INFO,
+} from "Common/Types/DataSecurity/ComplianceFramework";
+import { scoreComplianceFramework } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import DataCategory from "Common/Types/DataSecurity/DataCategory";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
 import {
@@ -133,6 +146,10 @@ const language = ["de", "fa"].includes(params.get("lang"))
   : "en";
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const isResponseOn = params.get("response") !== "off";
+const dataSet = ["empty", "busy"].includes(params.get("data"))
+  ? params.get("data")
+  : "default";
+const isFailing = params.get("fail") === "reads";
 const rolePermissions =
   role === "viewer"
     ? [Permission.SecurityViewer]
@@ -183,7 +200,13 @@ const fixture = {
     emailInLogsIssue: ID.issue(3),
     connection: ID.connection(1),
   },
-  scenario: { language, role, response: isResponseOn ? "on" : "off" },
+  scenario: {
+    language,
+    role,
+    response: isResponseOn ? "on" : "off",
+    data: dataSet,
+    fail: isFailing ? "reads" : "",
+  },
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
@@ -508,26 +531,6 @@ table(DataSecurityIssue).push(
 );
 
 /*
- * Each store's open issues, their count, worst severity and highest risk, as
- * the evaluator keeps them on the store: an accepted issue does not count.
- */
-for (const store of table(DataStore)) {
-  const open = table(DataSecurityIssue).filter((row) => {
-    return (
-      String(row.dataStoreId) === store._id &&
-      row.status === DataSecurityIssueStatus.Open
-    );
-  });
-  store.openIssueCount = open.length;
-  store.highestIssueSeverity = open.reduce((worst, row) => {
-    return moreSevere(worst, row.severity);
-  }, null);
-  store.riskScore = open.reduce((highest, row) => {
-    return Math.max(highest, row.riskScore);
-  }, 0);
-}
-
-/*
  * ---------------------------------------------------------------------------
  * Findings, access, scans and flows
  * ---------------------------------------------------------------------------
@@ -706,6 +709,28 @@ table(DataStoreOwnerUser).push({
   user: people.diego,
 });
 table(DataStoreOwnerTeam);
+table(DataStoreOwnerRule).push({
+  _id: uuid("c1000000", 1),
+  projectId,
+  name: "Payments team owns payment stores",
+  description: "Every store tagged team=payments goes to the payments team.",
+  cloudTagPattern: "^team=payments$",
+  isEnabled: true,
+  notifyOwners: true,
+});
+table(DataStoreLabelRule);
+// The project's members: an owner shown as a member, never as someone who left.
+table(TeamMember).push(
+  ...Object.values(people).map((person, index) => {
+    return {
+      _id: uuid("c2000000", index + 1),
+      projectId,
+      userId: new ObjectID(person._id),
+      user: person,
+      hasAcceptedInvitation: true,
+    };
+  }),
+);
 table(DataSecurityCheckSetting);
 table(DataSecurityCustomDataType);
 table(DataSecurityResidencyRule);
@@ -843,9 +868,198 @@ table(DataSecurityIssueFeed).push(
 
 /*
  * ---------------------------------------------------------------------------
+ * The other data sets: a busy project, and a new one
+ * ---------------------------------------------------------------------------
+ */
+
+// ?data=busy: stores with long names, as real accounts name them.
+const BUSY_STORES = [
+  ["prod-eu-west-1-customer-analytics-events-archive-2026", DataStoreKind.AwsS3Bucket, "aws", "eu-west-1"],
+  ["billing-invoices-pdf-exports-for-the-finance-team", DataStoreKind.AwsS3Bucket, "aws", "us-east-1"],
+  ["hr-employee-records-nightly-backups", DataStoreKind.AzureStorageAccount, "azure", "westeurope"],
+  ["payments-ledger-primary", DataStoreKind.AwsRdsInstance, "aws", "eu-central-1"],
+  ["payments-ledger-replica-for-reporting", DataStoreKind.AwsRdsInstance, "aws", "eu-central-1"],
+  ["support-ticket-attachments", DataStoreKind.GcpStorageBucket, "gcp", "europe-west4"],
+  ["marketing-campaign-audiences-lookalike-segments", DataStoreKind.GcpBigQueryDataset, "gcp", "us-central1"],
+  ["identity-service-users", DataStoreKind.AwsDynamoDbTable, "aws", "us-west-2"],
+  ["orders-db-snapshot-2026-10-01", DataStoreKind.AwsRdsSnapshot, "aws", "eu-west-1"],
+  ["data-lake-raw-clickstream", DataStoreKind.AwsS3Bucket, "aws", "eu-west-1"],
+  ["claims-processing", DataStoreKind.AzureSqlDatabase, "azure", "northeurope"],
+  ["patient-portal-uploads", DataStoreKind.AzureStorageAccount, "azure", "northeurope"],
+  ["analytics-staging", DataStoreKind.GcpBigQueryDataset, "gcp", "europe-west1"],
+  ["mobile-app-crash-reports", DataStoreKind.GcpStorageBucket, "gcp", "us-east1"],
+  ["kyc-document-scans", DataStoreKind.AwsS3Bucket, "aws", "ap-south-1"],
+  ["loyalty-program-members", DataStoreKind.AzurePostgreSqlServer, "azure", "centralindia"],
+  ["legacy-crm-export-do-not-use", DataStoreKind.AwsS3Bucket, "aws", "us-east-1"],
+  ["search-index-source-documents", DataStoreKind.AwsS3Bucket, "aws", "eu-west-2"],
+  ["warehouse-finance-reporting", DataStoreKind.GcpBigQueryDataset, "gcp", "europe-west3"],
+  ["dev-copy-of-production-users", DataStoreKind.PostgreSql, "self-managed", ""],
+  ["vendor-shared-exports", DataStoreKind.AwsS3Bucket, "aws", "eu-west-1"],
+  ["call-center-recordings-metadata", DataStoreKind.AwsDynamoDbTable, "aws", "eu-west-1"],
+  ["fraud-model-training-features", DataStoreKind.AwsS3Bucket, "aws", "us-east-2"],
+  ["gift-card-balances", DataStoreKind.AwsRdsInstance, "aws", "us-east-2"],
+  ["tax-forms-archive", DataStoreKind.AzureStorageAccount, "azure", "eastus"],
+  ["newsletter-subscribers", DataStoreKind.PostgreSql, "self-managed", ""],
+];
+
+const BUSY_CHECKS = [
+  ["public-read", SecuritySeverity.Critical],
+  ["not-encrypted-at-rest", SecuritySeverity.High],
+  ["access-not-logged", SecuritySeverity.Medium],
+  ["no-backups", SecuritySeverity.High],
+  ["no-owner", SecuritySeverity.Medium],
+  ["shared-with-external-accounts", SecuritySeverity.High],
+  ["deletion-protection-off", SecuritySeverity.Low],
+  ["secrets-stored", SecuritySeverity.Critical],
+];
+
+const SENSITIVITY_CYCLE = [
+  DataSensitivity.Restricted,
+  DataSensitivity.Confidential,
+  DataSensitivity.Confidential,
+  DataSensitivity.Internal,
+];
+
+const EXPOSURE_CYCLE = [
+  DataStoreExposure.Public,
+  DataStoreExposure.Private,
+  DataStoreExposure.OtherAccounts,
+  DataStoreExposure.Private,
+  DataStoreExposure.InternetReachable,
+];
+
+function addBusyData() {
+  BUSY_STORES.forEach(([name, kind, provider, region], index) => {
+    const number = 10 + index;
+    const sensitivity = SENSITIVITY_CYCLE[index % SENSITIVITY_CYCLE.length];
+    table(DataStore).push({
+      _id: ID.store(number),
+      projectId,
+      name,
+      description: "",
+      kind,
+      provider,
+      discoveredFrom:
+        provider === "self-managed" ? "Manual" : "Cloud inventory",
+      providerResourceId: `${provider}:${name}`,
+      region,
+      environment:
+        name.startsWith("dev-") || name.includes("staging")
+          ? DataStoreEnvironment.Development
+          : DataStoreEnvironment.Production,
+      sensitivity,
+      dataTypeIds:
+        sensitivity === DataSensitivity.Internal
+          ? []
+          : index % 3 === 0
+            ? ["credit-card-number", "email-address"]
+            : ["email-address"],
+      dataCategories:
+        sensitivity === DataSensitivity.Internal
+          ? []
+          : index % 3 === 0
+            ? [DataCategory.ContactAndIdentity, DataCategory.Financial]
+            : [DataCategory.ContactAndIdentity],
+      exposure: EXPOSURE_CYCLE[index % EXPOSURE_CYCLE.length],
+      posture: { readAt: ago(3 * HOUR).toISOString(), encryptedAtRest: true },
+      estimatedRecords: (index + 1) * 120000,
+      isPublicByDesign: false,
+      isAiData: false,
+      isContentScanEnabled: true,
+      configurationReadAt: ago(3 * HOUR),
+      contentScannedAt: index % 4 === 3 ? undefined : ago(7 * HOUR),
+      contentScanStatus: index % 4 === 3 ? "Skipped" : "Succeeded",
+      findingCount: index % 5,
+      isArchived: false,
+      firstSeenAt: ago((20 + index) * DAY),
+      lastSeenAt: ago(20 * MINUTE),
+    });
+
+    // An open issue on every store, and a second on every third one.
+    const checks =
+      index % 3 === 0
+        ? [
+            BUSY_CHECKS[index % BUSY_CHECKS.length],
+            BUSY_CHECKS[(index + 3) % BUSY_CHECKS.length],
+          ]
+        : [BUSY_CHECKS[index % BUSY_CHECKS.length]];
+
+    checks.forEach(([checkId, severity], checkIndex) => {
+      table(DataSecurityIssue).push(
+        issue(100 + index * 2 + checkIndex, {
+          dataStoreId: ID.store(number),
+          checkId,
+          evidence: `What the check saw on ${name}.`,
+          severity,
+          dataTypeIds: [],
+          firstDetectedAt: ago((1 + (index % 9)) * DAY),
+          lastDetectedAt: ago(3 * HOUR),
+        }),
+      );
+    });
+  });
+}
+
+// ?data=empty: a new project, with no cloud connection and nothing found.
+function emptyData() {
+  for (const modelType of [
+    CloudConnection,
+    DataStore,
+    DataSecurityIssue,
+    DataStoreFinding,
+    DataStoreAccess,
+    DataSecurityScan,
+    DataSecurityFlow,
+    DataStoreOwnerUser,
+    DataStoreOwnerRule,
+    DataStoreFeed,
+    DataSecurityIssueFeed,
+  ]) {
+    table(modelType).length = 0;
+  }
+}
+
+if (dataSet === "busy") {
+  addBusyData();
+}
+
+if (dataSet === "empty") {
+  emptyData();
+}
+
+/*
+ * Each store's open issues, their count, worst severity and highest risk, as
+ * the evaluator keeps them on the store: an accepted issue does not count.
+ */
+for (const store of table(DataStore)) {
+  const open = table(DataSecurityIssue).filter((row) => {
+    return (
+      String(row.dataStoreId) === store._id &&
+      row.status === DataSecurityIssueStatus.Open
+    );
+  });
+  store.openIssueCount = open.length;
+  store.highestIssueSeverity = open.reduce((worst, row) => {
+    return moreSevere(worst, row.severity);
+  }, null);
+  store.riskScore = open.reduce((highest, row) => {
+    return Math.max(highest, row.riskScore);
+  }, 0);
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The data boundary
  * ---------------------------------------------------------------------------
  */
+function failedRead() {
+  return new HTTPErrorResponse(
+    500,
+    { message: "OneUptime could not be reached. Try again in a minute." },
+    {},
+  );
+}
+
 function comparable(value) {
   if (value === null || value === undefined) {
     return value;
@@ -969,6 +1183,21 @@ function withRelations(modelName, record) {
     }
     return joined;
   }
+  if (modelName === tableName(DataSecurityFlow)) {
+    const source = record.sourceDataStoreId
+      ? storeById(record.sourceDataStoreId)
+      : undefined;
+    const destination = record.destinationDataStoreId
+      ? storeById(record.destinationDataStoreId)
+      : undefined;
+    return {
+      ...record,
+      sourceDataStore: source ? make(DataStore, source) : undefined,
+      destinationDataStore: destination
+        ? make(DataStore, destination)
+        : undefined,
+    };
+  }
   if (modelName === tableName(DataStore) && record.cloudConnectionId) {
     const connection = table(CloudConnection).find((row) => {
       return row._id === String(record.cloudConnectionId);
@@ -1038,6 +1267,9 @@ ModelAPI.getItem = async (options) => {
   const modelName = tableName(options.modelType);
   const id = options.id?.toString();
   fixture.getItemRequests.push({ modelName, id });
+  if (isFailing) {
+    throw failedRead();
+  }
   const known = knownTable(options.modelType, "getItem", { id });
   const record = known?.records.find((item) => {
     return String(item._id) === id;
@@ -1058,6 +1290,9 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  if (isFailing) {
+    throw failedRead();
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -1080,6 +1315,9 @@ ModelAPI.getList = async (options) => {
 async function countOf(options) {
   const modelName = tableName(options.modelType);
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
+  if (isFailing) {
+    throw failedRead();
+  }
   const known = knownTable(options.modelType, "count", {
     query: serialize(options.query),
   });
@@ -1151,22 +1389,61 @@ function overview() {
   const trend = [];
   for (let day = 29; day >= 0; day--) {
     const date = new Date(NOW.getTime() - day * DAY);
+    const opened = table(DataSecurityIssue).filter((row) => {
+      return (
+        Math.floor((NOW.getTime() - row.firstDetectedAt.getTime()) / DAY) ===
+        day
+      );
+    }).length;
     trend.push({
       day: date.toISOString().slice(0, 10),
-      opened: day === 3 ? 3 : day === 2 ? 1 : day === 10 ? 1 : 0,
-      resolved: day === 6 ? 2 : day === 1 ? 1 : 0,
+      opened,
+      resolved:
+        stores.length === 0 ? 0 : day === 6 ? 2 : day === 1 ? 1 : 0,
     });
   }
+  const byCategory = new Map();
+  for (const store of stores) {
+    for (const category of store.dataCategories || []) {
+      byCategory.set(category, (byCategory.get(category) || 0) + 1);
+    }
+  }
+  const telemetryStoreIds = new Set(
+    stores
+      .filter((store) => {
+        return store.provider === "oneuptime";
+      })
+      .map((store) => {
+        return store._id;
+      }),
+  );
+  const telemetryFindings = table(DataStoreFinding).filter((row) => {
+    return telemetryStoreIds.has(String(row.dataStoreId));
+  });
   return {
     storeCount: stores.length,
-    evaluatedStoreCount: stores.length,
-    contentScannedStoreCount: 3,
+    evaluatedStoreCount: stores.filter((store) => {
+      return Boolean(store.configurationReadAt || store.contentScannedAt);
+    }).length,
+    contentScannedStoreCount: stores.filter((store) => {
+      return Boolean(store.contentScannedAt);
+    }).length,
     storesBySensitivity: bySensitivity,
-    storesByCategory: [
-      { category: DataCategory.ContactAndIdentity, storeCount: 3 },
-      { category: DataCategory.Financial, storeCount: 1 },
-    ],
-    exposedSensitiveStoreCount: 1,
+    storesByCategory: [...byCategory.entries()].map(
+      ([category, storeCount]) => {
+        return { category, storeCount };
+      },
+    ),
+    exposedSensitiveStoreCount: stores.filter((store) => {
+      return (
+        [DataSensitivity.Restricted, DataSensitivity.Confidential].includes(
+          store.sensitivity,
+        ) &&
+        [DataStoreExposure.Public, DataStoreExposure.OtherAccounts].includes(
+          store.exposure,
+        )
+      );
+    }).length,
     openIssuesBySeverity: bySeverity,
     topIssues: [...openIssues]
       .sort((a, b) => {
@@ -1185,10 +1462,49 @@ function overview() {
         };
       }),
     issueTrend: trend,
-    telemetryFindingCount: 1,
-    unscrubbedTelemetryFindingCount: 1,
+    telemetryFindingCount: telemetryFindings.length,
+    unscrubbedTelemetryFindingCount: telemetryFindings.filter((row) => {
+      return !row.isScrubbed;
+    }).length,
     connectionsWithoutContentAccess: 0,
-    hasCloudConnection: true,
+    hasCloudConnection: table(CloudConnection).length > 0,
+  };
+}
+
+/*
+ * Compliance, scored as the server scores it (DataSecurityAPI.getCompliance):
+ * every framework, from the stores and their open issues.
+ */
+function compliance() {
+  const stores = table(DataStore)
+    .filter((store) => {
+      return !store.isArchived;
+    })
+    .map((store) => {
+      return {
+        id: store._id,
+        dataTypeIds: store.dataTypeIds || [],
+        subjectCountries: store.subjectCountries || [],
+        isEvaluated: Boolean(
+          store.configurationReadAt || store.contentScannedAt,
+        ),
+      };
+    });
+  const openIssues = table(DataSecurityIssue)
+    .filter((row) => {
+      return row.status === DataSecurityIssueStatus.Open;
+    })
+    .map((row) => {
+      return { storeId: String(row.dataStoreId), checkId: row.checkId };
+    });
+  return {
+    frameworks: ALL_COMPLIANCE_FRAMEWORKS.map((framework) => {
+      return {
+        ...scoreComplianceFramework(framework, stores, openIssues),
+        fullName: COMPLIANCE_FRAMEWORK_INFO[framework].fullName,
+        scope: COMPLIANCE_FRAMEWORK_INFO[framework].scope,
+      };
+    }),
   };
 }
 
@@ -1251,6 +1567,7 @@ function respond(dataStoreId, body) {
 
 const ROUTE = {
   overview: DATA_SECURITY_API_ROUTES.overview,
+  compliance: DATA_SECURITY_API_ROUTES.compliance,
   responseActions: DATA_SECURITY_API_ROUTES.responseActions(":id"),
   respond: DATA_SECURITY_API_ROUTES.respond(":id"),
   explain: DATA_SECURITY_API_ROUTES.explainIssue(":id"),
@@ -1272,8 +1589,16 @@ async function handleApi(method, options) {
   fixture.apiRequests.push({ method, url, body });
   const pathname = new window.URL(url).pathname;
 
+  if (isFailing) {
+    throw failedRead();
+  }
+
   if (method === "POST" && pathname.endsWith(ROUTE.overview)) {
     return new HTTPResponse(200, overview(), {});
+  }
+
+  if (method === "POST" && pathname.endsWith(ROUTE.compliance)) {
+    return new HTTPResponse(200, compliance(), {});
   }
 
   const actionsFor = idOf(ROUTE.responseActions, pathname);

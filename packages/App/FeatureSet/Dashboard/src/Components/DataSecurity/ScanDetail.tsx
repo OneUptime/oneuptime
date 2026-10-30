@@ -246,7 +246,7 @@ export const ScanDetails: FunctionComponent<{
   }
 
   return (
-    <div className="min-w-[12rem]" data-testid="data-security-scan-details">
+    <div className="min-w-[8rem]" data-testid="data-security-scan-details">
       <button
         type="button"
         aria-expanded={isOpen}

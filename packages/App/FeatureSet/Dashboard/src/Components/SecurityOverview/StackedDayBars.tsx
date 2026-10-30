@@ -1,7 +1,12 @@
 import { DayCount } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { formatDayLabel, getLabelledDayIndexes } from "./DayLabels";
+import {
+  DayLabelAnchor,
+  formatDayLabel,
+  getDayLabelAnchor,
+  getLabelledDayIndexes,
+} from "./DayLabels";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface StackedSeries {
@@ -32,6 +37,19 @@ export interface ComponentProps {
 }
 
 /*
+ * How a day's label sits on its bar (getDayLabelAnchor): a label is wider
+ * than its bar, and a flex row lays a child wider than itself out from
+ * where it is justified - centred on the bar, or from the chart's own edge
+ * for the first and the last day.
+ */
+const DAY_LABEL_ANCHOR_CLASS_NAMES: Readonly<Record<DayLabelAnchor, string>> =
+  {
+    start: "justify-start",
+    center: "justify-center",
+    end: "justify-end",
+  };
+
+/*
  * A day-by-day bar chart, each bar split by what it is made of - cases by
  * priority, detections by source. Drawn with plain elements rather than a
  * charting library: thirty bars need no axes engine, and plain elements take
@@ -58,8 +76,8 @@ const StackedDayBars: FunctionComponent<ComponentProps> = (
           style={{ height: `${height}px` }}
           aria-hidden="true"
         >
-          <span>{max}</span>
-          <span>0</span>
+          <span>{translator.formatNumber(max)}</span>
+          <span>{translator.formatNumber(0)}</span>
         </div>
         <div className="min-w-0 flex-1">
           <div
@@ -122,9 +140,20 @@ const StackedDayBars: FunctionComponent<ComponentProps> = (
               return (
                 <div
                   key={day.day}
-                  className="min-w-0 flex-1 overflow-visible whitespace-nowrap text-center text-[10px] text-gray-400"
+                  className={`flex min-w-0 flex-1 overflow-visible whitespace-nowrap text-[10px] text-gray-400 ${
+                    DAY_LABEL_ANCHOR_CLASS_NAMES[
+                      getDayLabelAnchor(index, props.days.length)
+                    ]
+                  }`}
+                  data-testid={
+                    labelled.has(index) ? "stacked-day-bars-label" : undefined
+                  }
                 >
-                  {labelled.has(index) ? formatDayLabel(day.day) : ""}
+                  {labelled.has(index) ? (
+                    <span>{formatDayLabel(day.day)}</span>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             })}

@@ -708,16 +708,23 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         </div>
       </Card>
 
+      {/*
+       * What is wrong and why it matters are what the cards say, not a
+       * description of them: they are drawn in the cards' bodies, so a
+       * phone - which hides a card's description - shows them too.
+       */}
       <CardGrid columns={2}>
-        <Card
-          title="What's Wrong"
-          description={
-            check
-              ? translator.translateText(check.description) || check.description
-              : translator.translateText(UNKNOWN_CHECK) || UNKNOWN_CHECK
-          }
-        >
+        <Card title="What's Wrong">
           <div className="space-y-2">
+            <p
+              className="mb-4 text-sm leading-relaxed text-gray-700"
+              data-testid="data-security-issue-what-is-wrong"
+            >
+              {check
+                ? translator.translateText(check.description) ||
+                  check.description
+                : translator.translateText(UNKNOWN_CHECK) || UNKNOWN_CHECK}
+            </p>
             <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
               {translator.translateText(EVIDENCE_LABEL)}
             </div>
@@ -740,15 +747,18 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           </div>
         </Card>
 
-        <Card
-          title="Why It Matters"
-          description={
-            check
-              ? translator.translateText(check.whyItMatters) ||
-                check.whyItMatters
-              : undefined
-          }
-        >
+        <Card title="Why It Matters">
+          {check ? (
+            <p
+              className="mb-4 text-sm leading-relaxed text-gray-700"
+              data-testid="data-security-issue-why-it-matters"
+            >
+              {translator.translateText(check.whyItMatters) ||
+                check.whyItMatters}
+            </p>
+          ) : (
+            <></>
+          )}
           <dl className="space-y-4">
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">

@@ -63,6 +63,10 @@ const CONFIDENCE_OPTIONS: Array<DropdownOption> = [
 
 const NO_SAMPLES: string = translationKey("No masked samples");
 
+const CONFIDENCE_BELOW_HIGH: string = translationKey(
+  "{{confidence}} confidence",
+);
+
 const DataStoreInside: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -304,6 +308,28 @@ const DataStoreInside: FunctionComponent<
                     ) : (
                       <></>
                     )}
+                    {/*
+                     * A finding the scan is not sure of says so here, while
+                     * the Confidence column is left out: those are the ones
+                     * to judge, and they do not count toward the store's
+                     * sensitivity until someone does.
+                     */}
+                    {item.confidence &&
+                    item.confidence !== DataConfidence.High ? (
+                      <Pill
+                        text={translator.translateTemplate(
+                          CONFIDENCE_BELOW_HIGH,
+                          {
+                            confidence:
+                              translator.translateText(item.confidence) ||
+                              item.confidence,
+                          },
+                        )}
+                        color={Gray500}
+                      />
+                    ) : (
+                      <></>
+                    )}
                     {item.dataCategory ? (
                       <span className="text-xs text-gray-500">
                         {translator.translateText(item.dataCategory)}
@@ -320,10 +346,13 @@ const DataStoreInside: FunctionComponent<
             field: { location: true },
             title: "Location",
             type: FieldType.Element,
+            // A long path wraps rather than pushing the table past its card.
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: DataStoreFinding): ReactElement => {
               return (
                 <div className="min-w-0">
-                  <div className="break-all font-mono text-sm text-gray-800">
+                  <div className="font-mono text-sm text-gray-800 [overflow-wrap:anywhere]">
                     {item.location || "—"}
                   </div>
                   {item.locationKind ? (
@@ -341,6 +370,7 @@ const DataStoreInside: FunctionComponent<
             field: { confidence: true },
             title: "Confidence",
             type: FieldType.Element,
+            isHiddenByDefault: true,
             getElement: (item: DataStoreFinding): ReactElement => {
               return <ConfidencePill confidence={item.confidence} />;
             },
@@ -377,6 +407,7 @@ const DataStoreInside: FunctionComponent<
             title: "Distinct Values",
             type: FieldType.Number,
             hideOnMobile: true,
+            isHiddenByDefault: true,
           },
           {
             field: { maskedSamples: true },
@@ -413,6 +444,7 @@ const DataStoreInside: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: DataStoreFinding): ReactElement => {
               if (item.isSuppressed) {
                 return (
@@ -442,12 +474,14 @@ const DataStoreInside: FunctionComponent<
             title: "First Seen",
             type: FieldType.DateTime,
             hideOnMobile: true,
+            isHiddenByDefault: true,
           },
           {
             field: { lastSeenAt: true },
             title: "Last Seen",
             type: FieldType.DateTime,
             hideOnMobile: true,
+            isHiddenByDefault: true,
           },
         ]}
       />

@@ -4,6 +4,7 @@ import {
   getIssueStatusOptions,
 } from "./DataSecurityPills";
 import AppLink from "../AppLink/AppLink";
+import IssueMoment from "./IssueMoment";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -126,11 +127,23 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
           type: FieldType.Date,
         },
       ]}
+      // Severity first, then the issue, as the product's Issues list has them.
       columns={[
+        {
+          field: { severity: true },
+          title: "Severity",
+          type: FieldType.Element,
+          getElement: (item: DataSecurityIssue): ReactElement => {
+            return <SeverityPill severity={item.severity} />;
+          },
+        },
         {
           field: { title: true },
           title: "Issue",
           type: FieldType.Element,
+          // A long title wraps rather than pushing the table past its card.
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-sm",
           getElement: (item: DataSecurityIssue): ReactElement => {
             return (
               <div className="min-w-0">
@@ -138,7 +151,9 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                   to={getDataSecurityIssueRoute(item._id!)}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {item.title || "—"}
+                  {translator.translateText(item.title || "") ||
+                    item.title ||
+                    "—"}
                 </AppLink>
                 {item.checkGroup ? (
                   <div className="text-xs text-gray-500">
@@ -149,14 +164,6 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                 )}
               </div>
             );
-          },
-        },
-        {
-          field: { severity: true },
-          title: "Severity",
-          type: FieldType.Element,
-          getElement: (item: DataSecurityIssue): ReactElement => {
-            return <SeverityPill severity={item.severity} />;
           },
         },
         ...(props.showStatus
@@ -178,10 +185,14 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
           hideOnMobile: true,
         },
         {
+          // "2 hours ago", the date under the pointer, as the Issues list writes it.
           field: { lastDetectedAt: true },
           title: "Last Detected",
-          type: FieldType.DateTime,
+          type: FieldType.Element,
           hideOnMobile: true,
+          getElement: (item: DataSecurityIssue): ReactElement => {
+            return <IssueMoment value={item.lastDetectedAt} />;
+          },
         },
       ]}
     />

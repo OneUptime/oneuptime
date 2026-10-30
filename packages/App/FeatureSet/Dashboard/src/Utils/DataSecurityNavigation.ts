@@ -12,20 +12,22 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   the Issues to fix (with how many are open), the
  *                   Sensitive Data found, what turned up In Your Telemetry,
  *                   where data flows, who has Access, and Compliance
- *   Scanning        every scan that ran, and what it read: looked at when
- *                   something needs checking, so folded
  *   Settings        how the project's data is judged, set up once: Data
- *                   Types, Checks, Residency Rules, and Scanning (when and
- *                   how stores are scanned)
+ *                   Types, Checks, Residency Rules, and Scan Settings (what
+ *                   is read, how often, and what follows an issue)
  *   Rules           who owns a store and how it is labelled, assigned by
  *                   rules rather than by hand
  *   Help            the setup guide, for a first visit
- *   Advanced        the stores that are gone from their clouds, kept with
- *                   their history: last, as Advanced closes every menu
+ *   Advanced        what is looked at when something needs checking: every
+ *                   Scan that ran and what it read, and the stores that are
+ *                   gone from their clouds, kept with their history - last,
+ *                   as Advanced closes every menu
  *
  * Settings, Rules, Help and Advanced fold by their titles
- * (SECTION_TITLES_COLLAPSED_BY_DEFAULT); Scanning folds on purpose. Each
- * opens by itself on its own pages.
+ * (SECTION_TITLES_COLLAPSED_BY_DEFAULT), and each opens by itself on its
+ * own pages. The scans had a section of their own, "Scanning", which most
+ * languages read as "a scan is running"; so does the settings page's old
+ * name, which is now Scan Settings.
  *
  * Kept free of React so the menu - its sections, their order, the pages and
  * their names - can be read by the breadcrumbs and by Search (PageSearchIndex)
@@ -100,18 +102,6 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
     ],
   },
   {
-    // Records looked at when something needs checking, not every visit.
-    title: "Scanning",
-    startsCollapsed: true,
-    items: [
-      {
-        page: PageMap.DATA_SECURITY_SCANS,
-        title: "Scans",
-        icon: IconProp.MagnifyingGlass,
-      },
-    ],
-  },
-  {
     title: "Settings",
     items: [
       {
@@ -131,7 +121,7 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
       },
       {
         page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
-        title: "Scanning",
+        title: "Scan Settings",
         icon: IconProp.Clock,
       },
     ],
@@ -163,11 +153,18 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
   },
   {
     /*
-     * The way back to the stores that are gone from their clouds, which the
-     * Data Stores list leaves out. Last, as Advanced closes every menu.
+     * Records looked at when something needs checking, not every visit:
+     * every scan and what it read, and the way back to the stores that are
+     * gone from their clouds, which the Data Stores list leaves out. Last,
+     * as Advanced closes every menu.
      */
     title: "Advanced",
     items: [
+      {
+        page: PageMap.DATA_SECURITY_SCANS,
+        title: "Scans",
+        icon: IconProp.MagnifyingGlass,
+      },
       {
         page: PageMap.DATA_SECURITY_STORES_ARCHIVED,
         title: "Archived Stores",

@@ -220,6 +220,7 @@ const StoreFlowsTable: FunctionComponent<ComponentProps> = (
           title: "Last Seen",
           type: FieldType.DateTime,
           hideOnMobile: true,
+          isHiddenByDefault: true,
         },
       ]}
     />

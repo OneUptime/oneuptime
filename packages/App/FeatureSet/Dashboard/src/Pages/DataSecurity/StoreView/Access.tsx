@@ -145,6 +145,7 @@ const DataStoreAccessPage: FunctionComponent<
           title: "Type",
           type: FieldType.Element,
           hideOnMobile: true,
+          isHiddenByDefault: true,
           getElement: (item: DataStoreAccess): ReactElement => {
             return item.principalType ? (
               <span className="text-sm text-gray-700">
@@ -204,6 +205,7 @@ const DataStoreAccessPage: FunctionComponent<
           title: "Last Used",
           type: FieldType.DateTime,
           hideOnMobile: true,
+          isHiddenByDefault: true,
         },
       ]}
     />

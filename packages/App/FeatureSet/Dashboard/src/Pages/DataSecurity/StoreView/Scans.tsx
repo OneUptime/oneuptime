@@ -232,6 +232,7 @@ const DataStoreScans: FunctionComponent<
           title: "Duration",
           type: FieldType.Element,
           hideOnMobile: true,
+          isHiddenByDefault: true,
           getElement: (item: DataSecurityScan): ReactElement => {
             const duration: string | undefined = formatScanDuration(
               item.durationInMs,
