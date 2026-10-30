@@ -36,6 +36,7 @@ import {
   NOTIFICATION_SMS_TURN_OFF,
 } from "Common/Utils/Sms/NotificationSms";
 import { toGsm7Text } from "Common/Utils/Sms/Gsm7Text";
+import { getOnCallPersonPageLead } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import {
   GSM_7_SINGLE_SEGMENT_LENGTH,
   SmsEncoding,
@@ -948,6 +949,53 @@ describe("the Escalation Rules page's text message section", () => {
     expect(
       pageAgain.text.replace(` ${ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED}`, ""),
     ).toBe(example.text);
+  });
+
+  /*
+   * A page a person asked for (OnCallPersonPage) - from Slack or Microsoft
+   * Teams - says who paged whom, where a page OneUptime starts reads as news
+   * of its record, from nobody.
+   */
+  it("quotes a person's page's text exactly as OneUptime writes it, and it is one part", () => {
+    const lead: string = getOnCallPersonPageLead({
+      pagedByName: "Alice Kim",
+      teamName: "Platform",
+    });
+    const personPage: OnCallPageSms = buildOnCallPageSms({
+      kind: OnCallPageSmsKind.Incident,
+      productName: NOTIFICATION_SMS_SENDER,
+      severityName: "Critical Incident",
+      number: "INC-42",
+      projectName: "Acme Prod",
+      title: "Checkout API is down",
+      link: "https://oneuptime.com/l/XJlaZRsd",
+      lead: lead,
+    });
+    const intro: string =
+      "When somebody pages you from Slack or Microsoft Teams, the text says who paged whom after `OneUptime:`, and those words are never cut either:\n\n```text\n";
+    const at: number = section.indexOf(intro);
+    const block: string = section.slice(
+      at + intro.length,
+      section.indexOf("\n```", at + intro.length),
+    );
+    const lines: Array<string> = block.split("\n");
+
+    expect(lead).toBe("Alice Kim paged Platform");
+    // After the page again's example.
+    expect(at).toBeGreaterThan(section.indexOf("is still not resolved:\n"));
+    // Shown as a phone wraps it: one line when sent.
+    expect(lines.join(" ")).toBe(personPage.text);
+    expect(lines[lines.length - 1]).toBe(
+      personPage.text.slice(personPage.text.indexOf(ON_CALL_PAGE_SMS_ACTION)),
+    );
+    for (const line of lines) {
+      expect(line.length).toBeLessThanOrEqual(71);
+    }
+    expect(personPage.sent.encoding).toBe(SmsEncoding.Gsm7);
+    expect(personPage.sent.segments).toBe(1);
+
+    // The same page's first text, with who paged before what happened.
+    expect(personPage.text.replace(`${lead} about `, "")).toBe(example.text);
   });
 
   it("gives the part sizes the counter bills by", () => {

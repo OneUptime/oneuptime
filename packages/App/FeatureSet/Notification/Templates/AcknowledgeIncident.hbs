@@ -6,6 +6,11 @@
 
 {{#if pageAgainInfo}}
 {{> InfoBlock plainInfo=pageAgainInfo}}
+{{else if personPageInfo}}
+{{> InfoBlock plainInfo=personPageInfo}}
+{{#if personPageMessage}}
+{{> InfoBlock plainInfo=personPageMessage}}
+{{/if}}
 {{else}}
 {{> InfoBlock plainInfo=(concat "A new incident has been created in the project - " projectName)}}
 {{/if}}

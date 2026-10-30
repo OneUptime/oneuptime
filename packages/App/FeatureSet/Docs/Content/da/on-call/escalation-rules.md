@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+Når nogen tilkalder dig fra Slack eller Microsoft Teams, siger sms'en efter `OneUptime:`, hvem der tilkaldte hvem, og de ord afkortes heller aldrig:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ét tegn uden for sms'ers enkle alfabet får hele beskeden til at gå ud i dele på 70 tegn. Derfor skrives typografiske anførselstegn og tankestreger som `"`, `'` og `-`, `…` som `...`, og bogstaver som `ç` og `ł` mister deres accenter; emojis udelades. En titel i en anden skrift, for eksempel japansk eller russisk, sendes, som den er skrevet, og fylder to dele eller flere.
 
 De andre sms'er, OneUptime sender dig, for eksempel om en ændring i en hændelse, du ejer, eller om starten på din vagt, begynder også med `OneUptime:` og slutter med `Turn off in User Settings > Notification Settings.`, en sætning, der udelades, når det er det, der får sms'en til at passe i én del.
