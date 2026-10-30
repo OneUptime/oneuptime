@@ -29,7 +29,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *
  * - a create or an update that writes an AI setting is checked for the
  *   account's own type (ResourceAiAccessSettings); one that writes none is
- *   not read at all; one reaching accounts of two clouds is refused;
+ *   not read at all; one reaching accounts of two clouds is refused; the
+ *   rows judged are the rows the update writes, read the way every hook
+ *   reads them (findRowsAndHoldUpdateToThem, UpdateChecksReadHeldRows);
  * - a delete settles the rounds and removes the agents of every cloud's
  *   type (ResourceAiDeleteCleanup), each with its own carry-forward.
  */
@@ -103,6 +105,9 @@ describe("which AI resource type an account is", () => {
 describe("an update of an account", () => {
   test("that writes no AI setting is not read, and nothing is checked", async () => {
     const find: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(CloudAccountService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([]);
+    const findBy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(CloudAccountService, "findBy")
       .mockResolvedValue([]);
     const check: ReturnType<typeof jest.spyOn> = jest.spyOn(
@@ -115,6 +120,7 @@ describe("an update of an account", () => {
     );
 
     expect(find).not.toHaveBeenCalled();
+    expect(findBy).not.toHaveBeenCalled();
     expect(check).not.toHaveBeenCalled();
     expect(result.carryForward).toBeNull();
   });
@@ -127,7 +133,7 @@ describe("an update of an account", () => {
     "that writes an AI setting on a %s account is checked as a %s",
     async (provider: string, type: AiResourceType) => {
       jest
-        .spyOn(CloudAccountService, "findBy")
+        .spyOn(CloudAccountService, "findRowsAndHoldUpdateToThem")
         .mockResolvedValue([account(provider)]);
       const check: ReturnType<typeof jest.spyOn> = jest
         .spyOn(ResourceAiAccessSettings, "checkUpdate")
@@ -145,10 +151,14 @@ describe("an update of an account", () => {
     },
   );
 
-  test("the account's rows are read as root, by the update's own query", async () => {
-    const find: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(CloudAccountService, "findBy")
+  test("the account's rows are the update's own, read and held through the update itself", async () => {
+    const held: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(CloudAccountService, "findRowsAndHoldUpdateToThem")
       .mockResolvedValue([account("aws")]);
+    const findBy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      CloudAccountService,
+      "findBy",
+    );
     jest.spyOn(ResourceAiAccessSettings, "checkUpdate").mockResolvedValue(null);
 
     const written: UpdateBy<CloudAccount> = updateBy({
@@ -157,8 +167,15 @@ describe("an update of an account", () => {
 
     await hooks.onBeforeUpdate(written);
 
-    expect(find.mock.calls[0]![0].query).toBe(written.query);
-    expect(find.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    /*
+     * The hold reads the rows the caller may write in the update's own
+     * window and narrows the update to them; a read of its query as root
+     * would judge rows of other projects, or rows the update never writes.
+     */
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![0]).toBe(written);
+    expect(held.mock.calls[0]![1]).toEqual({ _id: true, provider: true });
+    expect(findBy).not.toHaveBeenCalled();
   });
 
   test("the log switch and the server-only columns are checked too", async () => {
@@ -169,7 +186,7 @@ describe("an update of an account", () => {
     ]) {
       jest.restoreAllMocks();
       jest
-        .spyOn(CloudAccountService, "findBy")
+        .spyOn(CloudAccountService, "findRowsAndHoldUpdateToThem")
         .mockResolvedValue([account("gcp")]);
       const check: ReturnType<typeof jest.spyOn> = jest
         .spyOn(ResourceAiAccessSettings, "checkUpdate")
@@ -183,7 +200,7 @@ describe("an update of an account", () => {
 
   test("that reaches accounts of two clouds is refused", async () => {
     jest
-      .spyOn(CloudAccountService, "findBy")
+      .spyOn(CloudAccountService, "findRowsAndHoldUpdateToThem")
       .mockResolvedValue([account("aws"), account("azure")]);
     const check: ReturnType<typeof jest.spyOn> = jest.spyOn(
       ResourceAiAccessSettings,
@@ -200,7 +217,7 @@ describe("an update of an account", () => {
 
   test("a refusal of the rules stops the update", async () => {
     jest
-      .spyOn(CloudAccountService, "findBy")
+      .spyOn(CloudAccountService, "findRowsAndHoldUpdateToThem")
       .mockResolvedValue([account("aws")]);
     jest
       .spyOn(ResourceAiAccessSettings, "checkUpdate")

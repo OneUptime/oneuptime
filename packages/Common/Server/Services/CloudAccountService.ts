@@ -203,13 +203,15 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    const rows: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { _id: true, provider: true },
-      limit: updateBy.limit || 100,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    /*
+     * The rows the update writes, read the one way every hook reads them,
+     * and the update held to exactly these: the clouds judged here are the
+     * clouds written.
+     */
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true, provider: true },
+    );
 
     const types: Set<AiResourceType> = new Set<AiResourceType>();
 
