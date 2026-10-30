@@ -34,6 +34,7 @@ import {
   getKubernetesSetupGuide,
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import {
   MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_ACTIVE_STATES,
@@ -1239,6 +1240,58 @@ describe("the host collector page, against the setup guide", () => {
             (at(scrapers[scraper], "metrics") as YamlNode)[metric],
           ]).toEqual([metric, { enabled: true }]);
         }
+      }
+    });
+
+    /*
+     * Snap packages, CD and ISO images and macOS's /dev read 100% used for
+     * as long as they are mounted, so a config that measures them keeps
+     * High Filesystem Usage firing on them for good.
+     */
+    it("leaves the file systems that are full by design out, as OneUptime's default does", () => {
+      for (const config of configs) {
+        expect(
+          at(
+            config,
+            "receivers.hostmetrics.scrapers.filesystem.exclude_fs_types",
+          ),
+        ).toEqual({
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        });
+      }
+      lineWith(
+        HOST_PAGE,
+        "The configs above leave out of the `filesystem` scraper the file systems that are full by design",
+        "`exclude_fs_types`",
+        "`exclude_mount_points`",
+      );
+    });
+
+    it("and so does every other hostmetrics receiver it hands out", () => {
+      const receivers: Array<YamlNode> = fencesOf(HOST_PAGE)
+        .filter((fence: DocsFence): boolean => {
+          return fence.lang === "yaml";
+        })
+        .map((fence: DocsFence): YamlNode => {
+          return yamlOf(fence.code);
+        })
+        .map((document: YamlNode): YamlNode => {
+          return at(document, "receivers.hostmetrics.scrapers") as YamlNode;
+        })
+        .filter((scrapers: YamlNode | undefined): boolean => {
+          return Boolean(scrapers) && "filesystem" in scrapers!;
+        });
+
+      // The four configs and the narrowed process scraper.
+      expect(receivers).toHaveLength(5);
+      for (const scrapers of receivers) {
+        expect(
+          (scrapers["filesystem"] as YamlNode)["exclude_fs_types"],
+        ).toEqual({
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        });
       }
     });
 

@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -934,6 +952,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1103,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
