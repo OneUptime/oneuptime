@@ -857,10 +857,9 @@ describe("DockerAlertTemplates - Container Restarted (Low Uptime)", () => {
 
 describe("DockerAlertTemplates - Container Restart Loop (what it can see)", () => {
   test("counts restarts seen within a minute, summed over the window", async () => {
-    const step: MonitorStep =
-      getDockerAlertTemplateById("docker-restart-loop")!.getMonitorStep(
-        buildArgs(),
-      );
+    const step: MonitorStep = getDockerAlertTemplateById(
+      "docker-restart-loop",
+    )!.getMonitorStep(buildArgs());
     const viewConfig: MetricsViewConfig =
       getDockerMonitor(step).metricViewConfig;
 

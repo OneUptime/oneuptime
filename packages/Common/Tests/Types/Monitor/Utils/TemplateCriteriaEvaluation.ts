@@ -36,8 +36,9 @@ export function buildMetricResponse(data: {
   const results: Array<AggregatedResult> = data.viewConfig.queryConfigs.map(
     (queryConfig: MetricQueryConfigData): AggregatedResult => {
       const samples: Array<number> =
-        data.samplesByAlias[queryConfig.metricAliasData?.metricVariable || ""] ||
-        [];
+        data.samplesByAlias[
+          queryConfig.metricAliasData?.metricVariable || ""
+        ] || [];
       const firstMinuteMs: number = WINDOW_END_MS - samples.length * 60000;
 
       return {

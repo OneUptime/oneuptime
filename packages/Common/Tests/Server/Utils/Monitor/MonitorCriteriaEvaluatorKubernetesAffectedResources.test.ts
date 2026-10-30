@@ -1038,7 +1038,9 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
       series: series,
     });
 
-    expect(rootCause).toContain("- Formula: `container_restarts_max - container_restarts_min`");
+    expect(rootCause).toContain(
+      "- Formula: `container_restarts_max - container_restarts_min`",
+    );
     expect(rootCause).not.toContain("**40**");
     expect(rootCause).not.toMatch(LONG_RAW_NUMBER);
   });
