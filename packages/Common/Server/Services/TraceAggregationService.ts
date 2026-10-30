@@ -15,7 +15,10 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
-import { ExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
+import {
+  ExceptionSpanScope,
+  getExceptionSpanScopeFingerprints,
+} from "../../Types/Telemetry/ExceptionSpanScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
@@ -1221,14 +1224,28 @@ export class TraceAggregationService {
       return;
     }
 
+    const fingerprints: Array<string> = getExceptionSpanScopeFingerprints(
+      request.exceptionScope,
+    );
+
     statement.append(
       SQL` AND (traceId, spanId) GLOBAL IN (SELECT traceId, spanId FROM ${AnalyticsTableName.ExceptionInstance} WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: request.projectId,
-      }} AND fingerprint = ${{
-        type: TableColumnType.Text,
-        value: request.exceptionScope.fingerprint,
       }}`,
+    );
+
+    // Its own fingerprint, and those of the exceptions merged into it.
+    statement.append(
+      fingerprints.length > 1
+        ? SQL` AND fingerprint IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(fingerprints),
+          }})`
+        : SQL` AND fingerprint = ${{
+            type: TableColumnType.Text,
+            value: request.exceptionScope.fingerprint,
+          }}`,
     );
 
     if (request.exceptionScope.primaryEntityId) {

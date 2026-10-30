@@ -28,6 +28,56 @@ export interface ExceptionSpanScope {
   fingerprint: string;
   // The exception group's service; a fingerprint is only unique per service.
   primaryEntityId?: string | undefined;
+  /*
+   * The fingerprints of the exceptions merged into this one
+   * (TelemetryExceptionMerge): their spans are this exception's too.
+   */
+  mergedFingerprints?: Array<string> | undefined;
+}
+
+// The most merged fingerprints a scope carries.
+export const EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS: number = 100;
+
+// The scope's fingerprints: its own, then the merged ones.
+export function getExceptionSpanScopeFingerprints(
+  scope: ExceptionSpanScope,
+): Array<string> {
+  const fingerprints: Array<string> = [scope.fingerprint];
+
+  for (const fingerprint of scope.mergedFingerprints || []) {
+    if (!fingerprints.includes(fingerprint)) {
+      fingerprints.push(fingerprint);
+    }
+  }
+
+  return fingerprints;
+}
+
+// The merged fingerprints of an untrusted scope: strings of a fingerprint's length, bounded.
+function readMergedFingerprints(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const fingerprints: Array<string> = [];
+
+  for (const entry of value.slice(0, EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS)) {
+    if (typeof entry !== "string") {
+      continue;
+    }
+
+    const trimmed: string = entry.trim();
+
+    if (
+      trimmed.length > 0 &&
+      trimmed.length <= EXCEPTION_SPAN_SCOPE_MAX_FINGERPRINT_LENGTH &&
+      !fingerprints.includes(trimmed)
+    ) {
+      fingerprints.push(trimmed);
+    }
+  }
+
+  return fingerprints;
 }
 
 const UUID_PATTERN: RegExp =
@@ -62,9 +112,16 @@ export function parseExceptionSpanScope(
   }
 
   const rawEntityId: unknown = record["primaryEntityId"];
+  const mergedFingerprints: Array<string> = readMergedFingerprints(
+    record["mergedFingerprints"],
+  ).filter((fingerprint: string): boolean => {
+    return fingerprint !== trimmedFingerprint;
+  });
+  const merged: { mergedFingerprints?: Array<string> } =
+    mergedFingerprints.length > 0 ? { mergedFingerprints } : {};
 
   if (rawEntityId === undefined || rawEntityId === null || rawEntityId === "") {
-    return { fingerprint: trimmedFingerprint };
+    return { fingerprint: trimmedFingerprint, ...merged };
   }
 
   const primaryEntityId: string =
@@ -79,5 +136,5 @@ export function parseExceptionSpanScope(
     return null;
   }
 
-  return { fingerprint: trimmedFingerprint, primaryEntityId };
+  return { fingerprint: trimmedFingerprint, primaryEntityId, ...merged };
 }

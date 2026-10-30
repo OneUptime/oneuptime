@@ -80,6 +80,7 @@ export function getExceptionTrendPresetTimeRange(
 export interface ExceptionTrendZoomRequestArgs {
   windowKey: ExceptionTrendWindowKey;
   fingerprint: string | undefined;
+  mergedFingerprints?: ReadonlyArray<string> | undefined;
   primaryEntityId?: ObjectID | string | undefined;
   // The window a drag zoomed the chart to; null or unusable means the preset.
   zoomWindow: InBetween<Date> | null;
@@ -98,6 +99,7 @@ export function buildExceptionTrendZoomRequest(
   const base: JSONObject | null = buildExceptionTrendRequest({
     windowKey: args.windowKey,
     fingerprint: args.fingerprint,
+    mergedFingerprints: args.mergedFingerprints,
     primaryEntityId: args.primaryEntityId,
     now: args.now,
   });

@@ -158,7 +158,7 @@ export class Service extends ProjectReferencesService<Model> {
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     findBy.query = await this.addExceptionScope(
-      findBy.query,
+      Service.hideMergedExceptions(findBy.query),
       findBy.props,
       DatabaseRequestType.Read,
     );
@@ -171,12 +171,44 @@ export class Service extends ProjectReferencesService<Model> {
     countBy: CountBy<Model>,
   ): Promise<PositiveNumber> {
     countBy.query = await this.addExceptionScope(
-      countBy.query,
+      Service.hideMergedExceptions(countBy.query),
       countBy.props,
       DatabaseRequestType.Read,
     );
 
     return super.countBy(countBy);
+  }
+
+  /*
+   * A MERGED EXCEPTION IS NOT LISTED.
+   *
+   * An exception merged into another (TelemetryExceptionMerge) is part of
+   * that one: its occurrences count there, and the lists, the counts, the
+   * monitors' new and regressed groups, What's new, Similar exceptions and
+   * the AI's detectors should see only the one it was merged into. So every
+   * read and count leaves merged rows out - for root too, since this is what
+   * the data means rather than who may see it - unless the query names them:
+   * by id (an exception's own page, a link to it), or by the column itself
+   * (the exceptions merged into one, which its page lists).
+   */
+  public static hideMergedExceptions<TQuery>(query: TQuery): TQuery {
+    const record: Record<string, unknown> = (query || {}) as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      "_id" in record ||
+      "id" in record ||
+      "mergedIntoTelemetryExceptionId" in record
+    ) {
+      return query;
+    }
+
+    return {
+      ...record,
+      mergedIntoTelemetryExceptionId: QueryHelper.isNull(),
+    } as TQuery;
   }
 
   @CaptureSpan()
@@ -1312,6 +1344,7 @@ export class Service extends ProjectReferencesService<Model> {
           return this.findBy({
             query: query,
             select: {
+              _id: true,
               fingerprint: true,
               lastSeenAt: true,
             },
@@ -1335,6 +1368,24 @@ export class Service extends ProjectReferencesService<Model> {
         return (b.lastSeenAt?.getTime() || 0) - (a.lastSeenAt?.getTime() || 0);
       });
 
+    /*
+     * An exception merged into one of these is part of it: its occurrences
+     * keep their own fingerprint, so its fingerprint is left out too, right
+     * after the one it was merged into. (Merged rows themselves are never in
+     * the lists above: their own state does not decide anything any more.)
+     */
+    const memberFingerprintsById: Map<string, Array<string>> =
+      await this.getMergedFingerprintsBySurvivor({
+        projectId: data.projectId,
+        survivorIds: merged
+          .map((exception: Model): string => {
+            return exception.id?.toString() || "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      });
+
     const fingerprints: Set<string> = new Set<string>();
     let truncated: boolean = false;
 
@@ -1347,6 +1398,16 @@ export class Service extends ProjectReferencesService<Model> {
         break;
       }
       fingerprints.add(exception.fingerprint);
+
+      for (const memberFingerprint of memberFingerprintsById.get(
+        exception.id?.toString().toLowerCase() || "",
+      ) || []) {
+        if (fingerprints.size >= EXCLUDED_FINGERPRINT_LIMIT) {
+          truncated = true;
+          break;
+        }
+        fingerprints.add(memberFingerprint);
+      }
     }
 
     if (truncated) {
@@ -1356,6 +1417,56 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return Array.from(fingerprints);
+  }
+
+  /*
+   * The fingerprints of the exceptions merged into each of `survivorIds`, by
+   * the survivor's id in lower case. Read as root: callers hold the
+   * survivors already, read with whatever scope they needed.
+   */
+  @CaptureSpan()
+  public async getMergedFingerprintsBySurvivor(data: {
+    projectId: ObjectID;
+    survivorIds: Array<string>;
+  }): Promise<Map<string, Array<string>>> {
+    const bySurvivor: Map<string, Array<string>> = new Map();
+    const ids: Array<string> = data.survivorIds.filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
+
+    if (ids.length === 0) {
+      return bySurvivor;
+    }
+
+    const members: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        mergedIntoTelemetryExceptionId: QueryHelper.any(ids),
+      },
+      select: {
+        fingerprint: true,
+        mergedIntoTelemetryExceptionId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const member of members) {
+      const survivorId: string =
+        member.mergedIntoTelemetryExceptionId?.toString().toLowerCase() || "";
+
+      if (!survivorId || !member.fingerprint) {
+        continue;
+      }
+
+      bySurvivor.set(survivorId, [
+        ...(bySurvivor.get(survivorId) || []),
+        member.fingerprint,
+      ]);
+    }
+
+    return bySurvivor;
   }
 
   @CaptureSpan()
@@ -1439,6 +1550,8 @@ export class Service extends ProjectReferencesService<Model> {
       .andWhere(`"TelemetryException"."isResolved" = false`)
       .andWhere(`"TelemetryException"."isArchived" = false`)
       .andWhere(`"TelemetryException"."deletedAt" IS NULL`)
+      // A merged exception counts in the one it was merged into.
+      .andWhere(`"TelemetryException"."mergedIntoTelemetryExceptionId" IS NULL`)
       .andWhere(`"TelemetryException"."primaryEntityId" IS NOT NULL`)
       .groupBy(`"TelemetryException"."primaryEntityId"`)
       .addGroupBy(`"TelemetryException"."primaryEntityType"`)

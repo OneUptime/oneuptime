@@ -223,8 +223,15 @@ export default class ExceptionUtil {
       return;
     }
 
+    /*
+     * An occurrence of a merged exception counts on the one it was merged
+     * into as well (resolveMergedExceptions): the batch gains a copy of it
+     * under the survivor's key before it is aggregated.
+     */
     const aggregated: Map<string, AggregatedException> =
-      ExceptionUtil.aggregateExceptions(exceptions);
+      ExceptionUtil.aggregateExceptions(
+        await ExceptionUtil.withMergedSurvivors(exceptions),
+      );
 
     if (aggregated.size === 0) {
       return;
@@ -407,6 +414,147 @@ export default class ExceptionUtil {
   }
 
   /*
+   * THE FINGERPRINT ALIASES OF MERGED EXCEPTIONS.
+   *
+   * An exception merged into another (TelemetryExceptionMerge) keeps its
+   * fingerprint, and that fingerprint is from then on an alias of the one it
+   * was merged into: an occurrence of it is counted on both - on its own
+   * row, which keeps counting so an unmerge gives it back exactly, and on
+   * the survivor's, which the lists show. One indexed read per batch and
+   * project (the partial index on merged rows), and none of the batch's
+   * occurrences is ever dropped: when the read fails, the batch is counted
+   * as it would have been before any merge.
+   *
+   * Returns, per project, the merged fingerprints the batch holds and the
+   * survivor each points at.
+   */
+  public static async resolveMergedExceptions(
+    exceptions: Array<TelemetryExceptionPayload>,
+  ): Promise<Map<string, MergedExceptionSurvivor>> {
+    const survivors: Map<string, MergedExceptionSurvivor> = new Map();
+    const fingerprintsByProject: Map<string, Set<string>> = new Map();
+
+    for (const exception of exceptions) {
+      if (!exception || !exception.projectId || !exception.fingerprint) {
+        continue;
+      }
+
+      const projectId: string = exception.projectId.toString();
+      const fingerprints: Set<string> =
+        fingerprintsByProject.get(projectId) || new Set<string>();
+      fingerprints.add(exception.fingerprint);
+      fingerprintsByProject.set(projectId, fingerprints);
+    }
+
+    for (const [projectId, fingerprints] of fingerprintsByProject) {
+      try {
+        const rows: Array<{
+          fingerprint: string;
+          primaryEntityId: string;
+          survivorPrimaryEntityId: string;
+          survivorFingerprint: string;
+        }> = await TelemetryExceptionService.getRepository().manager.query(
+          `SELECT m."fingerprint" AS "fingerprint",
+                  m."primaryEntityId"::text AS "primaryEntityId",
+                  s."primaryEntityId"::text AS "survivorPrimaryEntityId",
+                  s."fingerprint" AS "survivorFingerprint"
+           FROM "TelemetryException" m
+           JOIN "TelemetryException" s
+             ON s."_id" = m."mergedIntoTelemetryExceptionId"
+            AND s."deletedAt" IS NULL
+           WHERE m."projectId" = $1
+             AND m."fingerprint" = ANY($2::text[])
+             AND m."mergedIntoTelemetryExceptionId" IS NOT NULL
+             AND m."deletedAt" IS NULL`,
+          [projectId, Array.from(fingerprints)],
+        );
+
+        for (const row of rows || []) {
+          if (!row.survivorFingerprint || !row.survivorPrimaryEntityId) {
+            continue;
+          }
+
+          survivors.set(
+            mergedExceptionKey(projectId, row.primaryEntityId, row.fingerprint),
+            {
+              primaryEntityId: new ObjectID(row.survivorPrimaryEntityId),
+              fingerprint: row.survivorFingerprint,
+            },
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Could not read the merged exceptions of project ${projectId}; the batch is counted without them: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    return survivors;
+  }
+
+  /*
+   * The batch, plus a copy of each occurrence of a merged exception under
+   * its survivor's key. The copy carries no message, stack trace, type or
+   * environment: the survivor keeps its own (the upsert never overwrites a
+   * value with an empty one), while its count, seen times, releases and
+   * unhandled flag take in the occurrence - and a resolved survivor reopens
+   * as Regressed, as it would for an occurrence of its own.
+   */
+  public static async withMergedSurvivors(
+    exceptions: Array<TelemetryExceptionPayload>,
+  ): Promise<Array<TelemetryExceptionPayload>> {
+    const survivors: Map<string, MergedExceptionSurvivor> =
+      await ExceptionUtil.resolveMergedExceptions(exceptions);
+
+    if (survivors.size === 0) {
+      return exceptions;
+    }
+
+    const out: Array<TelemetryExceptionPayload> = [...exceptions];
+
+    for (const exception of exceptions) {
+      if (
+        !exception ||
+        !exception.projectId ||
+        !exception.primaryEntityId ||
+        !exception.fingerprint
+      ) {
+        continue;
+      }
+
+      const survivor: MergedExceptionSurvivor | undefined = survivors.get(
+        mergedExceptionKey(
+          exception.projectId.toString(),
+          exception.primaryEntityId.toString(),
+          exception.fingerprint,
+        ),
+      );
+
+      if (!survivor) {
+        continue;
+      }
+
+      out.push({
+        fingerprint: survivor.fingerprint,
+        projectId: exception.projectId,
+        primaryEntityId: survivor.primaryEntityId,
+        ...(exception.primaryEntityType
+          ? { primaryEntityType: exception.primaryEntityType }
+          : {}),
+        ...(exception.release ? { release: exception.release } : {}),
+        ...(exception.unhandled !== undefined
+          ? { unhandled: exception.unhandled }
+          : {}),
+        ...(exception.occurredAt ? { occurredAt: exception.occurredAt } : {}),
+      });
+    }
+
+    return out;
+  }
+
+  /*
    * Group payloads by (projectId, primaryEntityId, fingerprint), sum
    * occurrence counts, and pick the most-informative metadata to
    * carry into the INSERT/UPDATE. We prefer non-empty message /
@@ -528,6 +676,20 @@ export default class ExceptionUtil {
 
     return out;
   }
+}
+
+// Where an occurrence of a merged exception is counted as well.
+export interface MergedExceptionSurvivor {
+  primaryEntityId: ObjectID;
+  fingerprint: string;
+}
+
+function mergedExceptionKey(
+  projectId: string,
+  primaryEntityId: string,
+  fingerprint: string,
+): string {
+  return `${projectId.toLowerCase()}|${primaryEntityId.toLowerCase()}|${fingerprint}`;
 }
 
 export interface AggregatedException {

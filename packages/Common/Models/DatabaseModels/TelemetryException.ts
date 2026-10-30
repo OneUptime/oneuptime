@@ -107,6 +107,15 @@ import DatabaseServer from "./DatabaseServer";
  * occuranceCount increments.
  */
 @Index(["projectId", "primaryEntityId", "fingerprint"], { unique: true })
+/*
+ * The merged exceptions of a project by fingerprint: what ingest looks a
+ * batch's fingerprints up in, so an occurrence of a merged exception is
+ * counted on the one it was merged into too (ExceptionUtil). Partial, so it
+ * holds the few merged rows only.
+ */
+@Index(["projectId", "fingerprint"], {
+  where: '"mergedIntoTelemetryExceptionId" IS NOT NULL',
+})
 export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [
@@ -1686,4 +1695,175 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: ColumnType.Date,
   })
   public aiExplanationGeneratedAt?: Date = undefined;
+
+  /*
+   * MERGED INTO ANOTHER EXCEPTION.
+   *
+   * Set on an exception someone merged into another as the same bug
+   * (TelemetryExceptionMerge): its fingerprint is then an alias of that one.
+   * Ingest counts each new occurrence of it on the exception it was merged
+   * into as well, the lists and counts leave it out (TelemetryExceptionService
+   * hides merged rows from every read that does not name them), and the
+   * exception it was merged into shows its occurrences. It keeps its own
+   * count and state, so unmerging gives it back as it would have been. Never
+   * written through the API: merging and unmerging move the counts with it,
+   * so only TelemetryExceptionMerge writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "mergedIntoTelemetryExceptionId",
+    type: TableColumnType.Entity,
+    modelType: TelemetryException,
+    title: "Merged Into Exception",
+    description:
+      "The exception this one was merged into as the same bug. Its occurrences count there.",
+  })
+  @ManyToOne(
+    () => {
+      return TelemetryException;
+    },
+    {
+      eager: false,
+      nullable: true,
+      // Deleting the exception it was merged into brings this one back.
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "mergedIntoTelemetryExceptionId" })
+  public mergedIntoTelemetryException?: TelemetryException = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Merged Into Exception ID",
+    description:
+      "ID of the exception this one was merged into as the same bug. Empty for an exception that was not merged.",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public mergedIntoTelemetryExceptionId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    title: "Merged At",
+    description: "When this exception was merged into another.",
+    required: false,
+    type: TableColumnType.Date,
+    example: "2026-01-01T00:00:00.000Z",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public mergedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "mergedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Merged By User",
+    description: "Relation to the user who merged this exception into another.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "mergedByUserId" })
+  public mergedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Merged By User ID",
+    description: "ID of the user who merged this exception into another.",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public mergedByUserId?: ObjectID = undefined;
 }

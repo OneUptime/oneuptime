@@ -56,6 +56,9 @@ import ExceptionLogs from "./ExceptionLogs";
 import ExceptionAIAssistance from "./ExceptionAIAssistance";
 import ExceptionAIExplanation from "./ExceptionAIExplanation";
 import ExceptionSimilar from "./ExceptionSimilar";
+import ExceptionMergedPanel from "./ExceptionMergedPanel";
+import { MERGED_EXCEPTION_SELECT } from "../../Utils/ExceptionMerge";
+import { getMergedFingerprints } from "../../Utils/ExceptionGroupFingerprints";
 import ExceptionAssignee from "./ExceptionAssignee";
 import { ExceptionAssignmentWrite } from "../../Utils/ExceptionAssignment";
 import ExceptionSettings from "./ExceptionSettings";
@@ -151,6 +154,19 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [breadcrumbEvents, setBreadcrumbEvents] = useState<
     Array<BreadcrumbEvent>
   >([]);
+  /*
+   * The exceptions merged into this one (TelemetryExceptionMerge): their
+   * occurrences are this exception's, read by their own fingerprints. And,
+   * when this one was merged into another, that one.
+   */
+  const [mergedMembers, setMergedMembers] = useState<Array<TelemetryException>>(
+    [],
+  );
+  const [mergedInto, setMergedInto] = useState<TelemetryException | null>(
+    null,
+  );
+  // Bumped after a merge or an unmerge: the page reads itself again.
+  const [reloadKey, setReloadKey] = useState<number>(0);
 
   /*
    * Ask the server to resolve the instance's parsed frames against the
@@ -250,8 +266,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
    * Everything below the header is page-specific and loads behind its own
    * loader, so the exception itself paints as soon as the group is read.
    */
-  const loadSupplementaryData: (exception: TelemetryException) => void = (
+  const loadSupplementaryData: (
     exception: TelemetryException,
+    mergedFingerprints: Array<string>,
+  ) => void = (
+    exception: TelemetryException,
+    mergedFingerprints: Array<string>,
   ): void => {
     /*
      * A group references at most one OpenTelemetry Service. Resolve that
@@ -295,6 +315,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             query: buildExceptionOccurrenceQuery({
               projectId: ProjectUtil.getCurrentProjectId()!,
               fingerprint: exception.fingerprint!,
+              mergedFingerprints: mergedFingerprints,
               primaryEntityId: exception.primaryEntityId,
             }),
             limit: 1,
@@ -373,6 +394,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             // Who owns it, for the header's Assignee.
             assignToUserId: true,
             assignToTeamId: true,
+            // Whether it was merged into another exception, and into which.
+            mergedIntoTelemetryExceptionId: true,
+            mergedAt: true,
             ...(dataPlan.loadAiExplanation
               ? { aiExplanation: true, aiExplanationGeneratedAt: true }
               : {}),
@@ -396,12 +420,62 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       return exception;
     };
 
+  /*
+   * What a merge left on this exception: the one it was merged into, or the
+   * ones merged into it. Best effort: without it the page shows the
+   * exception's own occurrences, as before any merge.
+   */
+  const loadMergeContext: (
+    exception: TelemetryException,
+  ) => Promise<Array<TelemetryException>> = async (
+    exception: TelemetryException,
+  ): Promise<Array<TelemetryException>> => {
+    try {
+      if (exception.mergedIntoTelemetryExceptionId) {
+        setMergedMembers([]);
+        setMergedInto(
+          await ModelAPI.getItem<TelemetryException>({
+            id: exception.mergedIntoTelemetryExceptionId,
+            modelType: TelemetryException,
+            select: { _id: true, exceptionType: true, message: true },
+          }),
+        );
+        return [];
+      }
+
+      setMergedInto(null);
+      const members: Array<TelemetryException> = (
+        await ModelAPI.getList<TelemetryException>({
+          modelType: TelemetryException,
+          query: { mergedIntoTelemetryExceptionId: props.telemetryExceptionId },
+          select: MERGED_EXCEPTION_SELECT,
+          limit: 100,
+          skip: 0,
+          sort: { mergedAt: SortOrder.Descending },
+        })
+      ).data;
+      setMergedMembers(members);
+      return members;
+    } catch {
+      setMergedMembers([]);
+      return [];
+    }
+  };
+
   useEffect(() => {
     const load: () => Promise<void> = async (): Promise<void> => {
       try {
         setIsLoading(true);
         const exception: TelemetryException = await loadException();
-        loadSupplementaryData(exception);
+        const members: Array<TelemetryException> =
+          await loadMergeContext(exception);
+        loadSupplementaryData(
+          exception,
+          getMergedFingerprints({
+            fingerprint: exception.fingerprint,
+            members,
+          }),
+        );
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -410,7 +484,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     };
 
     void load();
-  }, []);
+  }, [reloadKey]);
 
   const onTriageAction: (action: ExceptionTriageAction) => void = useCallback(
     (action: ExceptionTriageAction): void => {
@@ -491,6 +565,20 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
   const isResolved: boolean = Boolean(telemetryException.isResolved);
   const isArchived: boolean = Boolean(telemetryException.isArchived);
+  const mergedFingerprints: Array<string> = getMergedFingerprints({
+    fingerprint: telemetryException.fingerprint,
+    members: mergedMembers,
+  });
+  // A duplicate may be merged in by someone who may edit exceptions.
+  const canMergeIntoThis: boolean =
+    !telemetryException.mergedIntoTelemetryExceptionId &&
+    PermissionGate.check(new TelemetryException(), ModelAction.Update)
+      .isAllowed;
+  const reload: () => void = (): void => {
+    setReloadKey((key: number): number => {
+      return key + 1;
+    });
+  };
 
   const getExceptionRoute: (pageMap: PageMap) => Route = (
     pageMap: PageMap,
@@ -557,6 +645,16 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-10 space-y-5">
+      {telemetryException.mergedIntoTelemetryExceptionId ? (
+        <ExceptionMergedPanel
+          exception={telemetryException}
+          mergedInto={mergedInto}
+          members={[]}
+          onChanged={reload}
+        />
+      ) : (
+        <></>
+      )}
       <ExceptionSummary
         exception={telemetryException}
         services={services}
@@ -638,6 +736,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           />
           <ExceptionOccurrenceTrend
             fingerprint={telemetryException.fingerprint}
+            mergedFingerprints={mergedFingerprints}
             primaryEntityId={telemetryException.primaryEntityId}
           />
           {/*
@@ -669,7 +768,17 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
            * OneUptime AI thinks they are the same bug; shown only when
            * there are some.
            */}
-          <ExceptionSimilar telemetryExceptionId={props.telemetryExceptionId} />
+          <ExceptionSimilar
+            telemetryExceptionId={props.telemetryExceptionId}
+            canMerge={canMergeIntoThis}
+            onMerged={reload}
+          />
+          {/* The exceptions merged into this one, each with Unmerge. */}
+          <ExceptionMergedPanel
+            exception={telemetryException}
+            members={mergedMembers}
+            onChanged={reload}
+          />
         </>
       )}
 
@@ -704,6 +813,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             <ExceptionOccurrences
               exception={telemetryException}
               fingerprint={telemetryException.fingerprint}
+              mergedFingerprints={mergedFingerprints}
             />
           ) : (
             <EmptySection
