@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "한 사람 또는 한 팀을 고르세요. 아무도 고르지 않으면 할당이 해제됩니다.",
   "Pick someone": "담당자 선택",
   "Search people and teams": "사람과 팀 검색",
-  "Sort: {{order}}": "정렬: {{order}}"
+  "Sort: {{order}}": "정렬: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI 작업은 이 예외의 저장소에서 일하므로, 작업을 시작하려면 저장소를 편집할 권한이 필요합니다.",
+  "Checking for tasks that are already running.": "이미 실행 중인 작업이 있는지 확인하는 중입니다.",
+  "Finish the setup checklist above to start AI tasks.": "AI 작업을 시작하려면 위의 설정 체크리스트를 완료하세요.",
+  "Reopen and unarchive this exception to start AI tasks.": "AI 작업을 시작하려면 이 예외를 다시 열고 보관을 해제하세요."
 }

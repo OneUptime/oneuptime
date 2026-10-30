@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Elija una persona o un equipo. No elija a nadie para quitar la asignación.",
   "Pick someone": "Elegir a alguien",
   "Search people and teams": "Buscar personas y equipos",
-  "Sort: {{order}}": "Orden: {{order}}"
+  "Sort: {{order}}": "Orden: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "Las tareas de IA trabajan en el repositorio de esta excepción, así que iniciar una requiere permiso para editarlo.",
+  "Checking for tasks that are already running.": "Comprobando si ya hay tareas en curso.",
+  "Finish the setup checklist above to start AI tasks.": "Complete la lista de configuración de arriba para iniciar tareas de IA.",
+  "Reopen and unarchive this exception to start AI tasks.": "Reabra y desarchive esta excepción para iniciar tareas de IA."
 }

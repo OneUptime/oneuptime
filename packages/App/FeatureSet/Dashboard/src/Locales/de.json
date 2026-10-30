@@ -38852,5 +38852,9 @@
   "Pick one person or one team. Pick nobody to unassign them.": "Wählen Sie eine Person oder ein Team. Wählen Sie niemanden, um die Zuweisung aufzuheben.",
   "Pick someone": "Person auswählen",
   "Search people and teams": "Personen und Teams suchen",
-  "Sort: {{order}}": "Sortierung: {{order}}"
+  "Sort: {{order}}": "Sortierung: {{order}}",
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "KI-Aufgaben arbeiten im Repository dieser Ausnahme, daher erfordert das Starten einer Aufgabe die Berechtigung, es zu bearbeiten.",
+  "Checking for tasks that are already running.": "Es wird geprüft, ob bereits Aufgaben laufen.",
+  "Finish the setup checklist above to start AI tasks.": "Schließen Sie die Einrichtungs-Checkliste oben ab, um KI-Aufgaben zu starten.",
+  "Reopen and unarchive this exception to start AI tasks.": "Öffnen Sie diese Ausnahme wieder und heben Sie die Archivierung auf, um KI-Aufgaben zu starten."
 }
