@@ -137,7 +137,9 @@ export function buildExceptionOccurrenceQuery(
   return {
     projectId: options.projectId,
     fingerprint:
-      fingerprints.length > 1 ? new Includes(fingerprints) : options.fingerprint,
+      fingerprints.length > 1
+        ? new Includes(fingerprints)
+        : options.fingerprint,
     ...(options.primaryEntityId
       ? { primaryEntityId: options.primaryEntityId }
       : {}),

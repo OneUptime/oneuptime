@@ -133,6 +133,8 @@ ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og a
 
 Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Svaret gemmes til næste forekomst.
 
+Flet en, som OneUptime AI kalder **Sandsynligvis den samme fejl**, og som hører til samme tjeneste, ind i denne undtagelse med **Flet** ved siden af: dens forekomster, de hidtidige og hver ny, tælles fra da af på denne undtagelse og vises på dens side, og den forsvinder fra listen. **Flettet ind i denne undtagelse** nedenfor viser, hvad der er flettet ind, og **Fjern fletning** ved siden af hver, eller på en flettet undtagelses egen side, giver den sin egen plads i listen tilbage, med dens forekomster siden. At flette og fjerne fletning kræver tilladelse til at redigere undtagelser.
+
 ## Ret den med AI
 
 Siden **AI Assistance** tilbyder tre opgaver. Hver kører som en AI-opgave, der åbner en pull request i dit kodelager:

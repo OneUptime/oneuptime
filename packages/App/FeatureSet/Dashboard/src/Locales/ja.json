@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "この期間のイベント {{count}} 件",
   "{{count}} events in this time range_one": "この期間のイベント {{count}} 件",
   "{{number}} users": "{{number}} 人のユーザー",
-  "{{number}} users_one": "{{number}} 人のユーザー"
+  "{{number}} users_one": "{{number}} 人のユーザー",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "同じバグとしてこの例外に統合された例外です。その発生はここ、このページと一覧で数えられます。",
+  "Merge": "統合",
+  "Merge into this exception?": "この例外に統合しますか?",
+  "Merged By User": "統合したユーザー",
+  "Merged By User ID": "統合したユーザーの ID",
+  "Merged Into Exception": "統合先の例外",
+  "Merged Into Exception ID": "統合先の例外の ID",
+  "Merged into this exception": "この例外に統合された例外",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "この例外は {{exception}} に統合されました。発生はそちらで数えられます。",
+  "Unmerge": "統合を解除",
+  "another exception": "別の例外",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。"
 }

@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "此时间范围内 {{count}} 个事件",
   "{{count}} events in this time range_one": "此时间范围内 {{count}} 个事件",
   "{{number}} users": "{{number}} 位用户",
-  "{{number}} users_one": "{{number}} 位用户"
+  "{{number}} users_one": "{{number}} 位用户",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "作为同一个缺陷合并到此异常的异常。它们的出现都计入这里，包括此页面和列表。",
+  "Merge": "合并",
+  "Merge into this exception?": "合并到此异常？",
+  "Merged By User": "合并者",
+  "Merged By User ID": "合并者 ID",
+  "Merged Into Exception": "合并到的异常",
+  "Merged Into Exception ID": "合并到的异常 ID",
+  "Merged into this exception": "已合并到此异常",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "此异常已合并到 {{exception}}。它的出现计入那里。",
+  "Unmerge": "取消合并",
+  "another exception": "另一个异常",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} 将成为此异常的一部分：它已有的和新的出现都计入这里，并从列表中移除。您可以在它的页面上取消合并。"
 }

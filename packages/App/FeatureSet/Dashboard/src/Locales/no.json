@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "{{count}} hendelser i dette tidsrommet",
   "{{count}} events in this time range_one": "{{count}} hendelse i dette tidsrommet",
   "{{number}} users": "{{number}} brukere",
-  "{{number}} users_one": "{{number}} bruker"
+  "{{number}} users_one": "{{number}} bruker",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Unntak som er slått sammen med dette som den samme feilen. Forekomstene deres telles her, på denne siden og i listen.",
+  "Merge": "Slå sammen",
+  "Merge into this exception?": "Slå sammen med dette unntaket?",
+  "Merged By User": "Slått sammen av bruker",
+  "Merged By User ID": "ID for brukeren som slo sammen",
+  "Merged Into Exception": "Slått sammen med unntak",
+  "Merged Into Exception ID": "ID for unntaket det ble slått sammen med",
+  "Merged into this exception": "Slått sammen med dette unntaket",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Dette unntaket ble slått sammen med {{exception}}. Forekomstene telles der.",
+  "Unmerge": "Del opp",
+  "another exception": "et annet unntak",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} blir en del av dette unntaket: forekomstene, de hittil og hver ny, telles her, og det forsvinner fra listen. Du kan dele det opp igjen fra siden dets."
 }

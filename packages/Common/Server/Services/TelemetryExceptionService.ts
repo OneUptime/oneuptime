@@ -1374,17 +1374,19 @@ export class Service extends ProjectReferencesService<Model> {
      * after the one it was merged into. (Merged rows themselves are never in
      * the lists above: their own state does not decide anything any more.)
      */
-    const memberFingerprintsById: Map<string, Array<string>> =
-      await this.getMergedFingerprintsBySurvivor({
-        projectId: data.projectId,
-        survivorIds: merged
-          .map((exception: Model): string => {
-            return exception.id?.toString() || "";
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          }),
-      });
+    const memberFingerprintsById: Map<
+      string,
+      Array<string>
+    > = await this.getMergedFingerprintsBySurvivor({
+      projectId: data.projectId,
+      survivorIds: merged
+        .map((exception: Model): string => {
+          return exception.id?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    });
 
     const fingerprints: Set<string> = new Set<string>();
     let truncated: boolean = false;
@@ -1430,9 +1432,11 @@ export class Service extends ProjectReferencesService<Model> {
     survivorIds: Array<string>;
   }): Promise<Map<string, Array<string>>> {
     const bySurvivor: Map<string, Array<string>> = new Map();
-    const ids: Array<string> = data.survivorIds.filter((id: string): boolean => {
-      return ObjectID.isValidUUID(id);
-    });
+    const ids: Array<string> = data.survivorIds.filter(
+      (id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      },
+    );
 
     if (ids.length === 0) {
       return bySurvivor;

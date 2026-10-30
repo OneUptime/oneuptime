@@ -91,17 +91,15 @@ beforeEach(() => {
   editableIds = [A, B, C, D];
   statements = [];
 
-  jest
-    .spyOn(ModelPermission, "getUpdatableQuery")
-    .mockImplementation((async (
-      _type: unknown,
-      query: Record<string, unknown>,
-    ) => {
-      if (editableIds === "throw") {
-        throw new NotAuthorizedException("You do not have Edit permission");
-      }
-      return query;
-    }) as never);
+  jest.spyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
+    _type: unknown,
+    query: Record<string, unknown>,
+  ) => {
+    if (editableIds === "throw") {
+      throw new NotAuthorizedException("You do not have Edit permission");
+    }
+    return query;
+  }) as never);
 
   jest
     .spyOn(TelemetryExceptionService, "addExceptionScope")
@@ -142,8 +140,7 @@ beforeEach(() => {
           statements.push({ sql, params });
           if (sql.trim().startsWith("SELECT")) {
             const ids: Array<string> = (params[0] as Array<string>) || [];
-            const mergedIds: Array<string> =
-              (params[1] as Array<string>) || [];
+            const mergedIds: Array<string> = (params[1] as Array<string>) || [];
             return rows.filter((candidate: Row): boolean => {
               return (
                 ids.includes(candidate.id) ||
@@ -287,7 +284,9 @@ describe("merging", () => {
 
     expect(result).toEqual({
       telemetryExceptionId: A,
-      merged: [{ telemetryExceptionId: B, outcome: ExceptionMergeOutcome.Merged }],
+      merged: [
+        { telemetryExceptionId: B, outcome: ExceptionMergeOutcome.Merged },
+      ],
     });
 
     const lock: string = statements[0]!.sql;
@@ -378,7 +377,9 @@ describe("merging", () => {
 
     const survivorUpdates: Array<{ sql: string; params: Array<unknown> }> =
       writes().filter((statement: { sql: string }): boolean => {
-        return statement.sql.includes('"occuranceCount" = COALESCE("occuranceCount", 0) +');
+        return statement.sql.includes(
+          '"occuranceCount" = COALESCE("occuranceCount", 0) +',
+        );
       });
     expect(survivorUpdates).toHaveLength(1);
     expect(survivorUpdates[0]!.params[0]).toBe(6);
@@ -397,7 +398,10 @@ describe("unmerging", () => {
   }
 
   test("takes exactly the merged one's count back off the survivor, and gives it back its place", async () => {
-    rows = [row(A, { occuranceCount: 17 }), row(B, { occuranceCount: 7, mergedIntoId: A })];
+    rows = [
+      row(A, { occuranceCount: 17 }),
+      row(B, { occuranceCount: 7, mergedIntoId: A }),
+    ];
 
     const result: ExceptionUnmergeResult = await unmerge(B);
 
@@ -430,14 +434,16 @@ describe("unmerging", () => {
     rows = [row(A), row(B, { mergedIntoId: A })];
     (
       TelemetryExceptionService.executeTransaction as unknown as jest.Mock
-    ).mockImplementation(async (run: (manager: unknown) => Promise<unknown>) => {
-      return run({
-        query: async (sql: string) => {
-          statements.push({ sql, params: [] });
-          return [row(B), row(A)];
-        },
-      });
-    });
+    ).mockImplementation(
+      async (run: (manager: unknown) => Promise<unknown>) => {
+        return run({
+          query: async (sql: string) => {
+            statements.push({ sql, params: [] });
+            return [row(B), row(A)];
+          },
+        });
+      },
+    );
 
     const result: ExceptionUnmergeResult = await unmerge(B);
 

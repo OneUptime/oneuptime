@@ -253,8 +253,9 @@ export default class SimilarExceptionsReader {
       similar: ranked.map((entry: RankedSimilar<SimilarExceptionCandidate>) => {
         const isSameService: boolean =
           Boolean(target.primaryEntityId) &&
-          entry.candidate.exception.primaryEntityId?.toString().toLowerCase() ===
-            target.primaryEntityId?.toString().toLowerCase();
+          entry.candidate.exception.primaryEntityId
+            ?.toString()
+            .toLowerCase() === target.primaryEntityId?.toString().toLowerCase();
 
         return {
           similar: {

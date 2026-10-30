@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "Событий за этот период: {{count}}",
   "{{count}} events in this time range_one": "{{count}} событие за этот период",
   "{{number}} users": "Пользователей: {{number}}",
-  "{{number}} users_one": "{{number}} пользователь"
+  "{{number}} users_one": "{{number}} пользователь",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Исключения, объединённые с этим как одна и та же ошибка. Их появления учитываются здесь, на этой странице и в списке.",
+  "Merge": "Объединить",
+  "Merge into this exception?": "Объединить с этим исключением?",
+  "Merged By User": "Объединил пользователь",
+  "Merged By User ID": "ID объединившего пользователя",
+  "Merged Into Exception": "Объединено с исключением",
+  "Merged Into Exception ID": "ID исключения, с которым объединено",
+  "Merged into this exception": "Объединены с этим исключением",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Это исключение объединено с {{exception}}. Его появления учитываются там.",
+  "Unmerge": "Разъединить",
+  "another exception": "другим исключением",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице."
 }

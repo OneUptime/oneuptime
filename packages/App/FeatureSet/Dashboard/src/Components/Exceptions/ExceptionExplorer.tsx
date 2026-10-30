@@ -162,9 +162,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [mergedMembers, setMergedMembers] = useState<Array<TelemetryException>>(
     [],
   );
-  const [mergedInto, setMergedInto] = useState<TelemetryException | null>(
-    null,
-  );
+  const [mergedInto, setMergedInto] = useState<TelemetryException | null>(null);
   // Bumped after a merge or an unmerge: the page reads itself again.
   const [reloadKey, setReloadKey] = useState<number>(0);
 

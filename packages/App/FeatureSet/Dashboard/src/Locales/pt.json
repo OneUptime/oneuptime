@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "{{count}} eventos neste intervalo",
   "{{count}} events in this time range_one": "{{count}} evento neste intervalo",
   "{{number}} users": "{{number}} usuários",
-  "{{number}} users_one": "{{number}} usuário"
+  "{{number}} users_one": "{{number}} usuário",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Exceções mescladas a esta como o mesmo bug. Suas ocorrências contam aqui, nesta página e na lista.",
+  "Merge": "Mesclar",
+  "Merge into this exception?": "Mesclar a esta exceção?",
+  "Merged By User": "Mesclada pelo usuário",
+  "Merged By User ID": "ID do usuário que mesclou",
+  "Merged Into Exception": "Mesclada à exceção",
+  "Merged Into Exception ID": "ID da exceção à qual foi mesclada",
+  "Merged into this exception": "Mescladas a esta exceção",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Esta exceção foi mesclada a {{exception}}. Suas ocorrências contam lá.",
+  "Unmerge": "Desfazer mesclagem",
+  "another exception": "outra exceção",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} passa a fazer parte desta exceção: suas ocorrências, as anteriores e cada nova, contam aqui, e ela sai da lista. Você pode desfazer a mesclagem na página dela."
 }

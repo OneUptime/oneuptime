@@ -2228,6 +2228,64 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(row).toContain("<ExceptionTrendSparkline");
   });
 
+  /*
+   * Merging a likely duplicate into the exception, and undoing it: offered
+   * on the Similar exceptions card for the AI's "Likely the same bug" in the
+   * same service, listed on the Overview, undone from either page, and only
+   * by someone who may edit exceptions.
+   */
+  it("merges a likely duplicate into the exception, and unmerges it", () => {
+    const similar: string = readDashboardSource(
+      "Components/Exceptions/ExceptionSimilar.tsx",
+    );
+    const panel: string = readDashboardSource(
+      "Components/Exceptions/ExceptionMergedPanel.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Utils/Exception.ts",
+    );
+    const explain: string = section(page, "## Explain it with AI");
+
+    expect(explain).toContain(
+      "Merge one that OneUptime AI calls **Likely the same bug**, in the same service, into this exception with **Merge** beside it: its occurrences, those so far and every new one, count on this exception from then on and show on its page, and it leaves the list.",
+    );
+    expect(explain).toContain(
+      "**Merged into this exception** below lists what was merged in, and **Unmerge** beside each, or on a merged exception's own page, gives it back its own place in the list, its occurrences since included. Merging and unmerging take permission to edit exceptions.",
+    );
+
+    // Merge: only on the AI's duplicate, in the same service, for an editor.
+    expect(similar).toContain("entry.isSameService === true");
+    expect(similar).toContain(
+      "verdict?.verdict === DuplicateVerdictKind.Duplicate",
+    );
+    expect(similar).toContain('title="Merge"');
+    expect(explorer).toContain(
+      "PermissionGate.check(new TelemetryException(), ModelAction.Update)",
+    );
+    expect(merge).toContain(
+      "Only exceptions of the same service can be merged.",
+    );
+    expect(merge).toContain("ModelPermission.getUpdatableQuery(");
+
+    // Every new occurrence counts there: the alias is read at ingest.
+    expect(ingest).toContain(
+      "await ExceptionUtil.withMergedSurvivors(exceptions)",
+    );
+
+    // Below, on the Overview, and on the merged one's own page.
+    expect(panel).toContain('title="Merged into this exception"');
+    expect(panel).toContain('title="Unmerge"');
+    expect(panel).toContain(
+      'template="This exception was merged into {{exception}}. Its occurrences count there."',
+    );
+  });
+
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Error classes"),
@@ -2372,8 +2430,9 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "Components/Exceptions/ExceptionSimilar.tsx",
     );
 
+    // On the Overview, where a likely duplicate can be merged in.
     expect(explorer).toContain(
-      "<ExceptionSimilar telemetryExceptionId={props.telemetryExceptionId} />",
+      "<ExceptionSimilar\n            telemetryExceptionId={props.telemetryExceptionId}\n            canMerge={canMergeIntoThis}",
     );
     expect(card).toContain('title="Similar exceptions"');
     for (const label of [

@@ -174,7 +174,10 @@ beforeEach(() => {
       return ok({ similar: SIMILAR });
     }
 
-    if (url.includes(MERGE_ROUTE_PREFIX) || url.includes(UNMERGE_ROUTE_PREFIX)) {
+    if (
+      url.includes(MERGE_ROUTE_PREFIX) ||
+      url.includes(UNMERGE_ROUTE_PREFIX)
+    ) {
       return ok({});
     }
 
@@ -378,7 +381,9 @@ describe("what a merge leaves on an exception's page", () => {
     expect(rows[0]).toHaveTextContent("1 occurrence");
     expect(rows[1]).toHaveTextContent("12 occurrences");
 
-    fireEvent.click(screen.getAllByTestId("exception-merged-member-unmerge")[1]!);
+    fireEvent.click(
+      screen.getAllByTestId("exception-merged-member-unmerge")[1]!,
+    );
 
     await waitFor(() => {
       expect(onChanged).toHaveBeenCalledTimes(1);
@@ -441,9 +446,9 @@ describe("what a merge leaves on an exception's page", () => {
 
     fireEvent.click(screen.getByTestId("exception-merged-member-unmerge"));
 
-    expect(await screen.findByTestId("exception-merge-error")).toHaveTextContent(
-      "You do not have permission to edit this exception.",
-    );
+    expect(
+      await screen.findByTestId("exception-merge-error"),
+    ).toHaveTextContent("You do not have permission to edit this exception.");
     expect(onChanged).not.toHaveBeenCalled();
   });
 });

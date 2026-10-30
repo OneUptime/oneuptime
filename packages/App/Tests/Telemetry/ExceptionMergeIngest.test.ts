@@ -141,7 +141,9 @@ describe("looking a batch's fingerprints up among the merged exceptions", () => 
       await ExceptionUtil.resolveMergedExceptions([occurrence("b")]);
 
     expect(survivors.size).toBe(1);
-    const survivor: MergedExceptionSurvivor = Array.from(survivors.values())[0]!;
+    const survivor: MergedExceptionSurvivor = Array.from(
+      survivors.values(),
+    )[0]!;
     expect(survivor.fingerprint).toBe("a");
     expect(survivor.primaryEntityId.toString()).toBe(SERVICE_ID.toString());
   });
@@ -232,9 +234,7 @@ describe("when the lookup fails", () => {
   test("the batch is counted as it would have been before any merge, and nothing is dropped", async () => {
     mergedRows = new Error("connection reset");
 
-    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
-      occurrence("b"),
-    ]);
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([occurrence("b")]);
 
     expect(upserts()).toHaveLength(1);
     expect(upserts()[0]!.params[2]).toBe("b");

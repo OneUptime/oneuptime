@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "{{count}} eventi in questo intervallo",
   "{{count}} events in this time range_one": "{{count}} evento in questo intervallo",
   "{{number}} users": "{{number}} utenti",
-  "{{number}} users_one": "{{number}} utente"
+  "{{number}} users_one": "{{number}} utente",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Eccezioni unite a questa come lo stesso bug. Le loro occorrenze contano qui, in questa pagina e nell'elenco.",
+  "Merge": "Unisci",
+  "Merge into this exception?": "Unire a questa eccezione?",
+  "Merged By User": "Unita dall'utente",
+  "Merged By User ID": "ID dell'utente che ha unito",
+  "Merged Into Exception": "Unita all'eccezione",
+  "Merged Into Exception ID": "ID dell'eccezione a cui è stata unita",
+  "Merged into this exception": "Unite a questa eccezione",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Questa eccezione è stata unita a {{exception}}. Le sue occorrenze contano lì.",
+  "Unmerge": "Separa",
+  "another exception": "un'altra eccezione",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} diventa parte di questa eccezione: le sue occorrenze, quelle finora e ogni nuova, contano qui, ed esce dall'elenco. Potete separarla dalla sua pagina."
 }

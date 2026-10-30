@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "{{count}} hændelser i dette tidsrum",
   "{{count}} events in this time range_one": "{{count}} hændelse i dette tidsrum",
   "{{number}} users": "{{number}} brugere",
-  "{{number}} users_one": "{{number}} bruger"
+  "{{number}} users_one": "{{number}} bruger",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Undtagelser, der er flettet ind i denne som den samme fejl. Deres forekomster tælles her, på denne side og i listen.",
+  "Merge": "Flet",
+  "Merge into this exception?": "Flet ind i denne undtagelse?",
+  "Merged By User": "Flettet af bruger",
+  "Merged By User ID": "ID for brugeren, der flettede",
+  "Merged Into Exception": "Flettet ind i undtagelse",
+  "Merged Into Exception ID": "ID for undtagelsen, der blev flettet ind i",
+  "Merged into this exception": "Flettet ind i denne undtagelse",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Denne undtagelse blev flettet ind i {{exception}}. Dens forekomster tælles dér.",
+  "Unmerge": "Fjern fletning",
+  "another exception": "en anden undtagelse",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} bliver en del af denne undtagelse: dens forekomster, de hidtidige og hver ny, tælles her, og den forsvinder fra listen. Du kan fjerne fletningen fra dens side."
 }

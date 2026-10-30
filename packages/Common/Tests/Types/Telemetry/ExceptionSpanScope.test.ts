@@ -97,7 +97,12 @@ describe("parseExceptionSpanScope", () => {
     expect(
       parseExceptionSpanScope({
         fingerprint: FINGERPRINT,
-        mergedFingerprints: [" fp-merged-1 ", FINGERPRINT, "fp-merged-1", "fp-merged-2"],
+        mergedFingerprints: [
+          " fp-merged-1 ",
+          FINGERPRINT,
+          "fp-merged-1",
+          "fp-merged-2",
+        ],
       }),
     ).toEqual({
       fingerprint: FINGERPRINT,
@@ -126,15 +131,20 @@ describe("parseExceptionSpanScope", () => {
     expect(scope!.mergedFingerprints!.length).toBeLessThanOrEqual(
       EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS,
     );
-    expect(scope!.mergedFingerprints!.every((fingerprint: string) => {
-      return fingerprint.startsWith("fp-");
-    })).toBe(true);
+    expect(
+      scope!.mergedFingerprints!.every((fingerprint: string) => {
+        return fingerprint.startsWith("fp-");
+      }),
+    ).toBe(true);
   });
 
   test("a list that is not one, or holds nothing usable, reads as none", () => {
     for (const mergedFingerprints of ["fp-1", {}, [], [1, ""]]) {
       expect(
-        parseExceptionSpanScope({ fingerprint: FINGERPRINT, mergedFingerprints }),
+        parseExceptionSpanScope({
+          fingerprint: FINGERPRINT,
+          mergedFingerprints,
+        }),
       ).toEqual({ fingerprint: FINGERPRINT });
     }
   });

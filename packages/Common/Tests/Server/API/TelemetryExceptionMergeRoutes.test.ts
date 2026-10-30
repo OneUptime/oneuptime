@@ -109,7 +109,9 @@ describe("the merge routes", () => {
       .spyOn(TelemetryExceptionMerge, "merge")
       .mockResolvedValue({
         telemetryExceptionId: A,
-        merged: [{ telemetryExceptionId: B, outcome: ExceptionMergeOutcome.Merged }],
+        merged: [
+          { telemetryExceptionId: B, outcome: ExceptionMergeOutcome.Merged },
+        ],
       });
 
     const next: NextFunction = await post(MERGE_ROUTE, A, {
@@ -157,10 +159,20 @@ describe("the merge routes", () => {
   });
 
   test.each([
-    ["a malformed survivor id", MERGE_ROUTE, "nope", { mergedTelemetryExceptionIds: [B] }],
+    [
+      "a malformed survivor id",
+      MERGE_ROUTE,
+      "nope",
+      { mergedTelemetryExceptionIds: [B] },
+    ],
     ["no exceptions to merge", MERGE_ROUTE, A, {}],
     ["an empty list", MERGE_ROUTE, A, { mergedTelemetryExceptionIds: [] }],
-    ["a malformed merged id", MERGE_ROUTE, A, { mergedTelemetryExceptionIds: ["x"] }],
+    [
+      "a malformed merged id",
+      MERGE_ROUTE,
+      A,
+      { mergedTelemetryExceptionIds: ["x"] },
+    ],
     ["a malformed id to unmerge", UNMERGE_ROUTE, "nope", {}],
   ])(
     "%s is refused before anything is read",

@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "此時間範圍內 {{count}} 個事件",
   "{{count}} events in this time range_one": "此時間範圍內 {{count}} 個事件",
   "{{number}} users": "{{number}} 位使用者",
-  "{{number}} users_one": "{{number}} 位使用者"
+  "{{number}} users_one": "{{number}} 位使用者",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "作為同一個錯誤合併到此例外的例外。它們的出現都計入這裡，包括此頁面和清單。",
+  "Merge": "合併",
+  "Merge into this exception?": "合併到此例外？",
+  "Merged By User": "合併者",
+  "Merged By User ID": "合併者 ID",
+  "Merged Into Exception": "合併到的例外",
+  "Merged Into Exception ID": "合併到的例外 ID",
+  "Merged into this exception": "已合併到此例外",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "此例外已合併到 {{exception}}。它的出現計入那裡。",
+  "Unmerge": "取消合併",
+  "another exception": "另一個例外",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} 將成為此例外的一部分：它已有的和新的出現都計入這裡，並從清單中移除。您可以在它的頁面上取消合併。"
 }

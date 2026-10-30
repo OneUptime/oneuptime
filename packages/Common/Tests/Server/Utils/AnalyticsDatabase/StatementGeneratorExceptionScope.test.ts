@@ -234,6 +234,9 @@ describe("StatementGenerator exceptionScope synthetic key", () => {
     expect(statement.query.replace(/\s+/g, " ")).toMatch(
       /GLOBAL IN \(SELECT traceId, spanId FROM \{p\d+:Identifier\} WHERE projectId = \{p\d+:String\} AND fingerprint IN \(\{p\d+:Array\(String\)\}\)\)/,
     );
-    expect(subqueryParams(statement)).toContainEqual([FINGERPRINT, "fp-merged"]);
+    expect(subqueryParams(statement)).toContainEqual([
+      FINGERPRINT,
+      "fp-merged",
+    ]);
   });
 });

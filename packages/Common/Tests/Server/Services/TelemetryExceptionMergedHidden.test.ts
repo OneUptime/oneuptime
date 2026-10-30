@@ -8,13 +8,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { FindOperator } from "typeorm";
 import fs from "fs";
 import path from "path";
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * A MERGED EXCEPTION IS NOT LISTED.
@@ -194,9 +188,7 @@ describe("the exception monitor's resolved and archived fingerprints", () => {
 
     jest
       .spyOn(TelemetryExceptionService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
         queries.push(args.query);
         if ("mergedIntoTelemetryExceptionId" in args.query) {
           return [model(B, "fp-b", A)];
@@ -221,9 +213,7 @@ describe("the exception monitor's resolved and archived fingerprints", () => {
 
     jest
       .spyOn(TelemetryExceptionService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
         queries.push(args.query);
         return [];
       }) as never);

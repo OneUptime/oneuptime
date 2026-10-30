@@ -133,6 +133,8 @@ ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och a
 
 Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt. Svaret sparas till nästa förekomst.
 
+Slå ihop ett som OneUptime AI kallar **Troligen samma bugg**, i samma tjänst, med det här undantaget med **Slå ihop** bredvid: dess förekomster, hittills och varje ny, räknas från och med då på det här undantaget och visas på dess sida, och det lämnar listan. **Ihopslagna med det här undantaget** nedanför listar det som slagits ihop, och **Dela upp** bredvid vart och ett, eller på ett ihopslaget undantags egen sida, ger det tillbaka sin egen plats i listan, med dess förekomster sedan dess. Att slå ihop och dela upp kräver behörighet att redigera undantag.
+
 ## Rätta det med AI
 
 Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgift som öppnar en pull request i ditt kodförråd:

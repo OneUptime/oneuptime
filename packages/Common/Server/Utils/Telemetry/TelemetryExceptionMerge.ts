@@ -53,7 +53,10 @@ export enum ExceptionMergeOutcome {
 
 export interface ExceptionMergeResult {
   telemetryExceptionId: string;
-  merged: Array<{ telemetryExceptionId: string; outcome: ExceptionMergeOutcome }>;
+  merged: Array<{
+    telemetryExceptionId: string;
+    outcome: ExceptionMergeOutcome;
+  }>;
 }
 
 export enum ExceptionUnmergeOutcome {
@@ -89,7 +92,10 @@ const ROW_COLUMNS: string = `"_id"::text AS "id", "projectId"::text AS "projectI
   "firstSeenAt", "lastSeenAt", "firstSeenInRelease", "lastSeenInRelease",
   COALESCE("unhandled", false) AS "unhandled"`;
 
-function sameId(a: string | null | undefined, b: string | null | undefined): boolean {
+function sameId(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
   return Boolean(a) && Boolean(b) && a!.toLowerCase() === b!.toLowerCase();
 }
 
@@ -508,5 +514,9 @@ export default class TelemetryExceptionMerge {
 }
 
 function sameDate(a: Date | null, b: Date | null): boolean {
-  return Boolean(a) && Boolean(b) && new Date(a!).getTime() === new Date(b!).getTime();
+  return (
+    Boolean(a) &&
+    Boolean(b) &&
+    new Date(a!).getTime() === new Date(b!).getTime()
+  );
 }

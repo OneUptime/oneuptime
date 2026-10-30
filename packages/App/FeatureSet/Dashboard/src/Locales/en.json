@@ -38961,5 +38961,17 @@
   "{{count}} events in this time range": "{{count}} events in this time range",
   "{{count}} events in this time range_one": "{{count}} event in this time range",
   "{{number}} users": "{{number}} users",
-  "{{number}} users_one": "{{number}} user"
+  "{{number}} users_one": "{{number}} user",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.",
+  "Merge": "Merge",
+  "Merge into this exception?": "Merge into this exception?",
+  "Merged By User": "Merged By User",
+  "Merged By User ID": "Merged By User ID",
+  "Merged Into Exception": "Merged Into Exception",
+  "Merged Into Exception ID": "Merged Into Exception ID",
+  "Merged into this exception": "Merged into this exception",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "This exception was merged into {{exception}}. Its occurrences count there.",
+  "Unmerge": "Unmerge",
+  "another exception": "another exception",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page."
 }

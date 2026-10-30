@@ -430,7 +430,9 @@ integration("the exceptions list's stats against ClickHouse", () => {
     expect(stats.items[0]!.affectedUsers).toBe(5);
     expect(stats.items[0]!.trend[2]).toBe(2);
     expect(
-      stats.items[0]!.trend.reduce((a: number, b: number) => a + b),
+      stats.items[0]!.trend.reduce((a: number, b: number) => {
+        return a + b;
+      }),
     ).toBe(9);
   });
 

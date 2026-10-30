@@ -61,7 +61,10 @@ function readMergedFingerprints(value: unknown): Array<string> {
 
   const fingerprints: Array<string> = [];
 
-  for (const entry of value.slice(0, EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS)) {
+  for (const entry of value.slice(
+    0,
+    EXCEPTION_SPAN_SCOPE_MAX_MERGED_FINGERPRINTS,
+  )) {
     if (typeof entry !== "string") {
       continue;
     }

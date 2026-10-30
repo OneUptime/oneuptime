@@ -36,12 +36,13 @@ export const MERGED_EXCEPTION_SELECT: {
 };
 
 async function post(route: string, data: JSONObject): Promise<JSONObject> {
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.post({
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
       url: URL.fromString(APP_API_URL.toString()).addRoute(route),
       data,
       headers: ModelAPI.getCommonHeaders(),
-    });
+    },
+  );
 
   if (response instanceof HTTPErrorResponse) {
     throw response;

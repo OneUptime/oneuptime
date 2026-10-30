@@ -102,7 +102,10 @@ describePostgres("merging exceptions against Postgres", () => {
     return row!;
   }
 
-  async function merge(survivor: string, merged: Array<string>): Promise<Array<ExceptionMergeOutcome>> {
+  async function merge(
+    survivor: string,
+    merged: Array<string>,
+  ): Promise<Array<ExceptionMergeOutcome>> {
     const result: Awaited<ReturnType<typeof TelemetryExceptionMerge.merge>> =
       await TelemetryExceptionMerge.merge({
         telemetryExceptionId: new ObjectID((await read(survivor))._id),
@@ -119,7 +122,9 @@ describePostgres("merging exceptions against Postgres", () => {
     });
   }
 
-  async function unmerge(fingerprint: string): Promise<ExceptionUnmergeOutcome> {
+  async function unmerge(
+    fingerprint: string,
+  ): Promise<ExceptionUnmergeOutcome> {
     return (
       await TelemetryExceptionMerge.unmerge({
         telemetryExceptionId: new ObjectID((await read(fingerprint))._id),
@@ -200,18 +205,20 @@ describePostgres("merging exceptions against Postgres", () => {
           ],
         );
 
-        return found.map((entry: (typeof found)[number]): TelemetryException => {
-          const model: TelemetryException = new TelemetryException();
-          model._id = entry._id;
-          model.primaryEntityId = new ObjectID(entry.primaryEntityId);
-          model.fingerprint = entry.fingerprint;
-          if (entry.mergedIntoTelemetryExceptionId) {
-            model.mergedIntoTelemetryExceptionId = new ObjectID(
-              entry.mergedIntoTelemetryExceptionId,
-            );
-          }
-          return model;
-        });
+        return found.map(
+          (entry: (typeof found)[number]): TelemetryException => {
+            const model: TelemetryException = new TelemetryException();
+            model._id = entry._id;
+            model.primaryEntityId = new ObjectID(entry.primaryEntityId);
+            model.fingerprint = entry.fingerprint;
+            if (entry.mergedIntoTelemetryExceptionId) {
+              model.mergedIntoTelemetryExceptionId = new ObjectID(
+                entry.mergedIntoTelemetryExceptionId,
+              );
+            }
+            return model;
+          },
+        );
       }) as never);
 
     await database.query(`DELETE FROM "${schema}"."TelemetryException"`);
@@ -328,7 +335,8 @@ describePostgres("merging exceptions against Postgres", () => {
         const batch: Array<string> = [];
         const size: number = 1 + random(6);
         for (let i: number = 0; i < size; i++) {
-          const fingerprint: string = fingerprints[random(fingerprints.length)]!;
+          const fingerprint: string =
+            fingerprints[random(fingerprints.length)]!;
           batch.push(fingerprint);
           own.set(fingerprint, (own.get(fingerprint) || 0) + 1);
         }
@@ -369,7 +377,9 @@ describePostgres("merging exceptions against Postgres", () => {
             problems.push(`${row.fingerprint} is merged into a merged one`);
           }
           if (row.occuranceCount !== own.get(row.fingerprint)) {
-            problems.push(`${row.fingerprint} (merged) counts ${row.occuranceCount}`);
+            problems.push(
+              `${row.fingerprint} (merged) counts ${row.occuranceCount}`,
+            );
           }
           continue;
         }

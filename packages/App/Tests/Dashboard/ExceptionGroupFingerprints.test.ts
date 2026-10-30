@@ -59,7 +59,10 @@ describe("the fingerprints of the exceptions merged into one", () => {
 
   test("the group: its own first", () => {
     expect(
-      getGroupFingerprints({ fingerprint: "own", mergedFingerprints: ["b", "own", "c"] }),
+      getGroupFingerprints({
+        fingerprint: "own",
+        mergedFingerprints: ["b", "own", "c"],
+      }),
     ).toEqual(["own", "b", "c"]);
     expect(getGroupFingerprints({ fingerprint: "own" })).toEqual(["own"]);
   });
@@ -89,7 +92,11 @@ describe("the occurrence queries of the page", () => {
     }) as Record<string, unknown>;
 
     expect(query["fingerprint"]).toBeInstanceOf(Includes);
-    expect((query["fingerprint"] as Includes).values).toEqual(["own", "b", "c"]);
+    expect((query["fingerprint"] as Includes).values).toEqual([
+      "own",
+      "b",
+      "c",
+    ]);
     expect(query["primaryEntityId"]).toBe(SERVICE_ID);
   });
 
