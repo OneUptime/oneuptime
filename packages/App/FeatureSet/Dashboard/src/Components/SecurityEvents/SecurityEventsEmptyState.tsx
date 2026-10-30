@@ -234,7 +234,9 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
   /*
    * The one concrete fact under each description: the kinds of line read
    * in your logs, the kinds of product OneUptime can poll, or the endpoint
-   * to call. Each one 28px line, so the actions below them stay level.
+   * to call. The last two share a row, each one 28px line, so the actions
+   * below them stay level. Your logs has its row to itself, and its ten
+   * kinds wrap.
    */
   const details: Record<string, ReactNode> = {
     logs: (
