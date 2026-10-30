@@ -99,7 +99,7 @@ Utan winget hämtar du agenten själv:
 Använd `oneuptime-infrastructure-agent-amd64.msi` (eller `oneuptime-infrastructure-agent-arm64.msi`) från samma version för att distribuera agenten med Intune, Configuration Manager eller grupprinciper. Den installerar agenten i `C:\Program Files\OneUptimeInfrastructureAgent`, och en nyare MSI uppgraderar den på plats och startar den igen. En MSI från en tidigare version kan inte uppgraderas: avinstallera den en gång först.
 :::
 
-Alla sätt installerar den senaste versionen för ditt operativsystem och din processor (x86-64 eller ARM64). apt- och yum-förråden innehåller `.deb`- och `.rpm`-paketen som bifogas varje GitHub-version, signerade med nyckeln på `https://packages.oneuptime.com/gpg.key`, och paketen lägger binärfilen i `/usr/bin`. Installationsskriptet lägger binärfilen `oneuptime-infrastructure-agent` i `$HOME/bin`. På en egen installation levereras skriptet från din egen OneUptime-URL.
+Alla sätt installerar den senaste versionen för ditt operativsystem och din processor (x86-64 eller ARM64). apt- och yum-förråden innehåller `.deb`- och `.rpm`-paketen som bifogas varje GitHub-version, signerade med nyckeln på `https://packages.oneuptime.com/gpg.key`, och paketen lägger binärfilen i `/usr/bin`. Kört med `sudo` lägger installationsskriptet binärfilen `oneuptime-infrastructure-agent` i `/usr/local/bin` (i `$HOME/bin` utan `sudo`), och det laddar ned med `curl` eller `wget`. På en egen installation levereras skriptet från din egen OneUptime-URL.
 
 ### Anslut den till monitorn
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-När agenten startar kontrollerar den den hemliga nyckeln hos OneUptime och skickar sin första rapport direkt.
+När agenten startar kontrollerar den den hemliga nyckeln hos OneUptime och skickar sin första rapport direkt. Så länge den inte når OneUptime fortsätter den att försöka: igen efter 5 sekunder och sedan dubbelt så länge varje gång, upp till var 5:e minut.
 
 ### Kontrollera att den rapporterar
 
@@ -165,7 +165,7 @@ Kör `sudo oneuptime-infrastructure-agent status` (utan `sudo` på Windows): den
 | `uninstall` | Tar bort tjänsten och raderar agentens konfigurationsfil. |
 | `help` | Listar kommandona. |
 
-Kör dem med `sudo` på Linux och macOS, och från **Kommandotolken** med administratörsbehörighet på Windows. För att ändra den hemliga nyckeln, URL:en eller proxyn för en konfigurerad agent kör du `stop` och `uninstall`, och sedan `configure` och `start` igen.
+Kör dem med `sudo` på Linux och macOS, och från **Kommandotolken** med administratörsbehörighet på Windows. För att ändra den hemliga nyckeln, URL:en eller proxyn för en konfigurerad agent kör du `stop` och `uninstall`, och sedan `configure` och `start` igen. Varje kommando skriver ut vad det gjorde, eller varför det misslyckades, och skriver detsamma i agentens logg. Stoppar tjänsten på grund av ett fel startar tjänsthanteraren den igen, på Linux och Windows efter två minuter. En Windows-tjänst som en äldre agents `configure` har skapat startas om först när du har kört `uninstall` och `configure` igen.
 
 ### Filer
 
@@ -199,15 +199,15 @@ Varje rapport innehåller serverns värdnamn och:
 
 | Område | Vad som rapporteras |
 | --- | --- |
-| CPU | Användning i %, antal kärnor, användning per kärna och tid i user, system, idle, I/O-väntan, steal, nice, IRQ och soft-IRQ |
+| CPU | Användning i %, antal kärnor, användning per kärna och tid i user, system, idle, I/O-väntan, steal, nice, IRQ och soft-IRQ sedan föregående rapport |
 | Minne | Totalt, använt, ledigt och tillgängligt minne, buffertar och cache, användning i %, samt swap totalt, använt, ledigt och användning i % |
-| Diskar | För varje monterad disk: monteringssökväg, enhet, filsystem, totalt, använt och ledigt utrymme, användning i %, lästa och skrivna byte och operationer samt I/O-tid |
+| Diskar | För varje monterad disk utom skrivskyddade avbilder (snaps, ISO-filer) och `/dev`: monteringssökväg, enhet, filsystem, totalt, använt och ledigt utrymme, användning i % så som `df` räknar den, lästa och skrivna byte och operationer samt I/O-tid |
 | Belastning | Belastningsmedelvärden över 1, 5 och 15 minuter |
 | Nätverk | För varje gränssnitt: skickade och mottagna byte och paket, fel och tappade paket in och ut; plus etablerade och lyssnande anslutningar |
 | Värd | Operativsystem, plattform och version, kärnversion och arkitektur, drifttid, starttid, virtualisering och antal processer |
-| Processer | Varje körande process: namn, PID, kommando, CPU i %, minne, status, trådar, användare och starttid |
+| Processer | Varje körande process: namn, PID, kommando, CPU i %, minne, status, trådar, användare och starttid; en process vars kommandorad inte kan läsas, till exempel en skyddad Windows-process, utan sitt kommando |
 
-Värden som operativsystemet inte tillhandahåller utelämnas. Monitorns flik **Mätvärden** visar diagram över tillgänglighet, CPU, minne, diskanvändning och disk-I/O, belastningsmedelvärden, swap, nätverkstrafik och -fel, anslutningar, drifttid och antal processer.
+Värden som operativsystemet inte tillhandahåller utelämnas, och ett kriterium för ett värde som rapporten saknar uppfylls inte: ett saknat värde är inte 0. Monitorns flik **Mätvärden** visar diagram över tillgänglighet, CPU, minne, diskanvändning och disk-I/O, belastningsmedelvärden, swap, nätverkstrafik och -fel, anslutningar, drifttid och antal processer.
 
 ## Övervakningskriterier
 
@@ -228,7 +228,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Server Process Command | Om en process med exakt den här kommandoraden körs (skiftlägesokänsligt) | Is Executing, Is Not Executing |
 | Server Process PID | Om en process med det här PID:t körs | Is Executing, Is Not Executing |
 
-**Diskväg** tar en monteringspunkt eller en enhet, till exempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom är den `/`. Ange `*` för att kontrollera varje disk som agenten rapporterar: varje disk som passerar tröskeln får ett eget larm, så att en andra disk som fylls inte döljs bakom den första diskens öppna larm.
+**Diskväg** tar en monteringspunkt eller en enhet, till exempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom är den `/`. Ange `*` för att kontrollera varje disk som agenten rapporterar: varje disk som passerar tröskeln får ett eget larm, så att en andra disk som fylls inte döljs bakom den första diskens öppna larm. Versaler och ett avslutande `/` eller `\` spelar ingen roll, och en enhet står för disken som är monterad från den. En sökväg som inte anger någon disk som agenten rapporterar matchar inte. När agenten inte kan läsa serverns processer har dess rapport ingen processlista, och inget processfilter matchar, vare sig det kontrollerar att en process körs eller att den inte gör det.
 
 ### Utvärdera över en tidsperiod
 
@@ -262,16 +262,16 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 
 :::details Agenten rapporterar inte
 - Kontrollera att tjänsten körs: `sudo oneuptime-infrastructure-agent status`.
-- Läs loggen: `sudo oneuptime-infrastructure-agent logs -n 50`. En rad `Metrics successfully pushed to OneUptime server` betyder att rapporterna kommer fram.
-- Agenten kontrollerar den hemliga nyckeln när den startar och avslutas om OneUptime avvisar den, med loggraden `Secret key is invalid`. Jämför nyckeln med den på monitorns sida **Inställningar**, under **Återställ hemlig nyckel för serverövervakning**.
+- Läs loggen: `sudo oneuptime-infrastructure-agent logs -n 50`. En rad `Metrics successfully pushed to OneUptime server` betyder att OneUptime har tagit emot en rapport, inte att det har godkänt den: OneUptime svarar innan det kontrollerar den hemliga nyckeln. Att monitorns flik **Mätvärden** visar diagram över servern visar att det har godkänt dem.
+- Agenten kontrollerar den hemliga nyckeln när den startar och avslutas om OneUptime avvisar den, med loggraden `Secret key is invalid`. Jämför nyckeln med den på monitorns sida **Inställningar**, under **Återställ hemlig nyckel för serverövervakning**. Så länge OneUptime inte kan nås loggar agenten `The secret key could not be verified with OneUptime yet` och försöker igen.
 - Se till att servern kan nå din OneUptime-URL över HTTPS och att ingen brandvägg blockerar utgående anslutningar.
 :::
 
 :::details `sudo` säger att kommandot inte hittas
-Paketen lägger agenten på systemets sökväg, så det här händer bara med installationsskriptet. Installationsskriptet lägger binärfilen i `$HOME/bin` för användaren det kördes som, och skriver ut katalogen det använde. Kör agenten med hela sökvägen, till exempel `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. För att i stället installera den i en katalog på systemets sökväg skickar du `-b` till skriptet:
+Paketen lägger agenten i `/usr/bin`, som finns på alla sökvägar. Kört med `sudo` lägger installationsskriptet den i `/usr/local/bin`, som vissa system, till exempel RHEL, utelämnar från sudos sökväg: där skriver skriptet ut kommandona med agentens fullständiga sökväg, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`. Tidigare lade skriptet agenten i `$HOME/bin`, som under `sudo` är `/root/bin`: kör en agent som installerades då med den fullständiga sökvägen, eller installera den igen. För att i stället installera agenten i en katalog på systemets sökväg skickar du `-b` till skriptet:
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

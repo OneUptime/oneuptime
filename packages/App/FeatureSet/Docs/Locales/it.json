@@ -303,6 +303,7 @@
     "SendGrid Inbound Email": "Email in arrivo SendGrid",
     "Private Network Access": "Accesso alla rete privata",
     "Behind a VPN or Firewall": "Dietro una VPN o un firewall",
+    "Update and Security Checks": "Controlli di aggiornamento e sicurezza",
     "Architecture": "Architettura",
     "Enterprise Edition": "Edizione Enterprise",
     "Inventory Overview": "Panoramica dell'inventario",
@@ -428,6 +429,8 @@
     "Elastic Security": "Elastic Security",
     "AWS Security Hub": "AWS Security Hub",
     "Okta System Log": "Log di sistema Okta",
+    "Microsoft Entra ID": "Microsoft Entra ID",
+    "Google Workspace": "Google Workspace",
     "Global SSO": "SSO globale",
     "Import and Export Label Rules": "Importare ed esportare regole per etichette",
     "Run Rules on Existing Resources": "Eseguire le regole sulle risorse esistenti"

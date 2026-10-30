@@ -9,11 +9,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -398,13 +400,13 @@ func TestCheckIfSecretKeyIsValidGivesUpOnAServerThatNeverAnswers(t *testing.T) {
 			srv := newHoldingServer(t, nil)
 			oneuptimeURL, proxyURL := agentURLsFor(srv, route.proxied)
 
-			var valid bool
-			took := returnsWithin(t, testGiveUpWithin, "checkIfSecretKeyIsValid", func() {
-				valid = checkIfSecretKeyIsValid(context.Background(), testSecretKey, oneuptimeURL, proxyURL)
+			var verification keyVerification
+			took := returnsWithin(t, testGiveUpWithin, "verifySecretKey", func() {
+				verification = verifySecretKey(context.Background(), testSecretKey, oneuptimeURL, proxyURL)
 			})
 
-			if valid {
-				t.Error("a key whose verification was never answered must not be treated as valid")
+			if verification != keyNotVerified {
+				t.Errorf("verifySecretKey() = %v for a verification that was never answered, want keyNotVerified (%v): it is neither accepted nor refused", verification, keyNotVerified)
 			}
 			if took < testStallTimeout {
 				t.Errorf("the verification gave up after %v, before requestTimeout (%v): something other than the deadline ended it", took, testStallTimeout)
@@ -420,20 +422,173 @@ func TestCheckIfSecretKeyIsValidGivesUpOnAServerThatNeverAnswers(t *testing.T) {
 	}
 }
 
+// withKeyVerificationRetries makes the agent wait first, doubled up to
+// longest, before asking about its key again, for the rest of the test.
+// Callers must not use t.Parallel: the waits are package state.
+func withKeyVerificationRetries(t *testing.T, first time.Duration, longest time.Duration) {
+	t.Helper()
+
+	previousFirst, previousLongest := keyVerificationFirstRetry, keyVerificationLongestRetry
+	keyVerificationFirstRetry, keyVerificationLongestRetry = first, longest
+	t.Cleanup(func() {
+		keyVerificationFirstRetry, keyVerificationLongestRetry = previousFirst, previousLongest
+	})
+}
+
+// newVerifyingServer starts a local OneUptime that fails the first failures
+// verifications of the key with fail, and answers every other request with
+// 200. It counts the verifications.
+func newVerifyingServer(t *testing.T, failures int32, fail func(w http.ResponseWriter, r *http.Request)) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+
+	verifications := &atomic.Int32{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, testVerifyPath) && verifications.Add(1) <= failures {
+			fail(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	return srv, verifications
+}
+
 // Without the deadline, a server that took the key's verification and never
-// answered held NewAgent forever: the agent neither reported nor exited, and
-// its log did not say why. Now the agent exits once requestTimeout is up,
-// saying that the key could not be verified - as it does when OneUptime
-// cannot be reached - so that the service manager can start it again.
-func TestNewAgentExitsWhenTheVerificationIsNeverAnswered(t *testing.T) {
-	srv := newHoldingServer(t, nil)
+// answered held NewAgent forever. With it, the agent exited - so that the
+// service manager could start it again, which on Windows nothing did: an
+// agent that started before the network, or while OneUptime restarted, stayed
+// stopped. A verification that gets no answer, or OneUptime's own error, says
+// nothing about the key: the agent asks again, waiting longer each time, and
+// starts once OneUptime answers.
+func TestNewAgentAsksAgainUntilTheKeyCanBeVerified(t *testing.T) {
+	cases := []struct {
+		name string
+		fail func(w http.ResponseWriter, r *http.Request)
+	}{
+		{name: "OneUptime does not answer", fail: func(_ http.ResponseWriter, r *http.Request) {
+			// Held until the agent gives up on it, after requestTimeout.
+			<-r.Context().Done()
+		}},
+		{name: "OneUptime is restarting", fail: func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}},
+	}
+
+	for _, c := range cases {
+		// No t.Parallel: captureAgentLogs, withRequestTimeout and the retries change package state.
+		t.Run(c.name, func(t *testing.T) {
+			buf := captureAgentLogs(t)
+			withRequestTimeout(t, testStallTimeout)
+			withKeyVerificationRetries(t, 10*time.Millisecond, 20*time.Millisecond)
+			srv, verifications := newVerifyingServer(t, 3, c.fail)
+
+			var ag *Agent
+			returnsWithin(t, testGiveUpWithin, "NewAgent", func() {
+				ag = NewAgent(context.Background(), testSecretKey, srv.URL, "")
+			})
+			if ag == nil {
+				t.Fatalf("NewAgent returned nil although OneUptime accepted the key in the end:\n%s", buf.String())
+			}
+			t.Cleanup(ag.Close)
+
+			if got := verifications.Load(); got != 4 {
+				t.Errorf("the key was verified %d times, want 3 failures and the answer", got)
+			}
+			logs := buf.String()
+			if got := len(agentLogLinesContaining(logs, "could not be verified with OneUptime yet")); got != 3 {
+				t.Errorf("logged %d retries, want 3:\n%s", got, logs)
+			}
+			for _, wait := range []string{"asking again in 10ms", "asking again in 20ms"} {
+				if !strings.Contains(logs, wait) {
+					t.Errorf("expected %q in the log:\n%s", wait, logs)
+				}
+			}
+			if strings.Contains(logs, "Secret key is invalid") {
+				t.Errorf("a key that could not be verified yet was called invalid:\n%s", logs)
+			}
+			assertNoSecretInLogs(t, buf, testSecretKey)
+		})
+	}
+}
+
+// The waits between asking about the key: 5 seconds, then twice as long each
+// time, to 5 minutes at most.
+func TestNextKeyVerificationRetry(t *testing.T) {
+	var waits []string
+	var wait time.Duration
+	for i := 0; i < 9; i++ {
+		wait = nextKeyVerificationRetry(wait)
+		waits = append(waits, wait.String())
+	}
+
+	if got, want := strings.Join(waits, " "), "5s 10s 20s 40s 1m20s 2m40s 5m0s 5m0s 5m0s"; got != want {
+		t.Errorf("waits = %s, want %s", got, want)
+	}
+}
+
+// A redirect the agent does not follow would stop the next verification too,
+// so it ends the asking; any other failure to get an answer does not.
+func TestKeyVerificationOfError(t *testing.T) {
+	refused := &url.Error{Op: "Get", URL: "http://oneuptime.example/x", Err: &redirectRefused{reason: "redirected to another server"}}
+	if got := keyVerificationOfError(refused); got != keyRefused {
+		t.Errorf("a refused redirect: %v, want keyRefused", got)
+	}
+
+	for _, err := range []error{
+		&url.Error{Op: "Get", URL: "http://oneuptime.example/x", Err: errors.New("dial tcp: connection refused")},
+		&url.Error{Op: "Get", URL: "http://oneuptime.example/x", Err: context.DeadlineExceeded},
+		errors.New("x509: certificate signed by unknown authority"),
+	} {
+		if got := keyVerificationOfError(err); got != keyNotVerified {
+			t.Errorf("%v: %v, want keyNotVerified", err, got)
+		}
+	}
+}
+
+// Stopped while it waits to ask about its key again, the agent stops at once.
+func TestNewAgentStopsWhileWaitingToAskAgain(t *testing.T) {
+	buf := captureAgentLogs(t)
+	withKeyVerificationRetries(t, time.Hour, time.Hour)
+	srv, verifications := newVerifyingServer(t, 1000, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	})
+	ctx, stop := context.WithCancel(context.Background())
+
+	var ag *Agent
+	took := returnsWithin(t, testGiveUpWithin, "NewAgent", func() {
+		go func() {
+			for verifications.Load() == 0 {
+				time.Sleep(time.Millisecond)
+			}
+			stop()
+		}()
+		ag = NewAgent(ctx, testSecretKey, srv.URL, "")
+	})
+
+	if ag != nil {
+		ag.Close()
+		t.Fatal("NewAgent returned an agent although it was stopped before the key was verified")
+	}
+	if took > 10*time.Second {
+		t.Errorf("NewAgent took %v to see that it was stopped", took)
+	}
+	if logs := buf.String(); !strings.Contains(logs, "The agent stopped before its secret key was verified") {
+		t.Errorf("expected the stop to be logged, got:\n%s", logs)
+	}
+	assertStoppedQuietly(t, buf.String())
+}
+
+// OneUptime's refusal of the key is final: asking again gets the same answer,
+// so the agent says the key is invalid and exits.
+func TestNewAgentExitsWhenOneUptimeRefusesTheKey(t *testing.T) {
+	srv, recorder := newRecordingAgentServer(t, http.StatusBadRequest, `{"error":"Monitor not found"}`)
 
 	cmd := exec.Command(os.Args[0], "-test.run=^TestNewAgentExitHelperProcess$", "-test.v")
 	cmd.Env = append(os.Environ(),
 		newAgentExitGuardEnv+"=1",
 		newAgentExitSecretEnv+"="+testSecretKey,
 		newAgentExitURLEnv+"="+srv.URL,
-		newAgentExitRequestTimeoutEnv+"="+testStallTimeout.String(),
 		// Keep the child away from /var/log if anything reaches for the log file.
 		"ONEUPTIME_AGENT_LOG_PATH="+filepath.Join(t.TempDir(), "agent.log"),
 	)
@@ -452,7 +607,7 @@ func TestNewAgentExitsWhenTheVerificationIsNeverAnswered(t *testing.T) {
 		t.Errorf("exit code = %d, want 1\noutput:\n%s", code, output)
 	}
 
-	for _, want := range []string{"Client.Timeout exceeded", "Secret key is invalid"} {
+	for _, want := range []string{"Secret key verification failed with status code 400", "Secret key is invalid"} {
 		if !strings.Contains(string(output), want) {
 			t.Errorf("expected the agent to log %q before exiting, got:\n%s", want, output)
 		}
@@ -460,9 +615,8 @@ func TestNewAgentExitsWhenTheVerificationIsNeverAnswered(t *testing.T) {
 	if strings.Contains(string(output), testSecretKey) {
 		t.Errorf("secret key leaked to the agent's output:\n%s", output)
 	}
-
-	if got := nextHeldRequest(t, srv.held, time.Second, "the agent never asked to verify its key"); got.target != testVerifyPath+testSecretKey {
-		t.Errorf("the agent asked for %q, want %q", got.target, testVerifyPath+testSecretKey)
+	if got := len(recorder.all()); got != 1 {
+		t.Errorf("the key was verified %d times, want once: a refusal is not asked about again", got)
 	}
 }
 

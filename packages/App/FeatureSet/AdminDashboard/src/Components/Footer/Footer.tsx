@@ -4,9 +4,14 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
-import Footer from "Common/UI/Components/Footer/Footer";
+import Footer, { FooterLink } from "Common/UI/Components/Footer/Footer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import UpdateStatusPill from "Common/UI/Components/UpdateStatus/UpdateStatusPill";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { useUpdateStatus } from "Common/UI/Utils/UpdateStatus";
+import UpdateStatusUtil, {
+  UpdateStatus,
+} from "Common/Types/UpdateCheck/UpdateStatus";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
@@ -23,6 +28,23 @@ const DashboardFooter: () => JSX.Element = () => {
   const [isAboutModalLoading, setIsAboutModalLoading] =
     React.useState<boolean>(false);
   const [versionInfo, setVersionInfo] = React.useState<VersionInfo>({});
+
+  /*
+   * "Update available" or "Security update", first in the footer, when this
+   * self-hosted installation should be upgraded (the Dashboard's footer
+   * draws the same). Every reader here is a master admin.
+   */
+  const updateStatus: UpdateStatus | null = useUpdateStatus();
+
+  const updateLinks: Array<FooterLink> = UpdateStatusUtil.isShownInFooter(
+    updateStatus,
+  )
+    ? [
+        {
+          content: <UpdateStatusPill status={updateStatus} />,
+        },
+      ]
+    : [];
 
   const fetchVersions: PromiseVoidFunction = async (): Promise<void> => {
     setIsAboutModalLoading(true);
@@ -61,6 +83,7 @@ const DashboardFooter: () => JSX.Element = () => {
         className="bg-white px-8"
         copyright={t("footer.copyright")}
         links={[
+          ...updateLinks,
           {
             title: t("footer.helpSupport"),
             to: URL.fromString("https://oneuptime.com/support"),

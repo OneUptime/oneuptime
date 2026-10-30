@@ -22,6 +22,47 @@ export interface SecurityEventDetailField {
   facetKey?: string | undefined;
 }
 
+/*
+ * The columns the overview reads. A stored event has them, and so does an
+ * event a log line is about to become (NormalizedSecurityEvent), which "Check
+ * a log line" on Your logs describes with the same fields.
+ */
+export type SecurityEventDetailSource = Partial<
+  Pick<
+    SecurityEvent,
+    | "className"
+    | "categoryName"
+    | "activityName"
+    | "statusName"
+    | "message"
+    | "vendorName"
+    | "productName"
+    | "ruleName"
+    | "ruleId"
+    | "mitreTactics"
+    | "mitreTechniques"
+    | "principalUser"
+    | "principalHost"
+    | "principalIp"
+    | "principalProcess"
+    | "processName"
+    | "processPath"
+    | "processCommandLine"
+    | "parentProcessName"
+    | "parentProcessPath"
+    | "parentProcessCommandLine"
+    | "targetUser"
+    | "targetHost"
+    | "targetIp"
+    | "targetPort"
+    | "targetResource"
+    | "requestOutcome"
+    | "traceId"
+    | "sessionId"
+    | "eventUid"
+  >
+>;
+
 function text(value: string | undefined): string {
   return (value || "").trim();
 }
@@ -44,7 +85,7 @@ function joinArray(values: Array<string> | undefined): string {
  * in fifteen blanks.
  */
 export function buildSecurityEventOverviewFields(
-  event: SecurityEvent,
+  event: SecurityEventDetailSource,
 ): Array<SecurityEventDetailField> {
   const candidates: Array<SecurityEventDetailField> = [
     {

@@ -6,11 +6,12 @@ import SigmaRule, {
   SigmaSelection,
 } from "../../../../Types/SecurityEvent/SigmaRule";
 import { resolveSigmaField } from "../../../../Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
+import CidrMatchUtil from "../../../../Utils/NetworkSite/CidrMatchUtil";
 
 /*
  * Whether one security event matches a Sigma rule's detection, read the way
  * the engine's ClickHouse query reads it (resolveSigmaField, case-insensitive
- * values) - for the modifiers the rule library uses: none (equals),
+ * values) - for the modifiers the rule library uses: none (equals), cidr,
  * contains, startswith, endswith. It lets a suite show that a rule fires on
  * the events a log parser makes, without a database.
  *
@@ -46,6 +47,11 @@ function matchesValue(
 ): boolean {
   const want: string = String(expected).toLowerCase();
   const have: string = actual.toLowerCase();
+
+  // An address in a range, as the engine's isIPAddressInRange reads it.
+  if (modifiers.includes("cidr")) {
+    return Boolean(have) && CidrMatchUtil.ipInCidr(have, want);
+  }
 
   if (modifiers.includes("contains")) {
     return have.includes(want);

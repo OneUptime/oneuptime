@@ -1293,6 +1293,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/okta",
       },
       {
+        title: "Microsoft Entra ID",
+        url: "/docs/integrations/microsoft-entra-id",
+      },
+      {
+        title: "Google Workspace",
+        url: "/docs/integrations/google-workspace",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },
@@ -1609,6 +1617,11 @@ const DocsNav: NavGroup[] = [
       {
         title: "Behind a VPN or Firewall",
         url: "/docs/self-hosted/behind-a-firewall",
+      },
+      // What the daily update and security advisory check sends, and how to turn it off.
+      {
+        title: "Update and Security Checks",
+        url: "/docs/self-hosted/update-checks",
       },
       {
         title: "Architecture",

@@ -37,7 +37,7 @@ In modalità **Sola lettura** le azioni non vengono mai offerte al modello, quin
 
 Chiedi all'IA si apre al centro dello schermo, sopra la pagina in cui eri, e su un telefono occupa tutto lo schermo. Premi `Esc`, o fai clic accanto, per tornare alla pagina. La conversazione resta dove l'hai lasciata: riapri Chiedi all'IA per continuare. Se la chiudi mentre sta ancora rispondendo, un promemoria nell'angolo ti dice quando la risposta è pronta, e la apre.
 
-Su un incidente o un avviso, la scheda **AI Investigation** ha una conversazione tutta sua, **Ask OneUptime AI**, condivisa con chiunque possa vedere quell'incidente o quell'avviso: vedi [Parlare dell'incidente con OneUptime AI](/docs/ai/ai-sre#parla-con-oneuptime-ai-dellincidente).
+Su un incidente o un avviso, la scheda **OneUptime AI** ha una conversazione tutta sua, **Ask OneUptime AI**, condivisa con chiunque possa vedere quell'incidente o quell'avviso: vedi [Parlare dell'incidente con OneUptime AI](/docs/ai/ai-sre#parla-con-oneuptime-ai-dellincidente).
 
 ## Cosa può vedere
 

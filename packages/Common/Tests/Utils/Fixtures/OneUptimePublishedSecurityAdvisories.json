@@ -1,0 +1,1842 @@
+[
+  {
+    "ghsa_id": "GHSA-q79m-622h-m86q",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-q79m-622h-m86q",
+    "summary": "Status page subscriptions could be read, changed or cancelled with the subscriber id alone",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-18T02:38:36Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.67",
+        "patched_versions": "14.0.68"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-66gg-x99r-p5hj",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-66gg-x99r-p5hj",
+    "summary": "Removing a master admin's access left their existing sessions with master admin access for up to 15 minutes",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-17T23:22:31Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.66",
+        "patched_versions": "14.0.67"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-pfjr-x3xx-x8hq",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-pfjr-x3xx-x8hq",
+    "summary": "Require SSO for Login is not enforced while its setting cannot be read from the database",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-17T23:22:24Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 11.0.5, <= 14.0.66",
+        "patched_versions": "14.0.67"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-8fph-9j9f-xxgc",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-8fph-9j9f-xxgc",
+    "summary": "Kubernetes AI access test, agent reset and fix approval ignored label and owner scopes on cluster permissions",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-18T04:53:37Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 14.0.2, <= 14.0.68",
+        "patched_versions": "14.0.69"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-7h8q-9xjg-9g3w",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-7h8q-9xjg-9g3w",
+    "summary": "Any signed-in user could add notification methods to a project they did not belong to, sending verification messages billed to that project",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-18T10:46:14Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.69",
+        "patched_versions": "14.0.70"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-jqvr-54mv-83c5",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-jqvr-54mv-83c5",
+    "summary": "Project SMTP configs can reuse another project's pooled SMTP session and cached OAuth token",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-23T14:22:39Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 7.0.4699, < 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-jpj5-j53j-v2r8",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-jpj5-j53j-v2r8",
+    "summary": "Analytics aggregate cache serves other users' results without a read-permission check",
+    "severity": "low",
+    "state": "published",
+    "published_at": "2026-09-23T14:23:21Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 10.0.89, < 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-6h67-4x93-84gp",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-6h67-4x93-84gp",
+    "summary": "Session replay pin endpoint discloses pins from any project to unauthenticated callers",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:26:50Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 12.0.4, < 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-4g3m-22j5-x7pm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-4g3m-22j5-x7pm",
+    "summary": "Public incident JSON includes postmortemNote even when showPostmortemOnStatusPage is false",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:22:54Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime/oneuptime"
+        },
+        "vulnerable_version_range": "< 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-53hj-cxqm-84vp",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-53hj-cxqm-84vp",
+    "summary": "Deleting a block-permission row skips the authorization ceiling that update enforces",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:24:08Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime/oneuptime"
+        },
+        "vulnerable_version_range": "< 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-92g7-7r72-v446",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-92g7-7r72-v446",
+    "summary": "Label-scoped OnCall member can nested-create rows on policies they cannot read",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:24:11Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime/oneuptime"
+        },
+        "vulnerable_version_range": "< 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-v59g-9wj9-mj6j",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-v59g-9wj9-mj6j",
+    "summary": "TeamMember multi-tenant select header nests User secrets (password hash, reset token)",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:24:14Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime/oneuptime"
+        },
+        "vulnerable_version_range": "< 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-v3qw-c53j-mr8q",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-v3qw-c53j-mr8q",
+    "summary": "A probe could record check results as other probes, for other projects' monitors and monitor tests",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-18T10:46:21Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.69",
+        "patched_versions": "14.0.70"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-7v74-x6fg-g7mw",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-7v74-x6fg-g7mw",
+    "summary": "Project members can raise their own project access through workflow steps that change team permissions",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-10-17T08:33:04Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.64",
+        "patched_versions": "14.0.65"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-vgrj-r2wh-mg2w",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-vgrj-r2wh-mg2w",
+    "summary": "Unauthenticated POST /api/status-page/test-email-report is accepted (200 empty body; no auth)",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:26:52Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime/oneuptime"
+        },
+        "vulnerable_version_range": "< 13.0.8",
+        "patched_versions": "13.0.8"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-5m35-9vvv-pggc",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-5m35-9vvv-pggc",
+    "summary": "A monitor delete scoped to Owned could remove monitors the member did not own",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-18T02:41:03Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.70",
+        "patched_versions": "14.0.71"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-xc2h-75j8-wwgm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-xc2h-75j8-wwgm",
+    "summary": "Unset or placeholder ENCRYPTION_SECRET lets anyone forge master-admin sessions",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-10-13T21:26:48Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.50",
+        "patched_versions": "14.0.51"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-48qm-h5hj-79xj",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-48qm-h5hj-79xj",
+    "summary": "Stored OTLP attribute keys can pollute Object.prototype in the trace viewer",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-23T14:26:56Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 7.0.2051, < 12.0.34",
+        "patched_versions": "12.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-8qqp-rc52-8mq4",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-8qqp-rc52-8mq4",
+    "summary": "Telegram notification-channel verification can be brute-forced without expiry or attempt limits",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-23T14:26:59Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 10.0.67, < 12.0.34",
+        "patched_versions": "12.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-47rg-49m8-m25w",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-47rg-49m8-m25w",
+    "summary": "Public frontend env.js exposes shared server OTLP authorization headers",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-23T14:27:02Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 7.0.2920, < 12.0.34",
+        "patched_versions": "12.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-qq34-rpfm-c7xw",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-qq34-rpfm-c7xw",
+    "summary": "Delegated team creators can self-escalate to ProjectOwner",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-23T14:27:06Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 6.0.1, < 12.0.34",
+        "patched_versions": "12.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-rh96-m756-29rm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-rh96-m756-29rm",
+    "summary": "Delegated API-key creators can mint ProjectOwner credentials",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-23T14:27:09Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 6.0.1, < 12.0.34",
+        "patched_versions": "12.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-j84f-7mf6-6pvc",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-j84f-7mf6-6pvc",
+    "summary": "Plan and seat limits can be exceeded by making resources concurrently (count-then-create race)",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-17T13:52:54Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.65",
+        "patched_versions": "14.0.66"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-hm7m-9qjj-xj5x",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-hm7m-9qjj-xj5x",
+    "summary": "AI chat provider listing discloses another project's provider inventory",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-19T12:04:52Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 11.3.26, < 12.0.12",
+        "patched_versions": "12.0.12"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-5cr8-vph4-3hrf",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-5cr8-vph4-3hrf",
+    "summary": "Notification-channel verification codes can be brute-forced without expiry or attempt limits",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-24T09:13:27Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.14",
+        "patched_versions": ">= 12.0.14"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-c4c2-r4hm-6pjj",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-c4c2-r4hm-6pjj",
+    "summary": "Login passwords and MFA material are written to debug logs",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-19T12:04:54Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 10.0.54, < 12.0.12",
+        "patched_versions": "12.0.12"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-9wgr-m6mr-79pm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-9wgr-m6mr-79pm",
+    "summary": "Global probes allow project members to perform SSRF with response exfiltration",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-09-23T14:27:12Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.34",
+        "patched_versions": "12.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-357j-ggp7-8v5g",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-357j-ggp7-8v5g",
+    "summary": "Unsigned legacy Microsoft Teams webhook permits forged incident and alert state changes",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-01T23:15:55Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.30",
+        "patched_versions": ">= 12.0.30"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-5mv6-h9hc-3v74",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-5mv6-h9hc-3v74",
+    "summary": "SSO sign-in tokens are accepted as full sessions for 30 days, surviving sign-out and session revocation",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-10-17T23:22:17Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.66",
+        "patched_versions": "14.0.67"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-358p-w79v-cc3r",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-358p-w79v-cc3r",
+    "summary": "A project's own SAML/OIDC provider can sign in as any existing account, including a OneUptime administrator",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-10-17T00:29:04Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 7.0.2223, <= 14.0.50",
+        "patched_versions": "14.0.51"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-3x69-fj58-3pc6",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-3x69-fj58-3pc6",
+    "summary": "Slack and Microsoft Teams OAuth client secrets and access tokens are logged at DEBUG level",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-19T12:04:53Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.12",
+        "patched_versions": "12.0.12"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-95q3-qrhv-h2fr",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-95q3-qrhv-h2fr",
+    "summary": "Status-page SSO and OIDC access tokens are exposed in redirect URLs and script-readable cookies",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-09-01T23:15:55Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.30",
+        "patched_versions": ">= 12.0.30"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-f24x-hqg2-qffq",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-f24x-hqg2-qffq",
+    "summary": "Session cookies went with plain-HTTP requests after an HTTPS sign-in, and HTTPS installations sent no Strict-Transport-Security",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-19T03:20:17Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.72",
+        "patched_versions": "14.0.73"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-34q2-4pwf-3q4h",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-34q2-4pwf-3q4h",
+    "summary": "Any server with an Expo access token relayed push notifications for anyone, and the push relay's rate limit did not hold IPv6 hosts",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-10-19T03:20:26Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 10.0.5, <= 14.0.72",
+        "patched_versions": "14.0.73"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-44x4-3qpr-7w2j",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-44x4-3qpr-7w2j",
+    "summary": "Slack signed requests lack timestamp freshness and can be replayed indefinitely",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-29T20:33:19Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.25",
+        "patched_versions": "12.0.25"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-59f8-g276-mchm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-59f8-g276-mchm",
+    "summary": "Monitor viewers can retrieve ingest bearer keys and forge health telemetry",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-27T11:40:37Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.20",
+        "patched_versions": ">= 12.0.20"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-hc47-v5gg-4qq3",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-hc47-v5gg-4qq3",
+    "summary": "Tenant-controlled status-page JavaScript executes in the authenticated application origin",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-24T09:13:30Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.15",
+        "patched_versions": ">= 12.0.15"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-j9f9-944j-4w67",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-j9f9-944j-4w67",
+    "summary": "Unsigned status-page token and javascript redirect enable unauthenticated DOM XSS",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-09-01T23:15:54Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.30",
+        "patched_versions": ">= 12.0.30"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-wg4c-qr45-5v23",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-wg4c-qr45-5v23",
+    "summary": "State-changing generic CRUD deletion is exposed through GET, enabling CSRF",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-09-01T23:15:56Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.25",
+        "patched_versions": ">= 12.0.25"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-vp9r-wrw4-vp33",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-vp9r-wrw4-vp33",
+    "summary": "SAML sign-in accepts replayed or expired responses, and responses issued for another application",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-10-17T23:22:11Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 6.0.14, <= 14.0.66",
+        "patched_versions": "14.0.67"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-gmhg-x8h3-66gm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-gmhg-x8h3-66gm",
+    "summary": "Project members and viewers can obtain a project's Twilio auth token",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-10-15T00:33:37Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 14.0.55",
+        "patched_versions": "14.0.56"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-5xgm-8pww-qc5v",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-5xgm-8pww-qc5v",
+    "summary": "Slack and Microsoft Teams connect callbacks let anyone link their chat account to another OneUptime user",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-10-16T19:30:19Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": ">= 7.0.3652, < 14.0.2",
+        "patched_versions": "14.0.2"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-vmxw-4ww4-mgqm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-vmxw-4ww4-mgqm",
+    "summary": "Public realtime endpoint exposes socket.io-parser memory exhaustion (CVE-2026-69185)",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-24T09:13:28Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.14",
+        "patched_versions": ">= 12.0.14"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-cp58-wc9q-qv53",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-cp58-wc9q-qv53",
+    "summary": "Unauthenticated gzip decompression bomb bypasses request size limits",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-27T11:40:36Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.23",
+        "patched_versions": ">= 12.0.23"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-654m-4v4j-5qmm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-654m-4v4j-5qmm",
+    "summary": "Synthetic Monitor Sandbox Escape via Unproxied Playwright Callback Arguments",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-18T07:30:53Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.10",
+        "patched_versions": "12.0.11"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-qhf2-x32h-c288",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-qhf2-x32h-c288",
+    "summary": "SSRF in webhook delivery via IPv6 transition address bypass and unguarded status page subscriber webhook",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-18T07:30:54Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.8",
+        "patched_versions": "12.0.9"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-9q6r-9h5m-572w",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-9q6r-9h5m-572w",
+    "summary": "Any user can read every user’s TOTP secret and delete anyone’s 2FA (UserTotpAuth / UserWebAuthn)",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-10T07:52:07Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "OneUptime"
+        },
+        "vulnerable_version_range": "<= 12.0.5",
+        "patched_versions": ""
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-xx95-gmcf-7q86",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-xx95-gmcf-7q86",
+    "summary": "Cross-tenant GitHub repository token minting due to missing installation-to-project binding",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-08-11T07:49:06Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.1",
+        "patched_versions": ""
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-w332-x78m-vf3v",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-w332-x78m-vf3v",
+    "summary": "Anonymous whole-project telemetry disclosure via public-dashboard attribute-values endpoint",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-11T07:49:05Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.1",
+        "patched_versions": ""
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-v8v9-p6ff-jwmm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-v8v9-p6ff-jwmm",
+    "summary": "Manual workflow run endpoint is still unauthenticated",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-06T20:57:55Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-qv79-j844-cc7m",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-qv79-j844-cc7m",
+    "summary": "Public dashboard resource lists could expose rows beyond the configured widget scope",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-09T22:17:23Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime"
+        },
+        "vulnerable_version_range": "<= 12.0.5",
+        "patched_versions": null
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-6gmr-q64c-mc8m",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-6gmr-q64c-mc8m",
+    "summary": "Multiple SAML signature wrapping bypasses",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-05T10:53:47Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-wc96-jm46-37hh",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-wc96-jm46-37hh",
+    "summary": "Missing ownership check on incoming-call-number resend-verification-code (sibling of CVE-2026-30959)",
+    "severity": "low",
+    "state": "published",
+    "published_at": "2026-08-05T10:52:59Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-f4m2-693r-6rv4",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-f4m2-693r-6rv4",
+    "summary": "Cross-tenant AI Agent task takeover and repository token disclosure",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-06T20:35:30Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-gf3v-98g2-qffx",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-gf3v-98g2-qffx",
+    "summary": "Unauthenticated Workflow Trigger Allows SSRF to Internal Network and Cloud Metadata",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-11T07:05:27Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.5",
+        "patched_versions": "12.0.6"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-qp9r-843m-372h",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-qp9r-843m-372h",
+    "summary": " Unauthenticated Workflow Execution Allows Any Internet User to Trigger Arbitrary Server-Side Actions",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-08-11T07:49:05Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "node.js / typescript",
+          "name": " oneuptime"
+        },
+        "vulnerable_version_range": "<=11.0.1",
+        "patched_versions": ""
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-v5xh-rw9h-77fv",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-v5xh-rw9h-77fv",
+    "summary": "Server-Side Request Forgery (SSRF) in oneuptime",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-13T12:04:20Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.6",
+        "patched_versions": "12.0.7"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-ffh2-wfgf-c2r5",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-ffh2-wfgf-c2r5",
+    "summary": "SSRF via Custom Code Monitor - Cloud Metadata Access",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-18T07:30:53Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.8",
+        "patched_versions": "12.0.9"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-5qxv-f42x-2mm3",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-5qxv-f42x-2mm3",
+    "summary": "VM Sandbox Escape → Full Root RCE on Probe Container",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-08-18T07:26:56Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.10",
+        "patched_versions": "12.0.11"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-crp9-vqgq-fvcc",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-crp9-vqgq-fvcc",
+    "summary": "Unauthenticated runbook execution and execution-state control by raw IDs",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-05T10:53:44Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-cj7c-33fj-x5mm",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-cj7c-33fj-x5mm",
+    "summary": "Unauthenticated manual execution of enabled workflows by workflow ID",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-08-06T20:57:56Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-3xx8-jm2r-wxg2",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-3xx8-jm2r-wxg2",
+    "summary": "Cross-project AI task disclosure and mutation through AI agent task endpoints",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-05T10:53:50Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.0",
+        "patched_versions": "12.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-9g3w-r349-3vvw",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-9g3w-r349-3vvw",
+    "summary": "SSRF via IPv4-Mapped IPv6 Bypass in Webhook URL Validation",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-13T12:04:18Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.6",
+        "patched_versions": "12.0.7"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-3qqq-hprx-g2jw",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-3qqq-hprx-g2jw",
+    "summary": "First-signup race condition can grant Master Admin to two users at once",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-08-06T20:35:31Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.3",
+        "patched_versions": "12.0.3"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-rrqw-5vj9-m9xg",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-rrqw-5vj9-m9xg",
+    "summary": "Stored XSS through file upload: server returns attacker-supplied Content-Type without restriction",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-08-13T12:04:17Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 12.0.6",
+        "patched_versions": "12.0.7"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-q253-6wcm-h8hp",
+    "cve_id": "CVE-2026-34758",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-q253-6wcm-h8hp",
+    "summary": "Missing Authentication on Notification Endpoints",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-30T19:09:16Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 10.0.39",
+        "patched_versions": "10.0.40"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-6wc5-rhvj-cx7f",
+    "cve_id": "CVE-2026-34759",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-6wc5-rhvj-cx7f",
+    "summary": "Unauthenticated notification API endpoints: financial abuse via phone number purchase, service disruption, and SMTP credential exposure",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-30T19:09:42Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 7.0.0",
+        "patched_versions": "10.0.40"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-5w5c-766x-265g",
+    "cve_id": "CVE-2026-34840",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-5w5c-766x-265g",
+    "summary": "OneUptime SSO: Multi-Assertion Identity Injection via Decoupled Signature Verification",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-31T08:56:07Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": ""
+        },
+        "vulnerable_version_range": "< 10.0.42",
+        "patched_versions": "10.0.42"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-gcg3-c5p2-cqgg",
+    "cve_id": "CVE-2026-33142",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-gcg3-c5p2-cqgg",
+    "summary": "ClickHouse SQL Injection via unvalidated column identifiers in sort, select, and groupBy parameters",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-17T14:32:04Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "All versions including 10.0.23",
+        "patched_versions": "10.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-cqpg-phpp-9jjg",
+    "cve_id": "CVE-2026-33396",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-cqpg-phpp-9jjg",
+    "summary": "Sandbox escape in Synthetic Monitor Playwright runtime allows project members to execute arbitrary commands on Probe",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-19T16:07:57Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "@oneuptime/probe"
+        },
+        "vulnerable_version_range": "< 3.0.2",
+        "patched_versions": "10.0.35"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-g5ph-f57v-mwjc",
+    "cve_id": "CVE-2026-33143",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-g5ph-f57v-mwjc",
+    "summary": " WhatsApp Webhook Missing Signature Verification",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-17T14:32:30Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "10.0.23",
+        "patched_versions": "10.0.34"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-4524-cj9j-g4fj",
+    "cve_id": "CVE-2026-32598",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-4524-cj9j-g4fj",
+    "summary": " Password Reset Token Logged at INFO Level",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-12T17:21:58Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "10.0.23",
+        "patched_versions": "10.0.24"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-6c3w-7xg4-4cf7",
+    "cve_id": "CVE-2026-35053",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-6c3w-7xg4-4cf7",
+    "summary": "Unauthenticated Workflow Execution via ManualAPI",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-04-01T13:33:35Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "10.0.23",
+        "patched_versions": "10.0.42"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-g9cp-35m2-fjv6",
+    "cve_id": "CVE-2026-45102",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-g9cp-35m2-fjv6",
+    "summary": "RCE due to Node.js' vm module escape via error objects and infinite recursion",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-05-07T14:21:04Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": " oneuptime"
+        },
+        "vulnerable_version_range": "<10.0.98",
+        "patched_versions": "10.0.98"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-f5j9-g76m-vvp9",
+    "cve_id": "CVE-2026-32307",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-f5j9-g76m-vvp9",
+    "summary": "Predictable Security Tokens Generated with UUID v1",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-03-12T08:27:31Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 10.0.22",
+        "patched_versions": "10.0.23"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-hxhw-4fj3-r9cf",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-hxhw-4fj3-r9cf",
+    "summary": "Insecure Password Hashing — SHA256 Without Per-User Salt",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-08-09T20:00:31Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "OneUptime"
+        },
+        "vulnerable_version_range": "<= 12.0.4",
+        "patched_versions": "12.0.5"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-wvh5-6vjm-23qh",
+    "cve_id": "CVE-2026-32308",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-wvh5-6vjm-23qh",
+    "summary": "Stored XSS via Mermaid Diagram Rendering (securityLevel: \"loose\")",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-12T08:27:37Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "10.0.22",
+        "patched_versions": "10.0.23"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-p5g2-jm85-8g35",
+    "cve_id": "CVE-2026-32306",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-p5g2-jm85-8g35",
+    "summary": "ClickHouse SQL Injection via Aggregate Query Parameters",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-12T08:27:41Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "10.0.22",
+        "patched_versions": "10.0.23"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-qg84-6hrg-mr5g",
+    "cve_id": null,
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-qg84-6hrg-mr5g",
+    "summary": "Invited OneUptime accounts could be claimed without access to the invitation email",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-08-27T11:40:38Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 12.0.14",
+        "patched_versions": ">= 12.0.14"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-r5v6-2599-9g3m",
+    "cve_id": "CVE-2026-30956",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-r5v6-2599-9g3m",
+    "summary": "Authorization bypass via client‑controlled is-multi-tenant-query header leads to cross‑tenant data exposure and account takeover",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-08T12:12:29Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 10.0.21",
+        "patched_versions": "10.0.21"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-jw8q-gjvg-8w4q",
+    "cve_id": "CVE-2026-30957",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-jw8q-gjvg-8w4q",
+    "summary": "Synthetic Monitor RCE via exposed Playwright browser object #2",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-08T12:13:25Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 10.0.20",
+        "patched_versions": "10.0.21"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-p2wh-9pw8-hvff",
+    "cve_id": "CVE-2026-30958",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-p2wh-9pw8-hvff",
+    "summary": "Path Traversal — Arbitrary File Read (No Auth)",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-08T12:14:36Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 10.0.21",
+        "patched_versions": "10.0.21"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-cw6x-mw64-q6pv",
+    "cve_id": "CVE-2026-30959",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-cw6x-mw64-q6pv",
+    "summary": "WhatsApp Resend Verification Authorization Bypass",
+    "severity": "medium",
+    "state": "published",
+    "published_at": "2026-03-08T12:15:05Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "@oneuptime/common"
+        },
+        "vulnerable_version_range": "< 10.0.21",
+        "patched_versions": "10.0.21"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-4j36-39gm-8vq8",
+    "cve_id": "CVE-2026-30921",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-4j36-39gm-8vq8",
+    "summary": "Synthetic Monitor RCE via exposed Playwright browser object",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-06T19:52:37Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 10.0.20",
+        "patched_versions": "10.0.20"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-656w-6f6c-m9r6",
+    "cve_id": "CVE-2026-30920",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-656w-6f6c-m9r6",
+    "summary": "Broken access control in GitHub App installation flow allows unauthorized project binding",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-06T18:07:42Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": " < 10.0.19",
+        "patched_versions": "10.0.19"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-h343-gg57-2q67",
+    "cve_id": "CVE-2026-30887",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-h343-gg57-2q67",
+    "summary": "Unsandboxed Code Execution in Probe Allows Any Project Member to Achieve RCE",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-03-06T13:52:49Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 10.0.18",
+        "patched_versions": "10.0.18"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-gjjc-pcwp-c74m",
+    "cve_id": "CVE-2026-28787",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-gjjc-pcwp-c74m",
+    "summary": "WebAuthn 2FA bypass: server accepts client-supplied challenge instead of server-stored value, allowing credential replay",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2026-03-01T19:54:22Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "<= 10.0.11",
+        "patched_versions": "none"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-jmhp-5558-qxh5",
+    "cve_id": "CVE-2026-27728",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-jmhp-5558-qxh5",
+    "summary": "OS Command Injection in Probe NetworkPathMonitor via unsanitized destination in traceroute exec()",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-02-23T13:00:06Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "@oneuptime/root"
+        },
+        "vulnerable_version_range": "<= 10.0.6",
+        "patched_versions": ""
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-v264-xqh4-9xmm",
+    "cve_id": "CVE-2026-27574",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-v264-xqh4-9xmm",
+    "summary": "Unsandboxed code execution in probe allows any project member to achieve RCE",
+    "severity": "critical",
+    "state": "published",
+    "published_at": "2026-02-19T15:15:03Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "npm",
+          "name": "oneuptime"
+        },
+        "vulnerable_version_range": "< 10.0.0",
+        "patched_versions": "10.0.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-675q-66gf-gqg8",
+    "cve_id": "CVE-2025-66028",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-675q-66gf-gqg8",
+    "summary": "Privilege Escalation via Login Response Manipulation ",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2025-11-25T12:18:40Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "OneUptime"
+        },
+        "vulnerable_version_range": "8.0.5581",
+        "patched_versions": ""
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-m449-vh5f-574g",
+    "cve_id": "CVE-2025-65966",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-m449-vh5f-574g",
+    "summary": "Unauthorized User Creation via API",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2025-11-26T13:29:19Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "OneUptime"
+        },
+        "vulnerable_version_range": "9.0.5598",
+        "patched_versions": "9.1.0"
+      }
+    ]
+  },
+  {
+    "ghsa_id": "GHSA-246p-xmg8-wmcq",
+    "cve_id": "CVE-2024-29194",
+    "html_url": "https://github.com/OneUptime/oneuptime/security/advisories/GHSA-246p-xmg8-wmcq",
+    "summary": "Privilege Escalation via Local Storage Key Manipulation",
+    "severity": "high",
+    "state": "published",
+    "published_at": "2024-03-24T09:54:23Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": ""
+        },
+        "vulnerable_version_range": "7.0.1803",
+        "patched_versions": "7.0.1815"
+      }
+    ]
+  }
+]

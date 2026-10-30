@@ -73,11 +73,7 @@ import InvestigationPanel, {
 } from "../../../Components/AI/InvestigationPanel";
 import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
-import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
-import useAiCardFold, {
-  AiCardFoldWiring,
-} from "../../../Components/AI/useAiCardFold";
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
@@ -248,14 +244,6 @@ const IncidentView: FunctionComponent<
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
     usePrivateRecordGateOptions(PRIVATE_RECORD_INCIDENT);
-  /*
-   * The AI card folds into one line - "AI investigation is off", and why -
-   * when OneUptime AI neither investigated nor fixed this incident because
-   * something was off for it. The Remediation card tells it whether fixing
-   * did anything, and it tells the Remediation card when the line says
-   * "nothing was fixed" for both (useAiCardFold).
-   */
-  const aiCardFold: AiCardFoldWiring = useAiCardFold(modelIdString);
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<
     IncidentStateTimeline[]
@@ -1325,8 +1313,8 @@ const IncidentView: FunctionComponent<
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
-            remediationState={aiCardFold.remediationState}
-            onCardFoldChange={aiCardFold.onFoldChange}
+            // Nothing is tried again on a resolved incident.
+            isRecordResolved={standing === EventStanding.Resolved}
             renderConversation={(slot: InvestigationConversationSlot) => {
               return (
                 <InvestigationConversation
@@ -1506,13 +1494,6 @@ const IncidentView: FunctionComponent<
           <IncidentAffectedResources
             incidentId={modelId}
             seriesLabels={seriesLabels}
-          />
-
-          <RemediationSuggestionCard
-            incidentId={modelId}
-            hideIfEmpty={true}
-            onFoldStateChange={aiCardFold.onRemediationStateChange}
-            aiCardFold={aiCardFold.fold}
           />
 
           <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />

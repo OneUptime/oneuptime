@@ -304,6 +304,7 @@
     "SendGrid Inbound Email": "SendGrid 傳入郵件",
     "Private Network Access": "私有網路存取",
     "Behind a VPN or Firewall": "位於 VPN 或防火牆之後",
+    "Update and Security Checks": "更新與安全性檢查",
     "Architecture": "架構",
     "Enterprise Edition": "企業版",
     "Inventory Overview": "資產清單概觀",
@@ -428,6 +429,8 @@
     "Elastic Security": "Elastic Security",
     "AWS Security Hub": "AWS Security Hub",
     "Okta System Log": "Okta 系統日誌",
+    "Microsoft Entra ID": "Microsoft Entra ID",
+    "Google Workspace": "Google Workspace",
     "Global SSO": "全域 SSO",
     "Import and Export Label Rules": "匯入和匯出標籤規則",
     "Run Rules on Existing Resources": "對現有資源執行規則"

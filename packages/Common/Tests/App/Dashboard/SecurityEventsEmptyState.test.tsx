@@ -906,6 +906,22 @@ describe("SecurityEventsEmptyState", () => {
         ).join(" · "),
       );
       expect(line).toHaveClass("py-1", "text-xs", "leading-5");
+
+      /*
+       * Ten kinds wrap. Each is one unbreakable span with its separator,
+       * so a line never ends inside "Azure activity and Entra ID logs" or
+       * starts with a dot.
+       */
+      const kinds: Array<HTMLElement> = Array.from(
+        line.querySelectorAll<HTMLElement>(":scope > span"),
+      );
+      expect(kinds).toHaveLength(SECURITY_LOG_FORMATS.length);
+      kinds.forEach((kind: HTMLElement, index: number): void => {
+        expect(kind).toHaveClass("whitespace-nowrap");
+        expect(kind.textContent?.endsWith(" ·")).toBe(
+          index < SECURITY_LOG_FORMATS.length - 1,
+        );
+      });
     });
 
     test.each([

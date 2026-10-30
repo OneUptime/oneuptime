@@ -72,10 +72,10 @@ flowchart TB
 
 **Bij een herstel** werkt OneUptime AI een herstel uit via een server die het mag gebruiken, als die een tool biedt die iets kan wijzigen, na de analyse van de hoofdoorzaak als die er is:
 
-- **Eerst om goedkeuring vragen** – elke wijziging die het zou maken, wordt vastgelegd en nergens heen gestuurd. De kaart **Herstel** van het incident somt ze op volgorde op, elk met zijn server, zijn tool en wat hij zou sturen. **Goedkeuren en uitvoeren** maakt precies die wijzigingen, in die volgorde, op jouw naam; goedkeuren vereist dezelfde machtiging als het starten van een runbook. Een wijziging die mislukt, stopt de wijzigingen erna.
+- **Eerst om goedkeuring vragen** – elke wijziging die het zou maken, wordt vastgelegd en nergens heen gestuurd. De stap **Herstel** van de kaart **OneUptime AI** van het incident somt ze op volgorde op, elk met zijn server, zijn tool en wat hij zou sturen. **Goedkeuren en uitvoeren** maakt precies die wijzigingen, in die volgorde, op jouw naam; goedkeuren vereist dezelfde machtiging als het starten van een runbook. Een wijziging die mislukt, stopt de wijzigingen erna.
 - **Herstellen zonder te vragen** – OneUptime AI maakt de wijzigingen zelf, elk vastgelegd voordat ze wordt verstuurd. Dat doet het alleen voor een regel die zijn MCP-servers noemt, als geen andere overeenkomende regel eerst vraagt, niets anders het incident al zelf herstelt (een AI-agent op een cluster of host, of een runbook) en de regel nog niet het maximum aan herstellingen heeft gedaan dat hij in een uur zelf mag doen; anders worden de wijzigingen voorgesteld. Zonder ingestelde regel, of met een regel die geen MCP-server noemt, wordt elke wijziging voorgesteld.
 
-Een herstel maakt hooguit 5 wijzigingen. Daarna houdt OneUptime de monitors van het incident in de gaten, zoals bij elk herstel. Niets wordt automatisch ongedaan gemaakt: een MCP-tool heeft geen ongedaan maken dat OneUptime kan kennen, dus een herstel dat niet werkte, blijft over voor een persoon, en de kaart **Herstel** toont wat elke server antwoordde.
+Een herstel maakt hooguit 5 wijzigingen. Daarna houdt OneUptime de monitors van het incident in de gaten, zoals bij elk herstel. Niets wordt automatisch ongedaan gemaakt: een MCP-tool heeft geen ongedaan maken dat OneUptime kan kennen, dus een herstel dat niet werkte, blijft over voor een persoon, en de stap **Herstel** toont wat elke server antwoordde.
 
 Om OneUptime AI een server niet meer te laten gebruiken, zet je **OneUptime AI deze server laten gebruiken** op zijn pagina uit. Het vraagt eerst: de server wordt in geen enkel onderzoek of herstel meer gebruikt, en een voorgesteld herstel via hem kan niet meer worden goedgekeurd.
 
@@ -93,7 +93,7 @@ Als meerdere regels die onderzoeken matchen, mag OneUptime AI elke server gebrui
 - **Wat een server terugstuurt, zijn gegevens, nooit instructies.** OneUptime AI leest de beschrijvingen en antwoorden van zijn tools als tekst van buiten OneUptime: ze veranderen nooit een regel, een goedkeuring of wat OneUptime AI mag doen.
 - **Het adres wordt bij elke verbinding gecontroleerd.** OneUptime maakt nooit verbinding met zijn eigen adres of een link-local-adres. In OneUptime Cloud weigert het ook privénetwerkadressen: gebruik het openbare adres van de server. Een zelf gehoste OneUptime bereikt privéadressen, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is ingesteld. Omleidingen volgt het niet.
 - **Limieten.** Een project heeft hooguit 20 servers, en OneUptime leest hooguit 200 tools per server. Verbinden verloopt na 20 seconden, het opsommen van de tools na 30 en een toolaanroep na 60. Een antwoord groter dan 2 MB wordt geweigerd, en een run doet hooguit 40 aanroepen naar MCP-servers.
-- **Elke aanroep wordt vastgelegd.** Elke aanroep is een stap van de run, zichtbaar in zijn activiteit, en elke wijziging van een herstel staat op de kaart **Herstel** met wat de server antwoordde. De modelaanroepen erachter staan onder **Projectinstellingen → AI → AI-logboeken**.
+- **Elke aanroep wordt vastgelegd.** Elke aanroep is een stap van de run, zichtbaar in zijn activiteit, en elke wijziging van een herstel staat in de stap **Herstel** met wat de server antwoordde. De modelaanroepen erachter staan onder **Projectinstellingen → AI → AI-logboeken**.
 
 ## Problemen oplossen
 

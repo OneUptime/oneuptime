@@ -30,12 +30,15 @@
  *            names in the rest of OneUptime (POST /security-case/connections),
  *            answered from Security Operations' records with the server's own
  *            matching rules (../../SecurityOperations/Fixture/ConnectionsFixture.js).
- *   ?logs=   off (default) | on | check-failed | fail. on: the project's
- *            Your logs is on, last checked two minutes before the pinned
- *            clock, nothing found yet (LOGS_ON_SOURCE). check-failed: on,
- *            and that last check failed (LOGS_CHECK_FAILED_ERROR). fail:
- *            reading it fails (a 500), on the Events page and on
- *            Connections alike.
+ *   ?logs=   off (default) | on | found | check-failed | fail. on: the
+ *            project's Your logs is on, last checked two minutes before the
+ *            pinned clock, nothing found yet (LOGS_ON_SOURCE). found: on,
+ *            and its kinds in every state of health (LOGS_FOUND_SOURCE):
+ *            Windows events and CEF found by the last check, SSH sign-ins,
+ *            AWS CloudTrail and Azure found before, the rest never.
+ *            check-failed: on, and that last check failed
+ *            (LOGS_CHECK_FAILED_ERROR). fail: reading it fails (a 500), on
+ *            the Events page and on Connections alike.
  *   ?tools=  rows: three security tools in Your security tools (TOOLS):
  *            one polling well, one whose last poll failed, one turned off -
  *            the table at its widest, for how it fits its card.
@@ -117,10 +120,13 @@ const tools = params.get("tools") === "rows" ? "rows" : "none";
 // ?events=one: one event in the window, and its drawer's Connected tab.
 const events = params.get("events") === "one" ? "one" : "none";
 /*
- * ?logs=on: Your logs is on already; ?logs=check-failed: on, its last check
- * failed; ?logs=fail: it cannot be read.
+ * ?logs=on: Your logs is on already; ?logs=found: on, with its kinds found
+ * now, before and never; ?logs=check-failed: on, its last check failed;
+ * ?logs=fail: it cannot be read.
  */
-const logs = ["on", "check-failed", "fail"].includes(params.get("logs"))
+const logs = ["on", "found", "check-failed", "fail"].includes(
+  params.get("logs"),
+)
   ? params.get("logs")
   : "off";
 
@@ -445,19 +451,45 @@ const LOGS_ON_SOURCE = {
   isEnabled: true,
   lastScannedAt: new Date(NOW.getTime() - 2 * MINUTE),
 };
+/*
+ * ?logs=found: what the scan keeps of each kind (SecurityLogScanResult):
+ * the last check found 12 Windows events and 3 CEF records; SSH sign-ins
+ * were last found three hours before, AWS CloudTrail two days and Azure
+ * nine days before; the other kinds never.
+ */
+const minutesAgo = (minutes) => {
+  return new Date(NOW.getTime() - minutes * MINUTE).toISOString();
+};
+const LOGS_FOUND_SOURCE = Object.assign({}, LOGS_ON_SOURCE, {
+  lastEventFoundAt: new Date(NOW.getTime() - 2 * MINUTE),
+  lastScanResult: {
+    logsRead: 18234,
+    eventsFound: 15,
+    byFormat: { "windows-events": 12, cef: 3 },
+    lastFoundAtByFormat: {
+      "windows-events": minutesAgo(2),
+      cef: minutesAgo(2),
+      "ssh-sign-in": minutesAgo(3 * 60),
+      "aws-cloudtrail": minutesAgo(2 * 24 * 60),
+      "azure-activity": minutesAgo(9 * 24 * 60),
+    },
+  },
+});
 // What the last check said when it failed, as the scanner words it.
 const LOGS_CHECK_FAILED_ERROR =
   "Could not read this project's logs: the query took longer than 30 seconds.";
 const logSources =
   logs === "on"
     ? [LOGS_ON_SOURCE]
-    : logs === "check-failed"
-      ? [
-          Object.assign({}, LOGS_ON_SOURCE, {
-            lastError: LOGS_CHECK_FAILED_ERROR,
-          }),
-        ]
-      : [];
+    : logs === "found"
+      ? [LOGS_FOUND_SOURCE]
+      : logs === "check-failed"
+        ? [
+            Object.assign({}, LOGS_ON_SOURCE, {
+              lastError: LOGS_CHECK_FAILED_ERROR,
+            }),
+          ]
+        : [];
 
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);

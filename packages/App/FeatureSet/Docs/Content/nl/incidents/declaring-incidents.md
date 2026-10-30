@@ -298,7 +298,7 @@ flowchart TB
 - **Bij of voorbij je opgeloste status** — **Opgelost**, of elke status die eronder staat — is het incident voorbij, dus bovendien draait niets wat op een live incident reageert:
   - het wordt niet in een episode gegroepeerd, wat opnieuw zou kunnen oproepen;
   - geen runbook-regel en geen AI-regel grijpt erop in;
-  - OneUptime AI onderzoekt het niet — zijn kaart **AI Investigation** zegt dat het al opgelost werd aangemaakt, en **Ask OneUptime AI** eronder beantwoordt nog steeds vragen erover;
+  - OneUptime AI onderzoekt het niet — zijn kaart **OneUptime AI** zegt dat het al opgelost werd aangemaakt, en **Ask OneUptime AI** eronder beantwoordt nog steeds vragen erover;
   - er wordt geen Slack- of Microsoft Teams-kanaal voor aangemaakt;
   - zijn monitoren houden hun status en blijven bewaakt, wat **Monitorstatus wijzigen naar** ook zegt;
   - er wordt geen SLA voor gestart.

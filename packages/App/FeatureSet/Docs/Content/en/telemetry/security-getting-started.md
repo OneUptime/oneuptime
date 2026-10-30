@@ -58,8 +58,13 @@ At the top of **Overview**, under what needs someone, each part shows its figure
 | --- | --- |
 | SSH sign-ins | Failed and successful SSH sign-ins from a server's auth log, journal or syslog |
 | sudo | Commands run as another user, wrong sudo passwords and people not allowed to use sudo |
-| Kubernetes audit logs | Changes to the cluster, shells opened in pods, secrets read and refused requests |
+| Windows events | Sign-ins, new processes, accounts and groups changed, services installed and logs cleared, from Windows, Sysmon and Microsoft Defender |
 | AWS CloudTrail | Console sign-ins, changes made in your AWS accounts and calls AWS refused |
+| Google Cloud audit logs | Changes made in your Google Cloud projects, calls Google refused, and Google Workspace sign-ins shared with Google Cloud |
+| Azure activity and Entra ID logs | Changes made in your Azure subscriptions, Defender for Cloud alerts, and Microsoft Entra ID sign-ins and directory changes |
+| CEF | Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format |
+| LEEF | The same from products that send Log Event Extended Format, as many do for IBM QRadar |
+| Kubernetes audit logs | Changes to the cluster, shells opened in pods, secrets read and refused requests |
 | Web attacks | Requests in a web server's access log that try SQL injection, path traversal or Log4Shell |
 
 Your logs stay as they are. Only the lines that matter for security become events: never every page a web server served, or every read of an API.
@@ -83,7 +88,7 @@ The case usually opens before the button answers; when the rule is still catchin
 :::
 
 :::details No security event comes from my logs
-Check that **Find security events in your logs** is on and that **Your logs** says when it last checked. Only the kinds of lines in the table above become events: a server that sends no SSH, sudo, audit, CloudTrail or access logs has nothing to find.
+Check that **Find security events in your logs** is on and that **Your logs** says when it last checked. Only the kinds of lines in the table above become events: a server that sends no SSH, sudo, Windows, audit, CEF, LEEF or access logs has nothing to find. Paste one of its lines into **Check a log line**, on **Your logs**, to see whether OneUptime reads it.
 :::
 
 :::details Overview says the last security event arrived days ago
