@@ -33,6 +33,7 @@ import {
   CodeWorkerKind,
 } from "../../../Types/Runner/CodeRepositoryRunner";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
 /*
  * "Fix with AI Agent" on the AIRun substrate: creation records a Queued
@@ -406,6 +407,13 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
       return {
         userId: ObjectID.generate(),
         tenantId: projectId,
+        /*
+         * A plan that has code repositories (Growth): with billing on, as in
+         * CI, a project without one cannot edit a repository at all, and is
+         * refused for its plan before its roles are read.
+         */
+        currentPlan: PlanType.Growth,
+        isSubscriptionUnpaid: false,
         userTenantAccessPermission: {
           [projectId.toString()]: {
             projectId: projectId,

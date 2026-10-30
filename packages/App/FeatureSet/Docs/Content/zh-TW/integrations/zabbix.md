@@ -61,23 +61,22 @@ Zabbix 透過使用者的媒介把問題傳送給該使用者。這裡的媒介�
 ### 範本需要填寫的內容
 
 - **Zabbix URL**：你開啟 Zabbix 的位址，例如 `https://zabbix.example.com`；如果 Zabbix 在某個路徑下執行，則為 `https://example.com/zabbix`。指向問題的連結會指向這裡，呼叫 Zabbix 的範本會把請求傳送到它的 `api_jsonrpc.php`。該欄位不接受 Zabbix 內某個頁面的位址。
-- **Zabbix API Token**：工作流程所代表的 Zabbix 使用者的 API 權杖。[建立 API 權杖](#建立-api-權杖) 說明了如何建立。它會儲存為秘密變數，並且只在 `Authorization` 標頭中傳送。
+- **Zabbix API Token**：工作流程所代表的 Zabbix 使用者的 API 權杖。[建立 API 權杖](#建立-api-權杖) 說明了如何建立。它會儲存為秘密變數，並且只傳送給 Zabbix：放在 `Authorization` 標頭中，在 Zabbix 6.0 上則放在請求本文中。
 
 ### 用範本接收問題
 
 :::steps
 1. 前往 **工作流程**，點選 **建立工作流程**。在 **或從範本開始** 下，在類別清單中選擇 **Zabbix**，點選 **Declare an incident for each Zabbix problem**，然後點選 **使用此範本**。
-2. 填寫 **Zabbix URL**，然後點選 **建立工作流程**。工作流程會在 **建構器** 中開啟，處於關閉狀態。
-3. 點選 **Page an On-Call Policy** 步驟，選擇要呼叫的 **待命策略**，然後儲存。
-4. 點選 **Webhook** 觸發器，然後點選 **複製 URL**，把 URL 留給 Zabbix 使用。
-5. 在 **建構器** 頂部開啟 **已啟用**。處於關閉狀態的工作流程會以 `400` 回應 Zabbix。
+2. 填寫 **Zabbix URL**。在 **Who to page for High and Disaster problems** 底下選擇要呼叫的待命策略，不選則不呼叫任何人，然後點選 **建立工作流程**。工作流程會在 **建構器** 中開啟，處於關閉狀態。
+3. 點選 **Webhook** 觸發器，然後點選 **複製 URL**，把 URL 留給 Zabbix 使用。
+4. 在 **建構器** 頂部開啟 **已啟用**。處於關閉狀態的工作流程會以 `400` 回應 Zabbix。
 :::
 
 然後 [設定 Zabbix](#設定-zabbix)，讓它把問題傳送到這個 URL。
 
 ### 工作流程做什麼
 
-在 **Webhook** 觸發器之後，一個 **Switch / Case** 區塊會為媒介類型傳送的每種 `event` 走一條路徑：
+在 **Webhook** 觸發器之後， **Check With JavaScript** 步驟 `read-event-1` 讀取媒介類型傳送的 `event`，再由 **Incident From Another Tool**（警示範本中為 **Alert From Another Tool** ）依問題的事件 ID 執行它所代表的操作：
 
 | 事件類型 | 工作流程做什麼 |
 | --- | --- |
@@ -85,7 +84,7 @@ Zabbix 透過使用者的媒介把問題傳送給該使用者。這裡的媒介�
 | `recovery` | 解決問題的事件，除非它已經解決。原因記錄在它的時間軸上。 |
 | `update` | 把在 Zabbix 中所做的操作作為私人備註新增到事件：誰做的、做了什麼、寫了什麼。如果這次更新確認了問題，它也會確認事件，待命上報隨之停止。 |
 
-其他任何內容，例如來自其他工具的請求，都會原樣保留，執行的最後一步會說明原因。每次執行都以一個 **Log** 步驟結束，說明發生了什麼：`✅` 表示完成了工作，`ℹ️` 表示有意略過了該事件，`❌` 表示某個步驟失敗，執行日誌會說明原因。
+其他任何內容，例如來自其他工具的請求，都會原樣保留： `read-event-1` 走 **No**，執行的 **步驟** 會說明原因。失敗的步驟會讓執行失敗，它在 **步驟** 中的項目會說明原因。
 
 ### 嚴重程度
 
@@ -127,7 +126,7 @@ Zabbix 透過使用者的媒介把問題傳送給該使用者。這裡的媒介�
 
 ### 在 Zabbix 6.0 上
 
-Zabbix 6.0 從請求本文而不是 `Authorization` 標頭中讀取 API 權杖。在呼叫 Zabbix 的範本的每個 API 步驟中，把 `"auth": "{{local.variables.zabbixApiToken}}",` 新增到 **Request Body** 中 `"jsonrpc": "2.0",` 之後，並刪除該標頭。Zabbix 7.2 及更新版本會拒絕 `auth`，所以升級時請再次刪除它。
+Zabbix 6.0 從請求本文而不是 `Authorization` 標頭中讀取 API 權杖。在每個呼叫 Zabbix 的範本的 **Update Zabbix Problem** 步驟中，開啟 **更多欄位** 底下的 **Zabbix 6.0**。Zabbix 7.2 及更新版本會拒絕本文中的權杖，所以升級時請再次關閉它。
 
 ## 用監測器接收問題
 
@@ -346,7 +345,7 @@ Zabbix 以文字形式傳送嚴重程度：`Not classified`、`Information`、`W
 
 - **像對待密碼一樣對待 URL。** 任何擁有它的人都可以建立事件。如果洩露，請重設它：在工作流程的 **Webhook** 觸發器中使用 **重設 URL**，或在監測器的 **設定** 頁面使用 **重設傳入請求密鑰**。然後更新 Zabbix 使用者媒介中的 **Send to**。
 - **連結指向你的 Zabbix。** 無論請求中寫了什麼，範本都會連結到其 **Zabbix URL** 所指網站上的問題，並把 Zabbix 傳送的內容作為文字寫入。
-- **讓 API 權杖只做工作流程需要做的事。** 它是一個秘密變數，在執行日誌中會被隱藏，並且只在 `Authorization` 標頭中傳送。給它的使用者一個僅允許上述操作的角色，如果權杖洩露，請在 **Users → API tokens** 中刪除它。
+- **讓 API 權杖只做工作流程需要做的事。** 它是一個秘密變數，在執行日誌中會被隱藏，並且只傳送給 Zabbix：除非開啟了 **Zabbix 6.0**，否則放在 `Authorization` 標頭中。給它的使用者一個僅允許上述操作的角色，如果權杖洩露，請在 **Users → API tokens** 中刪除它。
 - **只發送需要事件的內容。** 使用動作的條件或使用者媒介的嚴重程度，把低嚴重程度的問題留在 Zabbix 中。
 - **自行託管？** 讓你的 Zabbix 伺服器能夠穿過防火牆，透過 HTTPS 存取你的 OneUptime。要呼叫私人網路中的 Zabbix，工作流程需要 [對外網路存取](/docs/workflows/configuration#對外網路存取)。
 

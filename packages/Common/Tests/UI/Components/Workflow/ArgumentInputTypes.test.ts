@@ -526,6 +526,14 @@ describe("Rules that hold for every workflow argument", () => {
         continue;
       }
 
+      /*
+       * A switch that says what happens to prose - Note Instead Of
+       * Resolving adds the Note rather than resolve - holds none.
+       */
+      if (item.argument.type === ComponentInputType.Boolean) {
+        continue;
+      }
+
       for (const value of SAMPLE_VALUES) {
         const control: ArgumentFormFieldType =
           componentInputTypeToFormFieldType(item.argument.type, value);

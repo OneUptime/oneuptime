@@ -129,7 +129,7 @@ En Atlassian-**tjenestekonto** fungerer også. En organisasjonsadministrator opp
 4. Klikk på **Opprett arbeidsflyt**. Hver arbeidsflyt opprettes avslått: slå på **Aktivert** øverst i dens **Bygger**.
 :::
 
-Start med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** for varsler: alle andre maler OneUptime → Jira av samme slag finner saken via etiketten denne legger til. Slå den på, erklær en testhendelse eller opprett et testvarsel, og åpne arbeidsflytens **Logger → Kjøringer**. Kjøringens siste trinn skal vise `✅ Created Jira issue` og nevne den nye saken.
+Start med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** for varsler: alle andre maler OneUptime → Jira av samme slag finner saken via etiketten denne legger til. Slå den på, erklær en testhendelse eller opprett et testvarsel, og åpne arbeidsflytens **Logger → Kjøringer**. Kjøringen skal slutte som **Utført**, og **Response Body** i det siste trinnet, `create-issue-1`, nevner den nye saken.
 
 Hver arbeidsflyt har sin egen kopi av disse verdiene. Når du bytter ut tokenet, oppdaterer du `jiraBasicAuthToken` under **Arbeidsflytvariabler** i hver Jira-arbeidsflyt som ba om det. Hvis Jira flytter til en annen adresse, oppdaterer du `jiraSiteUrl` og `jiraBaseUrl` på samme måte.
 
@@ -180,14 +180,14 @@ Før du stoler på det:
 
 ### Sjekk at det fungerer
 
-Hver mal slutter med et **Log**-trinn som sier hva som skjedde, så det siste trinnet i en kjøring i **Logger → Kjøringer** er stedet å se:
+Hver kjørings **Trinn** sier hva malen gjorde, så åpne kjøringen i **Logger → Kjøringer** og se hvordan den endte:
 
-- `✅` — den gjorde jobben sin og nevner saken, hendelsen eller varselet.
-- `ℹ️` — den hoppet over hendelsen med vilje og sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra Jira, posten er privat, eller den nye tilstanden har ingen Jira-status knyttet til seg.
-- `❌` — et kall mislyktes. Ved et Jira-kall inneholder linjen svaret fra Jira.
-- `⚠️` — en mal som oppretter en post fra en Jira-sak, opprettet den, men Jira godtok ikke koblingsetikettene, så de andre malene kan ikke finne den ennå. Legg til etikettene for hånd.
+- **Utført**: den gjorde jobben sin, og det siste trinnet nevner saken, hendelsen eller varselet.
+- **Utført**, med trinnet **Check With JavaScript** på **No**: den hoppet over hendelsen med vilje, og trinnet sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra Jira, posten er privat, eller den nye tilstanden har ingen Jira-status knyttet til seg.
+- **Feil**: et trinn mislyktes, og oppføringen under **Trinn** sier hvorfor. Ved et Jira-kall inneholder den Jiras svar.
+- **Feil** ved `link-issue-1`: en mal som oppretter en post fra en Jira-sak, opprettet den, men Jira tok ikke imot koblingsetikettene, så de andre malene finner den ikke ennå. Legg til etikettene for hånd.
 
-En kjøring som hoppes over, slutter likevel som **Utført**. Det er normalt å hoppe over: de fleste Jira-hendelser er ikke noen en gitt mal handler på. Se [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs).
+Det er normalt å hoppe over: de fleste Jira-hendelser er ikke noen en gitt mal handler på. Se [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs).
 
 ## Slik fungerer malene
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Endre hva en mal gjør
 
-Åpne arbeidsflytens **Bygger**, og klikk på blokken du vil endre. Innstillingene du mest sannsynlig vil endre, er konstanter øverst i et skript, **JavaScript Code** i en **Run Custom JavaScript**-blokk, rett under den delte hjelpeblokken. Versjonene for hendelser og for varsler av en mal har de samme konstantene i de samme blokkene:
+Åpne arbeidsflytens **Bygger**, og klikk på blokken du vil endre. Innstillingene du mest sannsynlig vil endre, er konstanter øverst i et skript, **JavaScript Code** i en **Check With JavaScript**-blokk, rett under den delte hjelpeblokken. Versjonene for hendelser og for varsler av en mal har de samme konstantene i de samme blokkene:
 
 | Konstant | Mal og blokk | Hva den styrer |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | Statusnavnene malen foretrekker når den går etter betydning, og dem den aldri velger med mindre `STATE_TO_JIRA_STATUS` nevner dem. Begge er regulære uttrykk som sammenlignes med statusnavnet uten å skille mellom store og små bokstaver. |
 | `SYNC_PRIVATE_INCIDENTS` | Hver mal for hendelser OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` eller `build-comment-1` | `false` holder hendelser merket som **Privat hendelse** utenfor Jira: det opprettes ingen sak for dem, saken deres flyttes ikke, og verken notatene eller redigeringene deres legges ut. Sett den til `true` for å sende dem likevel. Hver mal har sin egen kopi, så sett den i hver mal som skal sende dem. |
 | `SYNC_PRIVATE_ALERTS` | Hver mal for varsler OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` eller `build-comment-1` | Det samme for varsler merket som **Privat varsel**: `false` holder dem utenfor Jira på samme måter, og `true` sender dem likevel. Sett den i hver mal for varsler som skal sende dem. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Knytter et Jira-statusnavn til et OneUptime-tilstandsnavn, f.eks. `{ 'In Review': 'Monitoring' }`. Statuser som ikke står her, går etter Jiras statuskategori: In Progress kvitterer hendelsen eller varselet, Done løser det, og To Do svarer ikke til noe. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Knytter et Jira-statusnavn til et OneUptime-tilstandsnavn, f.eks. `{ 'In Review': 'Monitoring' }`. Statuser som ikke står her, går etter Jiras statuskategori: In Progress kvitterer hendelsen eller varselet, Done løser det, og To Do svarer ikke til noe. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Knytter en Jira-prioritet, skrevet med små bokstaver, til `0` (din høyeste alvorlighetsgrad), `1` eller `2` (den laveste), med gradene imellom fordelt over intervallet. Prioriteter som ikke står her, havner i midten. Med de to alvorlighetsgradene for varsler et nytt prosjekt har, er `0` High og både `1` og `2` Low, så Medium blir Low med mindre du endrer det til `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | Kommentarhendelsene som blir notater. Legg til `'comment_updated'` for også å kopiere redigeringer — hver redigering blir et nytt notat — og kryss også av for **Comment updated** på Jira-webhooken. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | Jira-feltene, med små bokstaver, der endringer ikke er verdt et notat. En endring utelates når enten felt-ID-en eller navnet står på listen, og det er slik `'rank'` fanger Rank, et egendefinert felt som kommer med en ID som `customfield_10019`. Status står på listen fordi statusmalen håndterer den. |
@@ -271,7 +271,7 @@ Private notater og redigeringskommentarer merkes som interne av `properties`-opp
 ### Begrensninger
 
 - **Bare Jira Cloud.** Malene kaller Jira Clouds REST API v3 med Basic-autentisering. Data Center har ingen v3 og tar et personlig tilgangstoken som `Bearer`, så hver API-blokk trenger endringene i [Jira Data Center](#jira-data-center): stier som `/rest/api/2/...`, vanlige strenger i stedet for innhold i Atlassian Document Format, og overskriften. Blokkene `find-issue-1` endres mest: Data Center har ingen `/search/jql`, så de må gjøre en `POST` til `/rest/api/2/search` i stedet.
-- **Hendelser erklært fra Jira er stille.** De opprettes skjult fra statussidene dine, uten å varsle abonnentene på statussidene, fordi teksten i en sak ikke ble skrevet for kunder. For å vise en slår du på **Synlig på statussiden** på hendelsens side **Innstillinger** (se [Holde en hendelse unna statussiden](/docs/incidents/states-and-severities#hold-en-hendelse-borte-fra-statussiden)), eller endrer `isVisibleOnStatusPage` og `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` i malens `create-incident-1`-blokk.
+- **Hendelser erklært fra Jira er stille.** De opprettes skjult fra statussidene dine, uten å varsle abonnentene på statussidene, fordi teksten i en sak ikke ble skrevet for kunder. For å vise en slår du på **Synlig på statussiden** på hendelsens side **Innstillinger** (se [Holde en hendelse unna statussiden](/docs/incidents/states-and-severities#hold-en-hendelse-borte-fra-statussiden)), eller slår på **Show On Status Pages** under **Flere felt** i malens `incident-from-another-tool-1`-blokk.
 - **Private hendelser og varsler blir i OneUptime.** Malene OneUptime → Jira hopper over dem, og hver overhopping står i **Logger → Kjøringer**. For å sende dem likevel setter du `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` til `true`. Å gjøre en post privat senere stopper synkroniseringen fra da av, men tar ikke tilbake det Jira allerede har. Malene Jira → OneUptime sjekker ikke dette, så kommentarer, redigeringer og statusendringer på en koblet sak når fortsatt en privat post.
 - **Ingenting går bakover.** Å gjenåpne en Jira-sak endrer ingenting i OneUptime, og en status i kategorien To Do svarer ikke til noen tilstand. Se [Rekkefølgen er en reell begrensning](/docs/incidents/states-and-severities#rekkefølgen-er-en-reell-begrensning-ikke-en-visningspreferanse). Overgangsmalene flytter heller aldri en sak til en tidligere statuskategori.
 - **Hvert varsel får en sak.** Bortsett fra private varsler oppretter malen for varsler som oppretter saker, en sak for hvert varsel, også hvert varsel en monitor utløser. [Hva som er annerledes for varsler](#hva-som-er-annerledes-for-varsler) viser hvordan du legger til en betingelse.
@@ -286,7 +286,7 @@ Private notater og redigeringskommentarer merkes som interne av `properties`-opp
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **Den samme hendelsen kan komme to ganger.** Jira prøver på nytt en levering som mislyktes med en serverfeil eller fikk tidsavbrudd. Hvis OneUptime allerede hadde startet kjøringen, legger malene for kommentarer og saksendringer til et ekstra notat. Malene som oppretter en post, oppretter ikke en til: de spør først Jira om sakens etiketter, og når et nytt forsøk kommer, har den første kjøringen allerede satt etikett på saken. Det hjelper ikke når den første kjøringen opprettet posten, men Jira avviste etikettene: kjøringen slutter med en `⚠️`-linje, og du må legge til etikettene for hånd.
+- **Den samme hendelsen kan komme to ganger.** Jira prøver på nytt en levering som mislyktes med en serverfeil eller fikk tidsavbrudd. Hvis OneUptime allerede hadde startet kjøringen, legger malene for kommentarer og saksendringer til et ekstra notat. Malene som oppretter en post, oppretter ikke en til: de spør først Jira om sakens etiketter, og når et nytt forsøk kommer, har den første kjøringen allerede satt etikett på saken. Det hjelper ikke når den første kjøringen opprettet posten, men Jira avviste etikettene: kjøringen mislykkes ved `link-issue-1`, og du må legge til etikettene for hånd.
 
 ## Bygg det selv
 

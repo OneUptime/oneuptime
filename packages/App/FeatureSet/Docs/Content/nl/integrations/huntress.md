@@ -51,11 +51,11 @@ Het incident bewaart het nummer van de melding in zijn aangepaste velden, als `h
 :::steps
 ### De workflow maken
 
-Open **Workflows** en klik op **Workflow maken**. Kies onder **Of begin met een sjabloon** de categorie **Huntress**, kies **Open an incident for each Huntress incident report**, klik op **Dit sjabloon gebruiken** en maak de workflow. Hij opent in de **Bouwer**, uitgeschakeld.
+Open **Workflows** en klik op **Workflow maken**. Kies onder **Of begin met een sjabloon** de categorie **Huntress**, kies **Open an incident for each Huntress incident report** en klik op **Dit sjabloon gebruiken**.
 
 ### Kiezen wie wordt opgeroepen
 
-Klik op de stap **Page an On-Call Policy**, kies het **Bereikbaarheidsbeleid** om op te roepen en sla de stap op.
+Het dialoogvenster vraagt daarna wie er moet worden opgeroepen: kies onder **Who to page for high and critical reports** het bereikbaarheidsbeleid om op te roepen, of niets om niemand op te roepen, en klik op **Workflow maken**. De workflow opent in de **Bouwer**, uitgeschakeld. Om later te wijzigen wie hij oproept, klik je op zijn stap **Page an On-Call Policy** en wijzig je zijn **Bereikbaarheidsbeleid**.
 
 ### Een webhook-endpoint toevoegen in Huntress
 
@@ -79,7 +79,7 @@ Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Open in Huntress het menu van h
 
 ## Wat de workflow doet
 
-Het sjabloon neemt een pad voor elk **Event**, met een **Switch / Case** na de trigger:
+Na de trigger doet **Incident From Another Tool** wat elk **Event** vraagt, via het nummer van de melding:
 
 | Event | Wat de workflow doet |
 | --- | --- |
@@ -87,7 +87,7 @@ Het sjabloon neemt een pad voor elk **Event**, met een **Switch / Case** na de t
 | `comment-added` | Zoekt het incident van de melding en voegt de opmerking eraan toe als privénotitie. |
 | `closed` | Zoekt het incident van de melding en lost het op, tenzij het al is opgelost. De reden staat op de tijdlijn: Huntress sloot de melding. |
 
-Het is een workflow zoals elke andere, dus u kunt aanpassen wat hij doet: alleen voor kritieke meldingen oproepen door te wijzigen wat de **If / Else** na **Create One Incident** vergelijkt, elke melding in een chatkanaal plaatsen met een Slack- of Microsoft Teams-stap, of elke organisatie naar haar eigen bereikbaarheidsbeleid sturen met een **Switch / Case** op **Organization**. Elke uitvoering staat bij de uitvoeringen van de workflow, met wat elke stap deed.
+Het is een workflow zoals elke andere, dus u kunt aanpassen wat hij doet: alleen voor kritieke meldingen oproepen door te wijzigen wat de **If / Else** na **Incident From Another Tool** vergelijkt, elke melding in een chatkanaal plaatsen met een Slack- of Microsoft Teams-stap, of elke organisatie naar haar eigen bereikbaarheidsbeleid sturen met een **Switch / Case** op **Organization**. Elke uitvoering staat bij de uitvoeringen van de workflow, met wat elke stap deed.
 
 ### Ernst
 
@@ -174,7 +174,7 @@ De workflow is verwijderd of gearchiveerd, zijn trigger is niet meer **Huntress 
 :::
 
 :::details Er werd geen incident geopend
-Open de uitvoeringen van de workflow en de uitvoering van de melding. Mislukte **Create One Incident** omdat de incidenternst leeg is, dan heeft het project geen incidentniveaus: voeg er een toe onder **Incidenten → Instellingen → Ernst van incident**.
+Open de uitvoeringen van de workflow en de uitvoering van de melding. Mislukte **Incident From Another Tool** met `This project has no incident severities to put the incident at.`, voeg er dan een toe onder **Incidenten → Instellingen → Ernst van incident**.
 :::
 
 :::details Niemand werd opgeroepen

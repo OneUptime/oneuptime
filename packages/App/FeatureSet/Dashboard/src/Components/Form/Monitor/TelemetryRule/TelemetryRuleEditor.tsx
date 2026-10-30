@@ -4,10 +4,12 @@ import { IncidentRoleOption } from "../MonitorCriteriaIncidentForm";
 import { JSONObject } from "Common/Types/JSON";
 import {
   AnomalyDetectionSensitivity,
+  CheckOn,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
 } from "Common/Types/Monitor/CriteriaFilter";
+import { isExceptionMeasure } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
@@ -140,6 +142,29 @@ export const getPreviewSettings: (data: {
   }
 };
 
+/*
+ * What an Exceptions rule can alert on (ExceptionMonitorEvaluation), in the
+ * order the choice offers them.
+ */
+const EXCEPTION_MEASURE_CHOICES: Array<{ value: CheckOn; label: string }> = [
+  {
+    value: CheckOn.ExceptionCount,
+    label: TelemetryRuleCopy.exceptionMeasureCount,
+  },
+  {
+    value: CheckOn.NewExceptionCount,
+    label: TelemetryRuleCopy.exceptionMeasureNew,
+  },
+  {
+    value: CheckOn.RegressedExceptionCount,
+    label: TelemetryRuleCopy.exceptionMeasureRegressed,
+  },
+  {
+    value: CheckOn.ExceptionCountIncreasePercent,
+    label: TelemetryRuleCopy.exceptionMeasureIncrease,
+  },
+];
+
 const ROLLING_TIME_OPTIONS: Array<DropdownOption> =
   METRIC_RULE_WINDOW_OPTIONS.map(
     (option: { value: RollingTime; label: string }): DropdownOption => {
@@ -202,6 +227,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   const unitLabelId: string = useId();
   const sensitivityLabelId: string = useId();
   const noDataLabelId: string = useId();
+  const measureLabelId: string = useId();
 
   /*
    * The value as typed: a box holding "1." or "-" while someone types is
@@ -454,6 +480,12 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
       ? translator.translateText(TelemetryRuleCopy.valueRequired)
       : undefined;
 
+  // A rule on new, regressed or rising exceptions: the count chart is not it.
+  const isOtherExceptionMeasure: boolean =
+    monitorType === MonitorType.Exceptions &&
+    Boolean(rule.measure) &&
+    rule.measure !== CheckOn.ExceptionCount;
+
   const previewSettings: JSONObject | null = getPreviewSettings({
     monitorType,
     monitorStep,
@@ -564,6 +596,54 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
         },
       });
 
+  /*
+   * What an Exceptions rule alerts on: how many exceptions, new ones,
+   * ones that came back, or a rise over the usual count
+   * (ExceptionMonitorEvaluation). Other monitor types have one measure.
+   */
+  const measure: CheckOn | null = TelemetryAlertRuleUtil.getRuleMeasure({
+    monitorType,
+    rule,
+  });
+  const measureOptions: Array<DropdownOption> = EXCEPTION_MEASURE_CHOICES.map(
+    (choice: { value: CheckOn; label: string }): DropdownOption => {
+      return {
+        value: choice.value,
+        label: translator.translateText(choice.label) || choice.label,
+      };
+    },
+  );
+  const measureField: ReactElement =
+    monitorType === MonitorType.Exceptions ? (
+      <div className="mb-4 sm:max-w-xs" data-testid="telemetry-rule-measure">
+        <FieldLabelElement
+          id={measureLabelId}
+          title={TelemetryRuleCopy.exceptionMeasureTitle}
+          hideOptionalLabel={true}
+        />
+        <Dropdown
+          ariaLabelledby={measureLabelId}
+          isClearable={false}
+          value={measureOptions.find((option: DropdownOption) => {
+            return option.value === measure;
+          })}
+          options={measureOptions}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            if (value && isExceptionMeasure(value)) {
+              changeCondition({
+                measure:
+                  value === CheckOn.ExceptionCount
+                    ? undefined
+                    : (value as CheckOn),
+              });
+            }
+          }}
+        />
+      </div>
+    ) : (
+      <></>
+    );
+
   const comparisonField: ReactElement = (
     <div data-testid="telemetry-rule-comparison">
       <FieldLabelElement
@@ -633,7 +713,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   ) : (
     <div data-testid="telemetry-rule-value">
       <FieldLabelElement
-        title={getCountTitle(monitorType)}
+        title={getCountTitle(monitorType, measure || undefined)}
         htmlFor={valueInputId}
         hideOptionalLabel={true}
       />
@@ -702,6 +782,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
         description={TelemetryRuleCopy.whenToAlertDescription}
       >
         <div className="mt-2" data-testid="telemetry-rule-condition">
+          {measureField}
           {isMetric ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {metricField}
@@ -783,7 +864,20 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {previewSettings ? (
+          {isOtherExceptionMeasure ? (
+            <p
+              className="mt-3 text-xs text-gray-500"
+              data-testid="telemetry-rule-no-preview"
+            >
+              {translator.translateText(
+                TelemetryRuleCopy.exceptionMeasureNoPreview,
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
+
+          {previewSettings && !isOtherExceptionMeasure ? (
             <TelemetryRulePreview
               monitorType={monitorType}
               settings={previewSettings}

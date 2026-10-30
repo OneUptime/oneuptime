@@ -129,7 +129,7 @@ Ett Atlassian-**tjänstkonto** fungerar också. En organisationsadministratör s
 4. Klicka på **Skapa arbetsflöde**. Varje arbetsflöde skapas avstängt: slå på **Aktiverad** högst upp i dess **Byggare**.
 :::
 
-Börja med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** för larm: alla andra mallar OneUptime → Jira av samma slag hittar ärendet via etiketten som den här lägger till. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningens sista steg ska visa `✅ Created Jira issue` och nämna det nya ärendet.
+Börja med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** för larm: alla andra mallar OneUptime → Jira av samma slag hittar ärendet via etiketten som den här lägger till. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Response Body** i dess sista steg, `create-issue-1`, nämner det nya ärendet.
 
 Varje arbetsflöde har sin egen kopia av de här värdena. När du byter ut token uppdaterar du `jiraBasicAuthToken` under **Arbetsflödesvariabler** i varje Jira-arbetsflöde som frågade efter den. Om Jira flyttar till en annan adress uppdaterar du `jiraSiteUrl` och `jiraBaseUrl` på samma sätt.
 
@@ -180,14 +180,14 @@ Innan du förlitar dig på det:
 
 ### Kontrollera att det fungerar
 
-Varje mall slutar med ett **Log**-steg som säger vad som hände, så det sista steget i en körning i **Loggar → Körningar** är platsen att titta på:
+Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Loggar → Körningar** och se hur den slutade:
 
-- `✅` — den gjorde sitt jobb och nämner ärendet, incidenten eller larmet.
-- `ℹ️` — den hoppade över händelsen med flit och säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
-- `❌` — ett anrop misslyckades. Vid ett Jira-anrop innehåller raden Jiras svar.
-- `⚠️` — en mall som skapar en post från ett Jira-ärende skapade den, men Jira tog inte emot kopplingsetiketterna, så de andra mallarna kan inte hitta den än. Lägg till etiketterna för hand.
+- **Utförd**: den gjorde sitt jobb, och dess sista steg nämner ärendet, incidenten eller larmet.
+- **Utförd**, med steget **Check With JavaScript** på **No**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
+- **Fel**: ett steg misslyckades, och dess post under **Steg** säger varför. Vid ett Jira-anrop ingår Jiras svar.
+- **Fel** vid `link-issue-1`: en mall som skapar en post utifrån ett Jira-ärende skapade den, men Jira tog inte emot länketiketterna, så de andra mallarna kan inte hitta den än. Lägg till etiketterna för hand.
 
-En körning som hoppas över slutar ändå som **Utförd**. Att hoppa över är normalt: de flesta Jira-händelser är inte sådana som en viss mall agerar på. Se [Arbetsflödeskörningar](/docs/workflows/runs-and-logs).
+Att hoppa över är normalt: de flesta Jira-händelser är inte sådana som en viss mall agerar på. Se [Arbetsflödeskörningar](/docs/workflows/runs-and-logs).
 
 ## Så fungerar mallarna
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Ändra vad en mall gör
 
-Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Run Custom JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm av en mall har samma konstanter i samma block:
+Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm av en mall har samma konstanter i samma block:
 
 | Konstant | Mall och block | Vad den styr |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | De statusnamn som mallen föredrar när den går efter betydelse, och de som den aldrig väljer om inte `STATE_TO_JIRA_STATUS` anger dem. Båda är reguljära uttryck som jämförs med statusnamnet utan hänsyn till skiftläge. |
 | `SYNC_PRIVATE_INCIDENTS` | Varje mall för incidenter OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` eller `build-comment-1` | `false` håller incidenter markerade som **Privat incident** utanför Jira: inget ärende skapas för dem, deras ärende flyttas inte, och varken deras anteckningar eller redigeringar publiceras. Ställ in den på `true` för att skicka dem ändå. Varje mall har sin egen kopia, så ställ in den i varje mall som ska skicka dem. |
 | `SYNC_PRIVATE_ALERTS` | Varje mall för larm OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` eller `build-comment-1` | Samma sak för larm markerade som **Privat larm**: `false` håller dem utanför Jira på samma sätt, och `true` skickar dem ändå. Ställ in den i varje mall för larm som ska skicka dem. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Kopplar ett Jira-statusnamn till ett OneUptime-statusnamn, t.ex. `{ 'In Review': 'Monitoring' }`. Statusar som inte står här går efter Jiras statuskategori: In Progress kvitterar incidenten eller larmet, Done löser det, och To Do motsvarar ingenting. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Kopplar ett Jira-statusnamn till ett OneUptime-statusnamn, t.ex. `{ 'In Review': 'Monitoring' }`. Statusar som inte står här går efter Jiras statuskategori: In Progress kvitterar incidenten eller larmet, Done löser det, och To Do motsvarar ingenting. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Kopplar en Jira-prioritet, skriven med gemener, till `0` (din högsta allvarlighetsgrad), `1` eller `2` (den lägsta), med graderna däremellan fördelade över intervallet. Prioriteter som inte står här hamnar i mitten. Med de två allvarlighetsgrader för larm som ett nytt projekt har är `0` High och både `1` och `2` Low, så Medium blir Low om du inte ändrar det till `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | De kommentarshändelser som blir anteckningar. Lägg till `'comment_updated'` för att också kopiera redigeringar — varje redigering blir en ny anteckning — och kryssa även i **Comment updated** på Jira-webhooken. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | De Jira-fält, med gemener, vars ändringar inte är värda en anteckning. En ändring utelämnas när antingen fältets ID eller namn står på listan, och det är så `'rank'` fångar Rank, ett anpassat fält som kommer med ett ID som `customfield_10019`. Status står på listan eftersom statusmallen hanterar den. |
@@ -271,7 +271,7 @@ Privata anteckningar och redigeringskommentarer markeras som interna av `propert
 ### Begränsningar
 
 - **Bara Jira Cloud.** Mallarna anropar Jira Clouds REST API v3 med Basic-autentisering. Data Center har ingen v3 och tar en personlig åtkomsttoken som `Bearer`, så varje API-block behöver ändringarna i [Jira Data Center](#jira-data-center): sökvägar som `/rest/api/2/...`, vanliga strängar i stället för innehåll i Atlassian Document Format, och rubriken. Blocken `find-issue-1` ändras mest: Data Center har ingen `/search/jql`, så de måste göra en `POST` till `/rest/api/2/search` i stället.
-- **Incidenter som deklareras från Jira är tysta.** De skapas dolda från dina statussidor, utan att statussidornas prenumeranter aviseras, eftersom texten i ett ärende inte skrevs för kunder. För att visa en slår du på **Synlig på statussidan** på incidentens sida **Inställningar** (se [Hålla en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), eller ändrar `isVisibleOnStatusPage` och `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` i mallens `create-incident-1`-block.
+- **Incidenter som deklareras från Jira är tysta.** De skapas dolda från dina statussidor, utan att statussidornas prenumeranter aviseras, eftersom texten i ett ärende inte skrevs för kunder. För att visa en slår du på **Synlig på statussidan** på incidentens sida **Inställningar** (se [Hålla en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), eller slår på **Show On Status Pages** under **Fler fält** i mallens `incident-from-another-tool-1`-block.
 - **Privata incidenter och larm stannar i OneUptime.** Mallarna OneUptime → Jira hoppar över dem, och varje överhopp står i **Loggar → Körningar**. För att skicka dem ändå ställer du in `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` på `true`. Att göra en post privat senare stoppar synkroniseringen från och med då, men tar inte tillbaka det som Jira redan har. Mallarna Jira → OneUptime kontrollerar inte detta, så kommentarer, redigeringar och statusändringar på ett kopplat ärende når fortfarande en privat post.
 - **Inget går bakåt.** Att öppna ett Jira-ärende igen ändrar ingenting i OneUptime, och en status i kategorin To Do motsvarar ingen status. Se [Ordningen är en verklig begränsning](/docs/incidents/states-and-severities#ordningen-är-en-verklig-begränsning-inte-en-visningspreferens). Övergångsmallarna flyttar heller aldrig ett ärende till en tidigare statuskategori.
 - **Varje larm får ett ärende.** Utom privata larm skapar mallen för larm som skapar ärenden ett ärende för varje larm, även vart och ett som en monitor utlöser. [Vad som skiljer sig för larm](#vad-som-skiljer-sig-för-larm) visar hur du lägger till ett villkor.
@@ -286,7 +286,7 @@ Privata anteckningar och redigeringskommentarer markeras som interna av `propert
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **Samma händelse kan komma två gånger.** Jira försöker igen med en leverans som misslyckades med ett serverfel eller fick timeout. Om OneUptime redan hade startat körningen lägger mallarna för kommentarer och ärendeändringar till en andra anteckning. Mallarna som skapar en post skapar ingen andra: de frågar först Jira efter ärendets etiketter, och när ett nytt försök kommer har den första körningen redan satt etikett på ärendet. Det hjälper inte när den första körningen skapade posten men Jira nekade etiketterna: körningen slutar med en `⚠️`-rad, och du måste lägga till etiketterna för hand.
+- **Samma händelse kan komma två gånger.** Jira försöker igen med en leverans som misslyckades med ett serverfel eller fick timeout. Om OneUptime redan hade startat körningen lägger mallarna för kommentarer och ärendeändringar till en andra anteckning. Mallarna som skapar en post skapar ingen andra: de frågar först Jira efter ärendets etiketter, och när ett nytt försök kommer har den första körningen redan satt etikett på ärendet. Det hjälper inte när den första körningen skapade posten men Jira nekade etiketterna: körningen misslyckas vid `link-issue-1`, och du måste lägga till etiketterna för hand.
 
 ## Bygg det själv
 

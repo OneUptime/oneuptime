@@ -23,6 +23,8 @@ import AIService, {
   AILogResponse,
 } from "../../../../../Server/Services/AIService";
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
+import AiAnswerCache from "../../../../../Server/Utils/AI/TelemetryAi/AiAnswerCache";
+import { JSONObject } from "../../../../../Types/JSON";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import LlmLog from "../../../../../Models/DatabaseModels/LlmLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -276,5 +278,132 @@ describe("ExceptionDuplicateChecker.check", () => {
     ).rejects.toThrow(
       "OneUptime AI did not return an answer. Please try again.",
     );
+  });
+});
+
+/*
+ * Checked again with the same exceptions and counts, the same verdicts -
+ * kept, so no credit is spent twice; a new occurrence is another key.
+ */
+describe("the kept verdicts", () => {
+  let kept: Map<string, JSONObject>;
+  let modelCalls: number;
+  let found: SimilarExceptionsWithEvidence;
+
+  beforeEach(() => {
+    kept = new Map<string, JSONObject>();
+    modelCalls = 0;
+    found = {
+      target: row(TARGET_ID),
+      similar: [
+        {
+          similar: {
+            telemetryExceptionId: CANDIDATE_ID,
+            exceptionType: "TypeError",
+            message: "m",
+            occurrenceCount: 4,
+            isResolved: false,
+            isArchived: false,
+            reason: SimilarExceptionReason.SameCodeLocation,
+          },
+          exception: row(CANDIDATE_ID),
+        },
+      ],
+    };
+    jest
+      .spyOn(SimilarExceptionsReader, "findWithEvidence")
+      .mockImplementation((async () => {
+        return found;
+      }) as never);
+    jest
+      .spyOn(AIService, "assertProjectAIEnabled")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(AiContextReader, "read").mockResolvedValue(null as never);
+    jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockImplementation((async () => {
+        modelCalls++;
+        return {
+          content: JSON.stringify({
+            items: [{ ref: "C1", verdict: "duplicate", reason: "Same frame." }],
+          }),
+          llmLog: new LlmLog(),
+        } as AILogResponse;
+      }) as never);
+    jest.spyOn(AiAnswerCache, "get").mockImplementation((async (
+      _namespace: string,
+      key: string,
+    ) => {
+      return kept.get(key) || null;
+    }) as never);
+    jest.spyOn(AiAnswerCache, "set").mockImplementation((async (data: {
+      key: string;
+      value: JSONObject;
+    }) => {
+      kept.set(data.key, data.value);
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a second check of the same exceptions spends nothing", async () => {
+    const first: ExceptionDuplicateCheckResult =
+      await ExceptionDuplicateChecker.check({
+        telemetryExceptionId: new ObjectID(TARGET_ID),
+        props: CALLER,
+      });
+    const second: ExceptionDuplicateCheckResult =
+      await ExceptionDuplicateChecker.check({
+        telemetryExceptionId: new ObjectID(TARGET_ID),
+        props: CALLER,
+      });
+
+    expect(modelCalls).toBe(1);
+    expect(second.verdicts).toEqual(first.verdicts);
+  });
+
+  test("a new occurrence of the exception or a candidate checks again", async () => {
+    await ExceptionDuplicateChecker.check({
+      telemetryExceptionId: new ObjectID(TARGET_ID),
+      props: CALLER,
+    });
+
+    found.similar[0]!.exception.occuranceCount = 5;
+
+    await ExceptionDuplicateChecker.check({
+      telemetryExceptionId: new ObjectID(TARGET_ID),
+      props: CALLER,
+    });
+
+    expect(modelCalls).toBe(2);
+  });
+
+  test("kept verdicts are only about the exceptions listed now", async () => {
+    const key: string = ExceptionDuplicateChecker.getCacheKey(found);
+    kept.set(key, {
+      verdicts: [
+        { telemetryExceptionId: CANDIDATE_ID, verdict: "related", reason: "r" },
+        { telemetryExceptionId: OTHER_ID, verdict: "duplicate", reason: "x" },
+      ],
+      generatedAt: "2026-10-30T12:00:00.000Z",
+    });
+
+    const result: ExceptionDuplicateCheckResult =
+      await ExceptionDuplicateChecker.check({
+        telemetryExceptionId: new ObjectID(TARGET_ID),
+        props: CALLER,
+      });
+
+    expect(modelCalls).toBe(0);
+    expect(result.verdicts).toEqual([
+      {
+        telemetryExceptionId: CANDIDATE_ID,
+        verdict: DuplicateVerdictKind.Related,
+        reason: "r",
+      },
+    ]);
+    expect(result.generatedAt.toISOString()).toBe("2026-10-30T12:00:00.000Z");
   });
 });

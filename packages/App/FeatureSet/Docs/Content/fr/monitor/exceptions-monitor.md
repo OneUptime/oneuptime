@@ -41,7 +41,7 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir ce dont le moniteur vous informe
 
-Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Toute exception** ou **Trop d'exceptions**. Chaque choix remplit la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour la configurer vous-même.
+Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Toute exception** ou **Trop d'exceptions**. Chaque choix remplit la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour la configurer vous-même. **Une nouvelle exception**, **Une exception résolue revient** et **Pic d'exceptions** alertent sur une exception vue pour la première fois, sur une exception revenue après que vous l'avez résolue, et sur une hausse bien au-dessus de l'habitude.
 
 ### Choisir les exceptions à compter
 
@@ -53,7 +53,7 @@ Ouvrez **Plus de champs** pour filtrer par service de télémétrie ou entité d
 
 ### Dire quand alerter
 
-Dans **Quand alerter**, choisissez une **Condition**, le **Nombre d'exceptions** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les exceptions correspondantes dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période.
+Dans **Quand alerter**, choisissez une **Condition**, le **Nombre d'exceptions** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les exceptions correspondantes dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période. **Alerter sur** choisit ce que la règle compare : **Exceptions**, **Nouvelles exceptions**, **Exceptions revenues** ou **Une hausse par rapport à l'habitude**. Le graphique n'est tracé que pour **Exceptions**.
 
 ### Choisir ce qui se passe
 
@@ -116,7 +116,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus** ou **Exactement**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
+Les critères d'un moniteur d'exceptions ont quatre sortes de **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **New Exceptions**, **Regressed Exceptions** et **Exception Increase (in %)**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus** ou **Exactement**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
@@ -135,6 +135,9 @@ Un moniteur d'exceptions créé dans « Créer un moniteur » commence avec la r
 | --- | --- | --- |
 | **Toute exception** | **Plus de** `0` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
 | **Trop d'exceptions** | **Plus de** `20` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Une nouvelle exception** | **Nouvelles exceptions**: **Plus de** `0` sur **Dernières 10 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Une exception résolue revient** | **Exceptions revenues**: **Plus de** `0` sur **Dernières 10 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Pic d'exceptions** | **Une hausse par rapport à l'habitude**: **Plus de** `200` sur **Dernières 15 minutes** | Crée une alerte, qui se résout d'elle-même |
 
 Un moniteur d'exceptions créé via l'API ou Terraform sans critères commence avec ces critères :
 
@@ -142,6 +145,18 @@ Un moniteur d'exceptions créé via l'API ou Terraform sans critères commence a
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Supérieur à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
 | Check if … has no exceptions | **Exception Count** **Égal à** `0` | Passe le moniteur en ligne |
+
+## Exceptions nouvelles, revenues et en hausse
+
+Au-delà du nombre d'exceptions, un moniteur d'exceptions peut alerter sur ce qu'un outil de suivi des erreurs met en avant. Chacun n'est lu que lorsqu'un critère le vérifie.
+
+| Type de filtre | Ce qu'il compte dans la fenêtre |
+| --- | --- |
+| **New Exceptions** | Les exceptions correspondantes vues pour la première fois, ni résolues ni archivées. |
+| **Regressed Exceptions** | Les exceptions correspondantes que vous avez résolues, revenues et toujours ouvertes. |
+| **Exception Increase (in %)** | De combien le nombre d'exceptions correspondantes dépasse l'habitude : la veille de la fenêtre, par fenêtre de même durée, au moins une. Dix exceptions après une journée calme donnent 900 %. |
+
+Les exceptions nouvelles et revenues sont filtrées par service, type d'exception, environnement et message ; le filtre par entité d'infrastructure ne s'applique qu'aux deux autres.
 
 ## Exemple : seulement les exceptions de production
 

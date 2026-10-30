@@ -22,10 +22,13 @@ You rarely need it open while you build. Every block's settings end with **How t
 | Summarize, classify or draft text                     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Take one path or another depending on a value         | [Conditions](#conditions)                                         |
 | Take one of several paths depending on a value        | [Switch / Case](#switch-case)                                     |
+| Go on only when a few lines of JavaScript say so      | [Check With JavaScript](#check-with-javascript)                   |
 | Reshape data between two blocks                       | [JSON](#json) or [Custom Code](#custom-code)                      |
 | Wait before the next block                            | [Sleep](#sleep)                                                   |
 | Start another workflow                                | [Execute Workflow](#execute-workflow)                             |
 | Read or change incidents, monitors and other records  | [OneUptime data components](#oneuptime-data-components)          |
+| Open, acknowledge and resolve incidents or alerts for another tool's problems | [Incidents and alerts from other tools](#incidents-and-alerts-from-other-tools) |
+| Acknowledge or close a Zabbix problem                 | [Zabbix](#zabbix)                                                 |
 
 A dedicated block beats a generic one: the Slack block knows Slack's limits, and a record block knows the record's fields, so you get clearer errors and logs than from an **API** block doing the same job.
 
@@ -44,7 +47,7 @@ flowchart TB
 - **Outputs** are the dots on the bottom edge. Most blocks have **Success** and **Error**; [Conditions](#conditions) has **Yes** and **No**, and [Switch / Case](#switch-case) has one for each of its cases, and **Default**.
 - **Returns** are the values a block hands to later blocks, such as an API's **Response Body**. A later block reads one with `{{local.components.<block ID>.returnValues.<value ID>}}`; the **{ }** button in a setting inserts it for you. See [Variables](/docs/workflows/variables#component-outputs-data-from-earlier-blocks).
 
-A block that takes **Error** does not fail the run: the run follows the **Error** path, or ends there if nothing is connected to it. A required setting left empty, or a setting that can never work, stops the run with an error instead.
+A block that takes **Error** hands the failure to the blocks connected to **Error**, and the run carries on there. With nothing connected to **Error**, the run fails: whatever else it was doing still runs, then it ends with the status **Error**, and the block's entry in the run's **Steps** says why. A required setting left empty, or a setting that can never work, stops the run with an error instead.
 
 ## API
 
@@ -64,6 +67,8 @@ Make an HTTP request to any URL. There is one block per method: **API Get (JSON)
 Either way, the block returns **Response Status**, **Response Headers** and **Response Body**, plus **Error** with the reason when it failed. Read one field of a JSON response by adding its name to the reference, as in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Redirects are not followed, so point the block at the address that answers. Requests go out from OneUptime: a URL that resolves to a private network address is refused unless a self-hosted administrator allows it, and the run stops with the reason. See [Outbound network access](/docs/workflows/configuration#outbound-network-access).
+
+**API Get By ID (JSON)** reads one item by an ID that came from somewhere else, such as the issue key a webhook sent. Put `{id}` in its **URL** where the ID goes, as in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, and the ID in **ID**. The block puts the ID in only when it is a plain ID, at most 200 letters, digits, dashes and underscores, and percent-encodes it all the same: anything else, such as `x/../users`, takes **Error** before any request is sent, so text from outside cannot point the request somewhere else. Otherwise it works as **API Get (JSON)** does, and returns the same values.
 
 ## AI
 
@@ -219,10 +224,9 @@ To page only when something is true, put [If / Else](#conditions) in front of th
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-When you create a workflow, the templates under **On-Call** have this one ready, and one that pages by severity with **Switch / Case**. A template leaves who to page for you: the workflow opens in the Builder, where each paging block says **Click to set up**.
+When you create a workflow, the templates under **On-Call** have this one ready, and one that pages by severity with **Switch / Case**. The **Create a workflow** dialog asks who each of a template's paging blocks pages, so the workflow opens with them set. A paging block you add in the Builder says **Click to set up** until you pick who it pages.
 
 | Setting                                                             | What it does                                                                                                                                                         |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -270,6 +274,27 @@ A later block reads the short title as `{{local.components.javascript-1.returnVa
 The code runs in a sandbox with `args`, `console.log` (written to the run's log), `axios` for HTTP requests, `crypto` and `sleep`. It has no file system or process, and its requests are held to the same address rules as the API block. It has 5 seconds by default; a self-hosted install changes that with `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Success** fires with the returned **Value**, and **Error** when the code throws or runs out of time, with the message in **Error**. For heavier scripting, use a [Runbook](/docs/runbooks/index) instead.
+
+## Check With JavaScript
+
+Run a few lines of JavaScript, then take **Yes** or **No** by what they return: a [Custom Code](#custom-code) block and an [If / Else](#conditions) after it, in one block. Use it when one comparison is not enough to decide, such as reading what another tool sent and skipping what the workflow should leave alone.
+
+| Setting             | What it does                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **JavaScript Code** | Your code. `return true` takes **Yes**. To hand values on too, return an object with `proceed: true`, the values and a `reason`.   |
+| **Arguments**       | A JSON object of values to hand to the code, which reads them as `args`, as in **Run Custom JavaScript**.                         |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+Only `true`, or an object whose `proceed` is `true`, takes **Yes**: anything else takes **No**, even a number or a piece of text. The block returns **Value**, what the code returned, which a later block reads as `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, and **Reason**, the code's `reason` or what it returned, in a sentence, which the run's **Steps** tab shows beside the output taken.
+
+The code runs as **Run Custom JavaScript** runs it: in the same sandbox, with the same `args`, `console.log` and `axios`, and with the same time limit. When it throws or runs out of time, the block takes **Error**.
 
 ## JSON
 
@@ -358,6 +383,50 @@ Start another workflow of the same project. Your workflow carries on without wai
 **Out** fires once the other workflow is queued. **Error** fires when it can't be: it isn't found, is turned off or archived, or starting it would loop.
 
 Use it to share common logic: build a "post to the incident channel" workflow once, and start it from every workflow that needs it. A chain of workflows that start each other can't loop back on itself and is at most 10 deep. See [Configuration & Safety](/docs/workflows/configuration#limit-on-calling-other-workflows).
+
+## Incidents and alerts from other tools
+
+Keep one incident, or one alert, for each problem another tool tells you about, matched by that tool's own ID for it. **Incident From Another Tool** and **Alert From Another Tool** are what the Zabbix, Huntress, Jira and Dynamics 365 templates are built on, and they work for any tool that can call a workflow's [Webhook trigger](/docs/workflows/triggers#webhook). In the **Add Component** panel, they are under **From Other Tools**.
+
+Each run hands the block one event: **What Happened**, and **Outside ID**, the tool's ID for the problem. The block looks for the record that keeps that ID, and does what **What Happened** says:
+
+| What Happened                                         | What the block does                                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `open`, `problem`, `firing`, `triggered` or `created` | Opens an incident, or creates an alert, from **Title**, **Description** and **Severity**, unless a record keeps the ID already. |
+| `acknowledge` or `acknowledged`                       | Moves the record to your first acknowledged state, with **Note** on its timeline as why.                                        |
+| `resolve`, `resolved`, `recovery`, `ok` or `closed`   | Moves the record to your first resolved state, with **Note** on its timeline as why.                                            |
+| `note`, `update` or `comment`                         | Adds **Note** to the record as a private note.                                                                                   |
+| The name of one of your states                        | Moves the record to that state. Write `state:` before a name that is one of these words, such as `state: Open`.                 |
+
+| Output                                       | When                                                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Opened**, or **Created** on the alert block | It opened a new record. Connect a paging block here, so that only a new problem pages.                                    |
+| **Updated**                                  | It moved the record, or added the note.                                                                                    |
+| **Unchanged**                                | There was nothing to do: no record keeps the ID, the record is at that state or past it, or **What Happened** is empty.    |
+| **Error**                                    | It could not read or change the record. With nothing connected here, the run fails.                                       |
+
+A record only ever moves forward, and a resolved one not at all, so when both tools change it, neither undoes the other. It keeps the ID in a custom field, `externalId` unless **Outside ID Field** names another, and only that field is written, so the record's other custom fields keep their values. An ID a record keeps is never opened again, even once that record is resolved: use an ID that is new for each problem, as a Zabbix event ID or a Huntress report number is. To act on a record by its own ID instead, as the Jira templates do with the ID an issue's labels carry, put it in **Incident ID** or **Alert ID**.
+
+**Severity** names one of your severities by its name or its ID, in any case, or by where it sits among them: `most severe`, `middle` or `least severe`. That is how a tool's own levels are spread over the severities you named yourself. Left empty, or naming none of them, it is your most severe, and the run's log says so. A new incident is kept off your status pages, and their subscribers are not told about it, because another tool's text is written for that tool's users: turn on **Show On Status Pages** to show it.
+
+Under **More fields**, **Reason** is why on the record's timeline when it moves, and **Note** is then added beside it as a private note, for a tool that says something as it acknowledges or resolves. **Custom Fields** gives a new record more custom fields, as a JSON object, **Labels** the IDs of its labels, separated by commas, and **Affected Resources** the resources it is about, as on **Create One Incident**. **Note Instead Of Resolving** adds the note and leaves the record for people to resolve. The block returns **Summary**, what it did in a sentence, and the record, so a later block reads its ID as `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+
+## Zabbix
+
+Acknowledge or close a problem in Zabbix, or add a message to it, through Zabbix's API. The block is called **Update Zabbix Problem**, and the [Zabbix templates](/docs/integrations/zabbix) send what happens in OneUptime back to Zabbix with it.
+
+| Setting        | What it does                                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Zabbix URL** | The address you open Zabbix at, such as `https://zabbix.example.com`. Requests go to its `api_jsonrpc.php`.                                                                       |
+| **API Token**  | An API token of a Zabbix user who may acknowledge, comment on and close problems. Keep it in a secret variable.                                                                   |
+| **Event ID**   | The problem's event ID, usually the one an incident or an alert keeps in its custom fields.                                                                                        |
+| **What To Do** | `acknowledge`, `close` or `message`. Left empty, Zabbix is not updated.                                                                                                            |
+| **Message**    | What Zabbix keeps on the problem, at most 2,048 characters: a longer message is cut.                                                                                               |
+| **Zabbix 6.0** | Under **More fields**. Zabbix 6.0 reads the token from the request's body, not from its `Authorization` header: turn this on for it, and off again when you upgrade, because Zabbix 7.2 and later refuse a token in the body. |
+
+To acknowledge or close, the block reads the problem first. A problem Zabbix resolved already, or acknowledged already when that is all you ask, is left as it is, and the block takes **Unchanged**, as it does for a problem Zabbix does not have, or the token's user cannot see. A problem whose trigger does not allow closing problems by hand is acknowledged instead, and its message says it stays open until Zabbix sees it recover.
+
+**Updated** fires when Zabbix took the update, and **Error** when Zabbix could not be reached or refused it, with Zabbix's reason: Zabbix answers a refused request with a success status, so the block reads what Zabbix answered rather than its status. It returns **Summary**, what it did in a sentence.
 
 ## OneUptime data components
 

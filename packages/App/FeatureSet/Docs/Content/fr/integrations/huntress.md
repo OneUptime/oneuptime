@@ -51,11 +51,11 @@ L'incident garde le numéro du rapport dans ses champs personnalisés, sous `hun
 :::steps
 ### Créer le workflow
 
-Ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez la catégorie **Huntress**, choisissez **Open an incident for each Huntress incident report**, cliquez sur **Utiliser ce modèle** et créez le workflow. Il s'ouvre dans le **Constructeur**, désactivé.
+Ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez la catégorie **Huntress**, choisissez **Open an incident for each Huntress incident report** et cliquez sur **Utiliser ce modèle**.
 
 ### Choisir qui alerter
 
-Cliquez sur l'étape **Page an On-Call Policy**, choisissez les **Politiques d'astreinte** à alerter et enregistrez l'étape.
+La boîte de dialogue demande ensuite qui alerter : sous **Who to page for high and critical reports**, choisissez les politiques d'astreinte à alerter, ou aucune pour n'alerter personne, et cliquez sur **Créer un flux de travail**. Le workflow s'ouvre dans le **Constructeur**, désactivé. Pour changer plus tard qui il alerte, cliquez sur son étape **Page an On-Call Policy** et changez ses **Politiques d'astreinte**.
 
 ### Ajouter un point de terminaison webhook dans Huntress
 
@@ -79,7 +79,7 @@ Activez **Activé** en haut du **Constructeur**. Dans Huntress, ouvrez le menu d
 
 ## Ce que fait le workflow
 
-Le modèle prend un chemin pour chaque **Event**, avec un **Switch / Case** après le déclencheur :
+Après le déclencheur, **Incident From Another Tool** fait ce que demande chaque **Event**, par le numéro du rapport :
 
 | Event | Ce que fait le workflow |
 | --- | --- |
@@ -87,7 +87,7 @@ Le modèle prend un chemin pour chaque **Event**, avec un **Switch / Case** apr�
 | `comment-added` | Retrouve l'incident du rapport et y ajoute le commentaire comme note privée. |
 | `closed` | Retrouve l'incident du rapport et le résout, sauf s'il est déjà résolu. La raison figure sur sa chronologie : Huntress a clos le rapport. |
 
-C'est un workflow comme un autre, vous pouvez donc changer ce qu'il fait : n'alerter que pour les rapports critiques en changeant ce que compare le **If / Else** après **Create One Incident**, publier chaque rapport dans un canal de discussion avec une étape Slack ou Microsoft Teams, ou orienter chaque organisation vers sa propre politique d'astreinte avec un **Switch / Case** sur **Organization**. Chaque exécution figure dans les exécutions du workflow, avec ce que chaque étape a fait.
+C'est un workflow comme un autre, vous pouvez donc changer ce qu'il fait : n'alerter que pour les rapports critiques en changeant ce que compare le **If / Else** après **Incident From Another Tool**, publier chaque rapport dans un canal de discussion avec une étape Slack ou Microsoft Teams, ou orienter chaque organisation vers sa propre politique d'astreinte avec un **Switch / Case** sur **Organization**. Chaque exécution figure dans les exécutions du workflow, avec ce que chaque étape a fait.
 
 ### Gravités
 
@@ -174,7 +174,7 @@ Le workflow a été supprimé ou archivé, son déclencheur n'est plus **Huntres
 :::
 
 :::details Aucun incident n'a été ouvert
-Ouvrez les exécutions du workflow et l'exécution du rapport. Si **Create One Incident** a échoué parce que la gravité d'incident est vide, le projet n'a aucune gravité d'incident : ajoutez-en une sous **Incidents → Paramètres → Gravité de l'incident**.
+Ouvrez les exécutions du workflow et l'exécution du rapport. Si **Incident From Another Tool** a échoué avec `This project has no incident severities to put the incident at.`, ajoutez-en une sous **Incidents → Paramètres → Gravité de l'incident**.
 :::
 
 :::details Personne n'a été alerté

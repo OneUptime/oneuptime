@@ -51,11 +51,11 @@ sequenceDiagram
 :::steps
 ### 워크플로 만들기
 
-**워크플로**를 열고 **워크플로 생성**을 클릭합니다. **또는 템플릿에서 시작**에서 카테고리 **Huntress**를 고르고, **Open an incident for each Huntress incident report**를 고른 뒤 **이 템플릿 사용**을 클릭하고 워크플로를 만듭니다. 워크플로는 꺼진 상태로 **빌더**에서 열립니다.
+**워크플로**를 열고 **워크플로 생성**을 클릭합니다. **또는 템플릿에서 시작**에서 카테고리 **Huntress**를 고르고, **Open an incident for each Huntress incident report**를 고른 뒤 **이 템플릿 사용**을 클릭합니다.
 
 ### 호출할 대상 고르기
 
-**Page an On-Call Policy** 단계를 클릭하고, 호출할 **온콜 정책**을 고른 뒤 단계를 저장합니다.
+이어서 대화 상자가 누구를 호출할지 묻습니다. **Who to page for high and critical reports** 아래에서 호출할 온콜 정책을 고르거나, 아무도 호출하지 않으려면 고르지 말고, **워크플로 생성**을 클릭합니다. 워크플로는 꺼진 상태로 **빌더**에서 열립니다. 나중에 호출 대상을 바꾸려면 **Page an On-Call Policy** 단계를 클릭하고 그 **온콜 정책**을 바꾸세요.
 
 ### Huntress에 웹훅 엔드포인트 추가하기
 
@@ -79,7 +79,7 @@ Huntress에서 엔드포인트 메뉴(⋯)를 열고 **View Signing Secret**을 
 
 ## 워크플로가 하는 일
 
-템플릿은 트리거 뒤의 **Switch / Case**로 **Event**마다 다른 경로를 따릅니다.
+트리거 뒤에서 **Incident From Another Tool**이 보고서 번호로 **Event**마다 요청하는 일을 합니다.
 
 | Event | 워크플로가 하는 일 |
 | --- | --- |
@@ -87,7 +87,7 @@ Huntress에서 엔드포인트 메뉴(⋯)를 열고 **View Signing Secret**을 
 | `comment-added` | 보고서의 인시던트를 찾아 댓글을 비공개 메모로 추가합니다. |
 | `closed` | 보고서의 인시던트를 찾아, 아직 해결되지 않았다면 해결합니다. 이유는 타임라인에 남습니다: Huntress가 보고서를 닫았습니다. |
 
-다른 워크플로와 같으므로 하는 일을 바꿀 수 있습니다. **Create One Incident** 뒤의 **If / Else**가 비교하는 값을 바꿔 심각 보고서에만 호출하거나, Slack 또는 Microsoft Teams 단계로 보고서마다 채팅 채널에 게시하거나, **Organization**에 대한 **Switch / Case**로 조직마다 자기 온콜 정책으로 보낼 수 있습니다. 모든 실행은 워크플로의 실행 목록에 각 단계가 한 일과 함께 표시됩니다.
+다른 워크플로와 같으므로 하는 일을 바꿀 수 있습니다. **Incident From Another Tool** 뒤의 **If / Else**가 비교하는 값을 바꿔 심각 보고서에만 호출하거나, Slack 또는 Microsoft Teams 단계로 보고서마다 채팅 채널에 게시하거나, **Organization**에 대한 **Switch / Case**로 조직마다 자기 온콜 정책으로 보낼 수 있습니다. 모든 실행은 워크플로의 실행 목록에 각 단계가 한 일과 함께 표시됩니다.
 
 ### 심각도
 
@@ -174,7 +174,7 @@ Huntress와 OneUptime 서버의 시계가 5분 넘게 차이 나거나, 이전 �
 :::
 
 :::details 인시던트가 열리지 않았습니다
-워크플로의 실행 목록에서 그 보고서의 실행을 엽니다. 인시던트 심각도가 비어 있어 **Create One Incident**가 실패했다면 프로젝트에 인시던트 심각도가 없는 것입니다. **인시던트 → 설정 → 인시던트 심각도**에서 추가하세요.
+워크플로의 실행 목록에서 그 보고서의 실행을 엽니다. **Incident From Another Tool**이 `This project has no incident severities to put the incident at.`로 실패했다면 **인시던트 → 설정 → 인시던트 심각도**에서 추가하세요.
 :::
 
 :::details 아무도 호출되지 않았습니다

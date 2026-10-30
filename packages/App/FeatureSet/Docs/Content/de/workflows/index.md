@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> Die Vorlage **Forward new incidents to another system** baut denselben Workflow für Sie. Sie finden sie unter **Vorfälle**, wenn Sie einen Workflow anlegen.
+> Die Vorlage **Forward new incidents to another system** baut diesen Workflow für Sie, ohne den Log-Baustein: Ist mit **Error** nichts verbunden, lässt eine fehlgeschlagene Anfrage die Ausführung fehlschlagen, und die **Schritte** der Ausführung sagen, warum. Sie finden sie unter **Vorfälle**, wenn Sie einen Workflow anlegen.
 
 :::steps
 ### Den Workflow anlegen

@@ -16,10 +16,10 @@ flowchart TB
     fired["Alert raised"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["Message in<br/>your chat"]
-    step -->|"Error"| log["Log: why it<br/>was not delivered"]
+    step -->|"Error"| failed["The run fails,<br/>and says why"]
 ```
 
-The step sends the **Message Text** to the chat, as your bot, through Telegram's Bot API. It takes its **Success** output when Telegram takes the message, and its **Error** output, with Telegram's reason, when Telegram refuses it. The template connects a **Log** step to **Error**, so a run that could not send says why.
+The step sends the **Message Text** to the chat, as your bot, through Telegram's Bot API. It takes its **Success** output when Telegram takes the message, and its **Error** output, with Telegram's reason, when Telegram refuses it. With nothing connected to **Error**, as in the template, a run that could not send fails, and its **Steps** say why.
 
 ## Before you begin
 
@@ -53,7 +53,7 @@ Start from the template, which builds the whole workflow for alerts, or from scr
 3. Keep the name, **Notify Telegram on new alert**, or change it, and click **Next**.
 4. Paste the token into **Telegram Bot Token** and the ID into **Telegram Chat ID**, and click **Create Workflow**.
 
-The workflow opens in the **Builder** with three steps: **On Create Alert**; **Send Message to Telegram**, which sends the alert's number, title, severity and state; and a **Log** step on its **Error** output. The token is saved as the workflow's secret variable `telegramBotToken`, and the ID as `telegramChatId`.
+The workflow opens in the **Builder** with two steps: **On Create Alert**, and **Send Message to Telegram**, which sends the alert's number, title, severity and state. The token is saved as the workflow's secret variable `telegramBotToken`, and the ID as `telegramChatId`.
 @tab From scratch
 1. Save the token as a secret global variable: go to **Workflows → Global Variables**, click **Create Workflow Variable**, name it `TELEGRAM_BOT_TOKEN`, and click **Next**. Paste the token into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
 2. Go to **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Switch **Enabled** on at the top of the **Builder**. From now on, every new alert is sent to the chat.
 
-To test it without raising an alert, click **Run Workflow** and pick an alert you already have under **Alert**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the chat. If the step takes **Error** instead, the **Log** step's line says why: see [Troubleshooting](#troubleshooting).
+To test it without raising an alert, click **Run Workflow** and pick an alert you already have under **Alert**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the chat. If the step takes **Error** instead, the run fails, and the step's entry in **Steps** says why: see [Troubleshooting](#troubleshooting).
 :::
 
 ## Tips
@@ -85,7 +85,7 @@ To test it without raising an alert, click **Run Workflow** and pick an alert yo
 
 ## Troubleshooting
 
-When the step takes **Error**, the run says why: the template's **Log** step writes `❌ Telegram could not deliver the alert notification:`, Telegram's reason, and a reminder that the bot has to be in the chat.
+When the step takes **Error**, the run fails, and the step's entry in the run's **Steps** gives Telegram's reason. The bot has to be in the chat, so check that first.
 
 :::details "Bad Request: chat not found"
 The **Chat ID** is wrong, or the bot can't see the chat: add the bot to the group, make it an administrator of the channel, or ask the person to start a chat with the bot. A group's ID starts with `-`.

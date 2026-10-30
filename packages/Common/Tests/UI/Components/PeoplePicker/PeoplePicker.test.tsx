@@ -180,6 +180,7 @@ interface HarnessProps {
   ignoreChanges?: boolean;
   disabled?: boolean;
   error?: string;
+  autoFocus?: boolean;
 }
 
 function Harness(props: HarnessProps): ReactElement {
@@ -205,6 +206,7 @@ function Harness(props: HarnessProps): ReactElement {
         ariaLabelledby="owners-label"
         disabled={props.disabled}
         error={props.error}
+        autoFocus={props.autoFocus}
       />
     </div>
   );
@@ -631,6 +633,25 @@ describe("PeoplePicker", () => {
     expect(
       screen.queryByRole("button", { name: "Remove Ada Lovelace" }),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * A dialog step that asks only who (Create a workflow's who-to-page step)
+   * starts on the button, as a form starts in its first input: the keyboard
+   * is where the step's one question is, not on the page behind the dialog.
+   */
+  test("starts with the focus on its button when told to, and only then", () => {
+    render(<Harness autoFocus={true} />);
+
+    expect(addButton()).toHaveFocus();
+    // Focused, not opened: the list waits for Enter or a click.
+    expect(addButton()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    cleanup();
+    render(<Harness />);
+
+    expect(addButton()).not.toHaveFocus();
   });
 
   test("shows the field's error, tied to the group", () => {

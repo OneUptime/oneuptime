@@ -1694,10 +1694,10 @@ test.describe("being told when Kubernetes warns", () => {
       line.getByTestId("kubernetes-warning-alerts-turn-on"),
     ).toHaveCount(0);
 
-    // The Recommendations count it as created: 1 of 18, under Already created.
+    // The Recommendations count it as created: 1 of 19, under Already created.
     await page.goto(`${RECOMMENDATIONS_PAGE}?alerting=on`);
     await expect(
-      page.getByText("1 of 18 recommended monitors created"),
+      page.getByText("1 of 19 recommended monitors created"),
     ).toBeVisible();
     await page
       .getByRole("button", {

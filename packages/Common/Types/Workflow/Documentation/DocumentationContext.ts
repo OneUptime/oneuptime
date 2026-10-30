@@ -69,12 +69,14 @@ export interface SampleValue {
  */
 const MAIN_RETURN_VALUE_BY_COMPONENT: Partial<Record<string, string>> = {
   [ComponentID.ApiGet]: "response-body",
+  [ComponentID.ApiGetById]: "response-body",
   [ComponentID.ApiPost]: "response-body",
   [ComponentID.ApiPut]: "response-body",
   [ComponentID.ApiPatch]: "response-body",
   [ComponentID.ApiDelete]: "response-body",
   [ComponentID.AIGenerateText]: "response",
   [ComponentID.JavaScriptCode]: "returnValue",
+  [ComponentID.JavaScriptCheck]: "returnValue",
   [ComponentID.IncomingEmail]: "subject",
 };
 
