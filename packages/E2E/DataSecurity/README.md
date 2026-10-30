@@ -39,7 +39,9 @@ Stubbed:
 The data: four stores (a public S3 bucket of customer exports holding card numbers and email
 addresses, an RDS database, a BigQuery warehouse and a service's logs), their findings with masked
 samples, the bucket's access, scans and owners, five issues (one an accepted risk), and the bucket's
-and its public-read issue's timelines.
+and its public-read issue's timelines. The public-read issue links to the security case, the alert
+and the incident it started, and the project's settings raise alerts and declare incidents, with two
+alert and two incident severities to pick from.
 
 Each issue is of one of the catalog's own checks (`getDataSecurityCheck`), titled and grouped as
 the server writes it; the fixture throws on a check id the catalog has not. Each store's open issue

@@ -28651,7 +28651,7 @@
   "Assignee Changed": "Assignee Changed",
   "Case Updated": "Case Updated",
   "Entity Activity": "Entity Activity",
-  "Incident Declared": "Incident Declared",
+  "Incident Declared": "Hendelse erklært",
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
@@ -38418,5 +38418,6 @@
   "Declare Incidents": "Erklær hendelser",
   "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Erklær en hendelse, som starter hendelsesprosessen deres - vakt, statussider og en etteranalyse -, når et kritisk problem åpnes.",
   "Declare incidents for Critical issues": "Erklær hendelser for kritiske problemer",
-  "The severity of the incidents declared. The project's most severe while none is picked.": "Alvorlighetsgraden for hendelsene som erklæres. Prosjektets mest alvorlige så lenge ingen er valgt."
+  "The severity of the incidents declared. The project's most severe while none is picked.": "Alvorlighetsgraden for hendelsene som erklæres. Prosjektets mest alvorlige så lenge ingen er valgt.",
+  "Alert Resolved": "Varsel løst"
 }

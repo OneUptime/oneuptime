@@ -28651,7 +28651,7 @@
   "Assignee Changed": "Assignee Changed",
   "Case Updated": "Case Updated",
   "Entity Activity": "Entity Activity",
-  "Incident Declared": "Incident Declared",
+  "Incident Declared": "حادثه اعلام شد",
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
@@ -38418,5 +38418,6 @@
   "Declare Incidents": "اعلام حادثه‌ها",
   "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "هنگام باز شدن یک مسئله بحرانی، یک حادثه اعلام شود که فرایند رسیدگی به حادثه شما را آغاز می‌کند: آنکال، صفحات وضعیت و گزارش پس از حادثه.",
   "Declare incidents for Critical issues": "اعلام حادثه برای مسائل بحرانی",
-  "The severity of the incidents declared. The project's most severe while none is picked.": "شدت حادثه‌های اعلام‌شده. تا زمانی که چیزی انتخاب نشده باشد، شدیدترین سطح پروژه."
+  "The severity of the incidents declared. The project's most severe while none is picked.": "شدت حادثه‌های اعلام‌شده. تا زمانی که چیزی انتخاب نشده باشد، شدیدترین سطح پروژه.",
+  "Alert Resolved": "هشدار برطرف شد"
 }

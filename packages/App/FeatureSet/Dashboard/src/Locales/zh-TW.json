@@ -28651,7 +28651,7 @@
   "Assignee Changed": "Assignee Changed",
   "Case Updated": "Case Updated",
   "Entity Activity": "Entity Activity",
-  "Incident Declared": "Incident Declared",
+  "Incident Declared": "已宣告事件",
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
@@ -38418,5 +38418,6 @@
   "Declare Incidents": "宣告事件",
   "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "出現嚴重問題時宣告事件，啟動你的事件處理流程：待命、狀態頁面與事後分析。",
   "Declare incidents for Critical issues": "為嚴重問題宣告事件",
-  "The severity of the incidents declared. The project's most severe while none is picked.": "所宣告事件的嚴重程度。未選取時使用專案的最高嚴重程度。"
+  "The severity of the incidents declared. The project's most severe while none is picked.": "所宣告事件的嚴重程度。未選取時使用專案的最高嚴重程度。",
+  "Alert Resolved": "警示已解決"
 }

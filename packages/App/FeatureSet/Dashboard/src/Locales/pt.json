@@ -28651,7 +28651,7 @@
   "Assignee Changed": "Assignee Changed",
   "Case Updated": "Case Updated",
   "Entity Activity": "Entity Activity",
-  "Incident Declared": "Incident Declared",
+  "Incident Declared": "Incidente declarado",
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
@@ -38418,5 +38418,6 @@
   "Declare Incidents": "Declarar incidentes",
   "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Declarar um incidente, que aciona o seu processo de incidentes - plantão, páginas de status e um post-mortem -, quando um problema Crítico for aberto.",
   "Declare incidents for Critical issues": "Declarar incidentes para problemas Críticos",
-  "The severity of the incidents declared. The project's most severe while none is picked.": "A gravidade dos incidentes declarados. A mais grave do projeto enquanto nenhuma for escolhida."
+  "The severity of the incidents declared. The project's most severe while none is picked.": "A gravidade dos incidentes declarados. A mais grave do projeto enquanto nenhuma for escolhida.",
+  "Alert Resolved": "Alerta resolvido"
 }

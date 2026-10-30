@@ -30,6 +30,10 @@ const NOW: Date = new Date("2026-10-27T12:00:00.000Z");
 const BASE: string = `/dashboard/${PROJECT_ID}/data-security`;
 const BUCKET: string = "20000000-0000-4000-8000-000000000001";
 const PUBLIC_BUCKET_ISSUE: string = "30000000-0000-4000-8000-000000000001";
+// The security case, alert and incident the public bucket's Critical issue started.
+const ITS_CASE: string = "d0000000-0000-4000-8000-000000000001";
+const ITS_ALERT: string = "e0000000-0000-4000-8000-000000000001";
+const ITS_INCIDENT: string = "f0000000-0000-4000-8000-000000000001";
 
 const PATHS: Readonly<Record<string, string>> = {
   overview: BASE,
@@ -42,6 +46,7 @@ const PATHS: Readonly<Record<string, string>> = {
   issue: `${BASE}/issues/${PUBLIC_BUCKET_ISSUE}`,
   issueTimeline: `${BASE}/issues/${PUBLIC_BUCKET_ISSUE}/timeline`,
   checks: `${BASE}/settings/checks`,
+  scanning: `${BASE}/settings/scanning`,
 };
 
 const SCREENSHOTS: string = path.resolve(
@@ -348,6 +353,56 @@ test.describe("Fix it from here", () => {
         },
       ),
     ).toEqual([]);
+  });
+});
+
+test.describe("what a Critical issue started", () => {
+  test("its page links to its security case, its alert and its incident", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["issue"]!);
+
+    const header: Locator = page.getByTestId("data-security-issue-header");
+    const links: Array<[string, string]> = [
+      [
+        "Security case",
+        `/dashboard/${PROJECT_ID}/security-events/cases/${ITS_CASE}`,
+      ],
+      ["Alert", `/dashboard/${PROJECT_ID}/alerts/${ITS_ALERT}`],
+      ["Incident", `/dashboard/${PROJECT_ID}/incidents/${ITS_INCIDENT}`],
+    ];
+
+    for (const [name, href] of links) {
+      await expect(
+        header.getByRole("link", { name, exact: true }),
+      ).toHaveAttribute("href", href);
+    }
+
+    await screenshot(page, "issue-links-1280");
+  });
+
+  test("Settings > Scanning: incidents beside alerts, each with its own severity", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["scanning"]!);
+
+    const card: Locator = page.getByTestId("data-security-scanning-issues");
+    await expect(
+      card.getByTestId("data-security-declare-incidents"),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(
+      card.getByTestId("data-security-incident-severity"),
+    ).toContainText("Incident Severity");
+    await expect(
+      card.getByTestId("data-security-alert-severity"),
+    ).toContainText("Alert Severity");
+    expect(await sidewaysScroll(page)).toBe(0);
+
+    await screenshot(page, "scanning-when-an-issue-opens-1280");
   });
 });
 

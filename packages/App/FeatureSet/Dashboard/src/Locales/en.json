@@ -38418,5 +38418,6 @@
   "Declare Incidents": "Declare Incidents",
   "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.",
   "Declare incidents for Critical issues": "Declare incidents for Critical issues",
-  "The severity of the incidents declared. The project's most severe while none is picked.": "The severity of the incidents declared. The project's most severe while none is picked."
+  "The severity of the incidents declared. The project's most severe while none is picked.": "The severity of the incidents declared. The project's most severe while none is picked.",
+  "Alert Resolved": "Alert Resolved"
 }
