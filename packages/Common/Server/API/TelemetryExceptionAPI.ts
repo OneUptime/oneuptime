@@ -186,13 +186,12 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       throw new BadDataException("Telemetry Exception ID is required");
     }
 
-    let telemetryExceptionId: ObjectID;
-
-    try {
-      telemetryExceptionId = new ObjectID(idParam);
-    } catch {
+    // ObjectID takes any string: a malformed one is refused here.
+    if (!ObjectID.isValidUUID(idParam)) {
       throw new BadDataException("Invalid Telemetry Exception ID");
     }
+
+    const telemetryExceptionId: ObjectID = new ObjectID(idParam);
 
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);

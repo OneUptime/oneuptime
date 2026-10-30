@@ -13,15 +13,11 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { ExceptionAIExplanation } from "../../../../Types/Telemetry/ExceptionAIExplanation";
 import {
-  EXCEPTION_AI_EXPLANATION_VERSION,
-  ExceptionAIExplanation,
-  ExceptionExplanationCategory,
-  ExceptionExplanationConfidence,
-  ExceptionExplanationFrame,
-  readExceptionAIExplanation,
-} from "../../../../Types/Telemetry/ExceptionAIExplanation";
-import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
+  ChangeEventFields,
+  readChangeEventFields,
+} from "../../../../Utils/Telemetry/ChangeEventFields";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import AIService, {
   AILogRequest,
@@ -35,16 +31,22 @@ import ServiceService from "../../../Services/ServiceService";
 import SpanService from "../../../Services/SpanService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import logger from "../../Logger";
-import StackTraceParser, {
-  ParsedStackTrace,
-  StackFrame,
-} from "../../Telemetry/StackTraceParser";
-import {
-  sanitizeExceptionMessage,
-  sanitizeStackTrace,
-} from "../../Telemetry/ExceptionSanitizer";
 import AiContextReader from "../AiContext/AiContextReader";
 import { withAiContext } from "../AiContext/AiContextPrompt";
+import {
+  buildExceptionExplanationPrompt,
+  EXCEPTION_EXPLANATION_SYSTEM_PROMPT,
+  ExceptionExplanationEvidence,
+  ExplanationChange,
+  ExplanationLog,
+  ExplanationSpan,
+  MAX_PROMPT_CHANGES,
+  MAX_PROMPT_LOG_LENGTH,
+  MAX_PROMPT_LOGS,
+  MAX_PROMPT_SPANS,
+  parseExceptionExplanationResponse,
+  pickExplanationSpanAttributes,
+} from "./ExceptionExplanationPrompt";
 
 /*
  * EXPLAIN ONE EXCEPTION WITH ONEUPTIME AI.
@@ -59,20 +61,13 @@ import { withAiContext } from "../AiContext/AiContextPrompt";
  *   - its latest occurrence, and the trace that occurrence happened in: the
  *     spans of the request around it, which failed, and how long they took;
  *   - the logs written in that trace;
- *   - the deploys of its service around the time it started.
+ *   - the deploys and changes of its service around the time it started.
  *
- * Everything is read as the person asking (their read scope over each
- * signal applies; a signal they may not read is simply left out), and
- * nothing is read twice: every source is best effort, so an explanation is
- * still written from the stack trace alone.
- *
- * What leaves the platform is bounded and scrubbed: each value is cut to a
- * fixed length FIRST - a message or stack trace can be megabytes on one line,
- * and the sanitizers below run regular expressions over it (AGENTS.md,
- * "Megabyte-long values") - then IDs, emails, IPs, tokens and secrets are
- * taken out (ExceptionSanitizer). The answer is JSON whose every field is
- * checked and bounded (readExceptionAIExplanation), and a suspect frame is
- * kept only when the stack trace holds its file.
+ * Everything is read as the person asking: their read scope over each
+ * signal applies, and a signal they may not read is simply left out. Every
+ * source is best effort, so an explanation is still written from the stack
+ * trace alone. What reaches the model is cut and scrubbed, and the answer is
+ * checked, by ExceptionExplanationPrompt.
  *
  * The call goes through AIService.executeWithLogging: the project's Enable AI
  * switch, its credits, daily limits, billing and the AI log are the ones every
@@ -82,361 +77,8 @@ import { withAiContext } from "../AiContext/AiContextPrompt";
 
 export const EXCEPTION_EXPLANATION_FEATURE: string = "ExceptionExplanation";
 
-// How much of each value reaches the model, cut before anything else reads it.
-export const MAX_PROMPT_MESSAGE_LENGTH: number = 2000;
-export const MAX_PROMPT_STACK_TRACE_LENGTH: number = 6000;
-export const MAX_PROMPT_LOG_LENGTH: number = 400;
-export const MAX_PROMPT_SPAN_NAME_LENGTH: number = 200;
-export const MAX_PROMPT_TITLE_LENGTH: number = 200;
-export const MAX_PROMPT_SPANS: number = 40;
-export const MAX_PROMPT_LOGS: number = 25;
-export const MAX_PROMPT_CHANGES: number = 10;
-export const MAX_PROMPT_IN_APP_FRAMES: number = 10;
 // How long before the exception was first seen a deploy may have caused it.
 export const CHANGE_LOOKBACK_MS: number = 3 * 24 * 60 * 60 * 1000;
-
-/*
- * The span attributes that say what a request was doing without carrying
- * who made it: its route and method, the status it answered, the database
- * or queue it used. Nothing else from a span's attributes is sent.
- */
-export const EXPLANATION_SPAN_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
-  "http.route",
-  "http.method",
-  "http.request.method",
-  "http.status_code",
-  "http.response.status_code",
-  "rpc.system",
-  "rpc.method",
-  "db.system",
-  "db.operation",
-  "db.operation.name",
-  "messaging.system",
-  "messaging.operation",
-  "exception.code",
-  "error.type",
-];
-
-export const EXCEPTION_EXPLANATION_SYSTEM_PROMPT: string = `You are OneUptime AI, explaining one application exception to the engineer who will fix it.
-
-You are given the exception (its type, message and stack trace, with the frames of the application's own code listed separately), when it was first and last seen and in which releases, the trace its latest occurrence happened in, the logs written in that trace, and the deploys around the time it started. Values were scrubbed: placeholders such as <UUID>, <EMAIL> or <NUMBER> stand for the real values.
-
-Answer with ONE JSON object and nothing else, with exactly these fields:
-{
-  "summary": "One or two plain sentences: what went wrong, for whom, and since when if the data says.",
-  "rootCause": "Markdown, at most 120 words: the most likely root cause, citing the frame, span, log line or deploy that shows it. Say plainly when the evidence is thin.",
-  "suggestedFix": "Markdown, at most 150 words: what to change, concretely. A short code snippet is welcome when the stack trace shows the code.",
-  "confidence": "high" | "medium" | "low",
-  "category": "code" | "dependency" | "infrastructure" | "user-input" | "configuration" | "unknown",
-  "suspectFrames": [{"file": "path as written in the stack trace", "line": 42, "function": "name"}],
-  "nextSteps": ["At most three short steps to confirm or fix it."]
-}
-
-Rules:
-- suspectFrames: at most 3, copied from the stack trace, the application's own frames first. Never invent a file.
-- Do not guess values that were scrubbed.
-- If a deploy shortly before the exception first appeared is the likely cause, say which.
-- If the exception came back after it was resolved, say what that suggests about the earlier fix.
-- Do not wrap the JSON in prose.`;
-
-export interface ExplanationSpan {
-  name: string;
-  kind: string;
-  statusCode?: number | undefined;
-  durationMs?: number | undefined;
-  isExceptionSpan: boolean;
-}
-
-export interface ExplanationLog {
-  time?: Date | undefined;
-  severity: string;
-  body: string;
-}
-
-export interface ExplanationChange {
-  time: Date;
-  eventType: string;
-  title: string;
-  version?: string | undefined;
-  commitSha?: string | undefined;
-}
-
-export interface ExceptionExplanationEvidence {
-  exceptionType: string;
-  message: string;
-  stackTrace: string;
-  resourceName?: string | undefined;
-  resourceType?: string | undefined;
-  environment?: string | undefined;
-  occurrenceCount: number;
-  firstSeenAt?: Date | undefined;
-  lastSeenAt?: Date | undefined;
-  firstSeenInRelease?: string | undefined;
-  lastSeenInRelease?: string | undefined;
-  unhandled: boolean;
-  errorClass?: string | undefined;
-  isResolved: boolean;
-  regressedAt?: Date | undefined;
-  latestOccurrence?:
-    | {
-        time?: Date | undefined;
-        release?: string | undefined;
-        environment?: string | undefined;
-        spanName?: string | undefined;
-        spanAttributes: Dictionary<string>;
-      }
-    | undefined;
-  spans: Array<ExplanationSpan>;
-  logs: Array<ExplanationLog>;
-  changes: Array<ExplanationChange>;
-}
-
-// Cut first, then scrub: a value can be megabytes long.
-function scrubbedText(value: string | undefined, max: number): string {
-  return sanitizeExceptionMessage((value || "").slice(0, max)).trim();
-}
-
-function isoTime(value: Date | undefined): string {
-  if (!value) {
-    return "unknown";
-  }
-
-  const date: Date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? "unknown" : date.toISOString();
-}
-
-function framesOf(stackTrace: string): Array<StackFrame> {
-  try {
-    const parsed: ParsedStackTrace = StackTraceParser.parse(stackTrace);
-    return parsed.frames;
-  } catch {
-    return [];
-  }
-}
-
-/*
- * The user message: the evidence, section by section, every value cut and
- * scrubbed. Pure, so it can be read in a test without a model.
- */
-export function buildExceptionExplanationPrompt(
-  evidence: ExceptionExplanationEvidence,
-): string {
-  const stackTrace: string = sanitizeStackTrace(
-    evidence.stackTrace.slice(0, MAX_PROMPT_STACK_TRACE_LENGTH),
-  );
-
-  const lines: Array<string> = [];
-
-  lines.push("## Exception");
-  lines.push(
-    `Type: ${scrubbedText(evidence.exceptionType, MAX_PROMPT_TITLE_LENGTH) || "unknown"}`,
-  );
-  lines.push(
-    `Message: ${scrubbedText(evidence.message, MAX_PROMPT_MESSAGE_LENGTH) || "(no message)"}`,
-  );
-  lines.push(
-    `Where: ${scrubbedText(evidence.resourceName, MAX_PROMPT_TITLE_LENGTH) || "unknown resource"}${
-      evidence.resourceType ? ` (${evidence.resourceType})` : ""
-    }${evidence.environment ? `, environment ${scrubbedText(evidence.environment, MAX_PROMPT_TITLE_LENGTH)}` : ""}`,
-  );
-  lines.push(`Occurrences so far: ${evidence.occurrenceCount}`);
-  lines.push(
-    `First seen: ${isoTime(evidence.firstSeenAt)}${
-      evidence.firstSeenInRelease
-        ? ` in release ${scrubbedText(evidence.firstSeenInRelease, MAX_PROMPT_TITLE_LENGTH)}`
-        : ""
-    }`,
-  );
-  lines.push(
-    `Last seen: ${isoTime(evidence.lastSeenAt)}${
-      evidence.lastSeenInRelease
-        ? ` in release ${scrubbedText(evidence.lastSeenInRelease, MAX_PROMPT_TITLE_LENGTH)}`
-        : ""
-    }`,
-  );
-  lines.push(
-    `Handled by the application: ${evidence.unhandled ? "no (at least one occurrence escaped uncaught)" : "yes, or unknown"}`,
-  );
-
-  if (evidence.errorClass && evidence.errorClass !== "unknown") {
-    lines.push(`Earlier triage classified it as: ${evidence.errorClass}`);
-  }
-
-  if (!evidence.isResolved && evidence.regressedAt) {
-    lines.push(
-      `It was resolved, and came back at ${isoTime(evidence.regressedAt)}: the earlier fix did not hold.`,
-    );
-  }
-
-  const inAppFrames: Array<StackFrame> = framesOf(stackTrace)
-    .filter((frame: StackFrame): boolean => {
-      return frame.inApp;
-    })
-    .slice(0, MAX_PROMPT_IN_APP_FRAMES);
-
-  lines.push("");
-  lines.push("## Stack trace");
-  lines.push(stackTrace || "(no stack trace was recorded)");
-
-  if (inAppFrames.length > 0) {
-    lines.push("");
-    lines.push("## The application's own frames, innermost first");
-
-    for (const frame of inAppFrames) {
-      lines.push(
-        `- ${frame.fileName}:${frame.lineNumber}${frame.functionName ? ` in ${frame.functionName}` : ""}`,
-      );
-    }
-  }
-
-  if (evidence.latestOccurrence) {
-    const occurrence: ExceptionExplanationEvidence["latestOccurrence"] =
-      evidence.latestOccurrence;
-
-    lines.push("");
-    lines.push("## Latest occurrence");
-    lines.push(`Time: ${isoTime(occurrence.time)}`);
-
-    if (occurrence.release) {
-      lines.push(
-        `Release: ${scrubbedText(occurrence.release, MAX_PROMPT_TITLE_LENGTH)}`,
-      );
-    }
-
-    if (occurrence.spanName) {
-      lines.push(
-        `In span: ${scrubbedText(occurrence.spanName, MAX_PROMPT_SPAN_NAME_LENGTH)}`,
-      );
-    }
-
-    for (const key of EXPLANATION_SPAN_ATTRIBUTE_KEYS) {
-      const value: string | undefined = occurrence.spanAttributes[key];
-
-      if (value) {
-        lines.push(`${key}: ${scrubbedText(value, MAX_PROMPT_TITLE_LENGTH)}`);
-      }
-    }
-  }
-
-  if (evidence.spans.length > 0) {
-    lines.push("");
-    lines.push("## The trace of the latest occurrence, in order");
-
-    for (const span of evidence.spans.slice(0, MAX_PROMPT_SPANS)) {
-      const status: string =
-        span.statusCode === 2 ? "error" : span.statusCode === 1 ? "ok" : "unset";
-      const duration: string =
-        span.durationMs !== undefined ? `, ${Math.round(span.durationMs)} ms` : "";
-
-      lines.push(
-        `- ${scrubbedText(span.name, MAX_PROMPT_SPAN_NAME_LENGTH) || "(unnamed)"} (${span.kind || "span"}, ${status}${duration})${
-          span.isExceptionSpan ? " <- the exception was recorded here" : ""
-        }`,
-      );
-    }
-  }
-
-  if (evidence.logs.length > 0) {
-    lines.push("");
-    lines.push("## Logs written in that trace");
-
-    for (const log of evidence.logs.slice(0, MAX_PROMPT_LOGS)) {
-      lines.push(
-        `- ${isoTime(log.time)} ${log.severity || "Unspecified"}: ${scrubbedText(log.body, MAX_PROMPT_LOG_LENGTH)}`,
-      );
-    }
-  }
-
-  if (evidence.changes.length > 0) {
-    lines.push("");
-    lines.push("## Deploys and changes around the time it started");
-
-    for (const change of evidence.changes.slice(0, MAX_PROMPT_CHANGES)) {
-      lines.push(
-        `- ${isoTime(change.time)} ${change.eventType || "change"}: ${scrubbedText(change.title, MAX_PROMPT_TITLE_LENGTH) || "(untitled)"}${
-          change.version
-            ? `, version ${scrubbedText(change.version, MAX_PROMPT_TITLE_LENGTH)}`
-            : ""
-        }${change.commitSha ? `, commit ${change.commitSha.slice(0, 12)}` : ""}`,
-      );
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/*
- * The JSON object in a model's answer: the whole answer, the inside of a
- * fenced block, or the outermost braces. Found with indexOf, never a regular
- * expression over the answer.
- */
-function extractJsonObject(content: string): unknown {
-  const text: string = content.trim();
-  const candidates: Array<string> = [text];
-
-  const fenceStart: number = text.indexOf("```");
-
-  if (fenceStart !== -1) {
-    const bodyStart: number = text.indexOf("\n", fenceStart);
-    const fenceEnd: number =
-      bodyStart === -1 ? -1 : text.indexOf("```", bodyStart);
-
-    if (bodyStart !== -1 && fenceEnd !== -1) {
-      candidates.push(text.slice(bodyStart + 1, fenceEnd));
-    }
-  }
-
-  const open: number = text.indexOf("{");
-  const close: number = text.lastIndexOf("}");
-
-  if (open !== -1 && close > open) {
-    candidates.push(text.slice(open, close + 1));
-  }
-
-  for (const candidate of candidates) {
-    try {
-      const parsed: unknown = JSON.parse(candidate);
-
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch {
-      // The next candidate.
-    }
-  }
-
-  return null;
-}
-
-/*
- * The explanation a model's answer holds, every field checked and bounded,
- * or null when it holds none. A suspect frame is kept only when the stack
- * trace holds its file, so a frame the model made up is never shown as one
- * of the exception's own.
- */
-export function parseExceptionExplanationResponse(
-  content: string,
-  stackTrace: string,
-): ExceptionAIExplanation | null {
-  const explanation: ExceptionAIExplanation | null = readExceptionAIExplanation(
-    extractJsonObject(content || ""),
-  );
-
-  if (!explanation) {
-    return null;
-  }
-
-  return {
-    ...explanation,
-    version: EXCEPTION_AI_EXPLANATION_VERSION,
-    suspectFrames: explanation.suspectFrames.filter(
-      (frame: ExceptionExplanationFrame): boolean => {
-        return Boolean(stackTrace) && stackTrace.includes(frame.file);
-      },
-    ),
-  };
-}
 
 export interface ExceptionExplanationResult {
   explanation: ExceptionAIExplanation;
@@ -595,7 +237,7 @@ export default class ExceptionExplainer {
 
     const traceId: string = latest?.traceId?.toString() || "";
 
-    const [spans, logs] = traceId
+    const [trace, logs] = traceId
       ? await Promise.all([
           ExceptionExplainer.readSpans({
             projectId,
@@ -629,10 +271,10 @@ export default class ExceptionExplainer {
             release: latest.release || undefined,
             environment: latest.environment || undefined,
             spanName: latest.spanName || undefined,
-            spanAttributes: spans.exceptionSpanAttributes,
+            spanAttributes: trace.exceptionSpanAttributes,
           }
         : undefined,
-      spans: spans.spans,
+      spans: trace.spans,
       logs,
       changes,
     };
@@ -742,7 +384,7 @@ export default class ExceptionExplainer {
           props: data.props,
         });
 
-        exceptionSpanAttributes = ExceptionExplainer.pickSpanAttributes(
+        exceptionSpanAttributes = pickExplanationSpanAttributes(
           (exceptionSpan?.attributes as Dictionary<unknown>) || {},
         );
       }
@@ -770,23 +412,6 @@ export default class ExceptionExplainer {
       logger.debug(`Explanation: could not read the trace: ${err}`);
       return { spans: [], exceptionSpanAttributes: {} };
     }
-  }
-
-  // The allowed attributes only, each a short string.
-  public static pickSpanAttributes(
-    attributes: Dictionary<unknown>,
-  ): Dictionary<string> {
-    const picked: Dictionary<string> = {};
-
-    for (const key of EXPLANATION_SPAN_ATTRIBUTE_KEYS) {
-      const value: unknown = attributes[key];
-
-      if (typeof value === "string" || typeof value === "number") {
-        picked[key] = String(value).slice(0, MAX_PROMPT_TITLE_LENGTH);
-      }
-    }
-
-    return picked;
   }
 
   private static async readLogs(data: {
@@ -825,10 +450,14 @@ export default class ExceptionExplainer {
     exception: TelemetryException,
     props: DatabaseCommonInteractionProps,
   ): Promise<Array<ExplanationChange>> {
+    const now: Date = OneUptimeDate.getCurrentDate();
     const firstSeen: Date = exception.firstSeenAt
       ? new Date(exception.firstSeenAt)
-      : OneUptimeDate.getCurrentDate();
-    const now: Date = OneUptimeDate.getCurrentDate();
+      : now;
+    const isService: boolean =
+      Boolean(exception.primaryEntityId) &&
+      (!exception.primaryEntityType ||
+        exception.primaryEntityType === ServiceType.OpenTelemetry);
 
     try {
       const rows: Array<ChangeEvent> = await ChangeEventService.findBy({
@@ -838,11 +467,7 @@ export default class ExceptionExplainer {
             new Date(firstSeen.getTime() - CHANGE_LOOKBACK_MS),
             now,
           ),
-          ...(exception.primaryEntityId &&
-          (!exception.primaryEntityType ||
-            exception.primaryEntityType === ServiceType.OpenTelemetry)
-            ? { primaryEntityId: exception.primaryEntityId }
-            : {}),
+          ...(isService ? { primaryEntityId: exception.primaryEntityId } : {}),
         } as never,
         select: {
           time: true,
@@ -858,10 +483,9 @@ export default class ExceptionExplainer {
 
       return rows
         .map((row: ChangeEvent): ExplanationChange => {
-          const fields: ReturnType<typeof readChangeEventFields> =
-            readChangeEventFields(
-              (row.attributes as Dictionary<unknown>) || {},
-            );
+          const fields: ChangeEventFields = readChangeEventFields(
+            (row.attributes as Dictionary<unknown>) || {},
+          );
 
           return {
             time: new Date(row.time!),
@@ -880,6 +504,3 @@ export default class ExceptionExplainer {
     }
   }
 }
-
-// Re-exported for the Dashboard's labels and the tests.
-export { ExceptionExplanationCategory, ExceptionExplanationConfidence };

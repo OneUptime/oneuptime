@@ -44,6 +44,10 @@ import { openAskAi } from "../AIChat/AskAiEvents";
  * whose readiness checks it shares) or asks OneUptime AI a follow-up.
  *
  * Not offered while the project's AI is off (useAiOffered).
+ *
+ * The model wrote this from telemetry anyone can send, so its Markdown is
+ * shown in safe mode: no link that navigates, no image that loads - a
+ * message crafted to steer the model can exfiltrate nothing through it.
  */
 
 export const EXPLAIN_ROUTE_PREFIX: string = "/telemetry-exception/ai-explanation";
@@ -260,7 +264,10 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Likely root cause")}
               </h3>
               <div className="mt-1 text-sm text-gray-700">
-                <LazyMarkdownViewer text={explanation.rootCause} />
+                <LazyMarkdownViewer
+                  text={explanation.rootCause}
+                  safeMode={true}
+                />
               </div>
             </section>
           ) : (
@@ -272,7 +279,10 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Suggested fix")}
               </h3>
               <div className="mt-1 text-sm text-gray-700">
-                <LazyMarkdownViewer text={explanation.suggestedFix} />
+                <LazyMarkdownViewer
+                  text={explanation.suggestedFix}
+                  safeMode={true}
+                />
               </div>
             </section>
           ) : (
