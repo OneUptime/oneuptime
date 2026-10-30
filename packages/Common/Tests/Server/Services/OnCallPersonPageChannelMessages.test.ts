@@ -376,7 +376,11 @@ describe.each(KINDS)("a person's page about $name", (kind: Kind) => {
     const said: Array<string> = sayMessages(await kind.call(BY_NAME));
 
     expect(said[1]).toBe(`Alice Kim paged you about an ${kind.noun}`);
-    expect(said.some((text: string) => text.includes("says:"))).toBe(false);
+    expect(
+      said.some((text: string): boolean => {
+        return text.includes("says:");
+      }),
+    ).toBe(false);
   });
 
   test("the email's subject and first lines say who paged, why this person, and the message", async () => {
@@ -658,15 +662,18 @@ describe("reading whether a delivery is a person's page", () => {
   test.each([
     ["a workflow's direct page", { workflow: true }],
     ["an on-call policy's run a person started", { policy: true }],
-  ])("%s is no person's page", async (_name: string, fields: object) => {
-    jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
-      .mockResolvedValue(personRun(fields) as never);
+  ])(
+    "%s is no person's page",
+    async (_name: string, fields: { workflow?: boolean; policy?: boolean }) => {
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+        .mockResolvedValue(personRun(fields) as never);
 
-    await expect(
-      readable.readPersonPageNotice(executeOptions()),
-    ).resolves.toBeUndefined();
-  });
+      await expect(
+        readable.readPersonPageNotice(executeOptions()),
+      ).resolves.toBeUndefined();
+    },
+  );
 
   test("a delivery with no run is never read", async () => {
     const find: jest.SpyInstance = jest.spyOn(

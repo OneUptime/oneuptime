@@ -235,10 +235,10 @@ describe("a person's page about an incident somebody else acknowledged", () => {
 });
 
 describe("pages nobody asked for by hand", () => {
-  test.each([
+  test.each<[string, "workflow" | "policy started by a person"]>([
     ["a workflow's direct page", "workflow"],
     ["an on-call policy's run a person started", "policy started by a person"],
-  ] as const)(
+  ])(
     "%s: ended by the incident's acknowledgement, as it always was",
     async (
       _name: string,

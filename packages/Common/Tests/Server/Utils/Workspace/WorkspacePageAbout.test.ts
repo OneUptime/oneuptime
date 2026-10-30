@@ -290,18 +290,21 @@ describe("WorkspacePageAbout.findChannelRecord: the incident or alert a channel 
     ["no channel (a direct message, the app's Home)", undefined],
     ["an empty one", ""],
     ["only spaces", "   "],
-  ])("%s: none, and nothing is read", async (_name: string, channel?: string) => {
-    const { incidentReads, alertReads } = installRecords({});
+  ])(
+    "%s: none, and nothing is read",
+    async (_name: string, channel?: string) => {
+      const { incidentReads, alertReads } = installRecords({});
 
-    expect(
-      await WorkspacePageAbout.findChannelRecord({
-        projectId: PROJECT_ID,
-        channelId: channel,
-      }),
-    ).toBeNull();
-    expect(incidentReads).not.toHaveBeenCalled();
-    expect(alertReads).not.toHaveBeenCalled();
-  });
+      expect(
+        await WorkspacePageAbout.findChannelRecord({
+          projectId: PROJECT_ID,
+          channelId: channel,
+        }),
+      ).toBeNull();
+      expect(incidentReads).not.toHaveBeenCalled();
+      expect(alertReads).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("WorkspacePageAbout.read: what a page asked for in a channel is about", () => {
@@ -423,10 +426,8 @@ describe("WorkspacePageAbout.read: what a page asked for in a channel is about",
     const refusal: NotAuthorizedException = new NotAuthorizedException(
       "You do not have permission to page someone about this incident: this incident is private.",
     );
-    const read: SpyInstance<typeof WorkspaceMemberActions.readEventForMember> =
-      jest
-        .spyOn(WorkspaceMemberActions, "readEventForMember")
-        .mockRejectedValue(refusal);
+    const read: ReadEventSpy = spyOnReadEvent();
+    read.mockRejectedValue(refusal);
 
     await expect(
       WorkspacePageAbout.read({
@@ -440,18 +441,14 @@ describe("WorkspacePageAbout.read: what a page asked for in a channel is about",
     expect(
       (read.mock.calls[0]![0] as { action: string; props: unknown }).action,
     ).toBe("page someone about this incident");
-    expect((read.mock.calls[0]![0] as { props: unknown }).props).toEqual(
-      PROPS,
-    );
+    expect((read.mock.calls[0]![0] as { props: unknown }).props).toEqual(PROPS);
   });
 
   test("an alert's channel the member may not read: the refusal is about the alert", async () => {
     installRecords({ alertChannel: "C0ALT3" });
 
-    const read: SpyInstance<typeof WorkspaceMemberActions.readEventForMember> =
-      jest
-        .spyOn(WorkspaceMemberActions, "readEventForMember")
-        .mockRejectedValue(new NotAuthorizedException("no"));
+    const read: ReadEventSpy = spyOnReadEvent();
+    read.mockRejectedValue(new NotAuthorizedException("no"));
 
     await expect(
       WorkspacePageAbout.read({
@@ -465,6 +462,19 @@ describe("WorkspacePageAbout.read: what a page asked for in a channel is about",
     );
   });
 });
+
+/*
+ * readEventForMember is generic, which a SpyInstance of its own type cannot
+ * hold: its spy, as these tests stub and read it.
+ */
+type ReadEventSpy = SpyInstance<(data: unknown) => Promise<unknown>>;
+
+function spyOnReadEvent(): ReadEventSpy {
+  return jest.spyOn(
+    WorkspaceMemberActions,
+    "readEventForMember",
+  ) as unknown as ReadEventSpy;
+}
 
 describe("a form's value: what a form carries of what it pages about", () => {
   function subjectOf(type: OnCallPageRecordType): WorkspacePageSubject {

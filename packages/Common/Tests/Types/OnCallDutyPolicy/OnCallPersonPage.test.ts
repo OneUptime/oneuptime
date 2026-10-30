@@ -28,9 +28,7 @@ import {
 
 const USER: ObjectID = new ObjectID("f6000000-0000-4000-8000-000000000001");
 const POLICY: ObjectID = new ObjectID("f6000000-0000-4000-8000-000000000002");
-const WORKFLOW: ObjectID = new ObjectID(
-  "f6000000-0000-4000-8000-000000000003",
-);
+const WORKFLOW: ObjectID = new ObjectID("f6000000-0000-4000-8000-000000000003");
 
 describe("isOnCallPersonPage: which runs are a page a person asked for", () => {
   test.each([

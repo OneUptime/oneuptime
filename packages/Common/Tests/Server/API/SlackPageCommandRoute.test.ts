@@ -750,6 +750,8 @@ describe("POST /slack/command: /oneuptime page", () => {
   function submit(data: {
     picks: Array<string>;
     message: string;
+    // What the form carries of what it pages about (formSubmission).
+    value?: string | undefined;
   }): Promise<RouteAnswer> {
     return postForm({
       port: app.port,

@@ -173,7 +173,10 @@ export default class WorkspacePageAbout {
       return record?.createdAt ? new Date(record.createdAt).getTime() : 0;
     };
 
-    if (incident?.id && (!alert?.id || createdAt(incident) >= createdAt(alert))) {
+    if (
+      incident?.id &&
+      (!alert?.id || createdAt(incident) >= createdAt(alert))
+    ) {
       return { type: OnCallPageRecordType.Incident, id: incident.id };
     }
 
@@ -319,7 +322,9 @@ export default class WorkspacePageAbout {
    * Incident INC-18", or "about a new alert". Text.
    */
   public static getAboutWords(about: WorkspacePageSubject): string {
-    return about.record ? `about ${about.record.name.label}` : "about a new alert";
+    return about.record
+      ? `about ${about.record.name.label}`
+      : "about a new alert";
   }
 
   /*

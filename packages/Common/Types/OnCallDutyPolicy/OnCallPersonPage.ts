@@ -139,7 +139,9 @@ function paged(notice: OnCallPersonPageNotice): string {
  * assigned to you": "Alice Kim paged you", "Alice Kim paged Platform",
  * "Alice Kim paged whoever is on call in Primary".
  */
-export function getOnCallPersonPageLead(notice: OnCallPersonPageNotice): string {
+export function getOnCallPersonPageLead(
+  notice: OnCallPersonPageNotice,
+): string {
   return `${pager(notice)} paged ${paged(notice)}`;
 }
 

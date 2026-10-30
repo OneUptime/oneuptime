@@ -4997,9 +4997,7 @@ export class Service extends ProjectReferencesService<Model> {
       ? getOnCallPersonPageMessage(personPage)
       : "";
 
-    return message
-      ? ["", `💬 “${this.escapeTelegramHtml(message)}”`]
-      : [];
+    return message ? ["", `💬 “${this.escapeTelegramHtml(message)}”`] : [];
   }
 
   /*

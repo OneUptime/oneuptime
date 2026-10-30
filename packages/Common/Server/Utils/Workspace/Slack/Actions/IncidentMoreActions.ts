@@ -830,11 +830,7 @@ export default class SlackIncidentMoreActions {
         cancelButtonTitle: WORKSPACE_INCIDENT_FORM_TEXT.cancel,
         actionId: SlackActionType.SubmitPageAboutIncident,
         actionValue: form.incident.event.id.toString(),
-        blocks: [
-          SlackIncidentMoreActions.heading(form.incident),
-          who,
-          message,
-        ],
+        blocks: [SlackIncidentMoreActions.heading(form.incident), who, message],
       },
     });
   }

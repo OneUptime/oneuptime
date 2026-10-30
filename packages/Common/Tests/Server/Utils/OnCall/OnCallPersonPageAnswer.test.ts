@@ -43,8 +43,10 @@ const JANE: ObjectID = new ObjectID("7b000000-0000-4000-8000-000000000004");
 const WORKFLOW: ObjectID = new ObjectID("7b000000-0000-4000-8000-000000000005");
 const POLICY: ObjectID = new ObjectID("7b000000-0000-4000-8000-000000000006");
 
-let findBy: SpyInstance;
-let acknowledgePage: SpyInstance;
+let findBy: SpyInstance<typeof UserOnCallLogService.findBy>;
+let acknowledgePage: SpyInstance<
+  typeof UserOnCallLogTimelineService.acknowledgePage
+>;
 let logs: Array<UserOnCallLog>;
 let nextId: number;
 

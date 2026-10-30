@@ -919,7 +919,9 @@ describe("a direct page a person started", () => {
 describe("a person's page nobody answered, about a record somebody else is on", () => {
   const BY_SAM: OnCallDirectPageRun = { startedByPersonName: "Sam Lee" };
 
-  function unanswered(overrides: Partial<OnCallPolicyRun> = {}): OnCallPolicyRun {
+  function unanswered(
+    overrides: Partial<OnCallPolicyRun> = {},
+  ): OnCallPolicyRun {
     return page({
       directPage: BY_SAM,
       outcome: OnCallPolicyRunOutcome.NobodyAnswered,
@@ -1059,9 +1061,9 @@ describe("the page's message", () => {
 
   test("no message, and no record title: nothing quoted", () => {
     expect(
-      OnCallPolicyRunMessageView.getMarkdown(page({ directPage: BY_SAM })).split(
-        "\n\n",
-      )[1],
+      OnCallPolicyRunMessageView.getMarkdown(
+        page({ directPage: BY_SAM }),
+      ).split("\n\n")[1],
     ).toMatch(/^- /);
   });
 });

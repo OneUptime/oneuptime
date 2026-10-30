@@ -1267,9 +1267,12 @@ export class Service {
           },
         });
       } catch (err) {
-        logger.error(err as Error, {
-          projectId: data.projectId.toString(),
-        } as LogAttributes);
+        logger.error(
+          err as Error,
+          {
+            projectId: data.projectId.toString(),
+          } as LogAttributes,
+        );
       }
     }
   }

@@ -12,6 +12,7 @@ import OnCallDutyPolicyExecutionLogTimeline from "../../../../../Models/Database
 import UserOnCallLogService from "../../../../../Server/Services/UserOnCallLogService";
 import UserService from "../../../../../Server/Services/UserService";
 import OnCallAcknowledgementTimeout from "../../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import type { SpyInstance } from "jest-mock";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -444,7 +445,7 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
   });
 
   test("an alert's state timeline hands on whoever moved it the same way, for its person's pages", async () => {
-    const stateChanged: jest.SpiedFunction<
+    const stateChanged: SpyInstance<
       typeof OnCallAcknowledgementTimeout.onRecordStateChanged
     > = jest
       .spyOn(OnCallAcknowledgementTimeout, "onRecordStateChanged")

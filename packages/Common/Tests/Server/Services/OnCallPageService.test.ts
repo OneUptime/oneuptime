@@ -1899,9 +1899,7 @@ describe("OnCallPageService.page", () => {
         },
       });
 
-      expect(directPageAsked().pageMessage).toBe(
-        "Can you check the database?",
-      );
+      expect(directPageAsked().pageMessage).toBe("Can you check the database?");
       expect(alertCreate).not.toHaveBeenCalled();
     });
 

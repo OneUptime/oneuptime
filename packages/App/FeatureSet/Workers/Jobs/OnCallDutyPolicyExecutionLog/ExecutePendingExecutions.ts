@@ -141,7 +141,10 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
      * and somebody else acknowledging the record - often before they paged
      * at all - does not mean any of them has seen it.
      */
-    if (isOnCallPageAgainRun(executionLog) || isOnCallPersonPage(executionLog)) {
+    if (
+      isOnCallPageAgainRun(executionLog) ||
+      isOnCallPersonPage(executionLog)
+    ) {
       const resolvedRecordKind: string | null =
         await getResolvedRecordKind(executionLog);
 
