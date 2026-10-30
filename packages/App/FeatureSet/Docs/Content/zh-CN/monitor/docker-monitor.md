@@ -4,7 +4,7 @@ Docker 监视器监控一台 Docker 主机上的容器，在容器负载过高�
 
 :::cards
 - [创建监视器](#创建-docker-监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 六个现成的警报，每个容器一个事件。
+- [模板](#现成的警报模板): 七个现成的警报，每个容器一个事件。
 - [指标](#收集的指标): 代理收集的内容，以及每个指标的含义。
 - [日志](#收集的日志): 容器日志，以及它们所需的日志驱动。
 :::
@@ -84,20 +84,24 @@ flowchart TB
 
 ## 现成的警报模板
 
-**Quick Setup** 提供六个模板。每个模板都会构建一个完整的监视器：一个按 `resource.container.name` 分组的查询、一个触发的条件和一个恢复的条件。每个容器都单独评判，因此一个繁忙的容器不会掩盖另一个，每个超过阈值的容器都有自己的事件和警报。阈值只是起点，你可以编辑。
+**Quick Setup** 提供七个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。除 **Host Stopped Reporting** 外，每个模板都按 `resource.container.name` 对查询分组，因此每个容器都单独评判，一个繁忙的容器不会掩盖另一个，每个超过阈值的容器都有自己的事件和警报。阈值只是起点，你可以编辑。
 
 除非表中另有说明，条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | 严重 | `container.memory.percent`，对主机上所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`，按容器取 Max，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`，按容器取 Max，最近 5 分钟 | 高于 85% | 不高于 76.5% |
 | Container Restart Loop | 严重 | 每个容器 `container.restarts` 的增长，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
 | Container CPU Throttling | Warning | 每个容器 `container.cpu.throttling_data.throttled_time` 的增长（ms），最近 5 分钟 | 窗口内超过 1000 ms（总和） | 900 ms 或更少 |
 | High Container Process Count | Warning | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
-| Container Down (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 等于 0 | 高于 0 |
+| Container Restarted (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 低于 120 秒 | 不低于 132 秒 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
+
+> [!NOTE]
+> **Host Stopped Reporting** 会在主机 10 分钟内没有任何数据到达时触发：主机宕机，或者代理已停止、失去了通往 OneUptime 的路由或令牌被撤销。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。没有其他容器的主机仍会报告数据，因为代理本身就作为容器运行，并会报告它自己的容器。
 
 > [!NOTE]
 > `container.cpu.utilization` 就是 `docker stats` 输出的数字在代理每个 30 秒间隔内的平均值：100% 是一个完整的 CPU 核心，而不是整台主机，所以使用两个核心的容器读数为 200。在多核主机上，80 这个阈值是 CPU 预算，而不是机器的占比。
@@ -106,10 +110,10 @@ flowchart TB
 > `container.memory.percent` 在容器设置了内存限制时除以该限制，否则除以**主机**的总内存。在把超限视为即将发生的内存不足终止之前，请先检查容器是否使用 `--memory` 启动。
 
 > [!WARNING]
-> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只会增长，所以这两个模板根据它们在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实活动，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，两个模板都会停止报警。
+> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只会增长，所以这两个模板根据它们在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实活动，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，两个模板都会停止报警。代理也只对正在运行的容器采样，因此一启动就退出的容器很少被采到：**Container Restarted (Low Uptime)** 会在代理看到的每次重启时触发。
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** 模板无法捕捉停止后一直保持停止的容器。代理只报告正在运行的容器，所以停止的容器根本不发送数据，其运行时间也永远不会读数为 0。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
+> `container.uptime` 只存在于正在运行的容器。停止后一直保持停止的容器不发送任何数据，所以 **Container Restarted (Low Uptime)** 模板捕捉的是重启和重新部署，而不是永久关闭。设计为运行不到两分钟的容器，在其整个生命周期内都会处于警报状态。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
 
 ## 收集的指标
 
@@ -143,8 +147,7 @@ flowchart TB
 
 | 指标 | 说明 |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | 从块设备读取的字节数。 |
-| `container.blockio.io_service_bytes_recursive.write` | 写入块设备的字节数。 |
+| `container.blockio.io_service_bytes_recursive` | 容器启动以来在每个块设备上读取和写入的字节数，按 `operation`（`read`、`write`）区分。是整个生命周期的累计计数器。列表分别提供只看读取和只看写入的版本。 |
 
 ### 容器
 
@@ -154,7 +157,7 @@ flowchart TB
 | `container.restarts` | 容器自创建以来重启的次数。生命周期计数器。 |
 | `container.pids.count` | 容器中的任务数。cgroup 的 pids 控制器既统计进程也统计线程。 |
 
-**Docker 指标** 列表还提供 `container.cpu.usage.percpu`、`container.memory.rss`、`container.memory.cache` 和网络数据包计数器。随附的代理配置不会开启它们，所以在使用之前请先查看主机的 **指标** 页面。`container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
+`container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
 
 ## 监控条件
 
@@ -164,7 +167,7 @@ flowchart TB
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名指定。 |
 | **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（整个窗口内每个值都必须匹配）或 **Any Value**（一个就够）。 |
-| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据** 在查询于窗口内没有返回任何数据时匹配，**有数据** 在返回了数据时匹配。 |
 | **阈值** | 用于比较的值。如果指标有单位，旁边会有单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅限异常条件。**低**（4σ）、**中**（3σ，默认）或 **高**（2σ）。 |
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |
@@ -180,11 +183,11 @@ flowchart TB
 
 | 顺序 | 条件 | 匹配时机 | 结果 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 第一个查询的任意值为 `0` | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
-| 2 | Check if _monitor name_ is online | 任意值大于 `0` | 将监视器标记为 **运行正常**。 |
+| 1 | Check if _monitor name_ is offline | 第一个查询在整个窗口内没有数据 | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
+| 2 | Check if _monitor name_ is online | 第一个查询有数据 | 将监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 静默不匹配任何一个条件：停止发送数据的主机会让监视器保持原样。要在数据停止时收到通知，请在某个条件上把 **如果无数据** 设为 **触发器**。OneUptime 自身未接收数据的时间永远不算作无数据：窗口中包含这类时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监控器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监控器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 收集的日志
 

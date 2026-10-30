@@ -115,6 +115,7 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import ProfileMonitorResponse, {
   ProfileFunctionShareReading,
 } from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
@@ -126,6 +127,7 @@ import ProfileService from "Common/Server/Services/ProfileService";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
+  MonitorStepKubernetesMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import MonitorStepDockerMonitor, {
   DockerContainerFilters,
@@ -150,6 +152,7 @@ import MonitorStepStorageArrayMonitor, {
 } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
+  MonitorStepDockerSwarmMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MonitorStepIoTMonitor, {
   IoTDeviceFilters,
@@ -2182,10 +2185,14 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         attributes["resource.k8s.pod.name"] = resourceFilters.podName;
       }
 
-      if (resourceFilters.workloadName && resourceFilters.workloadType) {
-        const workloadType: string = resourceFilters.workloadType.toLowerCase();
-        attributes[`resource.k8s.${workloadType}.name`] =
-          resourceFilters.workloadName;
+      const workloadNameAttributeKey: string | null =
+        MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+          resourceFilters,
+        );
+
+      if (workloadNameAttributeKey && resourceFilters.workloadName) {
+        attributes[workloadNameAttributeKey] =
+          resourceFilters.workloadName.trim();
       }
     }
 
@@ -3332,10 +3339,15 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
 
     /*
      * IoT-specific resource filters. Device-level data metrics carry a
-     * `device.id` datapoint label and the agent-stamped `iot.scope` /
-     * `iot.device.type` datapoint attributes (stored unprefixed). The
-     * deviceId filter pins an exact device; deviceType / scope narrow to
-     * a class of devices.
+     * `device.id` datapoint label and, when the device sends it, an
+     * `iot.device.type` datapoint attribute (stored unprefixed). The
+     * deviceId filter pins an exact device; deviceType narrows to a class
+     * of devices.
+     *
+     * A saved Resource Scope is read and ignored: it matched an `iot.scope`
+     * attribute nothing stamps (MQTT and OTLP ingest add `device.id` and
+     * the device's own attributes only), and the form set it to Device on
+     * every metric picked - so every such monitor read no data at all.
      */
     if (iotMonitorConfig.resourceFilters) {
       const resourceFilters: IoTDeviceFilters =
@@ -3347,10 +3359,6 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
 
       if (resourceFilters.deviceType) {
         attributes["iot.device.type"] = resourceFilters.deviceType;
-      }
-
-      if (resourceFilters.scope) {
-        attributes["iot.scope"] = resourceFilters.scope;
       }
     }
 
@@ -3428,8 +3436,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
   if (
     iotMonitorConfig.fleetIdentifier &&
     !iotMonitorConfig.resourceFilters?.deviceId &&
-    !iotMonitorConfig.resourceFilters?.deviceType &&
-    !iotMonitorConfig.resourceFilters?.scope
+    !iotMonitorConfig.resourceFilters?.deviceType
   ) {
     seriesBreakdown = await injectExpectedAbsentIoTDeviceSeries({
       monitorStep: data.monitorStep,
@@ -3525,10 +3532,12 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     /*
      * Always scope to the cluster via the `docker.swarm.cluster.name`
      * RESOURCE attribute the OneUptime Docker Swarm Agent stamps on every
-     * batch (stored `resource.`-prefixed in ClickHouse). This is the ONLY
-     * resource attribute the agent stamps — there is intentionally no
-     * `container.runtime` filter here (the Docker Swarm agent does not
-     * stamp it; adding one would match zero rows).
+     * batch (stored `resource.`-prefixed in ClickHouse). There is
+     * deliberately no `container.runtime` or `host.name` filter: the
+     * docker_stats receiver stamps `container.runtime=docker` on a Swarm
+     * task's metrics just as on a Docker host's, and the agent never stamps
+     * `host.name`, so the cluster name is what tells a Swarm's containers
+     * apart.
      */
     if (dockerSwarmMonitorConfig.clusterIdentifier) {
       attributes["resource.docker.swarm.cluster.name"] =
@@ -3536,18 +3545,24 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     }
 
     /*
-     * Docker Swarm resource filters. The docker_stats receiver emits one
-     * ResourceMetrics per container and carries container identity as OTLP
-     * RESOURCE attributes, so ClickHouse stores them `resource.`-prefixed:
-     * `resource.container.name` (a Swarm task's container is
-     * `<service>.<slot>.<taskid>`) and `resource.container.image.name` --
-     * the same spelling the Docker and Podman paths above use for the same
-     * receiver, the same one the templates group by, and the same one
-     * OtelMetricsIngestService reads back in bufferDockerSwarmTaskMetric.
-     * The node/service hints map to the `docker.swarm.node.name` /
-     * `docker.swarm.service.name` attributes when the agent stamps them
-     * (it currently does not).
+     * Docker Swarm resource filters, all on RESOURCE attributes, which
+     * ClickHouse stores `resource.`-prefixed (MonitorStepDockerSwarmMonitor
+     * has the whole contract):
+     *  - `resource.container.name` (a Swarm task's container is
+     *    `<service>.<slot>.<taskid>`) and `resource.container.image.name`,
+     *    the container identity the docker_stats receiver carries -- the
+     *    same spelling the Docker and Podman paths above use for the same
+     *    receiver, the one the templates group by, and the one
+     *    OtelMetricsIngestService reads back in bufferDockerSwarmTaskMetric;
+     *  - `resource.docker.swarm.service.name`, Swarm's service label on the
+     *    task's container, which the agent copies onto its metrics;
+     *  - `resource.docker.swarm.node.name`, the node's name the agent stamps.
+     * The image matches with or without the digest Swarm pins a task's
+     * image to, so it is a Wildcard on the query and stays the typed text
+     * in `attributes`, which the breakdown below reports as the filters.
      */
+    let containerImageGlobs: Array<string> = [];
+
     if (dockerSwarmMonitorConfig.resourceFilters) {
       const resourceFilters: DockerSwarmResourceFilters =
         dockerSwarmMonitorConfig.resourceFilters;
@@ -3557,21 +3572,38 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       }
 
       if (resourceFilters.containerImage) {
-        attributes["resource.container.image.name"] =
-          resourceFilters.containerImage;
+        containerImageGlobs =
+          MonitorStepDockerSwarmMonitorUtil.getContainerImageGlobs(
+            resourceFilters.containerImage,
+          );
+
+        if (containerImageGlobs.length > 0) {
+          attributes["resource.container.image.name"] =
+            resourceFilters.containerImage;
+        }
       }
 
       if (resourceFilters.nodeName) {
-        attributes["docker.swarm.node.name"] = resourceFilters.nodeName;
+        attributes["resource.docker.swarm.node.name"] =
+          resourceFilters.nodeName;
       }
 
       if (resourceFilters.serviceName) {
-        attributes["docker.swarm.service.name"] = resourceFilters.serviceName;
+        attributes["resource.docker.swarm.service.name"] =
+          resourceFilters.serviceName;
       }
     }
 
     if (Object.keys(attributes).length > 0) {
-      query.attributes = attributes;
+      query.attributes =
+        containerImageGlobs.length > 0
+          ? {
+              ...attributes,
+              "resource.container.image.name": new Wildcard<string>(
+                containerImageGlobs,
+              ),
+            }
+          : attributes;
     }
 
     const aggregationType: MetricsAggregationType =

@@ -4,7 +4,7 @@ A Ceph monitor watches one Ceph cluster — its health, health checks, monitor q
 
 :::cards
 - [Create the monitor](#create-a-ceph-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): 23 ready-made alerts for health, OSDs, placement groups and capacity.
+- [Templates](#pre-built-alert-templates): 24 ready-made alerts for a silent cluster, health, OSDs, placement groups and capacity.
 - [Health checks](#health-check-series): Alert on any Ceph health check by name.
 - [Metrics](#collected-metrics): Every `ceph_*` series the monitor can alert on.
 :::
@@ -99,9 +99,17 @@ Pool data series carry only the `pool_id` label: the pool's name exists solely o
 
 ## Pre-built alert templates
 
-**Quick Setup** offers 23 templates covering cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+**Quick Setup** offers 24 templates covering a silent cluster, cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap. **Severity** is the label the picker shows; the incident and alert a template creates start on your project's most severe incident and alert severity.
+
+### Availability templates
+
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critical | `ceph_health_status`, Count, past 10 minutes | No data for the whole window | Data arrives again |
+
+**Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the Ceph Agent stopped, lost its route to OneUptime or had its token revoked, or no mgr serves the `prometheus` module. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, and the health-check templates read a silent cluster as a healthy one, so this is the one that tells you.
 
 ### Cluster health templates
 
@@ -219,7 +227,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -235,13 +243,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
-
-These defaults suit few Ceph metrics: `ceph_health_status` is 0 when the cluster is healthy. Pick a template, or set your own criteria.
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a cluster that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Troubleshooting
 

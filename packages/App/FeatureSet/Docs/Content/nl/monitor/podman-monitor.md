@@ -4,7 +4,7 @@ Een Podman-monitor bewaakt de containers op één Podman-host en laat u weten wa
 
 :::cards
 - [De monitor maken](#een-podman-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vijf kant-en-klare waarschuwingen, één incident per container.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Zes kant-en-klare waarschuwingen, één incident per container.
 - [Metrieken](#verzamelde-metrieken): Wat de agent verzamelt, en wat elke metriek betekent.
 - [Logboeken](#verzamelde-logboeken): Containerlogboeken, en het logstuurprogramma dat ze nodig hebben.
 :::
@@ -84,27 +84,30 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt vijf sjablonen. Elk bouwt een complete monitor: een query gegroepeerd op `resource.container.name`, een criterium dat afgaat en een dat herstelt. Elke container wordt afzonderlijk beoordeeld en krijgt een eigen incident en een eigen waarschuwing. De drempels zijn uitgangspunten die u kunt aanpassen.
+**Quick Setup** biedt zes sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Host Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke container afzonderlijk wordt beoordeeld en een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers op de host, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| High Container Restart Count | Kritiek | `container.restarts`, Max per container, laatste 5 minuten | Meer dan 5 herstarts in totaal | 4,5 of minder |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 500 | Op of onder 450 |
+| Container Restart Loop | Kritiek | Groei van `container.restarts` per container, laatste 15 minuten | Meer dan 3 herstarts in het venster (Som) | 2,7 of minder |
+| High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 | Container Restarted (Low Uptime) | Kritiek | `container.uptime`, Min per container, laatste 1 minuut | Onder 120 seconden | Op of boven 132 seconden |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
-De twee percentagesjablonen gebruiken **Gemiddelde**: hun metrieken zijn al percentages per container, dus het gemiddelde van een minuut is de aanhoudende waarde. Het aantal herstarts en het aantal processen gebruiken **Maximum**, waarbij één meting over de drempel het signaal is.
+**Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de host is uitgevallen, of de agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten. Een host zonder andere containers blijft rapporteren, omdat de agent zelf als container draait en zijn eigen gegevens rapporteert.
+
+De twee percentagesjablonen gebruiken **Gemiddelde**: hun metrieken zijn al percentages per container, dus het gemiddelde van een minuut is de aanhoudende waarde. Het aantal processen gebruikt **Maximum**, waarbij één meting over de grens het signaal is.
 
 > [!NOTE]
 > `container.cpu.utilization` is het getal dat `podman stats` toont, gemiddeld over het interval van 30 seconden van de agent: 100% is één volledige CPU-kern, niet de hele CPU-toewijzing van de container. Een container die meerdere kernen krijgt, zit gezond ruim boven 100; verhoog daarvoor de drempel.
 
 > [!NOTE]
-> `container.restarts` is een lopend totaal dat Podman bijhoudt, geen aantal herstarts in het venster. **High Container Restart Count** blijft daarom open totdat de container opnieuw wordt gemaakt, wat de telling terugzet.
+> `container.restarts` is een lopend totaal dat Podman bijhoudt, dus **Container Restart Loop** waarschuwt, net als bij Docker, voor hoeveel het in het venster groeide: een Maximum- en een Minimum-query per minuut, met een formule van elkaar afgetrokken en opgeteld. Bij de verzameling van 30 seconden van de agent wordt ongeveer de helft van de herstarts gezien, en de drempel houdt daar al rekening mee. De agent bemonstert bovendien alleen draaiende containers, dus een container die meteen na het starten stopt, wordt zelden bemonsterd: **Container Restarted (Low Uptime)** gaat af bij elke herstart die de agent wel ziet.
 
 > [!CAUTION]
 > `container.uptime` bestaat alleen voor draaiende containers. Een container die stopt en gestopt blijft, stuurt geen gegevens, dus **Container Restarted (Low Uptime)** vangt herstarts en nieuwe uitrols, geen blijvende uitschakeling. Een container die bedoeld is om minder dan twee minuten te draaien, blijft zijn hele leven in de waarschuwingsstatus.
@@ -143,8 +146,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats`, gericht op de Docker
 
 | Metriek | Beschrijving |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Van blokapparaten gelezen bytes. |
-| `container.blockio.io_service_bytes_recursive.write` | Naar blokapparaten geschreven bytes. |
+| `container.blockio.io_service_bytes_recursive` | Bytes gelezen en geschreven op elk blokapparaat sinds de container startte, uitgesplitst naar `operation` (`read`, `write`). Een teller over de hele levensduur. De lijst biedt hem gefilterd op lezen en op schrijven. |
 
 ### Container
 
@@ -154,7 +156,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats`, gericht op de Docker
 | `container.restarts` | Hoe vaak de container is herstart. Een lopend totaal. |
 | `container.pids.count` | Taken in de container. De pids-controller van de cgroup telt threads net zo goed als processen. |
 
-De lijst **Podman Metric** biedt ook `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` en de netwerkpakkettellers. De meegeleverde agentconfiguratie zet deze niet aan; controleer daarom de pagina **Metrieken** van de host voordat u erop bouwt. `container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
+`container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
 
 ## Bewakingscriteria
 
@@ -164,7 +166,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, op naam van de variabele. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. |
 | **Drempel** | De waarde waarmee wordt vergeleken. Ernaast staat een lijst met eenheden als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
@@ -180,11 +182,11 @@ Een monitor die u niet vanuit een sjabloon maakt, begint met twee criteria:
 
 | Volgorde | Criterium | Komt overeen als | Dan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Een willekeurige waarde van de eerste query `0` is | Markeert de monitor als **Offline** en meldt het incident "_monitor name_ is offline", dat zichzelf oplost als de monitor herstelt. |
-| 2 | Check if _monitor name_ is online | Een willekeurige waarde boven `0` ligt | Markeert de monitor als **Operationeel**. |
+| 1 | Check if _monitor name_ is offline | De eerste query heeft in het hele venster geen gegevens | Markeert de monitor als **Offline** en meldt het incident "_monitor name_ is offline", dat zichzelf oplost als de monitor herstelt. |
+| 2 | Check if _monitor name_ is online | De eerste query heeft gegevens | Markeert de monitor als **Operationeel**. |
 
 > [!IMPORTANT]
-> Stilte komt met geen van beide criteria overeen: een host die geen gegevens meer stuurt, laat de monitor zoals hij was. Om bericht te krijgen als er geen gegevens meer komen, zet u **Als geen gegevens** in een criterium op **Trigger**. Tijd waarin OneUptime zelf niet ontving, geldt nooit als ontbrekende gegevens: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
+> Een waarde van `0` is ook data: een metric die vaak nul is, zoals herstarts of fouten, zet de monitor niet offline. Wilt u een melding bij een waarde, begin dan met een sjabloon of voeg een criterium met een drempel toe. Komt er helemaal geen data binnen en past geen enkel criterium, dan houdt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf geen data ontving, telt nooit als geen data: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
 ## Verzamelde logboeken
 

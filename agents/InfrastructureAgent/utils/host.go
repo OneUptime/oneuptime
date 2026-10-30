@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"oneuptime-infrastructure-agent/model"
 
-	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v4/host"
 )
 
 // GetHostMetrics returns OS/platform/kernel/virtualization info plus uptime.

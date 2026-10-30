@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse.
-- **En ny forekomst genåbner en løst undtagelse.** Sker den igen, efter at du har løst den, holdt rettelsen ikke.
+- **En ny forekomst genåbner en løst undtagelse.** Sker den igen, efter at du har løst den, holdt rettelsen ikke, og undtagelsen markeres som **Regression**. En forekomst fra før du løste den, som først når OneUptime senere, genåbner den ikke.
 - **En arkiveret undtagelse forbliver arkiveret.** Dens nye forekomster tælles stadig, men de sender ikke længere notifikationer.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Gå til **Produkter → Observabilitet → Undtagelser**. Mærket på fanen **Un
 
 ### Vælg en status
 
-Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid.
+Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid. En række markeret **Regression** kom igen, efter at den var løst, og en markeret **Ny** blev set første gang inden for de seneste 24 timer.
 
 ### Vælg, hvad der tæller som et problem
 
@@ -58,7 +58,7 @@ Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over l
 
 ### Søg og filtrér
 
-Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**.
+Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
 
 ### Åbn en undtagelse
 
@@ -71,7 +71,7 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | Beskeden, tjenesten, hvor ofte den skete, og hvornår den først og sidst blev set, dens udvikling over tid og dens seneste forekomst: release, miljø, span, spor og brugersession. |
+| **Oversigt** | Beskeden, tjenesten, hvor ofte den skete, og hvornår den først og sidst blev set, dens udvikling over tid og dens seneste forekomst: release, miljø, span, spor og brugersession. Øverst OneUptime AI's forklaring af, hvad der skete, når AI er slået til. |
 | **Stack trace** | Stakkens frames. For browserkode de oprindelige filer og linjer, når du har uploadet [Source maps](/docs/telemetry/source-maps) til releasen. |
 | **Occurrences** | Hver forekomst med dens tidspunkt, dens besked og det spor, den opstod i. |
 | **Context** | Den seneste forekomsts attributter, dens sessionsoptagelse, når der er en, og de trin, der førte til den. |
@@ -86,13 +86,18 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 | Handling | Hvornår du bruger den | Hvad der sker bagefter |
 | --- | --- | --- |
 | **Løs** | Du har udrullet rettelsen. | Den forlader listen **Uløst**. En ny forekomst genåbner den. |
+| **Løs i næste udgivelse** | Rettelsen kommer med din næste udgivelse. | Den forlader listen **Uløst**. Forekomster fra den udgivelse, den sidst blev set i, genåbner den ikke, men en fra enhver anden udgivelse gør. |
 | **Genåbn** | Rettelsen virkede ikke. | Den er uløst igen. |
 | **Arkiver** | Det er støj, du ikke vil rette. | Den forlader listen. Nye forekomster tælles, men sender ikke længere notifikationer. |
 | **Fjern fra arkiv** | Du vil høre om den igen. | Den er tilbage i den liste, den hører til i. |
 
+**Løs i næste udgivelse** findes i menuen ved siden af **Løs**, i rækkens menu ⋯, under **Massehandlinger** og på **Indstillinger**, så længe undtagelsens forekomster angiver deres udgivelse: ressourceattributten `service.version`.
+
 **Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkiv**.
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
+
+**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
 
 ## Fejlklasser
 
@@ -107,6 +112,22 @@ Hver undtagelse har en fejlklasse, der siger, hvis problem det er. OneUptime AI 
 | `expected-denial` | En kontrol, der gør sit arbejde, såsom et afvist login. | Nej |
 
 Med **Arkivér forventede undtagelser** slået til i indstillingerne for AI-indsigter arkiveres de undtagelser, som gennemgangen finder at være forventede afvisninger, for dig.
+
+## Forklar den med AI
+
+Øverst på en undtagelses **Oversigt** spørger **Forklar med OneUptime AI** OneUptime AI om, hvad der gik galt. Den læser stack trace, sporet og protokollerne for den seneste forekomst samt tjenestens udrulninger omkring det tidspunkt, hvor undtagelsen begyndte, og svarer på kortet **Hvad der skete**:
+
+| Del | Hvad den siger |
+| --- | --- |
+| **Hvad der skete** | En sætning eller to, hvor sikker OneUptime AI er, og hvor fejlen ligger: koden, en afhængighed, infrastrukturen, ugyldigt input eller konfigurationen. |
+| **Sandsynlig grundårsag** | Årsagen og den frame, det span, den logline eller den udrulning, der viser den. |
+| **Foreslået rettelse** | Hvad der skal ændres. |
+| **Hvor du skal kigge** | De frames i stack trace, du skal åbne først. |
+| **Næste trin** | Højst tre trin til at bekræfte eller rette den. |
+
+Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den med det samme, og **Forklar igen** beder om en ny. **Åbn en pull request med rettelsen** åbner undtagelsens side **AI Assistance**, og **Stil et opfølgende spørgsmål** åbner Ask AI om undtagelsen.
+
+ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
 ## Ret den med AI
 
@@ -173,7 +194,7 @@ Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for ek
 :::
 
 :::details En løst undtagelse bliver ved med at komme tilbage
-En ny forekomst genåbner med vilje en løst undtagelse: fejlen sker stadig. Kontrollér, at rettelsen nåede den release, der rapporterer den, eller arkivér undtagelsen, hvis du ikke længere vil høre om den.
+En ny forekomst genåbner med vilje en løst undtagelse: fejlen sker stadig. Kontrollér, at rettelsen nåede den release, der rapporterer den, eller arkivér undtagelsen, hvis du ikke længere vil høre om den. Hvis gamle pods fra udgivelsen bliver ved med at rapportere den under en udrulning, så brug **Løs i næste udgivelse** i stedet.
 :::
 
 ## Næste skridt

@@ -5,7 +5,7 @@
 :::cards
 - [نصب عامل](/docs/monitor/kubernetes-agent): یک فرمان Helm خوشه را به OneUptime می‌آورد.
 - [ساخت مانیتور](#ساخت-یک-مانیتور-kubernetes): خوشه را برگزینید، سپس یک الگو، یک متریک یا یک پرس‌وجو.
-- [الگوهای هشدار](#الگوهای-هشدار-آماده): هفده هشدار آماده، از CrashLoopBackOff تا etcd.
+- [الگوهای هشدار](#الگوهای-هشدار-آماده): هجده هشدار آماده، از خوشه ساکت تا etcd.
 - [معیارها](#معیارهای-مانیتورینگ): آستانه‌های ایستا و تشخیص ناهنجاری.
 :::
 
@@ -65,7 +65,7 @@ flowchart TB
 | --- | --- | --- |
 | خوشه | کل خوشه | — |
 | Namespace | منابع درون یک Namespace | **Namespace** |
-| بار کاری | یک deployment، statefulset، daemonset، job یا cronjob | **Namespace**، **نام بار کاری** |
+| بار کاری | یک deployment، statefulset، daemonset، job یا cronjob | **Namespace**، **نوع بار کاری**، **نام بار کاری** |
 | گره | یک گره خوشه | **نام گره** |
 | پاد | یک پاد | **Namespace**، **نام پاد** |
 
@@ -84,14 +84,14 @@ flowchart TB
 | دسته | متریک‌ها |
 | --- | --- |
 | پاد | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| گره | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| گره | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | کانتینر | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | بار کاری | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد: `0.18` یعنی ۰٫۱۸ هسته. **Pod Phase (Code)** یک کد است (۱ Pending، ۲ Running، ۳ Succeeded، ۴ Failed، ۵ Unknown) – آن را با بیشینه یا کمینه تجمیع کنید، هرگز با جمع. متریک‌های Control Plane فقط وقتی می‌رسند که جمع‌آوری Control Plane توسط عامل روشن باشد.
+> **Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد: `0.18` یعنی ۰٫۱۸ هسته. **Pod Phase (Code)** یک کد است (۱ Pending، ۲ Running، ۳ Succeeded، ۴ Failed، ۵ Unknown) – آن را با بیشینه یا کمینه تجمیع کنید، هرگز با جمع. متریک‌های Control Plane فقط وقتی می‌رسند که جمع‌آوری Control Plane توسط عامل روشن باشد. **Node Ready Condition** در حالت Ready برابر ۱، در NotReady برابر ۰ و در Unknown برابر ‎-۱ است و Unknown همان چیزی است که گرهِ ازکارافتاده گزارش می‌دهد: برای کمتر از ۱ هشدار دهید.
 
 ## معیارهای مانیتورینگ
 
@@ -112,7 +112,7 @@ flowchart TB
 
 ### شرط‌ها
 
-آستانه‌های ایستا با **آستانه** واردشده مقایسه می‌شوند: **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** و **برابر با**.
+آستانه‌های ایستا با **آستانه** واردشده مقایسه می‌شوند: **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** و **برابر با**. **بدون داده** وقتی برقرار است که پرس‌وجو در بازه هیچ داده‌ای نفرستاده باشد، و **دارای داده** وقتی که چیزی فرستاده باشد.
 
 تشخیص ناهنجاری بر پایه خط مبنا به آستانه نیازی ندارد. یکی از این شرط‌ها را برگزینید تا فرم به جای آن **حساسیت** و **پنجره مبنا** را نشان دهد:
 
@@ -132,13 +132,14 @@ flowchart TB
 
 | الگو | دسته | چه وقت فعال می‌شود | شدت |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | بار کاری | یک کانتینر از زمان ساخت پادش بیش از ۵ بار دوباره راه‌اندازی شده است | بحرانی |
+| Cluster Stopped Reporting | در دسترس بودن | ۱۰ دقیقه هیچ داده‌ای از عامل خوشه نمی‌رسد | بحرانی |
+| CrashLoopBackOff Detection | بار کاری | یک کانتینر در ۱۵ دقیقه دوباره راه‌اندازی شده و کمتر از نیمی از آن زمان آماده بوده است | بحرانی |
 | Pod Stuck in Pending | در حال زمان‌بندی | در هر نمونه از یک پنجره ۱۵ دقیقه‌ای، پادی در مرحله Pending است | Warning |
-| Node Not Ready | گره | یک گره NotReady گزارش می‌دهد | بحرانی |
+| Node Not Ready | گره | یک گره NotReady گزارش می‌دهد یا دیگر وضعیتش را گزارش نمی‌کند (Unknown) | بحرانی |
 | High Node CPU Utilization | گره | میانگین مصرف CPU یک گره بیش از ۹۰٪ CPU قابل‌تخصیص آن است | Warning |
-| High Node Memory Utilization | گره | میانگین مصرف حافظه یک گره بیش از ۸۵٪ حافظه قابل‌تخصیص آن است | Warning |
+| High Node Memory Utilization | گره | میانگین working set حافظهٔ یک گره بیش از ۸۵٪ حافظه قابل‌تخصیص آن است | Warning |
 | Deployment Replica Mismatch | بار کاری | یک deployment به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای در دسترس دارد | Warning |
-| Job Failures | بار کاری | یک job پادهای ناموفق دارد | Warning |
+| Job Failures | بار کاری | یک پادِ یک job در ۱۵ دقیقه ناموفق شده است | Warning |
 | etcd No Leader | Control Plane | etcd رهبر برگزیده‌ای ندارد | بحرانی |
 | API Server Request Saturation | Control Plane | سرور API در تمام پنجره ۲۰۰ درخواست در جریان یا بیشتر دارد | بحرانی |
 | Scheduler Backlog | در حال زمان‌بندی | صف پادهای در انتظار زمان‌بند به مدت ۵ دقیقه خالی نمی‌شود | Warning |
@@ -146,14 +147,16 @@ flowchart TB
 | DaemonSet Misscheduled Nodes | بار کاری | یک DaemonSet پادهایی را روی گره‌هایی اجرا می‌کند که دیگر با انتخابگر گره، affinity یا tolerationهای آن جور نیستند | Warning |
 | High Node CPU Request Commitment | گره | جمع درخواست‌های CPU کانتینرهای یک گره از ۹۰٪ CPU قابل‌تخصیص آن بیشتر است | Warning |
 | High Node Memory Request Commitment | گره | جمع درخواست‌های حافظه کانتینرهای یک گره از ۹۰٪ حافظه قابل‌تخصیص آن بیشتر است | Warning |
-| HPA Saturated at Max Replicas | بار کاری | یک HPA روی ۹۰٪ یا بیشتر از `maxReplicas` خود کار می‌کند | بحرانی |
+| HPA Saturated at Max Replicas | بار کاری | یک HPA که بالاتر از `minReplicas` خود مقیاس گرفته، روی ۹۰٪ یا بیشتر از `maxReplicas` خود کار می‌کند | بحرانی |
 | Pod Memory Saturating Container Limit | بار کاری | یک پاد بیش از ۹۰٪ محدودیت حافظه کانتینرهایش را مصرف می‌کند | بحرانی |
 | Pod CPU Saturating Container Limit | بار کاری | یک پاد بیش از ۹۰٪ محدودیت CPU کانتینرهایش را مصرف می‌کند | Warning |
 
 الگوهایی که روی متریک‌های هر شیء کار می‌کنند، هر گره، پاد، deployment، job، DaemonSet یا HPA را جداگانه ارزیابی می‌کنند، پس خوشه‌ای با چند پاد ناسالم به ازای هر پاد یک حادثه می‌گیرد، نه یک حادثه برای کل خوشه.
 
+**Cluster Stopped Reporting** وقتی فعال می‌شود که ده دقیقه هیچ چیزی از عامل خوشه نرسد: عامل حذف شده یا مدام از کار می‌افتد، کلید API آن باطل شده، مسیرش به OneUptime را از دست داده، یا سرور API خوشه دیگر به آن پاسخ نمی‌دهد. وقتی داده برگردد برطرف می‌شود. وقتی داده قطع شود، الگوهای دیگر چیزی برای مقایسه ندارند و آخرین وضعیت خود را نگه می‌دارند، پس این همان الگویی است که به شما خبر می‌دهد.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** تعداد کل راه‌اندازی‌های دوباره کانتینر را برای پاد فعلی‌اش می‌خواند، نه یک نرخ. کانتینری که در حلقه خرابی افتاده و سپس بهبود یافته، هشدار را تا وقتی پادش جایگزین شود باز نگه می‌دارد.
+> **CrashLoopBackOff Detection** و **Job Failures** می‌شمارند که شمارندهٔ راه‌اندازی دوباره یا پادهای ناموفق در پنجره چقدر رشد کرده است، نه خودِ شمارنده را، پس وقتی راه‌اندازی‌های دوباره یا شکست‌ها متوقف شوند خودبه‌خود برطرف می‌شوند. رشد فقط میان دو نمونه از یک دقیقه دیده می‌شود: با بازهٔ ۳۰ ثانیه‌ای عامل، این حدود نیمی از آن است. یک crash loop بارها و بارها دوباره راه‌اندازی می‌شود و شناسایی می‌شود؛ یک راه‌اندازی دوبارهٔ تنها ممکن است دیده نشود.
 
 ### علت‌ها را بگیرید، نه فقط نشانه‌ها را
 
@@ -181,8 +184,8 @@ flowchart TB
 **Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد، پس آستانه `80` یعنی ۸۰ هسته. آستانه را بر حسب هسته تعیین کنید، یا از **High Node CPU Utilization** یا **Pod CPU Saturating Container Limit** شروع کنید که درصد را مقایسه می‌کنند.
 :::
 
-:::details پس از بهبود پاد، CrashLoopBackOff Detection باز می‌ماند
-الگو تعداد کل راه‌اندازی‌های دوباره کانتینر را برای پاد فعلی‌اش می‌خواند، پس وقتی این عدد از ۵ گذشت دیگر پایین نمی‌آید. هشدار وقتی برطرف می‌شود که پاد جایگزین شود، برای نمونه با استقرار دوباره، بیرون‌راندن یا تخلیه گره.
+:::details CrashLoopBackOff Detection برای یک راه‌اندازی دوباره فعال نشد
+این الگو وقتی فعال می‌شود که شمارندهٔ راه‌اندازی دوبارهٔ یک کانتینر در ۱۵ دقیقه رشد کند و کانتینر کمتر از نیمی از آن زمان آماده باشد، پس کانتینری که یک بار دوباره راه‌اندازی شده و بی‌درنگ برگشته است هشداری نمی‌دهد. رشد فقط میان دو نمونه از یک دقیقه دیده می‌شود، پس یک راه‌اندازی دوبارهٔ تنها ممکن است دیده نشود؛ یک crash loop هر چند دقیقه یک بار دوباره راه‌اندازی می‌شود و شناسایی می‌شود.
 :::
 
 ## گام‌های بعدی

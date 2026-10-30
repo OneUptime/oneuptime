@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Un'eccezione per servizio ed errore.** L'impronta viene calcolata dal servizio, dal tipo di eccezione, dal messaggio e dallo stack trace. Prima vengono tolti i valori che cambiano da una chiamata all'altra: UUID e altri identificativi, timestamp, indirizzi IP ed email, e numeri di sette o più cifre. Così `Order id=1042 not found` e `Order id=2077 not found` sono un'unica eccezione.
-- **Una nuova occorrenza riapre un'eccezione risolta.** Se si ripresenta dopo che l'avete risolta, la correzione non ha retto.
+- **Una nuova occorrenza riapre un'eccezione risolta.** Se si ripresenta dopo che l'avete risolta, la correzione non ha retto, e l'eccezione viene segnata come **Regressione**. Un'occorrenza precedente alla risoluzione che arriva in ritardo a OneUptime non la riapre.
 - **Un'eccezione archiviata resta archiviata.** Le sue nuove occorrenze vengono ancora contate, ma smettono di generare notifiche.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Aprite **Prodotti → Osservabilità → Eccezioni**. Il badge sulla scheda **Ec
 
 ### Scegliere uno stato
 
-Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico sopra l'elenco mostra quante occorrenze sono state **Non gestito** e quante **Gestito** nel tempo.
+Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico sopra l'elenco mostra quante occorrenze sono state **Non gestito** e quante **Gestito** nel tempo. Una riga segnata **Regressione** si è ripresentata dopo essere stata risolta, e una segnata **Nuovo** è stata vista per la prima volta nelle ultime 24 ore.
 
 ### Scegliere che cosa conta come problema
 
@@ -58,7 +58,7 @@ Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico
 
 ### Cercare e filtrare
 
-Digitate una query come `type:TypeError env:production`, vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#eccezioni), oppure fate clic su un valore nella barra laterale **Filtri**: un servizio, un host o un'altra risorsa, un **Tipo di eccezione**, un **Ambiente** o una **Error Class**.
+Digitate una query come `type:TypeError env:production`, vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#eccezioni), oppure fate clic su un valore nella barra laterale **Filtri**: un servizio, un host o un'altra risorsa, un **Tipo di eccezione**, un **Ambiente** o una **Error Class**. **Assegnate a me** mostra solo le eccezioni assegnate a voi, e il menu di ordinamento ordina l'elenco per **Ultima volta visto**, **Visto per la prima volta** o **Più eventi**.
 
 ### Aprire un'eccezione
 
@@ -71,7 +71,7 @@ Il menu laterale della pagina raggruppa ciò che fate con un'eccezione:
 
 | Pagina | Cosa mostra |
 | --- | --- |
-| **Panoramica** | Il messaggio, il servizio, quante volte si è verificata e quando è stata vista la prima e l'ultima volta, il suo andamento nel tempo e la sua ultima occorrenza: release, ambiente, span, traccia e sessione utente. |
+| **Panoramica** | Il messaggio, il servizio, quante volte si è verificata e quando è stata vista la prima e l'ultima volta, il suo andamento nel tempo e la sua ultima occorrenza: release, ambiente, span, traccia e sessione utente. In cima, la spiegazione di OneUptime AI di cosa è successo, quando l'IA è attiva. |
 | **Stack trace** | I frame dello stack. Per il codice del browser, i file e le righe originali, una volta caricate le [Source map](/docs/telemetry/source-maps) per la release. |
 | **Occurrences** | Ogni occorrenza, con l'ora, il messaggio e la traccia in cui si è verificata. |
 | **Context** | Gli attributi dell'ultima occorrenza, la sua registrazione della sessione quando c'è, e i passaggi che hanno portato a essa. |
@@ -86,13 +86,18 @@ I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e 
 | Azione | Quando usarla | Che cosa succede dopo |
 | --- | --- | --- |
 | **Risolvi** | Avete distribuito la correzione. | Lascia l'elenco **Non risolto**. Una nuova occorrenza la riapre. |
+| **Risolvi nella prossima release** | La correzione esce nella vostra prossima release. | Lascia l'elenco **Non risolto**. Le occorrenze della release in cui è stata vista per l'ultima volta non la riaprono, mentre una di qualsiasi altra release sì. |
 | **Riapri** | La correzione non ha funzionato. | È di nuovo non risolta. |
 | **Archivia** | È rumore che non intendete correggere. | Lascia l'elenco. Le nuove occorrenze vengono contate ma smettono di generare notifiche. |
 | **Annulla archiviazione** | Volete tornare a sentirne parlare. | Torna nell'elenco a cui appartiene. |
 
+**Risolvi nella prossima release** si trova nel menu accanto a **Risolvi**, nel menu ⋯ della riga, in **Azioni di massa** e in **Impostazioni**, finché le occorrenze dell'eccezione indicano la loro release: l'attributo di risorsa `service.version`.
+
 **Impostazioni** mostra chi ha risolto o archiviato l'eccezione per ultimo, e quando. I suoi pulsanti dicono **Segna come risolto** o **Segna come non risolto**, e **Archivia** o **Annulla archiviazione**.
 
 Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella sopra le righe per tutte le eccezioni della pagina, e usate le stesse azioni in **Azioni di massa**. Il risultato dice quali eccezioni sono cambiate, quali sono rimaste com'erano e perché.
+
+**Assegna** nell'intestazione dell'eccezione la affida a una persona o a un team, e togliere la scelta rimuove l'assegnazione. Ogni riga mostra a chi appartiene, il suo menu ⋯ offre **Assegna a me**, e **Assegna a…** in **Azioni di massa** ne assegna diverse insieme.
 
 ## Classi di errore
 
@@ -107,6 +112,22 @@ Ogni eccezione ha una classe di errore, che dice di chi è il problema. OneUptim
 | `expected-denial` | Un controllo che fa il suo lavoro, come un accesso rifiutato. | No |
 
 Con **Archivia le eccezioni previste** attivo, nelle impostazioni degli insight dell'IA, le eccezioni che lo smistamento riconosce come rifiuti previsti vengono archiviate per voi.
+
+## Spiegarla con l'IA
+
+In cima alla **Panoramica** di un'eccezione, **Spiega con OneUptime AI** chiede a OneUptime AI cosa è andato storto. Legge lo stack trace, la traccia e i registri dell'ultima occorrenza e i deploy del servizio intorno al momento in cui l'eccezione è iniziata, e risponde nella scheda **Cosa è successo**:
+
+| Parte | Cosa dice |
+| --- | --- |
+| **Cosa è successo** | Una o due frasi, quanto è sicura OneUptime AI e dove sta il guasto: il codice, una dipendenza, l'infrastruttura, un input non valido o la configurazione. |
+| **Causa principale probabile** | La causa, e il frame, lo span, la riga di registro o il deploy che la mostra. |
+| **Correzione suggerita** | Cosa cambiare. |
+| **Dove guardare** | I frame dello stack trace da aprire per primi. |
+| **Prossimi passi** | Al massimo tre passi per confermarla o correggerla. |
+
+La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Apri una pull request con la correzione** apre la pagina **AI Assistance** dell'eccezione, e **Fai una domanda di approfondimento** apre Ask AI sull'eccezione.
+
+ID, indirizzi email e IP e token vengono tolti da tutto ciò che viene inviato, e degli attributi di uno span ne vengono inviati solo alcuni, come la route e il codice di stato. La spiegazione usa il provider LLM e i crediti IA del progetto, e non viene offerta finché **Abilita IA** è disattivato. Chiunque possa leggere l'eccezione può chiederne una.
 
 ## Correggerla con l'IA
 
@@ -173,7 +194,7 @@ L'impronta include il messaggio e lo stack trace. Quando differiscono, ad esempi
 :::
 
 :::details Un'eccezione risolta continua a tornare
-Una nuova occorrenza riapre di proposito un'eccezione risolta: l'errore si verifica ancora. Verificate che la correzione abbia raggiunto la release che la segnala, oppure archiviate l'eccezione se non volete più sentirne parlare.
+Una nuova occorrenza riapre di proposito un'eccezione risolta: l'errore si verifica ancora. Verificate che la correzione abbia raggiunto la release che la segnala, oppure archiviate l'eccezione se non volete più sentirne parlare. Se i vecchi pod della release continuano a segnalarla durante un rollout, usate invece **Risolvi nella prossima release**.
 :::
 
 ## Passaggi successivi

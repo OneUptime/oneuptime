@@ -31,6 +31,15 @@ export interface TelemetryExceptionPayload {
    * stays flagged unhandled.
    */
   unhandled?: boolean;
+  /*
+   * When the occurrence happened: the span event's or the log record's own
+   * time. The group's first and last seen are made of these, so telemetry
+   * that reaches a worker late (a backed-up queue, a retried batch) neither
+   * moves them forward nor reopens an exception resolved after it happened.
+   * Left out, or outside what clampOccurrenceTime accepts, the time the
+   * worker reads it stands in.
+   */
+  occurredAt?: Date | undefined;
 }
 
 /*
@@ -41,6 +50,77 @@ export interface TelemetryExceptionPayload {
  * upsert is modelled on).
  */
 const TELEMETRY_EXCEPTION_UPSERT_BATCH_SIZE: number = 500;
+
+/*
+ * How old an occurrence's own time may be and still be believed. A span
+ * event without a time, or with a broken clock, arrives stamped at the epoch
+ * or years out: taken at its word it would make the group's first seen 1970.
+ * Telemetry older than this is not a late delivery but a bad timestamp, so
+ * the time the worker reads it stands in, as it does for a time in the
+ * future.
+ */
+export const MAX_OCCURRENCE_AGE_MS: number = 30 * 24 * 60 * 60 * 1000;
+
+/*
+ * Whether the existing row, resolved, is reopened by this batch. In the
+ * conflict branch below "TelemetryException" is the row as it stands before
+ * the update - Postgres reads every SET expression against the old row - and
+ * EXCLUDED is the batch's aggregate for it:
+ *
+ *  - an occurrence after the row was resolved (EXCLUDED.lastSeenAt is the
+ *    batch's latest occurrence time). One that happened before the resolve
+ *    and reached ingest late is not the fix failing;
+ *  - and, for an exception resolved in the next release, an occurrence from
+ *    a release other than the one it was resolved after. The batch's
+ *    release is its latest occurrence's (lastSeenInRelease), so pods still
+ *    running the old release during a rollout do not reopen it, and the new
+ *    release does. An occurrence that names no release cannot say which it
+ *    came from, so it does not reopen it either.
+ *
+ * Exported for the tests that read the statement; it is spliced into the SQL
+ * below, never built from data.
+ */
+export const REOPENS_RESOLVED_EXCEPTION_SQL: string = `(
+            (
+              "TelemetryException"."markedAsResolvedAt" IS NULL
+              OR EXCLUDED."lastSeenAt" > "TelemetryException"."markedAsResolvedAt"
+            )
+            AND (
+              COALESCE("TelemetryException"."resolvedInReleaseAfter", '') = ''
+              OR (
+                COALESCE(EXCLUDED."lastSeenInRelease", '') <> ''
+                AND EXCLUDED."lastSeenInRelease" <> "TelemetryException"."resolvedInReleaseAfter"
+              )
+            )
+          )`;
+
+// The row was resolved and this batch leaves it so.
+export const STAYS_RESOLVED_SQL: string = `("TelemetryException"."isResolved" AND NOT ${REOPENS_RESOLVED_EXCEPTION_SQL})`;
+
+/*
+ * When an occurrence happened, as the group's seen times are kept: its own
+ * time when that is believable, otherwise `now` - see MAX_OCCURRENCE_AGE_MS.
+ */
+export function clampOccurrenceTime(
+  occurredAt: Date | undefined,
+  now: Date,
+): Date {
+  if (!occurredAt || !(occurredAt instanceof Date)) {
+    return now;
+  }
+
+  const time: number = occurredAt.getTime();
+
+  if (
+    Number.isNaN(time) ||
+    time > now.getTime() ||
+    now.getTime() - time > MAX_OCCURRENCE_AGE_MS
+  ) {
+    return now;
+  }
+
+  return occurredAt;
+}
 
 export default class ExceptionUtil {
   /**
@@ -122,12 +202,15 @@ export default class ExceptionUtil {
    *     ("projectId", "primaryEntityId", "fingerprint") DO UPDATE SET …`
    *     so the count merge happens atomically inside Postgres and
    *     concurrent workers cannot lose increments.
-   *   - Uses GREATEST / LEAST on the timestamps so out-of-order
+   *   - Keeps firstSeenAt / lastSeenAt as the occurrences' own times
+   *     (clampOccurrenceTime), with GREATEST / LEAST so out-of-order
    *     delivery (a stale job processed after a fresher one) does
    *     not regress lastSeenAt / firstSeenAt.
-   *   - Preserves the legacy "new occurrence un-resolves the row"
-   *     behaviour by clearing markedAsResolved* and setting
-   *     isResolved=false in the conflict branch.
+   *   - Reopens a resolved row when the batch holds an occurrence
+   *     that happened after it was resolved - from another release,
+   *     when it was resolved in the next release - and stamps
+   *     regressedAt (REOPENS_RESOLVED_EXCEPTION_SQL). A row the batch
+   *     does not reopen keeps its resolution and who made it.
    *
    * Chunked at TELEMETRY_EXCEPTION_UPSERT_BATCH_SIZE so the
    * placeholder count stays well below Postgres's 65535 limit.
@@ -262,10 +345,15 @@ export default class ExceptionUtil {
             NULLIF(EXCLUDED."exceptionType", ''),
             "TelemetryException"."exceptionType"
           ),
-          "lastSeenInRelease" = COALESCE(
-            NULLIF(EXCLUDED."lastSeenInRelease", ''),
-            "TelemetryException"."lastSeenInRelease"
-          ),
+          "lastSeenInRelease" = CASE
+            WHEN COALESCE(EXCLUDED."lastSeenInRelease", '') = ''
+              THEN "TelemetryException"."lastSeenInRelease"
+            WHEN COALESCE("TelemetryException"."lastSeenInRelease", '') = ''
+              OR "TelemetryException"."lastSeenAt" IS NULL
+              OR EXCLUDED."lastSeenAt" >= "TelemetryException"."lastSeenAt"
+              THEN EXCLUDED."lastSeenInRelease"
+            ELSE "TelemetryException"."lastSeenInRelease"
+          END,
           "environment" = COALESCE(
             NULLIF(EXCLUDED."environment", ''),
             "TelemetryException"."environment"
@@ -274,9 +362,27 @@ export default class ExceptionUtil {
             "TelemetryException"."primaryEntityType",
             EXCLUDED."primaryEntityType"
           ),
-          "markedAsResolvedByUserId" = NULL,
-          "markedAsResolvedAt" = NULL,
-          "isResolved" = false,
+          "regressedAt" = CASE
+            WHEN "TelemetryException"."isResolved" AND NOT ${STAYS_RESOLVED_SQL}
+              THEN now()
+            ELSE "TelemetryException"."regressedAt"
+          END,
+          "markedAsResolvedByUserId" = CASE
+            WHEN ${STAYS_RESOLVED_SQL}
+              THEN "TelemetryException"."markedAsResolvedByUserId"
+            ELSE NULL
+          END,
+          "markedAsResolvedAt" = CASE
+            WHEN ${STAYS_RESOLVED_SQL}
+              THEN "TelemetryException"."markedAsResolvedAt"
+            ELSE NULL
+          END,
+          "resolvedInReleaseAfter" = CASE
+            WHEN ${STAYS_RESOLVED_SQL}
+              THEN "TelemetryException"."resolvedInReleaseAfter"
+            ELSE NULL
+          END,
+          "isResolved" = ${STAYS_RESOLVED_SQL},
           "updatedAt" = now()
       `;
 
@@ -308,11 +414,17 @@ export default class ExceptionUtil {
    * events in the same batch may be truncated or sampled; the
    * COALESCE(NULLIF(...)) in the SQL guarantees we never overwrite
    * a populated DB value with an empty incoming one.
+   *
+   * The seen times are the earliest and latest occurrence times, and
+   * the releases are those occurrences' own: the first seen release
+   * is the earliest occurrence's that names one, the last seen
+   * release the latest's - not whichever event of the batch came
+   * first, which during a rollout is often the old release.
    */
-  private static aggregateExceptions(
+  public static aggregateExceptions(
     exceptions: Array<TelemetryExceptionPayload>,
+    now: Date = new Date(),
   ): Map<string, AggregatedException> {
-    const now: Date = new Date();
     const out: Map<string, AggregatedException> = new Map();
 
     for (const exception of exceptions) {
@@ -337,6 +449,8 @@ export default class ExceptionUtil {
       }
 
       const key: string = `${exception.projectId.toString()}|${exception.primaryEntityId.toString()}|${exception.fingerprint}`;
+      const occurredAt: Date = clampOccurrenceTime(exception.occurredAt, now);
+      const release: string = exception.release || "";
 
       const existing: AggregatedException | undefined = out.get(key);
       if (existing) {
@@ -354,18 +468,41 @@ export default class ExceptionUtil {
           existing.exceptionType,
           exception.exceptionType,
         );
-        existing.lastSeenInRelease = pickNonEmpty(
-          existing.lastSeenInRelease,
-          exception.release,
-        );
-        existing.firstSeenInRelease = pickNonEmpty(
-          existing.firstSeenInRelease,
-          exception.release,
-        );
         existing.environment = pickNonEmpty(
           existing.environment,
           exception.environment,
         );
+
+        if (occurredAt.getTime() < existing.firstSeenAt.getTime()) {
+          existing.firstSeenAt = occurredAt;
+        }
+
+        if (occurredAt.getTime() > existing.lastSeenAt.getTime()) {
+          existing.lastSeenAt = occurredAt;
+        }
+
+        /*
+         * The releases of the earliest and latest occurrences that name one.
+         * Ties keep the one already held, so a batch whose occurrences share
+         * a time reads its releases in arrival order, as before.
+         */
+        if (release) {
+          if (
+            !existing.firstSeenInRelease ||
+            occurredAt.getTime() < existing.firstReleaseAt.getTime()
+          ) {
+            existing.firstSeenInRelease = release;
+            existing.firstReleaseAt = occurredAt;
+          }
+
+          if (
+            !existing.lastSeenInRelease ||
+            occurredAt.getTime() > existing.lastReleaseAt.getTime()
+          ) {
+            existing.lastSeenInRelease = release;
+            existing.lastReleaseAt = occurredAt;
+          }
+        }
         continue;
       }
 
@@ -377,11 +514,13 @@ export default class ExceptionUtil {
         message: exception.message || "",
         stackTrace: exception.stackTrace || "",
         exceptionType: exception.exceptionType || "",
-        firstSeenAt: now,
-        lastSeenAt: now,
+        firstSeenAt: occurredAt,
+        lastSeenAt: occurredAt,
         occuranceCount: 1,
-        firstSeenInRelease: exception.release || "",
-        lastSeenInRelease: exception.release || "",
+        firstSeenInRelease: release,
+        lastSeenInRelease: release,
+        firstReleaseAt: occurredAt,
+        lastReleaseAt: occurredAt,
         environment: exception.environment || "",
         unhandled: exception.unhandled === true,
       });
@@ -391,7 +530,7 @@ export default class ExceptionUtil {
   }
 }
 
-interface AggregatedException {
+export interface AggregatedException {
   projectId: ObjectID;
   primaryEntityId: ObjectID;
   primaryEntityType: ServiceType | null;
@@ -404,6 +543,9 @@ interface AggregatedException {
   occuranceCount: number;
   firstSeenInRelease: string;
   lastSeenInRelease: string;
+  // When the occurrences that gave the two releases above happened.
+  firstReleaseAt: Date;
+  lastReleaseAt: Date;
   environment: string;
   unhandled: boolean;
 }

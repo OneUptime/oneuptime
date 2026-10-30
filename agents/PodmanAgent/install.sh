@@ -33,6 +33,48 @@ if ! podman info &> /dev/null 2>&1; then
     exit 1
 fi
 
+# Rootful or rootless: the agent watches the Podman this script talks to, so
+# it mounts that Podman's API socket and container storage. Rootful Podman
+# (run with sudo) keeps them at /run/podman/podman.sock and
+# /var/lib/containers/storage; rootless Podman, per user, at
+# $XDG_RUNTIME_DIR/podman/podman.sock and ~/.local/share/containers/storage.
+# Podman says where its own are; the defaults are for one that does not. They
+# are mounted at the rootful paths inside the containers, where the
+# collector's config looks.
+PODMAN_ROOTLESS="$(podman info --format '{{.Host.Security.Rootless}}' 2>/dev/null || true)"
+if [ -z "$PODMAN_ROOTLESS" ]; then
+    if [ "$(id -u)" = "0" ]; then
+        PODMAN_ROOTLESS="false"
+    else
+        PODMAN_ROOTLESS="true"
+    fi
+fi
+
+PODMAN_SOCKET="$(podman info --format '{{.Host.RemoteSocket.Path}}' 2>/dev/null || true)"
+PODMAN_SOCKET="${PODMAN_SOCKET#unix://}"
+PODMAN_STORAGE="$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null || true)"
+
+if [ "$PODMAN_ROOTLESS" = "true" ]; then
+    PODMAN_SOCKET="${PODMAN_SOCKET:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}"
+    PODMAN_STORAGE="${PODMAN_STORAGE:-${XDG_DATA_HOME:-$HOME/.local/share}/containers/storage}"
+    SOCKET_FIX="systemctl --user enable --now podman.socket"
+else
+    PODMAN_SOCKET="${PODMAN_SOCKET:-/run/podman/podman.sock}"
+    PODMAN_STORAGE="${PODMAN_STORAGE:-/var/lib/containers/storage}"
+    SOCKET_FIX="sudo systemctl enable --now podman.socket"
+fi
+
+# Without the API socket the collector cannot start, and the container would
+# restart in a loop: say so now, with the command that turns it on. Podman
+# says whether its socket is there; a socket at the path will do too.
+PODMAN_SOCKET_EXISTS="$(podman info --format '{{.Host.RemoteSocket.Exists}}' 2>/dev/null || true)"
+if [ "$PODMAN_SOCKET_EXISTS" != "true" ] && [ ! -S "$PODMAN_SOCKET" ]; then
+    echo "Error: Podman's API socket is not at $PODMAN_SOCKET."
+    echo "Turn it on with: $SOCKET_FIX"
+    echo "then run this script again."
+    exit 1
+fi
+
 # Prompt for configuration
 if [ -z "$ONEUPTIME_URL" ]; then
     read -rp "OneUptime URL (e.g., https://oneuptime.com): " ONEUPTIME_URL
@@ -68,17 +110,30 @@ if podman ps -a --format '{{.Names}}' | grep -q '^oneuptime-podman-agent$'; then
     podman rm -f oneuptime-podman-agent
 fi
 
+# The image negotiates the Docker API version with Podman's socket. Set
+# DOCKER_API_VERSION when you run this script to pin one instead, and the
+# collector gets it too.
+COLLECTOR_EXTRA_ENV=()
+if [ -n "${DOCKER_API_VERSION:-}" ]; then
+    COLLECTOR_EXTRA_ENV+=(-e "DOCKER_API_VERSION=$DOCKER_API_VERSION")
+fi
+
 echo ""
-echo "Starting OneUptime Podman Agent..."
+if [ "$PODMAN_ROOTLESS" = "true" ]; then
+    echo "Starting OneUptime Podman Agent (rootless Podman: $PODMAN_SOCKET)..."
+else
+    echo "Starting OneUptime Podman Agent..."
+fi
 podman run -d \
     --name oneuptime-podman-agent \
     --user 0:0 \
     --restart unless-stopped \
-    -v /run/podman/podman.sock:/run/podman/podman.sock:ro \
-    -v /var/lib/containers/storage:/var/lib/containers/storage:ro \
+    -v "$PODMAN_SOCKET":/run/podman/podman.sock:ro \
+    -v "$PODMAN_STORAGE":/var/lib/containers/storage:ro \
     -e ONEUPTIME_URL="$ONEUPTIME_URL" \
     -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
     -e PODMAN_HOST_NAME="$PODMAN_HOST_NAME" \
+    "${COLLECTOR_EXTRA_ENV[@]}" \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
@@ -116,7 +171,7 @@ install_ai_agent() {
         --restart unless-stopped \
         --read-only \
         --tmpfs /tmp \
-        -v /run/podman/podman.sock:/run/podman/podman.sock:ro \
+        -v "$PODMAN_SOCKET":/run/podman/podman.sock:ro \
         -e ONEUPTIME_URL="$ONEUPTIME_URL" \
         -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
         -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman \

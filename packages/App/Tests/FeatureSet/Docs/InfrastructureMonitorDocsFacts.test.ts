@@ -147,7 +147,7 @@ const TABLE_DELIMITER_ROW: RegExp = /^\|\s*-/;
 const HEADING_MARKS: RegExp = /^(#{1,6}) /;
 const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
 const PAST_WINDOW: RegExp = /\bpast (\d+) minutes?\b/;
-const AGGREGATION_WORD: RegExp = /\b(Avg|Max|Min|Sum)\b/;
+const AGGREGATION_WORD: RegExp = /\b(Avg|Max|Min|Sum|Count)\b/;
 const KEY_EQUALS_VALUE: RegExp = /^([\w.]+) = (\S+)$/;
 const SAME_AS_ABOVE: string = "The same";
 const EMPTY_DISK_PATH_IS_ROOT: RegExp =
@@ -250,15 +250,28 @@ const AGGREGATION_OF_WORD: Record<string, MetricsAggregationType> = {
   Max: MetricsAggregationType.Max,
   Min: MetricsAggregationType.Min,
   Sum: MetricsAggregationType.Sum,
+  Count: MetricsAggregationType.Count,
 };
 
 const NUMBER_WORDS: Record<number, string> = {
   4: "four",
   5: "five",
   6: "six",
+  7: "seven",
   11: "eleven",
+  12: "twelve",
   17: "seventeen",
+  18: "eighteen",
 };
+
+/*
+ * Each type's Stopped Reporting template: its row says it fires on a silent
+ * window and recovers when data comes back, which no threshold phrase above
+ * can state - the template's `< 0` on a count only fires through its
+ * no-data policy. Checked by the suite of its own below.
+ */
+const STOPPED_REPORTING_FIRES: string = "No data for the whole window";
+const STOPPED_REPORTING_RECOVERS: string = "Data arrives again";
 
 interface Comparison {
   // Undefined only on a template with no filter, which matches no row.
@@ -776,24 +789,28 @@ describeTemplateTable({
   page: DOCKER,
   heading: "## Pre-built Alert Templates",
   templates: dockerTemplates,
+  specialRows: ["Host Stopped Reporting"],
 });
 
 describeTemplateTable({
   page: PODMAN,
   heading: "## Pre-built Alert Templates",
   templates: podmanTemplates,
+  specialRows: ["Host Stopped Reporting"],
 });
 
 describeTemplateTable({
   page: HOST,
   heading: "## Pre-built Alert Templates",
   templates: hostTemplates,
+  specialRows: ["Host Stopped Reporting"],
 });
 
 describeTemplateTable({
   page: SWARM,
   heading: "## Pre-built Alert Templates",
   templates: swarmTemplates,
+  specialRows: ["Cluster Stopped Reporting"],
 });
 
 describeTemplateTable({
@@ -801,7 +818,84 @@ describeTemplateTable({
   heading: "## Pre-built Alert Templates",
   templates: proxmoxTemplates,
   defaultWindowMinutes: 5,
-  specialRows: ["Guest Down"],
+  specialRows: ["Cluster Stopped Reporting", "Guest Down"],
+});
+
+describe("the Stopped Reporting template each page explains", () => {
+  const PAGES: Array<{
+    page: string;
+    name: string;
+    templates: () => Array<BuiltTemplate>;
+  }> = [
+    {
+      page: DOCKER,
+      name: "Host Stopped Reporting",
+      templates: dockerTemplates,
+    },
+    {
+      page: PODMAN,
+      name: "Host Stopped Reporting",
+      templates: podmanTemplates,
+    },
+    { page: HOST, name: "Host Stopped Reporting", templates: hostTemplates },
+    {
+      page: SWARM,
+      name: "Cluster Stopped Reporting",
+      templates: swarmTemplates,
+    },
+    {
+      page: PROXMOX,
+      name: "Cluster Stopped Reporting",
+      templates: proxmoxTemplates,
+    },
+  ];
+
+  it.each(
+    PAGES.map(
+      (entry: {
+        page: string;
+        name: string;
+        templates: () => Array<BuiltTemplate>;
+      }): [string, string, () => Array<BuiltTemplate>] => {
+        return [entry.page, entry.name, entry.templates];
+      },
+    ),
+  )(
+    "%s: %s comes first, fires on a silent window and recovers when data comes back",
+    (page: string, name: string, templates: () => Array<BuiltTemplate>) => {
+      const built: Array<BuiltTemplate> = templates();
+      const template: BuiltTemplate = built[0] as BuiltTemplate;
+      const row: TemplateRow = templateRows(
+        page,
+        "## Pre-built Alert Templates",
+      )[0] as TemplateRow;
+
+      expect(template.name).toBe(name);
+      expect(row.name).toBe(name);
+      expect(row.fires).toBe(STOPPED_REPORTING_FIRES);
+      expect(row.recovers).toBe(STOPPED_REPORTING_RECOVERS);
+
+      // A count is never below 0: only the Trigger no-data policy fires it.
+      expect(template.queries.map(aggregationOf)).toEqual([
+        MetricsAggregationType.Count,
+      ]);
+      expect(comparisonOf(primary(template.first))).toEqual({
+        filterType: FilterType.LessThan,
+        value: 0,
+      });
+      expect(primary(template.first).metricMonitorOptions?.onNoDataPolicy).toBe(
+        NoDataPolicy.Trigger,
+      );
+      expect(comparisonOf(primary(template.last))).toEqual({
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 0,
+      });
+      expect(groupByOf(template)).toEqual([]);
+      expect(englishPage(page)).toContain(
+        `**${name}** fires when nothing arrives from the`,
+      );
+    },
+  );
 });
 
 describe("the Docker templates the page explains", () => {
@@ -991,6 +1085,7 @@ describe(`${KUBERNETES}: the template table`, () => {
 
   // The template picker's category headings.
   const CATEGORY_LABELS: Record<string, string> = {
+    Availability: "Availability",
     Workload: "Workload",
     Node: "Node",
     ControlPlane: "Control Plane",
@@ -1089,28 +1184,93 @@ describe(`${KUBERNETES}: the template table`, () => {
 
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Seventeen ready-made alerts`,
+      `(#pre-built-alert-templates): Eighteen ready-made alerts`,
     );
-    expect(templates).toHaveLength(17);
+    expect(templates).toHaveLength(18);
   });
 
-  it("CrashLoopBackOff Detection reads the lifetime restart count of each pod's containers", () => {
+  it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {
+    const template: BuiltTemplate = builtTemplates[0] as BuiltTemplate;
+
+    expect(template.name).toBe("Cluster Stopped Reporting");
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "k8s.node.condition_ready",
+    ]);
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Count,
+    ]);
+    expect(primary(template.first).metricMonitorOptions?.onNoDataPolicy).toBe(
+      NoDataPolicy.Trigger,
+    );
+    expect(template.rollingTime).toBe(RollingTime.Past10Minutes);
+    expect(rows[0]).toEqual([
+      "Cluster Stopped Reporting",
+      "Availability",
+      "No data arrives from the cluster's agent for 10 minutes",
+      "Critical",
+    ]);
+  });
+
+  it("CrashLoopBackOff Detection and Job Failures count growth in the window, not the lifetime count", () => {
+    function named(name: string): BuiltTemplate {
+      return builtTemplates.find((candidate: BuiltTemplate): boolean => {
+        return candidate.name === name;
+      }) as BuiltTemplate;
+    }
+
+    const crashLoop: BuiltTemplate = named("CrashLoopBackOff Detection");
+
+    expect(crashLoop.queries.map(metricNameOf)).toEqual([
+      "k8s.container.restarts",
+      "k8s.container.restarts",
+      "k8s.container.ready",
+    ]);
+    expect(groupByOf(crashLoop)).toContain("resource.k8s.pod.name");
+    expect(crashLoop.formulas).toEqual([
+      "container_restarts_max - container_restarts_min",
+    ]);
+    expect(comparisonOf(primary(crashLoop.first))).toEqual({
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
+    expect(windowAggregationOf(primary(crashLoop.first))).toBe(
+      EvaluateOverTimeType.Sum,
+    );
+    // ...while the container was ready for less than half the window.
+    expect(crashLoop.first.data!.filterCondition).toBe(FilterCondition.All);
+    expect(
+      comparisonOf(crashLoop.first.data!.filters[1] as CriteriaFilter),
+    ).toEqual({ filterType: FilterType.LessThan, value: 0.5 });
+
+    const jobFailures: BuiltTemplate = named("Job Failures");
+
+    expect(jobFailures.formulas).toEqual(["failed_pods_max - failed_pods_min"]);
+    expect(windowAggregationOf(primary(jobFailures.first))).toBe(
+      EvaluateOverTimeType.Sum,
+    );
+
+    expect(englishPage(KUBERNETES)).toContain(
+      "count how much a restart or failed-pod count grew in the window, not the count itself",
+    );
+  });
+
+  it("Node Not Ready fires below 1, so a node whose status is Unknown fires too", () => {
     const template: BuiltTemplate = builtTemplates.find(
       (candidate: BuiltTemplate): boolean => {
-        return candidate.name === "CrashLoopBackOff Detection";
+        return candidate.name === "Node Not Ready";
       },
     ) as BuiltTemplate;
 
-    expect(template.queries.map(metricNameOf)).toEqual([
-      "k8s.container.restarts",
-    ]);
-    expect(groupByOf(template)).toContain("resource.k8s.pod.name");
     expect(comparisonOf(primary(template.first))).toEqual({
-      filterType: FilterType.GreaterThan,
-      value: 5,
+      filterType: FilterType.LessThan,
+      value: 1,
+    });
+    expect(comparisonOf(primary(template.last))).toEqual({
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
     });
     expect(englishPage(KUBERNETES)).toContain(
-      "so the count does not fall back once it has passed 5.",
+      "**Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown",
     );
   });
 
@@ -1231,6 +1391,7 @@ describe(`${KUBERNETES}: the form`, () => {
 
     for (const filter of [
       "Namespace",
+      "Workload Kind",
       "Workload Name",
       "Node Name",
       "Pod Name",
@@ -1246,7 +1407,7 @@ describe(`${KUBERNETES}: the form`, () => {
     ).toEqual([
       "—",
       "**Namespace**",
-      "**Namespace**, **Workload Name**",
+      "**Namespace**, **Workload Kind**, **Workload Name**",
       "**Node Name**",
       "**Namespace**, **Pod Name**",
     ]);
@@ -1650,19 +1811,31 @@ describe("the criteria of the telemetry-backed monitors", () => {
         FilterType.AnomalouslyHigh,
         FilterType.AnomalouslyLow,
         FilterType.Anomalous,
+        FilterType.IsEmpty,
+        FilterType.IsNotEmpty,
       ].sort(),
     );
 
     const written: string =
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**.";
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
 
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
       expect(englishPage(page)).toContain(written);
     }
 
     expect(englishPage(KUBERNETES)).toContain(
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**.",
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
     );
+
+    // The words the Condition dropdown draws for the two data conditions.
+    const labels: Array<string> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(CheckOn.MetricValue).map(
+        (option: DropdownOption): string => {
+          return option.label;
+        },
+      );
+    expect(labels).toContain("Has No Data");
+    expect(labels).toContain("Has Data");
   });
 
   it("aggregate the window as the pages list", () => {
@@ -1792,11 +1965,14 @@ describe("the criteria of the telemetry-backed monitors", () => {
 
       expect(criteria.data!.monitorCriteriaInstanceArray).toHaveLength(2);
 
+      /*
+       * Has No Data / Has Data: whether the agent sends anything, never
+       * "0 is offline" - a metric that is healthy at zero used to open
+       * "is offline" on a healthy resource.
+       */
       expect(offline.data!.name).toBe("Check if Acme is offline");
-      expect(comparisonOf(primary(offline))).toEqual({
-        filterType: FilterType.EqualTo,
-        value: 0,
-      });
+      expect(primary(offline).filterType).toBe(FilterType.IsEmpty);
+      expect(primary(offline).value).toBeUndefined();
       expect(windowAggregationOf(primary(offline))).toBe(
         EvaluateOverTimeType.AnyValue,
       );
@@ -1806,10 +1982,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
       expect(offline.data!.incidents[0]!.autoResolveIncident).toBe(true);
 
       expect(online.data!.name).toBe("Check if Acme is online");
-      expect(comparisonOf(primary(online))).toEqual({
-        filterType: FilterType.GreaterThan,
-        value: 0,
-      });
+      expect(primary(online).filterType).toBe(FilterType.IsNotEmpty);
+      expect(primary(online).value).toBeUndefined();
       expect(online.data!.monitorStatusId).toEqual(IDS.onlineMonitorStatusId);
       expect(online.data!.createIncidents).toBe(false);
 
@@ -1817,13 +1991,13 @@ describe("the criteria of the telemetry-backed monitors", () => {
         [
           "1",
           "Check if _monitor name_ is offline",
-          "Any value of the first query is `0`",
+          "The first query has no data for the whole window",
           'Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers.',
         ],
         [
           "2",
           "Check if _monitor name_ is online",
-          "Any value is above `0`",
+          "The first query has data",
           "Marks the monitor **Operational**.",
         ],
       ]);
@@ -1936,7 +2110,12 @@ describe("the worker scopes each monitor as its page says", () => {
     );
   });
 
-  it("Docker Swarm: the cluster name, and no runtime or host filter", () => {
+  /*
+   * The regression: Service Name and Node Name filtered on the bare
+   * `docker.swarm.*` keys, which nothing stores, and Container Image matched
+   * exactly an image Swarm pins to a digest.
+   */
+  it("Docker Swarm: the cluster name, no runtime or host filter, and the service, node and image as the agent sends them", () => {
     const swarm: string = functionBody(
       worker,
       "export const monitorDockerSwarm",
@@ -1945,8 +2124,23 @@ describe("the worker scopes each monitor as its page says", () => {
     expect(swarm).toContain('attributes["resource.docker.swarm.cluster.name"]');
     expect(swarm).not.toContain('attributes["resource.container.runtime"]');
     expect(swarm).not.toContain('attributes["resource.host.name"]');
-    expect(swarm).toContain('attributes["docker.swarm.service.name"]');
-    expect(swarm).toContain('attributes["docker.swarm.node.name"]');
+    expect(swarm).toContain('attributes["resource.docker.swarm.service.name"]');
+    expect(swarm).toContain('attributes["resource.docker.swarm.node.name"]');
+    expect(swarm).not.toContain('attributes["docker.swarm.service.name"]');
+    expect(swarm).not.toContain('attributes["docker.swarm.node.name"]');
+    expect(swarm).toContain(
+      "MonitorStepDockerSwarmMonitorUtil.getContainerImageGlobs(",
+    );
+
+    expect(englishPage(SWARM)).toContain(
+      "| **Service Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.service.name`",
+    );
+    expect(englishPage(SWARM)).toContain(
+      "| **Node Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.node.name`",
+    );
+    expect(englishPage(SWARM)).toContain(
+      "| **Container Image** | Custom Metric, Advanced | Optional. Matches `resource.container.image.name` with or without the digest Swarm pins to the image: `nginx:latest` also matches `nginx:latest@sha256:…`",
+    );
   });
 });
 
@@ -2020,14 +2214,19 @@ describe("the agents the pages describe", () => {
       () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
     ]
   >)(
-    "%s leaves off the extra metrics the page says the picker lists but the agent does not turn on",
+    "%s sends every metric the picker offers: no optional metric the agent leaves off",
     (
       configPath: string,
       page: string,
       catalog: () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
     ) => {
       const config: string = source(configPath);
-      const extras: Array<string> = [
+      /*
+       * Optional docker_stats metrics the shipped agent leaves off. The
+       * picker used to offer them (and a `.read` / `.write` block I/O pair
+       * the receiver never emits), so a monitor built on one never fired.
+       */
+      const offInTheAgent: Array<string> = [
         "container.cpu.usage.percpu",
         "container.memory.rss",
         "container.memory.cache",
@@ -2040,10 +2239,17 @@ describe("the agents the pages describe", () => {
         },
       );
 
-      for (const metric of extras) {
-        expect(listed).toContain(metric);
+      for (const metric of offInTheAgent) {
+        expect(listed).not.toContain(metric);
         expect(config).not.toContain(`${metric}:\n        enabled: true`);
+        expect(englishPage(page)).not.toContain(`\`${metric}\``);
       }
+
+      // Block I/O is one metric, split by an `operation` attribute.
+      expect(listed).toContain("container.blockio.io_service_bytes_recursive");
+      expect(englishPage(page)).not.toContain(
+        "container.blockio.io_service_bytes_recursive.read",
+      );
 
       for (const metric of [
         "container.restarts",
@@ -2060,12 +2266,15 @@ describe("the agents the pages describe", () => {
         "container.cpu.throttling_data.throttled_periods",
       );
       expect(englishPage(page)).toContain(
-        "`container.cpu.throttling_data.throttled_periods` is not in the list; query it from **Advanced**.",
+        "`container.cpu.throttling_data.throttled_periods` is not in the **",
+      );
+      expect(englishPage(page)).toContain(
+        " Metric** list; query it from **Advanced**.",
       );
     },
   );
 
-  it("Docker Swarm: the collector stamps only the cluster name, and the inventory is read every 5 minutes", () => {
+  it("Docker Swarm: the collector stamps the cluster name and each task's service and node, and the inventory is read every 5 minutes", () => {
     const config: string = source(
       "agents/DockerSwarmAgent/otel-collector-config.yaml",
     );
@@ -2075,8 +2284,10 @@ describe("the agents the pages describe", () => {
 
     expect(config).toContain("collection_interval: 30s");
     expect(config).toContain("- key: docker.swarm.cluster.name");
-    expect(config).not.toContain("docker.swarm.service.name");
-    expect(config).not.toContain("docker.swarm.node.name");
+    expect(config).toContain(
+      "com.docker.swarm.service.name: docker.swarm.service.name",
+    );
+    expect(config).toContain('set(attributes["docker.swarm.node.name"]');
     expect(compose).toContain(
       "DOCKER_INVENTORY_INTERVAL_SECONDS=${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}",
     );
@@ -2084,8 +2295,12 @@ describe("the agents the pages describe", () => {
       "reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes",
     );
     expect(englishPage(SWARM)).toContain(
-      "The shipped agent does not set `docker.swarm.service.name` or `docker.swarm.node.name` yet",
+      "and each task's metrics with its service and node",
     );
+    expect(englishPage(SWARM)).not.toContain("does not set");
+    // The page names the files version that sends them, which the agent reports.
+    expect(englishPage(SWARM)).toContain("version 0.161.2");
+    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.2}");
   });
 
   it("Proxmox: the cluster and node collectors every 30 seconds, and id split into pve.scope, pve.type and pve.id", () => {
@@ -2342,8 +2557,57 @@ describe(`${SERVER}`, () => {
       'slog.Info("Metrics successfully pushed to OneUptime server"',
     );
     expect(page).toContain("logging `Secret key is invalid`");
+  });
+
+  /*
+   * The ingest answers 200 before the job that checks the secret key runs,
+   * so the agent's "pushed" line says only that OneUptime received the
+   * report. The page used to say it meant reports were getting through.
+   */
+  it("says the agent's pushed line means received, not accepted: ingest answers before it checks the key", () => {
+    const ingest: string = source(
+      "packages/App/FeatureSet/Telemetry/API/ServerMonitorIngest/ServerMonitor.ts",
+    );
+    const route: string = ingest.substring(
+      ingest.indexOf('"/server-monitor/response/ingest/:secretkey"'),
+    );
+
+    expect(
+      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
+    ).toBeGreaterThan(-1);
+    expect(
+      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
+    ).toBeLessThan(
+      route.indexOf("TelemetryQueueService.addServerMonitorIngestJob("),
+    );
     expect(page).toContain(
-      "A line `Metrics successfully pushed to OneUptime server` means reports are getting through.",
+      "A line `Metrics successfully pushed to OneUptime server` means OneUptime received a report, not that it accepted it: OneUptime answers before it checks the secret key.",
+    );
+    expect(page).not.toContain("means reports are getting through");
+  });
+
+  it("asks again about a key it could not verify, as often as the page says, and logs what it quotes", () => {
+    expect(agent).toContain("keyVerificationFirstRetry   = 5 * time.Second");
+    expect(agent).toContain("keyVerificationLongestRetry = 5 * time.Minute");
+    expect(agent).toContain(
+      'slog.Warn("The secret key could not be verified with OneUptime yet; asking again in "',
+    );
+    expect(page).toContain(
+      "While it cannot reach OneUptime, it keeps trying: again after 5 seconds, then twice as long each time, up to every 5 minutes.",
+    );
+    expect(page).toContain(
+      "the agent logs `The secret key could not be verified with OneUptime yet` and tries again.",
+    );
+  });
+
+  it("starts a failed service again, two minutes later on Windows as on Linux", () => {
+    expect(agentMain).toContain('const serviceRestartDelay = "2m"');
+    expect(agentMain).toContain('"OnFailure":              "restart",');
+    expect(agentMain).toContain(
+      '"OnFailureDelayDuration": serviceRestartDelay,',
+    );
+    expect(page).toContain(
+      "If the service stops on a failure, the service manager starts it again, after two minutes on Linux and Windows. A Windows service set up by an older agent's `configure` restarts only once you run `uninstall` and `configure` again.",
     );
   });
 
@@ -2389,9 +2653,18 @@ describe(`${SERVER}`, () => {
       "Service configuration not found. Please run 'oneuptime-infrastructure-agent configure' to configure the service.",
     );
     expect(agentMain).toContain('slog.Info("Service is running")');
+    // The commands' log lines reach the terminal: they went only to the log file.
+    expect(agentMain).toContain("utils.EchoToTerminal(os.Stdout, os.Stderr)");
+    expect(agentMain).toContain('return args[1] != "run" || interactive');
+    expect(logger).toContain(
+      "func EchoToTerminal(stdout io.Writer, stderr io.Writer) {",
+    );
     expect(agentMain).toContain('logFlags.Int("n", 100, ');
     expect(agentMain).toContain('logFlags.Bool("f", false, ');
     expect(page).toContain("it prints `Service is running`");
+    expect(page).toContain(
+      "Each command prints what it did, or why it failed, and writes the same to the agent's log.",
+    );
     expect(page).toContain(
       "Prints the last 100 lines of the agent's log. `-n <lines>` prints a different number of lines, and `-f` follows new ones.",
     );
@@ -2436,18 +2709,72 @@ describe(`${SERVER}`, () => {
     );
   });
 
-  it("installs into $HOME/bin, prints where, and takes -b", () => {
+  /*
+   * Under sudo the script used to install into $HOME/bin, /root/bin, which is
+   * not on sudo's path, so the next step was not found.
+   * InfrastructureAgentInstallScript runs the script.
+   */
+  it("installs into /usr/local/bin as root and $HOME/bin otherwise, prints where, and takes -b", () => {
     const script: string = source(
       "packages/App/FeatureSet/Docs/Static/scripts/infrastructure-agent/install.sh",
     );
 
+    expect(script).toContain(
+      'if [ "$(id -u)" = "0" ]; then\n  BINDIR=/usr/local/bin',
+    );
     expect(script).toContain("BINDIR=$HOME/bin");
     expect(script).toContain('echo "Installing to ${BINDIR}"');
     expect(script).toContain('while getopts "b:d" opt; do');
+    expect(script).toContain("if command -v curl > /dev/null 2>&1; then");
+    expect(script).not.toContain("apt-get");
     expect(page).toContain(
-      "puts the `oneuptime-infrastructure-agent` binary in `$HOME/bin`",
+      "Run with `sudo`, the install script puts the `oneuptime-infrastructure-agent` binary in `/usr/local/bin` (in `$HOME/bin` without `sudo`), and it downloads with `curl` or `wget`.",
     );
-    expect(page).toContain("| sudo bash -s -- -b /usr/local/bin");
+    expect(page).toContain(
+      "there, the script prints the commands with the agent's full path, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`",
+    );
+    expect(page).toContain("| sudo bash -s -- -b /usr/bin");
+  });
+
+  it("reports the disks that can fill up as df counts them, the CPU's time since the previous report, and the processes it cannot fully read", () => {
+    const disk: string = source("agents/InfrastructureAgent/utils/disk.go");
+    const cpu: string = source("agents/InfrastructureAgent/utils/cpu.go");
+    const procs: string = source("agents/InfrastructureAgent/utils/procs.go");
+
+    for (const fstype of ["squashfs", "iso9660", "devfs", "autofs"]) {
+      expect(disk).toContain(`"${fstype}":`);
+    }
+    expect(disk).toContain(
+      "percentUsed = float64(usageStat.Used) / float64(usable) * 100",
+    );
+    expect(cpu).toContain("return cpuTimeSharesBetween(*previous, *current)");
+    expect(procs).toContain('cmdline = ""');
+    expect(page).toContain(
+      "| Disks | For each mounted disk, except read-only images (snaps, ISOs) and `/dev`: mount path, device, file system, total, used and free space, usage % as `df` counts it,",
+    );
+    expect(page).toContain("IRQ and soft IRQ since the previous report |");
+    expect(page).toContain(
+      "a process whose command line cannot be read, such as a protected Windows process, without its command |",
+    );
+  });
+
+  it("matches nothing on a value, disk or process list the report does not have", () => {
+    const criteria: string = source(
+      "packages/Common/Server/Utils/Monitor/Criteria/ServerMonitorCriteria.ts",
+    );
+
+    expect(criteria).toContain(
+      "reading: ServerMonitorCriteria.reportedNumber(cpuMetrics?.percentUsed),",
+    );
+    expect(criteria).toContain(
+      "ServerMonitorCriteria.reportedProcesses(serverResponse);",
+    );
+    expect(page).toContain(
+      "a criteria on a value the report does not have is not met: a missing value is not 0.",
+    );
+    expect(page).toContain(
+      "When the agent cannot read the server's processes, its report has no process list, and no process filter matches, whether it checks that a process is executing or that it is not.",
+    );
   });
 
   /*
@@ -2578,6 +2905,22 @@ describe(`${SERVER}`, () => {
     expect(setupCard).toContain(
       "return <ServerMonitorDocumentation secretKey={secretKey} />;",
     );
+
+    // The card installs the way the page does, and sends people here for the other ways.
+    expect(documentation).toContain(
+      '"winget install --id OneUptime.InfrastructureAgent --exact --scope machine"',
+    );
+    expect(page).toContain(
+      "winget install --id OneUptime.InfrastructureAgent --exact --scope machine",
+    );
+    expect(documentation).toContain(
+      "/docs/static/scripts/infrastructure-agent/install.sh | sudo bash`",
+    );
+    expect(page).toContain(
+      "/docs/static/scripts/infrastructure-agent/install.sh | sudo bash\n",
+    );
+    expect(documentation).toContain("/docs/monitor/server-monitor`");
+    expect(documentation).not.toContain("uninstall");
     expect(setupCard).toContain(
       "The install command contains this monitor's secret key, so only people who can edit monitors can see it.",
     );
@@ -2670,8 +3013,16 @@ describe(`${SERVER}`, () => {
       'placeholder={"* or C:\\\\ or /mnt/data or /dev/sda1"}',
     );
     expect(criteria).toMatch(EMPTY_DISK_PATH_IS_ROOT);
+    // A device names the disk on it, and the window is read for that disk's own path.
+    expect(criteria).toContain(
+      "ServerMonitorCriteria.normalizeDiskPath(disk.device) === wanted",
+    );
+    expect(criteria).toContain("miscData: { diskPath: input.agentDiskPath },");
     expect(page).toContain(
       "**Disk Path** takes a mount point or device, such as `/`, `/mnt/data`, `C:\\` or `/dev/sda1`; it is `/` when left empty. Enter `*` to check every disk the agent reports",
+    );
+    expect(page).toContain(
+      "Case and a trailing `/` or `\\` do not matter, and a device stands for the disk mounted from it. A path that names no disk the agent reports does not match.",
     );
   });
 

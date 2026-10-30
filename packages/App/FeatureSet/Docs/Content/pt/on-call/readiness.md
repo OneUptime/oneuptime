@@ -42,10 +42,9 @@ Acima da lista, os blocos contam **Destinatários**, **Pronto**, **Precisa de co
 | --- | --- |
 | **Destinatário** | A pessoa, com o endereço de e-mail dela. |
 | **Status** | **Pronto**, **Inacessível** ou quantas lacunas a pessoa tem. |
-| **Equipes** | As equipes que a acionam por meio de uma regra de escalonamento. |
 | **Canais** | Um segmento por canal: cheio para um método verificado, vazado para um ainda não verificado. |
 | **Coverage** | Quantas gravidades têm regra, em cada aba, do total. |
-| **Reached via** | Como as políticas chegam à pessoa: `Direct`, `Team`, `Schedule` ou `Override`. |
+| **Reached via** | Como as políticas chegam à pessoa: cada equipe que a aciona por meio de uma regra de escalonamento, pelo nome, ou **Direct**, **Agendamento** ou **Substituição**. |
 
 **Coverage** em uma linha mostra os métodos de notificação da pessoa, por que ela tem o status dela e uma grade de cada gravidade com ou sem regra. O funil filtra a lista por **Destinatário**, **Status**, **Equipe** ou **Reached via**. A resposta pode ter um minuto: **Atualizar** a calcula de novo.
 

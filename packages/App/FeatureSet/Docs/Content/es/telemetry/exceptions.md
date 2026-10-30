@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Una excepción por servicio y error.** La huella se calcula a partir del servicio, el tipo de excepción, el mensaje y el stack trace. Antes se quitan los valores que cambian de una llamada a otra: UUID y otros identificadores, marcas de tiempo, direcciones IP y de correo, y números de siete o más dígitos. Así, `Order id=1042 not found` y `Order id=2077 not found` son una sola excepción.
-- **Una ocurrencia nueva reabre una excepción resuelta.** Si vuelve a ocurrir después de resolverla, la corrección no funcionó.
+- **Una ocurrencia nueva reabre una excepción resuelta.** Si vuelve a ocurrir después de resolverla, la corrección no funcionó, y la excepción se marca como **Regresión**. Una ocurrencia anterior a la resolución que llega tarde a OneUptime no la reabre.
 - **Una excepción archivada sigue archivada.** Sus nuevas ocurrencias se siguen contando, pero dejan de notificar.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Vaya a **Productos → Observabilidad → Excepciones**. La insignia de la pesta
 
 ### Elegir un estado
 
-Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo.
+Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo. Una fila marcada como **Regresión** volvió después de resolverse, y una marcada como **Nuevo** se vio por primera vez en las últimas 24 horas.
 
 ### Elegir qué cuenta como problema
 
@@ -58,7 +58,7 @@ Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráf
 
 ### Buscar y filtrar
 
-Escriba una consulta como `type:TypeError env:production`, consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#excepciones), o haga clic en un valor de la barra lateral **Filtros**: un servicio, un host u otro recurso, un **Tipo de excepción**, un **Entorno** o una **Clase de error**.
+Escriba una consulta como `type:TypeError env:production`, consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#excepciones), o haga clic en un valor de la barra lateral **Filtros**: un servicio, un host u otro recurso, un **Tipo de excepción**, un **Entorno** o una **Clase de error**. **Asignadas a mí** muestra solo las excepciones asignadas a usted, y el menú de orden ordena la lista por **Visto por última vez**, **Visto por primera vez** o **Más eventos**.
 
 ### Abrir una excepción
 
@@ -71,7 +71,7 @@ El menú lateral de la página agrupa lo que hace con una excepción:
 
 | Página | Qué muestra |
 | --- | --- |
-| **Vista general** | El mensaje, el servicio, cuántas veces ocurrió y cuándo se vio por primera y por última vez, su tendencia en el tiempo y su última ocurrencia: la versión, el entorno, el span, la traza y la sesión de usuario. |
+| **Vista general** | El mensaje, el servicio, cuántas veces ocurrió y cuándo se vio por primera y por última vez, su tendencia en el tiempo y su última ocurrencia: la versión, el entorno, el span, la traza y la sesión de usuario. Arriba, la explicación de OneUptime AI de lo que pasó, cuando la IA está activada. |
 | **Stack trace** | Los frames de la pila. Para código de navegador, los archivos y líneas originales, una vez que suba los [Source maps](/docs/telemetry/source-maps) de la versión. |
 | **Ocurrencias** | Cada ocurrencia, con su hora, su mensaje y la traza en la que ocurrió. |
 | **Contexto** | Los atributos de la última ocurrencia, su grabación de sesión cuando la hay, y los pasos que llevaron a ella. |
@@ -86,13 +86,18 @@ Los botones de la parte superior de la página de la excepción, su página **Aj
 | Acción | Cuándo usarla | Qué pasa después |
 | --- | --- | --- |
 | **Resolver** | Desplegó la corrección. | Sale de la lista **Sin resolver**. Una ocurrencia nueva la reabre. |
+| **Resolver en la próxima versión** | La corrección sale en su próxima versión. | Sale de la lista **Sin resolver**. Las ocurrencias de la versión en la que se vio por última vez no la reabren, y una de cualquier otra versión sí. |
 | **Reabrir** | La corrección no funcionó. | Vuelve a estar sin resolver. |
 | **Archivar** | Es ruido que no piensa corregir. | Sale de la lista. Las ocurrencias nuevas se cuentan pero dejan de notificar. |
 | **Desarchivar** | Quiere volver a saber de ella. | Vuelve a la lista que le corresponde. |
 
+**Resolver en la próxima versión** está en el menú junto a **Resolver**, en el menú ⋯ de la fila, en **Acciones masivas** y en **Ajustes**, mientras las ocurrencias de la excepción indiquen su versión: el atributo de recurso `service.version`.
+
 **Ajustes** muestra quién resolvió o archivó la excepción por última vez, y cuándo. Sus botones dicen **Marcar como resuelto** o **Marcar como no resuelto**, y **Archivar** o **Desarchivar**.
 
 Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre las filas para todas las excepciones de la página, y use las mismas acciones en **Acciones masivas**. El resultado indica qué excepciones cambió, cuáles dejó como estaban y por qué.
+
+**Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez.
 
 ## Clases de error
 
@@ -107,6 +112,22 @@ Cada excepción tiene una clase de error, que dice de quién es el problema. One
 | `expected-denial` | Una comprobación que hace su trabajo, como un inicio de sesión rechazado. | No |
 
 Con **Archivar las excepciones esperadas** activado, en los ajustes de los insights de IA, las excepciones que la revisión identifica como denegaciones esperadas se archivan por usted.
+
+## Explicarla con IA
+
+En la parte superior de la **Vista general** de una excepción, **Explicar con OneUptime AI** pregunta a OneUptime AI qué salió mal. Lee la stack trace, la traza y los registros de la última ocurrencia, y los despliegues del servicio en torno al momento en que empezó la excepción, y responde en la tarjeta **Qué pasó**:
+
+| Parte | Qué dice |
+| --- | --- |
+| **Qué pasó** | Una o dos frases, lo seguro que está OneUptime AI y dónde está el fallo: el código, una dependencia, la infraestructura, una entrada incorrecta o la configuración. |
+| **Causa raíz probable** | La causa, y el frame, el span, la línea de registro o el despliegue que la muestra. |
+| **Corrección sugerida** | Qué cambiar. |
+| **Dónde mirar** | Los frames de la stack trace que conviene abrir primero. |
+| **Próximos pasos** | Como mucho tres pasos para confirmarla o corregirla. |
+
+La explicación se guarda en la excepción, así que la siguiente persona que la abre la lee al momento, y **Explicar de nuevo** pide una nueva. **Abrir una pull request con la corrección** abre la página **Asistencia de IA** de la excepción, y **Hacer una pregunta de seguimiento** abre Ask AI sobre la excepción.
+
+Los ID, las direcciones de correo e IP y los tokens se quitan de todo lo que se envía, y de los atributos de un span solo se envían unos pocos, como su ruta y su código de estado. La explicación usa el proveedor de LLM y los créditos de IA del proyecto, y no se ofrece mientras **Habilitar IA** esté desactivado. Cualquiera que pueda leer la excepción puede pedir una.
 
 ## Corregirla con IA
 
@@ -173,7 +194,7 @@ La huella incluye el mensaje y el stack trace. Cuando difieren, por ejemplo cuan
 :::
 
 :::details Una excepción resuelta vuelve una y otra vez
-Una ocurrencia nueva reabre una excepción resuelta a propósito: el error sigue ocurriendo. Compruebe que la corrección llegó a la versión que la informa, o archive la excepción si ya no quiere saber de ella.
+Una ocurrencia nueva reabre una excepción resuelta a propósito: el error sigue ocurriendo. Compruebe que la corrección llegó a la versión que la informa, o archive la excepción si ya no quiere saber de ella. Si los pods antiguos de la versión siguen informándola durante un despliegue, use **Resolver en la próxima versión** en su lugar.
 :::
 
 ## Próximos pasos

@@ -4,7 +4,7 @@ Um monitor de host acompanha uma máquina – CPU, memória, discos, carga e pro
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-host): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Cinco alertas prontos para CPU, memória, disco, carga e processos.
+- [Modelos](#modelos-de-alerta-prontos): Seis alertas prontos para um host silencioso, CPU, memória, disco, carga e processos.
 - [Métricas](#métricas-coletadas): As métricas de host com que você pode alertar, e suas unidades.
 - [Host ou servidor / VM?](#monitor-de-host-ou-monitor-de-servidor-vm): Qual dos dois monitores de máquinas usar.
 :::
@@ -95,12 +95,13 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece cinco modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece seis modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Os limites são pontos de partida que você pode editar.
 
 Um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `system.memory.usage`, Count, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | High CPU Utilization | Warning | `system.cpu.utilization` para os estados `user` e `system`, somados e mostrados como porcentagem, últimos 5 minutos | Acima de 80% | Em 72% ou menos |
 | High Memory Utilization | Warning | `system.memory.utilization` para o estado `used`, como porcentagem, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
 | High Filesystem Usage | Crítico | `system.filesystem.utilization`, Max por `mountpoint` e `device`, como porcentagem, últimos 5 minutos | Acima de 90% | Em 81% ou menos |
@@ -109,6 +110,7 @@ Um critério só dispara quando a condição vale em todos os minutos da sua jan
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 
+- **Host Stopped Reporting** dispara quando nada chega do host por dez minutos: a máquina está fora do ar ou inacessível, ou o coletor dela parou, perdeu a rota até o OneUptime ou teve o token revogado. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 - **CPU** é o tempo ocupado (`user` mais `system`), o mesmo número que a **Visão geral** do host mostra em gráfico. Espera de E/S e steal ficam de fora.
 - **Memória** exclui buffers e cache de páginas, então um host ocupado principalmente por cache não o dispara.
 - **Sistema de arquivos** abre um incidente por montagem. Pseudo sistemas de arquivos somente leitura, como montagens snap `squashfs` ou `devfs` do macOS, estão sempre 100% cheios; exclua-os no scraper `filesystem` do coletor.
@@ -173,7 +175,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder, na janela inteira) ou **Any Value** (basta um). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
@@ -189,11 +191,11 @@ Um monitor que você não cria a partir de um modelo começa com dois critérios
 
 | Ordem | Critério | Corresponde quando | Então |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Qualquer valor da primeira consulta é `0` | Marca o monitor como **Offline** e declara o incidente "_monitor name_ is offline", que se resolve sozinho quando o monitor se recupera. |
-| 2 | Check if _monitor name_ is online | Qualquer valor está acima de `0` | Marca o monitor como **Operacional**. |
+| 1 | Check if _monitor name_ is offline | A primeira consulta não tem dados em toda a janela | Marca o monitor como **Offline** e declara o incidente "_monitor name_ is offline", que se resolve sozinho quando o monitor se recupera. |
+| 2 | Check if _monitor name_ is online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
-> O silêncio não corresponde a nenhum dos dois critérios: um host que para de enviar dados deixa o monitor como estava. Para ser avisado quando o host fica em silêncio, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> Um valor de `0` é um dado, então uma métrica que costuma ser zero, como reinícios ou erros, não deixa o monitor offline. Para receber alertas sobre um valor, comece por um modelo ou adicione um critério com um limite. Quando nenhum dado chega e nenhum critério corresponde, o monitor mantém o status e os incidentes abertos continuam abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não recebia dados nunca conta como falta de dados: uma verificação cuja janela o inclui espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solução de problemas
 

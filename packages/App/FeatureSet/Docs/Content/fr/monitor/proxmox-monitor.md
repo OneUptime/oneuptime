@@ -4,7 +4,7 @@ Un moniteur Proxmox surveille un cluster Proxmox VE – ses nœuds, ses VM et co
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-proxmox): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Onze alertes prêtes à l'emploi, un incident par nœud, invité ou volume.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Douze alertes prêtes à l'emploi, un incident par nœud, invité ou volume.
 - [Identité des ressources](#identité-des-ressources): Comment cibler un seul nœud, invité ou volume de stockage.
 - [Métriques](#métriques-collectées): Chaque série `pve_*` sur laquelle le moniteur peut alerter.
 :::
@@ -109,12 +109,13 @@ Filtrez sur `pve.scope` ou `pve.type` pour un type de ressource, sur `pve.id` ou
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose 11 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+**Quick Setup** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critique | `pve_up`, Count sur l'ensemble du cluster, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | Node Offline | Critique | `pve_up` pour `pve.scope = node`, Min par `id` | Sous 1 | À 1 |
 | Guest Down | Warning | `pve_up` et `pve_onboot_status` pour `pve.scope = guest`, Min par `id` | `pve_up` est sous 1 alors que `pve_onboot_status` vaut 1 | `pve_up` est revenu à 1, ou le démarrage au boot est désactivé |
 | Cluster Quorum at Risk | Critique | `pve_up` ÷ `pve_node_info` × 100 pour `pve.scope = node` (tous deux Somme) : la part des nœuds en ligne | 50 % ou moins | Au-dessus de 55 % |
@@ -129,6 +130,7 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le 
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
+- **Cluster Stopped Reporting** se déclenche quand rien n'arrive du cluster pendant dix minutes : l'agent Proxmox ou son pve-exporter s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, l'API de Proxmox ne lui répond plus, ou tous les nœuds d'un envoi natif se sont tus. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **Les modèles de panne utilisent Minimum**, si bien qu'une seule collecte où la ressource était en panne les déclenche au lieu d'être masquée par les collectes où elle fonctionnait.
 - **Guest Down** ne regarde que les invités configurés pour démarrer au boot, si bien qu'un invité que vous avez arrêté volontairement n'alerte jamais personne.
 - **Cluster Quorum at Risk** est une approximation : pve-exporter n'a pas de métrique corosync, le modèle compte donc les nœuds en ligne.
@@ -223,7 +225,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. |
 | **Seuil** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
@@ -239,11 +241,11 @@ Un moniteur que vous ne créez pas à partir d'un modèle commence avec deux cri
 
 | Ordre | Critère | Correspond quand | Ensuite |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Une valeur quelconque de la première requête vaut `0` | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
-| 2 | Check if _monitor name_ is online | Une valeur quelconque est au-dessus de `0` | Marque le moniteur **Opérationnel**. |
+| 1 | Check if _monitor name_ is offline | La première requête n'a aucune donnée sur toute la fenêtre | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
+| 2 | Check if _monitor name_ is online | La première requête a des données | Marque le moniteur **Opérationnel**. |
 
 > [!IMPORTANT]
-> Le silence ne correspond à aucun des deux critères : un cluster qui cesse d'envoyer des données laisse le moniteur tel qu'il était. Pour être prévenu quand les données s'arrêtent, réglez **En l'absence de données** sur **Déclencheur** dans un critère. Le temps pendant lequel OneUptime lui-même ne recevait pas de données n'est jamais une absence de données : une vérification dont la fenêtre en contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
+> Une valeur de `0` est une donnée : une métrique souvent nulle, comme les redémarrages ou les erreurs, ne met pas le moniteur hors ligne. Pour être alerté sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts restent ouverts : le silence n'est pas un rétablissement. Le temps où OneUptime lui-même ne recevait rien ne compte jamais comme une absence de données : une vérification dont la fenêtre en contient attend, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Dépannage
 

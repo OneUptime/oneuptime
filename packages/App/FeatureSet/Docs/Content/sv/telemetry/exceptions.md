@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag.
-- **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen.
+- **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen, och undantaget markeras som **Regression**. En förekomst från före lösningen som når OneUptime först senare öppnar det inte igen.
 - **Ett arkiverat undantag förblir arkiverat.** Dess nya förekomster räknas fortfarande, men de skickar inte längre aviseringar.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 ### Välj en status
 
-Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid.
+Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
 ### Välj vad som räknas som ett problem
 
@@ -58,7 +58,7 @@ Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovan
 
 ### Sök och filtrera
 
-Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**.
+Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**. **Tilldelade till mig** visar bara de undantag som är tilldelade dig, och sorteringsmenyn ordnar listan efter **Senast sedd**, **Först sedd** eller **Flest händelser**.
 
 ### Öppna ett undantag
 
@@ -71,7 +71,7 @@ Sidans sidomeny samlar det du gör med ett undantag:
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | Meddelandet, tjänsten, hur ofta det inträffade och när det sågs första och senaste gången, dess utveckling över tid, och dess senaste förekomst: release, miljö, span, spår och användarsession. |
+| **Översikt** | Meddelandet, tjänsten, hur ofta det inträffade och när det sågs första och senaste gången, dess utveckling över tid, och dess senaste förekomst: release, miljö, span, spår och användarsession. Högst upp OneUptime AI:s förklaring av vad som hände, när AI är på. |
 | **Stack trace** | Stackens ramar. För webbläsarkod de ursprungliga filerna och raderna, när du har laddat upp [Source maps](/docs/telemetry/source-maps) för releasen. |
 | **Occurrences** | Varje förekomst, med tidpunkt, meddelande och spåret där den inträffade. |
 | **Context** | Den senaste förekomstens attribut, dess sessionsinspelning när en spelades in, och stegen som ledde fram till den. |
@@ -86,13 +86,18 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 | Åtgärd | När du använder den | Vad som händer sedan |
 | --- | --- | --- |
 | **Lös** | Du har driftsatt rättelsen. | Det lämnar listan **Olöst**. En ny förekomst öppnar det igen. |
+| **Lös i nästa version** | Rättelsen kommer i din nästa version. | Det lämnar listan **Olöst**. Förekomster från den version där det senast sågs öppnar det inte igen, men en från vilken annan version som helst gör det. |
 | **Öppna igen** | Rättelsen fungerade inte. | Det är olöst igen. |
 | **Arkivera** | Det är brus som du inte tänker rätta. | Det lämnar listan. Nya förekomster räknas men skickar inte längre aviseringar. |
 | **Avarkivera** | Du vill höra om det igen. | Det är tillbaka i den lista där det hör hemma. |
 
+**Lös i nästa version** finns i menyn bredvid **Lös**, i radens meny ⋯, under **Massåtgärder** och på **Inställningar**, så länge undantagets förekomster anger sin version: resursattributet `service.version`.
+
 **Inställningar** visar vem som senast löste eller arkiverade undantaget, och när. Knapparna där heter **Markera som löst** eller **Markera som olöst**, och **Arkivera** eller **Avarkivera**.
 
 Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
+
+**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång.
 
 ## Felklasser
 
@@ -107,6 +112,22 @@ Varje undantag har en felklass, som säger vems problem det är. OneUptime AI s�
 | `expected-denial` | En kontroll som gör sitt jobb, till exempel en nekad inloggning. | Nej |
 
 Med **Arkivera förväntade undantag** påslaget, i inställningarna för AI-insikter, arkiveras undantag som genomgången bedömer vara förväntade nekanden åt dig.
+
+## Förklara det med AI
+
+Högst upp på ett undantags **Översikt** frågar **Förklara med OneUptime AI** OneUptime AI vad som gick fel. Den läser stack trace, spåret och loggarna för den senaste förekomsten och tjänstens driftsättningar runt tidpunkten då undantaget började, och svarar i kortet **Vad som hände**:
+
+| Del | Vad den säger |
+| --- | --- |
+| **Vad som hände** | En mening eller två, hur säker OneUptime AI är och var felet ligger: koden, ett beroende, infrastrukturen, felaktig indata eller konfigurationen. |
+| **Trolig rotorsak** | Orsaken och den ram, det span, den loggrad eller den driftsättning som visar den. |
+| **Föreslagen rättelse** | Vad som ska ändras. |
+| **Var du ska titta** | De ramar i stack trace som du ska öppna först. |
+| **Nästa steg** | Högst tre steg för att bekräfta eller rätta det. |
+
+Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Öppna en pull request med rättelsen** öppnar undantagets sida **AI Assistance**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
+
+ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
 ## Rätta det med AI
 
@@ -173,7 +194,7 @@ Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, t
 :::
 
 :::details Ett löst undantag kommer tillbaka hela tiden
-En ny förekomst öppnar ett löst undantag igen med avsikt: felet inträffar fortfarande. Kontrollera att rättelsen nådde den release som rapporterar det, eller arkivera undantaget om du inte längre vill höra om det.
+En ny förekomst öppnar ett löst undantag igen med avsikt: felet inträffar fortfarande. Kontrollera att rättelsen nådde den release som rapporterar det, eller arkivera undantaget om du inte längre vill höra om det. Om gamla poddar från versionen fortsätter att rapportera det under en utrullning använder du **Lös i nästa version** i stället.
 :::
 
 ## Nästa steg

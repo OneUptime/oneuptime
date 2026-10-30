@@ -4,7 +4,7 @@ En lagerarray-monitor holder øje med ét lagerarray og fortæller dig, når arr
 
 :::cards
 - [Opret monitoren](#opret-en-lagerarray-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Atten færdige advarsler, én hændelse pr. volumen, vært eller komponent.
+- [Skabeloner](#færdige-advarselsskabeloner): Tyve færdige advarsler, én hændelse pr. volumen, vært eller komponent.
 - [Sådan fungerer Pures serier](#sådan-er-pures-serier-bygget-op): Ét metriknavn, mange værdier.
 - [Metrikker](#indsamlede-metrikker): Hver serie, monitoren kan advare på.
 :::
@@ -109,7 +109,7 @@ I monitorfiltre og grupperingsnøgler begynder agentens attributter med `resourc
 
 ## Færdige advarselsskabeloner
 
-OneUptime leverer 18 skabeloner — 11 til FlashArray og 7 til FlashBlade — og **Quick Setup** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+OneUptime leverer 20 skabeloner — 12 til FlashArray og 8 til FlashBlade — og **Quick Setup** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets vindue. En monitor, der udløste på en tærskel for kapacitet, latens, forsinkelse eller forhold, genopretter først 10 % forbi den, så en værdi, der svinger omkring tærsklen, ikke skifter frem og tilbage; skabelonerne for advarsler og hardware genopretter, så snart tilstanden forsvinder.
 
@@ -117,6 +117,7 @@ Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets v
 
 | Skabelon                       | Kategori     | Alvorlighed | Overvåger                                                                                       | Udløser når                                                                                                                                      |
 | ------------------------------ | ------------ | ----------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Array Stopped Reporting        | Tilgængelighed | Kritisk     | `purefa_info`, Count, seneste 10 minutter                                                       | Ingen data i hele vinduet — Storage Array Agent er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt, eller arrayet er holdt op med at svare den; genopretter, når data kommer igen |
 | Critical Array Alert           | Array Health | Kritisk     | `purefa_alerts_open` filtreret til `severity=critical`, Max pr. `summary`, seneste 5 minutter   | > 0 — arrayet har en åben kritisk advarsel (en defekt komponent, en kapacitetsnødsituation, en replikeringsfejl). Én hændelse pr. advarsel; genopretter, når advarslen lukker |
 | Warning Array Alert            | Array Health | Warning     | `purefa_alerts_open` filtreret til `severity=warning`, Max pr. `summary`, seneste 5 minutter    | > 0 — arrayet har en åben advarsel på niveau warning. Én hændelse pr. advarsel; genopretter, når advarslen lukker                               |
 | Capacity Above 80%             | Kapacitet    | Warning     | `purefa_array_space_utilization`, Max, seneste 15 minutter                                      | > 80 — Pures egen første kapacitetstærskel; genopretter ved ≤ 72                                                                                 |
@@ -133,6 +134,7 @@ Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets v
 
 | Skabelon                     | Kategori     | Alvorlighed | Overvåger                                                                                                      | Udløser når                                                                                                         |
 | ---------------------------- | ------------ | ----------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Array Stopped Reporting      | Tilgængelighed | Kritisk     | `purefb_info`, Count, seneste 10 minutter                                                                      | Ingen data i hele vinduet — agenten, dens exporter eller FlashBladen er holdt op med at svare; genopretter, når data kommer igen |
 | Critical Array Alert         | Array Health | Kritisk     | `purefb_alerts_open` filtreret til `severity=critical`, Max pr. `summary`, seneste 5 minutter                  | > 0 — FlashBladen har en åben kritisk advarsel. Én hændelse pr. advarsel; genopretter, når advarslen lukker         |
 | Warning Array Alert          | Array Health | Warning     | `purefb_alerts_open` filtreret til `severity=warning`, Max pr. `summary`, seneste 5 minutter                   | > 0 — FlashBladen har en åben advarsel på niveau warning. Én hændelse pr. advarsel; genopretter, når advarslen lukker |
 | Capacity Above 80%           | Kapacitet    | Warning     | `purefb_array_space_utilization` filtreret til `type=array`, Max, seneste 15 minutter                          | > 80; genopretter ved ≤ 72                                                                                          |
@@ -143,6 +145,7 @@ Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets v
 
 **Alvorlighed** er den label, vælgeren viser. Den hændelse og den advarsel, en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; skift dem i kriteriet.
 
+- **Array Stopped Reporting** tæller platformens identitetsserie (`purefa_info` eller `purefb_info`), som hvert endpoint, agenten aflæser, eksporterer ved hver aflæsning. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 - **Åbne advarsler og hardwaretilstande bruger Max** af en serie, der kun findes, så længe advarslen er åben, eller komponenten er i den tilstand, så én aflæsning, der viser den, overskrider tærsklen.
 - **Hver skabelon pr. objekt grupperer på objektets egen label** (`summary`, `component_name`, `host`, `local_pod`, `name`), så der udløses én hændelse pr. berørt objekt, og hændelsen nævner det.
 - **Latensskabeloner bruger Avg** af arrayets eget gennemsnit pr. operation, og kapacitetsskabeloner **Maks.** af dets egen udnyttelsesprocent. Latenser er fastlåst i mikrosekunder og kapacitet i procent.
@@ -263,7 +266,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | --- | --- |
 | **Metrik** | Den forespørgsel eller formel, der skal tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. |
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |
@@ -284,11 +287,11 @@ En monitor, du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Matcher når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | En vilkårlig værdi i den første forespørgsel er `0` | Markerer monitoren som **Offline** og erklærer hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren kommer sig. |
-| 2 | Check if _monitor name_ is online | En vilkårlig værdi er over `0` | Markerer monitoren som **I drift**. |
+| 1 | Check if _monitor name_ is offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren kommer sig. |
+| 2 | Check if _monitor name_ is online | Den første forespørgsel har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stilhed matcher ingen af kriterierne: et array, der holder op med at sende data, efterlader monitoren, som den var. For at få besked, når data udebliver, sætter du **Hvis ingen data** til **Trigger** på et kriterium. Tid, hvor OneUptime selv ikke modtog noget, tæller aldrig som manglende data: et tjek, hvis vindue indeholder den tid, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 

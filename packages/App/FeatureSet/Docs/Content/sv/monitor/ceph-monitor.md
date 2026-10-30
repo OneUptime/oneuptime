@@ -4,7 +4,7 @@ En Ceph-monitor håller koll på ett Ceph-kluster — dess hälsa, health checks
 
 :::cards
 - [Skapa monitorn](#skapa-en-ceph-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): 23 färdiga larm för hälsa, OSD:er, placement groups och kapacitet.
+- [Mallar](#färdiga-larmmallar): 24 färdiga larm för ett tyst kluster, hälsa, OSD:er, placement groups och kapacitet.
 - [Health checks](#serier-för-health-checks): Larma på valfri health check i Ceph efter namn.
 - [Mätvärden](#insamlade-mätvärden): Varje `ceph_*`-serie som monitorn kan larma på.
 :::
@@ -99,9 +99,17 @@ Poolernas dataserier har bara etiketten `pool_id`: Poolens namn finns bara i `ce
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 23 mallar för klustrets hälsa, OSD:er, placement groups och kapacitet. Varje mall bygger en komplett monitor — frågor, etikettfilter, en gruppering, ett kriterium som utlöser och ett som återställer. Tröskelvärdena är utgångspunkter som du kan ändra.
+**Quick Setup** erbjuder 24 mallar för ett tyst kluster, klustrets hälsa, OSD:er, placement groups och kapacitet. Varje mall bygger en komplett monitor — frågor, etikettfilter, en gruppering, ett kriterium som utlöser och ett som återställer. Tröskelvärdena är utgångspunkter som du kan ändra.
 
 Mallar läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller under varje minut i fönstret, och ett tröskelkriterium återställs först 10 % bortom sitt tröskelvärde, så att ett värde som pendlar kring gränsen inte fladdrar. **Allvarlighetsgrad** är etiketten som väljaren visar; incidenten och larmet som en mall skapar börjar med projektets högsta allvarlighetsgrad för incidenter och larm.
+
+### Tillgänglighetsmallar
+
+| Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `ceph_health_status`, Count, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
+
+**Cluster Stopped Reporting** utlöses när ingenting kommer från klustret på tio minuter: Ceph Agent har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, eller så betjänar ingen mgr `prometheus`-modulen. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, och mallarna för health checks läser ett tyst kluster som ett friskt, så det är den här mallen som säger till.
 
 ### Mallar för klustrets hälsa
 
@@ -219,7 +227,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
 | **Tröskel** | Värdet att jämföra med. Bredvid finns en enhetslista när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Endast avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Endast avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -235,13 +243,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornamn_ is offline | Något värde i den första frågan är `0` | Sätter monitorn till **Offline** och deklarerar incidenten "_monitornamn_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitornamn_ is online | Något värde är över `0` | Sätter monitorn till **Fungerar**. |
-
-De här standardvärdena passar få Ceph-mätvärden: `ceph_health_status` är 0 när klustret är friskt. Välj en mall eller sätt egna kriterier.
+| 1 | Check if _monitornamn_ is offline | Den första frågan har inga data under hela fönstret | Sätter monitorn till **Offline** och deklarerar incidenten "_monitornamn_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitornamn_ is online | Den första frågan har data | Sätter monitorn till **Fungerar**. |
 
 > [!IMPORTANT]
-> Tystnad matchar inget av kriterierna: Ett kluster som slutar skicka data lämnar monitorn som den var. För att få veta när data upphör sätter du **Om ingen data** till **Utlösare** i ett kriterium. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 

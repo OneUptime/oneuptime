@@ -9,6 +9,8 @@ import {
 } from "../../../Types/Monitor/DockerMetricCatalog";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import { describe, expect, test } from "@jest/globals";
+import * as fs from "fs";
+import * as path from "path";
 
 describe("DockerMetricCatalog", () => {
   const allMetrics: Array<DockerMetricDefinition> = getAllDockerMetrics();
@@ -45,11 +47,11 @@ describe("DockerMetricCatalog", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test("metric names are unique", () => {
-    const names: Array<string> = allMetrics.map((m: DockerMetricDefinition) => {
-      return m.metricName;
+  test("a metric name appears once per attribute filter", () => {
+    const keys: Array<string> = allMetrics.map((m: DockerMetricDefinition) => {
+      return `${m.metricName} ${JSON.stringify(m.attributes || {})}`;
     });
-    expect(new Set(names).size).toBe(names.length);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   test("every metric category is a declared category", () => {
@@ -88,14 +90,93 @@ describe("DockerMetricCatalog", () => {
     expect(getDockerMetricById("")).toBeUndefined();
   });
 
-  test("getDockerMetricByMetricName round-trips every metric", () => {
+  test("getDockerMetricByMetricName finds every metric name", () => {
     for (const metric of allMetrics) {
-      expect(getDockerMetricByMetricName(metric.metricName)).toEqual(metric);
+      const found: DockerMetricDefinition | undefined =
+        getDockerMetricByMetricName(metric.metricName);
+
+      expect(found?.metricName).toBe(metric.metricName);
+
+      // A name the catalog offers once comes back as that very entry.
+      if (
+        allMetrics.filter((other: DockerMetricDefinition): boolean => {
+          return other.metricName === metric.metricName;
+        }).length === 1
+      ) {
+        expect(found).toEqual(metric);
+      }
     }
   });
 
   test("getDockerMetricByMetricName returns undefined for an unknown name", () => {
     expect(getDockerMetricByMetricName("nope.nope.nope")).toBeUndefined();
+  });
+
+  /*
+   * Regression: 7 of the catalog's 19 metrics never arrived. The
+   * docker_stats receiver has no `container.blockio.io_service_bytes_recursive
+   * .read` / `.write` (it emits one metric with an `operation` attribute),
+   * and its optional metrics - per-core CPU, memory RSS and cache (cgroup v1
+   * only), the network packet counters - stay off in the shipped agent
+   * config. A metric that never arrives is a monitor that never fires.
+   */
+  const OPTIONAL_RECEIVER_METRICS: Array<string> = [
+    "container.cpu.usage.percpu",
+    "container.memory.rss",
+    "container.memory.cache",
+    "container.network.io.usage.rx_packets",
+    "container.network.io.usage.tx_packets",
+    "container.network.io.usage.rx_errors",
+    "container.network.io.usage.tx_errors",
+  ];
+
+  const agentConfig: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../../agents/DockerAgent/otel-collector-config.yaml",
+    ),
+    "utf8",
+  );
+
+  test("offers no optional receiver metric the shipped agent leaves off", () => {
+    for (const metric of allMetrics) {
+      if (!OPTIONAL_RECEIVER_METRICS.includes(metric.metricName)) {
+        continue;
+      }
+
+      expect({ metric: metric.metricName, enabled: true }).toEqual({
+        metric: metric.metricName,
+        enabled: agentConfig.includes(
+          `${metric.metricName}:\n        enabled: true`,
+        ),
+      });
+    }
+
+    for (const metricName of OPTIONAL_RECEIVER_METRICS) {
+      expect(getDockerMetricByMetricName(metricName)).toBeUndefined();
+    }
+  });
+
+  test("reads block I/O as the receiver emits it: one metric, filtered by operation", () => {
+    const blockIo: Array<DockerMetricDefinition> = allMetrics.filter(
+      (metric: DockerMetricDefinition): boolean => {
+        return metric.category === "BlockIO";
+      },
+    );
+
+    expect(
+      blockIo.map((metric: DockerMetricDefinition) => {
+        return [metric.metricName, metric.attributes];
+      }),
+    ).toEqual([
+      ["container.blockio.io_service_bytes_recursive", { operation: "read" }],
+      ["container.blockio.io_service_bytes_recursive", { operation: "write" }],
+    ]);
+
+    for (const metric of allMetrics) {
+      expect(metric.metricName.endsWith(".read")).toBe(false);
+      expect(metric.metricName.endsWith(".write")).toBe(false);
+    }
   });
 
   test("known metrics are present", () => {

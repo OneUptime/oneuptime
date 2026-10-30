@@ -99,7 +99,7 @@ Sin winget, descargue el agente usted mismo:
 Para desplegar el agente con Intune, Configuration Manager o directivas de grupo, use `oneuptime-infrastructure-agent-amd64.msi` (o `oneuptime-infrastructure-agent-arm64.msi`) de la misma versión. Instala el agente en `C:\Program Files\OneUptimeInfrastructureAgent`, y un MSI más reciente lo actualiza en su lugar y lo vuelve a iniciar. Un MSI de una versión anterior no se puede actualizar: desinstálelo una vez antes.
 :::
 
-Cada opción instala la versión más reciente para su sistema operativo y su procesador (x86-64 o ARM64). Los repositorios apt y yum contienen los paquetes `.deb` y `.rpm` adjuntos a cada versión de GitHub, firmados con la clave de `https://packages.oneuptime.com/gpg.key`, y los paquetes colocan el binario en `/usr/bin`. El script de instalación coloca el binario `oneuptime-infrastructure-agent` en `$HOME/bin`. En una instalación autoalojada, el script se sirve desde su propia URL de OneUptime.
+Cada opción instala la versión más reciente para su sistema operativo y su procesador (x86-64 o ARM64). Los repositorios apt y yum contienen los paquetes `.deb` y `.rpm` adjuntos a cada versión de GitHub, firmados con la clave de `https://packages.oneuptime.com/gpg.key`, y los paquetes colocan el binario en `/usr/bin`. Ejecutado con `sudo`, el script de instalación coloca el binario `oneuptime-infrastructure-agent` en `/usr/local/bin` (en `$HOME/bin` sin `sudo`) y lo descarga con `curl` o `wget`. En una instalación autoalojada, el script se sirve desde su propia URL de OneUptime.
 
 ### Conectarlo al monitor
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-Al iniciarse, el agente comprueba la clave secreta con OneUptime y envía su primer informe de inmediato.
+Al iniciarse, el agente comprueba la clave secreta con OneUptime y envía su primer informe de inmediato. Mientras no puede alcanzar OneUptime, sigue intentándolo: de nuevo a los 5 segundos y luego el doble de tiempo cada vez, hasta cada 5 minutos.
 
 ### Comprobar que informa
 
@@ -165,7 +165,7 @@ Ejecute `sudo oneuptime-infrastructure-agent status` (sin `sudo` en Windows): mu
 | `uninstall` | Elimina el servicio y borra el archivo de configuración del agente. |
 | `help` | Enumera los comandos. |
 
-Ejecútelos con `sudo` en Linux y macOS, y desde un **Símbolo del sistema** de administrador en Windows. Para cambiar la clave secreta, la URL o el proxy de un agente ya configurado, ejecute `stop` y `uninstall`, y luego `configure` y `start` de nuevo.
+Ejecútelos con `sudo` en Linux y macOS, y desde un **Símbolo del sistema** de administrador en Windows. Para cambiar la clave secreta, la URL o el proxy de un agente ya configurado, ejecute `stop` y `uninstall`, y luego `configure` y `start` de nuevo. Cada comando muestra lo que hizo, o por qué falló, y escribe lo mismo en el registro del agente. Si el servicio se detiene por un fallo, el gestor de servicios lo vuelve a iniciar; en Linux y Windows, a los dos minutos. Un servicio de Windows creado con el `configure` de un agente anterior solo se reinicia después de ejecutar `uninstall` y `configure` de nuevo.
 
 ### Archivos
 
@@ -199,15 +199,15 @@ Cada informe lleva el nombre de host del servidor y:
 
 | Área | Qué se informa |
 | --- | --- |
-| CPU | Uso en %, número de núcleos, uso por núcleo y tiempo en user, system, idle, espera de E/S, steal, nice, IRQ e IRQ por software |
+| CPU | Uso en %, número de núcleos, uso por núcleo y tiempo en user, system, idle, espera de E/S, steal, nice, IRQ e IRQ por software desde el informe anterior |
 | Memoria | Memoria total, usada, libre y disponible, búferes y caché, uso en %, y swap total, usado, libre y uso en % |
-| Discos | Para cada disco montado: ruta de montaje, dispositivo, sistema de archivos, espacio total, usado y libre, uso en %, bytes y operaciones leídos y escritos, y tiempo de E/S |
+| Discos | Para cada disco montado, salvo las imágenes de solo lectura (snaps, ISO) y `/dev`: ruta de montaje, dispositivo, sistema de archivos, espacio total, usado y libre, uso en % tal como lo cuenta `df`, bytes y operaciones leídos y escritos, y tiempo de E/S |
 | Carga | Promedios de carga de 1, 5 y 15 minutos |
 | Red | Para cada interfaz: bytes y paquetes enviados y recibidos, errores y descartes de entrada y salida; además de las conexiones establecidas y en escucha |
 | Host | Sistema operativo, plataforma y versión, versión y arquitectura del kernel, tiempo de actividad, hora de arranque, virtualización y número de procesos |
-| Procesos | Cada proceso en ejecución: nombre, PID, comando, CPU en %, memoria, estado, hilos, usuario y hora de inicio |
+| Procesos | Cada proceso en ejecución: nombre, PID, comando, CPU en %, memoria, estado, hilos, usuario y hora de inicio; un proceso cuya línea de comandos no se puede leer, como un proceso protegido de Windows, sin su comando |
 
-Los valores que el sistema operativo no proporciona se omiten. La pestaña **Métricas** del monitor muestra gráficos de disponibilidad, CPU, memoria, uso y E/S de disco, promedios de carga, swap, tráfico y errores de red, conexiones, tiempo de actividad y número de procesos.
+Los valores que el sistema operativo no proporciona se omiten, y un criterio sobre un valor que el informe no tiene no se cumple: un valor ausente no es 0. La pestaña **Métricas** del monitor muestra gráficos de disponibilidad, CPU, memoria, uso y E/S de disco, promedios de carga, swap, tráfico y errores de red, conexiones, tiempo de actividad y número de procesos.
 
 ## Criterios de monitoreo
 
@@ -228,7 +228,7 @@ Los criterios deciden cuándo el monitor está en línea, degradado o sin conexi
 | Server Process Command | Si se está ejecutando un proceso con exactamente esta línea de comandos (sin distinguir mayúsculas) | Is Executing, Is Not Executing |
 | Server Process PID | Si se está ejecutando un proceso con este PID | Is Executing, Is Not Executing |
 
-**Ruta del disco** admite un punto de montaje o un dispositivo, como `/`, `/mnt/data`, `C:\` o `/dev/sda1`; si se deja vacía, es `/`. Introduzca `*` para comprobar cada disco que informa el agente: cada disco que supera el umbral recibe su propia alerta, de modo que un segundo disco que se llena no queda oculto tras la alerta abierta del primero.
+**Ruta del disco** admite un punto de montaje o un dispositivo, como `/`, `/mnt/data`, `C:\` o `/dev/sda1`; si se deja vacía, es `/`. Introduzca `*` para comprobar cada disco que informa el agente: cada disco que supera el umbral recibe su propia alerta, de modo que un segundo disco que se llena no queda oculto tras la alerta abierta del primero. Las mayúsculas y una `/` o `\` final no importan, y un dispositivo representa el disco montado desde él. Una ruta que no nombra ningún disco del que informe el agente no coincide. Cuando el agente no puede leer los procesos del servidor, su informe no tiene lista de procesos y ningún filtro de procesos coincide, compruebe que un proceso se está ejecutando o que no.
 
 ### Evaluar durante un periodo de tiempo
 
@@ -262,16 +262,16 @@ Los criterios deciden cuándo el monitor está en línea, degradado o sin conexi
 
 :::details El agente no informa
 - Compruebe que el servicio se está ejecutando: `sudo oneuptime-infrastructure-agent status`.
-- Lea su registro: `sudo oneuptime-infrastructure-agent logs -n 50`. Una línea `Metrics successfully pushed to OneUptime server` significa que los informes llegan.
-- El agente comprueba la clave secreta al iniciarse y se cierra si OneUptime la rechaza, registrando `Secret key is invalid`. Compare la clave con la de la página **Ajustes** del monitor, en **Restablecer clave secreta del monitor de servidor**.
+- Lea su registro: `sudo oneuptime-infrastructure-agent logs -n 50`. Una línea `Metrics successfully pushed to OneUptime server` significa que OneUptime recibió un informe, no que lo aceptara: OneUptime responde antes de comprobar la clave secreta. Que la pestaña **Métricas** del monitor muestre gráficos del servidor indica que los aceptó.
+- El agente comprueba la clave secreta al iniciarse y se cierra si OneUptime la rechaza, registrando `Secret key is invalid`. Compare la clave con la de la página **Ajustes** del monitor, en **Restablecer clave secreta del monitor de servidor**. Mientras OneUptime no está disponible, el agente registra `The secret key could not be verified with OneUptime yet` y lo vuelve a intentar.
 - Asegúrese de que el servidor puede llegar a su URL de OneUptime por HTTPS y de que ningún cortafuegos bloquea las conexiones salientes.
 :::
 
 :::details `sudo` indica que no encuentra el comando
-Los paquetes dejan el agente en la ruta del sistema, así que esto solo ocurre con el script de instalación. El script de instalación coloca el binario en el `$HOME/bin` del usuario con el que se ejecutó, e imprime el directorio que usó. Ejecute el agente por su ruta completa, por ejemplo `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Para instalarlo en un directorio de la ruta del sistema, pase `-b` al script:
+Los paquetes dejan el agente en `/usr/bin`, que está en todas las rutas. Ejecutado con `sudo`, el script de instalación lo coloca en `/usr/local/bin`, que algunos sistemas, como RHEL, dejan fuera de la ruta de sudo: allí el script imprime los comandos con la ruta completa del agente, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`. Antes, el script colocaba el agente en `$HOME/bin`, que con `sudo` es `/root/bin`: ejecute un agente instalado entonces por esa ruta completa, o vuelva a instalarlo. Para instalar el agente en un directorio de la ruta del sistema, pase `-b` al script:
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

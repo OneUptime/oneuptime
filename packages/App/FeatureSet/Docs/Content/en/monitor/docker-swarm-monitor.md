@@ -4,14 +4,14 @@ A Docker Swarm monitor watches the containers behind a Swarm cluster's service t
 
 :::cards
 - [Create the monitor](#create-a-docker-swarm-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Four ready-made alerts, one incident per task.
+- [Templates](#pre-built-alert-templates): Five ready-made alerts, one incident per task.
 - [Metrics](#collected-metrics): The container metrics you can alert on.
 - [Filters](#monitor-settings): Narrow a monitor to a service, a task or an image.
 :::
 
 ## How it works
 
-The OneUptime Docker Swarm Agent runs on a manager node. Its collector reads container stats from that node's Docker daemon every 30 seconds and stamps every batch with the cluster's name, `docker.swarm.cluster.name`. A small inventory poller beside it reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes. The first data registers the cluster in OneUptime.
+The OneUptime Docker Swarm Agent runs on a manager node. Its collector reads container stats from that node's Docker daemon every 30 seconds, stamps every batch with the cluster's name, `docker.swarm.cluster.name`, and each task's metrics with its service and node. A small inventory poller beside it reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes. The first data registers the cluster in OneUptime.
 
 The collector only sees containers on the node it runs on. For metrics from every node, run the collector on each node with the same `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 | Field | Tab | What it does |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | All | Required. Scopes every query to `resource.docker.swarm.cluster.name`. This is the only resource attribute the agent stamps, so the monitor adds no `container.runtime` or `host.name` filter. |
-| **Service Name** | Custom Metric, Advanced | Optional. Exact match on `docker.swarm.service.name`, for example `web`. |
-| **Node Name** | Custom Metric, Advanced | Optional. Exact match on `docker.swarm.node.name`, for example `swarm-node-1`. |
+| **Docker Swarm Cluster** | All | Required. Scopes every query to `resource.docker.swarm.cluster.name`. A task's metrics carry `container.runtime=docker` as a Docker host's do, and the agent never stamps `host.name`, so the monitor filters on neither. |
+| **Service Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.service.name`, the service as `docker service ls` names it, for example `web` (`<stack>_web` in a stack). |
+| **Node Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.node.name`, the node's hostname as `docker node ls` shows it, for example `swarm-node-1`. The agent on that node stamps it from `DOCKER_SWARM_NODE_NAME`. |
 | **Container Name** | Custom Metric, Advanced | Optional. Exact match on `resource.container.name`. A task's container is named `<service>.<slot>.<taskid>`, for example `web.1.abc123`. |
-| **Container Image** | Custom Metric, Advanced | Optional. Exact match on `resource.container.image.name`, for example `nginx:latest`. |
+| **Container Image** | Custom Metric, Advanced | Optional. Matches `resource.container.image.name` with or without the digest Swarm pins to the image: `nginx:latest` also matches `nginx:latest@sha256:…`, a digest you type is left out, and a name without a tag means `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |
 | **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
 | **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 1 Minute**; templates set their own. |
 | **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
 
-> [!WARNING]
-> The shipped agent does not set `docker.swarm.service.name` or `docker.swarm.node.name` yet, so a monitor with **Service Name** or **Node Name** filled in finds no data. Narrow by **Container Image** instead, or group by `resource.container.name`.
+> [!NOTE]
+> **Service Name** and **Node Name** need the agent's files from version 0.161.2 on: older ones send neither the service nor the node. [Upgrade the agent](/docs/telemetry/docker-swarm#upgrading-the-agent) on every node it runs on.
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers four templates. Each builds a complete monitor: a query grouped by `resource.container.name`, a criteria that fires and one that recovers. Every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
+**Quick Setup** offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Cluster Stopped Reporting** groups its query by `resource.container.name`, so every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
 
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critical | `container.memory.percent`, Count over every container in the cluster, past 10 minutes | No data for the whole window | Data arrives again |
 | Task Down (Low Uptime) | Critical | `container.uptime`, Min per task, past 1 minute | Any value is below 60 seconds | Every value is at or above 66 seconds |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, past 5 minutes | Above 85% | At or below 76.5% |
-| High Task Process Count | Warning | `container.pids.count`, Max per task, past 5 minutes | Above 500 | At or below 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per task, past 5 minutes | Above 2000 | At or below 1800 |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the nodes running the agent are down, or the agent stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you. A node with no tasks still reports, because the agent runs as a container and reports its own.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** fires on a single young sample because a restart is an event, not a level. Swarm gives a replacement task a new container, and so a new series, which is why the template looks for an uptime under a minute rather than a 0. A deploy or a scale-up trips it too, and it clears once the new tasks pass a minute of uptime. A task that dies and is not replaced sends nothing, so it is not caught.
@@ -136,10 +140,10 @@ The agent's collector uses the OpenTelemetry `docker_stats` receiver, so the met
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `container.pids.count` | count | Processes inside a task's container. A sudden rise can mean a fork bomb or a leak. |
+| `container.pids.count` | count | Tasks inside a task's container: the cgroup pids controller counts threads as well as processes. A sudden rise can mean a fork bomb or a thread leak. |
 | `container.uptime` | seconds | How long a task's container has been running. A rescheduled or restarted task starts a new container at 0. |
 
-Each series carries the container's identity as resource attributes: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` and `resource.docker.swarm.cluster.name`.
+Each series carries the container's identity as resource attributes: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (when the agent knows the node's name) and `resource.docker.swarm.cluster.name`.
 
 ## Monitoring criteria
 
@@ -149,7 +153,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -165,11 +169,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a cluster that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Troubleshooting
 
@@ -182,7 +186,7 @@ The collector reads the Docker daemon of the node it runs on, so it only sees th
 :::
 
 :::details A monitor filtered by service or node finds no data
-**Service Name** and **Node Name** match `docker.swarm.service.name` and `docker.swarm.node.name`, which the shipped agent does not set. Clear them and narrow by **Container Image**, or group by `resource.container.name`.
+**Service Name** and **Node Name** match `resource.docker.swarm.service.name` and `resource.docker.swarm.node.name`, which the agent sends from version 0.161.2 of its files on: [upgrade it](/docs/telemetry/docker-swarm#upgrading-the-agent). The node's name comes from `DOCKER_SWARM_NODE_NAME` in each node's `.env`, which the install script writes; on a node set up another way, add it there.
 :::
 
 :::details Every task shows as one series

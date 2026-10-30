@@ -1618,6 +1618,11 @@ const DocsNav: NavGroup[] = [
         title: "Behind a VPN or Firewall",
         url: "/docs/self-hosted/behind-a-firewall",
       },
+      // What the daily update and security advisory check sends, and how to turn it off.
+      {
+        title: "Update and Security Checks",
+        url: "/docs/self-hosted/update-checks",
+      },
       {
         title: "Architecture",
         url: "/docs/self-hosted/architecture",

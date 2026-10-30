@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering.
-- **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand.
+- **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand, en de uitzondering wordt gemarkeerd als **Regressie**. Een voorval van vóór het oplossen dat OneUptime pas later bereikt, heropent haar niet.
 - **Een gearchiveerde uitzondering blijft gearchiveerd.** Haar nieuwe voorvallen worden nog geteld, maar sturen geen meldingen meer.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Ga naar **Producten → Observability → Uitzonderingen**. De badge op het tabb
 
 ### Een status kiezen
 
-Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De grafiek boven de lijst toont hoeveel voorvallen in de loop van de tijd **Niet-afgehandeld** en hoeveel **Afgehandeld** waren.
+Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De grafiek boven de lijst toont hoeveel voorvallen in de loop van de tijd **Niet-afgehandeld** en hoeveel **Afgehandeld** waren. Een rij gemarkeerd als **Regressie** kwam terug nadat ze was opgelost, en een rij gemarkeerd als **Nieuw** werd voor het eerst gezien in de afgelopen 24 uur.
 
 ### Kiezen wat als probleem telt
 
@@ -58,7 +58,7 @@ Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De 
 
 ### Zoeken en filteren
 
-Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**.
+Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**. **Aan mij toegewezen** toont alleen de uitzonderingen die aan u zijn toegewezen, en het sorteermenu ordent de lijst op **Laatst gezien**, **Voor het eerst gezien** of **Meeste gebeurtenissen**.
 
 ### Een uitzondering openen
 
@@ -71,7 +71,7 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 
 | Pagina | Wat die toont |
 | --- | --- |
-| **Overzicht** | Het bericht, de service, hoe vaak ze optrad en wanneer ze voor het eerst en het laatst gezien werd, haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de span, de trace en de gebruikerssessie. |
+| **Overzicht** | Het bericht, de service, hoe vaak ze optrad en wanneer ze voor het eerst en het laatst gezien werd, haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de span, de trace en de gebruikerssessie. Bovenaan de uitleg van OneUptime AI over wat er gebeurde, als AI aan staat. |
 | **Stack trace** | De frames van de stack. Voor browsercode de oorspronkelijke bestanden en regels, zodra u [Source maps](/docs/telemetry/source-maps) voor de release uploadt. |
 | **Occurrences** | Elk voorval, met de tijd, het bericht en de trace waarin het optrad. |
 | **Context** | De attributen van het laatste voorval, de sessie-opname als die er is, en de stappen die ertoe leidden. |
@@ -86,13 +86,18 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 | Actie | Wanneer u die gebruikt | Wat er daarna gebeurt |
 | --- | --- | --- |
 | **Oplossen** | U hebt de oplossing uitgerold. | Ze verlaat de lijst **Niet opgelost**. Een nieuw voorval heropent haar. |
+| **Oplossen in volgende release** | De oplossing komt in uw volgende release. | Ze verlaat de lijst **Niet opgelost**. Voorvallen uit de release waarin ze het laatst werd gezien, heropenen haar niet, en een voorval uit elke andere release wel. |
 | **Heropenen** | De oplossing werkte niet. | Ze is weer niet opgelost. |
 | **Archiveren** | Het is ruis die u niet wilt verhelpen. | Ze verlaat de lijst. Nieuwe voorvallen worden geteld maar sturen geen meldingen meer. |
 | **Uit archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
 
+**Oplossen in volgende release** staat in het menu naast **Oplossen**, in het menu ⋯ van de rij, onder **Bulkacties** en op **Instellingen**, zolang de voorvallen van de uitzondering hun release noemen: het resource-attribuut `service.version`.
+
 **Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit archief halen**.
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
+
+**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
 
 ## Foutklassen
 
@@ -107,6 +112,22 @@ Elke uitzondering heeft een foutklasse, die zegt wiens probleem het is. OneUptim
 | `expected-denial` | Een controle die haar werk doet, zoals een geweigerde aanmelding. | Nee |
 
 Met **Verwachte uitzonderingen archiveren** aan, in de instellingen van AI-inzichten, worden uitzonderingen die de beoordeling als verwachte weigeringen herkent voor u gearchiveerd.
+
+## Uitleggen met AI
+
+Bovenaan het **Overzicht** van een uitzondering vraagt **Uitleggen met OneUptime AI** aan OneUptime AI wat er misging. Het leest de stack trace, de trace en de logboeken van het laatste voorval en de deploys van de service rond het moment waarop de uitzondering begon, en antwoordt in de kaart **Wat er gebeurde**:
+
+| Onderdeel | Wat het zegt |
+| --- | --- |
+| **Wat er gebeurde** | Een zin of twee, hoe zeker OneUptime AI is, en waar de fout zit: de code, een afhankelijkheid, de infrastructuur, ongeldige invoer of de configuratie. |
+| **Waarschijnlijke hoofdoorzaak** | De oorzaak, en het frame, de span, de logregel of de deploy die haar laat zien. |
+| **Voorgestelde oplossing** | Wat er moet veranderen. |
+| **Waar te kijken** | De frames van de stack trace die u eerst opent. |
+| **Volgende stappen** | Hoogstens drie stappen om haar te bevestigen of op te lossen. |
+
+De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent hem meteen leest, en **Opnieuw uitleggen** vraagt een nieuwe. **Een pull request met de oplossing openen** opent de pagina **AI Assistance** van de uitzondering, en **Een vervolgvraag stellen** opent Ask AI over de uitzondering.
+
+ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt verstuurd, en van de attributen van een span worden er maar een paar verstuurd, zoals de route en de statuscode. De uitleg gebruikt de LLM-provider en de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Iedereen die de uitzondering mag lezen, kan er een vragen.
 
 ## Verhelpen met AI
 
@@ -173,7 +194,7 @@ De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeel
 :::
 
 :::details Een opgeloste uitzondering komt steeds terug
-Een nieuw voorval heropent een opgeloste uitzondering met opzet: de fout treedt nog steeds op. Controleer of de oplossing de release heeft bereikt die haar meldt, of archiveer de uitzondering als u er niet meer van wilt horen.
+Een nieuw voorval heropent een opgeloste uitzondering met opzet: de fout treedt nog steeds op. Controleer of de oplossing de release heeft bereikt die haar meldt, of archiveer de uitzondering als u er niet meer van wilt horen. Blijven oude pods van de release haar tijdens een uitrol melden, gebruik dan **Oplossen in volgende release**.
 :::
 
 ## Volgende stappen

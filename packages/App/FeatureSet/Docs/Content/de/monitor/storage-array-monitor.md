@@ -4,7 +4,7 @@ Ein Speicher-Array-Monitor beobachtet ein Speicher-Array und meldet Ihnen, wenn 
 
 :::cards
 - [Den Monitor erstellen](#einen-speicher-array-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Achtzehn fertige Warnungen, ein Vorfall pro Volume, Host oder Komponente.
+- [Vorlagen](#fertige-warnungsvorlagen): Zwanzig fertige Warnungen, ein Vorfall pro Volume, Host oder Komponente.
 - [Wie Pures Serien funktionieren](#wie-pures-serien-aufgebaut-sind): Ein Metrikname, viele Werte.
 - [Metriken](#erfasste-metriken): Jede Serie, auf die der Monitor warnen kann.
 :::
@@ -109,7 +109,7 @@ In Monitorfiltern und Gruppierungsschlüsseln beginnen die Attribute des Agenten
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 18 Vorlagen — 11 für FlashArray und 7 für FlashBlade —, und **Quick Setup** bietet die für die Plattform des Arrays an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Label-Filter, eine Gruppierung nach dem eigenen Label des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 20 Vorlagen — 12 für FlashArray und 8 für FlashBlade —, und **Quick Setup** bietet die für die Plattform des Arrays an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Label-Filter, eine Gruppierung nach dem eigenen Label des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fenster gilt. Ein Monitor, der bei einem Schwellenwert für Kapazität, Latenz, Verzögerung oder Verhältnis ausgelöst hat, erholt sich erst 10 % jenseits davon, sodass ein Wert, der um den Schwellenwert pendelt, nicht flattert; die Vorlagen für Warnungen und Hardware erholen sich, sobald der Zustand verschwindet.
 
@@ -117,6 +117,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fe
 
 | Template                       | Kategorie    | Schweregrad | Beobachtet                                                                                      | Löst aus, wenn                                                                                                                                   |
 | ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Array Stopped Reporting        | Verfügbarkeit | Kritisch | `purefa_info`, Count, letzte 10 Minuten                                                         | Keine Daten im gesamten Fenster — der Storage Array Agent läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen, oder das Array antwortet ihm nicht mehr; erholt sich, wenn wieder Daten eintreffen |
 | Critical Array Alert           | Array Health | Kritisch | `purefa_alerts_open` gefiltert auf `severity=critical`, Max pro `summary`, letzte 5 Minuten     | > 0 — das Array hat eine offene kritische Warnung (eine ausgefallene Komponente, ein Kapazitätsnotfall, ein Replikationsfehler). Ein Vorfall pro Warnung; erholt sich, wenn die Warnung geschlossen wird |
 | Warning Array Alert            | Array Health | Warnung  | `purefa_alerts_open` gefiltert auf `severity=warning`, Max pro `summary`, letzte 5 Minuten      | > 0 — das Array hat eine offene Warnung der Stufe warning. Ein Vorfall pro Warnung; erholt sich, wenn die Warnung geschlossen wird               |
 | Capacity Above 80%             | Kapazität    | Warnung  | `purefa_array_space_utilization`, Max, letzte 15 Minuten                                        | > 80 — Pures eigene erste Kapazitätsschwelle; erholt sich bei ≤ 72                                                                               |
@@ -133,6 +134,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fe
 
 | Template                     | Kategorie    | Schweregrad | Beobachtet                                                                                                     | Löst aus, wenn                                                                                                      |
 | ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Array Stopped Reporting      | Verfügbarkeit | Kritisch | `purefb_info`, Count, letzte 10 Minuten                                                                        | Keine Daten im gesamten Fenster — der Agent, sein Exporter oder der FlashBlade antwortet nicht mehr; erholt sich, wenn wieder Daten eintreffen |
 | Critical Array Alert         | Array Health | Kritisch | `purefb_alerts_open` gefiltert auf `severity=critical`, Max pro `summary`, letzte 5 Minuten                    | > 0 — der FlashBlade hat eine offene kritische Warnung. Ein Vorfall pro Warnung; erholt sich, wenn die Warnung geschlossen wird |
 | Warning Array Alert          | Array Health | Warnung  | `purefb_alerts_open` gefiltert auf `severity=warning`, Max pro `summary`, letzte 5 Minuten                     | > 0 — der FlashBlade hat eine offene Warnung der Stufe warning. Ein Vorfall pro Warnung; erholt sich, wenn die Warnung geschlossen wird |
 | Capacity Above 80%           | Kapazität    | Warnung  | `purefb_array_space_utilization` gefiltert auf `type=array`, Max, letzte 15 Minuten                            | > 80; erholt sich bei ≤ 72                                                                                          |
@@ -143,6 +145,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fe
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl zeigt. Der Vorfall und die Warnung, die eine Vorlage erstellt, beginnen beim schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie im Kriterium.
 
+- **Array Stopped Reporting** zählt die Identitätsserie der Plattform (`purefa_info` oder `purefb_info`), die jeder Endpunkt, den der Agent abfragt, bei jeder Abfrage exportiert. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Offene Warnungen und Hardwarezustände verwenden Max** einer Serie, die nur existiert, solange die Warnung offen ist oder sich die Komponente in diesem Zustand befindet, sodass eine Abfrage, die sie zeigt, den Schwellenwert auslöst.
 - **Jede Vorlage pro Objekt gruppiert nach dem eigenen Label des Objekts** (`summary`, `component_name`, `host`, `local_pod`, `name`), sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt.
 - **Latenzvorlagen verwenden Avg** des eigenen Durchschnitts pro Operation des Arrays, und Kapazitätsvorlagen **Max** seines eigenen Auslastungsprozentsatzes. Latenzen sind in Mikrosekunden festgelegt, Kapazität in Prozent.
@@ -263,7 +266,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Fenster) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -284,11 +287,11 @@ Ein Monitor, den Sie nicht aus einer Vorlage bauen, beginnt mit zwei Kriterien:
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Ein beliebiger Wert der ersten Abfrage `0` ist | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
-| 2 | Check if _monitor name_ is online | Ein beliebiger Wert über `0` liegt | Markiert den Monitor als **Betriebsbereit**. |
+| 1 | Check if _monitor name_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
+| 2 | Check if _monitor name_ is online | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
 
 > [!IMPORTANT]
-> Stille trifft auf keines der Kriterien zu: Ein Array, das keine Daten mehr sendet, lässt den Monitor, wie er war. Um benachrichtigt zu werden, wenn Daten ausbleiben, setzen Sie **Bei keinen Daten** bei einem Kriterium auf **Auslöser**. Zeit, in der OneUptime selbst nichts empfangen hat, gilt nie als fehlende Daten: Eine Prüfung, deren Fenster sie enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
+> Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ## Terraform
 

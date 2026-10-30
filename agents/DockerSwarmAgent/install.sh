@@ -111,6 +111,17 @@ if [ -z "${ONEUPTIME_SERVICE_TOKEN}" ]; then
     exit 1
 fi
 
+# This node's name, which the collector stamps as docker.swarm.node.name on
+# the node's container metrics and logs (Swarm labels a task with its node's
+# ID only). The daemon's name is the node's hostname, the name `docker node
+# ls` shows. Set DOCKER_SWARM_NODE_NAME to name the node yourself. Only the
+# characters a hostname has are kept: the name goes into the collector's
+# config as it is.
+if [ -z "${DOCKER_SWARM_NODE_NAME:-}" ]; then
+    DOCKER_SWARM_NODE_NAME="$(docker info --format '{{.Name}}' 2>/dev/null || true)"
+fi
+DOCKER_SWARM_NODE_NAME="$(printf '%s' "${DOCKER_SWARM_NODE_NAME}" | tr -cd 'A-Za-z0-9._-')"
+
 mkdir -p "${INSTALL_DIR}"
 cd "${INSTALL_DIR}"
 
@@ -127,6 +138,7 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=${ONEUPTIME_URL}
 ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
 DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME}
+DOCKER_SWARM_NODE_NAME=${DOCKER_SWARM_NODE_NAME}
 ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION}
 ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES}
 ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES}

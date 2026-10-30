@@ -54,7 +54,11 @@ import ExceptionLatestOccurrence from "./ExceptionLatestOccurrence";
 import ExceptionOccurrenceAttributes from "./ExceptionOccurrenceAttributes";
 import ExceptionLogs from "./ExceptionLogs";
 import ExceptionAIAssistance from "./ExceptionAIAssistance";
+import ExceptionAIExplanation from "./ExceptionAIExplanation";
+import ExceptionAssignee from "./ExceptionAssignee";
+import { ExceptionAssignmentWrite } from "../../Utils/ExceptionAssignment";
 import ExceptionSettings from "./ExceptionSettings";
+import { getExceptionTriageWrite } from "./ExceptionRowActions";
 import {
   buildBreadcrumbEventsFromSpans,
   buildExceptionOccurrenceQuery,
@@ -127,6 +131,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   >(undefined);
   // Resolve/archive failures render inline — never a page takeover.
   const [actionError, setActionError] = useState<string | undefined>(undefined);
+  // An assignment being saved from the header.
+  const [isAssigning, setIsAssigning] = useState<boolean>(false);
   const [latestInstance, setLatestInstance] = useState<
     ExceptionInstance | undefined
   >(undefined);
@@ -361,6 +367,14 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             primaryEntityType: true,
             unhandled: true,
             errorClass: true,
+            regressedAt: true,
+            resolvedInReleaseAfter: true,
+            // Who owns it, for the header's Assignee.
+            assignToUserId: true,
+            assignToTeamId: true,
+            ...(dataPlan.loadAiExplanation
+              ? { aiExplanation: true, aiExplanationGeneratedAt: true }
+              : {}),
             ...(dataPlan.loadTriageHistory
               ? {
                   markedAsResolvedAt: true,
@@ -404,19 +418,17 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         setActionError(undefined);
 
         try {
-          const isResolveChange: boolean =
-            action.id === "resolve" || action.id === "unresolve";
-
           /*
-           * Only the switch is sent: the server records who turned it, and
+           * Only the switch is sent - and, to resolve in the next release,
+           * the release it waits out: the server records who turned it, and
            * when.
            */
           await ModelAPI.updateById<TelemetryException>({
             id: props.telemetryExceptionId,
             modelType: TelemetryException,
-            data: isResolveChange
-              ? { isResolved: action.nextState.isResolved }
-              : { isArchived: action.nextState.isArchived },
+            data: getExceptionTriageWrite(action.id, {
+              lastSeenInRelease: action.release,
+            }),
           });
 
           await loadException();
@@ -431,6 +443,38 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     },
     [props.telemetryExceptionId],
   );
+
+  /*
+   * Assign it to one person or one team, or nobody: the write the picker
+   * made, saved at once, the exception read again after.
+   */
+  const onAssign: (write: ExceptionAssignmentWrite) => void = (
+    write: ExceptionAssignmentWrite,
+  ): void => {
+    const run: () => Promise<void> = async (): Promise<void> => {
+      setIsAssigning(true);
+      setActionError(undefined);
+
+      try {
+        await ModelAPI.updateById<TelemetryException>({
+          id: props.telemetryExceptionId,
+          modelType: TelemetryException,
+          data: {
+            assignToUserId: write.assignToUserId,
+            assignToTeamId: write.assignToTeamId,
+          },
+        });
+
+        await loadException();
+      } catch (err) {
+        setActionError(API.getFriendlyMessage(err));
+      }
+
+      setIsAssigning(false);
+    };
+
+    void run();
+  };
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -519,9 +563,15 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           ? {
               actions: (
                 <>
+                  <ExceptionAssignee
+                    exception={telemetryException}
+                    isSaving={isAssigning}
+                    onAssign={onAssign}
+                  />
                   <ExceptionTriageActions
                     isResolved={isResolved}
                     isArchived={isArchived}
+                    lastSeenInRelease={telemetryException.lastSeenInRelease}
                     pendingActionId={pendingActionId}
                     onAction={onTriageAction}
                   />
@@ -574,6 +624,17 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
       {props.section === ExceptionDetailSection.Overview && (
         <>
+          {/*
+           * What happened, why and how to fix it, first: OneUptime AI's
+           * explanation, or the button that asks for one.
+           */}
+          <ExceptionAIExplanation
+            telemetryExceptionId={props.telemetryExceptionId}
+            aiExplanation={telemetryException.aiExplanation}
+            aiExplanationGeneratedAt={
+              telemetryException.aiExplanationGeneratedAt
+            }
+          />
           <ExceptionOccurrenceTrend
             fingerprint={telemetryException.fingerprint}
             primaryEntityId={telemetryException.primaryEntityId}

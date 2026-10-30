@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,11 +20,22 @@ import (
 // The most redirects a request follows, as Go's client does by default.
 const maxRedirects = 10
 
+// redirectRefused is the error a request fails with when it is redirected in
+// a way the agent does not follow. Sending the request again gets the same
+// redirect, so it is not worth sending again.
+type redirectRefused struct {
+	reason string
+}
+
+func (e *redirectRefused) Error() string {
+	return e.reason
+}
+
 // sameServerRedirectsOnly is the CheckRedirect of every http.Client the
 // agent sends a request to OneUptime with.
 func sameServerRedirectsOnly(req *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
-		return errors.New("stopped after 10 redirects")
+		return &redirectRefused{reason: "stopped after 10 redirects"}
 	}
 
 	if len(via) == 0 {
@@ -38,10 +48,10 @@ func sameServerRedirectsOnly(req *http.Request, via []*http.Request) error {
 	if !isRedirectOnSameServer(from, req.URL) {
 		to := originOf(req.URL)
 
-		return fmt.Errorf(
+		return &redirectRefused{reason: fmt.Sprintf(
 			"the request to %s was redirected to %s, another server, so it was not sent on: the agent follows redirects only on the server it was sent to. If the server is at %s, set the agent's OneUptime URL to that",
 			originOf(from), to, to,
-		)
+		)}
 	}
 
 	return nil

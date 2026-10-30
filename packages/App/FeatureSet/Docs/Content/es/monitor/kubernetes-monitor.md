@@ -5,7 +5,7 @@ Un monitor de Kubernetes alerta sobre las métricas que el agente de Kubernetes 
 :::cards
 - [Instalar el agente](/docs/monitor/kubernetes-agent): Un solo comando de Helm lleva el clúster a OneUptime.
 - [Crear el monitor](#crear-un-monitor-de-kubernetes): Elegir el clúster y luego una plantilla, una métrica o una consulta.
-- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Diecisiete alertas listas para usar, de CrashLoopBackOff a etcd.
+- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Dieciocho alertas listas para usar, de un clúster silencioso a etcd.
 - [Criterios](#criterios-de-monitoreo): Umbrales estáticos y detección de anomalías.
 :::
 
@@ -65,7 +65,7 @@ Termine el formulario y guarde. El monitor aparece en **Monitores**, y su estado
 | --- | --- | --- |
 | Clúster | Todo el clúster | — |
 | Espacio de nombres | Los recursos de un espacio de nombres | **Espacio de nombres** |
-| Carga de trabajo | Un deployment, statefulset, daemonset, job o cronjob | **Espacio de nombres**, **Nombre de la carga de trabajo** |
+| Carga de trabajo | Un deployment, statefulset, daemonset, job o cronjob | **Espacio de nombres**, **Tipo de carga de trabajo**, **Nombre de la carga de trabajo** |
 | Nodo | Un nodo del clúster | **Nombre del nodo** |
 | Pod | Un pod | **Espacio de nombres**, **Nombre del pod** |
 
@@ -84,14 +84,14 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 | Categoría | Métricas |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Contenedor | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Carga de trabajo | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plano de control | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Pod Phase (Code)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada.
+> **Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Pod Phase (Code)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada. **Node Ready Condition** vale 1 con Ready, 0 con NotReady y -1 con Unknown, que es lo que informa un nodo caído: alerte por debajo de 1.
 
 ## Criterios de monitoreo
 
@@ -112,7 +112,7 @@ Estos monitores siempre evalúan el **Metric Value**: el valor de la consulta de
 
 ### Condiciones
 
-Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** e **Igual a**.
+Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** e **Igual a**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo.
 
 La detección de anomalías frente a una referencia no necesita umbral. Elija una de estas condiciones, y el formulario muestra **Sensibilidad** y **Ventana de referencia** en su lugar:
 
@@ -132,13 +132,14 @@ La pestaña **Quick Setup** enumera estas plantillas, agrupadas por categoría. 
 
 | Plantilla | Categoría | Se dispara cuando | Gravedad |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | Carga de trabajo | Un contenedor se ha reiniciado más de 5 veces desde que se creó su pod | Crítico |
+| Cluster Stopped Reporting | Disponibilidad | No llegan datos del agente del clúster durante 10 minutos | Crítico |
+| CrashLoopBackOff Detection | Carga de trabajo | Un contenedor se reinició en 15 minutos y estuvo listo menos de la mitad de ese tiempo | Crítico |
 | Pod Stuck in Pending | Programación | Algún pod está en la fase Pending en cada muestra de una ventana de 15 minutos | Advertencia |
-| Node Not Ready | Nodo | Un nodo informa NotReady | Crítico |
+| Node Not Ready | Nodo | Un nodo informa NotReady o deja de informar su estado (Unknown) | Crítico |
 | High Node CPU Utilization | Nodo | El uso medio de CPU de un nodo supera el 90 % de su CPU asignable | Advertencia |
-| High Node Memory Utilization | Nodo | El uso medio de memoria de un nodo supera el 85 % de su memoria asignable | Advertencia |
+| High Node Memory Utilization | Nodo | El working set medio de memoria de un nodo supera el 85 % de su memoria asignable | Advertencia |
 | Deployment Replica Mismatch | Carga de trabajo | Un deployment tiene menos réplicas disponibles de las deseadas durante 15 minutos | Advertencia |
-| Job Failures | Carga de trabajo | Un job tiene pods fallidos | Advertencia |
+| Job Failures | Carga de trabajo | Un pod de un job falló en 15 minutos | Advertencia |
 | etcd No Leader | Plano de control | etcd no tiene un líder elegido | Crítico |
 | API Server Request Saturation | Plano de control | El servidor de API mantiene 200 o más solicitudes en curso durante toda la ventana | Crítico |
 | Scheduler Backlog | Programación | La cola de pods pendientes del scheduler no está vacía durante 5 minutos | Advertencia |
@@ -146,14 +147,16 @@ La pestaña **Quick Setup** enumera estas plantillas, agrupadas por categoría. 
 | DaemonSet Misscheduled Nodes | Carga de trabajo | Un DaemonSet ejecuta pods en nodos que ya no coinciden con su selector de nodos, su afinidad o sus tolerancias | Advertencia |
 | High Node CPU Request Commitment | Nodo | La suma de las solicitudes de CPU de los contenedores de un nodo supera el 90 % de su CPU asignable | Advertencia |
 | High Node Memory Request Commitment | Nodo | La suma de las solicitudes de memoria de los contenedores de un nodo supera el 90 % de su memoria asignable | Advertencia |
-| HPA Saturated at Max Replicas | Carga de trabajo | Un HPA funciona al 90 % o más de su `maxReplicas` | Crítico |
+| HPA Saturated at Max Replicas | Carga de trabajo | Un HPA escalado por encima de su `minReplicas` funciona al 90 % o más de su `maxReplicas` | Crítico |
 | Pod Memory Saturating Container Limit | Carga de trabajo | Un pod usa más del 90 % del límite de memoria de sus contenedores | Crítico |
 | Pod CPU Saturating Container Limit | Carga de trabajo | Un pod usa más del 90 % del límite de CPU de sus contenedores | Advertencia |
 
 Las plantillas sobre métricas por objeto evalúan cada nodo, pod, deployment, job, DaemonSet o HPA por separado, de modo que un clúster con varios pods en mal estado recibe un incidente por pod en lugar de uno para todo el clúster.
 
+**Cluster Stopped Reporting** se dispara cuando no llega nada del agente del clúster durante diez minutos: el agente se desinstaló o se cae una y otra vez, se revocó su clave de API, perdió su conexión con OneUptime, o el servidor de API del clúster dejó de responderle. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** lee el número de reinicios del contenedor durante toda la vida de su pod actual, no una tasa. Un contenedor que entró en un bucle de fallos y luego se recuperó mantiene la alerta abierta hasta que se sustituye su pod.
+> **CrashLoopBackOff Detection** y **Job Failures** cuentan cuánto creció en la ventana un contador de reinicios o de pods fallidos, no el contador en sí, así que se resuelven solos cuando paran los reinicios o los fallos. El crecimiento solo se ve entre dos muestras del mismo minuto: con el intervalo de 30 segundos del agente, eso es aproximadamente la mitad. Un crash loop se reinicia una y otra vez y se detecta; un único reinicio puede pasar desapercibido.
 
 ### Detectar causas, no solo síntomas
 
@@ -181,8 +184,8 @@ Los clústeres se registran solos a partir de los datos del agente, con el `clus
 **Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje, así que un umbral de `80` significa 80 núcleos. Fije el umbral en núcleos, o parta de **High Node CPU Utilization** o de **Pod CPU Saturating Container Limit**, que comparan un porcentaje.
 :::
 
-:::details CrashLoopBackOff Detection sigue abierta después de que el pod se recupere
-La plantilla lee el número de reinicios del contenedor durante toda la vida de su pod actual, así que el número no vuelve a bajar una vez que ha superado 5. La alerta se resuelve cuando se sustituye el pod, por ejemplo con un nuevo despliegue, un desalojo o el vaciado de un nodo.
+:::details CrashLoopBackOff Detection no se disparó con un reinicio
+La plantilla se dispara cuando el contador de reinicios de un contenedor crece en 15 minutos mientras el contenedor estuvo listo menos de la mitad de ese tiempo, así que un contenedor que se reinició una vez y volvió enseguida no avisa. El crecimiento solo se ve entre dos muestras del mismo minuto, así que un único reinicio puede pasar desapercibido; un crash loop se reinicia cada pocos minutos y se detecta.
 :::
 
 ## Próximos pasos

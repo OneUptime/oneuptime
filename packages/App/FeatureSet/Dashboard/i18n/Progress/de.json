@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 38685,
-    "untranslated": 4072
+    "keys": 38814,
+    "untranslated": 4073
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -495,6 +495,7 @@
     "Tool",
     "Tooltip",
     "Tooltip ",
+    "Top",
     "Top P",
     "Trace",
     "Trace Explorer",
