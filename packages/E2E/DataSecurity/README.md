@@ -4,18 +4,19 @@ An offline harness for Data Security's pages, mounted from the product's real ro
 (`Routes/DataSecurityRoutes`) under its real RouteMap pattern (`DATA_SECURITY_ROOT`,
 `/dashboard/:projectId/data-security/*`):
 
-| Page                | Route                                | What the spec does there                                       |
-| ------------------- | ------------------------------------ | -------------------------------------------------------------- |
-| Overview            | `/data-security`                     | The riskiest open issues first, each opening its issue         |
-| Data Stores         | `/data-security/stores`              | On a phone                                                     |
-| A store's Overview  | `/data-security/stores/:id`          | Its half-width cards' headers; its menu's Timeline             |
-| What's Inside       | `/data-security/stores/:id/inside`   | On a phone                                                     |
-| Who Can Reach It    | `/data-security/stores/:id/access`   | On a phone                                                     |
-| A store's Timeline  | `/data-security/stores/:id/timeline` | Who changed what, its details; German; dark                    |
-| Issues              | `/data-security/issues`              | On a phone                                                     |
-| An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status |
-| An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                              |
-| Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                     |
+| Page                | Route                                | What the spec does there                                                                           |
+| ------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Overview            | `/data-security`                     | The riskiest open issues first, each opening its issue                                             |
+| Data Stores         | `/data-security/stores`              | On a phone                                                                                         |
+| A store's Overview  | `/data-security/stores/:id`          | Its half-width cards' headers; its menu's Timeline                                                 |
+| What's Inside       | `/data-security/stores/:id/inside`   | On a phone                                                                                         |
+| Who Can Reach It    | `/data-security/stores/:id/access`   | On a phone                                                                                         |
+| A store's Timeline  | `/data-security/stores/:id/timeline` | Who changed what, its details; German; dark                                                        |
+| Issues              | `/data-security/issues`              | On a phone                                                                                         |
+| An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links |
+| An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                  |
+| Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                         |
+| Settings > Scanning | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                               |
 
 `Fixture/server.js` bundles `Fixture/Fixture.js` with esbuild, serves it with the same Tailwind
 build, `tailwind.config`, `Theme.css` and Inter font production uses, and listens on
