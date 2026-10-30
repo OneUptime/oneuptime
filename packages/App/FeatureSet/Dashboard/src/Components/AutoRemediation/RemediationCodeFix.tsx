@@ -9,7 +9,9 @@ import {
   REMEDIATION_CODE_FIX_REASONS_WITH_SETTINGS_LINK,
 } from "./RemediationStepCopy";
 import ArrowGluedText from "../AI/ArrowGluedText";
-import InvestigationNotice, { noticeFailedIcon } from "../AI/InvestigationNotice";
+import InvestigationNotice, {
+  noticeFailedIcon,
+} from "../AI/InvestigationNotice";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
 import { AUTOMATIC_REMEDIATION_SETTINGS_PAGES } from "../AiAccess/AutomaticRemediationNote";
 import { AUTOMATIC_REMEDIATION_SETTINGS_LINKS } from "../AiAccess/AutomaticRemediationLine";
@@ -83,8 +85,7 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const isCreatingRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
+  const isCreatingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   const suggestion: InvestigationCodeFixSuggestion = props.suggestion;
 
   if (suggestion.offer === SuggestionOffer.None) {
@@ -235,8 +236,7 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const blocker: AutomaticCodeFixBlocker | null =
-      suggestion.automaticBlocker;
+    const blocker: AutomaticCodeFixBlocker | null = suggestion.automaticBlocker;
     const reasons: Record<RemediationTryAgainSignal, string> | null =
       blocker && !hasNoRepository
         ? REMEDIATION_CODE_FIX_AUTOMATIC_REASONS[blocker]
@@ -286,7 +286,8 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const mark: RemediationDecisionToneMark = REMEDIATION_DECISION_TONE_MARK[tone];
+  const mark: RemediationDecisionToneMark =
+    REMEDIATION_DECISION_TONE_MARK[tone];
 
   return (
     <div

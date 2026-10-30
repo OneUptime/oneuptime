@@ -1,6 +1,8 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus, { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus, {
+  AIRunStatusHelper,
+} from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
@@ -410,7 +412,12 @@ export default class FixFromIncidentTaskTrigger {
             status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
             ...subjectQuery,
           },
-          select: { _id: true, status: true, needsUserInput: true, userId: true },
+          select: {
+            _id: true,
+            status: true,
+            needsUserInput: true,
+            userId: true,
+          },
           sort: { createdAt: SortOrder.Descending },
           props: { isRoot: true },
         });

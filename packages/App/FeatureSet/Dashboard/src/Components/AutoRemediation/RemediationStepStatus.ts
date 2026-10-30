@@ -328,7 +328,10 @@ export function getRemediationStepStatus(
     });
   };
 
-  if (hasLineOf("attention") || input.codeFix?.offer === SuggestionOffer.SetUp) {
+  if (
+    hasLineOf("attention") ||
+    input.codeFix?.offer === SuggestionOffer.SetUp
+  ) {
     return status("attention", TEXT.needsAttention);
   }
 

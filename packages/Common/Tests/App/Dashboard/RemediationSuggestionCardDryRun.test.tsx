@@ -26,9 +26,9 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
   getActionErrorTitle,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import CloudDryRunNote, {
   CLOUD_DRY_RUN_NOTE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/CloudDryRunNote";
@@ -136,7 +136,9 @@ async function renderCard(
   row: AutoRemediationSuggestion,
 ): Promise<HTMLElement> {
   serve(row);
-  render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+  render(
+    <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
+  );
   const command: HTMLElement = await screen.findByText(COMMAND);
   const commandRow: HTMLElement | null = command.closest("li");
 
@@ -453,7 +455,12 @@ describe("the Remediation card", () => {
         }),
       ]),
     );
-    render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
     await screen.findByText("docker restart web");
 
     expect(

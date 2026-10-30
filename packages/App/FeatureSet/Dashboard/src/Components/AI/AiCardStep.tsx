@@ -5,7 +5,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, ReactNode, useId } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useId,
+} from "react";
 
 /*
  * ONE STEP OF THE AI CARD (block 43).

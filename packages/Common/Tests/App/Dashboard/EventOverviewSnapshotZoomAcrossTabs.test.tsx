@@ -318,7 +318,7 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard",
+  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep",
   () => {
     return stubModule("Remediation");
   },

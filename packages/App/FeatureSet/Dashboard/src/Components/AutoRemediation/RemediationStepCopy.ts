@@ -131,7 +131,6 @@ export const REMEDIATION_CODE_FIX_COPY: {
   answerInCode: string;
   connectRepository: string;
   openPullRequest: string;
-  created: string;
   createFailed: string;
 } = {
   inProgressAutomatic: translationKey(
@@ -140,7 +139,9 @@ export const REMEDIATION_CODE_FIX_COPY: {
   inProgress: translationKey(
     "A pull request that fixes the code is being written.",
   ),
-  opened: translationKey("OneUptime AI opened a pull request that fixes the code."),
+  opened: translationKey(
+    "OneUptime AI opened a pull request that fixes the code.",
+  ),
   nothingToChange: translationKey(
     "OneUptime AI read the code and found nothing to change.",
   ),
@@ -157,9 +158,6 @@ export const REMEDIATION_CODE_FIX_COPY: {
   answerInCode: translationKey("Answer in Code"),
   connectRepository: translationKey("Connect a repository"),
   openPullRequest: translationKey("Open fix pull request"),
-  created: translationKey(
-    "OneUptime AI is writing the pull request. It shows here when it is ready.",
-  ),
   createFailed: translationKey("Could not open the pull request"),
 };
 

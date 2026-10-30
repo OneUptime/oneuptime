@@ -235,9 +235,14 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
       3,
       { isResolvedState: true },
     );
-    const openAlertStateId: ObjectID = await state("AlertState", "Identified", 1, {
-      isCreatedState: true,
-    });
+    const openAlertStateId: ObjectID = await state(
+      "AlertState",
+      "Identified",
+      1,
+      {
+        isCreatedState: true,
+      },
+    );
     await state("AlertState", "Resolved", 3, { isResolvedState: true });
 
     return {
@@ -377,11 +382,11 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
         projectId: project.projectId,
       });
 
-      expect(reasonsOf((await decisionsOf({ incidentId }))[0]!.entries)).toEqual(
-        [
-          `${AutoRemediationDecisionLane.Project}:${AutoRemediationDecisionReason.RemediationOff}`,
-        ],
-      );
+      expect(
+        reasonsOf((await decisionsOf({ incidentId }))[0]!.entries),
+      ).toEqual([
+        `${AutoRemediationDecisionLane.Project}:${AutoRemediationDecisionReason.RemediationOff}`,
+      ]);
     });
 
     test("an alert, while only incidents are fixed automatically: the maintainer's alert", async () => {
@@ -410,9 +415,9 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
         projectId: project.projectId,
       });
 
-      expect(reasonsOf((await decisionsOf({ incidentId }))[0]!.entries)).toEqual(
-        LINKED_TO_NOTHING,
-      );
+      expect(
+        reasonsOf((await decisionsOf({ incidentId }))[0]!.entries),
+      ).toEqual(LINKED_TO_NOTHING);
     });
 
     test("AI rules set up, and none matches", async () => {
@@ -551,7 +556,10 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
         }),
       ).toBe(RemediationTryAgainResult.WaitingForInvestigation);
       expect(await decisionsOf({ incidentId })).toEqual([
-        { stage: AutoRemediationDecisionStage.WaitingForInvestigation, entries: [] },
+        {
+          stage: AutoRemediationDecisionStage.WaitingForInvestigation,
+          entries: [],
+        },
       ]);
     });
 

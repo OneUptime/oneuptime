@@ -20,11 +20,11 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
   getCommandStepLabel,
   getCommandTargetLabel,
   getResourceCommandTierLabel,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import {
   AiRemediationCommandExecutionStatus,
@@ -118,7 +118,9 @@ async function renderCard(
       return { data: [row], count: 1, skip: 0, limit: 10 };
     },
   );
-  render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+  render(
+    <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
+  );
   const command: HTMLElement = await screen.findByText(commandText);
   const commandRow: HTMLElement | null = command.closest("li");
 
@@ -207,7 +209,7 @@ describe("the command row helpers", () => {
   });
 });
 
-describe("RemediationSuggestionCard for a resource round", () => {
+describe("RemediationStep for a resource round", () => {
   test("a plan waiting for approval names the resource, the program and the tier — and needs approval", async () => {
     const row: HTMLElement = await renderCard(
       resourceSuggestion(AutoRemediationSuggestionStatus.Suggested, [

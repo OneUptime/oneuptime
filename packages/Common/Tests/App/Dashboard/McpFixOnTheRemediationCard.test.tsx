@@ -27,11 +27,11 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
   REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES,
   getRemediationCardDescription,
   isMcpFixInProgress,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import {
   RemediationDecisionLine,
   getRemediationDecisionLines,
@@ -150,7 +150,12 @@ describe("the Remediation card", () => {
     );
 
     await act(async () => {
-      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+        />,
+      );
     });
 
     expect(
@@ -158,9 +163,9 @@ describe("the Remediation card", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Rule: Fix the API")).toBeInTheDocument();
     expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
-    expect(screen.getByTestId("card-description")).toHaveTextContent(
-      REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES,
-    );
+    expect(
+      screen.getByTestId("remediation-fixes-description"),
+    ).toHaveTextContent(REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES);
 
     const rows: Array<HTMLElement> = screen.getAllByTestId(
       "remediation-mcp-tool-call",
@@ -207,7 +212,12 @@ describe("the Remediation card", () => {
     );
 
     await act(async () => {
-      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+        />,
+      );
     });
 
     const rows: Array<HTMLElement> = await screen.findAllByTestId(
@@ -238,7 +248,12 @@ describe("the Remediation card", () => {
     );
 
     await act(async () => {
-      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+        />,
+      );
     });
 
     expect(

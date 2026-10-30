@@ -1585,12 +1585,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (runStatus === AIRunStatus.Completed && analysisMarkdown && parsedReport) {
+    if (
+      runStatus === AIRunStatus.Completed &&
+      analysisMarkdown &&
+      parsedReport
+    ) {
       return (
         <div
           id={reportRegionId}
           data-testid={
-            isReportOpen ? "investigation-report-open" : "investigation-report-folded"
+            isReportOpen
+              ? "investigation-report-open"
+              : "investigation-report-folded"
           }
           className="space-y-6"
         >

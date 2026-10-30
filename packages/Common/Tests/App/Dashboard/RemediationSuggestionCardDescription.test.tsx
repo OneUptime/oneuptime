@@ -20,11 +20,11 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
   REMEDIATION_CARD_DESCRIPTION,
   REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES,
   getRemediationCardDescription,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -170,7 +170,7 @@ describe("getRemediationCardDescription", () => {
   });
 });
 
-describe("RemediationSuggestionCard description", () => {
+describe("RemediationStep description", () => {
   let getListSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
@@ -190,9 +190,17 @@ describe("RemediationSuggestionCard description", () => {
         return { data: rows, count: rows.length, skip: 0, limit: 10 };
       },
     );
-    render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
 
-    return (await screen.findByTestId("card-description")).textContent || "";
+    return (
+      (await screen.findByTestId("remediation-fixes-description"))
+        .textContent || ""
+    );
   }
 
   test("a card showing a resource round names the resource's AI agent", async () => {

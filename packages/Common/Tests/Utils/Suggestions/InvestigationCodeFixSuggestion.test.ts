@@ -240,7 +240,8 @@ describe("the code fix suggestion on the wire", () => {
       input({
         blocker: {
           type: CodeTaskBlockerType.RunnerNotOnline,
-          message: 'The Runner "build-box" this repository picks is not online.',
+          message:
+            'The Runner "build-box" this repository picks is not online.',
           runnerName: "build-box",
           repositoryId: "50000000-0000-4000-8000-000000000005",
         },

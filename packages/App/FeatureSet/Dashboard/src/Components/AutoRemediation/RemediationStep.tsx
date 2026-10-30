@@ -67,8 +67,11 @@ import {
 } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import useAiOffered from "../../Utils/UseAiOffered";
+import ProjectUtil from "Common/UI/Utils/Project";
 import AiCardStep from "../AI/AiCardStep";
-import InvestigationNotice, { noticeFailedIcon } from "../AI/InvestigationNotice";
+import InvestigationNotice, {
+  noticeFailedIcon,
+} from "../AI/InvestigationNotice";
 import { InvestigationStatusIndicator } from "../AI/InvestigationStatusBadge";
 import { AIInvestigationStage } from "../AI/AIInvestigationStatus";
 import useAiLaneSwitchStates, {
@@ -989,6 +992,15 @@ const STEP_TONE_INDICATOR: Record<
 // How often the fix in the code is read again while it is being written.
 const CODE_FIX_POLL_INTERVAL_MS: number = 15 * 1000;
 
+// Whether the selected project's Enable AI is known (it carries the column).
+function isEnableAiReadable(): boolean {
+  try {
+    return typeof ProjectUtil.getCurrentProject()?.enableAi === "boolean";
+  } catch {
+    return false;
+  }
+}
+
 /*
  * THE REMEDIATION STEP OF THE AI CARD (block 43): step 2, under the
  * investigation - what OneUptime AI is doing to fix the incident or alert,
@@ -1514,9 +1526,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     subjectType: signal,
     isEnabled: isRemediationOffEntry,
   });
-  const isAiOn: boolean = useAiOffered();
+  /*
+   * Enable AI as the selected project holds it now - followed live when it
+   * is switched - or unknown while the project is not loaded:
+   * useAiOffered fails open (an unknown value reads as on, so it never
+   * hides an AI action), which here would say "it is on now" of a switch
+   * nobody read.
+   */
+  const isAiOffered: boolean = useAiOffered();
+  const isAiOnKnown: boolean = isEnableAiReadable();
   const switchesNow: RemediationSwitchesNow = {
-    isAiOn,
+    isAiOn: isAiOnKnown ? isAiOffered : undefined,
     isFixingOn: laneSwitches.states.fix,
   };
 
@@ -1739,8 +1759,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               {plan.commands.map(
                 (command: AiRemediationCommand): ReactElement => {
                   const commandKey: string = `${suggestionId}:command:${command.sequence}`;
-                  const isOutputExpanded: boolean =
-                    expandedIds.has(commandKey);
+                  const isOutputExpanded: boolean = expandedIds.has(commandKey);
                   const commandPillKind: CommandApprovalPillKind | null =
                     getCommandApprovalPillKind(command, status);
                   /*
@@ -2112,10 +2131,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     ? waitingLines
     : decisionLines;
   const isNotTried: boolean =
-    isLoadedForSubject &&
-    !isWaiting &&
-    !decision &&
-    suggestions.length === 0;
+    isLoadedForSubject && !isWaiting && !decision && suggestions.length === 0;
 
   return (
     <AiCardStep
@@ -2179,15 +2195,26 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       )}
 
       {suggestions.length > 0 ? (
-        <div
-          data-testid="remediation-fixes"
-          className="divide-y divide-gray-200 border-t border-gray-200"
-        >
-          {suggestions.map(
-            (suggestion: AutoRemediationSuggestion): ReactElement => {
-              return renderSuggestion(suggestion);
-            },
-          )}
+        <div data-testid="remediation-fixes">
+          {/*
+            What the fixes below can be, and what approving one does: it
+            runs exactly what is shown, under the approver's name.
+          */}
+          <p
+            data-testid="remediation-fixes-description"
+            className="text-xs leading-5 text-gray-500"
+          >
+            {translator.translateText(
+              getRemediationCardDescription(suggestions),
+            )}
+          </p>
+          <div className="mt-1 divide-y divide-gray-200">
+            {suggestions.map(
+              (suggestion: AutoRemediationSuggestion): ReactElement => {
+                return renderSuggestion(suggestion);
+              },
+            )}
+          </div>
         </div>
       ) : (
         <></>
@@ -2255,7 +2282,6 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       )}
     </AiCardStep>
   );
-
 };
 
 export default RemediationStep;

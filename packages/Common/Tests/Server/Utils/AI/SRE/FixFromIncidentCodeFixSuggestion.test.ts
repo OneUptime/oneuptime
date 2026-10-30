@@ -12,7 +12,10 @@ import AIRunCodeFixRecommendation from "../../../../../Types/AI/AIRunCodeFixReco
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import { AutomaticFixPullRequestRules } from "../../../../../Types/AI/AutomaticFixPullRequests";
-import { CodeTaskBlocker, CodeTaskBlockerType } from "../../../../../Types/AI/CodeTask";
+import {
+  CodeTaskBlocker,
+  CodeTaskBlockerType,
+} from "../../../../../Types/AI/CodeTask";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import { CodeRepositoryAllowance } from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -69,9 +72,7 @@ function project(overrides: Partial<Project> = {}): Project {
   return row;
 }
 
-function investigation(
-  overrides: Partial<AIRun> = {},
-): AIRun {
+function investigation(overrides: Partial<AIRun> = {}): AIRun {
   const run: AIRun = new AIRun();
   run.id = INVESTIGATION_ID;
   run.status = AIRunStatus.Completed;
@@ -130,20 +131,22 @@ function install(setup: Setup = {}): Spies {
     project: jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue((has("project") ? setup.project : project()) as never),
-    runs: jest.spyOn(AIRunService, "findOneBy").mockImplementation((async (
-      findOneBy: { query: JSONObject },
-    ): Promise<AIRun | null> => {
-      if (findOneBy.query["runType"] === AIRunType.Investigation) {
-        return has("investigation")
-          ? setup.investigation || null
-          : investigation();
-      }
+    runs: jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: JSONObject;
+      }): Promise<AIRun | null> => {
+        if (findOneBy.query["runType"] === AIRunType.Investigation) {
+          return has("investigation")
+            ? setup.investigation || null
+            : investigation();
+        }
 
-      // The fix's own reads: still working (NOT IN terminal), or finished.
-      return sqlOf(findOneBy.query["status"]).includes("NOT IN")
-        ? setup.activeFix || null
-        : setup.finishedFix || null;
-    }) as never),
+        // The fix's own reads: still working (NOT IN terminal), or finished.
+        return sqlOf(findOneBy.query["status"]).includes("NOT IN")
+          ? setup.activeFix || null
+          : setup.finishedFix || null;
+      }) as never),
     latestTurn: jest
       .spyOn(CodeTaskRuns, "getLatestTurn")
       .mockResolvedValue(
@@ -157,8 +160,8 @@ function install(setup: Setup = {}): Spies {
         allowance?: CodeRepositoryAllowance,
       ): Promise<boolean> => {
         return allowance
-          ? (setup.hasAllowedRepository ?? setup.hasRepository ?? true)
-          : (setup.hasRepository ?? true);
+          ? setup.hasAllowedRepository ?? setup.hasRepository ?? true
+          : setup.hasRepository ?? true;
       }) as never),
     gate: jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
       codeRepositoryId: new ObjectID(REPOSITORY_ID),
@@ -406,9 +409,9 @@ describe("no fix yet: the one step in the way, and why it did not open on its ow
       }),
     });
 
-    expect(
-      (await suggestionFor({ alertId: ALERT_ID })).automaticBlocker,
-    ).toBe(AutomaticCodeFixBlocker.FixOff);
+    expect((await suggestionFor({ alertId: ALERT_ID })).automaticBlocker).toBe(
+      AutomaticCodeFixBlocker.FixOff,
+    );
   });
 
   test("AI rules set up, and none matches", async () => {

@@ -258,10 +258,7 @@ describe("POST /ai-investigation/code-fix-suggestion", () => {
 
   test.each([
     ["the reader may not read", null],
-    [
-      "of another project",
-      recordIn(Incident, INCIDENT_ID, OTHER_PROJECT_ID),
-    ],
+    ["of another project", recordIn(Incident, INCIDENT_ID, OTHER_PROJECT_ID)],
   ])(
     "an incident %s is never asked about",
     async (_case: string, incident: Incident | null) => {
