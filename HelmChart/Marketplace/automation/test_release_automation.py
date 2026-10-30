@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -397,6 +398,36 @@ class AwsCatalogTest(unittest.TestCase):
         copy = copy.split("\n```", 1)[0]
 
         self.assertEqual(copy.split(), self.delivery()["usageInstructions"].split())
+
+    def test_the_listing_s_links_go_straight_to_their_pages(self) -> None:
+        # AWS's review refused the first request to make the listing public for broken links, naming
+        # none. Two of its links redirected then (/docs/... to /docs/en/...), and the support
+        # description's last link, the docs, was the listing's Get support button.
+        runbook: str = (
+            HERE.parents[2] / "packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md"
+        ).read_text(encoding="utf-8")
+        support: str = runbook.split("**Support description (AWS):**", 1)[1].split("```text\n", 1)[1]
+        support = support.split("\n```", 1)[0]
+        resources: str = runbook.split("**Additional resources (AWS):**", 1)[1].split("\n\n", 2)[1]
+        delivery = self.delivery()
+        link = re.compile(r"https?://[^\s<>()\"']*[^\s<>()\"'.,;:]")
+
+        self.assertEqual(link.findall(support), ["https://oneuptime.com/support"])
+
+        docs_links: List[str] = [
+            found
+            for text in (resources, delivery["description"], delivery["usageInstructions"])
+            for found in link.findall(text)
+            if found.startswith("https://oneuptime.com/docs")
+        ]
+        self.assertEqual(len(docs_links), 4)
+
+        for found in docs_links:
+            self.assertTrue(found.startswith("https://oneuptime.com/docs/en/"), found)
+            page: Path = HERE.parents[2] / "packages/App/FeatureSet/Docs/Content" / (
+                found[len("https://oneuptime.com/docs/") :] + ".md"
+            )
+            self.assertTrue(page.is_file(), f"{found}: no docs page {page}")
 
     def test_refuses_another_marketplace_s_or_release_s_images(self) -> None:
         for plan in (dict(aws_images_plan(), marketplace="azure"), aws_images_plan(version="14.0.65")):
