@@ -7,7 +7,10 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import { readClickhouseDate } from "../../../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import SecurityLogParser from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
-import { SECURITY_LOG_FORMAT_ATTRIBUTE } from "../../../../Types/SecurityEvent/SecurityLogFormat";
+import SecurityLogFormat, {
+  SECURITY_LOG_FORMAT_ATTRIBUTE,
+  readLastFoundAtByFormat,
+} from "../../../../Types/SecurityEvent/SecurityLogFormat";
 import LogService from "../../../Services/LogService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -92,6 +95,12 @@ export interface SecurityLogScanResult {
   eventsFound: number;
   // Events found, by SecurityLogFormat.
   byFormat: Record<string, number>;
+  /*
+   * When a security event of each kind was last found, this scan or an
+   * earlier one (format -> ISO time): what Connections shows each kind's
+   * health by - found lately, found before, or never.
+   */
+  lastFoundAtByFormat: Record<string, string>;
   windows: number;
   /*
    * The scan had fallen too far behind and skipped ahead: the logs that
@@ -270,10 +279,20 @@ export default class SecurityLogScanner {
       skipInWindow = 0;
     }
 
+    // When each kind was last found, carried from the scans before.
+    const lastFoundAtByFormat: Record<string, string> = {};
+    const previousFoundAt: Partial<Record<SecurityLogFormat, Date>> =
+      readLastFoundAtByFormat(previous);
+
+    for (const format of Object.keys(previousFoundAt) as Array<SecurityLogFormat>) {
+      lastFoundAtByFormat[format] = previousFoundAt[format]!.toISOString();
+    }
+
     const result: SecurityLogScanResult = {
       logsRead: 0,
       eventsFound: 0,
       byFormat: {},
+      lastFoundAtByFormat,
       windows: 0,
       skippedBacklog: Boolean(skippedFrom),
       skippedFrom,
@@ -378,6 +397,7 @@ export default class SecurityLogScanner {
               event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE] || "",
             );
             result.byFormat[format] = (result.byFormat[format] || 0) + 1;
+            result.lastFoundAtByFormat[format] = now.toISOString();
           }
 
           result.eventsFound += events.length;

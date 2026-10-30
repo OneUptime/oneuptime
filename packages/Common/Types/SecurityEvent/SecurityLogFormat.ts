@@ -201,6 +201,45 @@ export function getSecurityLogFormatsInGroup(
   );
 }
 
+/*
+ * When the log scan last found a security event of each kind, as its
+ * result keeps it (lastFoundAtByFormat: format -> ISO time), carried from
+ * one scan to the next: the health of each source "Your logs" reads. Only
+ * known formats and readable times are read; anything else in a stored
+ * result is left out.
+ */
+export function readLastFoundAtByFormat(
+  result: unknown,
+): Partial<Record<SecurityLogFormat, Date>> {
+  const found: Partial<Record<SecurityLogFormat, Date>> = {};
+  const byFormat: unknown =
+    result && typeof result === "object" && !Array.isArray(result)
+      ? (result as Record<string, unknown>)["lastFoundAtByFormat"]
+      : undefined;
+
+  if (!byFormat || typeof byFormat !== "object" || Array.isArray(byFormat)) {
+    return found;
+  }
+
+  for (const definition of SECURITY_LOG_FORMATS) {
+    const value: unknown = (byFormat as Record<string, unknown>)[
+      definition.format
+    ];
+
+    if (typeof value !== "string" || !value) {
+      continue;
+    }
+
+    const date: Date = new Date(value);
+
+    if (!Number.isNaN(date.getTime())) {
+      found[definition.format] = date;
+    }
+  }
+
+  return found;
+}
+
 // Attributes every event made from a log line carries.
 export const SECURITY_LOG_SOURCE_ATTRIBUTE: string = "oneuptime.source";
 export const SECURITY_LOG_SOURCE_VALUE: string = "logs";

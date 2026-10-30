@@ -545,6 +545,321 @@ detection:
 `,
     },
 
+    {
+      id: "6520677f-9137-4245-a64f-de99b1de1f80",
+      title: "Risky sign-in to Microsoft Entra ID",
+      description:
+        "Microsoft Entra ID Protection rated a sign-in high risk: a leaked password, an anonymous address or a token used where it should not be.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Microsoft Entra ID sign-ins",
+      dataKind: DetectionRuleDataKind.EntraId,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Risky sign-in to Microsoft Entra ID
+id: 6520677f-9137-4245-a64f-de99b1de1f80
+description: Microsoft Entra ID Protection rated a sign-in high risk.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1078.004
+detection:
+  selection_during:
+    className: Authentication
+    riskLevelDuringSignIn: high
+  selection_aggregated:
+    className: Authentication
+    riskLevelAggregated: high
+  condition: 1 of selection_*
+`,
+    },
+    {
+      id: "bcb2b1ec-2c44-4ca3-b7b1-6a3d8ecb2ac9",
+      title: "Admin role assigned in Microsoft Entra ID",
+      description:
+        "Someone was made a member of a directory role. Expected when an administrator joins; worth a second look any other time.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Microsoft Entra ID audit logs",
+      dataKind: DetectionRuleDataKind.EntraId,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "targetUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Admin role assigned in Microsoft Entra ID
+id: bcb2b1ec-2c44-4ca3-b7b1-6a3d8ecb2ac9
+description: A user was added to a Microsoft Entra ID directory role.
+level: medium
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1098.003
+detection:
+  selection:
+    activityDisplayName:
+      - Add member to role
+      - Add eligible member to role
+  condition: selection
+`,
+    },
+    {
+      id: "2fce0248-3fca-4bd8-90bf-e3c6517a6236",
+      title: "App given consent in Microsoft Entra ID",
+      description:
+        "Someone consented to an application reading the organization's data. A consent phishing attack ends this way.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Microsoft Entra ID audit logs",
+      dataKind: DetectionRuleDataKind.EntraId,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: App given consent in Microsoft Entra ID
+id: 2fce0248-3fca-4bd8-90bf-e3c6517a6236
+description: A user or an administrator consented to an application.
+level: medium
+tags:
+  - attack.credential_access
+  - attack.t1528
+detection:
+  selection:
+    activityDisplayName: Consent to application
+  condition: selection
+`,
+    },
+    {
+      id: "12325932-bdc4-4ac0-b298-89bacf24e4a4",
+      title: "Credentials added to an app in Microsoft Entra ID",
+      description:
+        "A secret or certificate was added to an application or service principal: a way to keep access that outlives a password reset.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Microsoft Entra ID audit logs",
+      dataKind: DetectionRuleDataKind.EntraId,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "targetResource",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Credentials added to an app in Microsoft Entra ID
+id: 12325932-bdc4-4ac0-b298-89bacf24e4a4
+description: A secret or certificate was added to an application or service principal.
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1098.001
+detection:
+  selection:
+    activityDisplayName|contains:
+      - Add service principal credentials
+      - Certificates and secrets management
+  condition: selection
+`,
+    },
+    {
+      id: "65ae2039-ead2-466f-af67-bd67bcb85a95",
+      title: "Suspicious sign-in flagged by Google",
+      description:
+        "Google flagged a Google Workspace sign-in as suspicious, warned of a government-backed attack, or disabled an account it judged hijacked.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Google Workspace sign-ins",
+      dataKind: DetectionRuleDataKind.GoogleWorkspace,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Suspicious sign-in flagged by Google
+id: 65ae2039-ead2-466f-af67-bd67bcb85a95
+description: Google flagged a Google Workspace sign-in or account as compromised.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1078.004
+detection:
+  selection:
+    id.applicationName: login
+    event.name:
+      - suspicious_login
+      - suspicious_login_less_secure_app
+      - suspicious_programmatic_login
+      - gov_attack_warning
+      - account_disabled_hijacked
+      - account_disabled_password_leak
+  condition: selection
+`,
+    },
+    {
+      id: "9d46ee62-1005-412e-9041-4a67045449e6",
+      title: "Admin privileges granted in Google Workspace",
+      description:
+        "A Google Workspace user was made an administrator or given an admin role. Expected during onboarding; worth a second look any other time.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Google Workspace admin activity",
+      dataKind: DetectionRuleDataKind.GoogleWorkspace,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "targetUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Admin privileges granted in Google Workspace
+id: 9d46ee62-1005-412e-9041-4a67045449e6
+description: A Google Workspace user was given administrator privileges.
+level: high
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1098.003
+detection:
+  selection:
+    id.applicationName: admin
+    event.name:
+      - GRANT_ADMIN_PRIVILEGE
+      - ASSIGN_ROLE
+      - GRANT_DELEGATED_ADMIN_PRIVILEGES
+  condition: selection
+`,
+    },
+    {
+      id: "117c666a-49c3-452a-b222-4ba4706e06d1",
+      title: "2-Step Verification turned off in Google Workspace",
+      description:
+        "A Google Workspace account stopped using 2-Step Verification, by its owner or an administrator, leaving it one password away from being taken.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Google Workspace account and admin activity",
+      dataKind: DetectionRuleDataKind.GoogleWorkspace,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "targetUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: 2-Step Verification turned off in Google Workspace
+id: 117c666a-49c3-452a-b222-4ba4706e06d1
+description: A Google Workspace account stopped using 2-Step Verification.
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1556
+detection:
+  selection:
+    event.name:
+      - 2sv_disable
+      - TURN_OFF_2_STEP_VERIFICATION
+  condition: selection
+`,
+    },
+    {
+      id: "8ec42d8b-ddfc-4247-8288-1241c6b5e297",
+      title: "Domain-wide delegation granted in Google Workspace",
+      description:
+        "An app was given domain-wide delegation: it can now act as any user in the organization, within the scopes it was granted.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Google Workspace admin activity",
+      dataKind: DetectionRuleDataKind.GoogleWorkspace,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Domain-wide delegation granted in Google Workspace
+id: 8ec42d8b-ddfc-4247-8288-1241c6b5e297
+description: An app was given domain-wide delegation in Google Workspace.
+level: high
+tags:
+  - attack.persistence
+  - attack.t1671
+detection:
+  selection:
+    id.applicationName: admin
+    event.name: AUTHORIZE_API_CLIENT_ACCESS
+  condition: selection
+`,
+    },
+    {
+      id: "5968082b-ec2d-4c85-9788-d019b1cde11a",
+      title: "Member added to a Windows administrators group",
+      description:
+        "Someone was added to Administrators, Domain Admins or another group that runs Windows machines or the domain.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Windows Security log",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "targetUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Member added to a Windows administrators group
+id: 5968082b-ec2d-4c85-9788-d019b1cde11a
+description: A member was added to a privileged Windows or Active Directory group.
+level: high
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1098
+detection:
+  selection:
+    EventID:
+      - 4728
+      - 4732
+      - 4756
+    TargetUserName:
+      - Administrators
+      - Domain Admins
+      - Enterprise Admins
+      - Schema Admins
+      - Account Operators
+      - Backup Operators
+      - Server Operators
+      - DnsAdmins
+      - Group Policy Creator Owners
+  condition: selection
+`,
+    },
+    {
+      id: "62ad4fdd-7d48-4374-97ea-da0fee709161",
+      title: "Windows account locked out",
+      description:
+        "Windows locked an account after too many failed sign-ins: someone guessing its password, or a forgotten one still in use.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Windows Security log",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "targetUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Windows account locked out
+id: 62ad4fdd-7d48-4374-97ea-da0fee709161
+description: An account was locked after too many failed sign-ins.
+level: medium
+tags:
+  - attack.credential_access
+  - attack.t1110
+detection:
+  selection:
+    EventID: 4740
+  condition: selection
+`,
+    },
+    {
+      id: "4b0f1c6b-3ac8-4963-8fa4-802cdbf2a956",
+      title: "Remote Desktop sign-in from the internet",
+      description:
+        "Someone signed in to a Windows machine over Remote Desktop from a public address: a machine open to the internet, or a stolen password used from outside.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Windows Security log",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Remote Desktop sign-in from the internet
+id: 4b0f1c6b-3ac8-4963-8fa4-802cdbf2a956
+description: A successful Remote Desktop sign-in from a public address.
+level: medium
+tags:
+  - attack.initial_access
+  - attack.t1133
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 10
+  filter_private:
+    principalIp|cidr:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 100.64.0.0/10
+      - 169.254.0.0/16
+      - fc00::/7
+      - fe80::/10
+  filter_none:
+    principalIp: ''
+  condition: selection and not filter_private and not filter_none
+`,
+    },
+
     // Endpoint
     {
       id: "50e60fa4-eddb-4138-b68b-1f928a8f1f10",
@@ -1015,6 +1330,163 @@ detection:
 `,
     },
 
+    {
+      id: "4ebb2d0b-0d0c-4942-a9b5-d5f49a8792f1",
+      title: "Windows event log cleared",
+      description:
+        "The Security or System log of a Windows machine was cleared: the record of what happened on it is gone.",
+      category: DetectionRuleLibraryCategory.Endpoint,
+      dataSource: "Windows Security and System logs",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 1,
+      groupByField: "principalHost",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Windows event log cleared
+id: 4ebb2d0b-0d0c-4942-a9b5-d5f49a8792f1
+description: The Security or System event log was cleared.
+level: high
+tags:
+  - attack.stealth
+  - attack.t1070.001
+detection:
+  selection:
+    Provider_Name: Microsoft-Windows-Eventlog
+    EventID:
+      - 1102
+      - 104
+  condition: selection
+`,
+    },
+    {
+      id: "57eeee36-6dea-4aa0-b2cc-c008d1471170",
+      title: "Service installed that runs a command or a script",
+      description:
+        "A new Windows service runs a command interpreter, PowerShell, a script host or a file from a user's AppData folder: how PsExec-style tools and much malware start on a machine.",
+      category: DetectionRuleLibraryCategory.Endpoint,
+      dataSource: "Windows Security and System logs",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalHost",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Service installed that runs a command or a script
+id: 57eeee36-6dea-4aa0-b2cc-c008d1471170
+description: A new Windows service runs a command interpreter, PowerShell or a script host.
+level: high
+tags:
+  - attack.persistence
+  - attack.t1543.003
+  - attack.execution
+  - attack.t1569.002
+detection:
+  selection_event:
+    EventID:
+      - 7045
+      - 4697
+  selection_command:
+    CommandLine|contains:
+      - '%COMSPEC%'
+      - 'cmd.exe /c'
+      - 'cmd /c'
+      - powershell
+      - pwsh
+      - mshta
+      - rundll32
+      - regsvr32
+      - AppData
+  condition: selection_event and selection_command
+`,
+    },
+    {
+      id: "21d2996d-991f-4b0e-8c5e-7a702cfcdb22",
+      title: "LSASS memory read by another process",
+      description:
+        "A process opened LSASS, where Windows keeps sign-in credentials, with the access a credential dumper needs.",
+      category: DetectionRuleLibraryCategory.Endpoint,
+      dataSource: "Sysmon process access events",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 1,
+      groupByField: "principalHost",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: LSASS memory read by another process
+id: 21d2996d-991f-4b0e-8c5e-7a702cfcdb22
+description: A process opened LSASS with the access a credential dumper needs.
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1003.001
+detection:
+  selection:
+    Provider_Name: Microsoft-Windows-Sysmon
+    EventID: 10
+    TargetImage|endswith: lsass.exe
+    GrantedAccess|contains:
+      - '0x1010'
+      - '0x1410'
+      - '0x1438'
+      - '0x143a'
+      - '0x1fffff'
+  condition: selection
+`,
+    },
+    {
+      id: "cd308b82-2c9e-4f9c-b471-64b17691c323",
+      title: "Microsoft Defender found malware",
+      description:
+        "Microsoft Defender Antivirus found malware on a Windows machine, or found it and could not remove it.",
+      category: DetectionRuleLibraryCategory.Endpoint,
+      dataSource: "Microsoft Defender Antivirus log",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 1,
+      groupByField: "principalHost",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Microsoft Defender found malware
+id: cd308b82-2c9e-4f9c-b471-64b17691c323
+description: Microsoft Defender Antivirus found malware, or could not remove it.
+level: high
+tags:
+  - attack.execution
+  - attack.t1204.002
+detection:
+  selection:
+    Provider_Name: Microsoft-Windows-Windows Defender
+    EventID:
+      - 1006
+      - 1116
+      - 1008
+      - 1118
+      - 1119
+  condition: selection
+`,
+    },
+    {
+      id: "245f9cf4-f26c-4ce0-a471-b1b386229ebe",
+      title: "Microsoft Defender protection turned off",
+      description:
+        "Real-time protection, or scanning for viruses or spyware, was turned off in Microsoft Defender Antivirus - often the step before malware runs.",
+      category: DetectionRuleLibraryCategory.Endpoint,
+      dataSource: "Microsoft Defender Antivirus log",
+      dataKind: DetectionRuleDataKind.WindowsEvents,
+      evaluationIntervalInMinutes: 1,
+      groupByField: "principalHost",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Microsoft Defender protection turned off
+id: 245f9cf4-f26c-4ce0-a471-b1b386229ebe
+description: Microsoft Defender Antivirus real-time protection or scanning was turned off.
+level: high
+tags:
+  - attack.defense_impairment
+  - attack.t1685
+detection:
+  selection:
+    Provider_Name: Microsoft-Windows-Windows Defender
+    EventID:
+      - 5001
+      - 5010
+      - 5012
+  condition: selection
+`,
+    },
+
     // Cloud
     {
       id: "e431079d-c7d4-4ae3-9bfc-b6407f2697b8",
@@ -1204,6 +1676,109 @@ detection:
   selection:
     productName: AWS CloudTrail
     statusName: Success
+  condition: selection
+`,
+    },
+
+    {
+      id: "5dcbc2ba-eb97-4180-8bf3-38012dba4d45",
+      title: "Service account key created in Google Cloud",
+      description:
+        "A key was made for a Google Cloud service account: a credential that works from anywhere until someone deletes it.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "Google Cloud audit logs",
+      dataKind: DetectionRuleDataKind.GoogleCloudAuditLogs,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Service account key created in Google Cloud
+id: 5dcbc2ba-eb97-4180-8bf3-38012dba4d45
+description: A key was created for a Google Cloud service account.
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1098.001
+detection:
+  selection:
+    protoPayload.methodName|endswith: CreateServiceAccountKey
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "7949172c-ca9f-4b76-9e55-1671bbf396d0",
+      title: "Google Cloud audit logs re-routed or deleted",
+      description:
+        "A log sink was changed or deleted, an exclusion added or a log deleted in Google Cloud: audit logs may no longer reach where they are kept.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "Google Cloud audit logs",
+      dataKind: DetectionRuleDataKind.GoogleCloudAuditLogs,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Google Cloud audit logs re-routed or deleted
+id: 7949172c-ca9f-4b76-9e55-1671bbf396d0
+description: A log sink, an exclusion or a log was changed or deleted in Google Cloud.
+level: high
+tags:
+  - attack.defense_impairment
+  - attack.t1685
+detection:
+  selection:
+    protoPayload.methodName|contains:
+      - ConfigServiceV2.DeleteSink
+      - ConfigServiceV2.UpdateSink
+      - ConfigServiceV2.CreateExclusion
+      - LoggingServiceV2.DeleteLog
+  condition: selection
+`,
+    },
+    {
+      id: "35ab59f2-2747-45d8-afc1-071b81de4c98",
+      title: "Role assignment created in Azure",
+      description:
+        "Someone was given a role on an Azure subscription, resource group or resource. Expected for new access; worth a second look any other time.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "Azure Activity Log",
+      dataKind: DetectionRuleDataKind.AzureActivityLog,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Role assignment created in Azure
+id: 35ab59f2-2747-45d8-afc1-071b81de4c98
+description: A role assignment was created in an Azure subscription.
+level: medium
+tags:
+  - attack.privilege_escalation
+  - attack.t1098.003
+detection:
+  selection:
+    activityName|contains: roleAssignments/write
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "4e89bd36-5acc-453b-b4be-ce3980d532a5",
+      title: "Azure diagnostic setting deleted",
+      description:
+        "A diagnostic setting was deleted in Azure: the logs it sent to your SIEM or storage stop arriving.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "Azure Activity Log",
+      dataKind: DetectionRuleDataKind.AzureActivityLog,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Azure diagnostic setting deleted
+id: 4e89bd36-5acc-453b-b4be-ce3980d532a5
+description: A diagnostic setting was deleted in Azure.
+level: high
+tags:
+  - attack.defense_impairment
+  - attack.t1685
+detection:
+  selection:
+    activityName|contains: diagnosticSettings/delete
   condition: selection
 `,
     },

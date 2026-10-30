@@ -485,8 +485,8 @@ function auditPolicyChanged(event: WindowsEvent): WindowsEventReading {
     principalUser: isMachineAccount(subject) ? "" : subject,
     principalHost: event.computer,
     targetResource: event.firstField(["SubcategoryGuid", "CategoryId"]),
-    mitreTactics: ["TA0005"],
-    mitreTechniques: ["T1562.002"],
+    mitreTactics: ["TA0112"],
+    mitreTechniques: ["T1685"],
   };
 }
 
@@ -950,8 +950,8 @@ function defenderProtection(what: string): EventReader {
       message: `Microsoft Defender ${what} on ${event.computer || "Windows"}`,
       ruleName: `Microsoft Defender ${what}`,
       principalHost: event.computer,
-      mitreTactics: ["TA0005"],
-      mitreTechniques: ["T1562.001"],
+      mitreTactics: ["TA0112"],
+      mitreTechniques: ["T1685"],
     };
   };
 }

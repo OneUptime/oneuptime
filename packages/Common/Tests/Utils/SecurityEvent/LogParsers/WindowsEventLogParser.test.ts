@@ -599,7 +599,7 @@ describe("WindowsEventLogParser - services, tasks, policy and logs", () => {
 
     expect(event.className).toBe("Event Log Activity");
     expect(event.severityName).toBe("Medium");
-    expect(event.mitreTechniques).toEqual(["T1562.002"]);
+    expect(event.mitreTechniques).toEqual(["T1685"]);
   });
 
   const AUDIT_LOG_CLEARED: WindowsEventSpec = windowsEvent(
@@ -890,7 +890,7 @@ describe("WindowsEventLogParser - Microsoft Defender", () => {
 
     expect(event.severityName).toBe("High");
     expect(event.message).toBe(`Microsoft Defender ${what} on WIN-01.corp.example`);
-    expect(event.mitreTechniques).toEqual(["T1562.001"]);
+    expect(event.mitreTechniques).toEqual(["T1685"]);
   });
 
   test("its configuration changed (5007) is a Medium finding naming the change", () => {

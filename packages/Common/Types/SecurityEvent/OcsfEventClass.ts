@@ -173,6 +173,12 @@ export const OcsfEventClasses: Array<OcsfEventClassProps> = [
     name: "API Activity",
     category: OcsfCategory.ApplicationActivity,
   },
+  // A file shared or downloaded in a file hosting service, such as Google Drive.
+  {
+    uid: 6006,
+    name: "File Hosting Activity",
+    category: OcsfCategory.ApplicationActivity,
+  },
 
   // Windows extension.
   {

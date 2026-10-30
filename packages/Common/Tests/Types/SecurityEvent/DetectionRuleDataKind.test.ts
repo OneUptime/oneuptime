@@ -254,6 +254,31 @@ describe("each library rule names the kind of event its Sigma reads", () => {
           expect(readsField(entry, "eventType")).toBe(true);
           expect(entry.dataSource).toBe("Okta System Log");
           break;
+        case DetectionRuleDataKind.EntraId:
+          // Entra ID's own fields, which only its sign-ins and audit logs carry.
+          expect(
+            readsField(entry, "riskLevelDuringSignIn") ||
+              readsField(entry, "riskLevelAggregated") ||
+              readsField(entry, "activityDisplayName"),
+          ).toBe(true);
+          expect(entry.dataSource.startsWith("Microsoft Entra ID")).toBe(true);
+          break;
+        case DetectionRuleDataKind.GoogleWorkspace:
+          // The Reports API's event names, which only Workspace's activities carry.
+          expect(readsField(entry, "event.name")).toBe(true);
+          expect(entry.dataSource.startsWith("Google Workspace")).toBe(true);
+          break;
+        case DetectionRuleDataKind.WindowsEvents:
+          // Windows' own event ids, kept under Windows' name for them.
+          expect(readsField(entry, "EventID")).toBe(true);
+          break;
+        case DetectionRuleDataKind.GoogleCloudAuditLogs:
+          expect(readsField(entry, "protoPayload.methodName")).toBe(true);
+          break;
+        case DetectionRuleDataKind.AzureActivityLog:
+          // An Azure operation's name, as the Activity Log writes it.
+          expect(readsField(entry, "activityName")).toBe(true);
+          break;
         case DetectionRuleDataKind.ProcessEvents:
           expect(readsField(entry, "CommandLine")).toBe(true);
           break;
@@ -442,8 +467,17 @@ describe("whether a project sends a kind", () => {
           },
         );
 
-      // SSH sign-ins come by their class (Authentication), the rest by product.
-      if (format.format === SecurityLogFormat.SshSignIn) {
+      /*
+       * SSH sign-ins come by their class (Authentication), and so do a
+       * security product's CEF and LEEF records (Authentication, Network
+       * Activity, Detection Finding), which carry the product's own name;
+       * the rest by product.
+       */
+      if (
+        format.format === SecurityLogFormat.SshSignIn ||
+        format.format === SecurityLogFormat.Cef ||
+        format.format === SecurityLogFormat.Leef
+      ) {
         continue;
       }
 
