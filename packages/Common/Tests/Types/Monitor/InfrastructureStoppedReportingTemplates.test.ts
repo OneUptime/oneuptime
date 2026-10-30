@@ -297,7 +297,7 @@ function buildResponse(
     startAndEndDate: {
       startValue: new Date(WINDOW_END_MS - WINDOW_MS),
       endValue: new Date(WINDOW_END_MS),
-    } as MetricMonitorResponse["startAndEndDate"],
+    } as NonNullable<MetricMonitorResponse["startAndEndDate"]>,
     metricResult: viewConfig.queryConfigs.map(
       (_query: MetricQueryConfigData): AggregatedResult => {
         return {

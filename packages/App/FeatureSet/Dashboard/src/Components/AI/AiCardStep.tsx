@@ -55,7 +55,7 @@ export interface ComponentProps {
    * the keyboard's place there when a control it pressed is gone, such as
    * Try again once a fix started.
    */
-  headingRef?: React.RefObject<HTMLHeadingElement | null> | undefined;
+  headingRef?: React.RefObject<HTMLHeadingElement> | undefined;
   children?: ReactNode | undefined;
 }
 

@@ -75,7 +75,7 @@ export function buildMetricResponse(data: {
     startAndEndDate: {
       startValue: new Date(WINDOW_END_MS - data.windowMinutes * 60000),
       endValue: new Date(WINDOW_END_MS),
-    } as MetricMonitorResponse["startAndEndDate"],
+    } as NonNullable<MetricMonitorResponse["startAndEndDate"]>,
     metricResult: results,
   };
 }
