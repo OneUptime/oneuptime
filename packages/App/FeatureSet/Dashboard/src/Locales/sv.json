@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "Det här projektet åtgärdar nya incidenter och larm automatiskt.",
   "This project fixes new incidents automatically, but not new alerts.": "Det här projektet åtgärdar nya incidenter automatiskt, men inte nya larm.",
   "Turn on for alerts": "Slå på för larm",
-  "Turn on for incidents": "Slå på för incidenter"
+  "Turn on for incidents": "Slå på för incidenter",
+  "Every operation, including database calls and internal steps.": "Varje operation, inklusive databasanrop och interna steg.",
+  "Where a request or message enters a service.": "Där en förfrågan eller ett meddelande kommer in i en tjänst.",
+  "Where a trace starts.": "Där ett spår börjar."
 }

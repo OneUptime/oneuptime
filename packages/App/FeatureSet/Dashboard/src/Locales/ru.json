@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "Этот проект автоматически исправляет новые инциденты и оповещения.",
   "This project fixes new incidents automatically, but not new alerts.": "Этот проект автоматически исправляет новые инциденты, но не новые оповещения.",
   "Turn on for alerts": "Включить для оповещений",
-  "Turn on for incidents": "Включить для инцидентов"
+  "Turn on for incidents": "Включить для инцидентов",
+  "Every operation, including database calls and internal steps.": "Каждая операция, включая обращения к базе данных и внутренние шаги.",
+  "Where a request or message enters a service.": "Где запрос или сообщение входит в сервис.",
+  "Where a trace starts.": "Где начинается трассировка."
 }

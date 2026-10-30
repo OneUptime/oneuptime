@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "Dit project herstelt nieuwe incidenten en waarschuwingen automatisch.",
   "This project fixes new incidents automatically, but not new alerts.": "Dit project herstelt nieuwe incidenten automatisch, maar geen nieuwe waarschuwingen.",
   "Turn on for alerts": "Inschakelen voor waarschuwingen",
-  "Turn on for incidents": "Inschakelen voor incidenten"
+  "Turn on for incidents": "Inschakelen voor incidenten",
+  "Every operation, including database calls and internal steps.": "Elke bewerking, inclusief databaseaanroepen en interne stappen.",
+  "Where a request or message enters a service.": "Waar een verzoek of bericht een service binnenkomt.",
+  "Where a trace starts.": "Waar een trace begint."
 }

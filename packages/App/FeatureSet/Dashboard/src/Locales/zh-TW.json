@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "此專案會自動修正新事件與新警示。",
   "This project fixes new incidents automatically, but not new alerts.": "此專案會自動修正新事件，但不會修正新警示。",
   "Turn on for alerts": "為警示開啟",
-  "Turn on for incidents": "為事件開啟"
+  "Turn on for incidents": "為事件開啟",
+  "Every operation, including database calls and internal steps.": "每一項操作，包括資料庫呼叫和內部步驟。",
+  "Where a request or message enters a service.": "請求或訊息進入某個服務的 span。",
+  "Where a trace starts.": "追蹤開始的 span。"
 }

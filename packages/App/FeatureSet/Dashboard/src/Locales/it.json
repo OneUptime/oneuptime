@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "Questo progetto corregge automaticamente i nuovi incidenti e i nuovi avvisi.",
   "This project fixes new incidents automatically, but not new alerts.": "Questo progetto corregge automaticamente i nuovi incidenti, ma non i nuovi avvisi.",
   "Turn on for alerts": "Attiva per gli avvisi",
-  "Turn on for incidents": "Attiva per gli incidenti"
+  "Turn on for incidents": "Attiva per gli incidenti",
+  "Every operation, including database calls and internal steps.": "Ogni operazione, comprese le chiamate al database e i passaggi interni.",
+  "Where a request or message enters a service.": "Dove una richiesta o un messaggio entra in un servizio.",
+  "Where a trace starts.": "Dove inizia una traccia."
 }

@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "این پروژه حوادث و هشدارهای تازه را خودکار اصلاح می‌کند.",
   "This project fixes new incidents automatically, but not new alerts.": "این پروژه حوادث تازه را خودکار اصلاح می‌کند، اما هشدارهای تازه را نه.",
   "Turn on for alerts": "روشن کردن برای هشدارها",
-  "Turn on for incidents": "روشن کردن برای حوادث"
+  "Turn on for incidents": "روشن کردن برای حوادث",
+  "Every operation, including database calls and internal steps.": "هر عملیات، از جمله فراخوانی‌های پایگاه داده و گام‌های داخلی.",
+  "Where a request or message enters a service.": "جایی که یک درخواست یا پیام وارد یک سرویس می‌شود.",
+  "Where a trace starts.": "جایی که یک ترِیس آغاز می‌شود."
 }

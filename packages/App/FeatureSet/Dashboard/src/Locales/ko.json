@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "이 프로젝트는 새 인시던트와 경고를 자동으로 수정합니다.",
   "This project fixes new incidents automatically, but not new alerts.": "이 프로젝트는 새 인시던트는 자동으로 수정하지만 새 경고는 수정하지 않습니다.",
   "Turn on for alerts": "경고에 대해 켜기",
-  "Turn on for incidents": "인시던트에 대해 켜기"
+  "Turn on for incidents": "인시던트에 대해 켜기",
+  "Every operation, including database calls and internal steps.": "데이터베이스 호출과 내부 단계를 포함한 모든 작업입니다.",
+  "Where a request or message enters a service.": "요청이나 메시지가 서비스로 들어오는 스팬입니다.",
+  "Where a trace starts.": "트레이스가 시작되는 스팬입니다."
 }

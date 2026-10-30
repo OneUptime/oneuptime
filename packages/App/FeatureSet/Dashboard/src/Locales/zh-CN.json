@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "此项目会自动修复新事件和新警报。",
   "This project fixes new incidents automatically, but not new alerts.": "此项目会自动修复新事件，但不会修复新警报。",
   "Turn on for alerts": "为警报开启",
-  "Turn on for incidents": "为事件开启"
+  "Turn on for incidents": "为事件开启",
+  "Every operation, including database calls and internal steps.": "每一项操作，包括数据库调用和内部步骤。",
+  "Where a request or message enters a service.": "请求或消息进入某个服务的 span。",
+  "Where a trace starts.": "追踪开始的 span。"
 }

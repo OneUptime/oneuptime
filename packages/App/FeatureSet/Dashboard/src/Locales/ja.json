@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "このプロジェクトは、新しいインシデントとアラートを自動的に修正します。",
   "This project fixes new incidents automatically, but not new alerts.": "このプロジェクトは、新しいインシデントを自動的に修正しますが、新しいアラートは修正しません。",
   "Turn on for alerts": "アラート用にオンにする",
-  "Turn on for incidents": "インシデント用にオンにする"
+  "Turn on for incidents": "インシデント用にオンにする",
+  "Every operation, including database calls and internal steps.": "データベース呼び出しや内部ステップを含む、すべての操作。",
+  "Where a request or message enters a service.": "リクエストやメッセージがサービスに入るスパン。",
+  "Where a trace starts.": "トレースが始まるスパン。"
 }

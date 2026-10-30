@@ -37233,5 +37233,8 @@
   "This project fixes new incidents and alerts automatically.": "This project fixes new incidents and alerts automatically.",
   "This project fixes new incidents automatically, but not new alerts.": "This project fixes new incidents automatically, but not new alerts.",
   "Turn on for alerts": "Turn on for alerts",
-  "Turn on for incidents": "Turn on for incidents"
+  "Turn on for incidents": "Turn on for incidents",
+  "Every operation, including database calls and internal steps.": "Every operation, including database calls and internal steps.",
+  "Where a request or message enters a service.": "Where a request or message enters a service.",
+  "Where a trace starts.": "Where a trace starts."
 }
