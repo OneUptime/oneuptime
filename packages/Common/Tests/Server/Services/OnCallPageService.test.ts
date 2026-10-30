@@ -1883,6 +1883,137 @@ describe("OnCallPageService.page", () => {
     });
   });
 
+  /*
+   * A page about an incident or an alert that is there already - from its
+   * own Slack or Teams channel - carries what the person who paged wrote:
+   * the page's message, kept on each run it starts (pageMessage), where the
+   * run's chat message quotes it and the people paged read it.
+   */
+  describe("the page's own message, for a record that is already there", () => {
+    test("goes with the people's direct page, on one line", async () => {
+      await page({
+        targets: { userIds: [JANE] },
+        about: {
+          incidentId: INCIDENT,
+          message: "  Can you check\nthe   database? ",
+        },
+      });
+
+      expect(directPageAsked().pageMessage).toBe(
+        "Can you check the database?",
+      );
+      expect(alertCreate).not.toHaveBeenCalled();
+    });
+
+    test("about an alert too", async () => {
+      await page({
+        targets: { userIds: [JANE] },
+        about: { alertId: ALERT, message: "Disk is at 98%" },
+      });
+
+      expect(directPageAsked().pageMessage).toBe("Disk is at 98%");
+      expect(directPageAsked().triggeredByAlertId!.toString()).toBe(
+        ALERT.toString(),
+      );
+    });
+
+    test("no message, or only white space: none is kept", async () => {
+      await page({
+        targets: { userIds: [JANE] },
+        about: { incidentId: INCIDENT, message: " \n " },
+      });
+
+      expect("pageMessage" in directPageAsked()).toBe(false);
+    });
+
+    test("a policy the page starts keeps it too, written as OneUptime once the caller's run is made", async () => {
+      const policyRunId: ObjectID = ObjectID.generate();
+
+      policyStart.mockImplementation(
+        async (createBy: {
+          data: OnCallDutyPolicyExecutionLog;
+        }): Promise<OnCallDutyPolicyExecutionLog> => {
+          createBy.data.id = policyRunId;
+          return createBy.data;
+        },
+      );
+
+      const written: SpyInstance<
+        typeof OnCallDutyPolicyExecutionLogService.updateOneById
+      > = jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      await page({
+        targets: { onCallDutyPolicyIds: [POLICY_CRITICAL] },
+        about: { incidentId: INCIDENT, message: "Checkout is down again" },
+      });
+
+      // Created as the caller, without the column no caller may write...
+      expect(policyStart.mock.calls[0]![0].data.pageMessage).toBeUndefined();
+      // ... and the message written as OneUptime.
+      expect(written).toHaveBeenCalledWith({
+        id: policyRunId,
+        data: { pageMessage: "Checkout is down again" },
+        props: { isRoot: true },
+      });
+    });
+
+    test("a message that cannot be written never stops the policy", async () => {
+      policyStart.mockImplementation(
+        async (createBy: {
+          data: OnCallDutyPolicyExecutionLog;
+        }): Promise<OnCallDutyPolicyExecutionLog> => {
+          createBy.data.id = ObjectID.generate();
+          return createBy.data;
+        },
+      );
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
+        .mockRejectedValue(new Error("Database is busy"));
+
+      const result: OnCallPageResult = await page({
+        targets: { onCallDutyPolicyIds: [POLICY_CRITICAL] },
+        about: { incidentId: INCIDENT, message: "Checkout is down again" },
+      });
+
+      expect(result.startedPolicies).toEqual([
+        { onCallDutyPolicyId: POLICY_CRITICAL, name: "Critical" },
+      ]);
+      expect(result.notPaged).toEqual([]);
+    });
+
+    test("a page about something new says it in its alert's title: a message beside it is refused before anything is read", async () => {
+      const error: Error = await refusalOf(
+        page({
+          targets: { userIds: [JANE] },
+          about: {
+            newAlert: { title: "Checkout is down" },
+            message: "and the database too",
+          },
+        }),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(
+        "A page about something new says what it is about in its alert's title. Leave the message out.",
+      );
+      expect(tablesRead()).toBe(0);
+      nothingWasStarted();
+    });
+
+    test("a page about something new with an empty message beside it is a page", async () => {
+      const result: OnCallPageResult = await page({
+        targets: { userIds: [JANE] },
+        about: { newAlert: { title: "Checkout is down" }, message: "  " },
+      });
+
+      expect(result.record.isNew).toBe(true);
+      // The new alert's title is the message: the run carries none of its own.
+      expect("pageMessage" in directPageAsked()).toBe(false);
+    });
+  });
+
   describe("the direct page", () => {
     test("names who started it from the caller: a workflow's step", async () => {
       await page({ targets: { userIds: [JANE] }, props: workflowStep() });
