@@ -47,6 +47,8 @@ export interface StateSpec {
 export interface SeveritySpec {
   name: string;
   order: number;
+  // Its ID, when a test needs to know it; otherwise one is made up.
+  id?: string | undefined;
 }
 
 export interface FakeCall {
@@ -327,7 +329,7 @@ export const makeFakeProject: MakeFakeProjectFunction = (data: {
       ? DEFAULT_INCIDENT_SEVERITIES
       : DEFAULT_ALERT_SEVERITIES)) {
     const row: BaseModel = new spec.severity();
-    row.id = new ObjectID(nextId());
+    row.id = new ObjectID(severity.id || nextId());
     row.setColumnValue("name", severity.name);
     row.setColumnValue("order", severity.order);
     row.setColumnValue("projectId", PROJECT_ID);

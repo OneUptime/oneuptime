@@ -38,7 +38,7 @@ import {
   buildGraphForTemplate,
 } from "../../../Types/Workflow/Templates";
 import { getTemplateGraphBeforeSimplifying } from "./TemplateGraphsBeforeSimplifying";
-import TemplateWorld from "./TemplateWorld";
+import TemplateWorld, { TemplateWorldOptions } from "./TemplateWorld";
 import {
   FakeHttpFunction,
   SimulationTrace,
@@ -57,8 +57,10 @@ export interface EquivalenceScenario {
   variables?: Dictionary<string> | undefined;
   // The project as it is before the event, made the same way for both runs.
   setUp?: ((world: TemplateWorld) => void) | undefined;
+  // Made the same way for both runs: the project's states and severities.
+  world?: TemplateWorldOptions | undefined;
   // What the trigger hands over, read from the project as it stands.
-  trigger: (world: TemplateWorld) => JSONObject;
+  trigger: (world: TemplateWorld) => JSONObject | Promise<JSONObject>;
   // The other tool, made afresh for each run.
   tool?: (() => OtherTool) | undefined;
   // Who was picked to page, by the Page step's id: in the wizard now, in the Builder before.
@@ -190,7 +192,7 @@ const runOne: RunOneFunction = async (data: {
   trace: SimulationTrace;
   world: TemplateWorld;
 }> => {
-  const world: TemplateWorld = new TemplateWorld();
+  const world: TemplateWorld = new TemplateWorld(data.scenario.world);
 
   if (data.scenario.setUp) {
     data.scenario.setUp(world);
@@ -243,7 +245,7 @@ const runOne: RunOneFunction = async (data: {
   try {
     trace = await runTemplate({
       templateId: data.scenario.templateId,
-      trigger: data.scenario.trigger(world),
+      trigger: await data.scenario.trigger(world),
       variables: data.scenario.variables || {},
       ...(tool ? { http: tool.http } : {}),
       graph: data.graph,

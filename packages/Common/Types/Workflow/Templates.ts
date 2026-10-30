@@ -35,7 +35,7 @@ import {
   PageAbout,
 } from "./Components/OnCallPageSettings";
 import { SWITCH_DEFAULT_PORT_ID } from "./Components/Switch";
-import { HuntressTriggerEvent, HuntressTriggerValue } from "./HuntressTrigger";
+import { HuntressTriggerValue } from "./HuntressTrigger";
 import { PageStepTarget, getPageStepTarget } from "./Components/OnCall";
 import ObjectID from "../ObjectID";
 import {
@@ -52,7 +52,11 @@ import {
   ZABBIX_UPDATE_ARGUMENT_IDS,
   ZabbixProblemUpdate,
 } from "./Components/Zabbix";
-import { TemplateColumn, layOutTemplateColumn } from "./TemplateLayout";
+import {
+  TemplateColumn,
+  TemplateColumnStep,
+  layOutTemplateColumn,
+} from "./TemplateLayout";
 import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
@@ -7053,10 +7057,10 @@ export interface HuntressIncidentWorkflowOptions {
   triggerSettings?: JSONObject | undefined;
   /*
    * Whether a report pages anyone. The template pages the on-call policy
-   * picked in the Builder; a connection that paged nobody did not.
+   * picked in the create wizard; a connection that paged nobody did not.
    */
   pages: boolean;
-  // The on-call policies paged. None in the template: picked in the Builder.
+  // The on-call policies paged. None in the template: picked in the create wizard.
   onCallPolicyIds?: Array<string> | undefined;
   // The lowest Huntress severity that pages.
   pageOnCallFor: HuntressSeverity;
@@ -7080,8 +7084,6 @@ const huntressValue: HuntressValueReferenceFunction = (
 ): string => {
   return `{{local.components.${HUNTRESS_TRIGGER_COMPONENT_ID}.returnValues.${id}}}`;
 };
-
-const HUNTRESS_REPORT: string = `Huntress incident report ${huntressValue(HuntressTriggerValue.ReportId)}`;
 
 /*
  * The If / Else in front of the Page step: which reports page. None when
@@ -7113,566 +7115,100 @@ const huntressPageCondition: HuntressPageConditionFunction = (
   };
 };
 
-// What a Find One Incident step asks for, to name the incident and tell whether it is resolved.
-const HUNTRESS_FIND_INCIDENT_SELECT: JSONObject = {
-  _id: true,
-  incidentNumberWithPrefix: true,
-  currentIncidentState: { name: true, order: true, isResolvedState: true },
-};
-
-/*
- * Whether Huntress closing a report resolves its incident, and into which
- * state, by the one rule OneUptime resolves by (Utils/ResolvedState): the
- * project's resolved state is the first one from the top flagged resolved,
- * and an incident at it or past it - a "Closed" of the project's own, say -
- * is resolved already. An incident never moves back. All it reads is
- * OneUptime's own: the incident and the project's states.
- */
-const HUNTRESS_DECIDE_RESOLVE_SCRIPT: string = String.raw`// Whether to resolve the incident Huntress closed the report of, and into which state.
-// The project's resolved state is the first one from the top flagged resolved. An
-// incident at it or past it ("Closed", say) is resolved already: it never moves back.
-
-// Another step's output quoted into the arguments arrives as JSON text.
-const readJson = (value) => {
-  if (typeof value !== 'string') return value === undefined ? null : value;
-  try { return JSON.parse(value); } catch (error) { return null; }
-};
-// OneUptime ids are serialized as { _type, value }.
-const idOf = (value) => (value && typeof value === 'object' ? String(value.value || '') : String(value || ''));
-
-const incident = readJson(args.incident) || {};
-const list = readJson(args.states);
-const states = Array.isArray(list) ? list.filter((state) => state && typeof state === 'object') : [];
-const resolved = states
-  .slice()
-  .sort((a, b) => Number(a.order) - Number(b.order))
-  .find((state) => state.isResolvedState === true);
-
-if (!resolved) {
-  throw new Error('This project has no resolved incident state.');
-}
-
-const current = incident.currentIncidentState || {};
-const isResolved = current.isResolvedState === true || Number(current.order) >= Number(resolved.order);
-
-return { proceed: !isResolved, stateId: idOf(resolved._id) };
-`;
-
-type HuntressFindIncidentArgsFunction = () => JSONObject;
-
-const huntressFindIncidentArgs: HuntressFindIncidentArgsFunction =
-  (): JSONObject => {
-    return {
-      query: {
-        customFields: {
-          [HUNTRESS_REPORT_ID_CUSTOM_FIELD]: huntressValue(
-            HuntressTriggerValue.ReportId,
-          ),
-        },
-      },
-      select: HUNTRESS_FIND_INCIDENT_SELECT,
-    };
-  };
-
-// Whether a Find One found its record: its model is null when nothing matched.
-type HuntressFoundConditionFunction = (findComponentId: string) => JSONObject;
-
-const huntressFoundCondition: HuntressFoundConditionFunction = (
-  findComponentId: string,
-): JSONObject => {
-  return {
-    "input-1-type": ConditionValueType.Text,
-    "input-1": `{{local.components.${findComponentId}.returnValues.model}}`,
-    operator: ConditionOperator.IsNotEmpty,
-  };
-};
-
 type HuntressIncidentWorkflowGraphSpecFunction = (
   options: HuntressIncidentWorkflowOptions,
 ) => TemplateGraphSpec;
 
 /*
  * The graph of a Huntress workflow: the template's, or a connection's when
- * its settings are passed in. Laid out in three columns under the Switch /
- * Case - created, comment-added, closed - with each step's failure beside it.
+ * its settings are passed in. One column, top to bottom: the Huntress
+ * trigger; Incident From Another Tool, which keeps one incident per report
+ * by its number (opens it for a new report, notes a comment, resolves it -
+ * or only notes it - when Huntress closes the report); and, for a new
+ * report that pages, an If / Else on its severity and the Page step. The
+ * Huntress trigger's own words name what happened (created, comment-added,
+ * closed), and the step reads them as they are.
  */
 export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraphSpecFunction =
   (options: HuntressIncidentWorkflowOptions): TemplateGraphSpec => {
-    const nodes: Array<TemplateNodeSpec> = [];
-    const edges: Array<TemplateEdgeSpec> = [];
-
-    type AddNodeFunction = (node: TemplateNodeSpec) => void;
-
-    const addNode: AddNodeFunction = (node: TemplateNodeSpec): void => {
-      nodes.push(node);
-    };
-
-    type ConnectFunction = (from: string, port: string, to: string) => void;
-
-    const connect: ConnectFunction = (
-      from: string,
-      port: string,
-      to: string,
-    ): void => {
-      edges.push({ fromComponentId: from, toComponentId: to, fromPort: port });
-    };
-
-    type LogFunction = (
-      componentId: string,
-      position: { x: number; y: number },
-      value: string,
-    ) => void;
-
-    const log: LogFunction = (
-      componentId: string,
-      position: { x: number; y: number },
-      value: string,
-    ): void => {
-      addNode({
-        componentId: componentId,
-        metadataId: ComponentID.Log,
-        componentType: ComponentType.Component,
-        position: position,
-        args: { value: value },
-      });
-    };
-
     const triggerSettings: JSONObject = options.triggerSettings || {};
-
-    addNode({
-      componentId: HUNTRESS_TRIGGER_COMPONENT_ID,
-      metadataId: ComponentID.HuntressIncidentReport,
-      componentType: ComponentType.Trigger,
-      position: { x: 100, y: 100 },
-      ...(Object.keys(triggerSettings).length > 0
-        ? { args: triggerSettings }
-        : {}),
-    });
-
-    addNode({
-      componentId: "switch-1",
-      metadataId: ComponentID.Switch,
-      componentType: ComponentType.Component,
-      /*
-       * Wider than the trigger above it, as its cases' names make it
-       * (Workflow/PortLayout): 420px, so it starts 82px further left and
-       * sits centred under the trigger.
-       */
-      position: { x: 18, y: 300 },
-      args: {
-        value: huntressValue(HuntressTriggerValue.Event),
-        cases: [
-          {
-            id: "case-1",
-            comparison: ConditionOperator.EqualTo,
-            value: HuntressTriggerEvent.Created,
-            compareAs: ConditionValueType.Text,
-          },
-          {
-            id: "case-2",
-            comparison: ConditionOperator.EqualTo,
-            value: HuntressTriggerEvent.CommentAdded,
-            compareAs: ConditionValueType.Text,
-          },
-          {
-            id: "case-3",
-            comparison: ConditionOperator.EqualTo,
-            value: HuntressTriggerEvent.Closed,
-            compareAs: ConditionValueType.Text,
-          },
-        ],
-      },
-    });
-
-    connect(HUNTRESS_TRIGGER_COMPONENT_ID, "out", "switch-1");
-
-    /* ---- created: open the incident, unless the report has one, and page ---- */
-
     const labelIds: Array<string> = options.labelIds || [];
+    const step: string = "incident-from-another-tool-1";
+    const ids: typeof FROM_ANOTHER_TOOL_ARGUMENT_IDS =
+      FROM_ANOTHER_TOOL_ARGUMENT_IDS;
 
-    /*
-     * One incident per report: a report that already has one - a created
-     * event sent again after Huntress stopped retrying it, or the same
-     * Report ID typed twice into Run Workflow - opens no other.
-     */
-    addNode({
-      componentId: "find-incident-0",
-      metadataId: "incident-find-one",
-      componentType: ComponentType.Component,
-      position: { x: -1050, y: 540 },
-      args: huntressFindIncidentArgs(),
-    });
-    connect("switch-1", "case-1", "find-incident-0");
-
-    addNode({
-      componentId: "if-found-0",
-      metadataId: ComponentID.IfElse,
-      componentType: ComponentType.Component,
-      position: { x: -1050, y: 740 },
-      args: huntressFoundCondition("find-incident-0"),
-    });
-    connect("find-incident-0", "success", "if-found-0");
-
-    // Yes is the If / Else's left output, so the step it leads to is on the left.
-    log(
-      "log-already-open",
-      { x: -1350, y: 940 },
-      `ℹ️ ${HUNTRESS_REPORT} has an incident already, {{local.components.find-incident-0.returnValues.model.incidentNumberWithPrefix}}, so no other was opened.`,
-    );
-    connect("if-found-0", "yes", "log-already-open");
-
-    addNode({
-      componentId: "create-incident-1",
-      metadataId: "incident-create-one",
-      componentType: ComponentType.Component,
-      position: { x: -1050, y: 940 },
-      args: {
-        /*
-         * The report's number in customFields is what the comment-added
-         * and closed paths find the incident by.
-         */
-        json: jsonText({
-          title: huntressValue(HuntressTriggerValue.IncidentTitle),
-          description: huntressValue(HuntressTriggerValue.IncidentDescription),
-          incidentSeverityId: huntressValue(
+    const steps: Array<TemplateColumnStep> = [
+      {
+        componentId: HUNTRESS_TRIGGER_COMPONENT_ID,
+        metadataId: ComponentID.HuntressIncidentReport,
+        componentType: ComponentType.Trigger,
+        ...(Object.keys(triggerSettings).length > 0
+          ? { args: triggerSettings }
+          : {}),
+      },
+      {
+        componentId: step,
+        metadataId: ComponentID.IncidentFromAnotherTool,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          [ids.whatHappened]: huntressValue(HuntressTriggerValue.Event),
+          [ids.outsideId]: huntressValue(HuntressTriggerValue.ReportId),
+          // The report's number is what a comment or a close finds the incident by.
+          [ids.outsideIdField]: HUNTRESS_REPORT_ID_CUSTOM_FIELD,
+          [ids.title]: huntressValue(HuntressTriggerValue.IncidentTitle),
+          [ids.description]: huntressValue(
+            HuntressTriggerValue.IncidentDescription,
+          ),
+          [ids.severity]: huntressValue(
             HuntressTriggerValue.IncidentSeverityId,
           ),
-          labels: [
-            { _id: huntressValue(HuntressTriggerValue.OrganizationLabelId) },
-            ...labelIds.map((labelId: string): JSONObject => {
-              return { _id: labelId };
-            }),
-          ],
-          // A security incident is never news for a status page.
-          ...INCIDENT_KIND.quietCreateFields,
-          customFields: {
-            [HUNTRESS_REPORT_ID_CUSTOM_FIELD]: huntressValue(
-              HuntressTriggerValue.ReportId,
-            ),
-          },
-        }),
+          [ids.note]: huntressValue(HuntressTriggerValue.Note),
+          // The organization's label, and the connection's own.
+          [ids.labels]: [
+            huntressValue(HuntressTriggerValue.OrganizationLabelId),
+            ...labelIds,
+          ].join(", "),
+          ...(options.resolveWhenClosed
+            ? {}
+            : { [ids.noteInsteadOfResolving]: true }),
+        },
       },
-    });
+    ];
 
-    connect("if-found-0", "no", "create-incident-1");
-
-    /*
-     * A lookup that fails still opens the incident: a report that pages
-     * nobody is worse than a report with two incidents. The log says so,
-     * for whoever finds two, and keeps the line around the If / Else
-     * instead of under it.
-     */
-    log(
-      "log-lookup-failed",
-      { x: -750, y: 740 },
-      `⚠️ Could not check whether ${HUNTRESS_REPORT} has an incident already, so a new one is opened. Why the check failed is in the run log above.`,
-    );
-    connect("find-incident-0", "error", "log-lookup-failed");
-    connect("log-lookup-failed", "out", "create-incident-1");
-
-    log(
-      "log-create-failed",
-      { x: -750, y: 1140 },
-      `❌ Could not open an incident for ${HUNTRESS_REPORT}. Why is in the run log above.`,
-    );
-    connect("create-incident-1", "error", "log-create-failed");
-
-    if (!options.pages) {
-      log(
-        "log-opened",
-        { x: -1050, y: 1140 },
-        `✅ Opened an incident for ${HUNTRESS_REPORT}.`,
-      );
-      connect("create-incident-1", "success", "log-opened");
-    } else {
+    if (options.pages) {
       const condition: JSONObject | null = huntressPageCondition(
         options.pageOnCallFor,
       );
-      const pageY: number = condition ? 1340 : 1140;
 
-      addNode({
+      if (condition) {
+        steps.push({
+          componentId: "if-page-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          from: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+          args: condition,
+        });
+      }
+
+      steps.push({
         componentId: "page-on-call-policy-1",
         metadataId: ComponentID.PageOnCallPolicy,
         componentType: ComponentType.Component,
-        position: { x: condition ? -1200 : -1050, y: pageY },
+        from: condition ? "yes" : FROM_ANOTHER_TOOL_PORT_IDS.opened,
         args: {
           ...(options.onCallPolicyIds && options.onCallPolicyIds.length > 0
             ? { [PAGE_ARGUMENT_IDS.onCallPolicies]: options.onCallPolicyIds }
             : {}),
           [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
-          [PAGE_ARGUMENT_IDS.incidentId]:
-            "{{local.components.create-incident-1.returnValues.model._id}}",
+          [PAGE_ARGUMENT_IDS.incidentId]: `{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
         },
       });
-
-      if (condition) {
-        addNode({
-          componentId: "if-page-1",
-          metadataId: ComponentID.IfElse,
-          componentType: ComponentType.Component,
-          position: { x: -1050, y: 1140 },
-          args: condition,
-        });
-        connect("create-incident-1", "success", "if-page-1");
-        connect("if-page-1", "yes", "page-on-call-policy-1");
-
-        log(
-          "log-not-paged",
-          { x: -900, y: 1340 },
-          `ℹ️ Opened an incident for ${HUNTRESS_REPORT}. It is ${huntressValue(HuntressTriggerValue.Severity)}, so nobody was paged.`,
-        );
-        connect("if-page-1", "no", "log-not-paged");
-      } else {
-        connect("create-incident-1", "success", "page-on-call-policy-1");
-      }
-
-      log(
-        "log-paged",
-        { x: condition ? -1350 : -1200, y: pageY + 200 },
-        `📟 Opened an incident for ${HUNTRESS_REPORT}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
-      );
-      connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
-
-      log(
-        "log-nobody-paged",
-        { x: condition ? -1050 : -900, y: pageY + 200 },
-        `❌ Opened an incident for ${HUNTRESS_REPORT}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
-      );
-      connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");
     }
 
-    /* ---- comment-added: a private note on the report's incident ---- */
+    const column: TemplateColumn = layOutTemplateColumn(steps);
 
-    addNode({
-      componentId: "find-incident-1",
-      metadataId: "incident-find-one",
-      componentType: ComponentType.Component,
-      position: { x: -100, y: 540 },
-      args: huntressFindIncidentArgs(),
-    });
-    connect("switch-1", "case-2", "find-incident-1");
-
-    log(
-      "log-find-failed",
-      { x: 200, y: 740 },
-      `❌ Could not look for the incident of ${HUNTRESS_REPORT}. Why is in the run log above.`,
-    );
-    connect("find-incident-1", "error", "log-find-failed");
-
-    addNode({
-      componentId: "if-found-1",
-      metadataId: ComponentID.IfElse,
-      componentType: ComponentType.Component,
-      position: { x: -100, y: 740 },
-      args: huntressFoundCondition("find-incident-1"),
-    });
-    connect("find-incident-1", "success", "if-found-1");
-
-    log(
-      "log-no-incident",
-      { x: 50, y: 940 },
-      `ℹ️ ${HUNTRESS_REPORT} has no incident, so its comment was not added.`,
-    );
-    connect("if-found-1", "no", "log-no-incident");
-
-    addNode({
-      componentId: "add-note-1",
-      metadataId: "incident-internal-note-create-one",
-      componentType: ComponentType.Component,
-      position: { x: -250, y: 940 },
-      args: {
-        json: jsonText({
-          incidentId:
-            "{{local.components.find-incident-1.returnValues.model._id}}",
-          note: huntressValue(HuntressTriggerValue.Note),
-        }),
-      },
-    });
-    connect("if-found-1", "yes", "add-note-1");
-
-    log(
-      "log-note-added",
-      { x: -400, y: 1140 },
-      `✅ Added the comment on ${HUNTRESS_REPORT} to {{local.components.find-incident-1.returnValues.model.incidentNumberWithPrefix}} as a private note.`,
-    );
-    connect("add-note-1", "success", "log-note-added");
-
-    log(
-      "log-note-failed",
-      { x: -100, y: 1140 },
-      `❌ Could not add the comment on ${HUNTRESS_REPORT} to its incident. Why is in the run log above.`,
-    );
-    connect("add-note-1", "error", "log-note-failed");
-
-    /* ---- closed: resolve the report's incident ---- */
-
-    addNode({
-      componentId: "find-incident-2",
-      metadataId: "incident-find-one",
-      componentType: ComponentType.Component,
-      position: { x: 550, y: 540 },
-      args: huntressFindIncidentArgs(),
-    });
-    connect("switch-1", "case-3", "find-incident-2");
-
-    log(
-      "log-find-closed-failed",
-      { x: 850, y: 740 },
-      `❌ Could not look for the incident of ${HUNTRESS_REPORT}. Why is in the run log above.`,
-    );
-    connect("find-incident-2", "error", "log-find-closed-failed");
-
-    addNode({
-      componentId: "if-found-2",
-      metadataId: ComponentID.IfElse,
-      componentType: ComponentType.Component,
-      position: { x: 550, y: 740 },
-      args: huntressFoundCondition("find-incident-2"),
-    });
-    connect("find-incident-2", "success", "if-found-2");
-
-    log(
-      "log-nothing-to-close",
-      { x: 700, y: 940 },
-      `ℹ️ ${HUNTRESS_REPORT} has no incident, so there was nothing to ${options.resolveWhenClosed ? "resolve" : "note"} when Huntress closed it.`,
-    );
-    connect("if-found-2", "no", "log-nothing-to-close");
-
-    const closedIncident: string =
-      "{{local.components.find-incident-2.returnValues.model.incidentNumberWithPrefix}}";
-
-    if (!options.resolveWhenClosed) {
-      addNode({
-        componentId: "add-note-2",
-        metadataId: "incident-internal-note-create-one",
-        componentType: ComponentType.Component,
-        position: { x: 400, y: 940 },
-        args: {
-          json: jsonText({
-            incidentId:
-              "{{local.components.find-incident-2.returnValues.model._id}}",
-            note: huntressValue(HuntressTriggerValue.Note),
-          }),
-        },
-      });
-      connect("if-found-2", "yes", "add-note-2");
-
-      log(
-        "log-closed-noted",
-        { x: 250, y: 1140 },
-        `✅ Noted on ${closedIncident} that Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
-      );
-      connect("add-note-2", "success", "log-closed-noted");
-
-      log(
-        "log-closed-note-failed",
-        { x: 550, y: 1140 },
-        `❌ Could not note on its incident that Huntress closed ${HUNTRESS_REPORT}. Why is in the run log above.`,
-      );
-      connect("add-note-2", "error", "log-closed-note-failed");
-
-      return { nodes: nodes, edges: edges };
-    }
-
-    /*
-     * The project's states, so the decision below finds its resolved one by
-     * the rule, and never by asking for records by the flag.
-     */
-    addNode({
-      componentId: "find-states-1",
-      metadataId: "incident-state-find-many",
-      componentType: ComponentType.Component,
-      position: { x: 400, y: 940 },
-      args: {
-        // Every row. Query cannot be left empty, so it asks for any id.
-        query: { _id: { _type: "NotNull", value: null } },
-        select: { _id: true, name: true, order: true, isResolvedState: true },
-        limit: 50,
-      },
-    });
-    connect("if-found-2", "yes", "find-states-1");
-
-    log(
-      "log-states-failed",
-      { x: 700, y: 1140 },
-      `❌ Could not read this project's incident states, so ${closedIncident} was not resolved. Why is in the run log above.`,
-    );
-    connect("find-states-1", "error", "log-states-failed");
-
-    addNode({
-      componentId: "decide-resolve-1",
-      metadataId: ComponentID.JavaScriptCode,
-      componentType: ComponentType.Component,
-      position: { x: 400, y: 1140 },
-      args: {
-        code: HUNTRESS_DECIDE_RESOLVE_SCRIPT,
-        arguments: jsonText({
-          incident: "{{local.components.find-incident-2.returnValues.model}}",
-          states: "{{local.components.find-states-1.returnValues.models}}",
-        }),
-      },
-    });
-    connect("find-states-1", "success", "decide-resolve-1");
-
-    log(
-      "log-decide-failed",
-      { x: 700, y: 1340 },
-      `❌ Could not tell whether ${closedIncident} is resolved, so it was not resolved: {{local.components.decide-resolve-1.returnValues.error}}`,
-    );
-    connect("decide-resolve-1", "error", "log-decide-failed");
-
-    addNode({
-      componentId: "if-resolve-1",
-      metadataId: ComponentID.IfElse,
-      componentType: ComponentType.Component,
-      position: { x: 400, y: 1340 },
-      args: proceedCondition("decide-resolve-1"),
-    });
-    connect("decide-resolve-1", "success", "if-resolve-1");
-
-    log(
-      "log-already-resolved",
-      { x: 550, y: 1540 },
-      `ℹ️ ${closedIncident} was already resolved when Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
-    );
-    connect("if-resolve-1", "no", "log-already-resolved");
-
-    addNode({
-      /*
-       * Resolving is a new state timeline row, not an edit of the incident:
-       * the timeline is what records it, notifies, and says why.
-       */
-      componentId: "resolve-incident-1",
-      metadataId: "incident-state-timeline-create-one",
-      componentType: ComponentType.Component,
-      position: { x: 250, y: 1540 },
-      args: {
-        json: jsonText({
-          incidentId:
-            "{{local.components.find-incident-2.returnValues.model._id}}",
-          incidentStateId:
-            "{{local.components.decide-resolve-1.returnValues.returnValue.stateId}}",
-          rootCause: huntressValue(HuntressTriggerValue.Note),
-        }),
-      },
-    });
-    connect("if-resolve-1", "yes", "resolve-incident-1");
-
-    log(
-      "log-resolved",
-      { x: 100, y: 1740 },
-      `✅ Resolved ${closedIncident}: Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
-    );
-    connect("resolve-incident-1", "success", "log-resolved");
-
-    log(
-      "log-resolve-failed",
-      { x: 400, y: 1740 },
-      `❌ Could not resolve ${closedIncident} for ${HUNTRESS_REPORT}. Why is in the run log above.`,
-    );
-    connect("resolve-incident-1", "error", "log-resolve-failed");
-
-    return { nodes: nodes, edges: edges };
+    return { nodes: column.nodes, edges: column.edges };
   };
 
 export type BuildHuntressIncidentWorkflowGraphFunction = (
@@ -7702,9 +7238,18 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     description:
       "Pages on-call for high and critical reports, adds comments from Huntress as notes, and resolves the incident when Huntress closes the report.",
     teaches:
-      "How one workflow follows a report from start to end: a Switch / Case takes a path for each Huntress event. Open the trigger for its URL, and the Page step to pick who to page.",
-    setUpInBuilder:
-      "An on-call policy and Huntress's signing secret. You add both in the Builder.",
+      "How one step follows a report from start to end, by the report's number. Open the trigger for its URL and to add Huntress's signing secret.",
+    setUpInBuilder: "Huntress's signing secret. You add it in the Builder.",
+    whoToPage: [
+      {
+        componentId: "page-on-call-policy-1",
+        title: "Who to page for high and critical reports",
+        description:
+          "The on-call policies paged for a new incident from a high or critical report. Pick none to page nobody.",
+        required: false,
+        leftOutWhenNobody: ["if-page-1"],
+      },
+    ],
     category: WorkflowTemplateCategory.Huntress,
     icon: IconProp.ShieldCheck,
     workflowName: "Huntress incident reports",
