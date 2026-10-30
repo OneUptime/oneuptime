@@ -4622,8 +4622,9 @@ const DYNAMICS_365_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
  * Huntress sends an event when its SOC sends an incident report, when
  * someone comments on it, and when it is closed. One workflow follows a
  * report from start to end, so Huntress needs one endpoint: the Huntress
- * Incident Report trigger starts it for every event, and a Switch / Case
- * takes a path for each.
+ * Incident Report trigger starts it for every event, and Incident From
+ * Another Tool does what each event asks, by the report's number - four
+ * steps, where a Switch / Case with a path for each event took 33.
  *
  *   created        open an incident - titled after the report, at the
  *                  incident severity the trigger works out, labelled with
@@ -4879,7 +4880,10 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
  * problem, its recovery, and every update someone makes to it in Zabbix -
  * an acknowledgment, a comment, a new severity, a close. One action sends
  * all three to one user's media, so one URL, and one workflow, follows a
- * problem from start to end: a Switch / Case takes a path for each event.
+ * problem from start to end: read-event-1, a Check With JavaScript, says
+ * what each event means for the record, and Incident (or Alert) From
+ * Another Tool does it, by the problem's event ID - five steps, where a
+ * Switch / Case with a path for each event took 48.
  *
  *   problem   declare an incident (or create an alert) at the severity the
  *             Zabbix severity maps to, kept off status pages, and page
@@ -4892,10 +4896,11 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
  *             problem - which stops on-call escalating it.
  *
  * The other way, two small templates call Zabbix's JSON-RPC API with an
- * API token: one acknowledges the problem when the record is acknowledged
- * and closes it when the record is resolved (or acknowledges it with a
- * message, where its trigger does not allow closing problems by hand), and
- * one copies private notes to the problem as messages.
+ * API token, through Update Zabbix Problem: one acknowledges the problem
+ * when the record is acknowledged and closes it when the record is
+ * resolved (or acknowledges it with a message, where its trigger does not
+ * allow closing problems by hand), and one copies private notes to the
+ * problem as messages.
  *
  * How a record and a problem find each other: the record keeps the
  * problem's event ID in its custom fields (ZABBIX_EVENT_ID_CUSTOM_FIELD),
@@ -4911,7 +4916,7 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
  * never arrive). Notes and state causes OneUptime writes from Zabbix start
  * with ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER, and the note template skips
  * those. State changes settle on their own: a record only moves forward,
- * and the API template reads the problem first, so one Zabbix already
+ * and Update Zabbix Problem reads the problem first, so one Zabbix already
  * acknowledged or resolved is left as it is.
  *
  * The incident and alert versions are built from one set of builders
@@ -4928,7 +4933,7 @@ export const ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER: string = "Synced from Zabbix";
 export const ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER: string =
   "Synced from OneUptime";
 
-/** What the OneUptime media type says each event is, in its `event`: the Switch / Case's cases. */
+/** What the OneUptime media type says each event is, in its `event`: what read-event-1 reads. */
 export enum ZabbixEventKind {
   Problem = "problem",
   Recovery = "recovery",
