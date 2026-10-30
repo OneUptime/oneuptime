@@ -262,7 +262,7 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | 案例 | Assign the case | 把案例分配给某个人、某个团队或两者 |
 | 案例 | Set the priority | 提高或降低案例的优先级 |
 | 案例 | Set the status | 把案例移到项目的另一个状态；如果该状态会关闭案例，则附上你选择的结论 |
-| 案例 | Add a note | 在案例上写一条备注，例如给分析师的检查清单 |
+| 案例 | Add a note | 在案例上写一条备注，例如给分析师的背景信息 |
 | 案例 | Add labels | 为案例添加标签 |
 | 案例 | Add tasks | 向案例的清单添加任务，交给某个人，或留给处理案例的人 |
 | 调查 | Check entities against threat intel | 在你的威胁情报中查找每个实体，匹配时可以提高优先级 |

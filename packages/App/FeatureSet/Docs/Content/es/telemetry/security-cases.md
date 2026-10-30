@@ -262,7 +262,7 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Caso | Assign the case | Asigna el caso a una persona, a un equipo o a ambos |
 | Caso | Set the priority | Sube o baja la prioridad del caso |
 | Caso | Set the status | Pasa el caso a otro estado del proyecto, con el veredicto que elijas cuando ese estado lo cierra |
-| Caso | Add a note | Escribe una nota en el caso, como una lista de comprobación para el analista |
+| Caso | Add a note | Escribe una nota en el caso, como contexto para el analista |
 | Caso | Add labels | Pone etiquetas al caso |
 | Caso | Add tasks | Añade tareas a la lista de comprobación del caso, para una persona o para quien trabaje el caso |
 | Investigación | Check entities against threat intel | Busca cada entidad en tu inteligencia de amenazas y puede subir la prioridad si hay una coincidencia |

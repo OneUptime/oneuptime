@@ -262,7 +262,7 @@ A disabled playbook runs neither by itself nor by hand.
 | Case | Assign the case | Gives the case to a person, a team, or both |
 | Case | Set the priority | Raises or lowers the case's priority |
 | Case | Set the status | Moves the case to another of the project's statuses, with the verdict you choose when that status closes it |
-| Case | Add a note | Writes a note on the case, such as a checklist for the analyst |
+| Case | Add a note | Writes a note on the case, such as context for the analyst |
 | Case | Add labels | Tags the case with labels |
 | Case | Add tasks | Adds tasks to the case's checklist, for a person or for whoever works the case |
 | Investigate | Check entities against threat intel | Looks each entity up in your threat intelligence, and can raise the priority on a match |

@@ -262,7 +262,7 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Caso | Assign the case | Assegna il caso a una persona, a un team o a entrambi |
 | Caso | Set the priority | Alza o abbassa la priorità del caso |
 | Caso | Set the status | Sposta il caso in un altro stato del progetto, con il verdetto che scegli quando quello stato lo chiude |
-| Caso | Add a note | Scrive una nota sul caso, come una checklist per l'analista |
+| Caso | Add a note | Scrive una nota sul caso, come il contesto per l'analista |
 | Caso | Add labels | Aggiunge etichette al caso |
 | Caso | Add tasks | Aggiunge attività alla checklist del caso, per una persona o per chi segue il caso |
 | Indagine | Check entities against threat intel | Cerca ogni entità nella tua threat intelligence, e in caso di corrispondenza può alzare la priorità |

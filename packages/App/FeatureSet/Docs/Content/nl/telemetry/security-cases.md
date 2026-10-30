@@ -262,7 +262,7 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Zaak | Assign the case | Geeft de zaak aan een persoon, een team of beide |
 | Zaak | Set the priority | Verhoogt of verlaagt de prioriteit van de zaak |
 | Zaak | Set the status | Zet de zaak op een andere status van het project, met het oordeel dat je kiest als die status haar sluit |
-| Zaak | Add a note | Schrijft een notitie bij de zaak, zoals een checklist voor de analist |
+| Zaak | Add a note | Schrijft een notitie bij de zaak, zoals context voor de analist |
 | Zaak | Add labels | Voorziet de zaak van labels |
 | Zaak | Add tasks | Voegt taken toe aan de checklist van de zaak, voor een persoon of voor wie de zaak behandelt |
 | Onderzoeken | Check entities against threat intel | Zoekt elke entiteit op in je threat intelligence, en kan bij een match de prioriteit verhogen |

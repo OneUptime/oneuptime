@@ -262,7 +262,7 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Dossier | Assign the case | Confie le dossier à une personne, à une équipe, ou aux deux |
 | Dossier | Set the priority | Relève ou abaisse la priorité du dossier |
 | Dossier | Set the status | Fait passer le dossier à un autre statut du projet, avec le verdict de votre choix quand ce statut le ferme |
-| Dossier | Add a note | Écrit une note sur le dossier, comme une liste de vérification pour l'analyste |
+| Dossier | Add a note | Écrit une note sur le dossier, comme du contexte pour l'analyste |
 | Dossier | Add labels | Applique des étiquettes au dossier |
 | Dossier | Add tasks | Ajoute des tâches à la liste de contrôle du dossier, pour une personne ou pour qui traite le dossier |
 | Investigation | Check entities against threat intel | Recherche chaque entité dans votre renseignement sur les menaces, et peut relever la priorité en cas de correspondance |

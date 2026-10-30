@@ -182,7 +182,7 @@ describe("a playbook step's dialog", () => {
     ).toEqual({
       title: "Edit Step 4: Add a note",
       description:
-        "Write a note on the case: a checklist for the analyst, a reminder, or what to check first.",
+        "Write a note on the case: context for the analyst, a reminder, or what to check first.",
     });
   });
 

@@ -262,7 +262,7 @@ OneUptime 會就案件上的五件事通知相關人員。不需要任何人做�
 | 案件 | Assign the case | 把案件指派給某個人、某個團隊或兩者 |
 | 案件 | Set the priority | 提高或降低案件的優先順序 |
 | 案件 | Set the status | 把案件移到專案的另一個狀態；如果該狀態會關閉案件，則附上你選擇的結論 |
-| 案件 | Add a note | 在案件上寫一則備註，例如給分析師的檢查清單 |
+| 案件 | Add a note | 在案件上寫一則備註，例如給分析師的背景資訊 |
 | 案件 | Add labels | 為案件加上標籤 |
 | 案件 | Add tasks | 將任務新增到案件的檢查清單，交給某個人，或留給處理案件的人 |
 | 調查 | Check entities against threat intel | 在你的威脅情資中查詢每個實體，符合時可以提高優先順序 |

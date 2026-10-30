@@ -262,7 +262,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Fall | Assign the case | Übergibt den Fall an eine Person, ein Team oder beide |
 | Fall | Set the priority | Hebt oder senkt die Priorität des Falls |
 | Fall | Set the status | Setzt den Fall auf einen anderen Status des Projekts, mit der Bewertung, die Sie wählen, wenn dieser Status ihn schließt |
-| Fall | Add a note | Schreibt eine Notiz an den Fall, etwa eine Checkliste für den Analysten |
+| Fall | Add a note | Schreibt eine Notiz an den Fall, etwa Kontext für den Analysten |
 | Fall | Add labels | Versieht den Fall mit Labels |
 | Fall | Add tasks | Fügt der Checkliste des Falls Aufgaben hinzu, für eine Person oder für die Person, die den Fall bearbeitet |
 | Untersuchen | Check entities against threat intel | Schlägt jede Entität in Ihrer Threat Intelligence nach und kann bei einem Treffer die Priorität anheben |

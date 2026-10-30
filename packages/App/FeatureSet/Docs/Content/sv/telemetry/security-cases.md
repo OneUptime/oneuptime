@@ -262,7 +262,7 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Ärende | Assign the case | Ger ärendet till en person, ett team eller båda |
 | Ärende | Set the priority | Höjer eller sänker ärendets prioritet |
 | Ärende | Set the status | Flyttar ärendet till en annan av projektets statusar, med den bedömning du väljer när den statusen stänger det |
-| Ärende | Add a note | Skriver en anteckning i ärendet, till exempel en checklista för analytikern |
+| Ärende | Add a note | Skriver en anteckning i ärendet, till exempel kontext för analytikern |
 | Ärende | Add labels | Märker ärendet med etiketter |
 | Ärende | Add tasks | Lägger till uppgifter i ärendets checklista, för en person eller för den som arbetar med ärendet |
 | Utredning | Check entities against threat intel | Slår upp varje entitet i dina hotunderrättelser och kan höja prioriteten vid en träff |

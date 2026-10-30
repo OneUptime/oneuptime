@@ -139,7 +139,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.AddCaseNote,
       title: "Add a note",
       description:
-        "Write a note on the case: a checklist for the analyst, a reminder, or what to check first.",
+        "Write a note on the case: context for the analyst, a reminder, or what to check first.",
       category: SecurityPlaybookActionCategory.Case,
       icon: IconProp.Book,
       isDisruptive: false,
@@ -165,7 +165,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.CheckThreatIntel,
       title: "Check entities against threat intel",
       description:
-        "Look every entity of the case up in your threat intel feeds and note what is known-bad. Can raise the priority on a match, and later steps can run only when something matched.",
+        "Look every entity of the case up in your threat intel feeds and note what is known-bad. Can raise the priority on a match, and later steps can run only when something matched, or only when nothing did.",
       category: SecurityPlaybookActionCategory.Investigate,
       icon: IconProp.ShieldExclamation,
       isDisruptive: false,

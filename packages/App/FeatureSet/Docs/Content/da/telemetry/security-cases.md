@@ -262,7 +262,7 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Case | Assign the case | Giver sagen til en person, et team eller begge |
 | Case | Set the priority | Hæver eller sænker sagens prioritet |
 | Case | Set the status | Flytter sagen til en anden af projektets statusser, med den konklusion, du vælger, når den status lukker den |
-| Case | Add a note | Skriver en note på sagen, f.eks. en tjekliste til analytikeren |
+| Case | Add a note | Skriver en note på sagen, f.eks. kontekst til analytikeren |
 | Case | Add labels | Mærker sagen med etiketter |
 | Case | Add tasks | Tilføjer opgaver til sagens tjekliste, til en person eller til den, der arbejder med sagen |
 | Investigate | Check entities against threat intel | Slår hver entitet op i din trusselsintelligens og kan hæve prioriteten ved et match |
