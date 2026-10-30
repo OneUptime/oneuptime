@@ -1543,6 +1543,28 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    # The agents' install scripts and the files they download, which every
+    # OneUptime serves from its own image (packages/App/FeatureSet/Install):
+    # curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh.
+    # Proxied to the app whatever BILLING_ENABLED says: with billing on,
+    # "location /" is the marketing Home service, which has no such files.
+    # The trailing slash leaves /install.sh, Home's installer of OneUptime
+    # itself, to "location /".
+    location /install/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
     # The sitemaps of the docs and the API reference, at the site's root.
     # The app serves those pages and builds their sitemaps from them, at
     # /docs/sitemap.xml and /reference/sitemap.xml. The sitemap index

@@ -204,6 +204,22 @@ RUN npm run compile
 # node user can read them but not change them. Copied after the Community
 # build, so editing either file does not redo it.
 COPY ./LICENSE ./NOTICE /usr/src/
+# The agents' install scripts and the files they download, which the App
+# serves at /install/<agent> (FeatureSet/Install; Common/Types/InstallScripts
+# lists every file), so every OneUptime hands out the agents of its own
+# release and no install command names GitHub. Each folder keeps the
+# repository's path under /usr/src. Root-owned like the licence files: the
+# node user reads them and cannot change what is piped into a root shell.
+# After the build, so editing an agent does not redo it.
+COPY ./agents/CephAgent /usr/src/agents/CephAgent
+COPY ./agents/DatabaseAgent /usr/src/agents/DatabaseAgent
+COPY ./agents/DockerSwarmAgent /usr/src/agents/DockerSwarmAgent
+COPY ./agents/HostAIAgent /usr/src/agents/HostAIAgent
+COPY ./agents/ProxmoxAgent /usr/src/agents/ProxmoxAgent
+COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
+COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent
+# .dockerignore leaves HelmChart/ out of the context except this one file.
+COPY ./HelmChart/Public/kubernetes-agent/troubleshoot.sh /usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh
 
 # ---------------------------------------------------------------------------
 # enterprise-build: community-build plus ee/.
