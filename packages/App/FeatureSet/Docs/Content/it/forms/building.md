@@ -81,10 +81,14 @@ Il logo mantiene l'altezza del logo di OneUptime che sostituisce, e uno largo vi
 | **Casella di controllo** | Una casella da spuntare, come una conferma. |
 | **Data** | Un giorno. |
 | **Data e ora** | Un giorno e un'ora. |
+| **File** | Un file, come uno screenshot o un documento firmato. |
+| **Più file** | Fino a 10 file, come screenshot e log. |
 
 Un menu a discesa o una selezione multipla elenca le **Opzioni** che gli dai, ognuna con un colore facoltativo (il pulsante accanto a un'opzione apre una serie di colori con nome, con **Colore personalizzato** per un codice esatto), da una a 100. Passare una domanda da **Elenco a discesa** a **Selezione multipla** mantiene le sue opzioni; una domanda che diventa di uno di questi tipi parte con due opzioni che puoi rinominare, e una che smette di esserlo le perde. **Duplica** copia una domanda propria del modulo subito sotto di essa.
 
 Le risposte a queste domande vengono conservate con l'invio ed elencate nella nota privata di ciò che il modulo crea — non compilano alcun campo. Per compilare un campo, aggiungi il campo stesso, dai due gruppi successivi.
+
+Una domanda **File** o **Più file** prende i file dal computer di chi invia e li allega alla nota privata, dove il tuo team li scarica. Per tenere invece i file in un campo personalizzato dell'incidente o dell'evento, aggiungi un campo personalizzato **File** o **Più file**.
 
 ### Campi di ciò che il modulo crea
 
@@ -115,7 +119,7 @@ Ogni campo può essere chiesto una sola volta; l'elenco segna quelli già presen
 
 ### Campi personalizzati
 
-I tuoi campi personalizzati degli incidenti — o della manutenzione programmata, per un modulo di manutenzione — ognuno una domanda la cui risposta diventa il valore del campo. La domanda prende tipo e opzioni dal campo personalizzato, e parte con il suo nome come domanda e la sua descrizione come testo di aiuto, che puoi cambiare.
+I tuoi campi personalizzati degli incidenti — o della manutenzione programmata, per un modulo di manutenzione — ognuno una domanda la cui risposta diventa il valore del campo. La domanda prende tipo e opzioni dal campo personalizzato, e parte con il suo nome come domanda e la sua descrizione come testo di aiuto, che puoi cambiare. Un campo personalizzato **File** o **Più file** viene chiesto come domanda di file, e i suoi file vanno nel campo.
 
 Un modulo chiede solo i campi personalizzati che gli aggiungi, qualunque cosa dica **Mostra alla creazione**: ogni campo che un modulo chiede mostra il suo nome, la sua descrizione e le sue opzioni a chiunque abbia il link. Quando un campo personalizzato viene eliminato, la sua domanda resta nel modulo ma non viene più chiesta, e la sua scheda lo dice — elimina la domanda. Un campo ricreato con lo stesso nome è un campo nuovo: aggiungilo di nuovo.
 
@@ -232,6 +236,9 @@ Dopo l'invio, la pagina dice "Grazie — la tua risposta è stata inviata." e d�
 | Qualsiasi altra risposta di testo | 10.000 caratteri. |
 | Una risposta a selezione multipla | 100 scelte. |
 | **Il tuo nome**, **La tua email** | 100 caratteri ciascuno. |
+| Un file | 10 MB, dei tipi che un [campo personalizzato file](/docs/incidents/settings#campi-file) accetta. |
+| Una domanda **Più file** | 10 file. |
+| I file di un invio | 10 file, 20 MB in tutto. |
 
 Un invio che supera un limite, omette una risposta obbligatoria o dà una risposta che non si adatta alla sua domanda viene rifiutato con un messaggio che dice quale, e non viene creato nulla. Le risposte a domande che il modulo non fa vengono ignorate.
 

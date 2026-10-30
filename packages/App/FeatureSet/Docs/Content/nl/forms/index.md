@@ -190,7 +190,7 @@ Elke vraag heeft een eigen `id` (letters, cijfers, `-` en `_`), een `source`, ee
 
 | `source` | Wat ze vraagt |
 | --- | --- |
-| `Question` | Een eigen vraag van het formulier, beantwoord volgens `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` of `DateTime`. Een keuzelijst toont haar `dropdownOptions`, één per regel. |
+| `Question` | Een eigen vraag van het formulier, beantwoord volgens `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` of `MultipleFiles`. Een keuzelijst toont haar `dropdownOptions`, één per regel. |
 | `TargetField` | Een veld van wat het formulier aanmaakt, aangewezen door `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` en `impactStartedAt` voor een incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` en `labels` voor een onderhoudsgebeurtenis. Een veld dat door te kiezen wordt beantwoord, toont de records die het aanbiedt in `allowedOptionIds`. |
 | `TargetCustomField` | Een van de aangepaste velden van het incident of de gebeurtenis, aangewezen door `customFieldId`. |
 | `Submitter` | `Name` of `Email` van de inzender, aangewezen door `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+Het antwoord op een bestandsvraag zijn de bestanden zoals ze zijn opgeslagen, elk met zijn `fileId`, `name`, `fileType` en `size`. De bestanden zelf staan op wat de inzending aanmaakte: in het aangepaste bestandsveld ervan, of als bijlage bij de privénotitie ervan.
 
 ### Workflows
 

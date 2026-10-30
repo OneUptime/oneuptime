@@ -190,7 +190,7 @@ Varje fråga har ett eget `id` (bokstäver, siffror, `-` och `_`), en `source`, 
 
 | `source` | Vad den frågar |
 | --- | --- |
-| `Question` | En av formulärets egna frågor, besvarad enligt `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` eller `DateTime`. En listruta listar sina `dropdownOptions`, en per rad. |
+| `Question` | En av formulärets egna frågor, besvarad enligt `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En listruta listar sina `dropdownOptions`, en per rad. |
 | `TargetField` | Ett fält i det som formuläret skapar, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` och `impactStartedAt` för en incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` och `labels` för en underhållshändelse. Ett fält som besvaras genom att välja listar de poster som det erbjuder i `allowedOptionIds`. |
 | `TargetCustomField` | Ett av incidentens eller händelsens anpassade fält, angivet med `customFieldId`. |
 | `Submitter` | Avsändarens `Name` eller `Email`, angivet med `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+Svaret på en filfråga är filerna så som de sparades, var och en med sin `fileId`, `name`, `fileType` och `size`. Själva filerna finns på det som inlämningen skapade: i dess anpassade filfält eller bifogade i dess privata anteckning.
 
 ### Arbetsflöden
 

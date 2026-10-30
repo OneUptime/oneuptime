@@ -225,8 +225,27 @@ Les définitions vivent dans leur propre modèle ; les valeurs vivent sur l'inci
 | **Date et heure**                      | Une date et une heure                                 | Résolution attendue                                |
 | **Texte long**                         | Plusieurs lignes de texte brut                        | Utilisateurs ou systèmes touchés, informations supplémentaires |
 | **Texte enrichi (Markdown)**           | Du texte mis en forme, dans l'éditeur Markdown avec son mode visuel | Un contournement avec des liens et des listes |
+| **Fichier** | Un fichier, déposé sur le champ ou choisi | Une demande de changement signée, une capture d'écran |
+| **Plusieurs fichiers** | Jusqu'à 10 fichiers | Captures d'écran, journaux et captures de paquets |
 
 **Texte long** et **Texte enrichi (Markdown)** sont disponibles pour les champs personnalisés de chaque ressource, pas seulement des incidents. Une valeur en texte enrichi est stockée comme le Markdown dans lequel elle a été écrite. Il n'y a pas de type bouton radio ni groupe de cases à cocher : utilisez une **Liste déroulante (choix unique)**, une **Liste déroulante (choix multiple)** ou un **Booléen**.
+
+### Champs de fichier
+
+Un champ **Fichier** contient un fichier et un champ **Plusieurs fichiers** jusqu'à 10. Sur la page **Champs personnalisés** de l'incident, déposez des fichiers sur le champ ou cliquez dessus pour les choisir : **Remplacer** change le fichier d'un champ **Fichier**, et **Supprimer** retire un fichier. La page liste chaque fichier avec son nom et sa taille, et un clic dessus le télécharge. Les champs personnalisés de toutes les autres ressources prennent des fichiers de la même façon.
+
+| Quoi | Limite |
+| --- | --- |
+| Un fichier | 10 Mo |
+| Un champ **Plusieurs fichiers** | 10 fichiers, 50 Mo en tout |
+| Types de fichier | Fichiers PDF, Word, RTF, Excel, PowerPoint et OpenDocument, images (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF et HEIC), texte brut, fichiers Markdown, CSV et JSON, archives ZIP et captures de paquets |
+
+- **Vérifié d'après son contenu.** Un fichier doit contenir ce que dit son type : une page web renommée `report.pdf` est donc refusée. Les images SVG ne sont pas acceptées, car elles peuvent contenir des scripts.
+- **Uniquement les fichiers de votre projet.** Un champ ne prend que des fichiers envoyés dans le projet de l'incident.
+- **Téléchargé, jamais ouvert dans la page.** Seule une personne qui peut voir l'incident et ses champs personnalisés peut télécharger ses fichiers.
+- **Nommé, pas lié, partout ailleurs.** La liste des incidents et son export CSV, le fil, les modèles de note et les messages aux abonnés montrent un champ de fichier par les noms de ses fichiers. Le filtre de la liste demande si le champ **Contient des fichiers** ou n'a **Aucun fichier**. Slack et Microsoft Teams laissent les champs de fichier de côté parmi les champs personnalisés qu'ils permettent de modifier : ajoutez les fichiers dans OneUptime.
+- **Supprimés dès que plus rien ne les garde.** Un fichier retiré ou remplacé, et les fichiers d'un incident supprimé, sont supprimés, sauf si autre chose, comme un autre incident ou un modèle, les garde encore.
+- **Par l'API et Terraform.** Envoyez le fichier avec `POST /api/file` dans le projet de l'incident, avec son `name`, son `fileType` et ses octets en base64 dans `file`, puis donnez au champ l'`_id` renvoyé. Le champ se relit comme les fichiers qu'il contient, chacun avec son `fileId`, `name`, `fileType` et `size`. Dans Terraform, écrivez chaque fichier sous la forme `{ fileId = oneuptime_file.contract.id }`, pour que le plan corresponde à ce que le champ renvoie.
 
 ### Obligatoire à la création n'est vérifié que par le tableau de bord
 
@@ -271,6 +290,8 @@ Quand un utilisateur ou une clé d'API crée ou met à jour un incident, chaque 
 | **Date**, **Date et heure**                                    | Une date, de préférence sous forme de texte ISO 8601.          |
 | **Liste déroulante (choix unique)**                            | L'une de ses options.                                          |
 | **Liste déroulante (choix multiple)**                          | Une liste de ses options, ou une seule option.                 |
+| **Fichier** | L'id d'un fichier, ou `{ "fileId": "<id>" }`, d'un fichier envoyé dans le projet de l'incident. |
+| **Plusieurs fichiers** | Une liste de ceux-ci, jusqu'à 10, ou un seul. |
 
 Pour une **Liste déroulante (choix multiple)**, le refus nomme les 10 premières entrées qui ne font pas partie de ses options, puis combien il y en a d'autres.
 

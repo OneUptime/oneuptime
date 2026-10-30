@@ -225,8 +225,27 @@ Die Definitionen liegen in einem eigenen Modell; die Werte liegen am Vorfall sel
 | **Datum und Uhrzeit**           | Ein Datum und eine Uhrzeit                            | Voraussichtliche Behebung                            |
 | **Langer Text**                 | Mehrere Zeilen reiner Text                            | Betroffene Benutzer oder Systeme, zusätzliche Informationen |
 | **Formatierter Text (Markdown)** | Formatierter Text, im Markdown-Editor mit seinem visuellen Modus | Ein Workaround mit Links und Listen        |
+| **Datei** | Eine Datei, auf das Feld gezogen oder ausgewählt | Ein unterschriebener Änderungsantrag, ein Screenshot |
+| **Mehrere Dateien** | Bis zu 10 Dateien | Screenshots, Logs und Paketmitschnitte |
 
 **Langer Text** und **Formatierter Text (Markdown)** stehen für die benutzerdefinierten Felder jeder Ressource zur Verfügung, nicht nur für Vorfälle. Ein formatierter Wert wird als das Markdown gespeichert, in dem er geschrieben wurde. Es gibt keinen Typ für Optionsfelder oder Kontrollkästchengruppen: Verwenden Sie ein **Dropdown (Einfachauswahl)**, ein **Dropdown (Mehrfachauswahl)** oder einen **Boolescher Wert**.
+
+### Dateifelder
+
+Ein Feld vom Typ **Datei** hält eine Datei, ein Feld vom Typ **Mehrere Dateien** bis zu 10. Ziehen Sie auf der Seite **Benutzerdefinierte Felder** des Vorfalls Dateien auf das Feld, oder klicken Sie darauf, um sie auszuwählen: **Ersetzen** tauscht die Datei in einem Feld vom Typ **Datei** aus, und **Entfernen** nimmt eine Datei heraus. Die Seite listet jede Datei mit Namen und Größe, und ein Klick darauf lädt sie herunter. Die benutzerdefinierten Felder jeder anderen Ressource nehmen Dateien genauso an.
+
+| Was | Grenze |
+| --- | --- |
+| Eine Datei | 10 MB |
+| Ein Feld vom Typ **Mehrere Dateien** | 10 Dateien, zusammen 50 MB |
+| Dateiarten | PDF-, Word-, RTF-, Excel-, PowerPoint- und OpenDocument-Dateien, Bilder (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF und HEIC), reiner Text, Markdown-, CSV- und JSON-Dateien, ZIP-Archive und Paketmitschnitte |
+
+- **Geprüft nach dem, was sie enthält.** Eine Datei muss enthalten, was ihr Typ sagt, deshalb wird eine Webseite, die in `report.pdf` umbenannt wurde, abgelehnt. SVG-Bilder werden nicht angenommen, weil sie Skripte enthalten können.
+- **Nur Dateien Ihres Projekts.** Ein Feld nimmt nur Dateien an, die im eigenen Projekt des Vorfalls hochgeladen wurden.
+- **Heruntergeladen, nie in der Seite geöffnet.** Nur wer den Vorfall und seine benutzerdefinierten Felder sehen darf, kann seine Dateien herunterladen.
+- **Überall sonst benannt, nicht verlinkt.** Die Vorfallliste und ihr CSV-Export, der Feed, Notizvorlagen und Abonnentennachrichten zeigen ein Dateifeld als die Namen seiner Dateien. Der Filter der Liste fragt, ob das Feld **Hat Dateien** oder **Keine Dateien** hat. Slack und Microsoft Teams lassen Dateifelder bei den benutzerdefinierten Feldern weg, die sie bearbeiten lassen: Fügen Sie Dateien in OneUptime hinzu.
+- **Gelöscht, sobald nichts sie mehr hält.** Eine Datei, die entfernt oder ersetzt wird, und die Dateien eines gelöschten Vorfalls werden gelöscht, es sei denn, etwas anderes, etwa ein anderer Vorfall oder eine Vorlage, hält sie noch.
+- **Über die API und Terraform.** Laden Sie die Datei mit `POST /api/file` im Projekt des Vorfalls hoch, mit ihrem `name`, ihrem `fileType` und den Bytes als Base64 in `file`, und setzen Sie das Feld dann auf die zurückgegebene `_id`. Das Feld liest sich als die Dateien zurück, die es hält, jede mit ihrer `fileId`, `name`, `fileType` und `size`. Schreiben Sie in Terraform jede Datei als `{ fileId = oneuptime_file.contract.id }`, damit der Plan dem entspricht, was das Feld zurückliefert.
 
 ### „Beim Erstellen erforderlich“ prüft nur das Dashboard
 
@@ -271,6 +290,8 @@ Wenn ein Benutzer oder ein API-Schlüssel einen Vorfall anlegt oder ändert, mus
 | **Datum**, **Datum und Uhrzeit**                            | Ein Datum, vorzugsweise als ISO-8601-Text.                     |
 | **Dropdown (Einfachauswahl)**                               | Eine seiner Optionen.                                          |
 | **Dropdown (Mehrfachauswahl)**                              | Eine Liste seiner Optionen oder eine einzelne Option für sich. |
+| **Datei** | Die ID einer Datei oder `{ "fileId": "<id>" }`, einer im Projekt des Vorfalls hochgeladenen Datei. |
+| **Mehrere Dateien** | Eine Liste davon, bis zu 10, oder eine einzelne für sich. |
 
 Bei einem **Dropdown (Mehrfachauswahl)** nennt die Ablehnung die ersten 10 Einträge, die nicht zu seinen Optionen gehören, und dann, wie viele es darüber hinaus sind.
 

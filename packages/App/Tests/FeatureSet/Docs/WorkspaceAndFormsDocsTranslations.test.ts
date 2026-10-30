@@ -613,6 +613,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Opening a form",
     "Submitting, per address",
     "Submitting, per form",
+    // A form's hourly allowance of files.
+    "Files, per form",
   ],
 };
 
@@ -694,6 +696,8 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
     { key: FormMessage.TooManyRequests },
     { key: FormMessage.TooManySubmissions },
     { key: FormMessage.FormBusy },
+    // A form's hourly allowance of files, used up.
+    { key: FormMessage.FilesBusy },
     { key: FormMessage.SubmissionsUnavailable },
     { key: FormMessage.CaptchaFailed },
     { key: "form.successTitle" },

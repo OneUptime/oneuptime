@@ -134,7 +134,7 @@ Ogni invio lascia una nota privata su ciò che ha creato:
 > **Which office are you in?**\
 > Berlin
 
-Indica il modulo e il mittente — "Submitted anonymously through the form **Report a Problem**." quando il modulo non ha chiesto chi è —, poi, quando l'invio è partito da uno dei modelli del modulo, dice quale: "Started from the template **Application Outage**." — e poi elenca le risposte alle domande proprie del modulo, ognuna sotto la sua domanda, nell'ordine del modulo. Le risposte alle domande collegate sono già sul record: il suo titolo, la sua gravità, i suoi campi personalizzati. Essendo privata, la nota non raggiunge mai una pagina di stato, ma viene pubblicata nei canali Slack e Microsoft Teams del record come qualsiasi altra nota.
+Indica il modulo e il mittente — "Submitted anonymously through the form **Report a Problem**." quando il modulo non ha chiesto chi è —, poi, quando l'invio è partito da uno dei modelli del modulo, dice quale: "Started from the template **Application Outage**." — e poi elenca le risposte alle domande proprie del modulo, ognuna sotto la sua domanda, nell'ordine del modulo. Le risposte alle domande collegate sono già sul record: il suo titolo, la sua gravità, i suoi campi personalizzati. Essendo privata, la nota non raggiunge mai una pagina di stato, ma viene pubblicata nei canali Slack e Microsoft Teams del record come qualsiasi altra nota. I file delle sue domande **File** e **Più file** sono allegati alla nota, dove il tuo team li scarica.
 
 L'indirizzo è un link che scrive esattamente a quell'indirizzo — nella dashboard, in Slack e nell'email ai proprietari.
 
@@ -158,6 +158,10 @@ Un invio va dritto in luoghi dove il testo può agire da solo — canali Slack e
 | Sintassi di immagine o un blocco di diagramma nel titolo | **Il titolo è testo semplice.** Ricevono anch'essi il carattere invisibile, quindi ovunque finisca il titolo — un episodio, un messaggio di chat, un modello di nota — non carica nulla e non disegna nulla. I caratteri invisibili contano per il limite del titolo. |
 
 Tutto il resto — i link, il resto del Markdown, le scelte dei menu a discesa, i numeri, le date, una casella spuntata — viene salvato come l'ha fornito il mittente, e l'invio conserva il nome e l'email del mittente come sono stati digitati.
+
+## I file che invia chi compila
+
+Una domanda di file tiene nel browser i file che sceglie chi compila e li invia con le risposte, così nessuno ha bisogno di un account per allegarne uno. Il server controlla ogni file come fa un [campo personalizzato file](/docs/incidents/settings#campi-file) — dimensione, tipo e contenuto — e salva i file nel tuo progetto, privati, solo quando l'invio ha superato ogni altro controllo: non si conserva nulla per un invio rifiutato. Una domanda di un campo personalizzato **File** o **Più file** mette i suoi file in quel campo, e le domande di file proprie del modulo allegano i loro alla nota privata. L'invio conserva il nome di ogni file. [Limiti di dimensione](/docs/forms/building#limiti-di-dimensione) e [Limiti di frequenza](/docs/forms/sharing-and-security#limiti-di-frequenza) dicono quanto possono inviare un invio e un modulo.
 
 ## Passaggi successivi
 

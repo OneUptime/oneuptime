@@ -190,7 +190,7 @@ Jede Frage hat eine eigene `id` – Buchstaben, Ziffern, `-` und `_` –, eine `
 
 | `source` | Was sie fragt |
 | --- | --- |
-| `Question` | Eine eigene Frage des Formulars, beantwortet gemäß `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` oder `DateTime`. Eine Auswahlliste listet ihre `dropdownOptions`, eine pro Zeile. |
+| `Question` | Eine eigene Frage des Formulars, beantwortet gemäß `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` oder `MultipleFiles`. Eine Auswahlliste listet ihre `dropdownOptions`, eine pro Zeile. |
 | `TargetField` | Ein Feld dessen, was das Formular anlegt, benannt durch `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` und `impactStartedAt` für einen Vorfall; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` und `labels` für ein Wartungsereignis. Ein Feld, das durch Auswahl beantwortet wird, listet die angebotenen Datensätze in `allowedOptionIds`. |
 | `TargetCustomField` | Eines der benutzerdefinierten Felder des Vorfalls oder Ereignisses, benannt durch `customFieldId`. |
 | `Submitter` | `Name` oder `Email` der einreichenden Person, benannt durch `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+Die Antwort auf eine Dateifrage sind die Dateien, wie sie gespeichert wurden, jede mit ihrer `fileId`, `name`, `fileType` und `size`. Die Dateien selbst liegen an dem, was die Einreichung erstellt hat: in seinem benutzerdefinierten Dateifeld oder als Anhang seiner privaten Notiz.
 
 ### Workflows
 

@@ -71,6 +71,7 @@ Hver anmodning passerer disse tjek, i denne rækkefølge:
 6. Hvert svar skal være inden for størrelsesgrænserne og passe til sit spørgsmål — se [Byg en formular](/docs/forms/building#størrelsesgrænser).
 7. Det, svarene og indstillingerne danner, skal kunne oprettes: en hændelse skal have en alvorlighed, en begivenhed en slutning efter sin start.
 8. En indsendelse skal passe inden for formularens timekvote — se [Hastighedsgrænser](#hastighedsgrænser).
+9. Dens filer skal passe inden for formularens timekvote for filer, lige før de gemmes.
 
 En formulars logo og favicon er en del af formularen: de sendes inde i det svar, der åbner den, i base64, først når den har bestået de første fire tjek, og aldrig fra en adresse for sig selv. Ingen kan hente dem uden formularen, og ingen fil kan hentes via sit id gennem en formular; selve filerne forbliver private. En formular viser kun billeder, der er uploadet i dens eget projekt: en fil fra et andet projekt afvises, når formularen gemmes, og sendes aldrig til dens side.
 
@@ -109,6 +110,7 @@ At åbne en formular og at indsende den begrænses pr. netværksadresse, og at i
 - **At åbne en formular** — pr. formular fra én adresse, og pr. adresse på tværs af alle formularer, med plads til, at et helt kontor åbner linket på én gang. Over en af dem viser siden "For mange anmodninger. Prøv igen senere." Hvis hastighedsbegrænseren ikke kan nås, åbner formularer stadig.
 - **At indsende, pr. adresse** — pr. formular fra én adresse, og pr. adresse på tværs af alle formularer. Over en af dem ser indsenderen "For mange indsendelser fra dit netværk. Vent et par minutter, og prøv igen." Alle bag én adresse — et kontornetværk, en VPN-gateway — deler disse grænser, og hver indsendelse tæller, også en, der derefter afvises for et forkert svar.
 - **At indsende, pr. formular** — hvor mange poster én formular må oprette på en time, fra alle adresser tilsammen, så selv indsendelser fra mange adresser på én gang kun kan tilkalde dig et begrænset antal gange i timen. Kun en indsendelse, der har bestået alle andre tjek, tæller, lige før dens post oprettes. Over den ser alle "Denne formular modtager for mange indsendelser lige nu. Prøv igen senere.", indtil vinduet er omme. **Nulstil link** starter det nye link med en frisk kvote.
+- **Filer, pr. formular** — hvor mange megabyte filer én formular må tage imod på en time, fra alle adresser tilsammen. Kun filerne fra en indsendelse, der har bestået alle andre kontroller, tæller, lige før de gemmes. Når grænsen er nået, afvises en indsendelse med filer med "Denne formular modtager for mange filer lige nu. Prøv igen senere.", indtil tidsvinduet er forbi; en indsendelse uden filer går stadig igennem.
 
 Hver grænse svarer `429` med en header `Retry-After`, i sekunder, og siden fortæller indsenderen, hvornår der kan prøves igen. Vinduerne er faste, ikke glidende. Hver grænse pr. adresse tæller også adresserne i ét IPv6-/64 sammen, med ti gange sit tal. Hvis hastighedsbegrænseren ikke kan nås, afvises indsendelser i stedet for at blive lukket igennem uden at blive talt: API'en svarer `503`, og indsenderen ser "Indsendelser kan ikke modtages lige nu. Prøv igen om et par minutter."
 
@@ -124,6 +126,8 @@ På en selvhostet installation ændrer disse miljøvariabler i OneUptime-appen g
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Indsendelser fra én adresse pr. vindue, på tværs af alle formularer. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | Vinduet for grænsen pr. formular, i sekunder. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Poster, én formular må oprette pr. vindue, fra alle adresser tilsammen. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | Tidsvinduet for grænsen for filer pr. formular, i sekunder. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabyte filer, én formular må tage imod pr. tidsvindue, fra alle adresser tilsammen. |
 
 Hver variabel læser også sit gamle navn, med `INCIDENT_FORM_` foran i stedet for `FORM_` — som `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` —, så en installation, der havde justeret hændelsesformularer, beholder sine grænser; det nye navn vinder, når begge er angivet. Hverken `config.env` eller Helm-chartets værdier sender dem videre: tilføj dem selv til miljøet for containeren `app` — med `app.extraEnv`, eller chartets fælles `extraEnv`, i Helm-chartet, eller i en `docker-compose.override.yml` til Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer, hvilken adresse grænserne pr. adresse tæller.
 
