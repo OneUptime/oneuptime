@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den stadig, så den kan ikke slettes. Den kan forblive arkiveret.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} sprunget over",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} sprunget over",
-  "You can change or remove these rules, but not add new ones.": "Du kan ændre eller fjerne disse regler, men ikke tilføje nye."
+  "You can change or remove these rules, but not add new ones.": "Du kan ændre eller fjerne disse regler, men ikke tilføje nye.",
+  "Keep each alert episode's updates in one thread": "Saml opdateringerne for hver advarselsepisode i én tråd",
+  "Keep each alert's updates in one thread": "Saml opdateringerne for hver advarsel i én tråd",
+  "Keep each event's updates in one thread": "Saml opdateringerne for hver begivenhed i én tråd",
+  "Keep each incident episode's updates in one thread": "Saml opdateringerne for hver hændelsesepisode i én tråd",
+  "Keep each incident's updates in one thread": "Saml opdateringerne for hver hændelse i én tråd",
+  "Keeps each alert episode's updates in one thread there.": "Samler der opdateringerne for hver advarselsepisode i én tråd.",
+  "Keeps each alert's updates in one thread there.": "Samler der opdateringerne for hver advarsel i én tråd.",
+  "Keeps each event's updates in one thread there.": "Samler der opdateringerne for hver begivenhed i én tråd.",
+  "Keeps each incident episode's updates in one thread there.": "Samler der opdateringerne for hver hændelsesepisode i én tråd.",
+  "Keeps each incident's updates in one thread there.": "Samler der opdateringerne for hver hændelse i én tråd.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Den første besked starter en tråd. Senere opdateringer er svar i den, og tilstandsændringer og vagtalarmer vises også i kanalen."
 }

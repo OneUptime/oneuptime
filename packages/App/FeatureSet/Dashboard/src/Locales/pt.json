@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Há registros que ainda o têm, por isso não é possível excluí-lo. Pode continuar arquivado.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} ignorados: {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} ignorado: {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Você pode alterar ou remover estas regras, mas não adicionar novas."
+  "You can change or remove these rules, but not add new ones.": "Você pode alterar ou remover estas regras, mas não adicionar novas.",
+  "Keep each alert episode's updates in one thread": "Agrupar as atualizações de cada episódio de alerta em uma thread",
+  "Keep each alert's updates in one thread": "Agrupar as atualizações de cada alerta em uma thread",
+  "Keep each event's updates in one thread": "Agrupar as atualizações de cada evento em uma thread",
+  "Keep each incident episode's updates in one thread": "Agrupar as atualizações de cada episódio de incidente em uma thread",
+  "Keep each incident's updates in one thread": "Agrupar as atualizações de cada incidente em uma thread",
+  "Keeps each alert episode's updates in one thread there.": "Ali, agrupa as atualizações de cada episódio de alerta em uma thread.",
+  "Keeps each alert's updates in one thread there.": "Ali, agrupa as atualizações de cada alerta em uma thread.",
+  "Keeps each event's updates in one thread there.": "Ali, agrupa as atualizações de cada evento em uma thread.",
+  "Keeps each incident episode's updates in one thread there.": "Ali, agrupa as atualizações de cada episódio de incidente em uma thread.",
+  "Keeps each incident's updates in one thread there.": "Ali, agrupa as atualizações de cada incidente em uma thread.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "A primeira mensagem inicia uma thread. As atualizações seguintes são respostas nela, e as mudanças de estado e os alarmes de plantão também aparecem no canal."
 }

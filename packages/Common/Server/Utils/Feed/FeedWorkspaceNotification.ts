@@ -48,6 +48,14 @@ export interface FeedWorkspaceNotification {
    * the post does not say enough (WorkspacePayload text).
    */
   notificationText?: string | undefined;
+  /*
+   * Where a rule keeps the record's messages in one thread
+   * (WorkspaceRecordThreads): the record's created message, which starts
+   * the thread. Set by the feed service from the entry's event type.
+   */
+  startsRecordThread?: boolean | undefined;
+  // ... and one shown in the channel too: a state change.
+  alsoSendToChannel?: boolean | undefined;
 }
 
 /*
@@ -124,6 +132,8 @@ export default class FeedWorkspaceNotificationUtil {
     exceptChannel?: WorkspaceChannelToSkip | undefined;
     authorUserId?: ObjectID | undefined;
     authorApiKeyName?: string | undefined;
+    startsRecordThread?: boolean | undefined;
+    alsoSendToChannel?: boolean | undefined;
   } {
     return {
       sendWorkspaceNotification:
@@ -132,6 +142,8 @@ export default class FeedWorkspaceNotificationUtil {
       exceptChannel: data.workspaceNotification.exceptChannel,
       authorUserId: data.author?.authorUserId,
       authorApiKeyName: data.author?.authorApiKeyName,
+      startsRecordThread: data.workspaceNotification.startsRecordThread,
+      alsoSendToChannel: data.workspaceNotification.alsoSendToChannel,
     };
   }
 }

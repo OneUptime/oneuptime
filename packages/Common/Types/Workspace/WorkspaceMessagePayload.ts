@@ -243,4 +243,18 @@ export default interface WorkspaceMessagePayload {
    * message is in, where it would only repeat it.
    */
   exceptChannelIds?: Array<string> | undefined;
+  /*
+   * Slack: an existing channel whose rule keeps a record's messages in one
+   * thread (BaseNotificationRule.shouldPostUpdatesInThread). Where messages
+   * are sent, the thread is looked up and threadTsByChannelId filled in.
+   */
+  isRecordThread?: boolean | undefined;
+  /*
+   * Slack: post as a reply in the thread of this message (its ts), in the
+   * channel with this id. A channel with no entry is posted to as before:
+   * a message of its own.
+   */
+  threadTsByChannelId?: Record<string, string> | undefined;
+  // Slack: a reply that is shown in the channel as well (reply_broadcast).
+  alsoSendToChannel?: boolean | undefined;
 }

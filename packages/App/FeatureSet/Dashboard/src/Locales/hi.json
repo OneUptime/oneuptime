@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "रिकॉर्ड्स में यह अभी भी है, इसलिए इसे हटाया नहीं जा सकता। यह संग्रहित रह सकता है।",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} छोड़े गए",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} छोड़ा गया",
-  "You can change or remove these rules, but not add new ones.": "आप इन नियमों को बदल या हटा सकते हैं, लेकिन नए नहीं जोड़ सकते।"
+  "You can change or remove these rules, but not add new ones.": "आप इन नियमों को बदल या हटा सकते हैं, लेकिन नए नहीं जोड़ सकते।",
+  "Keep each alert episode's updates in one thread": "हर अलर्ट एपिसोड के अपडेट एक थ्रेड में रखें",
+  "Keep each alert's updates in one thread": "हर अलर्ट के अपडेट एक थ्रेड में रखें",
+  "Keep each event's updates in one thread": "हर इवेंट के अपडेट एक थ्रेड में रखें",
+  "Keep each incident episode's updates in one thread": "हर घटना एपिसोड के अपडेट एक थ्रेड में रखें",
+  "Keep each incident's updates in one thread": "हर घटना के अपडेट एक थ्रेड में रखें",
+  "Keeps each alert episode's updates in one thread there.": "वहाँ हर अलर्ट एपिसोड के अपडेट एक थ्रेड में रखता है।",
+  "Keeps each alert's updates in one thread there.": "वहाँ हर अलर्ट के अपडेट एक थ्रेड में रखता है।",
+  "Keeps each event's updates in one thread there.": "वहाँ हर इवेंट के अपडेट एक थ्रेड में रखता है।",
+  "Keeps each incident episode's updates in one thread there.": "वहाँ हर घटना एपिसोड के अपडेट एक थ्रेड में रखता है।",
+  "Keeps each incident's updates in one thread there.": "वहाँ हर घटना के अपडेट एक थ्रेड में रखता है।",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "पहला संदेश एक थ्रेड शुरू करता है। बाद के अपडेट उसमें जवाब होते हैं, और स्थिति में बदलाव और ऑन-कॉल अलार्म चैनल में भी दिखते हैं।"
 }

@@ -30,6 +30,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 export interface WorkspaceThread {
   channel: WorkspaceChannel;
   threadId: string;
+  /*
+   * The message this one was posted as a reply to (Slack's thread_ts).
+   * Not there for a message of its own in the channel.
+   */
+  parentThreadId?: string | undefined;
 }
 
 export interface WorkspaceSendMessageResponse {
@@ -52,6 +57,11 @@ export interface WorkspaceChannel {
    * into that channel specifically rather than into the parent team.
    */
   membershipType?: string | undefined;
+  /*
+   * An existing channel a matching rule keeps each record's messages in
+   * one thread in (BaseNotificationRule.shouldPostUpdatesInThread).
+   */
+  postsUpdatesInThread?: boolean | undefined;
 }
 
 /*
@@ -224,6 +234,10 @@ export default class WorkspaceBase {
     blocks: Array<JSONObject>;
     // What a notification or a screen reader shows of the message.
     text?: string | undefined;
+    // Posted as a reply in the thread of this message (Slack's thread_ts).
+    threadTs?: string | undefined;
+    // A reply shown in the channel as well (Slack's reply_broadcast).
+    replyBroadcast?: boolean | undefined;
   }): Promise<WorkspaceThread> {
     throw new NotImplementedException();
   }

@@ -474,6 +474,46 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     expect(threadReplySpy.mock.calls[0]![0].threadTs).toBe(THREAD_TS);
   });
 
+  /*
+   * A reply in a thread in a shared channel is no notification of
+   * OneUptime's: the record is the one whose message starts the thread
+   * (WorkspaceReactionNote.resolveResourceForChannel), which Slack tells -
+   * read only when the channel and the message itself name nothing.
+   */
+  test("REGRESSION: the thread the reacted-to message is in is read from Slack, only when asked", async () => {
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+
+    // resolveResourceForChannel is stubbed here: it never asked.
+    const readsBeforeAsking: number = fetchSpy.mock.calls.length;
+
+    const getThreadId: (() => Promise<string | null>) | undefined =
+      resolveSpy.mock.calls[0]![0].getThreadId;
+    expect(getThreadId).toBeDefined();
+    expect(fetchSpy.mock.calls.length).toBe(readsBeforeAsking);
+
+    fetchSpy.mockResolvedValueOnce(slackMessage({ thread_ts: THREAD_TS }));
+    await expect(getThreadId!()).resolves.toBe(THREAD_TS);
+    expect(fetchSpy.mock.calls[readsBeforeAsking]![0]).toEqual({
+      authToken: "xoxb-" + projectId.toString(),
+      channelId: CHANNEL_ID,
+      messageTs: MESSAGE_TS,
+    });
+
+    // A reply that is only a file has no text, and is still in its thread.
+    fetchSpy.mockResolvedValueOnce(
+      slackMessage({ text: "", blocks: [], thread_ts: THREAD_TS }),
+    );
+    await expect(getThreadId!()).resolves.toBe(THREAD_TS);
+
+    // In no thread, gone, or unreadable: no thread.
+    fetchSpy.mockResolvedValueOnce(slackMessage());
+    await expect(getThreadId!()).resolves.toBeNull();
+    fetchSpy.mockResolvedValueOnce(null);
+    await expect(getThreadId!()).resolves.toBeNull();
+    fetchSpy.mockRejectedValueOnce(new Error("channel_not_found"));
+    await expect(getThreadId!()).resolves.toBeNull();
+  });
+
   test("REGRESSION: a Slack workspace connected to several projects finds the channel in the right one", async () => {
     projectAuthFindSpy.mockResolvedValue([
       projectAuth(projectId),
@@ -494,6 +534,8 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
       workspaceType: WorkspaceType.Slack,
       channelId: CHANNEL_ID,
       messageId: MESSAGE_TS,
+      // Read from Slack only when asked (the thread the message is in).
+      getThreadId: expect.any(Function),
       resourceTypes: undefined,
     });
 

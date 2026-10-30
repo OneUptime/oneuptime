@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den fortfarande, så den kan inte tas bort. Den kan förbli arkiverad.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} överhoppade",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} överhoppad",
-  "You can change or remove these rules, but not add new ones.": "Du kan ändra eller ta bort de här reglerna, men inte lägga till nya."
+  "You can change or remove these rules, but not add new ones.": "Du kan ändra eller ta bort de här reglerna, men inte lägga till nya.",
+  "Keep each alert episode's updates in one thread": "Samla uppdateringarna för varje larmepisod i en tråd",
+  "Keep each alert's updates in one thread": "Samla uppdateringarna för varje larm i en tråd",
+  "Keep each event's updates in one thread": "Samla uppdateringarna för varje händelse i en tråd",
+  "Keep each incident episode's updates in one thread": "Samla uppdateringarna för varje incidentepisod i en tråd",
+  "Keep each incident's updates in one thread": "Samla uppdateringarna för varje incident i en tråd",
+  "Keeps each alert episode's updates in one thread there.": "Samlar där uppdateringarna för varje larmepisod i en tråd.",
+  "Keeps each alert's updates in one thread there.": "Samlar där uppdateringarna för varje larm i en tråd.",
+  "Keeps each event's updates in one thread there.": "Samlar där uppdateringarna för varje händelse i en tråd.",
+  "Keeps each incident episode's updates in one thread there.": "Samlar där uppdateringarna för varje incidentepisod i en tråd.",
+  "Keeps each incident's updates in one thread there.": "Samlar där uppdateringarna för varje incident i en tråd.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Det första meddelandet startar en tråd. Senare uppdateringar är svar i den, och tillståndsändringar och jourlarm visas även i kanalen."
 }

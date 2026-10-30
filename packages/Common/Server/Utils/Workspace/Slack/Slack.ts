@@ -1911,6 +1911,13 @@ export default class SlackUtil extends WorkspaceBase {
           }
         }
 
+        // A reply in a record's thread here (WorkspaceRecordThreads).
+        const threadTs: string | undefined =
+          data.workspaceMessagePayload.threadTsByChannelId?.[channel.id];
+        const replyBroadcast: boolean = Boolean(
+          threadTs && data.workspaceMessagePayload.alsoSendToChannel,
+        );
+
         let lastThread: WorkspaceThread | undefined;
 
         try {
@@ -1919,6 +1926,8 @@ export default class SlackUtil extends WorkspaceBase {
             workspaceChannel: channel,
             blocks: blocks,
             text: data.workspaceMessagePayload.text,
+            threadTs: threadTs,
+            replyBroadcast: replyBroadcast,
           });
         } catch (error) {
           /*
@@ -1945,6 +1954,8 @@ export default class SlackUtil extends WorkspaceBase {
             workspaceChannel: channel,
             blocks: blocksWithoutImages,
             text: data.workspaceMessagePayload.text,
+            threadTs: threadTs,
+            replyBroadcast: replyBroadcast,
           });
         }
 
@@ -1977,7 +1988,9 @@ export default class SlackUtil extends WorkspaceBase {
 
   /*
    * Posts the blocks to the channel: in one message, or in several of at
-   * most MAX_BLOCKS_PER_MESSAGE blocks each. The last one's thread.
+   * most MAX_BLOCKS_PER_MESSAGE blocks each. The last one's thread. In a
+   * thread (threadTs), every part is a reply there, and only the first is
+   * shown in the channel too (replyBroadcast).
    */
   private static async sendBlocksToChannel(data: {
     authToken: string;
@@ -1985,6 +1998,8 @@ export default class SlackUtil extends WorkspaceBase {
     blocks: Array<JSONObject>;
     // What each message's notification shows (WorkspaceMessagePayload.text).
     text?: string | undefined;
+    threadTs?: string | undefined;
+    replyBroadcast?: boolean | undefined;
   }): Promise<WorkspaceThread | undefined> {
     const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
 
@@ -2004,6 +2019,8 @@ export default class SlackUtil extends WorkspaceBase {
         workspaceChannel: data.workspaceChannel,
         blocks: data.blocks.slice(index, index + maxBlocksPerMessage),
         text: data.text,
+        threadTs: data.threadTs,
+        replyBroadcast: index === 0 ? data.replyBroadcast : false,
       });
     }
 
@@ -2020,6 +2037,10 @@ export default class SlackUtil extends WorkspaceBase {
      * reader shows of the blocks (Slack's top-level `text`).
      */
     text?: string | undefined;
+    // Posted as a reply in the thread of this message (thread_ts).
+    threadTs?: string | undefined;
+    // A reply shown in the channel as well (reply_broadcast).
+    replyBroadcast?: boolean | undefined;
   }): Promise<WorkspaceThread> {
     const payloadBlocksLogAttributes: LogAttributes = {
       channelId: data.workspaceChannel?.id,
@@ -2039,6 +2060,14 @@ export default class SlackUtil extends WorkspaceBase {
 
     if (data.text) {
       requestData["text"] = this.getNotificationText(data.text);
+    }
+
+    if (data.threadTs) {
+      requestData["thread_ts"] = data.threadTs;
+
+      if (data.replyBroadcast) {
+        requestData["reply_broadcast"] = true;
+      }
     }
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -2090,6 +2119,7 @@ export default class SlackUtil extends WorkspaceBase {
     return {
       channel: data.workspaceChannel,
       threadId: (response.jsonData as JSONObject)["ts"] as string,
+      ...(data.threadTs ? { parentThreadId: data.threadTs } : {}),
     };
   }
 

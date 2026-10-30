@@ -238,6 +238,32 @@ export default class SlackReactionNoteActions {
         workspaceType: WorkspaceType.Slack,
         channelId: channelId,
         messageId: messageTs,
+        getThreadId: async (): Promise<string | null> => {
+          /*
+           * Read as Slack has it: a reply that is only a file has no text,
+           * but still a thread.
+           */
+          try {
+            return (
+              ((
+                await SlackUtil.getMessage({
+                  authToken: projectAuths[0]!.authToken!,
+                  channelId: channelId,
+                  messageTs: messageTs,
+                })
+              )?.["thread_ts"] as string | undefined) || null
+            );
+          } catch (err) {
+            logger.debug(
+              "Could not read the thread of the reacted-to message.",
+              {
+                channelId: channelId,
+              },
+            );
+            logger.debug(err);
+            return null;
+          }
+        },
         resourceTypes: data.resourceTypes,
       });
 

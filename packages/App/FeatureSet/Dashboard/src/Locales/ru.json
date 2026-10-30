@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Его всё ещё используют записи, поэтому удалить его нельзя. Оно может оставаться в архиве.",
   "{{count}} {{itemsName}} skipped": "Пропущено: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} skipped_one": "Пропущено: {{count}} ({{itemName}})",
-  "You can change or remove these rules, but not add new ones.": "Эти правила можно изменить или удалить, но нельзя добавить новые."
+  "You can change or remove these rules, but not add new ones.": "Эти правила можно изменить или удалить, но нельзя добавить новые.",
+  "Keep each alert episode's updates in one thread": "Собирать обновления каждого эпизода оповещения в один тред",
+  "Keep each alert's updates in one thread": "Собирать обновления каждого оповещения в один тред",
+  "Keep each event's updates in one thread": "Собирать обновления каждого события в один тред",
+  "Keep each incident episode's updates in one thread": "Собирать обновления каждого эпизода инцидента в один тред",
+  "Keep each incident's updates in one thread": "Собирать обновления каждого инцидента в один тред",
+  "Keeps each alert episode's updates in one thread there.": "Собирает там обновления каждого эпизода оповещения в один тред.",
+  "Keeps each alert's updates in one thread there.": "Собирает там обновления каждого оповещения в один тред.",
+  "Keeps each event's updates in one thread there.": "Собирает там обновления каждого события в один тред.",
+  "Keeps each incident episode's updates in one thread there.": "Собирает там обновления каждого эпизода инцидента в один тред.",
+  "Keeps each incident's updates in one thread there.": "Собирает там обновления каждого инцидента в один тред.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Первое сообщение начинает тред. Следующие обновления — ответы в нём, а смены состояния и тревоги дежурства видны и в канале."
 }

@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "レコードでまだ使われているため、削除できません。アーカイブしたままにできます。",
   "{{count}} {{itemsName}} skipped": "{{itemsName}}: {{count}} 件スキップ",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}}: {{count}} 件スキップ",
-  "You can change or remove these rules, but not add new ones.": "これらのルールの変更や削除はできますが、新しいルールは追加できません。"
+  "You can change or remove these rules, but not add new ones.": "これらのルールの変更や削除はできますが、新しいルールは追加できません。",
+  "Keep each alert episode's updates in one thread": "アラートエピソードごとの更新を1つのスレッドにまとめる",
+  "Keep each alert's updates in one thread": "アラートごとの更新を1つのスレッドにまとめる",
+  "Keep each event's updates in one thread": "イベントごとの更新を1つのスレッドにまとめる",
+  "Keep each incident episode's updates in one thread": "インシデントエピソードごとの更新を1つのスレッドにまとめる",
+  "Keep each incident's updates in one thread": "インシデントごとの更新を1つのスレッドにまとめる",
+  "Keeps each alert episode's updates in one thread there.": "そこでアラートエピソードごとの更新を1つのスレッドにまとめます。",
+  "Keeps each alert's updates in one thread there.": "そこでアラートごとの更新を1つのスレッドにまとめます。",
+  "Keeps each event's updates in one thread there.": "そこでイベントごとの更新を1つのスレッドにまとめます。",
+  "Keeps each incident episode's updates in one thread there.": "そこでインシデントエピソードごとの更新を1つのスレッドにまとめます。",
+  "Keeps each incident's updates in one thread there.": "そこでインシデントごとの更新を1つのスレッドにまとめます。",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "最初のメッセージがスレッドを開始します。以降の更新はそのスレッドへの返信になり、状態の変更とオンコールのアラームはチャネルにも表示されます。"
 }

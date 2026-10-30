@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Records hebben het nog, dus het kan niet worden verwijderd. Het kan gearchiveerd blijven.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} overgeslagen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} overgeslagen",
-  "You can change or remove these rules, but not add new ones.": "U kunt deze regels wijzigen of verwijderen, maar geen nieuwe toevoegen."
+  "You can change or remove these rules, but not add new ones.": "U kunt deze regels wijzigen of verwijderen, maar geen nieuwe toevoegen.",
+  "Keep each alert episode's updates in one thread": "Updates van elke waarschuwingsepisode in één thread bundelen",
+  "Keep each alert's updates in one thread": "Updates van elke waarschuwing in één thread bundelen",
+  "Keep each event's updates in one thread": "Updates van elk evenement in één thread bundelen",
+  "Keep each incident episode's updates in one thread": "Updates van elke incidentepisode in één thread bundelen",
+  "Keep each incident's updates in one thread": "Updates van elk incident in één thread bundelen",
+  "Keeps each alert episode's updates in one thread there.": "Bundelt daar de updates van elke waarschuwingsepisode in één thread.",
+  "Keeps each alert's updates in one thread there.": "Bundelt daar de updates van elke waarschuwing in één thread.",
+  "Keeps each event's updates in one thread there.": "Bundelt daar de updates van elk evenement in één thread.",
+  "Keeps each incident episode's updates in one thread there.": "Bundelt daar de updates van elke incidentepisode in één thread.",
+  "Keeps each incident's updates in one thread there.": "Bundelt daar de updates van elk incident in één thread.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Het eerste bericht start een thread. Latere updates zijn antwoorden daarin, en statuswijzigingen en bereikbaarheidsalarmen verschijnen ook in het kanaal."
 }
