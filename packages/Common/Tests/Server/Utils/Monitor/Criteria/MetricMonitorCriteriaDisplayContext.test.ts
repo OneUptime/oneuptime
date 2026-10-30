@@ -50,7 +50,7 @@ function textOf(markdown: MarkdownText | null): string | null {
  * WHAT THE CRITERIA HANDS THE EMAIL ABOUT A RATIO FORMULA.
  *
  * The shipped Kubernetes ratio templates ("High Node Memory Utilization":
- * k8s.node.memory.usage ÷ k8s.node.allocatable_memory × 100, grouped by
+ * k8s.node.memory.working_set ÷ k8s.node.allocatable_memory × 100, grouped by
  * node) evaluate a FORMULA. Three facts about it used to be lost between
  * MetricMonitorCriteria and the rendered alert:
  *
@@ -235,7 +235,7 @@ function workerResponse(input: {
  * What the exporters declare for the two metrics: bytes, in UCUM.
  */
 const DECLARED_UNITS: Dictionary<string> = {
-  "k8s.node.memory.usage": "By",
+  "k8s.node.memory.working_set": "By",
   "k8s.node.allocatable_memory": "By",
 };
 
@@ -335,7 +335,7 @@ describe("MetricMonitorCriteria context.displayName", () => {
 
     expect(context.displayName).toBeUndefined();
     expect(Object.keys(context)).not.toContain("displayName");
-    expect(context.metricName).toBe("k8s.node.memory.usage");
+    expect(context.metricName).toBe("k8s.node.memory.working_set");
   });
 
   test("a query with a real legend carries it", async () => {
@@ -562,7 +562,7 @@ describe("MetricMonitorCriteria formula components' units", () => {
     expect(componentsFor(results)).toEqual([
       {
         alias: "used_mem",
-        name: "k8s.node.memory.usage",
+        name: "k8s.node.memory.working_set",
         unit: "By",
         isFormula: false,
       },
@@ -583,7 +583,10 @@ describe("MetricMonitorCriteria formula components' units", () => {
     const nativeUnits: Dictionary<string> =
       PlatformMetricUnitUtil.buildUnitsByMetricName({
         platform: "kubernetes",
-        metricNames: ["k8s.node.memory.usage", "k8s.node.allocatable_memory"],
+        metricNames: [
+          "k8s.node.memory.working_set",
+          "k8s.node.allocatable_memory",
+        ],
         declaredUnitsByMetricName: new Map<string, string>(
           Object.entries(DECLARED_UNITS),
         ),
@@ -630,7 +633,7 @@ describe("MetricMonitorCriteria formula components' units", () => {
   test("the native-unit map is keyed by the lowercased metric name", async () => {
     const viewConfig: MetricsViewConfig = templateViewConfig();
     viewConfig.queryConfigs[0]!.metricQueryData.filterData.metricName =
-      "K8s.Node.Memory.Usage";
+      "K8s.Node.Memory.Working_Set";
 
     const results: Array<MetricSeriesEvaluationResult> = await evaluate({
       criteriaFilter: criteria({ alias: FORMULA_ALIAS, value: 85 }),
@@ -643,7 +646,7 @@ describe("MetricMonitorCriteria formula components' units", () => {
 
     expect(componentsFor(results)[0]).toEqual({
       alias: "used_mem",
-      name: "K8s.Node.Memory.Usage",
+      name: "K8s.Node.Memory.Working_Set",
       unit: "By",
       isFormula: false,
     });
@@ -776,7 +779,7 @@ describe("MonitorCriteriaEvaluator metric root cause for a ratio formula", () =>
     expect(text).toContain(
       [
         "- Components:",
-        "  - `used_mem` = `k8s.node.memory.usage` — unit: Bytes",
+        "  - `used_mem` = `k8s.node.memory.working_set` — unit: Bytes",
         "  - `alloc_mem` = `k8s.node.allocatable_memory` — unit: Bytes",
       ].join("\n"),
     );
@@ -788,7 +791,10 @@ describe("MonitorCriteriaEvaluator metric root cause for a ratio formula", () =>
     const text: string = await renderedHotNode(
       PlatformMetricUnitUtil.buildUnitsByMetricName({
         platform: "kubernetes",
-        metricNames: ["k8s.node.memory.usage", "k8s.node.allocatable_memory"],
+        metricNames: [
+          "k8s.node.memory.working_set",
+          "k8s.node.allocatable_memory",
+        ],
         declaredUnitsByMetricName: new Map<string, string>(
           Object.entries(DECLARED_UNITS),
         ),
@@ -796,7 +802,7 @@ describe("MonitorCriteriaEvaluator metric root cause for a ratio formula", () =>
     );
 
     expect(text).toContain(
-      "  - `used_mem` = `k8s.node.memory.usage` — unit: Bytes",
+      "  - `used_mem` = `k8s.node.memory.working_set` — unit: Bytes",
     );
     expect(text).toContain(
       "  - `alloc_mem` = `k8s.node.allocatable_memory` — unit: Bytes",
@@ -840,7 +846,7 @@ describe("MonitorCriteriaEvaluator metric root cause for a ratio formula", () =>
      * The control for the fallback above: this is the email the native
      * unit fixes — bare bytes under a percentage.
      */
-    expect(text).toContain("  - `used_mem` = `k8s.node.memory.usage`\n");
+    expect(text).toContain("  - `used_mem` = `k8s.node.memory.working_set`\n");
     expect(sampleItemLines(text, TIMESTAMPS[2]!)).toContain(
       "   - `used_mem`: 228943289000",
     );
