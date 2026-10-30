@@ -4,7 +4,7 @@ Un monitor de cabina de almacenamiento vigila una cabina de almacenamiento y le 
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-cabina-de-almacenamiento): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-predefinidas): Dieciocho alertas listas para usar, un incidente por volumen, host o componente.
+- [Plantillas](#plantillas-de-alerta-predefinidas): Veinte alertas listas para usar, un incidente por volumen, host o componente.
 - [Cómo funcionan las series de Pure](#cómo-están-construidas-las-series-de-pure): Un nombre de métrica, muchos valores.
 - [Métricas](#métricas-recogidas): Cada serie sobre la que el monitor puede alertar.
 :::
@@ -109,7 +109,7 @@ En los filtros del monitor y en las claves de agrupación, los atributos del age
 
 ## Plantillas de alerta predefinidas
 
-OneUptime incluye 18 plantillas — 11 para FlashArray y 7 para FlashBlade — y **Quick Setup** ofrece las de la plataforma de la cabina. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de etiquetas, una agrupación por la etiqueta propia del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+OneUptime incluye 20 plantillas — 12 para FlashArray y 8 para FlashBlade — y **Quick Setup** ofrece las de la plataforma de la cabina. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de etiquetas, una agrupación por la etiqueta propia del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo dispara cuando la condición se cumple para **cada** valor de su ventana. Un monitor que disparó por un umbral de capacidad, latencia, retraso o ratio solo se recupera un 10 % más allá, así que un valor que oscila alrededor del umbral no parpadea; las plantillas de alertas y de hardware se recuperan en cuanto desaparece el estado.
 
@@ -117,6 +117,7 @@ Un criterio solo dispara cuando la condición se cumple para **cada** valor de s
 
 | Plantilla                      | Categoría    | Gravedad    | Vigila                                                                                          | Dispara cuando                                                                                                                                   |
 | ------------------------------ | ------------ | ----------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Array Stopped Reporting        | Disponibilidad | Crítico     | `purefa_info`, Count, últimos 10 minutos                                                        | Sin datos durante toda la ventana — el Storage Array Agent se detuvo, perdió su conexión con OneUptime o le revocaron el token, o la cabina dejó de responderle; se recupera cuando vuelven a llegar datos |
 | Critical Array Alert           | Array Health | Crítico     | `purefa_alerts_open` filtrada a `severity=critical`, Max por `summary`, últimos 5 minutos       | > 0 — la cabina tiene una alerta crítica abierta (un componente averiado, una emergencia de capacidad, un fallo de replicación). Un incidente por alerta; se recupera cuando la alerta se cierra |
 | Warning Array Alert            | Array Health | Advertencia | `purefa_alerts_open` filtrada a `severity=warning`, Max por `summary`, últimos 5 minutos        | > 0 — la cabina tiene una alerta de advertencia abierta. Un incidente por alerta; se recupera cuando la alerta se cierra                          |
 | Capacity Above 80%             | Capacidad    | Advertencia | `purefa_array_space_utilization`, Max, últimos 15 minutos                                       | > 80 — el primer umbral de capacidad del propio Pure; se recupera en ≤ 72                                                                        |
@@ -133,6 +134,7 @@ Un criterio solo dispara cuando la condición se cumple para **cada** valor de s
 
 | Plantilla                    | Categoría    | Gravedad    | Vigila                                                                                                         | Dispara cuando                                                                                                      |
 | ---------------------------- | ------------ | ----------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Array Stopped Reporting      | Disponibilidad | Crítico     | `purefb_info`, Count, últimos 10 minutos                                                                       | Sin datos durante toda la ventana — el agente, su exportador o el FlashBlade dejó de responder; se recupera cuando vuelven a llegar datos |
 | Critical Array Alert         | Array Health | Crítico     | `purefb_alerts_open` filtrada a `severity=critical`, Max por `summary`, últimos 5 minutos                      | > 0 — el FlashBlade tiene una alerta crítica abierta. Un incidente por alerta; se recupera cuando la alerta se cierra |
 | Warning Array Alert          | Array Health | Advertencia | `purefb_alerts_open` filtrada a `severity=warning`, Max por `summary`, últimos 5 minutos                       | > 0 — el FlashBlade tiene una alerta de advertencia abierta. Un incidente por alerta; se recupera cuando la alerta se cierra |
 | Capacity Above 80%           | Capacidad    | Advertencia | `purefb_array_space_utilization` filtrada a `type=array`, Max, últimos 15 minutos                              | > 80; se recupera en ≤ 72                                                                                           |
@@ -143,6 +145,7 @@ Un criterio solo dispara cuando la condición se cumple para **cada** valor de s
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan en la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en el criterio.
 
+- **Array Stopped Reporting** cuenta la serie de identidad de la plataforma (`purefa_info` o `purefb_info`), que cada endpoint que lee el agente exporta en cada lectura. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **Las alertas abiertas y los estados de hardware usan Max** de una serie que solo existe mientras la alerta está abierta o el componente está en ese estado, así que una sola lectura que la muestre supera el umbral.
 - **Cada plantilla por objeto agrupa por la etiqueta propia del objeto** (`summary`, `component_name`, `host`, `local_pod`, `name`), así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra.
 - **Las plantillas de latencia usan Avg** del promedio por operación que calcula la propia cabina, y las de capacidad **Max** de su propio porcentaje de utilización. Las latencias se fijan en microsegundos y la capacidad en porcentaje.

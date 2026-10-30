@@ -266,7 +266,32 @@ function capacityTemplate(
   };
 }
 
+// The heartbeat: the platform's identity series, counted over the whole array.
+function stoppedReportingTemplate(
+  id: string,
+  system: StorageSystem,
+): TemplateExpectation {
+  return {
+    id,
+    system,
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Count,
+    alias: "samples_received",
+    metricName: system === FA ? "purefa_info" : "purefb_info",
+    attributes: {},
+    groupBy: null,
+    // A count is never negative: this fires only through its no-data policy.
+    fire: { filterType: FilterType.LessThan, value: 0 },
+    recoverFilterType: FilterType.GreaterThanOrEqualTo,
+    treatNoDataAsZero: false,
+  };
+}
+
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
+  stoppedReportingTemplate("purefa-array-stopped-reporting", FA),
+  stoppedReportingTemplate("purefb-array-stopped-reporting", FB),
   alertTemplate("purefa-critical-alerts", FA, "critical"),
   alertTemplate("purefa-warning-alerts", FA, "warning"),
   capacityTemplate("purefa-capacity-high", FA, 80),
@@ -521,6 +546,24 @@ const TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
     },
   );
 
+/*
+ * The heartbeats, one per platform: they count the platform's identity
+ * series over the whole array (no object, no filter, no group-by) and fire
+ * only on an empty window, so the per-object invariants below run over
+ * every OTHER template and the heartbeats have their own suite.
+ */
+const STOPPED_REPORTING_IDS: Array<string> = [
+  "purefa-array-stopped-reporting",
+  "purefb-array-stopped-reporting",
+];
+
+const PER_OBJECT_TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
+  TEMPLATE_CASES.filter(
+    (templateCase: [string, StorageArrayAlertTemplate]): boolean => {
+      return !STOPPED_REPORTING_IDS.includes(templateCase[0]);
+    },
+  );
+
 describe("StorageArrayAlertTemplates - registry", () => {
   test("template ids are unique and match the expectation table exactly", () => {
     const ids: Array<string> = ALL_TEMPLATES.map(
@@ -536,10 +579,16 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("ships eighteen templates: eleven FlashArray, seven FlashBlade", () => {
-    expect(ALL_TEMPLATES).toHaveLength(18);
-    expect(getStorageArrayAlertTemplatesForSystem(FA)).toHaveLength(11);
-    expect(getStorageArrayAlertTemplatesForSystem(FB)).toHaveLength(7);
+  test("ships twenty templates: twelve FlashArray, eight FlashBlade, each led by its heartbeat", () => {
+    expect(ALL_TEMPLATES).toHaveLength(20);
+    expect(getStorageArrayAlertTemplatesForSystem(FA)).toHaveLength(12);
+    expect(getStorageArrayAlertTemplatesForSystem(FB)).toHaveLength(8);
+    expect(getStorageArrayAlertTemplatesForSystem(FA)[0]!.id).toBe(
+      "purefa-array-stopped-reporting",
+    );
+    expect(getStorageArrayAlertTemplatesForSystem(FB)[0]!.id).toBe(
+      "purefb-array-stopped-reporting",
+    );
   });
 
   test("every template id carries its platform's prefix", () => {
@@ -577,6 +626,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
 
   test("getStorageArrayAlertTemplatesByCategory partitions the registry", () => {
     const categories: Array<StorageArrayAlertTemplateCategory> = [
+      "Availability",
       "Array Health",
       "Capacity",
       "Performance",
@@ -775,7 +825,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     },
   );
 
-  test.each(TEMPLATE_CASES)(
+  test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s reads a catalog metric of its own platform, and the entry means exactly the template's filter",
     (_id: string, template: StorageArrayAlertTemplate) => {
       for (const queryConfig of queryConfigsOf(
@@ -813,7 +863,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     },
   );
 
-  test.each(TEMPLATE_CASES)(
+  test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s filters only on bare labels its series carries, with values the exporter emits",
     (_id: string, template: StorageArrayAlertTemplate) => {
       for (const queryConfig of queryConfigsOf(
@@ -840,7 +890,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     },
   );
 
-  test.each(TEMPLATE_CASES)(
+  test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s groups by the label naming the object its metric describes",
     (_id: string, template: StorageArrayAlertTemplate) => {
       const step: MonitorStep = template.getMonitorStep(buildArgs());
@@ -947,7 +997,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     },
   );
 
-  test.each(TEMPLATE_CASES)(
+  test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s treats missing data as healthy exactly when its series carries the state in a label",
     (_id: string, template: StorageArrayAlertTemplate) => {
       /*
@@ -993,7 +1043,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     },
   );
 
-  test.each(TEMPLATE_CASES)(
+  test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s fires on a breached window and recovers on a healthy one",
     (_id: string, template: StorageArrayAlertTemplate) => {
       const expectation: TemplateExpectation = EXPECTED_TEMPLATES.find(
@@ -1021,7 +1071,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     },
   );
 
-  test.each(TEMPLATE_CASES)(
+  test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s titles itself as a storage array alert and says where to look",
     (_id: string, template: StorageArrayAlertTemplate) => {
       const step: MonitorStep = template.getMonitorStep(buildArgs());

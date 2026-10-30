@@ -4,7 +4,7 @@ Un monitor de Ceph vigila un clúster de Ceph —su salud, sus health checks, el
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-ceph): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-predefinidas): 23 alertas listas para salud, OSD, placement groups y capacidad.
+- [Plantillas](#plantillas-de-alerta-predefinidas): 24 alertas listas para un clúster silencioso, salud, OSD, placement groups y capacidad.
 - [Health checks](#series-de-health-checks): Alertar sobre cualquier health check de Ceph por su nombre.
 - [Métricas](#métricas-recopiladas): Cada serie `ceph_*` sobre la que el monitor puede alertar.
 :::
@@ -99,9 +99,17 @@ Las series de datos de los pools solo llevan la etiqueta `pool_id`: el nombre de
 
 ## Plantillas de alerta predefinidas
 
-**Quick Setup** ofrece 23 plantillas que cubren la salud del clúster, los OSD, los placement groups y la capacidad. Cada una crea un monitor completo: consultas, filtros de etiquetas, una agrupación, un criterio que dispara y otro que recupera. Los umbrales son un punto de partida que puedes editar.
+**Quick Setup** ofrece 24 plantillas que cubren un clúster silencioso, la salud del clúster, los OSD, los placement groups y la capacidad. Cada una crea un monitor completo: consultas, filtros de etiquetas, una agrupación, un criterio que dispara y otro que recupera. Los umbrales son un punto de partida que puedes editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un criterio solo dispara si la condición se cumple en cada minuto de su ventana, y un criterio con umbral se recupera un 10 % más allá de su umbral, para que un valor que ronda la línea no oscile. **Gravedad** es la etiqueta que muestra el selector; el incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de tu proyecto.
+
+### Plantillas de disponibilidad
+
+| Plantilla | Gravedad | Vigila | Dispara cuando | Se recupera cuando |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `ceph_health_status`, Count, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
+
+**Cluster Stopped Reporting** dispara cuando no llega nada del clúster durante diez minutos: el agente de Ceph se detuvo, perdió su conexión con OneUptime o le revocaron el token, o ningún mgr sirve el módulo `prometheus`. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, y las plantillas de health checks leen un clúster silencioso como uno sano, así que esta es la que te avisa.
 
 ### Plantillas de salud del clúster
 

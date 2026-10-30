@@ -4,7 +4,7 @@ Een VMware-monitor houdt één vCenter in de gaten - de datacenters, clusters, E
 
 :::cards
 - [De monitor maken](#een-vmware-monitor-maken): Zes stappen in het dashboard.
-- [Templates](#kant-en-klare-waarschuwingstemplates): Drieëntwintig kant-en-klare waarschuwingen, één incident per host, VM of datastore.
+- [Templates](#kant-en-klare-waarschuwingstemplates): Vierentwintig kant-en-klare waarschuwingen, één incident per host, VM of datastore.
 - [Identiteitsattributen](#identiteitsattributen): Hoe je één host, VM of datastore aanwijst.
 - [Metrieken](#verzamelde-metrieken): Elke reeks `vcenter.*` waarop de monitor kan waarschuwen.
 :::
@@ -106,12 +106,13 @@ In monitorfilters en groeperingssleutels beginnen resource-attributen met `resou
 
 ## Kant-en-klare waarschuwingstemplates
 
-OneUptime levert 23 templates voor veelvoorkomende VMware-problemen, en **Quick Setup** biedt ze allemaal aan. Elk template bouwt een volledige monitor: de metriekquery, de attribuutfilters, een groepering op het eigen identiteitsattribuut van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+OneUptime levert 24 templates voor veelvoorkomende VMware-problemen, en **Quick Setup** biedt ze allemaal aan. Elk template bouwt een volledige monitor: de metriekquery, de attribuutfilters, een groepering op het eigen identiteitsattribuut van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster, en een drempelcriterium herstelt 10 % voorbij zijn drempel, zodat een waarde die rond de lijn schommelt niet heen en weer springt.
 
 | Template | Categorie | Ernst | Houdt in de gaten | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- | --- |
+| vCenter Stopped Reporting | Beschikbaarheid | Kritiek | `vcenter.datacenter.cpu.limit`, Count over het hele vCenter, **laatste 10 minuten** | Geen gegevens gedurende het hele venster: de agent of probe is gestopt, of het vCenter antwoordt hem niet meer | Er komen weer gegevens binnen |
 | Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Boven 90 %: elke VM op de host concurreert om cores en toont CPU-ready-tijd | Op 81 % of lager |
 | Host Memory Saturation | Host | Warning | `vcenter.host.memory.utilization`, Avg per host | Boven 90 %: de host begint geheugen terug te nemen via ballooning, compressie en swapping | Op 81 % of lager |
 | Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max per host | Boven 50 ms: elke VM waarvan de schijven op dat pad liggen, wacht op opslag. Vereist prestatietellerniveau 3 | Op 45 ms of lager |
@@ -141,7 +142,7 @@ Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 - **Bezettingstemplates gebruiken Avg:** de receiver meldt voor elk object een echt percentage van 0 tot 100, dus het gemiddelde in een minuut is de aanhoudende bezetting.
 - **Latentietemplates gebruiken Max:** de metriek is al de slechtste latentie over de schijven van het object, dus het hoogste monster is het eerlijke.
 - **Tel- en toestandstemplates gebruiken Max**, zodat één verzameling die de toestand toont ze laat afgaan: pakketfouten, ballooning, swapping, rode en gele status, hosts die niet effectief zijn, congestie.
-- **Elk template groepeert op het eigen identiteitsattribuut van het object**, dus er gaat één incident af per getroffen object, en het incident noemt het.
+- **Elk template groepeert op het eigen identiteitsattribuut van het object**, dus er gaat één incident af per getroffen object, en het incident noemt het. De uitzondering is **vCenter Stopped Reporting**, dat het hele vCenter in de gaten houdt: als er geen gegevens meer komen, hebben de andere templates niets om te vergelijken en houden ze hun laatste status, dus dit is het template dat het je laat weten.
 - **Drempels staan vast in hun eenheid** (`%`, `ms`, `us`), zodat ze hun betekenis houden welke eenheid een grafiek ook toont.
 
 ## Verzamelde metrieken

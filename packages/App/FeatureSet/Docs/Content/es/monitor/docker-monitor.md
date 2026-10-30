@@ -4,7 +4,7 @@ Un monitor de Docker vigila los contenedores de un host de Docker y le avisa cua
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-docker): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Seis alertas listas para usar, un incidente por contenedor.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Siete alertas listas para usar, un incidente por contenedor.
 - [Métricas](#métricas-recopiladas): Qué recopila el agente y qué significa cada métrica.
 - [Registros](#registros-recopilados): Los registros de los contenedores y el controlador de registro que necesitan.
 :::
@@ -84,20 +84,24 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta agrupada por `resource.container.name`, un criterio que se dispara y otro que se recupera. Cada contenedor se juzga por separado, así que un contenedor ocupado no oculta a otro, y cada contenedor que supera el umbral recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece siete plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Host Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada contenedor se juzga por separado, un contenedor ocupado no oculta a otro, y cada contenedor que supera el umbral recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del host, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | High Container CPU Usage | Advertencia | `container.cpu.utilization`, Max por contenedor, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Container Memory Usage | Advertencia | `container.memory.percent`, Max por contenedor, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
 | Container Restart Loop | Crítico | Crecimiento de `container.restarts` por contenedor, últimos 15 minutos | Más de 3 reinicios en la ventana (Suma) | 2,7 o menos |
 | Container CPU Throttling | Advertencia | Crecimiento de `container.cpu.throttling_data.throttled_time` en ms por contenedor, últimos 5 minutos | Más de 1000 ms en la ventana (Suma) | 900 ms o menos |
 | High Container Process Count | Advertencia | `container.pids.count`, Max por contenedor, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
-| Container Down (Low Uptime) | Crítico | `container.uptime`, Min por contenedor, último 1 minuto | Igual a 0 | Por encima de 0 |
+| Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contenedor, último 1 minuto | Menos de 120 segundos | 132 segundos o más |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
+
+> [!NOTE]
+> **Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: el host está caído, o el agente se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa. Un host sin otros contenedores sigue enviando datos, porque el agente se ejecuta como contenedor e informa de los suyos.
 
 > [!NOTE]
 > `container.cpu.utilization` es el número que imprime `docker stats`, promediado en el intervalo de 30 segundos del agente: el 100 % es un núcleo de CPU completo, no todo el host, así que un contenedor que usa dos núcleos marca 200. En un host con varios núcleos, el umbral de 80 es un presupuesto de CPU, no una parte de la máquina.
@@ -106,10 +110,10 @@ Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la cond
 > `container.memory.percent` divide entre el límite de memoria del contenedor cuando hay uno y, si no, entre la memoria total **del host**. Compruebe si el contenedor se inició con `--memory` antes de tratar una superación como una terminación inminente por falta de memoria.
 
 > [!WARNING]
-> `container.restarts` y `container.cpu.throttling_data.throttled_time` solo crecen, así que esas dos plantillas alertan según cuánto crecieron en la ventana: una consulta de Máximo y otra de Mínimo por minuto, restadas mediante una fórmula y sumadas. Con la recopilación del agente cada 30 segundos, eso ve aproximadamente la mitad de la actividad real, y los umbrales ya lo tienen en cuenta. Si sube el `collection_interval` del agente a 60 segundos o más, cada minuto contiene una sola muestra y ambas plantillas dejan de alertar.
+> `container.restarts` y `container.cpu.throttling_data.throttled_time` solo crecen, así que esas dos plantillas alertan según cuánto crecieron en la ventana: una consulta de Máximo y otra de Mínimo por minuto, restadas mediante una fórmula y sumadas. Con la recopilación del agente cada 30 segundos, eso ve aproximadamente la mitad de la actividad real, y los umbrales ya lo tienen en cuenta. Si sube el `collection_interval` del agente a 60 segundos o más, cada minuto contiene una sola muestra y ambas plantillas dejan de alertar. Además, el agente solo muestrea contenedores en ejecución, así que un contenedor que termina en cuanto arranca casi nunca se muestrea: **Container Restarted (Low Uptime)** se dispara en cada reinicio que el agente sí ve.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** no puede detectar un contenedor que se detiene y sigue detenido. El agente solo informa de los contenedores en ejecución, así que un contenedor detenido no envía ningún dato y su tiempo de actividad nunca marca 0. Para un servicio que debe seguir activo, vigile también lo que sirve – por ejemplo con un [monitor de API](/docs/monitor/api-monitor).
+> `container.uptime` solo existe para los contenedores en ejecución. Un contenedor que se detiene y sigue detenido no envía datos, así que **Container Restarted (Low Uptime)** detecta reinicios y nuevos despliegues, no una parada definitiva. Un contenedor pensado para ejecutarse menos de dos minutos permanece en estado de alerta durante toda su vida. Para un servicio que debe seguir activo, vigile también lo que sirve – por ejemplo con un [monitor de API](/docs/monitor/api-monitor).
 
 ## Métricas recopiladas
 
@@ -143,8 +147,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry contra el socket de Do
 
 | Métrica | Descripción |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes leídos de dispositivos de bloques. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes escritos en dispositivos de bloques. |
+| `container.blockio.io_service_bytes_recursive` | Bytes leídos y escritos en cada dispositivo de bloques desde que arrancó el contenedor, separados por `operation` (`read`, `write`). Un contador acumulado. La lista lo ofrece filtrado a lecturas y a escrituras. |
 
 ### Contenedor
 
@@ -154,7 +157,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry contra el socket de Do
 | `container.restarts` | Veces que el contenedor se ha reiniciado desde que se creó. Un contador de toda la vida útil. |
 | `container.pids.count` | Tareas del contenedor. El controlador pids del cgroup cuenta los hilos además de los procesos. |
 
-La lista **Métrica de Docker** también ofrece `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` y los contadores de paquetes de red. La configuración del agente que se distribuye no las activa, así que revise la página **Métricas** del host antes de basarse en ellas. `container.cpu.throttling_data.throttled_periods` no está en la lista; consúltela desde **Avanzado**.
+`container.cpu.throttling_data.throttled_periods` no está en la lista; consúltela desde **Avanzado**.
 
 ## Criterios de monitoreo
 

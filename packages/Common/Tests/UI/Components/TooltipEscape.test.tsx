@@ -672,6 +672,128 @@ describe("inside a menu", () => {
   });
 });
 
+/*
+ * Some components hear keys on the window itself, as the key goes down,
+ * before anything on the page: the playlist player (Escape leaves it) and a
+ * dashboard widget being dragged (Escape drops the drag). A tooltip's
+ * Escape listener is added when its module loads, before any of them, so
+ * the Escape that closed a tooltip never reaches them: one Escape, one
+ * thing done.
+ */
+describe("before the listeners that hear Escape on the window", () => {
+  // A listener added the way those components add theirs.
+  const listenOnWindow: () => {
+    heard: MockFunction;
+    stop: () => void;
+  } = () => {
+    const heard: MockFunction = getJestMockFunction();
+    const listener: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key === "Escape") {
+        heard(event.defaultPrevented);
+      }
+    };
+    window.addEventListener("keydown", listener, true);
+
+    return {
+      heard,
+      stop: (): void => {
+        window.removeEventListener("keydown", listener, true);
+      },
+    };
+  };
+
+  test("one added before the tooltip showed does not hear the Escape that closed it; the next Escape is its own", async () => {
+    const player: ReturnType<typeof listenOnWindow> = listenOnWindow();
+    render(<Copy />);
+
+    fireEvent.mouseEnter(screen.getByTestId("copy"));
+    expect(await tooltipsShown()).toEqual(["Copies the link"]);
+
+    expect(pressEscape()).toBe(false);
+    await noTooltips();
+    expect(player.heard).not.toHaveBeenCalled();
+
+    pressEscape();
+    expect(player.heard.mock.calls).toEqual([[false]]);
+    player.stop();
+  });
+
+  test("the same for a tooltip the keyboard's focus brought up, the focus kept on its trigger", async () => {
+    const player: ReturnType<typeof listenOnWindow> = listenOnWindow();
+    render(<Copy />);
+
+    tabTo(screen.getByTestId("copy"));
+    expect(await tooltipsShown()).toEqual(["Copies the link"]);
+
+    pressEscape();
+    await noTooltips();
+    expect(player.heard).not.toHaveBeenCalled();
+    expect(screen.getByTestId("copy")).toHaveFocus();
+    player.stop();
+  });
+
+  test("one added while the tooltip shows - a drag begun under it - does not hear it either", async () => {
+    render(<Copy />);
+    fireEvent.mouseEnter(screen.getByTestId("copy"));
+    expect(await tooltipsShown()).toEqual(["Copies the link"]);
+
+    const drag: ReturnType<typeof listenOnWindow> = listenOnWindow();
+
+    pressEscape();
+    await noTooltips();
+    expect(drag.heard).not.toHaveBeenCalled();
+    drag.stop();
+  });
+
+  test("with no tooltip open, it hears Escape at once, as before", () => {
+    const player: ReturnType<typeof listenOnWindow> = listenOnWindow();
+    render(<Copy />);
+
+    act(() => {
+      screen.getByTestId("field").focus();
+    });
+    expect(pressEscape()).toBe(true);
+    expect(player.heard.mock.calls).toEqual([[false]]);
+    player.stop();
+  });
+
+  test("a tooltip left behind a dialog closes and lets the Escape through, so the listener hears it too", async () => {
+    const player: ReturnType<typeof listenOnWindow> = listenOnWindow();
+    const onClose: MockFunction = getJestMockFunction();
+    const { rerender } = render(
+      <Tooltip text="Opens the editor">
+        <button type="button" data-testid="edit">
+          Edit
+        </button>
+      </Tooltip>,
+    );
+
+    fireEvent.mouseEnter(screen.getByTestId("edit"));
+    expect(await tooltipsShown()).toEqual(["Opens the editor"]);
+
+    rerender(
+      <>
+        <Tooltip text="Opens the editor">
+          <button type="button" data-testid="edit">
+            Edit
+          </button>
+        </Tooltip>
+        <Modal title="Edit Monitor" onClose={onClose as () => void}>
+          <p>Fields</p>
+        </Modal>
+      </>,
+    );
+
+    pressEscape();
+    await noTooltips();
+    expect(player.heard).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    player.stop();
+  });
+});
+
 describe("which tooltip's Escape is spent", () => {
   test("no dialog or menu open: every trigger is in front", () => {
     render(<button type="button">Alone</button>);

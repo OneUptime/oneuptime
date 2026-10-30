@@ -4,7 +4,7 @@
 
 :::cards
 - [创建监视器](#创建存储阵列监视器): 在仪表板中的六个步骤。
-- [模板](#预置告警模板): 十八个现成的告警，每个卷、主机或组件一个事件。
+- [模板](#预置告警模板): 二十个现成的告警，每个卷、主机或组件一个事件。
 - [Pure 序列的工作方式](#pure-序列的结构): 一个指标名称，多个数值。
 - [指标](#采集的指标): 监视器可以据以告警的每个序列。
 :::
@@ -109,7 +109,7 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 ## 预置告警模板
 
-OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBlade——**Quick Setup** 会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**Quick Setup** 会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
 只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换；告警和硬件模板会在状态消失时立即恢复。
 
@@ -117,6 +117,7 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
 | --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `purefa_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — Storage Array Agent 已停止、失去了通往 OneUptime 的路由或令牌被撤销，或者阵列不再响应它；再次收到数据时恢复 |
 | Critical Array Alert | Array Health | 严重 | `purefa_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的严重告警(组件故障、容量紧急、复制失败)。每个告警一个事件；告警关闭时恢复 |
 | Warning Array Alert | Array Health | Warning | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
 | Capacity Above 80% | 容量 | Warning | `purefa_array_space_utilization`，Max，过去 15 分钟 | > 80 — Pure 自己的第一个容量阈值；≤ 72 时恢复 |
@@ -133,6 +134,7 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
 | --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `purefb_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理、其导出器或 FlashBlade 不再响应；再次收到数据时恢复 |
 | Critical Array Alert | Array Health | 严重 | `purefb_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的严重告警。每个告警一个事件；告警关闭时恢复 |
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
 | Capacity Above 80% | 容量 | Warning | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
@@ -143,6 +145,7 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
 
+- **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`)，代理采集的每个端点在每次采集时都会导出该序列。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **未关闭的告警和硬件状态使用 Max**，因为这类序列只在告警未关闭或组件处于该状态时才存在，所以只要有一次采集显示它，就会越过阈值。
 - **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
 - **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。

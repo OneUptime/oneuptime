@@ -58,7 +58,7 @@ Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gr
 
 ### Pesquisar e filtrar
 
-Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**.
+Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**. **Atribuídas a mim** mostra só as exceções atribuídas a você, e o menu de ordenação ordena a lista por **Visto pela última vez**, **Visto pela primeira vez** ou **Mais eventos**.
 
 ### Abrir uma exceção
 
@@ -96,6 +96,8 @@ Os botões no topo da página da exceção, a página **Configurações** dela e
 **Configurações** mostra quem resolveu ou arquivou a exceção por último, e quando. Os botões dela dizem **Marcar como resolvido** ou **Marcar como não resolvido**, e **Arquivar** ou **Desarquivar**.
 
 Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
+
+**Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez.
 
 ## Classes de erro
 
@@ -137,7 +139,7 @@ A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa
 | **Generate Regression Test** | Adiciona um teste que falha até o bug ser corrigido. |
 | **Melhorar o tratamento de erros** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
 
-Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conectado (no GitHub, GitLab, Forgejo ou Gitea, ou em qualquer servidor Git) e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent).
+Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conectado (no GitHub, GitLab, Forgejo ou Gitea, ou em qualquer servidor Git) e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent). Iniciar uma tarefa exige permissão para editar o repositório em que ela trabalha: quem só pode ler a exceção vê as tarefas dela, mas não pode iniciar nenhuma.
 
 ## Encontrar e corrigir exceções novas ou em alta com IA
 
@@ -180,6 +182,8 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ## Insights de exceções
 
 A aba **Insights** conta suas exceções **Não resolvido**, **Resolvido** e **Arquivado** e sua taxa de resolução, e lista as exceções mais frequentes, os serviços que elas afetam e as vistas mais recentemente.
+
+**Novidades**, no topo da aba, pede à OneUptime AI, com **Resumir com a OneUptime AI**, que resuma as exceções vistas pela primeira vez nas últimas 24 horas e as que voltaram depois de resolvidas: algumas frases sobre todas, depois cada uma em uma linha, a mais urgente primeiro, com um link para a exceção. O resumo é escrito quando você pede e não é guardado, usa os créditos de IA do projeto e não é oferecido enquanto **Habilitar IA** está desligado.
 
 ## Solução de problemas
 

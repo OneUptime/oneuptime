@@ -99,6 +99,30 @@ export function getExceptionIssueBadges(
 }
 
 /*
+ * An exception is assigned to one person or one team, never both: a write
+ * that names one clears the other (TelemetryExceptionService.onBeforeUpdate),
+ * so the list's Assigned to me and the exception's Assignee always agree on
+ * who owns it. A write that names both keeps both as written, and one that
+ * clears one leaves the other alone.
+ */
+export function applyAssignmentChange(data: Record<string, unknown>): void {
+  const isNamed: (value: unknown) => boolean = (value: unknown): boolean => {
+    return value !== undefined && value !== null && value !== "";
+  };
+
+  const user: unknown = data["assignToUserId"];
+  const team: unknown = data["assignToTeamId"];
+
+  if (isNamed(user) && team === undefined) {
+    data["assignToTeamId"] = null;
+  }
+
+  if (isNamed(team) && user === undefined) {
+    data["assignToUserId"] = null;
+  }
+}
+
+/*
  * What resolving or reopening an exception by hand writes besides the switch
  * (TelemetryExceptionService.onBeforeUpdate), on the update's data:
  *

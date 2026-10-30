@@ -519,8 +519,11 @@ export default class PlatformResourceIdentity {
     attributes: JSONObject,
   ): DockerSwarmResourceIdentity {
     /*
-     * Prefixed: the docker_stats receiver puts container identity on the
-     * RESOURCE, so ClickHouse stores `resource.container.name`.
+     * Prefixed, all four: the docker_stats receiver puts container identity
+     * on the RESOURCE, and the Swarm agent copies the task's service label
+     * and stamps its node's name onto that same resource, so ClickHouse
+     * stores `resource.container.name`, `resource.docker.swarm.service.name`
+     * and `resource.docker.swarm.node.name`.
      */
     return {
       containerName: PlatformResourceIdentity.readAttribute(
@@ -533,11 +536,11 @@ export default class PlatformResourceIdentity {
       ),
       nodeName: PlatformResourceIdentity.readAttribute(
         attributes,
-        "docker.swarm.node.name",
+        "resource.docker.swarm.node.name",
       ),
       serviceName: PlatformResourceIdentity.readAttribute(
         attributes,
-        "docker.swarm.service.name",
+        "resource.docker.swarm.service.name",
       ),
     };
   }

@@ -18,6 +18,8 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import CompareCriteria from "../../../Server/Utils/Monitor/Criteria/CompareCriteria";
 import ObjectID from "../../../Types/ObjectID";
+import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
+import { evaluateTemplateCriteria } from "./Utils/TemplateCriteriaEvaluation";
 
 /*
  * These tests lock in the container-alert templates' easy-to-regress
@@ -30,15 +32,14 @@ import ObjectID from "../../../Types/ObjectID";
  *   2. The per-minute aggregation. Container templates deliberately use `Max`
  *      so a SINGLE hot/throttled/forking container trips the threshold instead
  *      of being diluted by averaging across the other containers on the host;
- *      the down/uptime template uses `Min` so a single zero-uptime scrape wins.
+ *      the restarted/uptime template uses `Min` so the youngest scrape wins.
  *
  *   3. The unhealthy and healthy criteria PARTITION the value range — no gap
  *      (a value matching neither leaves the monitor stuck in its previous
  *      status) and no overlap (a value matching both makes the status depend
  *      on evaluation order). The failure mode is a strict/non-strict slip.
- *      The one remaining zero-boundary template (container-down) partitions
- *      the non-negative domain with `= 0` / `> 0`, so it is pinned per case
- *      rather than by a generic complement rule.
+ *      The comparison direction is pinned per case rather than by a generic
+ *      complement rule.
  *
  *   4. The CUMULATIVE-COUNTER templates. `container.restarts` and
  *      `container.cpu.throttling_data.throttled_time` are monotonic LIFETIME
@@ -72,6 +73,23 @@ interface DockerTemplateCase {
 }
 
 const DOCKER_TEMPLATES: Array<DockerTemplateCase> = [
+  {
+    id: "docker-host-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    /*
+     * The heartbeat: the agent's own container reports this every 30s, so
+     * the count is never 0 while the agent runs, and the `< 0` criteria can
+     * only fire through its no-data policy.
+     */
+    metricName: "container.memory.percent",
+    metricAlias: "samples_received",
+    aggregation: MetricsAggregationType.Count,
+    rollingTime: RollingTime.Past10Minutes,
+    offlineFilterType: FilterType.LessThan,
+    onlineFilterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 0,
+  },
   {
     id: "docker-high-cpu",
     category: "Resource",
@@ -160,13 +178,16 @@ const DOCKER_TEMPLATES: Array<DockerTemplateCase> = [
     severity: "Critical",
     metricName: "container.uptime",
     metricAlias: "container_uptime",
-    // A single zero-uptime scrape means the container is down right now.
+    // Min, so the young sample just after a restart survives the bucket.
     aggregation: MetricsAggregationType.Min,
     rollingTime: RollingTime.Past1Minute,
-    // uptime is non-negative: (= 0) unhealthy, (> 0) healthy partitions it.
-    offlineFilterType: FilterType.EqualTo,
-    onlineFilterType: FilterType.GreaterThan,
-    threshold: 0,
+    /*
+     * A LOW uptime, not `= 0`: docker_stats samples running containers
+     * only and never at the instant one starts, so `= 0` was unreachable.
+     */
+    offlineFilterType: FilterType.LessThan,
+    onlineFilterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 120,
   },
 ];
 
@@ -224,6 +245,7 @@ describe("DockerAlertTemplates", () => {
   test("getDockerAlertTemplatesByCategory partitions the catalog by category", () => {
     const all: Array<DockerAlertTemplate> = getAllDockerAlertTemplates();
     const categories: Array<DockerAlertTemplateCategory> = [
+      "Availability",
       "Container",
       "Resource",
       "Host",
@@ -769,5 +791,114 @@ describe("DockerAlertTemplates", () => {
       expect(title.endsWith("-")).toBe(false);
       expect(title.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("DockerAlertTemplates - Container Restarted (Low Uptime)", () => {
+  /*
+   * Regression: this template fired on `container.uptime = 0`. docker_stats
+   * reports running containers only, as seconds since start, and never at
+   * the instant a container starts - so no sample was ever 0 and the
+   * template could not fire. A LOW uptime is the restart.
+   */
+  function evaluateUptime(
+    minuteMinimums: Array<number>,
+  ): Promise<{ breached: boolean; healthy: boolean }> {
+    const step: MonitorStep = getDockerAlertTemplateById(
+      "docker-container-down",
+    )!.getMonitorStep(buildArgs());
+
+    return evaluateTemplateCriteria({
+      step,
+      viewConfig: getDockerMonitor(step).metricViewConfig,
+      samplesByAlias: { container_uptime: minuteMinimums },
+      windowMinutes: 1,
+    });
+  }
+
+  test("fires on the young uptime a restarted container reports", async () => {
+    // The youngest scrape after a restart: the receiver never reads 0.
+    expect(await evaluateUptime([12.5])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+  });
+
+  test("is healthy once the container has been up past the dead band", async () => {
+    expect(await evaluateUptime([86400])).toEqual({
+      breached: false,
+      healthy: true,
+    });
+    // 120 fires no more, but recovery waits for 132 (10% past it).
+    expect(await evaluateUptime([125])).toEqual({
+      breached: false,
+      healthy: false,
+    });
+  });
+
+  test("never compares uptime with exactly zero", () => {
+    const step: MonitorStep = getDockerAlertTemplateById(
+      "docker-container-down",
+    )!.getMonitorStep(buildArgs());
+
+    for (const instance of step.data!.monitorCriteria.data!
+      .monitorCriteriaInstanceArray) {
+      for (const filter of instance.data!.filters) {
+        expect(filter.filterType).not.toBe(FilterType.EqualTo);
+        expect(Number(filter.value)).toBeGreaterThan(0);
+      }
+    }
+
+    expect(getDockerAlertTemplateById("docker-container-down")!.name).toBe(
+      "Container Restarted (Low Uptime)",
+    );
+  });
+});
+
+describe("DockerAlertTemplates - Container Restart Loop (what it can see)", () => {
+  test("counts restarts seen within a minute, summed over the window", async () => {
+    const step: MonitorStep = getDockerAlertTemplateById(
+      "docker-restart-loop",
+    )!.getMonitorStep(buildArgs());
+    const viewConfig: MetricsViewConfig =
+      getDockerMonitor(step).metricViewConfig;
+
+    // Four restarts seen across the window, none of them in the same minute.
+    expect(
+      await evaluateTemplateCriteria({
+        step,
+        viewConfig,
+        samplesByAlias: {
+          container_restarts_max: [0, 1, 1, 2, 3, 3, 4],
+          container_restarts_min: [0, 0, 1, 1, 2, 3, 3],
+        },
+        windowMinutes: 15,
+      }),
+    ).toEqual({ breached: true, healthy: false });
+
+    /*
+     * A container sampled once a minute: every bucket's max equals its min,
+     * so its growth between minutes is not seen. The template says so.
+     */
+    expect(
+      await evaluateTemplateCriteria({
+        step,
+        viewConfig,
+        samplesByAlias: {
+          container_restarts_max: [10, 12, 14, 16, 18],
+          container_restarts_min: [10, 12, 14, 16, 18],
+        },
+        windowMinutes: 15,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("says that a container that exits at once is rarely seen, and points at the uptime template", () => {
+    const description: string = getDockerAlertTemplateById(
+      "docker-restart-loop",
+    )!.description;
+
+    expect(description).toContain("same minute");
+    expect(description).toContain("Container Restarted (Low Uptime)");
   });
 });

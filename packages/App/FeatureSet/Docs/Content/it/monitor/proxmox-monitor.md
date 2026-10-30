@@ -4,7 +4,7 @@ Un monitor Proxmox sorveglia un cluster Proxmox VE – i suoi nodi, le VM e i co
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-proxmox): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-pronti): Undici avvisi pronti, un incidente per nodo, guest o volume.
+- [Modelli](#modelli-di-avviso-pronti): Dodici avvisi pronti, un incidente per nodo, guest o volume.
 - [Identità delle risorse](#identità-delle-risorse): Come puntare a un singolo nodo, guest o volume di storage.
 - [Metriche](#metriche-raccolte): Ogni serie `pve_*` su cui il monitor può avvisare.
 :::
@@ -109,12 +109,13 @@ Filtrate su `pve.scope` o `pve.type` per un tipo di risorsa, su `pve.id` o `id` 
 
 ## Modelli di avviso pronti
 
-**Quick Setup** offre 11 modelli. Ognuno costruisce un monitor completo: query, filtri di attributi, un raggruppamento, un criterio che scatta e uno che ripristina. La maggior parte raggruppa per `id`, così ogni nodo, guest, volume o job riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+**Quick Setup** offre 12 modelli. Ognuno costruisce un monitor completo: query, filtri di attributi, un raggruppamento, un criterio che scatta e uno che ripristina. La maggior parte raggruppa per `id`, così ogni nodo, guest, volume o job riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e un criterio a soglia si ripristina il 10% oltre la sua soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critico | `pve_up`, Count sull'intero cluster, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | Node Offline | Critico | `pve_up` per `pve.scope = node`, Min per `id` | Sotto 1 | A 1 |
 | Guest Down | Warning | `pve_up` e `pve_onboot_status` per `pve.scope = guest`, Min per `id` | `pve_up` è sotto 1 mentre `pve_onboot_status` è 1 | `pve_up` torna a 1, oppure l'avvio al boot viene disattivato |
 | Cluster Quorum at Risk | Critico | `pve_up` ÷ `pve_node_info` × 100 per `pve.scope = node` (entrambi Somma): la quota di nodi online | 50% o meno | Sopra il 55% |
@@ -129,6 +130,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
 
+- **Cluster Stopped Reporting** scatta quando dal cluster non arriva nulla per dieci minuti: l'agente Proxmox o il suo pve-exporter si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token, l'API di Proxmox ha smesso di rispondergli, oppure tutti i nodi di un invio nativo sono rimasti in silenzio. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 - **I modelli di guasto usano Minimo**, così una sola raccolta in cui la risorsa era giù li fa scattare invece di essere nascosta dalle raccolte in cui era attiva.
 - **Guest Down** considera solo i guest impostati per avviarsi al boot, quindi un guest che avete fermato di proposito non avvisa mai nessuno.
 - **Cluster Quorum at Risk** è un'approssimazione: pve-exporter non ha una metrica di corosync, quindi conta i nodi online.

@@ -145,7 +145,14 @@ const PICKER_CASES: Array<PickerCase> = [
         <KubernetesTemplatePicker onTemplateSelected={onTemplateSelected} />,
       );
     },
-    headings: ["Workload", "Node", "Control Plane", "Storage", "Scheduling"],
+    headings: [
+      "Availability",
+      "Workload",
+      "Node",
+      "Control Plane",
+      "Storage",
+      "Scheduling",
+    ],
   },
   {
     name: "Proxmox",
@@ -170,6 +177,7 @@ const PICKER_CASES: Array<PickerCase> = [
       render(<VMwareTemplatePicker onTemplateSelected={onTemplateSelected} />);
     },
     headings: [
+      "Availability",
       "ESXi Host",
       "Virtual Machine",
       "Datastore",
@@ -184,7 +192,13 @@ const PICKER_CASES: Array<PickerCase> = [
     render: (onTemplateSelected: MockFunction): void => {
       render(<CephTemplatePicker onTemplateSelected={onTemplateSelected} />);
     },
-    headings: ["Cluster Health", "OSD", "Placement Groups", "Capacity"],
+    headings: [
+      "Availability",
+      "Cluster Health",
+      "OSD",
+      "Placement Groups",
+      "Capacity",
+    ],
   },
   {
     name: "Storage Array (platform not known yet)",
@@ -196,6 +210,7 @@ const PICKER_CASES: Array<PickerCase> = [
       );
     },
     headings: [
+      "Availability",
       "Array Health",
       "Capacity",
       "Performance",

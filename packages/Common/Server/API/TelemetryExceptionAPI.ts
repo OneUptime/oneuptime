@@ -36,6 +36,9 @@ import { JSONArray, JSONObject } from "../../Types/JSON";
 import ExceptionExplainer, {
   ExceptionExplanationResult,
 } from "../Utils/AI/TelemetryAi/ExceptionExplanation";
+import ExceptionDigester, {
+  ExceptionDigestResult,
+} from "../Utils/AI/TelemetryAi/ExceptionDigest";
 
 /*
  * User-facing wording for a code-fix run's status on the exception page —
@@ -159,6 +162,25 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     );
 
     /*
+     * OneUptime AI's summary of the project's exceptions that are new, or
+     * came back after they were resolved, in the last day
+     * (ExceptionDigester): read as the caller, not kept. The project's
+     * Enable AI switch, credits and limits apply; with nothing new, no
+     * model is asked.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/ai-digest`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.digestWithAI(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Aggregated dashboard summary for the Exceptions overview page.
      * Returns counts, top/recent exceptions, and per-service summaries
      * in a single round-trip with one SQL GROUP BY for service aggregation.
@@ -203,6 +225,30 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     return Response.sendJsonObjectResponse(req, res, {
       explanation: result.explanation as unknown as JSONObject,
       generatedAt: result.generatedAt.toISOString(),
+    });
+  }
+
+  private async digestWithAI(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!props.tenantId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    const result: ExceptionDigestResult = await ExceptionDigester.digest({
+      projectId: props.tenantId,
+      props,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      digest: result.digest as unknown as JSONObject,
+      exceptionCount: result.exceptionCount,
+      generatedAt: result.generatedAt.toISOString(),
+      windowHours: result.windowHours,
     });
   }
 

@@ -4,7 +4,7 @@ En Ceph-monitor holder øje med én Ceph-klynge — dens tilstand, health checks
 
 :::cards
 - [Opret monitoren](#opret-en-ceph-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-alarmskabeloner): 23 færdige alarmer for tilstand, OSD'er, placement groups og kapacitet.
+- [Skabeloner](#færdige-alarmskabeloner): 24 færdige alarmer for en tavs klynge, tilstand, OSD'er, placement groups og kapacitet.
 - [Health checks](#serier-for-health-checks): Få alarm på ethvert Ceph-health check efter navn.
 - [Metrikker](#indsamlede-metrikker): Hver `ceph_*`-serie, monitoren kan alarmere på.
 :::
@@ -99,9 +99,17 @@ Pools dataserier har kun labelen `pool_id`: Poolens navn findes kun på `ceph_po
 
 ## Færdige alarmskabeloner
 
-**Quick Setup** tilbyder 23 skabeloner, der dækker klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder 24 skabeloner, der dækker en tavs klynge, klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter først 10 % forbi sin tærskel, så en værdi, der svinger omkring grænsen, ikke blafrer. **Alvorlighed** er den label, vælgeren viser; hændelsen og advarslen, en skabelon opretter, starter med projektets højeste hændelses- og advarselsalvorlighed.
+
+### Tilgængelighedsskabeloner
+
+| Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `ceph_health_status`, Count, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
+
+**Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngen i ti minutter: Ceph Agent er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt, eller ingen mgr betjener `prometheus`-modulet. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, og skabelonerne for health checks læser en tavs klynge som en sund klynge, så det er denne skabelon, der giver dig besked.
 
 ### Skabeloner for klyngens tilstand
 

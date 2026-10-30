@@ -58,7 +58,7 @@ Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over l
 
 ### Søg og filtrér
 
-Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**.
+Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
 
 ### Åbn en undtagelse
 
@@ -96,6 +96,8 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 **Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkiv**.
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
+
+**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
 
 ## Fejlklasser
 
@@ -137,7 +139,7 @@ Siden **AI Assistance** tilbyder tre opgaver. Hver kører som en AI-opgave, der 
 | **Generate Regression Test** | Tilføjer en test, der fejler, indtil fejlen er rettet. |
 | **Forbedr fejlhåndtering** | Til forventede fejl: validerer input tidligere, holder brugerdata ude af beskeder og markerer fejlen som håndteret. |
 
-AI har først brug for tre ting: en LLM-udbyder, et forbundet lager (på GitHub, GitLab, Forgejo eller Gitea eller enhver Git-server) og en AI-agent online til at køre opgaven. Siden kontrollerer hver af dem og linker til det, der mangler. Opgaverne holder pause, mens undtagelsen er løst eller arkiveret. Se [Kode](/docs/ai/ai-agent).
+AI har først brug for tre ting: en LLM-udbyder, et forbundet lager (på GitHub, GitLab, Forgejo eller Gitea eller enhver Git-server) og en AI-agent online til at køre opgaven. Siden kontrollerer hver af dem og linker til det, der mangler. Opgaverne holder pause, mens undtagelsen er løst eller arkiveret. Se [Kode](/docs/ai/ai-agent). At starte en opgave kræver tilladelse til at redigere det lager, den arbejder i: Den, der kun må læse undtagelsen, ser dens opgaver, men kan ikke starte nogen.
 
 ## Find og ret nye og stigende undtagelser med AI
 
@@ -180,6 +182,8 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 ## Indsigter i undtagelser
 
 Fanen **Indsigter** tæller dine undtagelser under **Uløst**, **Løst** og **Arkiveret** og din løsningsrate og viser de hyppigste undtagelser, de tjenester, de rammer, og dem, der senest er set.
+
+**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes ikke, bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
 
 ## Fejlfinding
 

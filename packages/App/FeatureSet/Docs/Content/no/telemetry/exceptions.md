@@ -58,7 +58,7 @@ Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over lis
 
 ### Søk og filtrer
 
-Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**.
+Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**. **Tildelt meg** viser bare unntakene som er tildelt deg, og sorteringsmenyen ordner listen etter **Sist sett**, **Først sett** eller **Flest hendelser**.
 
 ### Åpne et unntak
 
@@ -96,6 +96,8 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 **Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
+
+**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
 
 ## Feilklasser
 
@@ -137,7 +139,7 @@ Siden **AI Assistance** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som 
 | **Generate Regression Test** | Legger til en test som feiler til feilen er rettet. |
 | **Forbedre feilhåndtering** | For forventede feil: validerer inndata tidligere, holder brukerdata ute av meldinger og merker feilen som håndtert. |
 
-AI trenger tre ting først: en LLM-leverandør, et tilkoblet lager (på GitHub, GitLab, Forgejo eller Gitea, eller en hvilken som helst Git-server), og en AI-agent på nett som kjører oppgaven. Siden sjekker hver av dem og lenker til det som mangler. Oppgavene står på pause mens unntaket er løst eller arkivert. Se [Kode](/docs/ai/ai-agent).
+AI trenger tre ting først: en LLM-leverandør, et tilkoblet lager (på GitHub, GitLab, Forgejo eller Gitea, eller en hvilken som helst Git-server), og en AI-agent på nett som kjører oppgaven. Siden sjekker hver av dem og lenker til det som mangler. Oppgavene står på pause mens unntaket er løst eller arkivert. Se [Kode](/docs/ai/ai-agent). Å starte en oppgave krever tillatelse til å redigere lageret den jobber i: Den som bare kan lese unntaket, ser oppgavene, men kan ikke starte noen.
 
 ## Finn og rett nye og økende unntak med AI
 
@@ -180,6 +182,8 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ## Innsikt i unntak
 
 Fanen **Innsikt** teller unntakene dine under **Uløst**, **Løst** og **Arkivert** og løsningsraten din, og viser de vanligste unntakene, tjenestene de rammer og de som sist ble sett.
+
+**Hva er nytt** øverst i fanen ber OneUptime AI med **Oppsummer med OneUptime AI** om å oppsummere unntakene som først ble sett de siste 24 timene, og de som kom tilbake etter at de var løst: noen setninger om alle, deretter hvert på én linje, det mest presserende først, med en lenke til unntaket. Oppsummeringen skrives når du ber om den, og lagres ikke, bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
 
 ## Feilsøking
 

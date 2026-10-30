@@ -13,11 +13,14 @@ import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
  * stays where it was: on the trigger, or brought back to the trigger from
  * inside a tooltip that held it.
  *
- * The Escape that closed a tooltip the person brought up is spent. A
- * dialog, a menu or a panel around the tooltip's trigger does not close on
- * the same press as well - Modal, MoreMenu and the others hear Escape on
- * the document or on themselves, after this listener, which runs first, on
- * the window, as the key goes down. A second Escape closes them.
+ * The Escape that closed a tooltip the person brought up is spent: one
+ * Escape never does two things. A dialog, a menu or a panel around the
+ * tooltip's trigger does not close on the same press as well, and nothing
+ * else that listens for Escape hears it - Modal, MoreMenu and the others
+ * hear it on the document or on themselves, and the playlist player and a
+ * dashboard widget's drag on the window, all after the one listener here,
+ * which the window has before any of them (listenForTooltipEscape). A
+ * second Escape is theirs.
  *
  * Two tooltips close on Escape and let it go on, since the Escape was not
  * for them:
@@ -87,6 +90,63 @@ export const isInFrontmostEscapeLayer: (reference: Element) => boolean = (
   return !layer || layer.contains(reference);
 };
 
+/*
+ * A shown tooltip's answer to an Escape: it closes, and says whether the
+ * key was its to spend.
+ */
+type EscapeHandler = () => boolean;
+
+// The tooltips that are showing, or starting to.
+const shownTooltips: Set<EscapeHandler> = new Set<EscapeHandler>();
+
+let isListeningForEscape: boolean = false;
+
+const onWindowKeyDown: (event: KeyboardEvent) => void = (
+  event: KeyboardEvent,
+): void => {
+  if (
+    shownTooltips.size === 0 ||
+    event.key !== "Escape" ||
+    // Escape while composing text cancels the composition, not a tooltip.
+    event.isComposing
+  ) {
+    return;
+  }
+
+  let isSpent: boolean = false;
+
+  // A copy: each tooltip leaves the set as it hides.
+  for (const handler of Array.from(shownTooltips)) {
+    if (handler()) {
+      isSpent = true;
+    }
+  }
+
+  if (isSpent) {
+    event.preventDefault();
+    // Every listener after this one, the window's own included.
+    event.stopImmediatePropagation();
+  }
+};
+
+/*
+ * One listener for every tooltip, on the window, as the key goes down -
+ * added as this module loads, which is before any component that listens
+ * on the window too has mounted (the playlist player, a widget being
+ * dragged): listeners of one target run in the order they were added, so
+ * a tooltip hears Escape before any of them.
+ */
+export const listenForTooltipEscape: () => void = (): void => {
+  if (isListeningForEscape || typeof window === "undefined") {
+    return;
+  }
+
+  isListeningForEscape = true;
+  window.addEventListener("keydown", onWindowKeyDown, true);
+};
+
+listenForTooltipEscape();
+
 // What brought a tooltip up, as far as its trigger's events tell.
 interface OpenedBy {
   // The pointer went over its trigger (a tap counts: it sends a mouseenter).
@@ -115,24 +175,15 @@ export const hideOnEscape: Plugin = {
       return openedBy.pointer || openedBy.press || openedBy.keyboardFocus;
     };
 
-    const onKeyDown: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
+    // Its answer to an Escape (onWindowKeyDown asks only on Escape).
+    const onEscape: EscapeHandler = (): boolean => {
       /*
        * Listening starts as the tooltip starts to show; a show the
        * tooltip's own rules turned down leaves nothing to close.
        */
       if (!instance.state.isVisible || instance.state.isDestroyed) {
-        window.removeEventListener("keydown", onKeyDown, true);
-        return;
-      }
-
-      if (
-        event.key !== "Escape" ||
-        // Escape while composing text cancels the composition, not this.
-        event.isComposing
-      ) {
-        return;
+        shownTooltips.delete(onEscape);
+        return false;
       }
 
       const reference: Element = instance.reference;
@@ -158,14 +209,11 @@ export const hideOnEscape: Plugin = {
 
       instance.hide();
 
-      if (isSpent) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      return isSpent;
     };
 
     const stopListening: () => void = (): void => {
-      window.removeEventListener("keydown", onKeyDown, true);
+      shownTooltips.delete(onEscape);
     };
 
     return {
@@ -207,7 +255,8 @@ export const hideOnEscape: Plugin = {
          * From the moment it starts to show - before it is placed, which
          * waits a frame - until it hides.
          */
-        window.addEventListener("keydown", onKeyDown, true);
+        listenForTooltipEscape();
+        shownTooltips.add(onEscape);
       },
       onHide: (): void => {
         openedBy.press = false;
