@@ -609,6 +609,8 @@ for (const repository of repositories) {
     isProductionReviewEnabled: repository.isConnected && isOnGitHub(repository),
     // Never chosen: the review, or a link on a public repository.
     productionReviewPullRequestContent: null,
+    // None picked: the project's default LLM provider reads its reviews.
+    productionReviewLlmProviderId: null,
   };
 }
 
@@ -652,6 +654,47 @@ if (
 ) {
   checkoutSettings.productionReviewPullRequestContent =
     params.get("reviewcomment");
+}
+
+/*
+ * The project's LLM providers, as POST /ai-chat/providers lists them for the
+ * production reviews' LLM provider picker: its default first, another of
+ * its own, then the global one. reviewllm=opus has checkout-api's reviews
+ * read with Claude Opus; reviewllm=gone with a provider no longer there.
+ */
+const LLM_PROVIDER_IDS = {
+  oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
+  azure: "9d9d9d9d-0000-4000-8000-000000000002",
+  opus: "9d9d9d9d-0000-4000-8000-000000000003",
+  gone: "9d9d9d9d-0000-4000-8000-0000000000ff",
+};
+const LLM_PROVIDERS = [
+  {
+    id: LLM_PROVIDER_IDS.azure,
+    name: "Azure GPT-4o",
+    modelName: "gpt-4o",
+    isDefault: true,
+    isGlobal: false,
+  },
+  {
+    id: LLM_PROVIDER_IDS.opus,
+    name: "Claude Opus",
+    modelName: "claude-opus-4-5",
+    isDefault: false,
+    isGlobal: false,
+  },
+  {
+    id: LLM_PROVIDER_IDS.oneUptimeAi,
+    name: "OneUptime AI",
+    modelName: "",
+    isDefault: false,
+    isGlobal: true,
+  },
+];
+
+if (checkoutSettings && ["opus", "gone"].includes(params.get("reviewllm"))) {
+  checkoutSettings.productionReviewLlmProviderId =
+    LLM_PROVIDER_IDS[params.get("reviewllm")];
 }
 
 // Whether a repository's pull requests are reviewed against production, as Code's reads answer it.
@@ -2994,6 +3037,18 @@ API.post = async (options) => {
   if (log >= 0) {
     return logOf(url.substring(log + "/code-fix-run/logs/".length));
   }
+  // The project's LLM providers, for the production reviews' provider picker.
+  if (url.includes("/ai-chat/providers")) {
+    return new HTTPResponse(
+      200,
+      {
+        isAIEnabledForProject: true,
+        defaultProviderId: LLM_PROVIDER_IDS.azure,
+        providers: LLM_PROVIDERS,
+      },
+      {},
+    );
+  }
   return refused(404, `The fixture does not model ${url}.`);
 };
 
@@ -3204,6 +3259,7 @@ const SETTING_KEYS = [
   "isGlobalRunnerPicked",
   "isProductionReviewEnabled",
   "productionReviewPullRequestContent",
+  "productionReviewLlmProviderId",
 ];
 
 ModelAPI.createOrUpdate = async (options) => {

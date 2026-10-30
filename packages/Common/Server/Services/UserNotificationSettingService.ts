@@ -88,6 +88,10 @@ export const SECURITY_CASE_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationS
     NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
   ];
 
+// The events SecurityHuntNotifications sends, in the order the settings list them.
+export const SECURITY_HUNT_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationSettingEventType> =
+  [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION];
+
 // The setting's priority choice, by either spelling: the ID column first.
 const MINIMUM_PRIORITY_KEYS: Array<string> = [
   "minimumSecurityCasePriorityId",
@@ -1076,6 +1080,29 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addSloNotificationSettings(userId, projectId);
     await this.addIncomingCallNotificationSettings(userId, projectId);
     await this.addSecurityCaseNotificationSettings(userId, projectId);
+    await this.addSecurityHuntNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * A scheduled hunt that names the person, or a team they are on, finds
+   * security events (SecurityHuntNotifications), by email and push: they
+   * were named on the hunt to hear exactly this. Every member gets it, as
+   * with every other event; only the people a hunt names are ever told.
+   * Idempotent - the AddSecurityHuntNotificationSettingsForUsers data
+   * migration calls this for every existing member, and the notifications
+   * seed it too before sending.
+   */
+  @CaptureSpan()
+  public async addSecurityHuntNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION,
+      { alertByPush: true },
+    );
   }
 
   /*

@@ -5,6 +5,7 @@ OneUptime keeps security events beside your logs, traces and metrics, and gives 
 :::cards
 - [Send events](#send-security-events): An HTTPS POST, a Fluent Bit output, or a connection to a security product.
 - [Search and correlate](#explore-security-events): The Events explorer and the Correlate graph.
+- [Hunts](#hunts): Saved searches that run on a schedule and tell people when they find something.
 - [Detection rules](#detection-rules): Sigma rules that open cases and alerts.
 - [Monitors](#security-events-monitors): Counts over a rolling window, with a status that recovers.
 :::
@@ -36,6 +37,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Closed Cases** | Security Cases | The cases closed with a verdict, the latest first |
 | **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
+| **Hunts** | Events | Searches saved from Events, opened again in one click or run on a schedule that tells people when they find something |
 | **Campaigns** | Events | Every address that sent attack requests, and whether any of its requests got through |
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
@@ -252,6 +254,45 @@ An event read from a log line written inside a traced request is followed into t
 ### Correlate
 
 **Correlate** draws the events around a host, a user or an IP address: their event classes around what you searched, marked by their worst severity, and the other values seen in the same events on the outer ring. Click a class to list its events, or a value to correlate on it next. Every observable in an event's panel on **Events** opens **Correlate** on it.
+
+## Hunts
+
+A hunt is a search over your security events kept with a name: the search bar's text, the sidebar's filters, and how far back it looks. Open it again in one click, run it on a schedule that tells people when it finds something, and keep the events it finds on a case.
+
+### Save a search as a hunt
+
+On **Events**, search and filter until the list shows what you are after, then open **Hunts** on the toolbar and choose **Save as Hunt**. Name it, choose whether it runs on a schedule, and its page opens. **Events → Hunts** lists the project's hunts, each with its search, how often it runs, who it tells and what its last run found; **Create Hunt** there takes the search as you would type it on **Events**. A project keeps up to 200 hunts.
+
+A hunt's page is its search, opened on the Events explorer. Change the search or the filters there, and the hunt's header offers **Save Changes** and **Discard Changes**. **Edit** changes its name, its search, how far back it looks, its schedule and who it tells, and **Delete Hunt** is in its menu. A Security Member or higher can save, change and delete hunts, and a Security Viewer can open them.
+
+### Run a hunt on a schedule
+
+| Schedule | Runs |
+| --- | --- |
+| **Not Scheduled** | Only when you open it |
+| **Every Hour**, **Every 6 Hours**, **Every Day**, **Every Week** | On its own, that often |
+
+A scheduled hunt tells the people and teams you choose under **Notify**: at least one, and at most 50 in all. Each run:
+
+- reads the events whose time falls after the run before, up to two minutes ago, so every event is searched once. The first run reads from when the schedule was set or the search last changed, and after an outage a run catches up on at most a day more than its interval.
+- counts the events its search finds there, exactly as **Events** would list them, reading only what the person it runs as can read.
+- when it finds events, tells the people the hunt names, and the members of the teams it names, who can read hunts and security events.
+
+A run opens no case and raises no alert: write what should open cases as a [detection rule](#detection-rules). A run whose search takes too long, or that cannot read the events, says why on the hunt and is tried again within the hour, from where it stopped.
+
+A scheduled hunt runs as the person who last set its schedule, changed its search or saved it with **Edit**. An API key cannot set a schedule. When that person leaves the project or can no longer read security events, the hunt says so: open **Edit** and save it to run it as you.
+
+### Who is told
+
+The notification **Hunt found security events** names the hunt and its search, how many events its run found and the window it read, and links to the hunt's page on those events; no event's own words are in it. Everyone has it by email and push, and chooses its channels under **User Settings → Notification Settings**. Like other routine emails, it can be held back in an [email rollup](/docs/emails/notification-rollup).
+
+### Keep events on a case
+
+Select events on **Events** or on a hunt's page and choose **Bulk Actions → Add to Case**, or open one event and choose **Add to Case**. Pick an open case by its number or title. Up to 100 events go at a time.
+
+OneUptime reads each event again as you and keeps it on the case's **Evidence** page as it was, so the case still shows it after the event's retention ends. An event you cannot read is not kept, and one the case keeps already is left as it is. An event found from a hunt names the hunt, and **View Event** opens it as it was kept.
+
+Hunts have the same REST API as the rest of OneUptime, under `/security-hunt`, and `POST /security-case-evidence/add-events` keeps events on a case. See [API Reference](/docs/api-reference/api-reference).
 
 ## Detection rules
 

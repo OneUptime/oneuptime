@@ -104,6 +104,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Eccezioni delle regole | `Rule Exception` |
 | Elenchi di controllo | `Watchlist` |
 | Valori dell'elenco di controllo | `Watchlist Value` |
+| Cacce | `Hunt` |
 | Attività e prove dei casi di sicurezza | `Security Case Task`, `Security Case Evidence` |
 | Esportazioni del registro di audit | `Audit Log Export` |
 

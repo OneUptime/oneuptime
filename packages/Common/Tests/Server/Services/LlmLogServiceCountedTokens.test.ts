@@ -240,3 +240,133 @@ describe("the incident and alert daily token limits count the same way", () => {
     },
   );
 });
+
+/*
+ * Cache weights per model: what a cached token counts as depends on the
+ * call's model (AiTokenCount.getCacheWeights), so both aggregates sum each
+ * model's calls apart and count each model's sums at its own weights.
+ */
+describe("a day's tokens are counted model by model", () => {
+  const GROUP_BY_MODEL: string = 'GROUP BY "log"."modelName"';
+  const MODEL_COLUMN: string = '"log"."modelName" AS "modelName"';
+
+  test("both statements sum each model apart, still bound to the project and the time alone", async () => {
+    const captured: Array<CapturedQuery> = mockQuery([]);
+
+    await LlmLogService.getProjectUsageSince({
+      projectId: PROJECT_ID,
+      since: SINCE,
+    });
+    await LlmLogService.getTotalTokensUsedSince({
+      projectId: PROJECT_ID,
+      since: SINCE,
+      features: AUTONOMOUS_AI_FEATURES,
+      incidentId: ObjectID.generate(),
+    });
+
+    expect(captured).toHaveLength(2);
+
+    for (const query of captured) {
+      expect(query.sql).toContain(MODEL_COLUMN);
+      expect(query.sql.trim().endsWith(GROUP_BY_MODEL)).toBe(true);
+      expect(query.params.slice(0, 2)).toEqual([PROJECT_ID.toString(), SINCE]);
+    }
+  });
+
+  test("each model's day counts at its own weights, and the billed cost is the day's", async () => {
+    mockQuery([
+      {
+        modelName: "claude-opus-5-5",
+        totalTokens: "28496",
+        cacheRead: "20654",
+        cacheWrite: "0",
+        billedCostInUSDCents: "4",
+      },
+      {
+        modelName: "gpt-4o",
+        totalTokens: "55",
+        cacheRead: "40",
+        cacheWrite: "0",
+        billedCostInUSDCents: "1",
+      },
+      // Rows that name no model: a tenth for a read, as before.
+      {
+        modelName: null,
+        totalTokens: "1000",
+        cacheRead: "500",
+        cacheWrite: "0",
+        billedCostInUSDCents: "0",
+      },
+    ]);
+
+    expect(
+      await LlmLogService.getProjectUsageSince({
+        projectId: PROJECT_ID,
+        since: SINCE,
+      }),
+    ).toEqual({
+      // Opus 5.5: 7,842 + 1,033 (÷ 20); gpt-4o: 15 + 20 (÷ 2); none: 500 + 50.
+      totalTokens: 7_842 + 1_033 + 15 + 20 + 500 + 50,
+      billedCostInUSDCents: 5,
+    });
+  });
+
+  test("the incident and alert limits count their lane's models the same way", async () => {
+    const captured: Array<CapturedQuery> = mockQuery([
+      { modelName: "gpt-4o", total: "55", cacheRead: "40", cacheWrite: "0" },
+      {
+        modelName: "gpt-5.6-terra",
+        total: "24117",
+        cacheRead: "0",
+        cacheWrite: "20654",
+      },
+    ]);
+
+    const total: number = await LlmLogService.getTotalTokensUsedSince({
+      projectId: PROJECT_ID,
+      since: SINCE,
+      features: AUTONOMOUS_AI_FEATURES,
+      alertId: ObjectID.generate(),
+    });
+
+    expect(captured).toHaveLength(1);
+    // gpt-4o: 15 + 20; GPT-5.6: 3,463 fresh + 25,818 written (× 1.25).
+    expect(total).toBe(15 + 20 + 3_463 + 25_818);
+    expect(total).toBe(
+      AiTokenCount.countAll([
+        { totalTokens: 55, cachedInputTokens: 40, modelName: "gpt-4o" },
+        {
+          totalTokens: 24_117,
+          cacheCreationTokens: 20_654,
+          modelName: "gpt-5.6-terra",
+        },
+      ]),
+    );
+  });
+
+  test("a billed cost that is not a number counts for nothing, never NaN", async () => {
+    mockQuery([
+      {
+        modelName: "gpt-4o",
+        totalTokens: "10",
+        cacheRead: "0",
+        cacheWrite: "0",
+        billedCostInUSDCents: "not a number",
+      },
+      {
+        modelName: "gpt-5.1",
+        totalTokens: "10",
+        cacheRead: "0",
+        cacheWrite: "0",
+        billedCostInUSDCents: 3,
+      },
+    ]);
+
+    expect(
+      await LlmLogService.getProjectUsageSince({
+        projectId: PROJECT_ID,
+        since: SINCE,
+      }),
+    ).toEqual({ totalTokens: 20, billedCostInUSDCents: 3 });
+  });
+});

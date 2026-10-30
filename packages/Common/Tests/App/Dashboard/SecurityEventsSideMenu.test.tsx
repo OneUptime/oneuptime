@@ -126,6 +126,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Events",
     [
       ["Events", PageMap.SECURITY_EVENTS],
+      // Searches over the events, saved, and run on a schedule.
+      ["Hunts", PageMap.SECURITY_EVENTS_HUNTS],
       ["Campaigns", PageMap.SECURITY_EVENTS_CAMPAIGNS],
       // The one riskiest list: Entities folded into it.
       ["Entity Risk", PageMap.SECURITY_EVENTS_ENTITY_RISK],
@@ -412,6 +414,20 @@ describe("Security Events side menu", () => {
         routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
       );
     }
+  });
+
+  test("on a hunt's page, lights Hunts, the list it opens from", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/security-events/hunts/3b000000-0000-4000-8000-000000000001`,
+    );
+    await renderSecurityMenu();
+
+    expect(activeLinkTitles()).toEqual(["Hunts"]);
+    expect(isExpanded("Events")).toBe(true);
+    // The entry still opens the list, not the hunt.
+    expect(entryAnchor("Events", "Hunts").getAttribute("href")).toBe(
+      routeFor(PageMap.SECURITY_EVENTS_HUNTS),
+    );
   });
 
   test("lights nothing on a case's own page: it opens outside the menu", async () => {

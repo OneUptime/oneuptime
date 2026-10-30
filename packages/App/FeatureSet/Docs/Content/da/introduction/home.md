@@ -133,6 +133,7 @@ Over hver sides titel viser et spor som *Projekt › Docker › Indstillinger �
 
 - **Lister holder sig selv opdaterede.** Når en hændelse eller advarsel oprettes, kvitteres eller løses et sted, viser listerne over hændelser, advarsler og episoder det inden for få sekunder, uden at du skal genindlæse. Mens du er midt i noget på en liste, for eksempel med rækker markeret eller en dialog åben, venter den og indhenter det, når du er færdig.
 - **På en telefon foldes filterchipsene væk** bag **Filter**, så listen starter længere oppe. De chips, du har sat, bliver i syne sammen med **Ryd alt**. Tryk på **Filter** for at se alle chips, og igen for at folde dem væk.
+- **En hændelses sider starter med dens nummer.** Overskriften, dens trin i sporet og browserfanen viser `INC-42 Checkout is down`, og det gør de dialoger, der nævner den, også, så hændelser med samme titel kan kendes fra hinanden. Advarsler, planlagte vedligeholdelsesbegivenheder og episoder gør det samme.
 
 ## Søg efter en side, en indstilling eller en handling
 
@@ -141,7 +142,7 @@ Tryk på **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klik på sø
 - **Hver side i menuerne**, under det navn, menuen giver den: API-nøgler, Farezone, Vagtplaner, Hændelsesalvor, dine egne Notifikationsmetoder. Hvert resultat siger, hvor det ligger, for eksempel *Projektindstillinger › Avanceret*, så sider med samme navn (Brugerdefinerede felter under Hændelser, Advarsler og Monitorer) er lette at skelne.
 - **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO til login* finder SSO, og *Notifikationskanaler* finder Notifikationsindstillinger. Skriv navnet på engelsk eller på dit eget sprog.
 - **Handlinger**, efter hvad du vil gøre: Erklær hændelse, Opret monitor eller Delete Project, som åbner Farezone. En handling, der ændrer noget, tilbydes kun til dem, der må udføre den.
-- **Dine monitorer, hændelser, advarsler, statussider og vagtpolitikker**, efter navn.
+- **Dine monitorer, hændelser, advarsler, statussider og vagtpolitikker**, efter navn, og hændelser og advarsler også efter nummer, for eksempel `INC-42`. Hvert resultat for en hændelse eller advarsel starter med dens nummer, så to med samme titel kan kendes fra hinanden.
 
 Søgningen læser det, du skriver, som du mener det:
 

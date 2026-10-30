@@ -138,6 +138,16 @@ would register as a fresh campaign touch on arrival, overwrite `utmUrl` with an
 internal page, drop any click ID not repeated on the link, and double-count the
 touch.
 
+An ad, an email or a slide can name a short address instead of the page that
+books: `oneuptime.com/demo` and the demo page's other short addresses
+(`packages/Home/Utils/DemoPage.ts`), `/self-hosted` and `/air-gapped` each
+answer a permanent 301 that keeps the query string byte for byte
+(`packages/Home/Utils/Redirect.ts`), so the campaign arrives with the visitor.
+Links on the site itself name the page, `/enterprise/demo`, never a short
+address: the CTA click listener matches that exact `href`, and
+`packages/Home/Tests/DemoPage.test.ts` checks every link to the demo page the
+repository writes.
+
 ### The Cal metadata shape
 
 Flat, **bracketed** config keys — `metadata[utm_source]` — which Cal returns as

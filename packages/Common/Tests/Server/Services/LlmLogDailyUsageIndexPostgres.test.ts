@@ -462,8 +462,10 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
 
     /*
      * Issue #5073: both statements sum the day's cached parts beside its
-     * tokens, and AiTokenCount counts the sums - a cache read a tenth of a
-     * token, a cache write one and a quarter - on a real Postgres.
+     * tokens, and AiTokenCount counts the sums at each model's weights - on
+     * Claude Sonnet 4.5 a cache read is a tenth of a token and a cache write
+     * one and a quarter, on gpt-4o a read is half - on a real Postgres, one
+     * group of rows per model.
      */
     test("a day of calls that used the prompt cache counts what they cost", async () => {
       captureServiceQueries();
@@ -475,6 +477,7 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
         cachedInputTokens: number;
         cacheCreationTokens: number;
         incident: boolean;
+        modelName: string | null;
       }> = [
         // The issue's investigation: a cache write, then reads.
         {
@@ -482,18 +485,29 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
           cachedInputTokens: 0,
           cacheCreationTokens: 20_654,
           incident: true,
+          modelName: "claude-sonnet-4-5",
         },
         {
           totalTokens: 28_496,
           cachedInputTokens: 20_654,
           cacheCreationTokens: 0,
           incident: true,
+          modelName: "claude-sonnet-4-5",
         },
         {
           totalTokens: 32_712,
           cachedInputTokens: 24_117,
           cacheCreationTokens: 4_216,
           incident: true,
+          modelName: "claude-sonnet-4-5",
+        },
+        // An investigation call on another model, read back at half.
+        {
+          totalTokens: 9_000,
+          cachedInputTokens: 6_000,
+          cacheCreationTokens: 0,
+          incident: true,
+          modelName: "gpt-4o",
         },
         // An Ask AI call that used no cache, outside the incident lane.
         {
@@ -501,6 +515,7 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
           cachedInputTokens: 0,
           cacheCreationTokens: 0,
           incident: false,
+          modelName: null,
         },
       ];
 
@@ -509,9 +524,9 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
           `INSERT INTO "LlmLog"
              ("_id", "createdAt", "updatedAt", "version", "projectId", "status",
               "feature", "totalTokens", "cachedInputTokens", "cacheCreationTokens",
-              "costInUSDCents", "wasBilled", "incidentId")
+              "costInUSDCents", "wasBilled", "incidentId", "modelName")
            VALUES (gen_random_uuid(), $2::timestamptz + make_interval(secs => $3::int),
-                   now(), 1, $1::uuid, 'Success', $4, $5, $6, $7, 0, false, $8::uuid)`,
+                   now(), 1, $1::uuid, 'Success', $4, $5, $6, $7, 0, false, $8::uuid, $9)`,
           [
             projectId.toString(),
             midnightUtc(),
@@ -521,11 +536,23 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
             call.cachedInputTokens,
             call.cacheCreationTokens,
             call.incident ? laneIncidentId : null,
+            call.modelName,
           ],
         );
       }
 
-      const counted: number = AiTokenCount.count(AiTokenCount.add(calls));
+      const counted: number = AiTokenCount.countAll(calls);
+
+      // Each model at its own weights: gpt-4o's 6,000 reads count 3,000.
+      expect(counted).toBe(
+        AiTokenCount.countAll(
+          calls.filter((call: { modelName: string | null }) => {
+            return call.modelName !== "gpt-4o";
+          }),
+        ) +
+          3_000 +
+          3_000,
+      );
 
       expect(
         await LlmLogService.getProjectUsageSince({
@@ -535,7 +562,7 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
       ).toEqual({ totalTokens: counted, billedCostInUSDCents: 0 });
 
       // A fraction of the tokens the calls sent.
-      expect(counted).toBeLessThan(24_117 + 28_496 + 32_712 + 1_200);
+      expect(counted).toBeLessThan(24_117 + 28_496 + 32_712 + 9_000 + 1_200);
 
       expect(
         await LlmLogService.getTotalTokensUsedSince({
@@ -547,12 +574,10 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
           legacyAlertFeatures: ["AI Alert Investigation"],
         }),
       ).toBe(
-        AiTokenCount.count(
-          AiTokenCount.add(
-            calls.filter((call: { incident: boolean }) => {
-              return call.incident;
-            }),
-          ),
+        AiTokenCount.countAll(
+          calls.filter((call: { incident: boolean }) => {
+            return call.incident;
+          }),
         ),
       );
     });

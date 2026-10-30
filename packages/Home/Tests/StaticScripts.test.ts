@@ -547,7 +547,7 @@ describe("a request for a script", () => {
       /*
        * HEAD, so the file is not streamed: a streamed file leaves an async
        * resource of on-finished's behind, which jest --detectOpenHandles
-       * (the package's test script) reports as an open handle.
+       * reports as an open handle.
        */
       const answer: Answer = await request("HEAD", `/js/${script}`);
 

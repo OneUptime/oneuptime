@@ -104,6 +104,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Regeluitzonderingen | `Rule Exception` |
 | Volglijsten | `Watchlist` |
 | Volglijstwaarden | `Watchlist Value` |
+| Hunts | `Hunt` |
 | Taken en bewijs van beveiligingszaken | `Security Case Task`, `Security Case Evidence` |
 | Exports van het auditlogboek | `Audit Log Export` |
 

@@ -152,6 +152,7 @@ import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddSecurityCaseTargetAndTaskNotificationSettingsForUsers from "./AddSecurityCaseTargetAndTaskNotificationSettingsForUsers";
+import AddSecurityHuntNotificationSettingsForUsers from "./AddSecurityHuntNotificationSettingsForUsers";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
@@ -903,6 +904,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so above the runbook moves.
    */
   new AddIsEntrySpanToSpanTable(),
+  /*
+   * Scheduled hunts tell the people they name when they find security
+   * events: every existing member gets the setting, email and push on, so
+   * Notification Settings shows it as it is. Idempotent; it sits above the
+   * runbook moves, which keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddSecurityHuntNotificationSettingsForUsers(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

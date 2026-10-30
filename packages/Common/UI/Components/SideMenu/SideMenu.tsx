@@ -9,6 +9,7 @@ import React, {
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
+import { getRecordCrumbName } from "../Page/RecordNameInTrail";
 import {
   fitSideMenuCard,
   getSideMenuFadeClassName,
@@ -437,7 +438,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
    * end, rather than "Navigation", which says nothing of where the reader is.
    */
   const pageTrailEndTitle: string | undefined = pageTrailEnd
-    ? pageTrailEnd.recordName ||
+    ? getRecordCrumbName(pageTrailEnd) ||
       (pageTrailEnd.isRecordName
         ? pageTrailEnd.title
         : translateString(pageTrailEnd.title))
@@ -456,7 +457,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const summaryPageEnglish: string | undefined = translatedItemTitle
     ? activeItem.itemTitle
     : pageTrailEnd
-      ? pageTrailEnd.recordName || pageTrailEnd.title
+      ? getRecordCrumbName(pageTrailEnd) || pageTrailEnd.title
       : "Navigation";
   const summarySectionLanguage: string | undefined = getDrawnLanguage({
     english: activeItem.sectionTitle,

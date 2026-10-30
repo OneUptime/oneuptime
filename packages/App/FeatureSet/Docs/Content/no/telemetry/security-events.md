@@ -5,6 +5,7 @@ OneUptime lagrer sikkerhetshendelser ved siden av loggene, trasene og metrikkene
 :::cards
 - [Send hendelser](#send-sikkerhetshendelser): En HTTPS-POST, en Fluent Bit-utgang eller en tilkobling til et sikkerhetsprodukt.
 - [Søk og korreler](#utforsk-sikkerhetshendelser): Hendelsesutforskeren og korrelasjonsgrafen.
+- [Hunts](#hunts): Lagrede søk som kjører etter en tidsplan og varsler personer når de finner noe.
 - [Deteksjonsregler](#deteksjonsregler): Sigma-regler som åpner saker og varsler.
 - [Monitorer](#monitorer-for-sikkerhetshendelser): Tellinger over et glidende vindu, med en status som hentes inn igjen.
 :::
@@ -36,6 +37,7 @@ flowchart TB
 | **Lukkede saker** | Sikkerhetssaker | Sakene som er lukket med en vurdering, de nyeste først |
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
+| **Hunts** | Hendelser | Søk lagret fra Hendelser, åpnet igjen med ett klikk eller kjørt etter en tidsplan som varsler personer når de finner noe |
 | **Campaigns** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
@@ -252,6 +254,45 @@ En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel,
 ### Korreler
 
 **Korreler** tegner hendelsene rundt en vert, en bruker eller en IP-adresse: hendelsesklassene deres rundt det du søkte etter, merket med den verste alvorlighetsgraden, og de andre verdiene fra de samme hendelsene på den ytre ringen. Klikk på en klasse for å liste hendelsene i den, eller på en verdi for å korrelere på den neste gang. Hver observable i panelet til en hendelse under **Hendelser** åpner **Korreler** på den.
+
+## Hunts
+
+En hunt er et søk i sikkerhetshendelsene dine, lagret med et navn: teksten i søkefeltet, filtrene i sidepanelet og hvor langt tilbake den ser. Åpne den igjen med ett klikk, kjør den etter en tidsplan som varsler personer når den finner noe, og oppbevar hendelsene den finner, på en sak.
+
+### Lagre et søk som en hunt
+
+Søk og filtrer under **Hendelser** til listen viser det du leter etter, åpne så **Hunts** på verktøylinjen og velg **Lagre som hunt**. Gi den et navn, velg om den kjører etter en tidsplan, og siden dens åpnes. **Hendelser → Hunts** viser prosjektets hunts, hver med søket sitt, hvor ofte den kjører, hvem den varsler og hva den siste kjøringen fant; **Opprett Hunt** tar der søket slik du ville skrevet det under **Hendelser**. Et prosjekt kan ha opptil 200 hunts.
+
+Siden til en hunt er søket dens, åpnet i hendelsesutforskeren. Endre søket eller filtrene der, så tilbyr overskriften til hunten **Lagre endringer** og **Forkast endringer**. **Rediger** endrer navnet, søket, hvor langt tilbake den ser, tidsplanen og hvem den varsler, og **Slett hunt** ligger i menyen dens. Fra Security Member og oppover kan man lagre, endre og slette hunts, og en Security Viewer kan åpne dem.
+
+### Kjør en hunt etter en tidsplan
+
+| Tidsplan | Kjører |
+| --- | --- |
+| **Ikke planlagt** | Bare når du åpner den |
+| **Hver time**, **Hver 6. time**, **Hver dag**, **Hver uke** | Av seg selv, så ofte |
+
+En planlagt hunt varsler personene og teamene du velger under **Varsle**: minst én og høyst 50 til sammen. Hver kjøring:
+
+- leser hendelsene med et tidspunkt etter kjøringen før, frem til for to minutter siden, så hver hendelse søkes gjennom én gang. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt.
+- teller hendelsene søket finner der, nøyaktig slik **Hendelser** ville listet dem, og leser bare det personen den kjører som, kan lese.
+- varsler, når den finner hendelser, personene hunten nevner, og medlemmene av teamene den nevner, som kan lese hunts og sikkerhetshendelser.
+
+En kjøring åpner ingen sak og utløser ikke noe varsel: skriv det som skal åpne saker, som en [deteksjonsregel](#deteksjonsregler). En kjøring der søket tar for lang tid, eller som ikke kan lese hendelsene, sier hvorfor på hunten og prøves på nytt innen en time, fra der den stoppet.
+
+En planlagt hunt kjører som personen som sist satte tidsplanen, endret søket eller lagret den med **Rediger**. En API-nøkkel kan ikke sette en tidsplan. Når den personen forlater prosjektet eller ikke lenger kan lese sikkerhetshendelser, sier hunten fra: åpne **Rediger** og lagre den for å kjøre den som deg.
+
+### Hvem som varsles
+
+Varselet **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og vinduet den leste, og lenker til siden til hunten på de hendelsene; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varselinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
+
+### Oppbevar hendelser på en sak
+
+Velg hendelser under **Hendelser** eller på siden til en hunt og velg **Massehandlinger → Legg til i sak**, eller åpne én hendelse og velg **Legg til i sak**. Velg en åpen sak etter nummer eller tittel. Opptil 100 hendelser om gangen.
+
+OneUptime leser hver hendelse på nytt som deg og oppbevarer den slik den var, på sakens side **Bevis**, så saken fortsatt viser den etter at oppbevaringstiden for hendelsen er ute. En hendelse du ikke kan lese, oppbevares ikke, og en som saken allerede oppbevarer, blir stående som den er. En hendelse funnet via en hunt nevner hunten, og **Vis hendelse** åpner den slik den ble oppbevart.
+
+Hunts har det samme REST-API-et som resten av OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` oppbevarer hendelser på en sak. Se [API-referanse](/docs/api-reference/api-reference).
 
 ## Deteksjonsregler
 

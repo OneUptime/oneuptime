@@ -104,6 +104,7 @@ flowchart TB
 | استثناهای قاعده | `Rule Exception` |
 | فهرست‌های پایش | `Watchlist` |
 | مقدارهای فهرست پایش | `Watchlist Value` |
+| شکارها | `Hunt` |
 | وظایف و شواهد پرونده‌های امنیتی | `Security Case Task`، `Security Case Evidence` |
 | خروجی‌های گزارش ممیزی | `Audit Log Export` |
 

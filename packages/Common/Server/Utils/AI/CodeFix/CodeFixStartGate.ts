@@ -53,6 +53,10 @@ export default class CodeFixStartGate {
     taskContext: CodeFixTaskContext;
     billingEnabled?: boolean | undefined;
   }): Promise<CodeFixStart> {
+    /*
+     * A run the person picked a repository for is resolved among that one
+     * (getRunRepositoryAllowance), so Code's gate is asked about it.
+     */
     const [codeRepositoryId, plan]: [ObjectID | null, CurrentPlan] =
       await Promise.all([
         CodeFixRunRepository.resolveForNewRun({

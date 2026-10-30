@@ -2,7 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import Link from "../../../Types/Link";
-import { nameRecordInTrail } from "../../../UI/Components/Page/RecordNameInTrail";
+import {
+  getRecordCrumbName,
+  nameRecordInTrail,
+} from "../../../UI/Components/Page/RecordNameInTrail";
 
 /*
  * nameRecordInTrail hands a record's name to the crumb that stands for the
@@ -235,5 +238,182 @@ describe("a trail with nothing to name is handed back as it is", () => {
         recordName: "Website: acme.com",
       }),
     ).toBe(trail);
+  });
+});
+
+/*
+ * A record its project numbers - an incident, an alert, a maintenance
+ * event, an episode - is known by its number before its name, which
+ * ModelPage hands the trail too: "Project > Incidents > INC-18 Manually
+ * declared > Owners", in the trail and in the browser tab.
+ */
+const INCIDENT_ID: string = "65f00000000000000000dddd";
+
+function trailOnOwners(): Array<Link> {
+  return [
+    { title: "Project", to: new Route(`/dashboard/${PROJECT_ID}`) },
+    { title: "Incidents", to: new Route(`/dashboard/${PROJECT_ID}/incidents`) },
+    {
+      title: "View Incident",
+      to: new Route(`/dashboard/${PROJECT_ID}/incidents/${INCIDENT_ID}`),
+    },
+    {
+      title: "Owners",
+      to: new Route(`/dashboard/${PROJECT_ID}/incidents/${INCIDENT_ID}/owners`),
+    },
+  ];
+}
+
+function numbersIn(trail: Array<Link> | undefined): Array<string | undefined> {
+  return (trail || []).map((link: Link): string | undefined => {
+    return link.recordNumber;
+  });
+}
+
+describe("a numbered record's crumb carries its number", () => {
+  test("beside its name, on the crumb that stands for the record only", () => {
+    const named: Array<Link> | undefined = nameRecordInTrail({
+      links: trailOnOwners(),
+      recordId: INCIDENT_ID,
+      recordName: "Manually declared",
+      recordNumber: "INC-18",
+    });
+
+    expect(numbersIn(named)).toEqual([
+      undefined,
+      undefined,
+      "INC-18",
+      undefined,
+    ]);
+    expect(namesIn(named)).toEqual([
+      undefined,
+      undefined,
+      "Manually declared",
+      undefined,
+    ]);
+  });
+
+  test("its title stays the page's own name, for the product analytics", () => {
+    const named: Array<Link> = nameRecordInTrail({
+      links: trailOnOwners(),
+      recordId: INCIDENT_ID,
+      recordName: "Manually declared",
+      recordNumber: "INC-18",
+    })!;
+
+    expect(
+      named.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual(["Project", "Incidents", "View Incident", "Owners"]);
+  });
+
+  test("the number is trimmed; the name is kept as typed", () => {
+    const named: Array<Link> = nameRecordInTrail({
+      links: trailOnOwners(),
+      recordId: INCIDENT_ID,
+      recordName: "  Manually declared ",
+      recordNumber: " INC-18 ",
+    })!;
+
+    expect(named[2]!.recordNumber).toBe("INC-18");
+    expect(named[2]!.recordName).toBe("  Manually declared ");
+  });
+
+  test("a number with no name names the crumb by its number", () => {
+    const named: Array<Link> = nameRecordInTrail({
+      links: trailOnOwners(),
+      recordId: INCIDENT_ID,
+      recordName: "",
+      recordNumber: "INC-18",
+    })!;
+
+    expect(named[2]!.recordNumber).toBe("INC-18");
+    expect(named[2]!.recordName).toBeUndefined();
+  });
+
+  test.each([
+    ["no number", undefined],
+    ["a number that could not be read", null],
+    ["an empty number", ""],
+    ["a number of spaces", "  "],
+  ])(
+    "%s leaves the crumb named by its name alone, as before",
+    (_case: string, recordNumber: string | null | undefined) => {
+      const named: Array<Link> = nameRecordInTrail({
+        links: trailOnOwners(),
+        recordId: INCIDENT_ID,
+        recordName: "Manually declared",
+        recordNumber,
+      })!;
+
+      expect(named[2]!.recordName).toBe("Manually declared");
+      expect("recordNumber" in named[2]!).toBe(false);
+    },
+  );
+
+  test("neither a name nor a number leaves the trail as it is", () => {
+    const trail: Array<Link> = trailOnOwners();
+
+    expect(
+      nameRecordInTrail({
+        links: trail,
+        recordId: INCIDENT_ID,
+        recordName: undefined,
+        recordNumber: undefined,
+      }),
+    ).toBe(trail);
+  });
+
+  test("a trail with no crumb for the record is left as it is, number or not", () => {
+    const trail: Array<Link> = trailOnOwners().slice(0, 2);
+
+    expect(
+      nameRecordInTrail({
+        links: trail,
+        recordId: INCIDENT_ID,
+        recordName: "Manually declared",
+        recordNumber: "INC-18",
+      }),
+    ).toBe(trail);
+  });
+});
+
+describe("getRecordCrumbName - what the tab and the phone menu call the record", () => {
+  test("its number, then its name", () => {
+    expect(
+      getRecordCrumbName({
+        title: "View Incident",
+        to: new Route("/x"),
+        recordName: "Manually declared",
+        recordNumber: "INC-18",
+      }),
+    ).toBe("INC-18 Manually declared");
+  });
+
+  test("its name alone, for a record without a number", () => {
+    expect(
+      getRecordCrumbName({
+        title: "View Monitor",
+        to: new Route("/x"),
+        recordName: "Website: acme.com",
+      }),
+    ).toBe("Website: acme.com");
+  });
+
+  test("its number alone, for a record without a name", () => {
+    expect(
+      getRecordCrumbName({
+        title: "View Incident",
+        to: new Route("/x"),
+        recordNumber: "INC-18",
+      }),
+    ).toBe("INC-18");
+  });
+
+  test("nothing for a crumb that names no record", () => {
+    expect(
+      getRecordCrumbName({ title: "Owners", to: new Route("/x") }),
+    ).toBeUndefined();
   });
 });

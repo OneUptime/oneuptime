@@ -27,7 +27,9 @@ import ModelDelete from "../../../UI/Components/ModelDelete/ModelDelete";
 import { MAX_DISPLAY_NAME_LENGTH } from "../../../UI/Utils/ModelDisplayName";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
@@ -785,5 +787,137 @@ describe("ModelDelete with a typed confirmation", () => {
     expect(
       reason.compareDocumentPosition(typed) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+});
+
+/*
+ * An incident's Delete page is one of its pages: like the heading above
+ * it, its card and its dialog name the incident by its number first -
+ * "Permanently delete INC-18 Manually declared." - since the next incident
+ * declared by hand reads "Manually declared" too (Utils/Project/RecordNumber).
+ */
+describe("ModelDelete names a numbered record by its number first", () => {
+  it("reads the number with the title, in the same read", async () => {
+    const getItem: jest.SpyInstance = mockGetItem(() => {
+      return makeModel(Incident, {
+        title: "Manually declared",
+        incidentNumber: 18,
+        incidentNumberWithPrefix: "INC-18",
+      });
+    });
+
+    render(
+      <ModelDelete
+        modelType={Incident}
+        modelId={WORKFLOW_ID}
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getItem).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = getItem.mock.calls[0]![0];
+    expect(request.select).toEqual({
+      title: true,
+      incidentNumber: true,
+      incidentNumberWithPrefix: true,
+    });
+  });
+
+  it("says it on the card and in the dialog", async () => {
+    mockGetItem(() => {
+      return makeModel(Incident, {
+        title: "Manually declared",
+        incidentNumber: 18,
+        incidentNumberWithPrefix: "INC-18",
+      });
+    });
+
+    render(
+      <ModelDelete
+        modelType={Incident}
+        modelId={WORKFLOW_ID}
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+        "INC-18 Manually declared",
+      );
+    });
+    expect(textOf("model-delete-card-message")).toContain(
+      "Permanently delete INC-18 Manually declared.",
+    );
+
+    openDialog("Delete Incident");
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      "Are you sure you want to delete INC-18 Manually declared?",
+    );
+  });
+
+  it("a record numbered before numbers kept their prefix: #18", async () => {
+    mockGetItem(() => {
+      return makeModel(ScheduledMaintenance, {
+        title: "Primary database failover drill",
+        scheduledMaintenanceNumber: 18,
+      });
+    });
+
+    render(
+      <ModelDelete
+        modelType={ScheduledMaintenance}
+        modelId={WORKFLOW_ID}
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+        "#18 Primary database failover drill",
+      );
+    });
+  });
+
+  it("a record without a number is named by its title, as before", async () => {
+    mockGetItem(() => {
+      return makeModel(Incident, { title: "Manually declared" });
+    });
+
+    render(
+      <ModelDelete
+        modelType={Incident}
+        modelId={WORKFLOW_ID}
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-confirmation-name").textContent).toBe(
+        "Manually declared",
+      );
+    });
+  });
+
+  it("a model without numbers asks for its name alone", async () => {
+    const getItem: jest.SpyInstance = mockGetItem(() => {
+      return makeModel(Workflow, { name: "Notify on-call" });
+    });
+
+    render(
+      <ModelDelete
+        modelType={Workflow}
+        modelId={WORKFLOW_ID}
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getItem).toHaveBeenCalledTimes(1);
+    });
+    expect((getItem.mock.calls[0]![0] as any).select).toEqual({ name: true });
   });
 });

@@ -558,12 +558,16 @@ export default class AIIncidentInvestigationRunner {
     const contextNotes: Array<AIRunEventResultSummary> = [];
     // A follow-up check's first line: why it was written.
     let reportLead: MarkdownText | undefined = undefined;
+    // When the incident started: where a check for its logs begins.
+    let subjectStartedAt: Date | undefined = undefined;
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
           incidentId,
           includeWorkspaceMessages: false,
         });
+
+      subjectStartedAt = contextData.incident.createdAt;
 
       /*
        * Recurrence memory: pull in past resolved incidents that share this
@@ -918,6 +922,7 @@ export default class AIIncidentInvestigationRunner {
         promptOmissions,
         contextNotes,
         reportLead,
+        subjectStartedAt,
         runLimits,
         additionalInstructions,
         extraTools,
@@ -943,6 +948,8 @@ export default class AIIncidentInvestigationRunner {
     promptOmissions: AIPromptOmissions;
     contextNotes: Array<AIRunEventResultSummary>;
     reportLead: MarkdownText | undefined;
+    // When the incident started: where a check for its logs begins.
+    subjectStartedAt: Date | undefined;
     runLimits: AIAgentRunLimits;
     additionalInstructions: Array<string>;
     extraTools: Array<ObservabilityAssistantExtraTool>;
@@ -991,6 +998,11 @@ export default class AIIncidentInvestigationRunner {
         ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
+        // Says when the logs stood in the way, with a way forward.
+        logStallSubject: {
+          subjectType: "incident",
+          startedAt: data.subjectStartedAt,
+        },
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;

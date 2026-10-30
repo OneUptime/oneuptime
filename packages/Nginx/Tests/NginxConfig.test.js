@@ -27,6 +27,7 @@ const {
   locationRegexSource,
   resolveLocation,
 } = require("./NginxConfigParser");
+const { readDemoAddresses } = require("./HomeShortAddresses");
 
 const template = readTemplate();
 const nginxConf = readNginxConf();
@@ -2453,6 +2454,62 @@ test("everything the app serves under /file still reaches it", () => {
   assert.ok(
     /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(fileLocation.body),
   );
+});
+
+// ---------------------------------------------------------------------------
+// /demo: the demo page's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * Home answers oneuptime.com/demo, and the other addresses people type for
+ * the demo page, with a 301 to /enterprise/demo (Home/Utils/DemoPage.ts),
+ * keeping the campaign's query string. It can only do that if nginx sends
+ * them where it sends the rest of the marketing site: to `location /`
+ * itself, or to a block that proxies exactly like it. A prefix location of
+ * the app's that happened to start the same way would answer instead, as
+ * `location /workflow` answered /workflows and `location /file` answered
+ * /files/, and so would a `return` of nginx's own, which drops the query.
+ * NginxTemplateRender.test.js sends the same addresses through a real nginx.
+ */
+test("every short address of the demo page reaches the marketing site", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+
+  assert.ok(
+    directivesOf(catchAll).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+
+  for (const shortPath of readDemoAddresses().shortPaths) {
+    // Home answers each with and without a trailing slash.
+    for (const uri of [shortPath, `${shortPath}/`]) {
+      const location = resolveLocation(locations, uri);
+
+      assert.deepEqual(
+        directivesOf(location),
+        directivesOf(catchAll),
+        `${uri} lands in "location ${location.spec}", which does not send it to the marketing site`,
+      );
+    }
+  }
+});
+
+test("the demo page itself reaches the marketing site", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+  const { pagePath } = readDemoAddresses();
+
+  assert.equal(pagePath, "/enterprise/demo");
+
+  for (const uri of [pagePath, `${pagePath}/`]) {
+    const location = resolveLocation(locations, uri);
+
+    assert.deepEqual(
+      directivesOf(location),
+      directivesOf(catchAll),
+      `${uri} lands in "location ${location.spec}", which does not send it to the marketing site`,
+    );
+  }
 });
 
 /*

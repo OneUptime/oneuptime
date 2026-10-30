@@ -352,6 +352,8 @@ describe("a workflow's step naming a setting that holds credentials", () => {
 const WORKFLOW_RECORDS_NAMING_CREDENTIAL_SETTINGS: Array<string> = [
   "ApiKeyCustomRole.apiKey -> ApiKey",
   "ApiKeyPermission.apiKey -> ApiKey",
+  // The LLM provider a repository's production reviews read pull requests with.
+  "CodeRepository.productionReviewLlmProvider -> LlmProvider",
   "IncomingCallPolicy.projectCallSMSConfig -> ProjectCallSMSConfig",
   "StatusPage.callSmsConfig -> ProjectCallSMSConfig",
   "StatusPage.smtpConfig -> ProjectSMTPConfig",

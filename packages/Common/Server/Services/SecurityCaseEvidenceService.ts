@@ -23,9 +23,36 @@ import SecurityCaseEvidenceKind, {
   isSecurityCaseEvidenceKind,
 } from "../../Types/SecurityCase/SecurityCaseEvidenceKind";
 import {
+  eventEvidenceLineMarkdown,
+  eventsAddedMarkdown,
   evidenceAddedMarkdown,
   evidenceRemovedMarkdown,
 } from "../../Utils/SecurityCase/SecurityCaseMarkdown";
+import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
+import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
+import SecurityCaseService from "./SecurityCaseService";
+import SecurityEventService from "./SecurityEventService";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Includes from "../../Types/BaseDatabase/Includes";
+import InBetween from "../../Types/BaseDatabase/InBetween";
+import Query from "../../Types/BaseDatabase/Query";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
+import Timezone from "../../Types/Timezone";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/AnalyticsDatabase/Select";
+import {
+  SECURITY_CASE_EVENT_EVIDENCE_MAX_PER_ADD,
+  SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS,
+  SecurityCaseEventHunt,
+  SecurityCaseEventReference,
+  SecurityCaseEventSnapshot,
+  SecurityCaseEventsAddResult,
+  buildSecurityCaseEventSnapshot,
+  getSecurityCaseEventEvidenceName,
+} from "../../Types/SecurityCase/SecurityCaseEventEvidence";
 import crypto from "crypto";
 
 /*
@@ -52,6 +79,27 @@ const FILE_KEYS: Array<string> = ["fileId", "file"];
 // The answer for a file that is not there and for another project's: the same.
 export const EVIDENCE_FILE_NOT_FOUND: string =
   "The evidence's file was not found. Upload it to this project, then add it.";
+
+// The answer for a case that is not there and for one the person cannot read: the same.
+export const SECURITY_CASE_EVENTS_CASE_NOT_FOUND: string =
+  "This case was not found. It may have been deleted, or be one you cannot see.";
+
+/*
+ * How far an event's time may be from the time a request names: a list
+ * row's time is the event's own, but a client may round it to the second.
+ */
+const EVENT_TIME_SLACK_IN_MS: number = 1000;
+
+// An event's columns as a snapshot reads them, from the row OneUptime read.
+function readEventColumns(event: SecurityEvent): { [column: string]: unknown } {
+  const columns: { [column: string]: unknown } = {};
+
+  for (const column of SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS) {
+    columns[column] = event.getColumnValue(column);
+  }
+
+  return columns;
+}
 
 // A piece of evidence's name as it is kept: trimmed, at most 500 characters.
 export function normalizeEvidenceName(value: unknown): string {
@@ -120,6 +168,259 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * Security events kept on a case (SecurityCaseEvidenceKind.Event), as the
+   * person keeping them: the case must be one they can read, and each event
+   * is read from the events table AS THEM - an event they cannot read, or
+   * one past its retention, is not found, said the same way. What is kept
+   * is what OneUptime read (Types/SecurityCase/SecurityCaseEventEvidence),
+   * never what the request said it was. An event kept on the case already
+   * is left as it was. The case's timeline gets one entry for them all,
+   * with the hunt that found them.
+   *
+   * The caller's right to add evidence and to read security events is the
+   * route's to check (SecurityCaseEvidenceAPI); the rows are written by
+   * OneUptime, in the caller's name, as no caller may write an event's
+   * snapshot.
+   */
+  @CaptureSpan()
+  public async addEvents(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    events: Array<SecurityCaseEventReference>;
+    hunt: SecurityCaseEventHunt | null;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SecurityCaseEventsAddResult> {
+    const result: SecurityCaseEventsAddResult = {
+      added: [],
+      alreadyOnCase: [],
+      notFound: [],
+    };
+
+    if (data.events.length === 0) {
+      return result;
+    }
+
+    if (data.events.length > SECURITY_CASE_EVENT_EVIDENCE_MAX_PER_ADD) {
+      throw new BadDataException(
+        `Keep at most ${SECURITY_CASE_EVENT_EVIDENCE_MAX_PER_ADD.toString()} events on a case at a time.`,
+      );
+    }
+
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneBy({
+        query: {
+          _id: data.securityCaseId,
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+        },
+        props: data.props,
+      });
+
+    if (!securityCase) {
+      throw new BadDataException(SECURITY_CASE_EVENTS_CASE_NOT_FOUND);
+    }
+
+    const eventsByUid: Map<string, SecurityEvent> = await this.readEvents({
+      projectId: data.projectId,
+      events: data.events,
+      props: data.props,
+    });
+
+    const kept: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        kind: SecurityCaseEvidenceKind.Event,
+        eventUid: QueryHelper.any(
+          data.events.map((event: SecurityCaseEventReference): string => {
+            return event.eventUid;
+          }),
+        ),
+      },
+      select: {
+        _id: true,
+        eventUid: true,
+      },
+      skip: 0,
+      limit: SECURITY_CASE_EVENT_EVIDENCE_MAX_PER_ADD,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const keptUids: Set<string> = new Set<string>(
+      kept.map((item: Model): string => {
+        return item.eventUid || "";
+      }),
+    );
+
+    const lines: Array<MarkdownText> = [];
+
+    for (const reference of data.events) {
+      if (keptUids.has(reference.eventUid)) {
+        result.alreadyOnCase.push(reference.eventUid);
+        continue;
+      }
+
+      const event: SecurityEvent | undefined = eventsByUid.get(
+        reference.eventUid,
+      );
+
+      if (!event) {
+        result.notFound.push(reference.eventUid);
+        continue;
+      }
+
+      const snapshot: SecurityCaseEventSnapshot =
+        buildSecurityCaseEventSnapshot({
+          event: readEventColumns(event),
+          hunt: data.hunt,
+        });
+
+      const evidence: Model = new Model();
+      evidence.projectId = data.projectId;
+      evidence.securityCaseId = data.securityCaseId;
+      evidence.kind = SecurityCaseEvidenceKind.Event;
+      evidence.name = getSecurityCaseEventEvidenceName(snapshot);
+      evidence.eventUid = snapshot.eventUid;
+      if (snapshot.time) {
+        evidence.eventTime = new Date(snapshot.time);
+      }
+
+      evidence.eventSnapshot = snapshot as unknown as JSONObject;
+
+      if (data.props.userId) {
+        evidence.createdByUserId = data.props.userId;
+      }
+
+      await this.create({
+        data: evidence,
+        props: {
+          isRoot: true,
+          ...(data.props.userId ? { userId: data.props.userId } : {}),
+        },
+      });
+
+      keptUids.add(reference.eventUid);
+      result.added.push(reference.eventUid);
+      lines.push(
+        eventEvidenceLineMarkdown({
+          time: snapshot.time
+            ? OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+                date: snapshot.time,
+                timezones: [Timezone.UTC],
+              })[0] || snapshot.time
+            : "",
+          severity: snapshot.severityName,
+          name: evidence.name || "",
+        }),
+      );
+    }
+
+    if (result.added.length > 0) {
+      try {
+        await SecurityCaseFeedService.createSecurityCaseFeedItem({
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          feedInfoInMarkdown: eventsAddedMarkdown({
+            count: result.added.length,
+            huntName: data.hunt?.name,
+          }).toString(),
+          moreInformationInMarkdown: FeedMarkdown.bulletList(lines).toString(),
+          eventType: SecurityCaseFeedEventType.Evidence,
+          displayColor: Gray500,
+          userId: data.props.userId,
+        });
+      } catch (error) {
+        // The events are kept; what the timeline says about them must not undo that.
+        logger.error(
+          `SecurityCaseEvidenceService: could not record the events kept on case ${data.securityCaseId.toString()}:`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return result;
+  }
+
+  /*
+   * The events a request names, read as the person asking: each by its id,
+   * in a window around the times named, the one closest to its time kept
+   * where an id repeats.
+   */
+  private async readEvents(data: {
+    projectId: ObjectID;
+    events: Array<SecurityCaseEventReference>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, SecurityEvent>> {
+    const times: Array<number> = data.events.map(
+      (event: SecurityCaseEventReference): number => {
+        return event.time.getTime();
+      },
+    );
+    const from: Date = new Date(Math.min(...times) - EVENT_TIME_SLACK_IN_MS);
+    const to: Date = new Date(Math.max(...times) + EVENT_TIME_SLACK_IN_MS);
+    const timeByUid: Map<string, number> = new Map<string, number>(
+      data.events.map((event: SecurityCaseEventReference): [string, number] => {
+        return [event.eventUid, event.time.getTime()];
+      }),
+    );
+
+    const select: Select<SecurityEvent> = {};
+
+    for (const column of SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS) {
+      (select as Dictionary<boolean>)[column] = true;
+    }
+
+    const rows: Array<SecurityEvent> = await SecurityEventService.findBy({
+      query: {
+        projectId: data.projectId,
+        eventUid: new Includes(Array.from(timeByUid.keys())),
+        time: new InBetween<Date>(from, to),
+      } as Query<SecurityEvent>,
+      select,
+      sort: {
+        time: SortOrder.Descending,
+      },
+      skip: 0,
+      limit: data.events.length * 4,
+      props: data.props,
+    });
+
+    const found: Map<string, SecurityEvent> = new Map<string, SecurityEvent>();
+
+    for (const row of rows) {
+      const uid: string = row.eventUid || "";
+      const wanted: number | undefined = timeByUid.get(uid);
+      const time: number = row.time ? new Date(row.time).getTime() : NaN;
+
+      if (
+        wanted === undefined ||
+        Number.isNaN(time) ||
+        Math.abs(time - wanted) > EVENT_TIME_SLACK_IN_MS
+      ) {
+        continue;
+      }
+
+      const current: SecurityEvent | undefined = found.get(uid);
+      const currentTime: number = current?.time
+        ? new Date(current.time).getTime()
+        : NaN;
+
+      if (
+        !current ||
+        Math.abs(time - wanted) < Math.abs(currentTime - wanted)
+      ) {
+        found.set(uid, row);
+      }
+    }
+
+    return found;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -143,6 +444,22 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(
         `A description can be at most ${MAX_EVIDENCE_DESCRIPTION_LENGTH.toString()} characters.`,
       );
+    }
+
+    /*
+     * An event is kept from what OneUptime reads of it (addEvents), never
+     * from what a request says it was.
+     */
+    if (data.kind === SecurityCaseEvidenceKind.Event) {
+      if (!createBy.props.isRoot) {
+        throw new BadDataException(
+          "Security events are kept on a case from Security Events: tick them on Events or a hunt, then choose Add to Case.",
+        );
+      }
+
+      data.name = normalizeEvidenceName(data.name) || "Security event";
+
+      return { createBy, carryForward: null };
     }
 
     const fileId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
@@ -227,6 +544,11 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId || !createdItem.securityCaseId) {
+      return createdItem;
+    }
+
+    // Kept events are said once for them all (addEvents).
+    if (createdItem.kind === SecurityCaseEvidenceKind.Event) {
       return createdItem;
     }
 

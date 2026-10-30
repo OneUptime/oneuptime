@@ -2634,6 +2634,139 @@ describe("performance fix with AI", () => {
     expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
   });
 
+  /*
+   * Several repositories, none found to hold the trace's code for certain:
+   * the strip asks which one, and the click names the pick.
+   */
+  test("a repository to pick: the click names the pick, and only then is the fix asked", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding(),
+      repositories: [
+        { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+        { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+      ],
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+    const button: HTMLElement = within(strip).getByTestId(
+      "trace-fix-performance",
+    );
+
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(postsTo(CREATE_PATH)).toHaveLength(0);
+
+    fireEvent.keyDown(
+      within(
+        within(strip).getByTestId("trace-fix-performance-repository"),
+      ).getByRole("combobox"),
+      { key: "ArrowDown", code: "ArrowDown" },
+    );
+    fireEvent.click(screen.getByText("checkout-api"));
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-progress"),
+    ).toBeInTheDocument();
+    expect(postsTo(CREATE_PATH)).toHaveLength(1);
+    expect(postsTo(CREATE_PATH)[0]!.data).toEqual({
+      traceId: TRACE_ID,
+      repositoryId: "51000000-0000-4000-8000-000000000001",
+    });
+  });
+
+  /*
+   * The pick was disconnected between the page's read and the click: the
+   * reason shows beside the finding, and the list to pick from is the
+   * server's again - the gone repository is no longer offered, and the
+   * fix waits for a new pick.
+   */
+  test("a pick refused because it was disconnected meanwhile: the reason shows, and the list is the server's again", async () => {
+    const REPOSITORIES: Array<JSONObject> = [
+      { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+      { id: "51000000-0000-4000-8000-000000000003", name: "storefront" },
+    ];
+    answerSuggestion(
+      {
+        offer: "Act",
+        finding: nPlusOneFinding(),
+        repositories: REPOSITORIES,
+      },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.",
+          },
+          {},
+        );
+      },
+      {
+        offer: "Act",
+        finding: nPlusOneFinding(),
+        repositories: [REPOSITORIES[0]!, REPOSITORIES[2]!],
+      },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+    const openPicker: () => void = (): void => {
+      fireEvent.keyDown(
+        within(
+          within(strip).getByTestId("trace-fix-performance-repository"),
+        ).getByRole("combobox"),
+        { key: "ArrowDown", code: "ArrowDown" },
+      );
+    };
+
+    openPicker();
+    fireEvent.click(screen.getByText("checkout-api"));
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-error"),
+    ).toHaveTextContent(
+      "That repository is not one of this project's connected repositories",
+    );
+    // Asked again: the gone pick is no longer chosen, and no longer offered.
+    await waitFor(() => {
+      expect(within(strip).getByTestId("trace-fix-performance")).toBeDisabled();
+    });
+    expect(
+      within(
+        within(strip).getByTestId("trace-fix-performance-repository"),
+      ).queryByText("checkout-api"),
+    ).toBeNull();
+    openPicker();
+    expect(screen.queryByText("checkout-api")).toBeNull();
+    expect(screen.getByText("billing")).toBeInTheDocument();
+    expect(screen.getByText("storefront")).toBeInTheDocument();
+    expect(postsTo(CREATE_PATH)).toHaveLength(1);
+  });
+
+  test("a list of one repository is no choice: no picker, and the click names none", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding(),
+      repositories: [
+        { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      ],
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-repository"),
+    ).toBeNull();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    await within(strip).findByTestId("trace-fix-performance-progress");
+    expect(postsTo(CREATE_PATH)[0]!.data).toEqual({ traceId: TRACE_ID });
+  });
+
   test("a refusal is shown beside the finding, and the fix can be tried again", async () => {
     answerSuggestion({ offer: "Act", finding: nPlusOneFinding() }, async () => {
       throw new HTTPErrorResponse(

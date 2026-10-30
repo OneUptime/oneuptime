@@ -66,6 +66,21 @@ import {
 } from "../../../Components/Code/CodeProductionReviewCopy";
 import { ProductionReviewPullRequestContent } from "Common/Types/CodeRepository/ProductionReview";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  RuleLlmProviderFieldHint,
+  RuleLlmProviderPicker,
+  useRuleLlmProviderChoices,
+} from "../../../Components/AI/RuleLlmProviderField";
+import {
+  RULE_LLM_PROVIDER_FIELD_COPY,
+  RuleLlmProviderChoices,
+  RuleLlmProviderPickState,
+  getRuleLlmProviderFoldedValue,
+  getRuleLlmProviderPickState,
+  getRuleLlmProviderPlaceholder,
+} from "../../../Components/AI/RuleLlmProviderCopy";
+import { readLlmProviderId } from "Common/Types/AI/LlmProviderChoice";
+import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import React, {
   Fragment,
   FunctionComponent,
@@ -82,6 +97,46 @@ export const CODE_REPOSITORY_MORE_SETTINGS_TEST_ID: string =
 
 export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
   "code-repository-production-review";
+
+export const CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID: string =
+  "production-review-llm-provider";
+
+// The card's line under a pick the project can no longer use.
+export const CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID: string =
+  "production-review-llm-provider-warning";
+
+/*
+ * What the Production Review LLM Provider card shows: the provider picked,
+ * by name - or that the reader cannot see it, or that it is no longer
+ * available - and, while none is picked, the default it stands for, as the
+ * Edit form's empty box names it ("Project default (Azure GPT-4o)"). Null
+ * while the providers are first read: the card holds the value's place.
+ */
+export function getProductionReviewLlmProviderShown(
+  pickedProviderId: unknown,
+  choices: RuleLlmProviderChoices | null,
+  translator: Translator,
+): string | null {
+  if (!choices) {
+    return null;
+  }
+
+  const picked: string = readLlmProviderId(pickedProviderId);
+
+  if (picked) {
+    const value: string | null = getRuleLlmProviderFoldedValue(
+      { llmProviderId: picked },
+      choices,
+      translator,
+    );
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return getRuleLlmProviderPlaceholder(choices, translator);
+}
 
 /*
  * A repository's settings in Code, asking as little as they can - the way
@@ -108,6 +163,9 @@ export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
  *         GitHub App;
  *       - Production Review Comment: what a production review posts on a
  *         pull request;
+ *       - Production Review LLM Provider: the LLM provider OneUptime AI
+ *         reads the pull requests with - the project's default provider
+ *         until one is picked;
  *       - and, only on a repository that has them, the build and test
  *         commands an operator set before AI read how to build and test
  *         from the repository's own AGENTS.md.
@@ -151,6 +209,14 @@ const CodeRepositorySettings: FunctionComponent<
    * settings says of the Runner while it is folded.
    */
   const runnerChoices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
+
+  /*
+   * The project's LLM providers, read once (and again when the person comes
+   * back to the tab), for the Production Review LLM Provider card's value
+   * and for what More settings says of it while it is folded.
+   */
+  const llmProviderChoices: RuleLlmProviderChoices | null =
+    useRuleLlmProviderChoices();
 
   // Keeps what a card in More settings read or a switch moved to.
   const remember: (values: CodeRepositorySettingsValues) => void = (
@@ -362,6 +428,7 @@ const CodeRepositorySettings: FunctionComponent<
           translator,
           runnerChoices,
           provider,
+          llmProviderChoices,
         )}
         dataTestId={CODE_REPOSITORY_MORE_SETTINGS_TEST_ID}
       >
@@ -922,6 +989,153 @@ const CodeRepositorySettings: FunctionComponent<
                           ].title,
                         )}
                       </span>
+                    );
+                  },
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * The LLM provider OneUptime AI reads the repository's pull requests
+         * with in production reviews: the AI rules' picker - the project's
+         * providers, its default first and tagged, then the global ones,
+         * each with its model. Empty is an answer of its own - the
+         * project's default provider, else the global one, named in the
+         * box - so the field never says "(Optional)". A pick that cannot be
+         * used falls back the same way (Common/Types/AI/LlmProviderChoice).
+         */}
+        {repositorySettings.includes(
+          CodeRepositorySetting.ProductionReviewLlmProvider,
+        ) ? (
+          <CardModelDetail<CodeRepository>
+            name="Repository > Production Review LLM Provider"
+            cardProps={{
+              title: PRODUCTION_REVIEW_SETTINGS_COPY.providerCardTitle,
+              description:
+                PRODUCTION_REVIEW_SETTINGS_COPY.providerCardDescription,
+              id: CodeRepositorySetting.ProductionReviewLlmProvider,
+            }}
+            isEditable={true}
+            editButtonText="Edit"
+            editModalTitle={PRODUCTION_REVIEW_SETTINGS_COPY.providerCardTitle}
+            formFields={[
+              {
+                field: {
+                  productionReviewLlmProviderId: true,
+                },
+                title: RULE_LLM_PROVIDER_FIELD_COPY.title,
+                description:
+                  PRODUCTION_REVIEW_SETTINGS_COPY.providerFieldDescription,
+                fieldType: FormFieldSchemaType.CustomComponent,
+                required: false,
+                // Empty is the default provider, not "(Optional)".
+                hideOptionalLabel: true,
+                hideColumnDescription: true,
+                dataTestId:
+                  CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID,
+                getCustomElement: (
+                  values: FormValues<CodeRepository>,
+                  elementProps: CustomElementProps,
+                ): ReactElement => {
+                  return (
+                    <RuleLlmProviderPicker
+                      value={
+                        (values as { productionReviewLlmProviderId?: unknown })
+                          .productionReviewLlmProviderId
+                      }
+                      ariaLabelledby={elementProps.ariaLabelledby}
+                      onChange={(llmProviderId: string | null): void => {
+                        elementProps.onChange?.(llmProviderId);
+                      }}
+                    />
+                  );
+                },
+                getFooterElement: (): ReactElement => {
+                  return <RuleLlmProviderFieldHint />;
+                },
+              },
+            ]}
+            modelDetailProps={{
+              modelType: CodeRepository,
+              id: "model-detail-code-repository-production-review-llm-provider",
+              onItemLoaded: (item: CodeRepository): void => {
+                remember({
+                  productionReviewLlmProviderId: readLlmProviderId(
+                    item.productionReviewLlmProviderId,
+                  ),
+                });
+              },
+              fields: [
+                /*
+                 * Named as the Edit form's field is, and shown as the
+                 * provider the reviews use - the default by name while none
+                 * is picked.
+                 */
+                {
+                  field: {
+                    productionReviewLlmProviderId: true,
+                  },
+                  title: RULE_LLM_PROVIDER_FIELD_COPY.title,
+                  fieldType: FieldType.Element,
+                  getElement: (item: CodeRepository): ReactElement => {
+                    const shown: string | null =
+                      getProductionReviewLlmProviderShown(
+                        item.productionReviewLlmProviderId,
+                        llmProviderChoices,
+                        translator,
+                      );
+
+                    if (shown === null) {
+                      return (
+                        <Skeleton
+                          className="h-5 w-40 rounded"
+                          dataTestId="production-review-llm-provider-loading"
+                        />
+                      );
+                    }
+
+                    /*
+                     * A pick the project can no longer use says what the
+                     * reviews do instead, as the Edit form's field does: the
+                     * default, until another is picked.
+                     */
+                    const isUnavailable: boolean =
+                      getRuleLlmProviderPickState({
+                        pickedProviderId: readLlmProviderId(
+                          item.productionReviewLlmProviderId,
+                        ),
+                        choices: llmProviderChoices,
+                      }) === RuleLlmProviderPickState.Unavailable;
+
+                    const value: ReactElement = (
+                      <span data-testid="production-review-llm-provider-value">
+                        {shown}
+                      </span>
+                    );
+
+                    if (!isUnavailable) {
+                      return value;
+                    }
+
+                    return (
+                      <div>
+                        {value}
+                        <p
+                          className="mt-1 text-sm text-amber-700"
+                          data-testid={
+                            CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID
+                          }
+                        >
+                          {translator.translateText(
+                            RULE_LLM_PROVIDER_FIELD_COPY.unavailableWarning,
+                          )}
+                        </p>
+                      </div>
                     );
                   },
                 },

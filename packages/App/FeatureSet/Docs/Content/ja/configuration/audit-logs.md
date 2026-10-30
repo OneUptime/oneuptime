@@ -104,6 +104,7 @@ flowchart TB
 | ルールの例外 | `Rule Exception` |
 | ウォッチリスト | `Watchlist` |
 | ウォッチリストの値 | `Watchlist Value` |
+| ハント | `Hunt` |
 | セキュリティケースのタスクと証拠 | `Security Case Task`、`Security Case Evidence` |
 | 監査ログのエクスポート | `Audit Log Export` |
 

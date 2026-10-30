@@ -134,6 +134,8 @@ API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-5.1
 ```
 
+OpenAI 会自行缓存它见过的提示，并对读回的部分收取更低的费用。OneUptime 会告诉 OpenAI 哪些调用属于一组：每个项目和每种 AI 工作一个提示缓存，以 `prompt_cache_key` 发送，因此两个项目的提示永远不会共享缓存，而一次调查的每次调用都会读回之前调用发送的内容。如果提供商 **基础 URL** 上的服务器拒绝该字段，OneUptime 会不带它重新发送请求，并为该提供商记住这一点。[如何计算 token](/docs/ai/ai-sre#如何计算-token)说明了缓存的 token 如何计入您的限制。
+
 ### Anthropic
 
 1. 从 [Anthropic Console](https://console.anthropic.com/) 获取 API 密钥

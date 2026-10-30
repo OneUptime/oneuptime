@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/runner",
-  "version": "14.0.97",
+  "version": "14.0.98",
   "description": "OneUptime Runner — one self-hosted agent that executes runbook steps in your own infrastructure and, when enabled, opens AI code-fix pull requests in your repositories.",
   "repository": {
     "type": "git",
@@ -14,7 +14,7 @@
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "jest --detectOpenHandles --passWithNoTests"
+    "test": "jest --runInBand --passWithNoTests"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",

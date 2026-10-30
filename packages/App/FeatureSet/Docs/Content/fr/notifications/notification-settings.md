@@ -53,7 +53,7 @@ Quand vous rejoignez un projet, ces événements sont activés, par e-mail. Tout
 | **Pages de statut** | Aucun | **Page de statut créée**, **Annonce de page de statut publiée**, **Ajouté comme propriétaire de la page de statut** |
 | **Maintenance planifiée** | **Rappel de maintenance** | **Événement de maintenance créé**, **État de la maintenance modifié**, **Note de maintenance publiée**, **Ajouté comme propriétaire de la maintenance** |
 | **Astreinte** | **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte**, **Vous quittez l'astreinte**, **Ajouté à la politique d'astreinte**, **Retiré de la politique d'astreinte**, **Appel manqué**, et aussi par push : **Avant le début de ma permanence d'astreinte**, **Ma prochaine permanence d'astreinte est réattribuée** | Aucun |
-| **Sécurité** | Aussi par push : **Nouveau dossier de sécurité** (dossiers de priorité Élevé et Critique), **Dossier de sécurité qui m'est attribué**, **Étape de playbook en attente de mon approbation**, **Objectif de réponse d'un dossier de sécurité**, **Tâche d'un dossier de sécurité qui m'est attribuée** | Aucun |
+| **Sécurité** | Aussi par push : **Nouveau dossier de sécurité** (dossiers de priorité Élevé et Critique), **Dossier de sécurité qui m'est attribué**, **Étape de playbook en attente de mon approbation**, **Objectif de réponse d'un dossier de sécurité**, **Tâche d'un dossier de sécurité qui m'est attribuée**, **Une chasse a trouvé des événements de sécurité** | Aucun |
 
 > [!IMPORTANT]
 > **Statut du moniteur modifié** démarre désactivé. Pour savoir quand un moniteur dont vous êtes propriétaire tombe ou revient, activez-le dans l'onglet **Surveillance**.

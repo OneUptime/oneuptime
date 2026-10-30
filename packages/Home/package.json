@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/home",
-  "version": "14.0.97",
+  "version": "14.0.98",
   "description": "",
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "rm -rf build && jest --detectOpenHandles",
+    "test": "rm -rf build && jest",
     "coverage": "jest --detectOpenHandles --coverage"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

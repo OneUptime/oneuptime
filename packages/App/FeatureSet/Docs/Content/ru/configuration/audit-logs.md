@@ -104,6 +104,7 @@ flowchart TB
 | Исключения правил | `Rule Exception` |
 | Списки отслеживания | `Watchlist` |
 | Значения списков отслеживания | `Watchlist Value` |
+| Поиск угроз | `Hunt` |
 | Задачи и доказательства кейсов безопасности | `Security Case Task`, `Security Case Evidence` |
 | Экспорты журнала аудита | `Audit Log Export` |
 

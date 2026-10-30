@@ -1,8 +1,11 @@
 import {
   buildPageSearchCommandDescriptors,
+  getEntitySearchResultTitle,
+  getEntitySearchSpecs,
   getPageSearchIndexEntries,
   PageSearchCommandDescriptor,
   PageSearchIndexEntry,
+  PaletteEntitySearchSpec,
 } from "../../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import {
   getPageSearchAreas,
@@ -344,4 +347,63 @@ describe("Home Page & Shortcuts finds a setting by its name", () => {
       }
     },
   );
+});
+
+/*
+ * Search finds an incident or an alert by its number as well as by its
+ * name, and each result says the number first ("INC-42 Checkout is down"):
+ * two incidents of one title used to be two identical rows.
+ */
+describe("Home Page & Shortcuts finds incidents and alerts by number", () => {
+  const specById: (id: string) => PaletteEntitySearchSpec = (
+    id: string,
+  ): PaletteEntitySearchSpec => {
+    return getEntitySearchSpecs().find((spec: PaletteEntitySearchSpec) => {
+      return spec.id === id;
+    })!;
+  };
+
+  test("it says so, with an example", () => {
+    expect(SECTION).toContain(
+      "**Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`.",
+    );
+    expect(SECTION).toContain(
+      "Each incident and alert result starts with its number, so two of one title are told apart.",
+    );
+  });
+
+  test("incidents and alerts are searched by their numbers, and named by them first", () => {
+    for (const [id, column] of [
+      ["incidents", "incidentNumberWithPrefix"],
+      ["alerts", "alertNumberWithPrefix"],
+    ] as Array<[string, string]>) {
+      expect({ id, fields: specById(id).searchFields }).toEqual({
+        id,
+        fields: expect.arrayContaining([column]),
+      });
+    }
+
+    expect(
+      getEntitySearchResultTitle(specById("incidents"), {
+        title: "Checkout is down",
+        incidentNumber: 42,
+        incidentNumberWithPrefix: "INC-42",
+      }),
+    ).toBe("INC-42 Checkout is down");
+  });
+
+  test.each(
+    SUPPORTED_DOCS_LANGUAGE_CODES.map((code: string) => {
+      return [code];
+    }),
+  )("in %s, it gives the same example", (language: string) => {
+    const page: string = readPage(language, "introduction/home");
+    const start: number = page.indexOf("Cmd+K");
+    expect(start).toBeGreaterThan(-1);
+
+    expect({ language, example: page.includes("`INC-42`") }).toEqual({
+      language,
+      example: true,
+    });
+  });
 });

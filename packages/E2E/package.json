@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.97",
+  "version": "14.0.98",
   "description": "",
   "repository": {
     "type": "git",
@@ -50,6 +50,8 @@
     "test-chart-time-zoom-ui": "playwright test --config playwright.chart-time-zoom-ui.config.ts",
     "test-security-events-empty-states-ui": "playwright test --config playwright.security-events-empty-states-ui.config.ts",
     "test-security-operations-ui": "playwright test --config playwright.security-operations-ui.config.ts",
+    "test-security-hunts-ui": "playwright test --config playwright.security-hunts-ui.config.ts",
+    "test-security-cases-detections-ui": "playwright test --config playwright.security-cases-detections-ui.config.ts",
     "test-sharding": "playwright test --config playwright.sharding.config.ts",
     "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
     "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts",

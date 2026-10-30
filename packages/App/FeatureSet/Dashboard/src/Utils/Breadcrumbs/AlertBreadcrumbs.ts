@@ -80,6 +80,7 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_DESCRIPTION, [
       "Project",
       "Alerts",
+      "View Alert",
       "Description",
     ]),
 

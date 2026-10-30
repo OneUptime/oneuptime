@@ -381,6 +381,50 @@ matches under their own heading, in both themes and in Persian; German; Persian 
 right to left; and an entity's page. Its screenshots are named `case-connected-signals-*` and
 `entity-connected-signals-*`.
 
+## Hunts
+
+Searches over security events kept with a name, run on a schedule, and the events they find kept
+on a case, with their own spec, `Hunts.spec.ts`, which runs as a suite of its own on this fixture -
+`npm run test-security-hunts-ui` (`playwright.security-hunts-ui.config.ts`, App Test's group 6);
+`test-security-operations-ui` leaves it out:
+
+| Page   | Route (from `RouteMap`)                                     | Production components                                                           |
+| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Hunts  | `SECURITY_EVENTS_HUNTS` `.../security-events/hunts`         | `Pages/SecurityEvents/Hunts`, `SecurityEvents/Hunts/{HuntCells,HuntFormFields}` |
+| A hunt | `SECURITY_EVENTS_HUNT_VIEW` `.../security-events/hunts/:id` | `Pages/SecurityEvents/HuntView`, `HuntHeader`, the Events explorer under it     |
+| Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`   | `SecurityEventsViewer`, its toolbar's `HuntsMenu`, `useAddEventsToCase`         |
+
+`Fixture/HuntsFixture.js` lays out four hunts - Encoded PowerShell (every day, tells Maya Chen and
+SOC Tier 2; its last run found the three encoded PowerShell starts on web-03 of the past day; its
+description runs past two lines on a phone),
+Admin sign-ins outside the office (every hour, tells Diego; nothing found yet), Threat intel
+matches (not scheduled; a chip alone) and Sudo by service accounts (every 6 hours; its last run
+could not be made, as the person who set its schedule can no longer read security events) - and
+the events the Events explorer reads, matched as ClickHouse matches the search the page compiles.
+`POST /security-case-evidence/add-events` answers as the server does: each event read again and
+kept as it was, one the case keeps already left alone. CASE-138 keeps one of the PowerShell events,
+found by the first hunt.
+
+| Parameter | Values                                     |
+| --------- | ------------------------------------------ |
+| `?hunts=` | `empty`: the project has saved no hunt yet |
+
+`Hunts.spec.ts` covers: the list under Events, its entry lit, each hunt with its search, schedule,
+who it tells and what its last run found; at phone width, each hunt's schedule and last find under
+its name, in red when its run failed; the empty list and its way to Events; the Events toolbar's
+Hunts list, which opens a hunt, opens on the screen beside the side menu at 768 (left to right and
+right to left, each schedule under its name), and its save locked with why while nothing is
+searched; Save as Hunt saving a scheduled hunt that tells its saver, and its page opening; a hunt's
+page on its search with Show them; a changed search saved from the notice over it, which names the
+search the hunt keeps and starts the hunt's schedule again, and Discard Changes opening the hunt's
+own search; on a phone, that notice's saved search wrapped whole and its two buttons on one row; a
+failed run said on its page, and Delete Hunt going back to the list; a hunt's page on a phone, its
+description in two lines with Show more, and in Persian, right to left, with the list's English
+descriptions reading their own way; Add to Case from a hunt's page onto CASE-138's Evidence, the
+kept event naming the hunt and View Event opening it as it was kept; and Add to Case from an
+event's panel onto CASE-141, said under the button with a check and a link to the case's Evidence.
+Its screenshots are named `hunts-*`.
+
 ## Rule exceptions and Run on Past Events
 
 What a detection rule skips, and what it would have found over past events, with their own spec,
@@ -496,10 +540,20 @@ dark theme. Its screenshots are named `case-tasks-*` (`case-tasks-empty-*` among
 cd packages/E2E
 npm install
 npm run test-security-operations-ui
+npm run test-security-cases-detections-ui
+npm run test-security-hunts-ui
 ```
 
+The specs run as three suites, in three App Test groups, each on its own server of this fixture:
+`test-security-operations-ui` runs `SecurityOperations.spec.ts` (group 11);
+`test-security-cases-detections-ui` (`playwright.security-cases-detections-ui.config.ts`, group 5)
+runs `CaseWork.spec.ts`, `ConnectedSignals.spec.ts`, `EntityRisk.spec.ts`, `RuleExceptions.spec.ts`
+and `Watchlists.spec.ts`; and `test-security-hunts-ui` (group 6) runs `Hunts.spec.ts`. A new spec
+runs with `test-security-operations-ui` until one of the other two configs lists it.
+
 Playwright reuses a server already listening on port 4234 outside CI. If one from another checkout
-might be running, stop it first or run with `CI=1`.
+might be running, stop it first or run with `CI=1`; `SECURITY_OPERATIONS_FIXTURE_PORT` picks
+another port.
 
 Screenshots (2x) land in `output/playwright/security-operations-ui/`, named `*-synthetic.png`
 because everything in them is fabricated: among them `overview-desktop`, `overview-dark`,

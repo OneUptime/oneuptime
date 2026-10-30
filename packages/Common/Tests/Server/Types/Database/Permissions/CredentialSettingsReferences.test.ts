@@ -10,6 +10,7 @@ import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
 import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import Domain from "../../../../../Models/DatabaseModels/Domain";
 import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
@@ -304,6 +305,12 @@ describe("the settings that hold credentials", () => {
     ],
     [AutoRemediationRule, "llmProvider", "llmProviderId", LlmProvider],
     [AIPostmortemRule, "llmProvider", "llmProviderId", LlmProvider],
+    [
+      CodeRepository,
+      "productionReviewLlmProvider",
+      "productionReviewLlmProviderId",
+      LlmProvider,
+    ],
   ] as Array<[{ new (): BaseModel }, string, string, { new (): BaseModel }]>)(
     "%p.%s is held to the read of the setting it names, under both of its names",
     (
@@ -755,6 +762,69 @@ describe("the outside MCP servers a rule lets OneUptime AI use", () => {
  * and admins who write every kind of rule read them, as do the Settings
  * tiers; a custom role that only edits AI rules does not.
  */
+/*
+ * The same for the LLM provider a repository's production reviews use
+ * (CodeRepository.productionReviewLlmProvider): OneUptime AI reads its pull
+ * requests with that provider, on its key. A role that edits repositories
+ * but reads no LLM providers names none; one that reads them does, and a
+ * repository that picks none - the project's default - asks nothing.
+ */
+describe("the LLM provider a repository's production reviews use", () => {
+  test("is refused to a role that edits repositories but reads no LLM providers, under either name, and nothing is looked up", async () => {
+    for (const data of [
+      { productionReviewLlmProviderId: LLM_PROVIDER_A },
+      { productionReviewLlmProvider: { _id: LLM_PROVIDER_A } },
+    ]) {
+      const found: Lookups = lookups();
+
+      const refusal: unknown = await check({
+        modelType: CodeRepository,
+        data: data,
+        props: member([Permission.EditCodeRepository]),
+        lookups: found,
+      });
+
+      expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+      expect((refusal as Error).message).toMatch(
+        refusedFor("Production Review LLM Provider", LLM_PROVIDER_A),
+      );
+      expect(found.calls).toEqual([]);
+    }
+  });
+
+  test("is named by a member, an admin and a role that reads the providers", async () => {
+    for (const props of [
+      member([Permission.ProjectMember]),
+      member([Permission.ProjectAdmin]),
+      member([Permission.EditCodeRepository, Permission.ReadProjectLlm]),
+    ]) {
+      expect(
+        await check({
+          modelType: CodeRepository,
+          data: { productionReviewLlmProviderId: LLM_PROVIDER_A },
+          props: props,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("a repository that picks none asks nothing", async () => {
+    for (const data of [
+      { productionReviewLlmProviderId: null },
+      { productionReviewLlmProvider: null },
+      { name: "checkout-api" },
+    ]) {
+      expect(
+        await check({
+          modelType: CodeRepository,
+          data: data,
+          props: member([Permission.EditCodeRepository]),
+        }),
+      ).toBeUndefined();
+    }
+  });
+});
+
 describe("the LLM provider an AI rule picks", () => {
   test("is refused to a role that edits AI rules but reads no LLM providers, under either name, and nothing is looked up", async () => {
     for (const permission of [

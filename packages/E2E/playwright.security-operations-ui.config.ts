@@ -7,6 +7,20 @@ const port: string = process.env["SECURITY_OPERATIONS_FIXTURE_PORT"] || "4234";
 export default defineConfig({
   testDir: "./SecurityOperations",
   testMatch: "*.spec.ts",
+  /*
+   * Hunts run as a suite of their own (playwright.security-hunts-ui.config.ts),
+   * and so do the five shorter specs below
+   * (playwright.security-cases-detections-ui.config.ts). A new spec here runs
+   * with this suite until it is listed in one of those.
+   */
+  testIgnore: [
+    "Hunts.spec.ts",
+    "CaseWork.spec.ts",
+    "ConnectedSignals.spec.ts",
+    "EntityRisk.spec.ts",
+    "RuleExceptions.spec.ts",
+    "Watchlists.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 120000,

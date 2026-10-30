@@ -28,6 +28,7 @@ import ChatInfrastructureAccess, {
 import PostedRootCause from "./PostedRootCause";
 import logger from "../../Logger";
 import PromptText from "../../../../Utils/AI/PromptText";
+import { formatRecordNumber } from "../../../../Utils/Project/RecordNumber";
 import { AiContextRule } from "../../../../Types/AI/AiContext";
 import AiContextReader from "../AiContext/AiContextReader";
 
@@ -221,6 +222,7 @@ export default class InvestigationThread {
         title: true,
         description: true,
         alertNumber: true,
+        alertNumberWithPrefix: true,
         createdAt: true,
         rootCause: true,
         alertSeverity: { name: true },
@@ -238,12 +240,12 @@ export default class InvestigationThread {
     incident: Incident | null,
     incidentId: ObjectID,
   ): InvestigationThreadSubjectDetails {
+    // INC-42 as the project numbered it, #42 before numbers had prefixes.
     const number: string =
-      incident?.incidentNumberWithPrefix ||
-      (incident?.incidentNumber !== undefined &&
-      incident?.incidentNumber !== null
-        ? `#${incident.incidentNumber}`
-        : "");
+      formatRecordNumber({
+        number: incident?.incidentNumber,
+        numberWithPrefix: incident?.incidentNumberWithPrefix,
+      }) || "";
     const label: string = number ? `Incident ${number}` : "Incident";
     const title: string = incident?.title || "Untitled incident";
 
@@ -319,10 +321,16 @@ export default class InvestigationThread {
     alert: Alert | null,
     alertId: ObjectID,
   ): InvestigationThreadSubjectDetails {
+    /*
+     * ALT-7 as the project numbered it - the number the alert's page, its
+     * notifications and Ask AI's chip name it by - #7 before numbers had
+     * prefixes.
+     */
     const number: string =
-      alert?.alertNumber !== undefined && alert?.alertNumber !== null
-        ? `#${alert.alertNumber}`
-        : "";
+      formatRecordNumber({
+        number: alert?.alertNumber,
+        numberWithPrefix: alert?.alertNumberWithPrefix,
+      }) || "";
     const label: string = number ? `Alert ${number}` : "Alert";
     const title: string = alert?.title || "Untitled alert";
 

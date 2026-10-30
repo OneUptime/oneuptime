@@ -211,7 +211,8 @@ interface EventPage {
 const INCIDENT_PAGE: EventPage = {
   name: "incident-overview",
   path: INCIDENT_PATH,
-  pageTitle: "Incident - Checkout API p95 latency above 2s",
+  // Its number first, then its title (Utils/Project/RecordNumber).
+  pageTitle: "#1042 Checkout API p95 latency above 2s",
   title: "Checkout API p95 latency above 2s",
   identifier: "#1042",
   feed: "Incident Feed",
@@ -290,7 +291,7 @@ const INCIDENT_PAGE: EventPage = {
 const ALERT_PAGE: EventPage = {
   name: "alert-overview",
   path: ALERT_PATH,
-  pageTitle: "Alert - Payment webhook 5xx rate above 5%",
+  pageTitle: "#311 Payment webhook 5xx rate above 5%",
   title: "Payment webhook 5xx rate above 5%",
   identifier: "#311",
   feed: "Alert Feed",
@@ -351,7 +352,7 @@ const ALERT_PAGE: EventPage = {
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   name: "scheduled-maintenance-overview",
   path: SCHEDULED_MAINTENANCE_PATH,
-  pageTitle: "Scheduled Event - Primary database failover drill",
+  pageTitle: "#58 Primary database failover drill",
   title: "Primary database failover drill",
   identifier: "#58",
   feed: "Scheduled Maintenance Feed",
@@ -413,7 +414,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
 const INCIDENT_EPISODE_PAGE: EventPage = {
   name: "incident-episode-overview",
   path: INCIDENT_EPISODE_PATH,
-  pageTitle: "Episode - Checkout degradation — Sep 14",
+  pageTitle: "#12 Checkout degradation — Sep 14",
   title: "Checkout degradation — Sep 14",
   identifier: "#12",
   feed: "Episode Feed",
@@ -467,7 +468,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
 const ALERT_EPISODE_PAGE: EventPage = {
   name: "alert-episode-overview",
   path: ALERT_EPISODE_PATH,
-  pageTitle: "Episode - Payment webhook failures — Sep 14",
+  pageTitle: "#7 Payment webhook failures — Sep 14",
   title: "Payment webhook failures — Sep 14",
   identifier: "#7",
   feed: "Episode Feed",
@@ -1527,7 +1528,7 @@ test.describe("AI investigation report", () => {
 
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1029)}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Incident - Checkout requests timing out on orders-db",
+      "#1029 Checkout requests timing out on orders-db",
     );
     await expect(hero(page).getByRole("heading", { level: 2 })).toHaveText(
       "Checkout requests timing out on orders-db",
@@ -2231,7 +2232,7 @@ test.describe("AI investigation report", () => {
     await expect(page).toHaveURL(new RegExp(`${alertPath(298)}$`));
     await expect(hero(page)).toContainText("#298");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Alert - Payment webhook 5xx rate above 5%",
+      "#298 Payment webhook 5xx rate above 5%",
     );
   });
 });
@@ -4562,6 +4563,13 @@ const USUAL_SUGGESTIONS: ReadonlyArray<string> = [
   "Acknowledge this incident",
 ];
 const ROOT_CAUSE_SUGGESTION: string = "What is the root cause?";
+// A resolved incident's, in the places of what to do now and what else it affects.
+const RESOLVED_SUGGESTIONS: ReadonlyArray<string> = [
+  "Prevent a repeat",
+  "What changed just before this?",
+  "Response timeline",
+  "Draft a status update",
+];
 // indigo-600: the page's primary buttons, and OneUptime AI's mark.
 const INDIGO_600: string = "rgb(79, 70, 229)";
 // The font the dashboard ships (views/index.ejs); the fixture does not load it.
@@ -4756,7 +4764,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
   }: {
     page: Page;
   }) => {
-    for (const query of ["", "ai=none"]) {
+    // A new alert (?state=created): nobody has acknowledged it yet.
+    for (const query of ["state=created", "state=created&ai=none"]) {
       await openConversation(page, query, ALERT_PATH);
 
       await expect(investigationCard(page)).toHaveCount(1);
@@ -4850,45 +4859,73 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }> = [
       {
         name: "under a report it offers follow-ups",
-        query: "",
+        query: "state=created",
         description:
           "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
       },
       {
         name: "with nothing investigated it leads with the root-cause question",
-        query: "ai=none",
+        query: "ai=none&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
       },
       {
         name: "after a run that stopped it leads with the root-cause question",
-        query: "ai=failed",
+        query: "ai=failed&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
       },
       {
         name: "while a run is investigating it does not",
-        query: "ai=running",
+        query: "ai=running&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
       },
       {
         name: "while a run is queued it does not",
-        query: "ai=queued",
+        query: "ai=queued&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
       },
       {
         name: "while the report is being written it does not",
-        query: "ai=pending",
+        query: "ai=pending&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
+      },
+      /*
+       * Where the incident stands: one acknowledged is not asked to be
+       * acknowledged again, and a resolved one (the fixture's own) is asked
+       * how the response went and what would stop it coming back.
+       */
+      {
+        name: "an acknowledged incident is not asked to be acknowledged again",
+        query: "state=ongoing",
+        description:
+          "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS.filter((label: string): boolean => {
+          return label !== "Acknowledge this incident";
+        }),
+      },
+      {
+        name: "a resolved incident is asked how the response went and what would stop it coming back",
+        query: "",
+        description:
+          "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: RESOLVED_SUGGESTIONS,
+      },
+      {
+        name: "a resolved incident with nothing investigated still leads with the root-cause question",
+        query: "ai=none",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: [ROOT_CAUSE_SUGGESTION, ...RESOLVED_SUGGESTIONS],
       },
     ];
 
@@ -4910,7 +4947,11 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }: {
       page: Page;
     }) => {
-      const section: Locator = await openConversation(page, "ai=none");
+      // A new incident, so its one request to act is offered.
+      const section: Locator = await openConversation(
+        page,
+        "ai=none&state=created",
+      );
       const group: Locator = section.getByRole("group", {
         name: "Suggested questions",
       });
@@ -5022,7 +5063,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }: {
       page: Page;
     }) => {
-      await openConversation(page, "");
+      // A new incident: nobody has acknowledged it yet.
+      await openConversation(page, "state=created");
 
       await suggestions(page)
         .filter({ hasText: "Acknowledge this incident" })
@@ -8933,7 +8975,7 @@ const ALERT_LONG_TITLE: string =
   "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster";
 const LONG_TITLE_ALERT_PAGE: EventPage = {
   ...ALERT_PAGE,
-  pageTitle: `Alert - ${ALERT_LONG_TITLE}`,
+  pageTitle: `#311 ${ALERT_LONG_TITLE}`,
   title: ALERT_LONG_TITLE,
 };
 
@@ -11593,7 +11635,7 @@ test.describe("episode overviews", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1040)}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Incident - Orders DB connection pool saturated",
+      "#1040 Orders DB connection pool saturated",
     );
     await expect(hero(page)).toContainText("#1040");
   });
@@ -11994,7 +12036,7 @@ test.describe("navigation", () => {
   }) => {
     await open(page, incidentPath(1017));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Incident - Checkout API p95 latency above 2s",
+      "#1017 Checkout API p95 latency above 2s",
     );
     await expect(hero(page).getByTitle("Number", { exact: true })).toHaveText(
       "#1017",
@@ -18748,5 +18790,231 @@ test.describe("an action linking what a record is about waits for approval (issu
     // On the title's line, past its end.
     expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
+  });
+});
+
+/*
+ * An investigation that could not tell the cause for lack of logs says so,
+ * under its report, with the way forward (?stall=; the follow-up of #5242
+ * that #5273 listed). The fixture records the stall as the engine does, an
+ * InvestigationStalled event before RunCompleted, beside an inconclusive
+ * report.
+ */
+test.describe("an investigation the logs could not help (?stall=)", () => {
+  const STALL_NOTICE: string = "investigation-log-stall";
+  const SET_UP_LOGS: string = "investigation-log-stall-set-up-logs";
+  const LOGS_AI: string = "investigation-log-stall-logs-ai";
+
+  async function openStall(
+    page: Page,
+    pagePath: string,
+    query: string,
+  ): Promise<Locator> {
+    await open(page, pagePath, query);
+
+    const notice: Locator = investigationCard(page).getByTestId(STALL_NOTICE);
+    await expect(notice).toBeVisible({ timeout: 30000 });
+    return notice;
+  }
+
+  async function shoot(page: Page, name: string): Promise<void> {
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await investigationCard(page).screenshot({
+      path: path.join(SCREENSHOTS, `log-stall-${name}.png`),
+    });
+  }
+
+  test("no log reached OneUptime: No logs to read, under the report, and where to set them up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nologs",
+    );
+
+    await expect(notice).toContainText("No logs to read");
+    await expect(notice).toContainText(
+      "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.",
+    );
+    await expect(notice.getByTestId(SET_UP_LOGS)).toHaveText("Set up logs");
+    await expect(notice.getByTestId(SET_UP_LOGS)).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/logs/documentation`,
+    );
+    await expect(notice.getByTestId(LOGS_AI)).toHaveCount(0);
+
+    // Under the report it explains, before its working.
+    const order: Array<string> = await investigationCard(page).evaluate(
+      (card: Element): Array<string> => {
+        const notice: Element | null = card.querySelector(
+          "[data-testid='investigation-log-stall']",
+        );
+        const report: Element | null = card.querySelector("h3");
+        const details: Element | null = Array.from(
+          card.querySelectorAll("h3"),
+        ).find((heading: Element): boolean => {
+          return heading.textContent === "Evidence and activity";
+        }) as Element | null;
+        const before: (a: Element | null, b: Element | null) => boolean = (
+          a: Element | null,
+          b: Element | null,
+        ): boolean => {
+          return Boolean(
+            a &&
+              b &&
+              a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+        };
+        return [
+          before(report, notice) ? "report before notice" : "notice first",
+          before(notice, details) ? "notice before details" : "details first",
+        ];
+      },
+    );
+    expect(order).toEqual(["report before notice", "notice before details"]);
+
+    await shoot(page, "nologs-1280");
+  });
+
+  test("logs reached OneUptime and none matched: how often it searched, and both ways forward", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nomatch",
+    );
+
+    await expect(notice).toContainText("No logs about this incident");
+    await expect(notice).toContainText(
+      "OneUptime AI searched the logs 3 times and found nothing about this incident.",
+    );
+    await expect(notice.getByTestId(SET_UP_LOGS)).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/logs/documentation`,
+    );
+    await expect(notice.getByTestId(LOGS_AI)).toHaveText(
+      "Find unlogged failures",
+    );
+    await expect(notice.getByTestId(LOGS_AI)).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/logs/ai/insights`,
+    );
+
+    // The report itself says it could not tell, and offers no fix.
+    await expect(investigationCard(page)).toContainText("Could not determine");
+    await expect(
+      investigationCard(page).getByRole("button", { name: OPEN_FIX_PR }),
+    ).toHaveCount(0);
+
+    await shoot(page, "nomatch-1280");
+  });
+
+  test("an alert's card says it of the alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(page, ALERT_PATH, "stall=nomatch");
+
+    await expect(notice).toContainText("No logs about this alert");
+    await expect(notice).toContainText("found nothing about this alert");
+  });
+
+  test("an investigation that found the cause says nothing of the kind", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH);
+    await expect(investigationCard(page)).toContainText(INCIDENT_TLDR, {
+      timeout: 30000,
+    });
+    await expect(investigationCard(page).getByTestId(STALL_NOTICE)).toHaveCount(
+      0,
+    );
+  });
+
+  test("on a phone the line and its links fit the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nomatch",
+    );
+    await notice.scrollIntoViewIfNeeded();
+
+    const fit: { pageScrolls: boolean; cardBox: number; links: Array<number> } =
+      await page.evaluate(
+        (): { pageScrolls: boolean; cardBox: number; links: Array<number> } => {
+          const card: Element | null =
+            document.querySelector("#ai-investigation");
+          const right: number = card ? card.getBoundingClientRect().right : 0;
+          return {
+            pageScrolls:
+              document.documentElement.scrollWidth >
+              document.documentElement.clientWidth,
+            cardBox: right,
+            links: Array.from(
+              document.querySelectorAll(
+                "[data-testid='investigation-log-stall-actions'] a",
+              ),
+            ).map((link: Element): number => {
+              return link.getBoundingClientRect().right;
+            }),
+          };
+        },
+      );
+
+    expect(fit.pageScrolls).toBe(false);
+    expect(fit.links).toHaveLength(2);
+    for (const linkRight of fit.links) {
+      expect(linkRight).toBeLessThanOrEqual(fit.cardBox + 1);
+    }
+
+    await shoot(page, "nomatch-390");
+  });
+
+  test("in the dark theme the line reads light on the card, its links indigo", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nomatch&theme=dark",
+    );
+
+    const looks: { title: string; text: string; link: string } =
+      await notice.evaluate(
+        (element: Element): { title: string; text: string; link: string } => {
+          const paragraphs: Array<Element> = Array.from(
+            element.querySelectorAll("p"),
+          );
+          const link: Element | null = element.querySelector("a");
+          return {
+            title: window.getComputedStyle(paragraphs[0]!).color,
+            text: window.getComputedStyle(paragraphs[1]!).color,
+            link: link ? window.getComputedStyle(link).color : "",
+          };
+        },
+      );
+
+    // Not the light theme's near-black and gray on a dark card.
+    expect(looks.title).not.toBe("rgb(17, 24, 39)");
+    expect(looks.text).not.toBe("rgb(75, 85, 99)");
+    expect(looks.link).not.toBe("");
+
+    await shoot(page, "nomatch-dark");
   });
 });
