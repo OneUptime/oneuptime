@@ -4,14 +4,14 @@ En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-
 
 :::cards
 - [Opprett monitoren](#opprett-en-docker-swarm-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Fire ferdige varsler, én hendelse per oppgave.
+- [Maler](#ferdige-varslingsmaler): Fem ferdige varsler, én hendelse per oppgave.
 - [Metrikker](#innsamlede-metrikker): Containermetrikkene du kan varsle på.
 - [Filtre](#monitorinnstillinger): Snevre inn en monitor til en tjeneste, en oppgave eller et bilde.
 :::
 
 ## Slik fungerer det
 
-OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund og stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
+OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund, stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`, og metrikkene til hver oppgave med oppgavens tjeneste og node. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
 
 Innsamleren ser bare containere på noden den kjører på. For å få metrikker fra hver node kjører du innsamleren på hver node med samme `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. Dette er den eneste ressursattributten agenten stempler, så monitoren legger ikke til noe filter på `container.runtime` eller `host.name`. |
-| **Tjenestenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `docker.swarm.service.name`, for eksempel `web`. |
-| **Nodenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `docker.swarm.node.name`, for eksempel `swarm-node-1`. |
+| **Docker Swarm Cluster** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. En oppgaves metrikker har `container.runtime=docker` slik en Docker-verts har, og agenten stempler aldri `host.name`, så monitoren filtrerer på ingen av dem. |
+| **Tjenestenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.service.name`, tjenesten slik `docker service ls` navngir den, for eksempel `web` (`<stack>_web` i en stack). |
+| **Nodenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.node.name`, nodens vertsnavn slik `docker node ls` viser det, for eksempel `swarm-node-1`. Agenten på den noden stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.name`. En oppgaves container heter `<service>.<slot>.<taskid>`, for eksempel `web.1.abc123`. |
-| **Container-bilde** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.image.name`, for eksempel `nginx:latest`. |
+| **Container-bilde** | Custom Metric, Avansert | Valgfritt. Samsvarer med `resource.container.image.name` med eller uten digesten Swarm fester til bildet: `nginx:latest` samsvarer også med `nginx:latest@sha256:…`, en digest du skriver inn, utelates, og et navn uten tag betyr `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
-> [!WARNING]
-> Den medfølgende agenten angir ennå ikke `docker.swarm.service.name` eller `docker.swarm.node.name`, så en monitor med **Tjenestenavn** eller **Nodenavn** fylt ut finner ingen data. Snevre inn med **Container-bilde** i stedet, eller grupper etter `resource.container.name`.
+> [!NOTE]
+> **Tjenestenavn** og **Nodenavn** krever agentens filer fra versjon 0.161.2 og nyere: eldre filer sender verken tjenesten eller noden. [Oppgrader agenten](/docs/telemetry/docker-swarm#oppgradere-agenten) på hver node den kjører på.
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr fire maler. Hver bygger en komplett monitor: en spørring gruppert etter `resource.container.name`, et kriterium som utløses, og et som gjenoppretter. Hver oppgave vurderes for seg og får sin egen hendelse og sitt eget varsel, der rotårsaken lister de berørte oppgavene og verdiene deres. Tersklene er utgangspunkter du kan redigere.
+**Quick Setup** tilbyr fem maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Alle maler unntatt **Cluster Stopped Reporting** grupperer spørringen sin etter `resource.container.name`, så hver oppgave vurderes for seg og får sin egen hendelse og sitt eget varsel, der rotårsaken lister de berørte oppgavene og verdiene deres. Tersklene er utgangspunkter du kan redigere.
 
 Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere i klyngen, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min per oppgave, siste 1 minutt | En hvilken som helst verdi er under 60 sekunder | Hver verdi er på eller over 66 sekunder |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per oppgave, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per oppgave, siste 5 minutter | Over 85 % | På eller under 76,5 % |
-| High Task Process Count | Warning | `container.pids.count`, Max per oppgave, siste 5 minutter | Over 500 | På eller under 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max per oppgave, siste 5 minutter | Over 2000 | På eller under 1800 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** utløses når ingenting kommer fra klyngen på ti minutter: nodene som kjører agenten, er nede, eller agenten har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra. En node uten oppgaver rapporterer likevel, fordi agenten kjører som en container og rapporterer sin egen container.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** utløses på én enkelt ung måling, fordi en omstart er en hendelse, ikke et nivå. Swarm gir en erstatningsoppgave en ny container, og dermed en ny serie, og derfor ser malen etter en oppetid under ett minutt i stedet for en 0. En utrulling eller en oppskalering utløser den også, og den opphører så snart de nye oppgavene har passert ett minutts oppetid. En oppgave som dør og ikke erstattes, sender ingenting, så den fanges ikke.
@@ -136,10 +140,10 @@ Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så metrikken
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
-| `container.pids.count` | antall | Prosesser i en oppgaves container. En plutselig økning kan bety en forkbombe eller en lekkasje. |
+| `container.pids.count` | antall | Oppgaver i en tasks container: cgroup-pids-kontrolleren teller både tråder og prosesser. En plutselig økning kan bety en fork-bombe eller en trådlekkasje. |
 | `container.uptime` | sekunder | Hvor lenge en oppgaves container har kjørt. En oppgave som planlegges på nytt eller startes på nytt, starter en ny container på 0. |
 
-Hver serie bærer containerens identitet som ressursattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` og `resource.docker.swarm.cluster.name`.
+Hver serie bærer containerens identitet som ressursattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (når agenten kjenner nodens navn) og `resource.docker.swarm.cluster.name`.
 
 ## Overvåkingskriterier
 
@@ -182,7 +186,7 @@ Innsamleren leser Docker-daemonen på noden den kjører på, så den ser bare op
 :::
 
 :::details En monitor filtrert på tjeneste eller node finner ingen data
-**Tjenestenavn** og **Nodenavn** samsvarer med `docker.swarm.service.name` og `docker.swarm.node.name`, som den medfølgende agenten ikke angir. Tøm dem og snevre inn med **Container-bilde**, eller grupper etter `resource.container.name`.
+**Tjenestenavn** og **Nodenavn** samsvarer med `resource.docker.swarm.service.name` og `resource.docker.swarm.node.name`, som agenten sender fra versjon 0.161.2 av filene sine: [oppgrader den](/docs/telemetry/docker-swarm#oppgradere-agenten). Nodens navn kommer fra `DOCKER_SWARM_NODE_NAME` i hver nodes `.env`, som installasjonsskriptet skriver; på en node som er satt opp på en annen måte, legger du det til der.
 :::
 
 :::details Hver oppgave vises som én serie

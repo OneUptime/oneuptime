@@ -162,6 +162,10 @@ const LEDGER: Record<string, Array<Choice>> = {
         expression: SEVERAL,
         why: "Resolve, Reopen, Archive and Unarchive on exceptions: each turns one switch on its own exception, and nothing the exceptions share is checked or recomputed.",
       },
+      {
+        expression: SEVERAL,
+        why: "Assign to… on exceptions: each writes who owns its own exception, and nothing the exceptions share is checked or recomputed.",
+      },
     ],
   "packages/App/FeatureSet/Dashboard/src/Components/Monitor/BulkMonitorProbeChange.ts":
     [

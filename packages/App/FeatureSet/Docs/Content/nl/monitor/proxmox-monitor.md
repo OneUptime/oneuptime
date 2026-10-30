@@ -4,7 +4,7 @@ Een Proxmox-monitor bewaakt één Proxmox VE-cluster – de nodes, VM's en LXC-c
 
 :::cards
 - [De monitor maken](#een-proxmox-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Elf kant-en-klare waarschuwingen, één incident per node, gast of volume.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Twaalf kant-en-klare waarschuwingen, één incident per node, gast of volume.
 - [Resource-identiteit](#resource-identiteit): Hoe u één node, gast of opslagvolume target.
 - [Metrieken](#verzamelde-metrieken): Elke reeks `pve_*` waarop de monitor kan waarschuwen.
 :::
@@ -109,12 +109,13 @@ Filter op `pve.scope` of `pve.type` voor één soort resource, op `pve.id` of `i
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt 11 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
+**Quick Setup** biedt 12 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en een drempelcriterium herstelt 10% voorbij zijn drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritiek | `pve_up`, Count over het hele cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | Node Offline | Kritiek | `pve_up` voor `pve.scope = node`, Min per `id` | Onder 1 | Op 1 |
 | Guest Down | Warning | `pve_up` en `pve_onboot_status` voor `pve.scope = guest`, Min per `id` | `pve_up` ligt onder 1 terwijl `pve_onboot_status` 1 is | `pve_up` staat weer op 1, of starten bij het opstarten is uitgezet |
 | Cluster Quorum at Risk | Kritiek | `pve_up` ÷ `pve_node_info` × 100 voor `pve.scope = node` (beide Som): het aandeel nodes dat online is | 50% of minder | Boven 55% |
@@ -129,6 +130,7 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
+- **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de Proxmox-agent of zijn pve-exporter is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, de Proxmox-API antwoordt hem niet meer, of elke node van een native push is stilgevallen. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **De sjablonen voor uitval gebruiken Minimum**, zodat één uitlezing waarin de resource uit lag ze laat afgaan, in plaats van verborgen te worden door uitlezingen waarin hij draaide.
 - **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten, dus een gast die u bewust hebt gestopt, roept nooit iemand op.
 - **Cluster Quorum at Risk** is een benadering: pve-exporter heeft geen corosync-metriek, dus het sjabloon telt de nodes die online zijn.

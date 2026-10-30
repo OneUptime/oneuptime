@@ -4,14 +4,14 @@ Un moniteur Docker Swarm surveille les conteneurs derrière les tâches de servi
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-docker-swarm): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Quatre alertes prêtes à l'emploi, un incident par tâche.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Cinq alertes prêtes à l'emploi, un incident par tâche.
 - [Métriques](#métriques-collectées): Les métriques de conteneurs sur lesquelles vous pouvez alerter.
 - [Filtres](#paramètres-du-moniteur): Restreindre un moniteur à un service, une tâche ou une image.
 :::
 
 ## Fonctionnement
 
-L'agent Docker Swarm de OneUptime s'exécute sur un nœud manager. Son collecteur lit les statistiques des conteneurs auprès du démon Docker de ce nœud toutes les 30 secondes et marque chaque lot du nom du cluster, `docker.swarm.cluster.name`. Un petit collecteur d'inventaire à ses côtés lit les nœuds, services et tâches du cluster via l'API Swarm toutes les 5 minutes. Les premières données enregistrent le cluster dans OneUptime.
+L'agent Docker Swarm de OneUptime s'exécute sur un nœud manager. Son collecteur lit les statistiques des conteneurs auprès du démon Docker de ce nœud toutes les 30 secondes, marque chaque lot du nom du cluster, `docker.swarm.cluster.name`, et les métriques de chaque tâche de son service et de son nœud. Un petit collecteur d'inventaire à ses côtés lit les nœuds, services et tâches du cluster via l'API Swarm toutes les 5 minutes. Les premières données enregistrent le cluster dans OneUptime.
 
 Le collecteur ne voit que les conteneurs du nœud sur lequel il tourne. Pour obtenir les métriques de chaque nœud, exécutez le collecteur sur chaque nœud avec le même `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 | Champ | Onglet | Ce qu'il fait |
 | --- | --- | --- |
-| **Cluster Docker Swarm** | Tous | Obligatoire. Limite chaque requête à `resource.docker.swarm.cluster.name`. C'est le seul attribut de ressource que l'agent appose, si bien que le moniteur n'ajoute aucun filtre `container.runtime` ou `host.name`. |
-| **Nom du service** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur `docker.swarm.service.name`, par exemple `web`. |
-| **Nom du nœud** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur `docker.swarm.node.name`, par exemple `swarm-node-1`. |
+| **Cluster Docker Swarm** | Tous | Obligatoire. Limite chaque requête à `resource.docker.swarm.cluster.name`. Les métriques d'une tâche portent `container.runtime=docker` comme celles d'un hôte Docker, et l'agent n'appose jamais `host.name` : le moniteur ne filtre donc sur aucun des deux. |
+| **Nom du service** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur `resource.docker.swarm.service.name`, le service tel que le nomme `docker service ls`, par exemple `web` (`<stack>_web` dans une stack). |
+| **Nom du nœud** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur `resource.docker.swarm.node.name`, le nom d'hôte du nœud tel que l'affiche `docker node ls`, par exemple `swarm-node-1`. L'agent de ce nœud l'appose à partir de `DOCKER_SWARM_NODE_NAME`. |
 | **Nom du conteneur** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur `resource.container.name`. Le conteneur d'une tâche s'appelle `<service>.<slot>.<taskid>`, par exemple `web.1.abc123`. |
-| **Image du conteneur** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur `resource.container.image.name`, par exemple `nginx:latest`. |
+| **Image du conteneur** | Custom Metric, Avancé | Facultatif. Correspond à `resource.container.image.name`, avec ou sans le digest que Swarm épingle à l'image : `nginx:latest` correspond aussi à `nginx:latest@sha256:…`, un digest que vous saisissez est ignoré, et un nom sans tag signifie `:latest`. |
 | **Métrique Docker Swarm** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). |
 | **Agrégation** | Custom Metric | Comment les mesures sont combinées : **Moyenne**, **Maximum**, **Minimum**, **Somme** ou **Comptage**. Commence à l'agrégation habituelle de la métrique. |
 | **Plage temporelle** | Tous | La fenêtre glissante que lit la requête, de **Past 1 Minute** à **Past 365 Days**. Un nouveau moniteur commence à **Past 1 Minute** ; les modèles définissent la leur. |
 | **Sélectionner les métriques** | Avancé | Le constructeur de requêtes : **Métrique**, **Agréger par**, **Filtrer par attributs**, **Regrouper par**, plus **Ajouter une métrique** et **Ajouter une formule** pour combiner des requêtes. |
 
-> [!WARNING]
-> L'agent fourni ne définit pas encore `docker.swarm.service.name` ni `docker.swarm.node.name`, si bien qu'un moniteur dont **Nom du service** ou **Nom du nœud** est rempli ne trouve aucune donnée. Restreignez plutôt par **Image du conteneur**, ou regroupez par `resource.container.name`.
+> [!NOTE]
+> **Nom du service** et **Nom du nœud** nécessitent les fichiers de l'agent à partir de la version 0.161.2 : les plus anciens n'envoient ni le service ni le nœud. [Mettez à jour l'agent](/docs/telemetry/docker-swarm#mettre-à-jour-lagent) sur chaque nœud où il tourne.
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose quatre modèles. Chacun construit un moniteur complet : une requête regroupée par `resource.container.name`, un critère qui se déclenche et un autre qui rétablit. Chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
+**Quick Setup** propose cinq modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Cluster Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
 
 Sauf indication contraire dans le tableau, un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs du cluster, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | Task Down (Low Uptime) | Critique | `container.uptime`, Min par tâche, dernière 1 minute | Une valeur quelconque est sous 60 secondes | Chaque valeur est à 66 secondes ou plus |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg par tâche, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg par tâche, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
-| High Task Process Count | Warning | `container.pids.count`, Max par tâche, 5 dernières minutes | Au-dessus de 500 | À 450 ou moins |
+| High Task Process Count | Warning | `container.pids.count`, Max par tâche, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** se déclenche quand rien n'arrive du cluster pendant dix minutes : les nœuds qui exécutent l'agent sont en panne, ou l'agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient. Un nœud sans tâche envoie quand même des données, car l'agent s'exécute lui-même comme conteneur et remonte les siennes.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** se déclenche sur une seule mesure récente, car un redémarrage est un événement, pas un niveau. Swarm donne à une tâche de remplacement un nouveau conteneur, donc une nouvelle série ; c'est pourquoi le modèle cherche une durée de fonctionnement inférieure à une minute plutôt qu'un 0. Un déploiement ou une montée en charge le déclenche aussi, et il se rétablit une fois que les nouvelles tâches dépassent une minute de fonctionnement. Une tâche qui meurt sans être remplacée n'envoie rien et n'est donc pas détectée.
@@ -136,10 +140,10 @@ Le collecteur de l'agent utilise le récepteur OpenTelemetry `docker_stats` ; le
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `container.pids.count` | count | Processus dans le conteneur d'une tâche. Une hausse soudaine peut signaler une fork bomb ou une fuite. |
+| `container.pids.count` | count | Tâches dans le conteneur d'une tâche : le contrôleur pids du cgroup compte les threads aussi bien que les processus. Une hausse soudaine peut signaler une fork bomb ou une fuite de threads. |
 | `container.uptime` | secondes | Depuis combien de temps le conteneur d'une tâche tourne. Une tâche replanifiée ou redémarrée démarre un nouveau conteneur à 0. |
 
-Chaque série porte l'identité du conteneur comme attributs de ressource : `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` et `resource.docker.swarm.cluster.name`.
+Chaque série porte l'identité du conteneur comme attributs de ressource : `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (quand l'agent connaît le nom du nœud) et `resource.docker.swarm.cluster.name`.
 
 ## Critères de surveillance
 
@@ -182,7 +186,7 @@ Le collecteur lit le démon Docker du nœud sur lequel il tourne, il ne voit don
 :::
 
 :::details Un moniteur filtré par service ou par nœud ne trouve aucune donnée
-**Nom du service** et **Nom du nœud** correspondent à `docker.swarm.service.name` et `docker.swarm.node.name`, que l'agent fourni ne définit pas. Videz-les et restreignez par **Image du conteneur**, ou regroupez par `resource.container.name`.
+**Nom du service** et **Nom du nœud** correspondent à `resource.docker.swarm.service.name` et `resource.docker.swarm.node.name`, que l'agent envoie à partir de la version 0.161.2 de ses fichiers : [mettez-le à jour](/docs/telemetry/docker-swarm#mettre-à-jour-lagent). Le nom du nœud vient de `DOCKER_SWARM_NODE_NAME` dans le `.env` de chaque nœud, que le script d'installation écrit ; sur un nœud configuré autrement, ajoutez-le à ce fichier.
 :::
 
 :::details Toutes les tâches apparaissent comme une seule série

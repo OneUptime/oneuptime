@@ -40,8 +40,13 @@ export const DOCKER_EXAMPLE_HOST_NAME: string = "my-docker-host";
  */
 export const DOCKER_DEFAULT_HOST_NAME: string = "docker-host";
 
-// The Docker Engine API version the agent speaks unless told otherwise.
-export const DOCKER_DEFAULT_API_VERSION: string = "1.44";
+/*
+ * The Docker Engine API version the agent speaks unless told otherwise:
+ * none. The image's DOCKER_API_VERSION is empty, so the agent negotiates
+ * the version with the daemon, and every Engine from 20.10 on works. It
+ * used to be 1.44, which Engine 20.10 to 24 refuse as "too new".
+ */
+export const DOCKER_DEFAULT_API_VERSION: string = "";
 
 export type DockerInstallMethod = "docker-cli" | "docker-compose";
 
@@ -357,7 +362,7 @@ function getAdvancedTopics(data: GuideData): Array<SetupGuideTopic> {
 | \`ONEUPTIME_URL\` | Yes | Your OneUptime instance URL (e.g. \`${data.oneuptimeUrl}\`) |
 | \`ONEUPTIME_SERVICE_TOKEN\` | Yes | The telemetry ingestion key from step 1 |
 | \`DOCKER_HOST_NAME\` | No | Friendly name for this host. Defaults to \`${DOCKER_DEFAULT_HOST_NAME}\` |
-| \`DOCKER_API_VERSION\` | No | Docker Engine API version the agent speaks. Defaults to \`${DOCKER_DEFAULT_API_VERSION}\`; set it to your daemon's maximum on older hosts, or to an empty value to negotiate it (see Troubleshooting) |
+| \`DOCKER_API_VERSION\` | No | Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |
 
 ${
   cli
@@ -521,19 +526,21 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41`,
 )}
 
-The daemon refuses a client newer than its own maximum, the collector exits with it, and the container restart-loops. Find the daemon's maximum:
+The daemon refuses a client newer than its own maximum, the collector exits with it, and the container restart-loops. The agent pins a version only when \`DOCKER_API_VERSION\` names one, and an older agent image pinned \`1.44\`, which Docker Engine 20.10 to 24 refuse. ${
+        cli
+          ? `Remove the agent (\`docker rm -f ${name}\`), pull the latest image (\`docker pull ${DOCKER_AGENT_IMAGE}\`) and run the command from step 2 again, without \`-e DOCKER_API_VERSION\`.`
+          : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list, then run `docker compose pull` and `docker compose up -d`."
+      } The agent then negotiates the version with the daemon.
+
+To pin a version anyway, use no more than the daemon's maximum:
 
 ${codeBlock("bash", "docker version --format '{{ .Server.APIVersion }}'")}
 
 ${
   cli
-    ? `Then remove the agent (\`docker rm -f ${name}\`) and run the command from step 2 again with that version added, e.g. \`-e DOCKER_API_VERSION=1.41\`.`
-    : "Then add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `docker compose up -d`."
-} Newer daemons still serve older API versions, so the setting keeps working after you upgrade Docker.
-
-Rather not look the number up? Set \`DOCKER_API_VERSION\` to an empty value (${
-        cli ? "`-e DOCKER_API_VERSION=`" : "`- DOCKER_API_VERSION=`"
-      }) and the agent negotiates the version with the daemon.`,
+    ? "Add it to the command, e.g. `-e DOCKER_API_VERSION=1.41`."
+    : "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `docker compose up -d`."
+} Newer daemons still serve older API versions, so a pinned version keeps working after you upgrade Docker.`,
     },
     {
       title: 'Host shows as "Disconnected"',

@@ -58,7 +58,7 @@ Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over lis
 
 ### Søk og filtrer
 
-Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**.
+Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**. **Tildelt meg** viser bare unntakene som er tildelt deg, og sorteringsmenyen ordner listen etter **Sist sett**, **Først sett** eller **Flest hendelser**.
 
 ### Åpne et unntak
 
@@ -96,6 +96,8 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 **Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
+
+**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
 
 ## Feilklasser
 

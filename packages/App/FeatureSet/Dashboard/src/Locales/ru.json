@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "Написано OneUptime AI.",
   "Split by": "Разбить по",
   "Top": "Первые",
-  "then by": "затем по"
+  "then by": "затем по",
+  "Already assigned there.": "Уже назначено так.",
+  "Assign to me": "Назначить мне",
+  "Assign to…": "Назначить…",
+  "Assign {{count}} exceptions": "Назначить исключения: {{count}}",
+  "Assign {{count}} exceptions_one": "Назначить {{count}} исключение",
+  "Assigned to me": "Назначенные мне",
+  "Most events": "Больше всего событий",
+  "Not assigned to anyone.": "Ни на кого не назначено.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Выберите одного человека или одну команду. Не выбирайте никого, чтобы снять назначение.",
+  "Pick someone": "Выбрать человека",
+  "Search people and teams": "Искать людей и команды",
+  "Sort: {{order}}": "Сортировка: {{order}}"
 }

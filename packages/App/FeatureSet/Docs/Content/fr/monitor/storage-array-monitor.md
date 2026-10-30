@@ -4,7 +4,7 @@ Un moniteur de baie de stockage surveille une baie de stockage et vous prévient
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-de-baie-de-stockage): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prédéfinis): Dix-huit alertes prêtes à l'emploi, un incident par volume, hôte ou composant.
+- [Modèles](#modèles-dalerte-prédéfinis): Vingt alertes prêtes à l'emploi, un incident par volume, hôte ou composant.
 - [Comment fonctionnent les séries de Pure](#comment-sont-construites-les-séries-de-pure): Un nom de métrique, plusieurs valeurs.
 - [Métriques](#métriques-collectées): Chaque série sur laquelle le moniteur peut alerter.
 :::
@@ -109,7 +109,7 @@ Dans les filtres du moniteur et les clés de regroupement, les attributs de l'ag
 
 ## Modèles d'alerte prédéfinis
 
-OneUptime fournit 18 modèles — 11 pour FlashArray et 7 pour FlashBlade — et **Quick Setup** propose ceux de la plateforme de la baie. Chacun construit un moniteur complet : la requête de métrique, ses filtres de labels, un regroupement sur le propre label de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+OneUptime fournit 20 modèles — 12 pour FlashArray et 8 pour FlashBlade — et **Quick Setup** propose ceux de la plateforme de la baie. Chacun construit un moniteur complet : la requête de métrique, ses filtres de labels, un regroupement sur le propre label de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne déclenche que lorsque la condition est vraie pour **chaque** valeur de sa fenêtre. Un moniteur qui s'est déclenché sur un seuil de capacité, de latence, de retard ou de ratio ne se rétablit que 10 % au-delà, donc une valeur qui oscille autour du seuil ne bascule pas sans cesse ; les modèles d'alerte et de matériel se rétablissent dès que l'état disparaît.
 
@@ -117,6 +117,7 @@ Un critère ne déclenche que lorsque la condition est vraie pour **chaque** val
 
 | Modèle                         | Catégorie    | Gravité  | Surveille                                                                                       | Déclenche quand                                                                                                                                  |
 | ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Array Stopped Reporting        | Disponibilité | Critique | `purefa_info`, Count, 10 dernières minutes                                                      | Aucune donnée pendant toute la fenêtre — le Storage Array Agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, ou la baie ne lui répond plus ; se rétablit quand des données arrivent de nouveau |
 | Critical Array Alert           | Array Health | Critique | `purefa_alerts_open` filtrée sur `severity=critical`, Max par `summary`, 5 dernières minutes    | > 0 — la baie a une alerte critique ouverte (un composant en panne, une urgence de capacité, un échec de réplication). Un incident par alerte ; se rétablit quand l'alerte se ferme |
 | Warning Array Alert            | Array Health | Warning  | `purefa_alerts_open` filtrée sur `severity=warning`, Max par `summary`, 5 dernières minutes     | > 0 — la baie a une alerte de niveau warning ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme                              |
 | Capacity Above 80%             | Capacité     | Warning  | `purefa_array_space_utilization`, Max, 15 dernières minutes                                     | > 80 — le premier seuil de capacité de Pure lui-même ; se rétablit à ≤ 72                                                                        |
@@ -133,6 +134,7 @@ Un critère ne déclenche que lorsque la condition est vraie pour **chaque** val
 
 | Modèle                       | Catégorie    | Gravité  | Surveille                                                                                                      | Déclenche quand                                                                                                     |
 | ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Array Stopped Reporting      | Disponibilité | Critique | `purefb_info`, Count, 10 dernières minutes                                                                     | Aucune donnée pendant toute la fenêtre — l'agent, son exporteur ou le FlashBlade ne répond plus ; se rétablit quand des données arrivent de nouveau |
 | Critical Array Alert         | Array Health | Critique | `purefb_alerts_open` filtrée sur `severity=critical`, Max par `summary`, 5 dernières minutes                   | > 0 — le FlashBlade a une alerte critique ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme     |
 | Warning Array Alert          | Array Health | Warning  | `purefb_alerts_open` filtrée sur `severity=warning`, Max par `summary`, 5 dernières minutes                    | > 0 — le FlashBlade a une alerte de niveau warning ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme |
 | Capacity Above 80%           | Capacité     | Warning  | `purefb_array_space_utilization` filtrée sur `type=array`, Max, 15 dernières minutes                           | > 80 ; se rétablit à ≤ 72                                                                                           |
@@ -143,6 +145,7 @@ Un critère ne déclenche que lorsque la condition est vraie pour **chaque** val
 
 La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent à la gravité d'incident et d'alerte la plus élevée de votre projet ; modifiez-les dans le critère.
 
+- **Array Stopped Reporting** compte la série d'identité de la plateforme (`purefa_info` ou `purefb_info`), que chaque point de terminaison interrogé par l'agent exporte à chaque collecte. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **Les alertes ouvertes et les états matériels utilisent Max** d'une série qui n'existe que tant que l'alerte est ouverte ou que le composant est dans cet état, donc une seule collecte qui la montre franchit le seuil.
 - **Chaque modèle par objet regroupe sur le propre label de l'objet** (`summary`, `component_name`, `host`, `local_pod`, `name`), donc un incident se déclenche par objet concerné, et l'incident le nomme.
 - **Les modèles de latence utilisent Avg** de la propre moyenne par opération de la baie, et les modèles de capacité **Max** de son propre pourcentage d'utilisation. Les latences sont fixées en microsecondes et la capacité en pourcentage.

@@ -4,14 +4,14 @@ Un monitor de Docker Swarm vigila los contenedores que hay detrás de las tareas
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-docker-swarm): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cuatro alertas listas para usar, un incidente por tarea.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cinco alertas listas para usar, un incidente por tarea.
 - [Métricas](#métricas-recopiladas): Las métricas de contenedores sobre las que puede alertar.
 - [Filtros](#ajustes-del-monitor): Restringir un monitor a un servicio, una tarea o una imagen.
 :::
 
 ## Cómo funciona
 
-El agente de Docker Swarm de OneUptime se ejecuta en un nodo manager. Su colector lee las estadísticas de los contenedores del demonio de Docker de ese nodo cada 30 segundos y marca cada lote con el nombre del clúster, `docker.swarm.cluster.name`. Un pequeño lector de inventario a su lado lee los nodos, servicios y tareas del clúster desde la API de Swarm cada 5 minutos. Los primeros datos registran el clúster en OneUptime.
+El agente de Docker Swarm de OneUptime se ejecuta en un nodo manager. Su colector lee las estadísticas de los contenedores del demonio de Docker de ese nodo cada 30 segundos, marca cada lote con el nombre del clúster, `docker.swarm.cluster.name`, y las métricas de cada tarea con su servicio y su nodo. Un pequeño lector de inventario a su lado lee los nodos, servicios y tareas del clúster desde la API de Swarm cada 5 minutos. Los primeros datos registran el clúster en OneUptime.
 
 El colector solo ve los contenedores del nodo en el que se ejecuta. Para tener métricas de cada nodo, ejecute el colector en cada nodo con el mismo `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 | Campo | Pestaña | Qué hace |
 | --- | --- | --- |
-| **Clúster de Docker Swarm** | Todas | Obligatorio. Limita cada consulta a `resource.docker.swarm.cluster.name`. Es el único atributo de recurso que pone el agente, así que el monitor no añade ningún filtro de `container.runtime` ni de `host.name`. |
-| **Nombre del servicio** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con `docker.swarm.service.name`, por ejemplo `web`. |
-| **Nombre del nodo** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con `docker.swarm.node.name`, por ejemplo `swarm-node-1`. |
+| **Clúster de Docker Swarm** | Todas | Obligatorio. Limita cada consulta a `resource.docker.swarm.cluster.name`. Las métricas de una tarea llevan `container.runtime=docker` igual que las de un host de Docker, y el agente nunca pone `host.name`, así que el monitor no filtra por ninguno de los dos. |
+| **Nombre del servicio** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con `resource.docker.swarm.service.name`, el servicio tal como lo nombra `docker service ls`, por ejemplo `web` (`<stack>_web` en un stack). |
+| **Nombre del nodo** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con `resource.docker.swarm.node.name`, el nombre de host del nodo tal como lo muestra `docker node ls`, por ejemplo `swarm-node-1`. El agente de ese nodo lo pone a partir de `DOCKER_SWARM_NODE_NAME`. |
 | **Nombre del contenedor** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con `resource.container.name`. El contenedor de una tarea se llama `<service>.<slot>.<taskid>`, por ejemplo `web.1.abc123`. |
-| **Imagen del contenedor** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con `resource.container.image.name`, por ejemplo `nginx:latest`. |
+| **Imagen del contenedor** | Custom Metric, Avanzado | Opcional. Coincide con `resource.container.image.name` con o sin el digest que Swarm fija a la imagen: `nginx:latest` también coincide con `nginx:latest@sha256:…`, un digest que escriba se omite, y un nombre sin etiqueta significa `:latest`. |
 | **Métrica de Docker Swarm** | Custom Metric | Una métrica del [catálogo](#métricas-recopiladas). |
 | **Agregación** | Custom Metric | Cómo se combinan las muestras: **Promedio**, **Máximo**, **Mínimo**, **Suma** o **Recuento**. Empieza en la agregación habitual de la métrica. |
 | **Intervalo de tiempo** | Todas | La ventana móvil que lee la consulta, de **Past 1 Minute** a **Past 365 Days**. Un monitor nuevo empieza en **Past 1 Minute**; las plantillas fijan la suya. |
 | **Seleccionar métricas** | Avanzado | El generador de consultas: **Métrica**, **Agregar por**, **Filtrar por atributos**, **Agrupar por**, además de **Añadir métrica** y **Añadir fórmula** para combinar consultas. |
 
-> [!WARNING]
-> El agente que se distribuye aún no define `docker.swarm.service.name` ni `docker.swarm.node.name`, así que un monitor con **Nombre del servicio** o **Nombre del nodo** rellenado no encuentra datos. Restrinja por **Imagen del contenedor** en su lugar, o agrupe por `resource.container.name`.
+> [!NOTE]
+> **Nombre del servicio** y **Nombre del nodo** necesitan los archivos del agente a partir de la versión 0.161.2: los anteriores no envían ni el servicio ni el nodo. [Actualice el agente](/docs/telemetry/docker-swarm#actualizar-el-agente) en cada nodo en el que se ejecute.
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece cuatro plantillas. Cada una crea un monitor completo: una consulta agrupada por `resource.container.name`, un criterio que se dispara y otro que se recupera. Cada tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz enumera las tareas afectadas y sus valores. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Cluster Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz enumera las tareas afectadas y sus valores. Los umbrales son puntos de partida que puede editar.
 
 Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del clúster, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarea, último 1 minuto | Cualquier valor está por debajo de 60 segundos | Cada valor está en 66 segundos o más |
 | High Task CPU Usage | Advertencia | `container.cpu.utilization`, Avg por tarea, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Task Memory Usage | Advertencia | `container.memory.percent`, Avg por tarea, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
-| High Task Process Count | Advertencia | `container.pids.count`, Max por tarea, últimos 5 minutos | Por encima de 500 | En 450 o menos |
+| High Task Process Count | Advertencia | `container.pids.count`, Max por tarea, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** se dispara cuando no llega nada del clúster durante diez minutos: los nodos que ejecutan el agente están caídos, o el agente se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa. Un nodo sin tareas sigue enviando datos, porque el agente se ejecuta como contenedor e informa de los suyos.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** se dispara con una sola muestra joven porque un reinicio es un evento, no un nivel. Swarm da a una tarea de sustitución un contenedor nuevo, y por tanto una serie nueva, por eso la plantilla busca un tiempo de actividad inferior a un minuto en lugar de un 0. Un despliegue o un escalado también la disparan, y se resuelve en cuanto las tareas nuevas superan un minuto de actividad. Una tarea que muere y no se sustituye no envía nada, así que no se detecta.
@@ -136,10 +140,10 @@ El colector del agente usa el receptor `docker_stats` de OpenTelemetry, así que
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `container.pids.count` | count | Procesos dentro del contenedor de una tarea. Un aumento repentino puede indicar una fork bomb o una fuga. |
+| `container.pids.count` | count | Tareas dentro del contenedor de una tarea: el controlador pids de cgroup cuenta hilos además de procesos. Un aumento repentino puede indicar una fork bomb o una fuga de hilos. |
 | `container.uptime` | seconds | Cuánto tiempo lleva en ejecución el contenedor de una tarea. Una tarea reprogramada o reiniciada empieza un contenedor nuevo en 0. |
 
-Cada serie lleva la identidad del contenedor como atributos de recurso: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` y `resource.docker.swarm.cluster.name`.
+Cada serie lleva la identidad del contenedor como atributos de recurso: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (cuando el agente conoce el nombre del nodo) y `resource.docker.swarm.cluster.name`.
 
 ## Criterios de monitoreo
 
@@ -182,7 +186,7 @@ El colector lee el demonio de Docker del nodo en el que se ejecuta, así que sol
 :::
 
 :::details Un monitor filtrado por servicio o por nodo no encuentra datos
-**Nombre del servicio** y **Nombre del nodo** coinciden con `docker.swarm.service.name` y `docker.swarm.node.name`, que el agente que se distribuye no define. Vacíelos y restrinja por **Imagen del contenedor**, o agrupe por `resource.container.name`.
+**Nombre del servicio** y **Nombre del nodo** coinciden con `resource.docker.swarm.service.name` y `resource.docker.swarm.node.name`, que el agente envía a partir de la versión 0.161.2 de sus archivos: [actualícelo](/docs/telemetry/docker-swarm#actualizar-el-agente). El nombre del nodo viene de `DOCKER_SWARM_NODE_NAME` en el `.env` de cada nodo, que escribe el script de instalación; en un nodo configurado de otra forma, añádalo ahí.
 :::
 
 :::details Todas las tareas aparecen como una sola serie

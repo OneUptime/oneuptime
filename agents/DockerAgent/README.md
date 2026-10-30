@@ -50,7 +50,7 @@ docker compose up -d
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL                                                                                                                            |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion service token (Settings → API Keys)                                                                                                |
 | `DOCKER_HOST_NAME`        | No       | Friendly name for this host (default: `docker-host`)                                                                                                   |
-| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent speaks (default: `1.44`). Set it to your daemon's maximum on older hosts, or to the empty string to auto-negotiate |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so Docker Engine 20.10 and later all work. Set it only to pin one |
 
 ## Image Tags
 
@@ -192,25 +192,30 @@ Maximum supported API version is 1.41
 ```
 
 The daemon refuses a client newer than its own maximum, the receiver fails to start,
-and the collector exits with it — so the container restart-loops. Set
-`DOCKER_API_VERSION` to the daemon's maximum:
+and the collector exits with it — so the container restart-loops. The image's
+`DOCKER_API_VERSION` is **empty**, and empty asks the Docker SDK to negotiate the
+version with the daemon (one `HEAD /_ping`, then the daemon's own maximum), which works
+on Docker Engine 20.10 and later. So this means a version is pinned: by
+`-e DOCKER_API_VERSION=...` (or the Compose `environment:` list), or by an older image,
+which pinned `1.44` (Docker Engine 20.10 to 24 refuse it). Pull the latest image and
+start the agent again without the variable:
+
+```bash
+docker pull oneuptime/docker-agent:release
+docker rm -f oneuptime-docker-agent
+# Re-run the `docker run` command above, without -e DOCKER_API_VERSION
+```
+
+To pin a version anyway, use no more than the daemon's maximum:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'   # e.g. 1.41 on Engine 20.10
 docker run -d ... -e DOCKER_API_VERSION=1.41 ...     # or set it in Compose
 ```
 
-The value keeps working after the daemon is upgraded, since newer daemons still
-serve older API versions, so it can be removed on its own schedule.
-
-If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
-string**. The agent then asks the Docker SDK to negotiate the version with the daemon
-(one `HEAD /_ping`, then the daemon's own maximum), which works against both old and
-new daemons:
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
+`install.sh` passes `DOCKER_API_VERSION` on to the agent when you run it with one set
+(`DOCKER_API_VERSION=1.41 bash install.sh`). Newer daemons still serve older API
+versions, so a pinned value keeps working after the daemon is upgraded.
 
 ### No Container Logs in the Dashboard
 

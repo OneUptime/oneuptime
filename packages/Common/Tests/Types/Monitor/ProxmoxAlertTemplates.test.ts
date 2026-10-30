@@ -68,6 +68,36 @@ interface TemplateExpectation {
 
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   {
+    /*
+     * The heartbeat: every pve_up row of the cluster, counted, ungrouped and
+     * unscoped, so the window is only empty when nothing arrives at all -
+     * the only way the `< 0` criteria can fire.
+     */
+    id: "pve-cluster-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    queries: [
+      {
+        metricName: "pve_up",
+        aggregation: MetricsAggregationType.Count,
+        attributes: {},
+      },
+    ],
+    groupBy: null,
+    formula: null,
+    fire: {
+      alias: "samples_received",
+      filterType: FilterType.LessThan,
+      value: 0,
+    },
+    recover: {
+      alias: "samples_received",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 0,
+    },
+  },
+  {
     id: "pve-node-offline",
     category: "Availability",
     severity: "Critical",

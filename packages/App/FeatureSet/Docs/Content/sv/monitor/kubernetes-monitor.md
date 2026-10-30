@@ -5,7 +5,7 @@ En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent 
 :::cards
 - [Installera agenten](/docs/monitor/kubernetes-agent): Ett Helm-kommando tar in klustret i OneUptime.
 - [Skapa monitorn](#skapa-en-kubernetes-monitor): Välj klustret, sedan en mall, ett mätvärde eller en fråga.
-- [Larmmallar](#färdiga-larmmallar): Sjutton färdiga larm, från CrashLoopBackOff till etcd.
+- [Larmmallar](#färdiga-larmmallar): Arton färdiga larm, från ett tyst kluster till etcd.
 - [Kriterier](#övervakningskriterier): Statiska trösklar och avvikelseidentifiering.
 :::
 
@@ -84,14 +84,14 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 | Kategori | Mätvärden |
 | --- | --- |
 | Podd | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen.
+> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Node Ready Condition** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1.
 
 ## Övervakningskriterier
 
@@ -132,13 +132,14 @@ Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje
 
 | Mall | Kategori | Utlöses när | Allvarlighetsgrad |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | Arbetsbelastning | En container har startats om mer än 5 gånger sedan dess podd skapades | Kritisk |
+| Cluster Stopped Reporting | Tillgänglighet | Inga data kommer från klustrets agent på 10 minuter | Kritisk |
+| CrashLoopBackOff Detection | Arbetsbelastning | En container startades om inom 15 minuter och var redo mindre än hälften av dem | Kritisk |
 | Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Warning |
-| Node Not Ready | Nod | En nod rapporterar NotReady | Kritisk |
+| Node Not Ready | Nod | En nod rapporterar NotReady eller slutar rapportera sin status (Unknown) | Kritisk |
 | High Node CPU Utilization | Nod | En nods genomsnittliga CPU-användning är över 90 % av dess allokerbara CPU | Warning |
-| High Node Memory Utilization | Nod | En nods genomsnittliga minnesanvändning är över 85 % av dess allokerbara minne | Warning |
+| High Node Memory Utilization | Nod | En nods genomsnittliga working set-minne är över 85 % av dess allokerbara minne | Warning |
 | Deployment Replica Mismatch | Arbetsbelastning | En deployment har färre tillgängliga repliker än önskat i 15 minuter | Warning |
-| Job Failures | Arbetsbelastning | Ett job har misslyckade poddar | Warning |
+| Job Failures | Arbetsbelastning | En podd i ett job misslyckades inom 15 minuter | Warning |
 | etcd No Leader | Kontrollplan | etcd har ingen vald ledare | Kritisk |
 | API Server Request Saturation | Kontrollplan | API-servern håller 200 eller fler pågående begäranden under hela fönstret | Kritisk |
 | Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Warning |
@@ -146,14 +147,16 @@ Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje
 | DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Warning |
 | High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Warning |
 | High Node Memory Request Commitment | Nod | En nods summerade minnesförfrågningar från containrar överstiger 90 % av dess allokerbara minne | Warning |
-| HPA Saturated at Max Replicas | Arbetsbelastning | En HPA kör på 90 % eller mer av sin `maxReplicas` | Kritisk |
+| HPA Saturated at Max Replicas | Arbetsbelastning | En HPA som skalats över sin `minReplicas` kör på 90 % eller mer av sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars minnesgräns | Kritisk |
 | Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Warning |
 
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
 
+**Cluster Stopped Reporting** utlöses när ingenting kommer från klustrets agent på tio minuter: agenten har avinstallerats eller kraschar hela tiden, dess API-nyckel har återkallats, den har tappat sin väg till OneUptime, eller klustrets API-server har slutat svara den. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** läser containerns totala antal omstarter för dess nuvarande podd, inte en takt. En container som har fastnat i en kraschloop och sedan återhämtat sig håller larmet öppen tills dess podd ersätts.
+> **CrashLoopBackOff Detection** och **Job Failures** räknar hur mycket en räknare för omstarter eller misslyckade poddar växte i fönstret, inte själva räknaren, så de rensas av sig själva när omstarterna eller felen upphör. Tillväxten syns bara mellan två mätningar i samma minut: vid agentens intervall på 30 sekunder är det ungefär hälften. En kraschloop startar om gång på gång och fångas; en enstaka omstart kan passera obemärkt.
 
 ### Fånga orsaker, inte bara symtom
 
@@ -181,8 +184,8 @@ Kluster registrerar sig själva utifrån agentens data, under det `clusterName` 
 **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent, så en tröskel på `80` betyder 80 kärnor. Ange tröskeln i kärnor, eller utgå från **High Node CPU Utilization** eller **Pod CPU Saturating Container Limit**, som jämför en procentandel.
 :::
 
-:::details CrashLoopBackOff Detection förblir öppen efter att podden återhämtat sig
-Mallen läser containerns totala antal omstarter för dess nuvarande podd, så antalet går inte tillbaka när det väl har passerat 5. Larmet löses när podden ersätts, till exempel genom en ny driftsättning, en vräkning eller en tömning av noden.
+:::details CrashLoopBackOff Detection utlöstes inte vid en omstart
+Mallen utlöses när en containers omstartsräknare växer inom 15 minuter medan containern var redo mindre än hälften av dem, så en container som startade om en gång och kom tillbaka direkt larmar inte. Tillväxten syns bara mellan två mätningar i samma minut, så en enstaka omstart kan passera obemärkt; en kraschloop startar om med några minuters mellanrum och fångas.
 :::
 
 ## Nästa steg

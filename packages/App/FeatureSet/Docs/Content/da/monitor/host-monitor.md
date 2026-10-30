@@ -4,7 +4,7 @@ En værts-monitor overvåger én maskine – dens CPU, hukommelse, diske, belast
 
 :::cards
 - [Opret monitoren](#opret-en-værts-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Fem færdige advarsler for CPU, hukommelse, disk, belastning og processer.
+- [Skabeloner](#færdige-advarselsskabeloner): Seks færdige advarsler for en tavs vært, CPU, hukommelse, disk, belastning og processer.
 - [Metrikker](#indsamlede-metrikker): De værtsmetrikker, du kan advare på, og deres enheder.
 - [Vært eller Server / VM?](#værts-monitor-eller-server-vm-monitor): Hvilken af de to maskinmonitorer du skal bruge.
 :::
@@ -95,12 +95,13 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | High CPU Utilization | Warning | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
 | High Memory Utilization | Warning | `system.memory.utilization` for tilstanden `used`, som procent, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max pr. `mountpoint` og `device`, som procent, seneste 5 minutter | Over 90 % | Ved eller under 81 % |
@@ -109,6 +110,7 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
+- **Host Stopped Reporting** udløses, når der ikke kommer noget fra værten i ti minutter: maskinen er nede eller utilgængelig, eller dens collector er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 - **CPU** er optaget tid (`user` plus `system`), det samme tal, som værtens **Oversigt** viser i diagrammer. Iowait og steal er udeladt.
 - **Hukommelse** udelader buffere og sidecache, så en vært, der mest indeholder cache, ikke udløser den.
 - **Filsystem** åbner én hændelse pr. montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer af typen `squashfs` eller `devfs` på macOS, er altid 100 % fulde; udelad dem i collectorens scraper `filesystem`.

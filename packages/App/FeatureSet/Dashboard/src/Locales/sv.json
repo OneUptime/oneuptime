@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "Skriven av OneUptime AI.",
   "Split by": "Dela upp efter",
   "Top": "Topp",
-  "then by": "sedan efter"
+  "then by": "sedan efter",
+  "Already assigned there.": "Redan tilldelat så.",
+  "Assign to me": "Tilldela mig",
+  "Assign to…": "Tilldela till…",
+  "Assign {{count}} exceptions": "Tilldela {{count}} undantag",
+  "Assign {{count}} exceptions_one": "Tilldela {{count}} undantag",
+  "Assigned to me": "Tilldelade till mig",
+  "Most events": "Flest händelser",
+  "Not assigned to anyone.": "Inte tilldelat någon.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Välj en person eller ett team. Välj ingen för att ta bort tilldelningen.",
+  "Pick someone": "Välj någon",
+  "Search people and teams": "Sök efter personer och team",
+  "Sort: {{order}}": "Sortering: {{order}}"
 }

@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "Escrita por OneUptime AI.",
   "Split by": "Dividir por",
   "Top": "Principais",
-  "then by": "depois por"
+  "then by": "depois por",
+  "Already assigned there.": "Já está atribuída assim.",
+  "Assign to me": "Atribuir a mim",
+  "Assign to…": "Atribuir a…",
+  "Assign {{count}} exceptions": "Atribuir {{count}} exceções",
+  "Assign {{count}} exceptions_one": "Atribuir {{count}} exceção",
+  "Assigned to me": "Atribuídas a mim",
+  "Most events": "Mais eventos",
+  "Not assigned to anyone.": "Não está atribuída a ninguém.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Escolha uma pessoa ou uma equipe. Não escolha ninguém para remover a atribuição.",
+  "Pick someone": "Escolher alguém",
+  "Search people and teams": "Pesquisar pessoas e equipes",
+  "Sort: {{order}}": "Ordem: {{order}}"
 }

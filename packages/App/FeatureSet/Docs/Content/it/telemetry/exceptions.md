@@ -58,7 +58,7 @@ Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico
 
 ### Cercare e filtrare
 
-Digitate una query come `type:TypeError env:production`, vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#eccezioni), oppure fate clic su un valore nella barra laterale **Filtri**: un servizio, un host o un'altra risorsa, un **Tipo di eccezione**, un **Ambiente** o una **Error Class**.
+Digitate una query come `type:TypeError env:production`, vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#eccezioni), oppure fate clic su un valore nella barra laterale **Filtri**: un servizio, un host o un'altra risorsa, un **Tipo di eccezione**, un **Ambiente** o una **Error Class**. **Assegnate a me** mostra solo le eccezioni assegnate a voi, e il menu di ordinamento ordina l'elenco per **Ultima volta visto**, **Visto per la prima volta** o **Più eventi**.
 
 ### Aprire un'eccezione
 
@@ -96,6 +96,8 @@ I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e 
 **Impostazioni** mostra chi ha risolto o archiviato l'eccezione per ultimo, e quando. I suoi pulsanti dicono **Segna come risolto** o **Segna come non risolto**, e **Archivia** o **Annulla archiviazione**.
 
 Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella sopra le righe per tutte le eccezioni della pagina, e usate le stesse azioni in **Azioni di massa**. Il risultato dice quali eccezioni sono cambiate, quali sono rimaste com'erano e perché.
+
+**Assegna** nell'intestazione dell'eccezione la affida a una persona o a un team, e togliere la scelta rimuove l'assegnazione. Ogni riga mostra a chi appartiene, il suo menu ⋯ offre **Assegna a me**, e **Assegna a…** in **Azioni di massa** ne assegna diverse insieme.
 
 ## Classi di errore
 

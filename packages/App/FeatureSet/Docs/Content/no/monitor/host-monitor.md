@@ -4,7 +4,7 @@ En vertsmonitor overvåker én maskin – CPU, minne, disker, belastning og pros
 
 :::cards
 - [Opprett monitoren](#opprett-en-vertsmonitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Fem ferdige varsler for CPU, minne, disk, belastning og prosesser.
+- [Maler](#ferdige-varslingsmaler): Seks ferdige varsler for en taus vert, CPU, minne, disk, belastning og prosesser.
 - [Metrikker](#innsamlede-metrikker): Vertsmetrikkene du kan varsle på, og enhetene deres.
 - [Vert eller Server / VM?](#vertsmonitor-eller-server-vm-monitor): Hvilken av de to maskinmonitorene du skal bruke.
 :::
@@ -95,12 +95,13 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr fem maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Tersklene er utgangspunkter du kan redigere.
+**Quick Setup** tilbyr seks maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Tersklene er utgangspunkter du kan redigere.
 
 Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
 | High CPU Utilization | Warning | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som prosent, siste 5 minutter | Over 80 % | På eller under 72 % |
 | High Memory Utilization | Warning | `system.memory.utilization` for tilstanden `used`, som prosent, siste 5 minutter | Over 85 % | På eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max per `mountpoint` og `device`, som prosent, siste 5 minutter | Over 90 % | På eller under 81 % |
@@ -109,6 +110,7 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
 
+- **Host Stopped Reporting** utløses når ingenting kommer fra verten på ti minutter: maskinen er nede eller utilgjengelig, eller collectoren har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **CPU** er opptatt tid (`user` pluss `system`), det samme tallet som vertens **Oversikt** viser i diagrammer. Iowait og steal er utelatt.
 - **Minne** utelater buffere og sidebuffer, så en vert som stort sett inneholder hurtigbuffer, ikke utløser den.
 - **Filsystem** åpner én hendelse per montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer av typen `squashfs` eller `devfs` på macOS, er alltid 100 % fulle; utelat dem i collectorens skraper `filesystem`.

@@ -58,7 +58,7 @@ Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovan
 
 ### Sök och filtrera
 
-Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**.
+Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**. **Tilldelade till mig** visar bara de undantag som är tilldelade dig, och sorteringsmenyn ordnar listan efter **Senast sedd**, **Först sedd** eller **Flest händelser**.
 
 ### Öppna ett undantag
 
@@ -96,6 +96,8 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 **Inställningar** visar vem som senast löste eller arkiverade undantaget, och när. Knapparna där heter **Markera som löst** eller **Markera som olöst**, och **Arkivera** eller **Avarkivera**.
 
 Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
+
+**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång.
 
 ## Felklasser
 

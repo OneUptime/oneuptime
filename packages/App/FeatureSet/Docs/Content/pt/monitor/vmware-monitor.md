@@ -4,7 +4,7 @@ Um monitor de VMware observa um vCenter - os seus datacenters, clusters, hosts E
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-vmware): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Vinte e três alertas prontos, um incidente por host, VM ou datastore.
+- [Modelos](#modelos-de-alerta-prontos): Vinte e quatro alertas prontos, um incidente por host, VM ou datastore.
 - [Atributos de identidade](#atributos-de-identidade): Como mirar um host, uma VM ou um datastore.
 - [Métricas](#métricas-coletadas): Cada série `vcenter.*` sobre a qual o monitor pode alertar.
 :::
@@ -106,12 +106,13 @@ Nos filtros do monitor e nas chaves de agrupamento, os atributos de recurso come
 
 ## Modelos de alerta prontos
 
-O OneUptime traz 23 modelos para problemas comuns de VMware, e o **Quick Setup** oferece todos eles. Cada um monta um monitor completo: a consulta da métrica, os seus filtros de atributos, um agrupamento pelo atributo de identidade do próprio objeto, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+O OneUptime traz 24 modelos para problemas comuns de VMware, e o **Quick Setup** oferece todos eles. Cada um monta um monitor completo: a consulta da métrica, os seus filtros de atributos, um agrupamento pelo atributo de identidade do próprio objeto, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em cada minuto da sua janela, e um critério de limite se recupera 10 % além do seu limite, então um valor que oscila na linha não fica alternando.
 
 | Modelo | Categoria | Gravidade | Observa | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- | --- |
+| vCenter Stopped Reporting | Disponibilidade | Crítico | `vcenter.datacenter.cpu.limit`, Count sobre o vCenter inteiro, **últimos 10 minutos** | Nenhum dado durante toda a janela: o agente ou a sonda parou, ou o vCenter parou de responder a ele | Os dados voltam a chegar |
 | Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg por `resource.vcenter.host.name` | Acima de 90 %: cada VM no host disputa núcleos, e mostra tempo de CPU ready | Em 81 % ou menos |
 | Host Memory Saturation | Host | Warning | `vcenter.host.memory.utilization`, Avg por host | Acima de 90 %: o host começa a recuperar memória com ballooning, compressão e swapping | Em 81 % ou menos |
 | Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max por host | Acima de 50 ms: cada VM cujos discos estão nesse caminho espera pelo armazenamento. Precisa do nível 3 de contadores de desempenho | Em 45 ms ou menos |
@@ -141,7 +142,7 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 - **Os modelos de utilização usam Avg:** o receiver informa uma porcentagem real de 0 a 100 para cada objeto, então a média em um minuto é a utilização sustentada.
 - **Os modelos de latência usam Max:** a métrica já é a pior latência entre os discos do objeto, então a sua maior amostra é a honesta.
 - **Os modelos de contagem e de estado usam Max**, então uma única coleta que mostre a condição os dispara: erros de pacotes, ballooning, swapping, status vermelho e amarelo, hosts não efetivos, congestionamento.
-- **Todo modelo agrupa pelo atributo de identidade do próprio objeto**, então um incidente dispara por objeto afetado, e o incidente o nomeia.
+- **Todo modelo agrupa pelo atributo de identidade do próprio objeto**, então um incidente dispara por objeto afetado, e o incidente o nomeia. A exceção é **vCenter Stopped Reporting**, que observa o vCenter inteiro: quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 - **Os limites ficam fixados na sua unidade** (`%`, `ms`, `us`), então mantêm o seu significado seja qual for a unidade que um gráfico mostre.
 
 ## Métricas coletadas

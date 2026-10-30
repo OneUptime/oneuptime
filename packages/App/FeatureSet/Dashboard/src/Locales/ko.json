@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "OneUptime AI가 작성했습니다.",
   "Split by": "분할 기준",
   "Top": "상위",
-  "then by": "그다음 기준"
+  "then by": "그다음 기준",
+  "Already assigned there.": "이미 그렇게 할당되어 있습니다.",
+  "Assign to me": "나에게 할당",
+  "Assign to…": "할당 대상…",
+  "Assign {{count}} exceptions": "예외 {{count}}개 할당",
+  "Assign {{count}} exceptions_one": "예외 {{count}}개 할당",
+  "Assigned to me": "나에게 할당됨",
+  "Most events": "이벤트 많은 순",
+  "Not assigned to anyone.": "아무에게도 할당되지 않았습니다.",
+  "Pick one person or one team. Pick nobody to unassign them.": "한 사람 또는 한 팀을 고르세요. 아무도 고르지 않으면 할당이 해제됩니다.",
+  "Pick someone": "담당자 선택",
+  "Search people and teams": "사람과 팀 검색",
+  "Sort: {{order}}": "정렬: {{order}}"
 }

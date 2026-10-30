@@ -21,9 +21,12 @@ export interface DockerSwarmMetricDefinition {
  * scheme. The OneUptime Docker Swarm Agent runs the docker_stats receiver
  * against the Swarm manager node, so the series that actually arrive are
  * the standard `container.*` container-runtime metrics — there are NO
- * `docker_swarm_*` or `pve_*` metrics. Each datapoint carries the owning
- * container's identity labels (`container.name`,
- * `container.image.name`); for a Swarm service task the container name is
+ * `docker_swarm_*` or `pve_*` metrics. The receiver emits one
+ * ResourceMetrics per container and carries the container's identity
+ * (`container.name`, `container.image.name`) as RESOURCE attributes, which
+ * ClickHouse stores `resource.`-prefixed: group and filter by
+ * `resource.container.name`, never the bare key, which matches nothing.
+ * For a Swarm service task the container name is
  * `<service>.<slot>.<taskid>`. The whole batch is scoped by the
  * `docker.swarm.cluster.name` resource attribute the agent stamps.
  */
@@ -88,7 +91,7 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
     id: "container-pids-count",
     friendlyName: "Container Process Count",
     description:
-      "Number of processes running inside a Swarm task's container. A sudden spike can indicate a fork bomb or resource leak.",
+      "Tasks in a Swarm task's container: processes and their threads, as the cgroup pids controller counts them. A sudden spike can indicate a fork bomb or a thread leak.",
     metricName: "container.pids.count",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,

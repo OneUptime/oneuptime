@@ -4,7 +4,7 @@ Ein Host-Monitor überwacht einen einzelnen Rechner – seine CPU, seinen Arbeit
 
 :::cards
 - [Den Monitor erstellen](#einen-host-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Fünf fertige Warnungen für CPU, Arbeitsspeicher, Festplatte, Last und Prozesse.
+- [Vorlagen](#fertige-warnungsvorlagen): Sechs fertige Warnungen für einen verstummten Host, CPU, Arbeitsspeicher, Festplatte, Last und Prozesse.
 - [Metriken](#erfasste-metriken): Die Host-Metriken, bei denen Sie warnen können, und ihre Einheiten.
 - [Host oder Server / VM?](#host-monitor-oder-server-vm-monitor): Welchen der beiden Rechner-Monitore Sie verwenden.
 :::
@@ -95,12 +95,13 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet fünf Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+**Quick Setup** bietet sechs Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisch | `system.memory.usage`, Count, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | High CPU Utilization | Warnung | `system.cpu.utilization` für die Zustände `user` und `system`, addiert und als Prozentsatz dargestellt, letzte 5 Minuten | Über 80 % | Bei oder unter 72 % |
 | High Memory Utilization | Warnung | `system.memory.utilization` für den Zustand `used`, als Prozentsatz, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
 | High Filesystem Usage | Kritisch | `system.filesystem.utilization`, Max pro `mountpoint` und `device`, als Prozentsatz, letzte 5 Minuten | Über 90 % | Bei oder unter 81 % |
@@ -109,6 +110,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
+- **Host Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Host eintrifft: Der Rechner ist ausgefallen oder nicht erreichbar, oder sein Collector läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **CPU** ist die Belegtzeit (`user` plus `system`), derselbe Wert, den die **Übersicht** des Hosts in Diagrammen zeigt. I/O-Wartezeit und Steal sind nicht enthalten.
 - **Arbeitsspeicher** schließt Puffer und Seitencache aus, sodass ein Host, der überwiegend Cache enthält, sie nicht auslöst.
 - **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll; schließen Sie sie im Scraper `filesystem` des Collectors aus.

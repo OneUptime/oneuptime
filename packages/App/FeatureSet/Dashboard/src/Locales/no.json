@@ -38840,5 +38840,17 @@
   "Written by OneUptime AI.": "Skrevet av OneUptime AI.",
   "Split by": "Del opp etter",
   "Top": "Topp",
-  "then by": "deretter etter"
+  "then by": "deretter etter",
+  "Already assigned there.": "Allerede tildelt slik.",
+  "Assign to me": "Tildel meg",
+  "Assign to…": "Tildel til…",
+  "Assign {{count}} exceptions": "Tildel {{count}} unntak",
+  "Assign {{count}} exceptions_one": "Tildel {{count}} unntak",
+  "Assigned to me": "Tildelt meg",
+  "Most events": "Flest hendelser",
+  "Not assigned to anyone.": "Ikke tildelt noen.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Velg én person eller ett team. Velg ingen for å fjerne tildelingen.",
+  "Pick someone": "Velg noen",
+  "Search people and teams": "Søk etter personer og team",
+  "Sort: {{order}}": "Sortering: {{order}}"
 }
