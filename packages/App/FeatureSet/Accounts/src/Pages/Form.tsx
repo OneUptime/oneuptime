@@ -17,7 +17,9 @@ import {
   findPublicFormTemplate,
   getPublicFormForTemplate,
   getPublicFormStartTemplate,
+  isPublicFormFileField,
   PublicForm,
+  PublicFormField,
   PublicFormSubmissionResult,
   PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
@@ -40,6 +42,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import { showPublicFormFavicon } from "Common/UI/Components/PublicForm/PublicFormFavicon";
 import {
   buildPublicFormFields,
+  getPublicFormFilesProblem,
   getPublicFormInitialValues,
 } from "Common/UI/Components/PublicForm/PublicFormFields";
 import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
@@ -157,6 +160,12 @@ const FormPage: () => JSX.Element = () => {
   const [loadAttempt, setLoadAttempt] = useState<number>(0);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  /*
+   * How much of a submission with files has been sent, 0 to 100, while it is
+   * being sent; null otherwise. Files make a submission long to send.
+   */
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const isSubmittingRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -412,9 +421,35 @@ const FormPage: () => JSX.Element = () => {
       return;
     }
 
+    /*
+     * The files of the whole response, before anything is sent: so many, and
+     * so large together, at most - the server's own sentence, shown in the
+     * submitter's language, and no captcha answer spent on it.
+     */
+    const filesProblem: string | null = askedForm
+      ? getPublicFormFilesProblem({ form: askedForm, values: values })
+      : null;
+
+    if (filesProblem) {
+      setSubmitFailure({
+        kind: FormFailureKind.Refused,
+        serverMessage: filesProblem,
+        retryAfterSeconds: 0,
+      });
+      return;
+    }
+
+    const hasFiles: boolean = Boolean(
+      askedForm &&
+        askedForm.fields.some((field: PublicFormField): boolean => {
+          return isPublicFormFileField(field);
+        }),
+    );
+
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     setSubmitFailure(null);
+    setUploadPercent(hasFiles ? 0 : null);
 
     try {
       const submitted: PublicFormSubmissionResult = await submitPublicForm(
@@ -428,6 +463,11 @@ const FormPage: () => JSX.Element = () => {
               : undefined,
           templateId: templateId,
         }),
+        hasFiles
+          ? (percent: number): void => {
+              setUploadPercent(percent);
+            }
+          : undefined,
       );
 
       setResult(submitted);
@@ -450,6 +490,7 @@ const FormPage: () => JSX.Element = () => {
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
+      setUploadPercent(null);
     }
   };
 
@@ -646,7 +687,25 @@ const FormPage: () => JSX.Element = () => {
           void submit(values as JSONObject);
         }}
         footer={
-          submitError ? (
+          isSubmitting && uploadPercent !== null ? (
+            <div
+              className="mt-4"
+              role="status"
+              aria-live="polite"
+              data-testid="form-upload-progress"
+            >
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>{t("form.uploadingFiles")}</span>
+                <span className="tabular-nums">{uploadPercent}%</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                  style={{ width: `${uploadPercent}%` }}
+                ></div>
+              </div>
+            </div>
+          ) : submitError ? (
             <div className="mt-4">
               <Alert
                 type={AlertType.DANGER}

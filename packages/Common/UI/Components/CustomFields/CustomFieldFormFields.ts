@@ -3,8 +3,18 @@ import Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import { translateValidationMessage } from "../Forms/Validation";
+import FileModel from "../../../Models/DatabaseModels/File";
 import Color from "../../../Types/Color";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
+import {
+  CUSTOM_FIELD_FILE_TYPES,
+  CUSTOM_FIELD_MAX_FILES,
+  CustomFieldFile,
+  isCustomFieldFileType,
+  readCustomFieldFileReference,
+  readCustomFieldFiles,
+} from "../../../Types/CustomField/CustomFieldFile";
+import MimeType from "../../../Types/File/MimeType";
 import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
@@ -177,6 +187,107 @@ export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunctio
   };
 
 /*
+ * What a file field's picker says it takes, in place of its list of 25
+ * types. The English texts are their keys in the locale files.
+ */
+export const CUSTOM_FIELD_FILE_HINT: string =
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.";
+
+export const CUSTOM_FIELD_FILES_HINT: string =
+  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
+
+export type ToCustomFieldFileFormValueFunction = (data: {
+  customFieldType?: CustomFieldType | null | undefined;
+  value: unknown;
+}) => unknown;
+
+/**
+ * A file field's stored value as its file picker holds it: the files as
+ * File models with their id, name and type - one, or a list - so the picker
+ * lists them and hands them back as they are when nothing changed. Any other
+ * field's value is as stored.
+ */
+export const toCustomFieldFileFormValue: ToCustomFieldFileFormValueFunction =
+  (data: {
+    customFieldType?: CustomFieldType | null | undefined;
+    value: unknown;
+  }): unknown => {
+    if (!isCustomFieldFileType(data.customFieldType)) {
+      return data.value;
+    }
+
+    const files: Array<FileModel> = readCustomFieldFiles(data.value).map(
+      (file: CustomFieldFile): FileModel => {
+        const model: FileModel = new FileModel();
+        model._id = file.fileId;
+        model.name = file.name;
+        model.fileType = file.fileType as MimeType;
+        return model;
+      },
+    );
+
+    if (data.customFieldType === CustomFieldType.File) {
+      return files[0] || null;
+    }
+
+    return files;
+  };
+
+export type FromCustomFieldFileFormValueFunction = (data: {
+  customFieldType?: CustomFieldType | null | undefined;
+  value: unknown;
+}) => unknown;
+
+/**
+ * What a file field's picker holds, as a write sends it: each file as
+ * { fileId, name, fileType } - the server reads the rest from the file - one
+ * for a File field, a list for a Multiple files field; null when it holds
+ * none. Any other field's value is as given.
+ */
+export const fromCustomFieldFileFormValue: FromCustomFieldFileFormValueFunction =
+  (data: {
+    customFieldType?: CustomFieldType | null | undefined;
+    value: unknown;
+  }): unknown => {
+    if (!isCustomFieldFileType(data.customFieldType)) {
+      return data.value;
+    }
+
+    const entries: Array<unknown> = Array.isArray(data.value)
+      ? data.value
+      : data.value === undefined || data.value === null || data.value === ""
+        ? []
+        : [data.value];
+
+    const references: Array<JSONObject> = [];
+
+    for (const entry of entries) {
+      const fileId: string | null = readCustomFieldFileReference(entry);
+
+      if (!fileId) {
+        continue;
+      }
+
+      const named: Record<string, unknown> =
+        entry && typeof entry === "object"
+          ? (entry as Record<string, unknown>)
+          : {};
+
+      references.push({
+        fileId: fileId,
+        name: typeof named["name"] === "string" ? named["name"] : "",
+        fileType: typeof named["fileType"] === "string" ? named["fileType"] : "",
+      });
+    }
+
+    if (data.customFieldType === CustomFieldType.File) {
+      return references[0] || null;
+    }
+
+    return references;
+  };
+
+/*
  * The types whose value is text. A value of theirs can still be a number or
  * a yes/no: the value check accepts those for them, and a field switched
  * from Number or Yes/No to one of them keeps the values it had.
@@ -339,6 +450,22 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
 
         if (data.stepId) {
           field.stepId = data.stepId;
+        }
+
+        /*
+         * A file field's picker takes the kinds of file the field takes, and
+         * a Multiple files field no more files than it holds; the server
+         * holds every write to the same (CustomFieldFiles).
+         */
+        if (isCustomFieldFileType(definition.customFieldType)) {
+          field.fileTypes = [...CUSTOM_FIELD_FILE_TYPES];
+
+          if (definition.customFieldType === CustomFieldType.MultipleFiles) {
+            field.maxFiles = CUSTOM_FIELD_MAX_FILES;
+            field.fileHint = CUSTOM_FIELD_FILES_HINT;
+          } else {
+            field.fileHint = CUSTOM_FIELD_FILE_HINT;
+          }
         }
 
         /*

@@ -12,6 +12,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -45,6 +46,25 @@ export interface ComponentProps {
    * field will keep.
    */
   maxFileSizeInBytes?: number | undefined;
+  /*
+   * A picker of several files: the most it holds. It takes no more - a drop
+   * of more than there is room for adds what fits and says so - and once it
+   * is full it says how to add another.
+   */
+  maxFiles?: number | undefined;
+  /*
+   * What the picker says it takes, in place of the list of its types: for a
+   * picker that takes many kinds of file, whose list would run to a
+   * paragraph ("PDF, Office files, pictures, text, ZIP or PCAP, up to
+   * 10 MB.").
+   */
+  hint?: string | undefined;
+  /*
+   * Keep the files in the browser rather than uploading them: each one the
+   * picker hands back holds its bytes and no id. For a page nobody is signed
+   * in to upload as - a public form, which sends the files with its answers.
+   */
+  keepFilesInBrowser?: boolean | undefined;
 }
 
 type UploadStatus = {
@@ -67,6 +87,7 @@ type UpdateUploadProgressFunction = (
 ) => void;
 type RemoveUploadStatusFunction = (id: string) => void;
 type BuildFileSizeErrorFunction = (fileNames: Array<string>) => string;
+type BuildFileTypeErrorFunction = (fileNames: Array<string>) => string;
 type ResolveMimeTypeFunction = (file: File) => MimeType | undefined;
 type FormatFileSizeFunction = (file: FileModel) => string | null;
 
@@ -119,6 +140,17 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
   const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
   const [uploadStatuses, setUploadStatuses] = useState<Array<UploadStatus>>([]);
+  // One page can hold several pickers: each input has an id of its own.
+  const inputId: string = useId();
+
+  // The most files a picker of several holds; none for no limit.
+  const maxFiles: number | null =
+    props.isMultiFilePicker &&
+    typeof props.maxFiles === "number" &&
+    Number.isFinite(props.maxFiles) &&
+    props.maxFiles > 0
+      ? Math.floor(props.maxFiles)
+      : null;
 
   const maxFileSizeBytes: number = getMaxFileSizeInBytes(
     props.maxFileSizeInBytes,
@@ -259,7 +291,23 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const buildFileTypeError: BuildFileTypeErrorFunction = (
+    fileNames: Array<string>,
+  ): string => {
+    if (fileNames.length === 1) {
+      return translator.translateTemplate(
+        '"{{fileName}}" is not a type of file this field takes.',
+        { fileName: fileNames[0] || "" },
+      );
+    }
+
+    return translator.translateTemplate(
+      "These files are not a type this field takes: {{fileNames}}.",
+      { fileNames: fileNames.join(", ") },
+    );
+  };
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: acceptTypes,
     multiple: props.isMultiFilePicker,
     noClick: true,
@@ -276,6 +324,38 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
       if (oversizedFiles.length > 0) {
         setError(buildFileSizeError(oversizedFiles));
+        return;
+      }
+
+      /*
+       * A file of a type the picker does not take is refused by the
+       * browser's picker and by the drop alike: say so, rather than drop it
+       * without a word.
+       */
+      const refusedTypes: Array<string> = fileRejections
+        .filter((rejection: FileRejection) => {
+          return rejection.errors.some((error: { code: string }) => {
+            return error.code === "file-invalid-type";
+          });
+        })
+        .map((rejection: FileRejection) => {
+          return rejection.file.name;
+        });
+
+      if (refusedTypes.length > 0) {
+        setError(buildFileTypeError(refusedTypes));
+        return;
+      }
+
+      // Several files dropped on a picker of one.
+      if (
+        fileRejections.some((rejection: FileRejection) => {
+          return rejection.errors.some((error: { code: string }) => {
+            return error.code === "too-many-files";
+          });
+        })
+      ) {
+        setError(translator.translateText("Add one file at a time.") || "");
       }
     },
     onDrop: async (acceptedFiles: Array<File>) => {
@@ -341,9 +421,31 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         const oversizedFiles: Array<string> = [];
 
-        for (const acceptedFile of acceptedFiles) {
+        // What room a picker of several files has left.
+        const room: number | null =
+          maxFiles === null ? null : Math.max(0, maxFiles - filesModel.length);
+        const filesToAdd: Array<File> =
+          room === null ? acceptedFiles : acceptedFiles.slice(0, room);
+        const leftOut: number = acceptedFiles.length - filesToAdd.length;
+
+        for (const acceptedFile of filesToAdd) {
           if (acceptedFile.size > maxFileSizeBytes) {
             oversizedFiles.push(acceptedFile.name);
+            continue;
+          }
+
+          /*
+           * Kept in the browser: the file with its bytes, and no id, for the
+           * page to send with what it submits.
+           */
+          if (props.keepFilesInBrowser) {
+            const localFile: FileModel = new FileModel();
+            localFile.name = acceptedFile.name;
+            localFile.fileType = resolveMimeType(acceptedFile) || MimeType.txt;
+            localFile.file = Buffer.from(
+              new Uint8Array(await acceptedFile.arrayBuffer()),
+            );
+            filesResult.push(localFile);
             continue;
           }
 
@@ -395,6 +497,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         if (oversizedFiles.length > 0) {
           setError(buildFileSizeError(oversizedFiles));
+        } else if (leftOut > 0 && maxFiles !== null) {
+          setError(
+            translator.translateTemplate(
+              "This field holds up to {{count}} files.",
+              { count: maxFiles },
+            ),
+          );
         }
 
         if (filesResult.length > 0) {
@@ -473,13 +582,32 @@ const FilePicker: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
-          <button
-            type="button"
-            className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-            onClick={removeFile}
-          >
-            {translator.translateText("Remove")}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/*
+             * A picker of one file shows no drop zone while it holds one:
+             * Replace opens the file chooser at once.
+             */}
+            {!props.isMultiFilePicker && !props.readOnly ? (
+              <button
+                type="button"
+                className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={() => {
+                  open();
+                }}
+              >
+                {translator.translateText("Replace")}
+              </button>
+            ) : (
+              <></>
+            )}
+            <button
+              type="button"
+              className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+              onClick={removeFile}
+            >
+              {translator.translateText("Remove")}
+            </button>
+          </div>
         </div>
       );
     });
@@ -490,6 +618,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       return upload.status === "uploading";
     },
   );
+
+  // A picker of several files that holds as many as it may.
+  const isFull: boolean = maxFiles !== null && filesModel.length >= maxFiles;
 
   return (
     <div className="space-y-4 w-full">
@@ -508,7 +639,15 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             "aria-busy": hasActiveUploads || isLoading,
           })}
         >
-          {(filesModel.length === 0 || props.isMultiFilePicker) && (
+          {isFull && (
+            <p className="text-sm text-gray-600" data-testid="file-picker-full">
+              {translator.translateTemplate(
+                "This field holds up to {{count}} files. Remove one to add another.",
+                { count: maxFiles || 0 },
+              )}
+            </p>
+          )}
+          {!isFull && (filesModel.length === 0 || props.isMultiFilePicker) && (
             <>
               <div className="flex flex-col items-center space-y-2">
                 <svg
@@ -539,7 +678,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     <input
                       tabIndex={props.tabIndex}
                       {...(getInputProps() as any)}
-                      id="file-upload"
+                      id={inputId}
                       name="file-upload"
                       type="file"
                       aria-labelledby={props.ariaLabelledby}
@@ -557,38 +696,40 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     )}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {props.mimeTypes && props.mimeTypes?.length > 0
-                      ? translator.translateTemplate(
-                          hasOwnLimit
-                            ? "Types: {{types}}. Max {{size}} each."
-                            : "Types: {{types}}. Max 10MB each.",
-                          {
-                            size: maxFileSize,
-                            types: props.mimeTypes
-                              .map((type: MimeType) => {
-                                const enumKey: string | undefined =
-                                  Object.keys(MimeType)[
-                                    Object.values(MimeType).indexOf(type)
-                                  ];
-                                return enumKey?.toUpperCase() || "";
-                              })
-                              .filter(
-                                (
-                                  item: string | undefined,
-                                  pos: number,
-                                  array: Array<string | undefined>,
-                                ) => {
-                                  return array.indexOf(item) === pos;
-                                },
-                              )
-                              .join(", "),
-                          },
-                        )
-                      : hasOwnLimit
-                        ? translator.translateTemplate("Max {{size}} each.", {
-                            size: maxFileSize,
-                          })
-                        : translator.translateText("Max 10MB each.")}
+                    {props.hint
+                      ? translator.translateText(props.hint)
+                      : props.mimeTypes && props.mimeTypes?.length > 0
+                        ? translator.translateTemplate(
+                            hasOwnLimit
+                              ? "Types: {{types}}. Max {{size}} each."
+                              : "Types: {{types}}. Max 10MB each.",
+                            {
+                              size: maxFileSize,
+                              types: props.mimeTypes
+                                .map((type: MimeType) => {
+                                  const enumKey: string | undefined =
+                                    Object.keys(MimeType)[
+                                      Object.values(MimeType).indexOf(type)
+                                    ];
+                                  return enumKey?.toUpperCase() || "";
+                                })
+                                .filter(
+                                  (
+                                    item: string | undefined,
+                                    pos: number,
+                                    array: Array<string | undefined>,
+                                  ) => {
+                                    return array.indexOf(item) === pos;
+                                  },
+                                )
+                                .join(", "),
+                            },
+                          )
+                        : hasOwnLimit
+                          ? translator.translateTemplate("Max {{size}} each.", {
+                              size: maxFileSize,
+                            })
+                          : translator.translateText("Max 10MB each.")}
                   </p>
                   {error && (
                     <p className="text-xs text-red-500 font-medium">{error}</p>

@@ -194,6 +194,30 @@ const readField: ReadFieldFunction = (
     field.maxLength = value["maxLength"];
   }
 
+  /*
+   * A file question's limits, as the server told them: the kinds of file it
+   * takes, the largest file and the most files. The server holds the
+   * submission to them whatever this page reads.
+   */
+  if (
+    type === PublicFormFieldType.File ||
+    type === PublicFormFieldType.MultipleFiles
+  ) {
+    field.fileTypes = Array.isArray(value["fileTypes"])
+      ? value["fileTypes"].filter((entry: unknown): entry is string => {
+          return typeof entry === "string" && entry.length > 0;
+        })
+      : [];
+
+    for (const key of ["maxFileSizeInBytes", "maxFiles"] as const) {
+      const limit: unknown = value[key];
+
+      if (typeof limit === "number" && Number.isFinite(limit) && limit > 0) {
+        field[key] = limit;
+      }
+    }
+  }
+
   if (
     type === PublicFormFieldType.Dropdown ||
     type === PublicFormFieldType.MultiSelectDropdown
@@ -458,17 +482,36 @@ export const loadPublicForm: LoadPublicFormFunction = async (
 export type SubmitPublicFormFunction = (
   shareKey: string,
   request: PublicFormSubmissionRequest,
+  // How much of the request has been sent, 0 to 100: files make it long.
+  onProgress?: ((percent: number) => void) | undefined,
 ) => Promise<PublicFormSubmissionResult>;
 
 // Send the answers. Refusals are thrown as for loadPublicForm.
 export const submitPublicForm: SubmitPublicFormFunction = async (
   shareKey: string,
   request: PublicFormSubmissionRequest,
+  onProgress?: ((percent: number) => void) | undefined,
 ): Promise<PublicFormSubmissionResult> => {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await FormAPI.post<JSONObject>({
       url: getFormSubmitUrl(shareKey),
       data: request as unknown as JSONObject,
+      ...(onProgress
+        ? {
+            options: {
+              onUploadProgress: (event: {
+                loaded: number;
+                total?: number | undefined;
+              }): void => {
+                if (event.total && event.total > 0) {
+                  onProgress(
+                    Math.min(100, Math.round((event.loaded / event.total) * 100)),
+                  );
+                }
+              },
+            },
+          }
+        : {}),
     });
 
   if (response instanceof HTTPErrorResponse) {
