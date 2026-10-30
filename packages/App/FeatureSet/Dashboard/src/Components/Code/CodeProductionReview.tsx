@@ -73,6 +73,12 @@ export interface ComponentProps {
   provider?: string | undefined;
   // The host's name as Code says it: "GitLab", "Forgejo", "Gitea".
   hostName?: string | undefined;
+  /*
+   * Where the repository's LLM provider for production reviews is picked
+   * (its Settings, at Production Review LLM Provider), for those who may
+   * change it: a pick that could not be used links there.
+   */
+  llmProviderSettingsRoute?: Route | undefined;
 }
 
 const SECTION_CLASS_NAME: string =
@@ -332,7 +338,9 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
    * The LLM provider that read the review, when the repository picks one:
    * named where What to watch says OneUptime AI read the facts - or, when
    * the pick could not be used, a warning that says which provider read it
-   * instead and why, wherever the review says what AI did.
+   * instead and why, wherever the review says what AI did: marked as one
+   * (not by its colour alone), with Change in Settings for those who may
+   * pick another.
    */
   const renderProviderLine: (
     line: ProductionReviewProviderLine,
@@ -347,19 +355,52 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
         : place === "after-line"
           ? "mt-1.5 text-xs"
           : "text-sm";
+    const sentence: string = translator.translateTemplate(line.template, {
+      provider: line.providerName,
+    });
+
+    if (!line.isWarning) {
+      return (
+        <p
+          data-testid="production-review-llm-provider"
+          data-llm-provider="picked"
+          className={`${placeClassName} [overflow-wrap:anywhere] text-gray-500`}
+        >
+          {sentence}
+        </p>
+      );
+    }
 
     return (
-      <p
+      <div
         data-testid="production-review-llm-provider"
-        data-llm-provider={line.isWarning ? "fell-back" : "picked"}
-        className={`${placeClassName} [overflow-wrap:anywhere] ${
-          line.isWarning ? "text-amber-700" : "text-gray-500"
-        }`}
+        data-llm-provider="fell-back"
+        className={`${placeClassName} flex items-start gap-1.5 text-amber-700`}
       >
-        {translator.translateTemplate(line.template, {
-          provider: line.providerName,
-        })}
-      </p>
+        <Icon
+          icon={IconProp.Alert}
+          className={`${
+            place === "alone" ? "mt-0.5 h-4 w-4" : "mt-px h-3.5 w-3.5"
+          } flex-shrink-0 text-amber-500`}
+        />
+        <p className="min-w-0 [overflow-wrap:anywhere]">
+          {sentence}
+          {props.llmProviderSettingsRoute ? (
+            <>
+              {" "}
+              <Link
+                to={props.llmProviderSettingsRoute}
+                dataTestId="production-review-llm-provider-settings"
+                className="font-medium text-amber-900 underline hover:text-amber-700"
+              >
+                <>{text(PRODUCTION_REVIEW_COPY.openSettings)}</>
+              </Link>
+            </>
+          ) : (
+            <></>
+          )}
+        </p>
+      </div>
     );
   };
 

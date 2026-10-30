@@ -4,7 +4,10 @@ import {
   PRODUCTION_REVIEW_ASK_COPY,
   inReviewHostWords,
 } from "./CodeProductionReviewCopy";
-import { ProductionReviewUtil } from "Common/Types/CodeRepository/ProductionReview";
+import {
+  PULL_REQUEST_NUMBER_MARKS,
+  ProductionReviewUtil,
+} from "Common/Types/CodeRepository/ProductionReview";
 import Exception from "Common/Types/Exception/Exception";
 import IconProp from "Common/Types/Icon/IconProp";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -20,6 +23,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 export const CODE_PRODUCTION_REVIEW_ASK_TEST_ID: string =
   "code-production-review-ask";
 
+// The field's help, which describes it to a screen reader too.
+const NUMBER_DESCRIPTION_ID: string = "code-production-review-ask-number-help";
+
 export interface ComponentProps {
   repositoryId: string;
   // Where the repository is hosted: GitLab's words say merge request.
@@ -34,7 +40,9 @@ export interface ComponentProps {
  * where it is reviewed within a minute. The number may be written as the
  * host writes it ("#12", GitLab's "!12"). What the server refuses (no such
  * pull request, a closed one, a connection that stopped working) is said in
- * the dialog, which keeps what was typed.
+ * the dialog, which keeps what was typed. What can never be a number is
+ * said under the field (Review now waits for one); a phone offers its
+ * number keys.
  */
 const CodeProductionReviewAsk: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -53,6 +61,13 @@ const CodeProductionReviewAsk: FunctionComponent<ComponentProps> = (
 
   const isNumber: boolean =
     ProductionReviewUtil.readPullRequestNumber(number) !== null;
+  /*
+   * Typed, and no number: said at once - but not for a lone "#" or "!",
+   * which is how the host writes one, on its way to its digits.
+   */
+  const typed: string = number.trim();
+  const isNotANumber: boolean =
+    typed.length > 0 && !isNumber && !PULL_REQUEST_NUMBER_MARKS.includes(typed);
 
   const ask: () => Promise<void> = async (): Promise<void> => {
     const pullRequestNumber: number | null =
@@ -125,16 +140,27 @@ const CodeProductionReviewAsk: FunctionComponent<ComponentProps> = (
                 PRODUCTION_REVIEW_ASK_COPY.numberDescription,
                 props.provider,
               )}
+              descriptionId={NUMBER_DESCRIPTION_ID}
             />
             <div className="mt-2">
               <Input
                 id="code-production-review-ask-number"
                 dataTestId="code-production-review-ask-number"
                 type={InputType.TEXT}
+                inputMode="numeric"
                 value={number}
                 placeholder="12"
                 disableSpellCheck={true}
                 autoComplete="off"
+                ariaDescribedby={NUMBER_DESCRIPTION_ID}
+                error={
+                  isNotANumber
+                    ? inReviewHostWords(
+                        PRODUCTION_REVIEW_ASK_COPY.numberHint,
+                        props.provider,
+                      )
+                    : undefined
+                }
                 onChange={(value: string) => {
                   setNumber(value);
                 }}

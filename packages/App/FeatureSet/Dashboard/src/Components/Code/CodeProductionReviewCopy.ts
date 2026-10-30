@@ -7,7 +7,9 @@ import {
   LlmProviderFallbackReason,
   LlmProviderSource,
 } from "Common/Types/AI/LlmProviderChoice";
+import { CODE_REPOSITORY_CONNECTION_COPY } from "./CodeHostCopy";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import { env } from "Common/UI/Config";
 import {
   PRODUCTION_REVIEW_WINDOWS,
@@ -148,10 +150,13 @@ export const PRODUCTION_REVIEW_COPY: {
   /*
    * Off, where no command is answered - the GitHub App answers none in the
    * repository, or it is on GitLab, Forgejo or Gitea: Review a pull
-   * request, on this page, still asks for one.
+   * request, on this page, still asks for one. "Someone", not "someone
+   * with write access": what asking here takes is permission to edit the
+   * repository in OneUptime, not write access on its host - and only those
+   * who have it see the button.
    */
   statusOffNoCommands: translationKey(
-    "Pull requests are reviewed only when someone with write access asks for one here.",
+    "Pull requests are reviewed only when someone asks for one here.",
   ),
   /*
    * After statusOn, where no command is answered: how a pull request from
@@ -159,7 +164,7 @@ export const PRODUCTION_REVIEW_COPY: {
    * request, on this page.
    */
   statusOnOthersAsk: translationKey(
-    "A pull request from anyone else is reviewed when someone with write access asks for it here.",
+    "A pull request from anyone else is reviewed only when someone asks for it here.",
   ),
   /*
    * The GitHub App no longer reaches the repository (Code's Repositories
@@ -309,7 +314,7 @@ export const PRODUCTION_REVIEW_COPY: {
    * contributor, a fork): its pushes are not reviewed on their own.
    */
   updatesWhenAskedForAuthor: translationKey(
-    "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
+    "Its author cannot write to this repository, so it is reviewed again only when someone asks.",
   ),
   cannotReviewAgain: translationKey(
     "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
@@ -333,14 +338,25 @@ export const PRODUCTION_REVIEW_ASK_COPY: {
   button: string;
   numberTitle: string;
   numberDescription: string;
+  numberHint: string;
   submit: string;
 } = {
   // The button, and the dialog's title.
   button: translationKey("Review a pull request"),
   numberTitle: translationKey("Pull request number"),
+  /*
+   * Forks and bots are the pull requests that are never reviewed on their
+   * own, so the ones this is most often for.
+   */
   numberDescription: translationKey(
-    "Any of this repository's open pull requests, from a fork or anyone else too.",
+    "Any open pull request in this repository, even one from a fork or a bot.",
   ),
+  /*
+   * Under the field while what is typed is not a number (Review now waits
+   * for one): said as soon as it cannot become one, never for a lone "#"
+   * or "!" on its way to one.
+   */
+  numberHint: translationKey("Enter the number of a pull request, such as 12."),
   /*
    * "Review now", not "Review": several languages word a bare Review as
    * View (Network traffic's Review is), and this one starts a review.
@@ -991,10 +1007,10 @@ export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
     "A merge request from someone with write access is reviewed when it opens and each time it changes.",
   ),
   [PRODUCTION_REVIEW_COPY.statusOffNoCommands]: translationKey(
-    "Merge requests are reviewed only when someone with write access asks for one here.",
+    "Merge requests are reviewed only when someone asks for one here.",
   ),
   [PRODUCTION_REVIEW_COPY.statusOnOthersAsk]: translationKey(
-    "A merge request from anyone else is reviewed when someone with write access asks for it here.",
+    "A merge request from anyone else is reviewed only when someone asks for it here.",
   ),
   [PRODUCTION_REVIEW_COPY.statusNotConnectedHost]: translationKey(
     "This repository's connection to {{host}} does not work, so its merge requests are not reviewed.",
@@ -1044,7 +1060,10 @@ export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
     "Merge request number",
   ),
   [PRODUCTION_REVIEW_ASK_COPY.numberDescription]: translationKey(
-    "Any of this repository's open merge requests, from a fork or anyone else too.",
+    "Any open merge request in this repository, even one from a fork or a bot.",
+  ),
+  [PRODUCTION_REVIEW_ASK_COPY.numberHint]: translationKey(
+    "Enter the number of a merge request, such as 12.",
   ),
   [PRODUCTION_REVIEW_AI_NOTES[ProductionReviewAiNoteCode.DailyLimit]]:
     translationKey(
@@ -1064,6 +1083,39 @@ export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
     "Every merge request links to its review in OneUptime, which only members of this project can open. Nothing from production is posted.",
   ),
 };
+
+/*
+ * Where a repository OneUptime no longer reaches is connected again, and
+ * what the link there says - one fix, as the repository's Tasks name it:
+ * a GitHub repository from Code's Repositories (Connect GitHub); one on
+ * GitLab, Forgejo or Gitea from its own Settings - Replace access token
+ * when its server refused the token, which is replaced right there, and
+ * Go to Settings when its connection is gone, which they explain.
+ */
+export interface ProductionReviewReconnect {
+  title: string;
+  place: "repositories" | "settings";
+}
+
+export function getProductionReviewReconnect(repository: {
+  provider?: string | null | undefined;
+  connection?: { isTokenRefused?: boolean | undefined } | undefined;
+}): ProductionReviewReconnect {
+  if (CodeHost.readType(repository.provider) === CodeRepositoryType.GitHub) {
+    return {
+      title: PRODUCTION_REVIEW_COPY.connectGitHub,
+      place: "repositories",
+    };
+  }
+
+  return {
+    title:
+      repository.connection?.isTokenRefused === true
+        ? CODE_REPOSITORY_CONNECTION_COPY.replaceButton
+        : PRODUCTION_REVIEW_COPY.goToSettings,
+    place: "settings",
+  };
+}
 
 /*
  * A production review sentence in the host's words: on GitLab, its merge

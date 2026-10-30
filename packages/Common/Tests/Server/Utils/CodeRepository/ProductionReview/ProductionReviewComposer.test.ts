@@ -754,7 +754,7 @@ describe("ProductionReviewComposer: in the host's words", () => {
  * link alone where the comment is a link.
  */
 describe("ProductionReviewComposer.composeCheckRun", () => {
-  test("something worth a look is neutral, its summary the review without the comment's marker", () => {
+  test("something worth a look is neutral, its summary the review without the comment's marker or heading", () => {
     const check: ProductionReviewCheckRunText =
       ProductionReviewComposer.composeCheckRun(input());
     const comment: string = ProductionReviewComposer.compose(input());
@@ -763,9 +763,15 @@ describe("ProductionReviewComposer.composeCheckRun", () => {
     expect(check.title).toBe(PRODUCTION_REVIEW_CHECK_TITLES.worthALook);
     expect(check.title).toBe("Something in production is worth a look");
     expect(check.summary).not.toContain(PRODUCTION_REVIEW_COMMENT_MARKER);
-    expect(`${PRODUCTION_REVIEW_COMMENT_MARKER}\n\n${check.summary}`).toBe(
-      comment,
-    );
+    /*
+     * The check's name is its heading on GitHub ("OneUptime production
+     * review"): the summary does not say it again.
+     */
+    expect(check.summary).not.toContain("### ");
+    expect(check.summary).not.toContain("Production review by");
+    expect(
+      `${PRODUCTION_REVIEW_COMMENT_MARKER}\n\n### 🔭 Production review by OneUptime\n\n${check.summary}`,
+    ).toBe(comment);
   });
 
   test("nothing to say is a success", () => {
@@ -815,7 +821,7 @@ describe("ProductionReviewComposer.composeCheckRun", () => {
       );
 
     expect(parsesAsCommand(check.summary)).toBe(false);
-    expect(check.summary).toContain("Production review by Acme Observe");
-    expect(check.summary).not.toContain("by OneUptime");
+    expect(check.summary).toContain("Open in Acme Observe");
+    expect(check.summary).not.toContain("OneUptime");
   });
 });

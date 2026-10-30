@@ -1038,10 +1038,40 @@ describe("a review's page", () => {
       "Starting in a minute or so.",
     );
     expect(screen.queryByTestId("production-review")).toBeNull();
+    /*
+     * A first review on its way has nothing to ask again yet, and promises
+     * nothing of the pull request's next pushes: whether its author can
+     * write is what the review reads - one asked for from a fork, with
+     * Review a pull request, is not reviewed again on its own.
+     */
+    expect(screen.queryByTestId("production-review-footer-bar")).toBeNull();
+    expect(screen.queryByTestId("production-review-again")).toBeNull();
+    expect(screen.getByTestId("code-task-footer")).not.toHaveTextContent(
+      "Reviewed again each time the pull request changes.",
+    );
+
+    // Asked again, the last review stays - and Review again waits for it.
+    cleanup();
+    drawTask(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Working, isQueued: true }),
+        turns: [
+          turn(),
+          turn({ state: CodeTaskState.Working, outcome: undefined }),
+        ],
+      }),
+    );
+    expect(screen.getByTestId("production-review-working")).toHaveTextContent(
+      "Starting in a minute or so.",
+    );
+    expect(screen.getByTestId("production-review")).toBeTruthy();
     // While it works, Review again waits too: the line above says why.
     expect(screen.getByTestId("production-review-again")).toBeDisabled();
     expect(screen.getByTestId("production-review-again")).toHaveTextContent(
       "Review again",
+    );
+    expect(screen.getByTestId("production-review-updates")).toHaveTextContent(
+      "Reviewed again each time the pull request changes.",
     );
   });
 
@@ -1101,6 +1131,15 @@ describe("a review's page", () => {
     expect(screen.getByTestId("production-review-failed")).toHaveTextContent(
       "The review could not finish.",
     );
+    /*
+     * A first review that failed: Review again, at the end of its bar -
+     * with no word on its next pushes, which no review has read yet.
+     */
+    expect(screen.getByTestId("production-review-again")).toBeEnabled();
+    expect(screen.getByTestId("production-review-again")).toHaveClass(
+      "ml-auto",
+    );
+    expect(screen.queryByTestId("production-review-updates")).toBeNull();
   });
 
   test("a review that was not done - a closed pull request, a draft - says why, quietly", () => {
@@ -1179,7 +1218,7 @@ describe("a review's page", () => {
     );
 
     expect(screen.getByTestId("production-review-updates")).toHaveTextContent(
-      "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
+      "Its author cannot write to this repository, so it is reviewed again only when someone asks.",
     );
     // Review again is right there for those who may ask.
     expect(screen.getByTestId("production-review-again")).toBeEnabled();
@@ -1210,10 +1249,20 @@ describe("a review's page", () => {
       }),
     );
     expect(screen.queryByTestId("production-review-again")).toBeNull();
-    expect(
-      screen.getByTestId("production-review-not-connected"),
-    ).toHaveTextContent(
+    const notConnected: HTMLElement = screen.getByTestId(
+      "production-review-not-connected",
+    );
+    expect(notConnected).toHaveTextContent(
       "This repository is no longer connected through the GitHub App, so its pull requests cannot be reviewed again.",
+    );
+    // With its one fix beside it, as the Production Reviews page has it.
+    const reconnect: HTMLElement = within(notConnected).getByTestId(
+      "production-review-reconnect",
+    );
+    expect(reconnect).toHaveTextContent("Connect GitHub");
+    expect(reconnect).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories`,
     );
   });
 
@@ -1523,10 +1572,15 @@ describe("a repository's Production Reviews", () => {
     const status: HTMLElement = await screen.findByTestId(
       "code-production-reviews-status",
     );
-    // Review a pull request, on this page, still asks for one.
+    /*
+     * Review a pull request, on this page, still asks for one - for anyone
+     * who may edit the repository in OneUptime, so "someone", not "someone
+     * with write access" (which reads as access on GitHub).
+     */
     expect(status).toHaveTextContent(
-      "Pull requests are reviewed only when someone with write access asks for one here.",
+      "Pull requests are reviewed only when someone asks for one here.",
     );
+    expect(status).not.toHaveTextContent("write access asks");
     expect(status).not.toHaveTextContent("production review on it");
     expect(status.querySelector("code")).toBeNull();
     expect(
@@ -1548,7 +1602,7 @@ describe("a repository's Production Reviews", () => {
       "code-production-reviews-status-others",
     );
     expect(others).toHaveTextContent(
-      "A pull request from anyone else is reviewed when someone with write access asks for it here.",
+      "A pull request from anyone else is reviewed only when someone asks for it here.",
     );
     expect(others.querySelector("code")).toBeNull();
   });
@@ -1938,6 +1992,112 @@ describe("the LLM provider that read the review", () => {
     expect(line).toHaveTextContent(
       "OneUptime AI read the facts below and the diff, with <b>GPT</b> {{provider}}.",
     );
+  });
+
+  test("a pick that could not be used is marked as a warning, not by its colour alone - with Change in Settings where it is picked again", () => {
+    const settings: Route = new Route(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#production-review-llm-provider`,
+    );
+
+    draw(
+      <CodeProductionReview
+        report={report({
+          llmProvider: {
+            source: LlmProviderSource.ProjectDefault,
+            providerName: "Team OpenAI",
+            fallbackReason: LlmProviderFallbackReason.Unavailable,
+          },
+        })}
+        llmProviderSettingsRoute={settings}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(
+      "production-review-llm-provider",
+    );
+    // A warning mark beside the words.
+    expect(line.querySelector("svg")).not.toBeNull();
+    const link: HTMLElement = within(line).getByTestId(
+      "production-review-llm-provider-settings",
+    );
+    expect(link).toHaveTextContent("Change in Settings");
+    expect(link).toHaveAttribute("href", settings.toString());
+    expect(line).toHaveTextContent(
+      "This repository's LLM provider for production reviews is no longer available, so Team OpenAI, the project's default, read this review. Change in Settings",
+    );
+  });
+
+  test("a pick that was used links nowhere and is marked as nothing: there is nothing to fix", () => {
+    draw(
+      <CodeProductionReview
+        report={report({
+          llmProvider: {
+            source: LlmProviderSource.RulePick,
+            providerName: "Azure GPT-5",
+          },
+        })}
+        llmProviderSettingsRoute={
+          new Route(
+            `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#production-review-llm-provider`,
+          )
+        }
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(
+      "production-review-llm-provider",
+    );
+    expect(line.querySelector("svg")).toBeNull();
+    expect(
+      screen.queryByTestId("production-review-llm-provider-settings"),
+    ).toBeNull();
+  });
+
+  test("the review's page links a pick that could not be used to the repository's setting - for those who may change it", () => {
+    const fellBack: CodeTaskTurnJSON = turn({
+      outcome: {
+        summary: "",
+        filesChanged: [],
+        productionReview: report({
+          llmProvider: {
+            source: LlmProviderSource.ProjectDefault,
+            providerName: "Team OpenAI",
+            fallbackReason: LlmProviderFallbackReason.Unavailable,
+          },
+        }),
+      },
+    });
+
+    draw(
+      <CodeProductionReviewTask
+        data={taskAnswer({ turns: [fellBack] })}
+        onReviewAgain={(): void => {}}
+        isAskingAgain={false}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("production-review-llm-provider-settings"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#production-review-llm-provider`,
+    );
+
+    // Someone who may only read is told what happened, with no way to it.
+    cleanup();
+    draw(
+      <CodeProductionReviewTask
+        data={taskAnswer({ turns: [fellBack], canAsk: false })}
+        onReviewAgain={(): void => {}}
+        isAskingAgain={false}
+      />,
+    );
+    expect(
+      screen.getByTestId("production-review-llm-provider"),
+    ).toHaveAttribute("data-llm-provider", "fell-back");
+    expect(
+      screen.queryByTestId("production-review-llm-provider-settings"),
+    ).toBeNull();
   });
 
   test("in German the line is German, and the provider keeps the name the project gave it", async () => {

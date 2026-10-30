@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37165,
-    "untranslated": 13411
+    "keys": 37167,
+    "untranslated": 13410
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -167,6 +167,7 @@
     "Provider",
     "Pull request",
     "Pull request #{{number}}",
+    "Pull request {{label}}",
     "Pull requests",
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Query",

@@ -184,6 +184,10 @@ import {
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "Common/Types/AI/LlmProviderChoice";
+import {
   ProductionReviewAiNoteCode,
   ProductionReviewOperationMatch,
   ProductionReviewPosting,
@@ -679,7 +683,8 @@ if (
  * The project's LLM providers, as POST /ai-chat/providers lists them for the
  * production reviews' LLM provider picker: its default first, another of
  * its own, then the global one. reviewllm=opus has checkout-api's reviews
- * read with Claude Opus; reviewllm=gone with a provider no longer there.
+ * read with Claude Opus; reviewllm=gone with a provider no longer there -
+ * and #42's latest review says which provider read it.
  */
 const LLM_PROVIDER_IDS = {
   oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
@@ -1577,6 +1582,26 @@ if (
       }),
       params.get("reviewcase"),
     );
+  }
+  /*
+   * reviewllm=opus|gone: #42's latest review was read with checkout-api's
+   * pick, Claude Opus - or, its pick gone, with the project's default,
+   * Azure GPT-4o - as the server stamps the review (report.llmProvider).
+   */
+  const llmPick = params.get("reviewllm");
+  if (llmPick === "opus" || llmPick === "gone") {
+    const found = REVIEW_TASKS.find((task) => {
+      return task.id === REVIEW_IDS.found;
+    });
+    const latest = found.turns[found.turns.length - 1];
+    latest.outcome.productionReview.llmProvider =
+      llmPick === "opus"
+        ? { source: LlmProviderSource.RulePick, providerName: "Claude Opus" }
+        : {
+            source: LlmProviderSource.ProjectDefault,
+            providerName: "Azure GPT-4o",
+            fallbackReason: LlmProviderFallbackReason.Unavailable,
+          };
   }
 }
 

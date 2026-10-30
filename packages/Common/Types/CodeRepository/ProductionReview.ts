@@ -369,6 +369,18 @@ export const PRODUCTION_REVIEW_LIMITS: {
   maxPullRequestNumberDigits: 9,
 };
 
+/*
+ * The marks a pull request's number may be written after: "#12", GitLab's
+ * "!12", and the full-width "＃" and "！" a Japanese or Chinese input
+ * method may type.
+ */
+export const PULL_REQUEST_NUMBER_MARKS: ReadonlyArray<string> = [
+  "#",
+  "!",
+  "\uFF03",
+  "\uFF01",
+];
+
 // The hidden line every production review comment starts with.
 export const PRODUCTION_REVIEW_COMMENT_MARKER: string =
   "<!-- oneuptime-production-review -->";
@@ -483,7 +495,10 @@ export class ProductionReviewUtil {
    * A pull request's number as a person gives it - 12, "12", "#12", or
    * GitLab's "!12" - or null for anything else: a whole number from 1 up,
    * of at most PRODUCTION_REVIEW_LIMITS.maxPullRequestNumberDigits digits.
-   * Read character by character, never with a pattern.
+   * Its digits may be Persian or Arabic-Indic ones too ("۱۲"), as a
+   * Persian keyboard types them, or full-width ones ("＃１２"), as a
+   * Japanese or Chinese input method may. Read character by character,
+   * never with a pattern.
    */
   public static readPullRequestNumber(raw: unknown): number | null {
     if (typeof raw === "number") {
@@ -496,7 +511,11 @@ export class ProductionReviewUtil {
 
     let text: string = raw.trim();
 
-    if (text.startsWith("#") || text.startsWith("!")) {
+    if (
+      PULL_REQUEST_NUMBER_MARKS.some((mark: string): boolean => {
+        return text.startsWith(mark);
+      })
+    ) {
       text = text.substring(1).trim();
     }
 
@@ -507,14 +526,41 @@ export class ProductionReviewUtil {
       return null;
     }
 
+    let digits: string = "";
+
     for (const character of text) {
-      if (character < "0" || character > "9") {
+      const digit: number | null = ProductionReviewUtil.readDigit(character);
+
+      if (digit === null) {
         return null;
+      }
+
+      digits += digit.toString();
+    }
+
+    const number: number = Number(digits);
+
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
+  }
+
+  /*
+   * One character's digit, 0 to 9: a Latin one, a Persian one (U+06F0 to
+   * U+06F9), an Arabic-Indic one (U+0660 to U+0669) or a full-width one
+   * (U+FF10 to U+FF19) - or null.
+   */
+  private static readDigit(character: string): number | null {
+    if (character >= "0" && character <= "9") {
+      return character.charCodeAt(0) - "0".charCodeAt(0);
+    }
+
+    const code: number = character.charCodeAt(0);
+
+    for (const zero of [0x06f0, 0x0660, 0xff10]) {
+      if (character.length === 1 && code >= zero && code <= zero + 9) {
+        return code - zero;
       }
     }
 
-    const number: number = Number(text);
-
-    return Number.isSafeInteger(number) && number > 0 ? number : null;
+    return null;
   }
 }

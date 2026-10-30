@@ -299,8 +299,9 @@ export default class ProductionReviewComposer {
    * The review as its GitHub check run says it: what it concluded, a title
    * that says only whether production has something to say - which the
    * comment says too, on a public repository - and as its summary the
-   * comment's own heading and body, the review or the link to it, without
-   * the comment's marker.
+   * comment's body, the review or the link to it, and its footer: not the
+   * comment's marker, nor its heading, which would only say again what the
+   * check's own name says above it ("OneUptime production review").
    */
   public static composeCheckRun(
     input: ProductionReviewCommentInput,
@@ -308,7 +309,6 @@ export default class ProductionReviewComposer {
     const hasSignal: boolean = ProductionReviewUtil.hasSignal(input.report);
 
     const summary: string = [
-      ProductionReviewComposer.heading(input),
       input.posting === ProductionReviewPosting.Link
         ? ProductionReviewComposer.linkBody(input)
         : ProductionReviewComposer.reviewBody(input),

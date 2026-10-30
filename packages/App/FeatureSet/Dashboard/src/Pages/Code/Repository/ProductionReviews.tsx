@@ -12,7 +12,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import {
   PRODUCTION_REVIEW_COPY,
+  ProductionReviewReconnect,
   getProductionReviewCommand,
+  getProductionReviewReconnect,
   inReviewHostWords,
 } from "../../../Components/Code/CodeProductionReviewCopy";
 import CodeTaskList from "../../../Components/Code/CodeTaskList";
@@ -186,27 +188,28 @@ const CodeRepositoryProductionReviews: FunctionComponent<
     </Link>
   );
   /*
-   * Where a repository that is not reached is fixed: GitHub's from Code's
-   * Repositories, where GitHub is connected; any other host's from its own
-   * Settings, where its access token is replaced.
+   * Where a repository that is not reached is fixed, named as the fix:
+   * GitHub's from Code's Repositories, where GitHub is connected (Connect
+   * GitHub); any other host's from its own Settings - Replace access token
+   * when its server refused the token, as its Tasks say it, else Go to
+   * Settings (getProductionReviewReconnect).
    */
-  const connectLink: ReactElement = isOnGitHub ? (
+  const reconnect: ProductionReviewReconnect = getProductionReviewReconnect(
+    repository.repository,
+  );
+  const connectLink: ReactElement = (
     <Link
-      to={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CODE_REPOSITORIES] as Route,
-      )}
+      to={
+        reconnect.place === "repositories"
+          ? RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CODE_REPOSITORIES] as Route,
+            )
+          : getRepositorySettingsRoute(repositoryId)
+      }
       dataTestId="code-production-reviews-connect"
       className="font-medium text-indigo-600 hover:text-indigo-500"
     >
-      <>{translator.translateText(PRODUCTION_REVIEW_COPY.connectGitHub)}</>
-    </Link>
-  ) : (
-    <Link
-      to={getRepositorySettingsRoute(repositoryId)}
-      dataTestId="code-production-reviews-connect"
-      className="font-medium text-indigo-600 hover:text-indigo-500"
-    >
-      <>{translator.translateText(PRODUCTION_REVIEW_COPY.goToSettings)}</>
+      <>{translator.translateText(reconnect.title)}</>
     </Link>
   );
   const pillClassName: string =

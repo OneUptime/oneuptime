@@ -94,8 +94,10 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   Production Review LLM Provider under More settings (`?review=off|unset`,
   `?reviews=none`, `?reviewcomment=Link|ReviewEvenIfPublic`,
   `?reviewllm=opus|gone`: a pick of Claude Opus, or of a provider no longer
-  there; the project's providers come from POST /ai-chat/providers, Azure
-  GPT-4o its default); Review a pull request beside the list, asking for one
+  there - #42's review then says Claude Opus read it, or warns that Azure
+  GPT-4o, the default, did, with Change in Settings; the project's
+  providers come from POST /ai-chat/providers, Azure GPT-4o its default);
+  Review a pull request beside the list, asking for one
   by its number (a closed one refused in the dialog, one already reviewed
   reviewed again, one from a fork reviewed on its own page);
 - the old addresses forwarding with their ids, query strings and hashes, and

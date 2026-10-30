@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37165,
-    "untranslated": 3045
+    "keys": 37167,
+    "untranslated": 3044
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -290,6 +290,7 @@
     "Puerto Rico",
     "Pull request",
     "Pull request #{{number}}",
+    "Pull request {{label}}",
     "Pull requests",
     "Push",
     "Push: ",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37165,
-    "untranslated": 13367
+    "keys": 37167,
+    "untranslated": 13366
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -131,6 +131,7 @@
     "Prompt",
     "Pull request",
     "Pull request #{{number}}",
+    "Pull request {{label}}",
     "Pull requests",
     "Reference",
     "Region",

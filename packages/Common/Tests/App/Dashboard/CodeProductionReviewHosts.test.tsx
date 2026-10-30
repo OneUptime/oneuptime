@@ -8,6 +8,8 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
+import fs from "fs";
+import path from "path";
 import {
   act,
   cleanup,
@@ -108,10 +110,16 @@ import CodeProductionReviewAsk, {
 import CodeProductionReviewTask from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewTask";
 import {
   PRODUCTION_REVIEW_ASK_COPY,
+  PRODUCTION_REVIEW_COPY,
   PRODUCTION_REVIEW_MERGE_REQUEST_COPY,
+  getProductionReviewReconnect,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewCopy";
+import { CODE_REPOSITORY_CONNECTION_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeHostCopy";
 import { CodeTaskResponse } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
+import { getCodeTaskTrail } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskTrail";
+import Link from "../../../Types/Link";
+import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import CodeRepositoryProductionReviews, {
   CODE_PRODUCTION_REVIEWS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/ProductionReviews";
@@ -217,6 +225,11 @@ function repositoryJSON(
   data: {
     isConnected?: boolean;
     isProductionReviewEnabled?: boolean;
+    /*
+     * Not connected because its server refused the token (the default for
+     * a repository not connected), or because its connection is gone.
+     */
+    isTokenRefused?: boolean;
   } = {},
 ): CodeTaskRepositoryJSON {
   return {
@@ -236,7 +249,7 @@ function repositoryJSON(
       ...(host.hostProduct ? { hostProduct: host.hostProduct } : {}),
       accountLogin: "ada",
       credentialHint: "x7Kq",
-      isTokenRefused: data.isConnected === false,
+      isTokenRefused: data.isTokenRefused ?? data.isConnected === false,
       isReachableFromServer: true,
     },
   };
@@ -478,8 +491,20 @@ describe("Review a pull request: any of the repository's pull requests, by its n
     expect(label).toHaveTextContent("Pull request number");
     expect(input).toHaveAttribute("id", "code-production-review-ask-number");
     expect(dialog).toHaveTextContent(
-      "Any of this repository's open pull requests, from a fork or anyone else too.",
+      "Any open pull request in this repository, even one from a fork or a bot.",
     );
+    // The field's help describes it to a screen reader too.
+    const help: HTMLElement | null = dialog.querySelector(
+      "#code-production-review-ask-number-help",
+    );
+    expect(help).toHaveTextContent(
+      "Any open pull request in this repository, even one from a fork or a bot.",
+    );
+    expect(input.getAttribute("aria-describedby")).toContain(
+      "code-production-review-ask-number-help",
+    );
+    // A phone offers its number keys.
+    expect(input).toHaveAttribute("inputmode", "numeric");
     expect(input).toHaveAttribute("autocomplete", "off");
     expect(input).toHaveAttribute("spellcheck", "false");
 
@@ -537,7 +562,7 @@ describe("Review a pull request: any of the repository's pull requests, by its n
       dialog.querySelector("label[for='code-production-review-ask-number']"),
     ).toHaveTextContent("Merge request number");
     expect(dialog).toHaveTextContent(
-      "Any of this repository's open merge requests, from a fork or anyone else too.",
+      "Any open merge request in this repository, even one from a fork or a bot.",
     );
     expect(dialog).not.toHaveTextContent("pull request");
     expect(submit).toHaveTextContent("Review now");
@@ -731,6 +756,91 @@ describe("Review a pull request: any of the repository's pull requests, by its n
     expect(again.submit).toBeEnabled();
   });
 
+  test("what can never be a number is said under the field - in the host's words - and never for a lone # or ! on its way to one", () => {
+    draw(
+      <CodeProductionReviewAsk
+        repositoryId={REPOSITORY_ID}
+        provider={CodeRepositoryType.GitHub}
+      />,
+    );
+
+    const { dialog, input, submit } = openAsk();
+
+    // Nothing typed, or only the mark a number is written after: no word.
+    for (const typed of ["", "  ", "#", "!", "\uFF03", "\uFF01", " # "]) {
+      type(input, typed);
+      expect(within(dialog).queryByTestId("error-message")).toBeNull();
+      expect(input).not.toHaveAttribute("aria-invalid");
+      expect(submit).toBeDisabled();
+    }
+
+    // Typed, and no number: said at once, the field marked as wrong.
+    for (const typed of ["abc", "12a", "0", "-3", "1.5", "1234567890"]) {
+      type(input, typed);
+      const hint: HTMLElement = within(dialog).getByTestId("error-message");
+      expect(hint).toHaveTextContent(
+        "Enter the number of a pull request, such as 12.",
+      );
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input.getAttribute("aria-describedby")).toContain(hint.id);
+      // The field's help is still read with it.
+      expect(input.getAttribute("aria-describedby")).toContain(
+        "code-production-review-ask-number-help",
+      );
+      expect(submit).toBeDisabled();
+    }
+
+    // A number takes the word away again.
+    type(input, "#12");
+    expect(within(dialog).queryByTestId("error-message")).toBeNull();
+    expect(submit).toBeEnabled();
+    expect(reviewPullRequestMock).not.toHaveBeenCalled();
+
+    // GitLab's merge request.
+    cleanup();
+    draw(
+      <CodeProductionReviewAsk
+        repositoryId={REPOSITORY_ID}
+        provider={CodeRepositoryType.GitLab}
+      />,
+    );
+    const gitLab: AskDialog = openAsk();
+    type(gitLab.input, "next");
+    expect(
+      within(gitLab.dialog).getByTestId("error-message"),
+    ).toHaveTextContent("Enter the number of a merge request, such as 12.");
+  });
+
+  test("digits as a Persian keyboard or a Japanese input method types them are a number too, sent as one", async () => {
+    reviewPullRequestMock.mockResolvedValue(ASKED_TASK_ID as never);
+
+    draw(
+      <CodeProductionReviewAsk
+        repositoryId={REPOSITORY_ID}
+        provider={CodeRepositoryType.GitLab}
+      />,
+    );
+
+    const { dialog, input, submit } = openAsk();
+
+    type(input, "\u0021\u06F1\u06F8");
+    expect(within(dialog).queryByTestId("error-message")).toBeNull();
+    expect(submit).toBeEnabled();
+
+    type(input, "\uFF03\uFF11\uFF18");
+    expect(within(dialog).queryByTestId("error-message")).toBeNull();
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+
+    await waitFor(() => {
+      expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    });
+    expect(reviewPullRequestMock.mock.calls[0]![0]).toEqual({
+      repositoryId: REPOSITORY_ID,
+      number: 18,
+    });
+  });
+
   test("every sentence it says is a Dashboard sentence, in both hosts' words", () => {
     const english: Record<string, string> = englishLocale as unknown as Record<
       string,
@@ -745,6 +855,7 @@ describe("Review a pull request: any of the repository's pull requests, by its n
       PRODUCTION_REVIEW_ASK_COPY.button,
       PRODUCTION_REVIEW_ASK_COPY.numberTitle,
       PRODUCTION_REVIEW_ASK_COPY.numberDescription,
+      PRODUCTION_REVIEW_ASK_COPY.numberHint,
     ]) {
       const merged: string | undefined =
         PRODUCTION_REVIEW_MERGE_REQUEST_COPY[sentence];
@@ -774,6 +885,7 @@ describe("a repository's Production Reviews, off GitHub", () => {
     data: {
       isProductionReviewEnabled?: boolean;
       isConnected?: boolean;
+      isTokenRefused?: boolean;
       canAsk?: boolean;
     } = {},
   ): Record<string, unknown> {
@@ -782,6 +894,9 @@ describe("a repository's Production Reviews, off GitHub", () => {
         ...(data.isConnected === undefined
           ? {}
           : { isConnected: data.isConnected }),
+        ...(data.isTokenRefused === undefined
+          ? {}
+          : { isTokenRefused: data.isTokenRefused }),
         ...(data.isProductionReviewEnabled === undefined
           ? {}
           : { isProductionReviewEnabled: data.isProductionReviewEnabled }),
@@ -842,7 +957,7 @@ describe("a repository's Production Reviews, off GitHub", () => {
     expect(
       within(status).getByTestId("code-production-reviews-status-others"),
     ).toHaveTextContent(
-      "A merge request from anyone else is reviewed when someone with write access asks for it here.",
+      "A merge request from anyone else is reviewed only when someone asks for it here.",
     );
     // GitLab reads no command: none is offered, drawn as code or not.
     expect(page.querySelector("code")).toBeNull();
@@ -893,7 +1008,7 @@ describe("a repository's Production Reviews, off GitHub", () => {
     );
     expect(status).toHaveAttribute("data-production-review", "off");
     expect(status).toHaveTextContent(
-      "Merge requests are reviewed only when someone with write access asks for one here.",
+      "Merge requests are reviewed only when someone asks for one here.",
     );
     expect(
       screen.queryByTestId("code-production-reviews-status-others"),
@@ -931,7 +1046,7 @@ describe("a repository's Production Reviews, off GitHub", () => {
       expect(
         within(status).getByTestId("code-production-reviews-status-others"),
       ).toHaveTextContent(
-        "A pull request from anyone else is reviewed when someone with write access asks for it here.",
+        "A pull request from anyone else is reviewed only when someone asks for it here.",
       );
       expect(
         screen
@@ -951,7 +1066,7 @@ describe("a repository's Production Reviews, off GitHub", () => {
     }
   });
 
-  test("a connection that stopped working: nothing is reviewed, said in the host's name and words - Go to Settings, where its token is replaced, and nothing to ask", async () => {
+  test("a connection that stopped working: nothing is reviewed, said in the host's name and words - Replace access token, as its Tasks name the fix, and nothing to ask", async () => {
     getRepositoryMock.mockResolvedValue(
       repositoryAnswer(GITLAB, { isConnected: false }) as never,
     );
@@ -966,12 +1081,28 @@ describe("a repository's Production Reviews, off GitHub", () => {
     expect(status).toHaveTextContent(
       "This repository's connection to GitLab does not work, so its merge requests are not reviewed.",
     );
+    // GitLab refused its token: the fix, by its name, where it is made.
     const connect: HTMLElement = within(status).getByTestId(
       "code-production-reviews-connect",
     );
-    expect(connect).toHaveTextContent("Go to Settings");
+    expect(connect).toHaveTextContent("Replace access token");
     expect(connect).toHaveAttribute("href", SETTINGS_PATH);
     expect(screen.queryByTestId(CODE_PRODUCTION_REVIEW_ASK_TEST_ID)).toBeNull();
+
+    // A connection that is gone: its Settings say how to connect it again.
+    cleanup();
+    getRepositoryMock.mockResolvedValue(
+      repositoryAnswer(GITLAB, {
+        isConnected: false,
+        isTokenRefused: false,
+      }) as never,
+    );
+    draw(<CodeRepositoryProductionReviews {...PAGE_PROPS} />);
+    const gone: HTMLElement = within(
+      await screen.findByTestId("code-production-reviews-status"),
+    ).getByTestId("code-production-reviews-connect");
+    expect(gone).toHaveTextContent("Go to Settings");
+    expect(gone).toHaveAttribute("href", SETTINGS_PATH);
 
     // Gitea's name on a Gitea server, in pull request words.
     cleanup();
@@ -1021,6 +1152,75 @@ describe("a repository's Production Reviews, off GitHub", () => {
 describe("a review off GitHub, on its page", () => {
   beforeEach(() => {
     goTo(`/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`);
+  });
+
+  test("its trail names it in its host's words: Merge request !15 on GitLab, Pull request #7 on Forgejo and Gitea", () => {
+    const trailOf: (data: CodeTaskResponse) => Array<string> = (
+      data: CodeTaskResponse,
+    ): Array<string> => {
+      return getCodeTaskTrail({
+        taskId: TASK_ID,
+        response: data,
+        translator: createTranslator(undefined, "en"),
+      }).map((link: Link): string => {
+        return link.title;
+      });
+    };
+
+    expect(trailOf(taskAnswer(GITLAB, { title: "" }))).toEqual([
+      "Project",
+      "Code",
+      "billing-service",
+      "Production Reviews",
+      "Merge request !15",
+    ]);
+    expect(trailOf(taskAnswer(GITEA, { title: "" })).slice(-1)).toEqual([
+      "Pull request #7",
+    ]);
+    expect(trailOf(taskAnswer(FORGEJO))).not.toContain("Merge request #7");
+  });
+
+  test("a review asked for from a fork promises nothing about its next pushes until it is in - then says it is reviewed again only when asked", () => {
+    const asked: CodeTaskResponse = taskAnswer(GITLAB, { report: null });
+    const queued: CodeTaskResponse = {
+      ...asked,
+      task: { ...asked.task, state: CodeTaskState.Working, isQueued: true },
+      turns: [
+        turn(GITLAB, {
+          status: AIRunStatus.Queued,
+          state: CodeTaskState.Working,
+          outcome: undefined,
+        }),
+      ],
+    };
+
+    drawTask(queued);
+    expect(screen.getByTestId("production-review-working")).toHaveTextContent(
+      "Starting in a minute or so.",
+    );
+    // Nothing to ask again yet, and no word on what comes next.
+    expect(screen.queryByTestId("production-review-footer-bar")).toBeNull();
+    expect(screen.getByTestId("code-task-footer")).not.toHaveTextContent(
+      "Reviewed again each time the merge request changes.",
+    );
+
+    // In: its author cannot write to the repository, as the review read.
+    cleanup();
+    drawTask(
+      taskAnswer(GITLAB, {
+        report: report(GITLAB, {
+          pullRequest: {
+            ...report(GITLAB).pullRequest,
+            isFromFork: true,
+            isAuthorTrusted: false,
+          },
+        }),
+      }),
+    );
+    expect(screen.getByTestId("production-review-updates")).toHaveTextContent(
+      "Its author cannot write to this repository, so it is reviewed again only when someone asks.",
+    );
+    expect(screen.getByTestId("production-review-again")).toBeEnabled();
   });
 
   test("GitLab: Merge request !15 with GitLab's mark, posted on the merge request with its comment to open - and what never leaves OneUptime, in GitLab's name", () => {
@@ -1183,14 +1383,20 @@ describe("a review off GitHub, on its page", () => {
     );
   });
 
-  test("a connection that stopped working: it cannot be reviewed again, said in the host's name and words", () => {
+  test("a connection that stopped working: it cannot be reviewed again, said in the host's name and words - with Replace access token beside it", () => {
     drawTask(taskAnswer(GITLAB, { isConnected: false }));
 
-    expect(
-      screen.getByTestId("production-review-not-connected"),
-    ).toHaveTextContent(
+    const notConnected: HTMLElement = screen.getByTestId(
+      "production-review-not-connected",
+    );
+    expect(notConnected).toHaveTextContent(
       "This repository's connection to GitLab does not work now, so its merge requests cannot be reviewed again.",
     );
+    const reconnect: HTMLElement = within(notConnected).getByTestId(
+      "production-review-reconnect",
+    );
+    expect(reconnect).toHaveTextContent("Replace access token");
+    expect(reconnect).toHaveAttribute("href", SETTINGS_PATH);
     expect(screen.queryByTestId("production-review-again")).toBeNull();
     // The review it has stays to read.
     expect(screen.getByTestId("production-review")).toBeTruthy();
@@ -1268,7 +1474,7 @@ describe("in German", () => {
     );
     expect(dialog).toHaveTextContent("Nummer des Merge Requests");
     expect(dialog).toHaveTextContent(
-      "Jeder offene Merge Request dieses Repositorys, auch aus einem Fork oder von jemand anderem.",
+      "Jeder offene Merge Request in diesem Repository, auch einer aus einem Fork oder von einem Bot.",
     );
     // Not "Ansehen" (look at): it starts a review.
     expect(submit).toHaveTextContent("Jetzt prüfen");
@@ -1293,4 +1499,161 @@ describe("in German", () => {
       "Forgejo hat dem Zugriffstoken nicht erlaubt, diesen Pull Request zu kommentieren, daher ist diese Prüfung nur hier. Ersetzen Sie das Zugriffstoken durch eines, das auch Issues schreiben darf. Zu den Einstellungen",
     );
   });
+});
+
+/*
+ * GitLab's words are the pull request sentences with GitLab's word in them,
+ * and every sentence a review off GitHub says - the page, the dialog, the
+ * review - is worded in all sixteen Dashboard languages, its placeholders
+ * kept: Code never reads half in English for a GitLab, Forgejo or Gitea
+ * repository. A word a language keeps as English ("Merge Requests" in
+ * German) is on its list of those (i18n/Progress), as the i18n check reads
+ * it.
+ */
+describe("the words of production reviews off GitHub", () => {
+  const LOCALES_DIRECTORY: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+  const I18N_DIRECTORY: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/i18n",
+  );
+  const SAME_IN_EVERY_LANGUAGE: Set<string> = new Set<string>(
+    JSON.parse(
+      fs.readFileSync(path.join(I18N_DIRECTORY, "SameAsEnglish.json"), "utf8"),
+    ) as Array<string>,
+  );
+  const PLACEHOLDER: RegExp = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+
+  function inGitLabWords(sentence: string): string {
+    return sentence
+      .split("pull request")
+      .join("merge request")
+      .split("Pull request")
+      .join("Merge request")
+      .split("Pull Request")
+      .join("Merge Request");
+  }
+
+  function placeholdersOf(text: string): Array<string> {
+    return Array.from(text.matchAll(PLACEHOLDER))
+      .map((match: RegExpMatchArray): string => {
+        return match[1] || "";
+      })
+      .sort();
+  }
+
+  const SENTENCES: Array<string> = Array.from(
+    new Set<string>([
+      ...Object.values(PRODUCTION_REVIEW_ASK_COPY),
+      ...Object.keys(PRODUCTION_REVIEW_MERGE_REQUEST_COPY),
+      ...Object.values(PRODUCTION_REVIEW_MERGE_REQUEST_COPY),
+      PRODUCTION_REVIEW_COPY.statusOffNoCommands,
+      PRODUCTION_REVIEW_COPY.statusOnOthersAsk,
+      PRODUCTION_REVIEW_COPY.statusNotConnectedHost,
+      PRODUCTION_REVIEW_COPY.noPullRequests,
+      PRODUCTION_REVIEW_COPY.goToSettings,
+      PRODUCTION_REVIEW_COPY.commentRefused,
+      PRODUCTION_REVIEW_COPY.commentRefusedIssues,
+      PRODUCTION_REVIEW_COPY.aggregatesOnlyHost,
+      PRODUCTION_REVIEW_COPY.notConnectedHost,
+      CODE_REPOSITORY_CONNECTION_COPY.replaceButton,
+    ]),
+  );
+
+  test("a repository not reached is connected again where its host's fix is, named as the fix", () => {
+    // GitHub's from Code's Repositories, where GitHub is connected.
+    expect(getProductionReviewReconnect({})).toEqual({
+      title: "Connect GitHub",
+      place: "repositories",
+    });
+    expect(
+      getProductionReviewReconnect({
+        provider: CodeRepositoryType.GitHub,
+        connection: { isTokenRefused: true },
+      }),
+    ).toEqual({ title: "Connect GitHub", place: "repositories" });
+    // A token its server refused: replaced on the repository's Settings.
+    for (const provider of [
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+    ]) {
+      expect(
+        getProductionReviewReconnect({
+          provider,
+          connection: { isTokenRefused: true },
+        }),
+      ).toEqual({ title: "Replace access token", place: "settings" });
+    }
+    // A connection that is gone: its Settings say how to connect it again.
+    expect(
+      getProductionReviewReconnect({
+        provider: CodeRepositoryType.GitLab,
+        connection: { isTokenRefused: false },
+      }),
+    ).toEqual({ title: "Go to Settings", place: "settings" });
+    expect(
+      getProductionReviewReconnect({ provider: CodeRepositoryType.Forgejo }),
+    ).toEqual({ title: "Go to Settings", place: "settings" });
+  });
+
+  test("each merge request sentence is its pull request sentence, in GitLab's word", () => {
+    const pairs: Array<[string, string]> = Object.entries(
+      PRODUCTION_REVIEW_MERGE_REQUEST_COPY,
+    );
+
+    expect(pairs.length).toBeGreaterThan(20);
+    for (const [pullRequest, mergeRequest] of pairs) {
+      expect(mergeRequest).toBe(inGitLabWords(pullRequest));
+      expect(mergeRequest).not.toBe(pullRequest);
+    }
+  });
+
+  test.each(
+    fs
+      .readdirSync(LOCALES_DIRECTORY)
+      .filter((name: string): boolean => {
+        return name.endsWith(".json") && name !== "en.json";
+      })
+      .map((name: string): string => {
+        return name.replace(".json", "");
+      })
+      .sort(),
+  )(
+    "%s words every one of them, keeping its placeholders",
+    (locale: string) => {
+      const translations: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIRECTORY, `${locale}.json`), "utf8"),
+      ) as Record<string, string>;
+      const sameInLocale: Set<string> = new Set<string>(
+        (
+          JSON.parse(
+            fs.readFileSync(
+              path.join(I18N_DIRECTORY, "Progress", `${locale}.json`),
+              "utf8",
+            ),
+          ) as { sameAsEnglish?: Array<string> }
+        ).sameAsEnglish || [],
+      );
+
+      const untranslated: Array<string> = SENTENCES.filter(
+        (sentence: string): boolean => {
+          return (
+            typeof translations[sentence] !== "string" ||
+            (translations[sentence] === sentence &&
+              !SAME_IN_EVERY_LANGUAGE.has(sentence) &&
+              !sameInLocale.has(sentence))
+          );
+        },
+      );
+      expect(untranslated).toEqual([]);
+
+      for (const sentence of SENTENCES) {
+        expect(placeholdersOf(translations[sentence]!)).toEqual(
+          placeholdersOf(sentence),
+        );
+      }
+    },
+  );
 });
