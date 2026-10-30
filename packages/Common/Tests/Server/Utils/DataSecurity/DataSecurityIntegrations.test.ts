@@ -148,7 +148,9 @@ beforeEach(() => {
     .mockImplementation(
       async (data: {
         matches: Array<SecurityEventAlerting.AlertableMatch>;
-        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+        onOutcome?:
+          | SecurityEventAlerting.DedupedRecordOutcomeHandler
+          | undefined;
       }) => {
         for (const match of data.matches) {
           const alertId: ObjectID = ObjectID.generate();
@@ -172,7 +174,9 @@ beforeEach(() => {
     .mockImplementation(
       async (data: {
         matches: Array<SecurityEventAlerting.AlertableMatch>;
-        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+        onOutcome?:
+          | SecurityEventAlerting.DedupedRecordOutcomeHandler
+          | undefined;
       }) => {
         for (const match of data.matches) {
           const incidentId: ObjectID = ObjectID.generate();
@@ -643,6 +647,35 @@ describe("onIssuesOpened: alerts", () => {
     });
   });
 
+  test("an alert's and an incident's title is cut to what their title holds, however long the store's name", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+    setting.declareIncidentsForCriticalIssues = true;
+
+    await opened([
+      issueOf({
+        severity: SecuritySeverity.Critical,
+        storeName: "x".repeat(500),
+      }),
+    ]);
+
+    const alert: SecurityEventAlerting.AlertableMatch = (
+      alertsSpy.mock.calls[0]![0] as {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+      }
+    ).matches[0]!;
+    const incident: SecurityEventAlerting.AlertableMatch = (
+      incidentsSpy.mock.calls[0]![0] as {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+      }
+    ).matches[0]!;
+
+    expect(alert.title).toHaveLength(480);
+    expect(
+      alert.title.startsWith("Data Security: Anyone on the internet"),
+    ).toBe(true);
+    expect(incident.title).toBe(alert.title);
+  });
+
   test("each issue links to the alert raised for it, so its page opens it", async () => {
     setting.raiseAlertsForCriticalIssues = true;
     const first: OpenedIssueForIntegrations = issueOf({
@@ -690,7 +723,9 @@ describe("onIssuesOpened: alerts", () => {
     alertsSpy.mockImplementation(
       async (data: {
         matches: Array<SecurityEventAlerting.AlertableMatch>;
-        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+        onOutcome?:
+          | SecurityEventAlerting.DedupedRecordOutcomeHandler
+          | undefined;
       }) => {
         data.onOutcome?.({
           fingerprint: data.matches[0]!.fingerprint,
@@ -959,7 +994,9 @@ describe("onIssuesOpened: incidents", () => {
     incidentsSpy.mockImplementation(
       async (data: {
         matches: Array<SecurityEventAlerting.AlertableMatch>;
-        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+        onOutcome?:
+          | SecurityEventAlerting.DedupedRecordOutcomeHandler
+          | undefined;
       }) => {
         data.onOutcome?.({
           fingerprint: data.matches[0]!.fingerprint,

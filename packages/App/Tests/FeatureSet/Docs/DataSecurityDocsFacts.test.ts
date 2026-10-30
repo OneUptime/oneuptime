@@ -1836,7 +1836,7 @@ describe("Data Security Integrations", () => {
     );
     expect(operations).toContain("`Data Security: public-read`");
     expect(integrations).toContain(
-      "title: `Data Security: ${issue.title} (${issue.dataStoreName})`,",
+      "title: `Data Security: ${issue.title} (${issue.dataStoreName})`",
     );
     expect(
       constant(`${SERVER}/DataSecurityIntegrations.ts`, "MAX_NOTIFIED_OWNERS"),

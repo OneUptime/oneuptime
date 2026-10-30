@@ -98,6 +98,12 @@ const OCSF_SEVERITY: Readonly<Record<SecuritySeverity, OcsfSeverity>> = {
 // The most owners one store's notice is sent to.
 const MAX_NOTIFIED_OWNERS: number = 50;
 
+/*
+ * The most of an alert's or an incident's title: their title holds 500
+ * characters, and a store's name alone may hold that many.
+ */
+const MAX_TITLE_LENGTH: number = 480;
+
 // "1 new issue", "3 new issues".
 function newIssuesPhrase(count: number): string {
   return count === 1 ? "1 new issue" : `${count} new issues`;
@@ -408,7 +414,10 @@ export default class DataSecurityIntegrations {
   ): AlertableMatch {
     return {
       fingerprint: getDataSecurityIssueFingerprint(issue.issueId),
-      title: `Data Security: ${issue.title} (${issue.dataStoreName})`,
+      title: `Data Security: ${issue.title} (${issue.dataStoreName})`.slice(
+        0,
+        MAX_TITLE_LENGTH,
+      ),
       description:
         mdText`${issue.dataStoreName} holds ${issue.sensitivity} data and failed a Data Security check: ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
       rootCause:
