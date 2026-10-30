@@ -7,6 +7,7 @@
 - [Microsoft Azure](#microsoft-azure): یک برنامه با نقش Monitoring Reader.
 - [Google Cloud](#google-cloud): یک حساب سرویس با چهار نقش فقط‌خواندنی.
 - [آنچه OneUptime می‌خواند](#آنچه-oneuptime-میخواند): منابع، متریک‌ها، تغییرها و رویدادهای سلامت، هر چند وقت یک‌بار، و با چه هزینه‌ای.
+- [امنیت داده](#امنیت-داده): اتصال به امنیت داده اجازهٔ خواندن چه چیزی را می‌دهد، و هر سطح چه چیزی به فرمان می‌افزاید.
 :::
 
 ## چگونه کار می‌کند
@@ -20,7 +21,7 @@ flowchart TB
     ou --> chg["تغییرها و<br/>رویدادهای سلامت"]
 ```
 
-- **این دسترسی فقط می‌تواند بخواند.** فرمان دسترسی‌ای می‌سازد که منابع شما و پیکربندی آن‌ها، متریک‌هایشان، آنچه تغییر کرده و رویدادهای سلامت ارائه‌دهندهٔ شما را می‌خواند و هیچ کار دیگری نمی‌کند: کنش‌های فهرست‌شده در زیر در AWS، نقش **Monitoring Reader** در Azure و چهار نقش بیننده در Google Cloud. هرگز داده یا رازها را نمی‌خواند. برای قطع دسترسی OneUptime آن را حذف کنید.
+- **این دسترسی فقط می‌تواند بخواند.** فرمان دسترسی‌ای می‌سازد که منابع شما و پیکربندی آن‌ها، متریک‌هایشان، آنچه تغییر کرده و رویدادهای سلامت ارائه‌دهندهٔ شما را می‌خواند و هیچ کار دیگری نمی‌کند: کنش‌های فهرست‌شده در زیر در AWS، نقش **Monitoring Reader** در Azure و چهار نقش بیننده در Google Cloud. هرگز داده یا رازها را نمی‌خواند، مگر اینکه نمونه‌های محتوا را برای [امنیت داده](#امنیت-داده) روشن کنید. برای قطع دسترسی OneUptime آن را حذف کنید.
 - **OneUptime طبق زمان‌بندی می‌خواند.** برای Azure و Google Cloud هر ۵ دقیقه و برای AWS هر ۱۰ دقیقه، مگر اینکه هنگام اتصال بازهٔ دیگری انتخاب کنید. هر خواندن همچنین ثبت می‌کند که از خواندن قبلی چه چیزی تغییر کرده، و هر ۳۰ دقیقه یک خواندن همهٔ منابع را دوباره فهرست می‌کند.
 - **هر منبع صفحهٔ خودش را دارد.** منابع در **ابر** > **همه منابع** همراه با متریک‌های کلیدی، مالکان و برچسب‌هایشان نمایش داده می‌شوند. صفحهٔ یک منبع فهرست‌شده همچنین کارت **منابع مرتبط** (اینکه در چه چیزی اجرا می‌شود، چه چیزی به آن ترافیک می‌فرستد)، نقطه‌های پایانی، تگ‌ها و تنظیماتش، و برگه‌های **حوادث**، **هشدارها** و **تغییرها** را نشان می‌دهد.
 - **هر حساب صفحهٔ خودش را دارد.** حساب‌ها در **ابر** > **حساب‌ها** همراه با منابعشان بر اساس نوع و منطقه، برگهٔ **تغییرها** و یک **توپولوژی** از چگونگی پیوند منابعشان با هم نمایش داده می‌شوند.
@@ -177,6 +178,62 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 ```
 
 اتصال یک سازمان حداکثر ۵۰ پروژهٔ آن را می‌خواند، مگر اینکه چند پروژه را در **پروژه‌ها** فهرست کنید.
+
+## امنیت داده
+
+همین اتصال می‌تواند به [امنیت داده](/docs/data-security/index) اجازه دهد مخازن داده حساب را بخواند: باکت‌ها، پایگاه‌های داده و انبارهای داده‌اش. زیر **فیلدهای بیشتر**، **امنیت داده** تا وقتی چیز دیگری انتخاب نکنید **خاموش** است، و فرمانی که فرم نشان می‌دهد همراه با آن تغییر می‌کند:
+
+| امنیت داده | آنچه امنیت داده می‌تواند بخواند | آنچه فرمان می‌افزاید |
+| --- | --- | --- |
+| **خاموش** | هیچ‌یک از مخازن حساب | هیچ |
+| **فقط پیکربندی** | چه کسی به هر مخزن دسترسی دارد، و اینکه چگونه رمزگذاری، پشتیبان‌گیری و لاگ می‌شود. هرگز خود داده را نمی‌خواند. | در AWS، یک سیاست درون‌خطی دوم به نام `OneUptimeDataSecurity`، از کنش‌های خواندن. در Azure و Google Cloud، هیچ: **Monitoring Reader** و **Cloud Asset Viewer** از پیش آن را می‌خوانند. |
+| **پیکربندی و نمونه‌های محتوا** | همان، به‌علاوهٔ نمونه‌هایی از اشیا و ردیف‌ها، برای یافتن داده‌های حساس در آن‌ها | در AWS، همان سیاست با `s3:ListBucket`، `s3:GetObject` و `kms:Decrypt` فقط از راه S3. در Azure، **Storage Blob Data Reader**. در Google Cloud، `roles/storage.objectViewer`، `roles/bigquery.dataViewer` و BigQuery API. |
+
+در AWS، فرمان نقش این سیاست را با یک خط بیشتر می‌افزاید. در سطح محتوا، آن خط این است:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+```
+
+IAM مجموع سیاست‌های درون‌خطی خود یک کاربر را به 2,048 نویسه محدود می‌کند، پس با **کلید دسترسی** سیاست روی یک گروه به نام `OneUptimeDataSecurity` قرار می‌گیرد که کاربر به آن می‌پیوندد:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+در Azure، سطح محتوا **Storage Blob Data Reader** را روی همان دامنه‌ای می‌افزاید که **Monitoring Reader** روی آن است:
+
+```bash
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+در Google Cloud، دو نقش را می‌افزاید و `bigquery.googleapis.com` را روشن می‌کند:
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/storage.objectViewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.dataViewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+فرمان یک سطح پایین‌تر، سیاست AWS را با سیاست آن سطح جایگزین می‌کند. **خاموش** چیزی نمی‌افزاید، پس آنچه را فرمانی پیشین اعطا کرده سر جایش می‌گذارد تا وقتی خودتان آن را حذف کنید: سیاست `OneUptimeDataSecurity` در AWS، با `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`، و نقش‌های سطح محتوا در Azure و Google Cloud. در هر دو حالت، امنیت داده بی‌درنگ از خواندن دست می‌کشد: فقط آنچه را سطح اتصال می‌گوید می‌خواند. [راه‌اندازی امنیت داده](/docs/data-security/setup) همهٔ کنش‌های این سیاست را فهرست می‌کند، و اینکه امنیت داده از آنچه می‌خواند چه چیزی را نگه می‌دارد.
 
 ## آنچه OneUptime می‌خواند
 

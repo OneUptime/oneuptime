@@ -229,7 +229,7 @@ OneUptime 會就案件上的五件事通知相關人員。不需要任何人做�
 | 安全案例優先順序 | 專案的某個案件優先順序，例如嚴重或 High |
 | 安全案例標題、安全案例描述 | 案件標題或描述中包含的文字，或其開頭、結尾的文字 |
 | 安全案例狀態 | 專案的某個案件狀態，例如新增或已關閉 |
-| 安全案例來源 | Detection Rule、Threat Intel、Connected Product、實體風險、Data Security 或 Manual |
+| 安全案例來源 | Detection Rule、Threat Intel、Connected Product、實體風險、資料安全或 Manual |
 | 安全案例標籤 | 案件的標籤 |
 
 除任務通知外，每種通知都會張貼到案件當時所符合的每條規則的頻道。一條 **安全案例優先順序** 包含 **嚴重** 和 **高** 中任一項的規則，會在 High 和 Critical 案件開啟時張貼它們，並在 Medium 案件提升到 High 時張貼它。安全案件永遠不會有專屬的頻道。
@@ -268,7 +268,7 @@ OneUptime 會就案件上的五件事通知相關人員。不需要任何人做�
 | 調查 | Look up entity activity | 統計每個實體在最近一段時間內的安全性事件，並記錄在案件上 |
 | 調查 | Preserve the evidence | 保留案件背後請求的工作階段重播，並把它們的追蹤與例外記錄在案件上 |
 | 通知 | Email people | 以電子郵件傳送案件摘要及其連結給使用者和團隊 |
-| 通知 | Notify data store owners | 以電子郵件傳送案件連結給案件涉及的每個資料存放區的擁有者 |
+| 通知 | Notify data store owners | 以電子郵件傳送案件連結給案件涉及的每個資料儲存區的擁有者 |
 | 通知 | Post to Slack | 把案件摘要張貼到某個 Slack 頻道 |
 | 通知 | Post to Microsoft Teams | 把案件摘要張貼到某個 Microsoft Teams 頻道 |
 | 通知 | Post a status page announcement | 把你撰寫的公告發布到你選擇的狀態頁 |
@@ -281,6 +281,8 @@ OneUptime 會就案件上的五件事通知相關人員。不需要任何人做�
 | 圍堵 | Unsuspend the user in Okta | 在 Okta 中取消暫停案件涉及的使用者 |
 | 圍堵 | Lift containment in CrowdStrike | 解除 CrowdStrike Falcon 對案件涉及的主機施加的網路圍堵 |
 | 圍堵 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中將案件涉及的主機解除隔離 |
+| 圍堵 | 封鎖資料儲存區的公開存取 | 透過雲端連線，封鎖案件涉及的每個儲存貯體或儲存體帳戶的公開存取 |
+| 圍堵 | 撤銷資料儲存區共用 | 透過雲端連線，停止在你的帳戶之外共用案件涉及的每個資料庫的快照 |
 | 自動化 | Send a webhook | 把案件以 JSON 格式 POST 到某個 URL |
 | 自動化 | Run a workflow | 以案件作為輸入，啟動一個 OneUptime 工作流程 |
 | 自動化 | Run a runbook | 以案件作為輸入，啟動你的某個 OneUptime 執行手冊 |
@@ -288,7 +290,7 @@ OneUptime 會就案件上的五件事通知相關人員。不需要任何人做�
 
 一個劇本最多有 25 個步驟。它們會依序執行，每個步驟在前一個完成後才開始。每個步驟還可以設定：
 
-- **需要核准**：在執行到此步驟之前暫停，直到有人在案件上核准它。切斷某人存取的四個步驟一律如此，除非 Security Admin 將其關閉。**Run a runbook** 與 **Post a status page announcement** 預設開啟核准，因為前者會在你的系統上執行命令，後者會向你的客戶發布內容；新增該步驟的人可以將其關閉。
+- **需要核准**：在執行到此步驟之前暫停，直到有人在案件上核准它。切斷某人存取的四個步驟一律如此，除非 Security Admin 將其關閉。**Run a runbook**、**Post a status page announcement** 和兩個資料儲存區步驟預設開啟核准，因為它們會在你的系統上執行命令、向你的客戶發布內容，或變更雲端的設定；新增該步驟的人可以將其關閉。
 - **僅在威脅情報符合時**：除非本次執行中先前的 **用威脅情報檢查實體** 步驟找到了已知指標，否則略過此步驟。
 - **失敗時繼續**：即使此步驟失敗，也繼續執行下一個步驟。關閉此項時，失敗的步驟會停止本次執行。
 
@@ -303,20 +305,23 @@ OneUptime 會就案件上的五件事通知相關人員。不需要任何人做�
 
 ### 圍堵
 
-圍堵類步驟會透過與該產品的 [安全性事件連線](/docs/telemetry/security-events#連線安全性產品) 執行動作，這個連線需要的不只是讀取權限：
+圍堵類步驟會透過需要的不只是讀取權限的連線執行動作：與該產品的 [安全性事件連線](/docs/telemetry/security-events#連線安全性產品)，或資料儲存區的 [雲端連線](/docs/telemetry/cloud-accounts)：
 
 | 步驟 | 連線 | 所需權限 |
 | --- | --- | --- |
 | Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | 一個有權管理使用者的 API 權杖 |
 | Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | 一個具有 Hosts 寫入範圍的 API 用戶端 |
 | Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | 一個具有 Machine.Isolate 權限的應用程式 |
+| 封鎖資料儲存區的公開存取、撤銷資料儲存區共用 | 資料儲存區的雲端連線 | 已開啟 **資料安全回應**，並重新執行其設定命令 |
 
-圍堵類步驟只會作用於案件涉及的使用者或主機，絕不會作用於案件提到的所有使用者或主機：
+針對使用者或主機的步驟只會作用於案件涉及的使用者或主機，絕不會作用於案件提到的所有使用者或主機：
 
 - 案件中某個偵測分組所依據的值，例如「不可能的旅行」規則分組所依據的帳戶，或已連線產品的警示中提到的主機。
 - 案件中被你的威脅情資列為指標的使用者或主機。
 
 依位址分組的案件，例如針對你的 VPN 的暴力破解，並不涉及上述任何一種：它的圍堵類步驟會被略過，它嘗試過的帳戶和它攻擊的閘道都不會被動到。一個步驟最多作用於 10 個使用者或主機。它會依名稱在產品中找出每一個，並在執行上說明對每一個做了什麼：已完成、先前已完成、找不到、遭到拒絕或受保護。
+
+兩個資料儲存區步驟會作用於案件涉及的資料儲存區，最多 10 個：也就是案件所納入的資料安全問題所在的資料儲存區，以及偵測據以將案件分組的資料儲存區。它們不會動到標記為 **刻意公開** 的資料儲存區，只會變更資料儲存區的共用方式而絕不變更其資料，並在執行上說明對每個資料儲存區做了什麼（請參閱 [消除暴露](/docs/data-security/integrations#消除暴露)）。
 
 #### 受保護的實體
 

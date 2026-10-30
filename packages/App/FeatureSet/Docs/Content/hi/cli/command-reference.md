@@ -195,6 +195,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | अनुसूचित रखरखाव | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | टीमें और ऑन-कॉल | `team`, `on-call-policy` |
 | सुरक्षा | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| डेटा सुरक्षा | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | लेबल | `label` |
 
 टेलीमेट्री `list`, `create` और `count` लेती है:
