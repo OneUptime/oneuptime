@@ -699,78 +699,62 @@ describe("the legend and the grid", () => {
    * the grid some 430 pixels: a week there broke every name ("Bob / Riv /
    * era"). The preview reads its own width before it is first drawn.
    */
-  test("the preview opens the grid for its own width, not the window's", async () => {
+  /*
+   * Renders the preview in a window of windowWidth whose own layout width
+   * (offsetWidth - jsdom lays nothing out) is previewWidth, and says which
+   * view the grid was opened on.
+   */
+  async function openedViewFor(data: {
+    previewWidth: number;
+    windowWidth: number;
+  }): Promise<unknown> {
     answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
 
     const width: number = window.innerWidth;
-    const original: () => DOMRect = HTMLElement.prototype.getBoundingClientRect;
+    const original: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
 
     try {
       Object.defineProperty(window, "innerWidth", {
         configurable: true,
         writable: true,
-        value: 768,
+        value: data.windowWidth,
       });
-      HTMLElement.prototype.getBoundingClientRect = function (
-        this: HTMLElement,
-      ): DOMRect {
-        if (this.getAttribute("data-testid") === "layers-preview") {
-          return { width: 430, height: 900, top: 0, left: 0 } as DOMRect;
-        }
-        return original.call(this);
-      };
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+        configurable: true,
+        get(this: HTMLElement): number {
+          return this.getAttribute("data-testid") === "layers-preview"
+            ? data.previewWidth
+            : 0;
+        },
+      });
 
       renderPreview();
       await waitForPreview();
 
-      expect(
-        calendarProps[calendarProps.length - 1]!["defaultCalendarView"],
-      ).toBe("day");
+      return calendarProps[calendarProps.length - 1]!["defaultCalendarView"];
     } finally {
-      HTMLElement.prototype.getBoundingClientRect = original;
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", original);
+      }
       Object.defineProperty(window, "innerWidth", {
         configurable: true,
         writable: true,
         value: width,
       });
     }
+  }
+
+  test("the preview opens the grid for its own width, not the window's", async () => {
+    expect(await openedViewFor({ previewWidth: 430, windowWidth: 768 })).toBe(
+      "day",
+    );
   });
 
   test("a wide preview opens on a week, though the window alone would say a day", async () => {
-    answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
-
-    const width: number = window.innerWidth;
-    const original: () => DOMRect = HTMLElement.prototype.getBoundingClientRect;
-
-    try {
-      Object.defineProperty(window, "innerWidth", {
-        configurable: true,
-        writable: true,
-        value: 600,
-      });
-      HTMLElement.prototype.getBoundingClientRect = function (
-        this: HTMLElement,
-      ): DOMRect {
-        if (this.getAttribute("data-testid") === "layers-preview") {
-          return { width: 634, height: 900, top: 0, left: 0 } as DOMRect;
-        }
-        return original.call(this);
-      };
-
-      renderPreview();
-      await waitForPreview();
-
-      expect(
-        calendarProps[calendarProps.length - 1]!["defaultCalendarView"],
-      ).toBe("week");
-    } finally {
-      HTMLElement.prototype.getBoundingClientRect = original;
-      Object.defineProperty(window, "innerWidth", {
-        configurable: true,
-        writable: true,
-        value: width,
-      });
-    }
+    expect(await openedViewFor({ previewWidth: 634, windowWidth: 600 })).toBe(
+      "week",
+    );
   });
 
   /*

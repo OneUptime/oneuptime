@@ -904,6 +904,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   /*
    * The preview's own width, read once before it is first drawn: the room
    * the calendar's first view is chosen for (getFinalScheduleCalendarView).
+   * Its layout width, which a dialog's opening scale does not shrink.
    */
   const previewRef: MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
@@ -912,8 +913,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   );
 
   useLayoutEffect(() => {
-    const width: number =
-      previewRef.current?.getBoundingClientRect().width || 0;
+    const width: number = previewRef.current?.offsetWidth || 0;
 
     if (width > 0) {
       setPreviewWidth(width);
