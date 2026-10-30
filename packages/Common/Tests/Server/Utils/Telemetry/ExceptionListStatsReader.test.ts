@@ -77,6 +77,8 @@ interface FindCall {
 
 let findCalls: Array<FindCall>;
 let readable: Array<TelemetryException>;
+// The exceptions merged into the ones read (TelemetryExceptionMerge).
+let members: Array<TelemetryException>;
 let statements: Array<Statement>;
 let trendRows: Array<JSONObject>;
 let userRows: Array<JSONObject> | Error;
@@ -90,21 +92,48 @@ function paramValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
 }
 
-// The fingerprints a read is narrowed to: its one list of strings.
-function fingerprintParam(statement: Statement): Array<unknown> {
-  const lists: Array<Array<unknown>> = paramValues(statement).filter(
-    (value: unknown): value is Array<unknown> => {
-      return (
-        Array.isArray(value) &&
-        value.every((item: unknown): boolean => {
-          return typeof item === "string" && item.startsWith("fp-");
-        })
-      );
-    },
-  );
+// The value of the parameter a clause of the statement names.
+function paramOf(statement: Statement, clause: RegExp): unknown {
+  const match: RegExpMatchArray | null = statement.query.match(clause);
+  expect(match).not.toBeNull();
+  return (statement.query_params as Record<string, unknown>)[match![1]!];
+}
 
-  expect(lists).toHaveLength(1);
-  return lists[0]!;
+// The fingerprints a read is narrowed to.
+function fingerprintParam(statement: Statement): Array<unknown> {
+  return paramOf(
+    statement,
+    /fingerprint IN \(\{(p\d+):Array\(String\)\}\)/,
+  ) as Array<unknown>;
+}
+
+// The fingerprints, and the exception each counts for, as transform() reads them.
+function groupParams(statement: Statement): {
+  fingerprints: Array<unknown>;
+  groups: Array<unknown>;
+} {
+  const match: RegExpMatchArray | null = statement.query.match(
+    /transform\(fingerprint, \{(p\d+):Array\(String\)\}, \{(p\d+):Array\(String\)\}, ''\) AS grp/,
+  );
+  expect(match).not.toBeNull();
+  const params: Record<string, unknown> = statement.query_params as Record<
+    string,
+    unknown
+  >;
+  return {
+    fingerprints: params[match![1]!] as Array<unknown>,
+    groups: params[match![2]!] as Array<unknown>,
+  };
+}
+
+function member(
+  id: string,
+  fingerprint: string,
+  survivorId: string,
+): TelemetryException {
+  const row: TelemetryException = exception(id, fingerprint);
+  row.mergedIntoTelemetryExceptionId = new ObjectID(survivorId);
+  return row;
 }
 
 beforeEach(() => {
@@ -112,6 +141,7 @@ beforeEach(() => {
   statements = [];
   serviceFilterCalls = [];
   readable = [exception(E1, "fp-1"), exception(E2, "fp-2", OTHER_SERVICE_ID)];
+  members = [];
   trendRows = [];
   userRows = [];
 
@@ -119,7 +149,7 @@ beforeEach(() => {
     args: FindCall,
   ) => {
     findCalls.push(args);
-    return readable;
+    return "mergedIntoTelemetryExceptionId" in args.query ? members : readable;
   }) as never);
 
   jest
@@ -173,8 +203,11 @@ describe("what is read, and as whom", () => {
   test("the exceptions are read as the caller, in the caller's project, only their fingerprints and services", async () => {
     await read();
 
-    expect(findCalls).toHaveLength(1);
+    // The exceptions, then the ones merged into them: both as the caller.
+    expect(findCalls).toHaveLength(2);
     expect(findCalls[0]!.props).toBe(CALLER);
+    expect(findCalls[1]!.props).toBe(CALLER);
+    expect(findCalls[1]!.query["projectId"]).toBe(PROJECT_ID);
     expect(findCalls[0]!.query["projectId"]).toBe(PROJECT_ID);
     expect(findCalls[0]!.select).toEqual({
       _id: true,
@@ -258,6 +291,7 @@ describe("the two ClickHouse reads", () => {
   const query: ExceptionListStatsQuery = {
     projectId: PROJECT_ID,
     fingerprints: ["fp-1", "fp-2"],
+    groupIds: [E1, E2],
     startTime: START,
     endTime: END,
     bucketSizeInSeconds: 3600,
@@ -270,14 +304,19 @@ describe("the two ClickHouse reads", () => {
     const text: string = queryText(statement);
 
     expect(text).toContain(
-      "SELECT fingerprint, intDiv(toInt64(toUnixTimestamp(time)) - {p0:Int64}, {p1:Int32}) AS bucket, count() AS cnt FROM {p2:Identifier}",
+      "SELECT transform(fingerprint, {p0:Array(String)}, {p1:Array(String)}, '') AS grp, intDiv(toInt64(toUnixTimestamp(time)) - {p2:Int64}, {p3:Int32}) AS bucket, count() AS cnt FROM {p4:Identifier}",
     );
-    expect(text).toContain("GROUP BY fingerprint, bucket");
-    expect(paramValues(statement).slice(0, 3)).toEqual([
+    expect(text).toContain("GROUP BY grp, bucket");
+    expect(paramValues(statement).slice(2, 5)).toEqual([
       Math.floor(START.getTime() / 1000),
       3600,
       AnalyticsTableName.ExceptionInstance,
     ]);
+    // Each fingerprint counts for its exception.
+    expect(groupParams(statement)).toEqual({
+      fingerprints: ["fp-1", "fp-2"],
+      groups: [E1, E2],
+    });
   });
 
   test("users are counted distinct, and an occurrence naming nobody is left out", () => {
@@ -285,9 +324,11 @@ describe("the two ClickHouse reads", () => {
       ExceptionListStatsReader.buildAffectedUsersStatement(query),
     );
 
-    expect(text).toContain("SELECT fingerprint, uniq(userId) AS users FROM");
+    expect(text).toContain(
+      "SELECT transform(fingerprint, {p0:Array(String)}, {p1:Array(String)}, '') AS grp, uniq(userId) AS users FROM",
+    );
     expect(text).toContain("AND userId != ''");
-    expect(text).toContain("GROUP BY fingerprint");
+    expect(text).toContain("GROUP BY grp");
   });
 
   test.each([
@@ -316,13 +357,13 @@ describe("the two ClickHouse reads", () => {
 describe("the answer", () => {
   test("each exception gets its distinct users and its occurrences in each of 24 bars", async () => {
     trendRows = [
-      { fingerprint: "fp-1", bucket: 0, cnt: "3" },
-      { fingerprint: "fp-1", bucket: 23, cnt: "5" },
-      { fingerprint: "fp-2", bucket: 7, cnt: 2 },
+      { grp: E1, bucket: 0, cnt: "3" },
+      { grp: E1, bucket: 23, cnt: "5" },
+      { grp: E2, bucket: 7, cnt: 2 },
     ];
     userRows = [
-      { fingerprint: "fp-1", users: "4" },
-      { fingerprint: "fp-2", users: 1 },
+      { grp: E1, users: "4" },
+      { grp: E2, users: 1 },
     ];
 
     const stats: ExceptionListStats = await read();
@@ -344,8 +385,8 @@ describe("the answer", () => {
 
   test("the range's last instant lands in the last bar, and a row before the range is dropped", async () => {
     trendRows = [
-      { fingerprint: "fp-1", bucket: 24, cnt: 2 },
-      { fingerprint: "fp-1", bucket: -1, cnt: 9 },
+      { grp: E1, bucket: 24, cnt: 2 },
+      { grp: E1, bucket: -1, cnt: 9 },
     ];
 
     const stats: ExceptionListStats = await read([E1]);
@@ -366,7 +407,7 @@ describe("the answer", () => {
   });
 
   test("users that cannot be counted leave the trends standing, and read as unknown", async () => {
-    trendRows = [{ fingerprint: "fp-1", bucket: 2, cnt: 1 }];
+    trendRows = [{ grp: E1, bucket: 2, cnt: 1 }];
     userRows = new Error("Missing columns: 'userId'");
 
     const stats: ExceptionListStats = await read([E1]);
@@ -396,6 +437,50 @@ describe("the answer", () => {
         return item.telemetryExceptionId;
       }),
     ).toEqual([E1, E2]);
+  });
+});
+
+describe("an exception others were merged into", () => {
+  test("their fingerprints are read too, and count for it: users once across all of them", async () => {
+    members = [member(E3, "fp-3", E1)];
+    trendRows = [{ grp: E1, bucket: 1, cnt: 6 }];
+    userRows = [{ grp: E1, users: 5 }];
+
+    const stats: ExceptionListStats = await read([E1, E2]);
+
+    // The members of exactly the exceptions read.
+    expect(findCalls[1]!.query["mergedIntoTelemetryExceptionId"]).toBeDefined();
+    expect(findCalls[1]!.select).toEqual({
+      fingerprint: true,
+      mergedIntoTelemetryExceptionId: true,
+    });
+
+    for (const statement of statements) {
+      expect(fingerprintParam(statement)).toEqual(["fp-1", "fp-2", "fp-3"]);
+      expect(groupParams(statement)).toEqual({
+        fingerprints: ["fp-1", "fp-2", "fp-3"],
+        groups: [E1, E2, E1],
+      });
+    }
+
+    expect(stats.items[0]!.affectedUsers).toBe(5);
+    expect(stats.items[0]!.trend[1]).toBe(6);
+    // A merged exception gets no row of its own: it is part of E1.
+    expect(
+      stats.items.map((item: { telemetryExceptionId: string }) => {
+        return item.telemetryExceptionId;
+      }),
+    ).toEqual([E1, E2]);
+  });
+
+  test("a member of an exception that was not read is ignored", async () => {
+    members = [member(E3, "fp-3", "30000000-0000-4000-8000-0000000000ff")];
+
+    await read([E1]);
+
+    for (const statement of statements) {
+      expect(fingerprintParam(statement)).toEqual(["fp-1", "fp-2"]);
+    }
   });
 });
 

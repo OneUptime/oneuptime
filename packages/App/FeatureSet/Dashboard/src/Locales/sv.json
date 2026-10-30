@@ -38970,8 +38970,19 @@
   "{{count}} events in this time range_one": "{{count}} händelse under den här perioden",
   "{{number}} users": "{{number}} användare",
   "{{number}} users_one": "{{number}} användare",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Undantag som slagits ihop med det här som samma fel. Deras förekomster räknas här, på den här sidan och i listan.",
+  "Merge": "Slå ihop",
+  "Merge into this exception?": "Slå ihop med det här undantaget?",
+  "Merged By User": "Ihopslaget av användare",
+  "Merged By User ID": "ID för användaren som slog ihop",
+  "Merged Into Exception": "Ihopslaget med undantag",
+  "Merged Into Exception ID": "ID för undantaget det slogs ihop med",
+  "Merged into this exception": "Ihopslagna med det här undantaget",
   "Multiple files": "Flera filer",
   "Multiple Files": "Flera filer",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Det här undantaget slogs ihop med {{exception}}. Dess förekomster räknas där.",
+  "Unmerge": "Dela upp",
+  "another exception": "ett annat undantag",
   "{{count}} files": "{{count}} filer",
   "{{count}} files_one": "{{count}} fil",
   "Replace": "Ersätt",
@@ -38989,5 +39000,6 @@
   "Drop files here or choose them": "Släpp filer här eller välj dem",
   "Release to add them.": "Släpp för att lägga till dem.",
   "Chosen files": "Valda filer",
-  "Click to choose a file or drag & drop.": "Klicka för att välja en fil eller dra och släpp."
+  "Click to choose a file or drag & drop.": "Klicka för att välja en fil eller dra och släpp.",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} blir en del av det här undantaget: dess förekomster, hittills och varje ny, räknas här, och det lämnar listan. Du kan dela upp det igen från dess sida."
 }

@@ -38970,8 +38970,19 @@
   "{{count}} events in this time range_one": "{{count}} رویداد در این بازه",
   "{{number}} users": "{{number}} کاربر",
   "{{number}} users_one": "{{number}} کاربر",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "استثناهایی که به‌عنوان همان باگ با این یکی ادغام شده‌اند. رخدادهایشان همین‌جا شمرده می‌شود، در این صفحه و در فهرست.",
+  "Merge": "ادغام",
+  "Merge into this exception?": "با این استثنا ادغام شود؟",
+  "Merged By User": "ادغام‌شده توسط کاربر",
+  "Merged By User ID": "شناسهٔ کاربر ادغام‌کننده",
+  "Merged Into Exception": "ادغام‌شده با استثنا",
+  "Merged Into Exception ID": "شناسهٔ استثنایی که با آن ادغام شد",
+  "Merged into this exception": "ادغام‌شده با این استثنا",
   "Multiple files": "چند فایل",
   "Multiple Files": "چند فایل",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "این استثنا با {{exception}} ادغام شد. رخدادهایش آنجا شمرده می‌شود.",
+  "Unmerge": "جداسازی",
+  "another exception": "استثنایی دیگر",
   "{{count}} files": "{{count}} فایل",
   "{{count}} files_one": "{{count}} فایل",
   "Replace": "جایگزینی",
@@ -38989,5 +39000,6 @@
   "Drop files here or choose them": "فایل‌ها را اینجا رها کنید یا انتخاب کنید",
   "Release to add them.": "برای افزودن، رها کنید.",
   "Chosen files": "فایل‌های انتخاب‌شده",
-  "Click to choose a file or drag & drop.": "برای انتخاب فایل کلیک کنید یا آن را بکشید و رها کنید."
+  "Click to choose a file or drag & drop.": "برای انتخاب فایل کلیک کنید یا آن را بکشید و رها کنید.",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید."
 }

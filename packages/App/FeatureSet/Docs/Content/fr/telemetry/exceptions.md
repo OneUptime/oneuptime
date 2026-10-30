@@ -133,6 +133,8 @@ Les identifiants, les adresses e-mail et IP et les jetons sont retirés de tout 
 
 Sous les cartes, **Exceptions similaires** liste jusqu'à cinq autres exceptions qui ressemblent à celle-ci : le **Même message** une fois les valeurs retirées, le **Même emplacement dans le code** de votre code, ou un **Message similaire** avec la plupart des mêmes mots. Une même cause peut se retrouver dans plusieurs exceptions, donc **Vérifier avec OneUptime AI** dit de chacune si c'est **Probablement le même bug**, **Un bug lié** ou **Un autre bug**, et pourquoi. La vérification utilise les crédits d'IA du projet et n'est pas proposée tant que **Activer l'IA** est désactivé. Sa réponse est conservée jusqu'à la prochaine occurrence.
 
+Fusionnez avec cette exception celle que OneUptime AI juge **Probablement le même bug**, dans le même service, avec **Fusionner** à côté : ses occurrences, passées et à venir, comptent dès lors sur cette exception et apparaissent sur sa page, et elle quitte la liste. **Fusionnées avec cette exception** en dessous liste ce qui a été fusionné, et **Défusionner** à côté de chacune, ou sur la page d'une exception fusionnée, lui rend sa propre place dans la liste, avec ses occurrences depuis. Fusionner et défusionner demandent la permission de modifier les exceptions.
+
 ## La corriger avec l'IA
 
 La page **Assistance IA** propose trois tâches. Chacune s'exécute comme une tâche IA qui ouvre une pull request dans votre dépôt de code :

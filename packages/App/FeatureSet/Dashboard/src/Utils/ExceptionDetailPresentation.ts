@@ -7,6 +7,7 @@ import {
   composedValue,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { getGroupFingerprints } from "./ExceptionGroupFingerprints";
 
 /*
  * Pure helpers for the exception detail pages (header, Overview trend,
@@ -253,6 +254,8 @@ export function getExceptionTrendWindow(key: unknown): ExceptionTrendWindow {
 export interface ExceptionTrendRequestArgs {
   windowKey: ExceptionTrendWindowKey;
   fingerprint: string | undefined;
+  // The fingerprints of the exceptions merged into this one: charted with it.
+  mergedFingerprints?: ReadonlyArray<string> | undefined;
   primaryEntityId?: ObjectID | string | undefined;
   now?: Date | undefined;
 }
@@ -283,7 +286,10 @@ export function buildExceptionTrendRequest(
     startTime: start.toISOString(),
     endTime: end.toISOString(),
     bucketSizeInMinutes: window.bucketSizeInMinutes,
-    fingerprints: [fingerprint],
+    fingerprints: getGroupFingerprints({
+      fingerprint,
+      mergedFingerprints: args.mergedFingerprints,
+    }),
   };
 
   if (primaryEntityId) {

@@ -38970,8 +38970,19 @@
   "{{count}} events in this time range_one": "이 기간의 이벤트 {{count}}개",
   "{{number}} users": "사용자 {{number}}명",
   "{{number}} users_one": "사용자 {{number}}명",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "같은 버그로 이 예외에 병합된 예외입니다. 해당 발생은 여기, 이 페이지와 목록에서 집계됩니다.",
+  "Merge": "병합",
+  "Merge into this exception?": "이 예외에 병합할까요?",
+  "Merged By User": "병합한 사용자",
+  "Merged By User ID": "병합한 사용자 ID",
+  "Merged Into Exception": "병합 대상 예외",
+  "Merged Into Exception ID": "병합 대상 예외 ID",
+  "Merged into this exception": "이 예외에 병합된 예외",
   "Multiple files": "여러 파일",
   "Multiple Files": "여러 파일",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "이 예외는 {{exception}}에 병합되었습니다. 발생은 그곳에서 집계됩니다.",
+  "Unmerge": "병합 해제",
+  "another exception": "다른 예외",
   "{{count}} files": "파일 {{count}}개",
   "{{count}} files_one": "파일 {{count}}개",
   "Replace": "바꾸기",
@@ -38989,5 +39000,6 @@
   "Drop files here or choose them": "여기에 파일들을 놓거나 선택하세요",
   "Release to add them.": "놓으면 추가됩니다.",
   "Chosen files": "선택한 파일",
-  "Click to choose a file or drag & drop.": "클릭하여 파일 하나를 선택하거나 끌어다 놓으세요."
+  "Click to choose a file or drag & drop.": "클릭하여 파일 하나를 선택하거나 끌어다 놓으세요.",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}}은(는) 이 예외의 일부가 됩니다. 지금까지의 발생과 새 발생 모두 여기에서 집계되고 목록에서는 사라집니다. 해당 페이지에서 병합을 해제할 수 있습니다."
 }

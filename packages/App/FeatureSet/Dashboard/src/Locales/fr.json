@@ -38970,8 +38970,19 @@
   "{{count}} events in this time range_one": "{{count}} événement sur cette période",
   "{{number}} users": "{{number}} utilisateurs",
   "{{number}} users_one": "{{number}} utilisateur",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Exceptions fusionnées avec celle-ci comme le même bug. Leurs occurrences comptent ici, sur cette page et dans la liste.",
+  "Merge": "Fusionner",
+  "Merge into this exception?": "Fusionner avec cette exception ?",
+  "Merged By User": "Fusionnée par l'utilisateur",
+  "Merged By User ID": "ID de l'utilisateur qui a fusionné",
+  "Merged Into Exception": "Fusionnée avec l'exception",
+  "Merged Into Exception ID": "ID de l'exception de fusion",
+  "Merged into this exception": "Fusionnées avec cette exception",
   "Multiple files": "Plusieurs fichiers",
   "Multiple Files": "Plusieurs fichiers",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Cette exception a été fusionnée avec {{exception}}. Ses occurrences y sont comptées.",
+  "Unmerge": "Défusionner",
+  "another exception": "une autre exception",
   "{{count}} files": "{{count}} fichiers",
   "{{count}} files_one": "{{count}} fichier",
   "Replace": "Remplacer",
@@ -38989,5 +39000,6 @@
   "Drop files here or choose them": "Déposez des fichiers ici ou choisissez-les",
   "Release to add them.": "Relâchez pour les ajouter.",
   "Chosen files": "Fichiers choisis",
-  "Click to choose a file or drag & drop.": "Cliquez pour choisir un fichier ou glissez-déposez-le."
+  "Click to choose a file or drag & drop.": "Cliquez pour choisir un fichier ou glissez-déposez-le.",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} fait désormais partie de cette exception : ses occurrences, passées et à venir, comptent ici, et elle quitte la liste. Vous pouvez la défusionner depuis sa page."
 }

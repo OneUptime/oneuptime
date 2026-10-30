@@ -38970,8 +38970,19 @@
   "{{count}} events in this time range_one": "{{count}} Ereignis in diesem Zeitraum",
   "{{number}} users": "{{number}} Benutzer",
   "{{number}} users_one": "{{number}} Benutzer",
+  "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "Ausnahmen, die als derselbe Fehler mit dieser zusammengeführt wurden. Ihre Vorkommen zählen hier, auf dieser Seite und in der Liste.",
+  "Merge": "Zusammenführen",
+  "Merge into this exception?": "Mit dieser Ausnahme zusammenführen?",
+  "Merged By User": "Zusammengeführt von Benutzer",
+  "Merged By User ID": "ID des zusammenführenden Benutzers",
+  "Merged Into Exception": "Zusammengeführt mit Ausnahme",
+  "Merged Into Exception ID": "ID der Ausnahme, mit der zusammengeführt wurde",
+  "Merged into this exception": "Mit dieser Ausnahme zusammengeführt",
   "Multiple files": "Mehrere Dateien",
   "Multiple Files": "Mehrere Dateien",
+  "This exception was merged into {{exception}}. Its occurrences count there.": "Diese Ausnahme wurde mit {{exception}} zusammengeführt. Ihre Vorkommen zählen dort.",
+  "Unmerge": "Trennen",
+  "another exception": "einer anderen Ausnahme",
   "{{count}} files": "{{count}} Dateien",
   "{{count}} files_one": "{{count}} Datei",
   "Replace": "Ersetzen",
@@ -38989,5 +39000,6 @@
   "Drop files here or choose them": "Dateien hier ablegen oder auswählen",
   "Release to add them.": "Loslassen, um sie hinzuzufügen.",
   "Chosen files": "Ausgewählte Dateien",
-  "Click to choose a file or drag & drop.": "Klicken Sie, um eine Datei auszuwählen, oder ziehen Sie sie hierher."
+  "Click to choose a file or drag & drop.": "Klicken Sie, um eine Datei auszuwählen, oder ziehen Sie sie hierher.",
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} wird Teil dieser Ausnahme: Ihre Vorkommen, die bisherigen und jedes neue, zählen hier, und sie verschwindet aus der Liste. Auf ihrer Seite können Sie sie wieder trennen."
 }

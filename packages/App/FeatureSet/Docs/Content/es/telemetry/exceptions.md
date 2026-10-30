@@ -133,6 +133,8 @@ Los ID, las direcciones de correo e IP y los tokens se quitan de todo lo que se 
 
 Debajo de las tarjetas, **Excepciones similares** enumera hasta cinco excepciones más que se parecen a esta: el **Mismo mensaje** una vez quitados los valores, la **Misma ubicación en el código** de su código, o un **Mensaje similar** con la mayoría de las mismas palabras. Una misma causa puede acabar en varias excepciones, así que **Comprobar con OneUptime AI** dice de cada una si es **Probablemente el mismo error**, **Un error relacionado** o **Un error distinto**, y por qué. La comprobación usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado. Su respuesta se guarda hasta la siguiente ocurrencia.
 
+Fusione con esta excepción una que OneUptime AI llame **Probablemente el mismo error**, del mismo servicio, con **Fusionar** a su lado: sus ocurrencias, las anteriores y cada nueva, cuentan desde entonces en esta excepción y aparecen en su página, y sale de la lista. **Fusionadas con esta excepción**, debajo, enumera lo fusionado, y **Separar** al lado de cada una, o en la página de una excepción fusionada, le devuelve su propio lugar en la lista, con sus ocurrencias desde entonces. Fusionar y separar requieren permiso para editar excepciones.
+
 ## Corregirla con IA
 
 La página **Asistencia de IA** ofrece tres tareas. Cada una se ejecuta como una tarea de IA que abre un pull request en su repositorio de código:

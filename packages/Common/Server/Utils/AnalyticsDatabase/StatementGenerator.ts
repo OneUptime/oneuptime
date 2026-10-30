@@ -3,6 +3,7 @@ import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableN
 import {
   EXCEPTION_SPAN_SCOPE_QUERY_KEY,
   ExceptionSpanScope,
+  getExceptionSpanScopeFingerprints,
   parseExceptionSpanScope,
 } from "../../../Types/Telemetry/ExceptionSpanScope";
 import GroupBy from "../../Types/AnalyticsDatabase/GroupBy";
@@ -751,10 +752,22 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         } WHERE projectId = ${{
           value: new ObjectID(projectId),
           type: TableColumnType.ObjectID,
-        }} AND fingerprint = ${{
-          value: scope.fingerprint,
-          type: TableColumnType.Text,
         }}`;
+
+        // Its own fingerprint, and those of the exceptions merged into it.
+        const scopeFingerprints: Array<string> =
+          getExceptionSpanScopeFingerprints(scope);
+        exceptionScopeStatement.append(
+          scopeFingerprints.length > 1
+            ? SQL` AND fingerprint IN (${{
+                value: new Includes(scopeFingerprints),
+                type: TableColumnType.Text,
+              }})`
+            : SQL` AND fingerprint = ${{
+                value: scope.fingerprint,
+                type: TableColumnType.Text,
+              }}`,
+        );
 
         if (scope.primaryEntityId) {
           exceptionScopeStatement.append(

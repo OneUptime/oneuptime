@@ -18,6 +18,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -33,6 +34,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import AppLink from "../AppLink/AppLink";
+import { mergeExceptionInto } from "../../Utils/ExceptionMerge";
 
 /*
  * OTHER EXCEPTIONS THAT LOOK LIKE THIS ONE, ON ITS OVERVIEW.
@@ -43,7 +45,9 @@ import AppLink from "../AppLink/AppLink";
  * (SimilarExceptionsReader) - each a link, with its status, and shows only
  * when there are some. Check with OneUptime AI asks which of them are the
  * same bug (ExceptionDuplicateChecker); not offered while AI is off. The
- * model's words are plain text.
+ * model's words are plain text. One it calls "Likely the same bug", in the
+ * same service, can be merged into this exception (TelemetryExceptionMerge)
+ * by someone who may edit exceptions, after a confirmation.
  */
 
 export const SIMILAR_ROUTE_PREFIX: string = "/telemetry-exception/similar";
@@ -72,6 +76,13 @@ const VERDICT_CLASSES: Record<DuplicateVerdictKind, string> = {
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
+  /*
+   * Whether a duplicate may be merged into this exception: the reader may
+   * edit exceptions, and this one was not merged into another itself.
+   */
+  canMerge?: boolean | undefined;
+  // Called once one was merged in, so the page reads itself again.
+  onMerged?: (() => void) | undefined;
 }
 
 function exceptionRoute(telemetryExceptionId: string): Route {
@@ -93,6 +104,12 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
   );
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  // The duplicate a merge is being confirmed for.
+  const [mergeCandidate, setMergeCandidate] = useState<
+    SimilarException | undefined
+  >(undefined);
+  const [isMerging, setIsMerging] = useState<boolean>(false);
+  const [mergeError, setMergeError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -175,6 +192,32 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
     setIsChecking(false);
   };
 
+  const merge: (candidate: SimilarException) => Promise<void> = async (
+    candidate: SimilarException,
+  ): Promise<void> => {
+    setIsMerging(true);
+    setMergeError(undefined);
+
+    try {
+      await mergeExceptionInto({
+        survivorId: exceptionId,
+        mergedId: candidate.telemetryExceptionId,
+      });
+
+      setSimilar(
+        similar.filter((entry: SimilarException): boolean => {
+          return entry.telemetryExceptionId !== candidate.telemetryExceptionId;
+        }),
+      );
+      setMergeCandidate(undefined);
+      props.onMerged?.();
+    } catch (err) {
+      setMergeError(API.getFriendlyMessage(err));
+    }
+
+    setIsMerging(false);
+  };
+
   const verdictFor: (id: string) => DuplicateVerdict | undefined = (
     id: string,
   ): DuplicateVerdict | undefined => {
@@ -229,11 +272,18 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
             const verdict: DuplicateVerdict | undefined = verdictFor(
               entry.telemetryExceptionId,
             );
+            const isMergeable: boolean =
+              Boolean(props.canMerge) &&
+              entry.isSameService === true &&
+              verdict?.verdict === DuplicateVerdictKind.Duplicate;
 
             return (
-              <li key={entry.telemetryExceptionId}>
+              <li
+                key={entry.telemetryExceptionId}
+                className="flex items-center gap-2"
+              >
                 <AppLink
-                  className="group block rounded-lg px-2 py-2 hover:bg-gray-50"
+                  className="group block min-w-0 flex-1 rounded-lg px-2 py-2 hover:bg-gray-50"
                   to={exceptionRoute(entry.telemetryExceptionId)}
                   dataTestId="exception-similar-item"
                 >
@@ -293,11 +343,52 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
                 </AppLink>
+                {isMergeable ? (
+                  <div className="flex-shrink-0 pr-2">
+                    <Button
+                      title="Merge"
+                      icon={IconProp.Link}
+                      buttonStyle={ButtonStyleType.NORMAL}
+                      buttonSize={ButtonSize.Small}
+                      dataTestId="exception-similar-merge"
+                      onClick={() => {
+                        setMergeError(undefined);
+                        setMergeCandidate(entry);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
               </li>
             );
           })}
         </ul>
       </div>
+      {mergeCandidate ? (
+        <ConfirmModal
+          title="Merge into this exception?"
+          description={translator.translateTemplate(
+            "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.",
+            {
+              name: mergeCandidate.message
+                ? `${mergeCandidate.exceptionType}: ${mergeCandidate.message}`
+                : mergeCandidate.exceptionType,
+            },
+          )}
+          submitButtonText="Merge"
+          isLoading={isMerging}
+          error={mergeError}
+          onClose={() => {
+            setMergeCandidate(undefined);
+          }}
+          onSubmit={() => {
+            void merge(mergeCandidate);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Card>
   );
 };
