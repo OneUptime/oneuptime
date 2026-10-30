@@ -6,12 +6,27 @@ import { DETECTION_REAL_TIME_RULES_MAX } from "../../../../Types/SecurityEvent/R
 import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
-import Queue, { QueueName } from "../../../Infrastructure/Queue";
 import DetectionRuleService from "../../../Services/DetectionRuleService";
 import EventLoop from "../../EventLoop";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { screenSecurityEventRow } from "./RealTimeEventScreen";
+import RealTimeJobs, {
+  REAL_TIME_EVENTS_PER_JOB,
+  REAL_TIME_RULES_CACHE_TTL_MS,
+  RealTimeCandidate,
+  RealTimeJobData,
+} from "./RealTimeJobs";
+
+// The jobs are RealTimeJobs': named here too, for the paths that write events and the Worker.
+export {
+  REAL_TIME_DETECTION_JOB,
+  REAL_TIME_EVENTS_PER_JOB,
+  REAL_TIME_FIRST_DELAY_MS,
+  REAL_TIME_MAX_ATTEMPTS,
+  REAL_TIME_RULES_CACHE_TTL_MS,
+} from "./RealTimeJobs";
+export type { RealTimeCandidate, RealTimeJobData } from "./RealTimeJobs";
 
 /*
  * REAL-TIME DETECTION RULES (Types/SecurityEvent/RealTimeDetection): a rule
@@ -21,7 +36,7 @@ import { screenSecurityEventRow } from "./RealTimeEventScreen";
  * the connections, Your logs, Your OneUptime data, Data Security's changes -
  * hands the rows it just wrote to `screen`. It reads the project's real-time
  * rules (kept for REAL_TIME_RULES_CACHE_TTL_MS, so a rule turned on or off
- * takes effect within a minute) and screens every row against each in
+ * takes effect within half a minute) and screens every row against each in
  * memory (RealTimeEventScreen), never throwing into the write. A rule with
  * candidates gets a job, a few seconds later (RealTimeDetectionJob), that
  * confirms them with the rule's own query restricted to those events by
@@ -31,25 +46,17 @@ import { screenSecurityEventRow } from "./RealTimeEventScreen";
  * The engine's own findings are written past this - a finding is not an
  * event a source sent - and so is the setup test's attack, which runs every
  * rule over its own events (SecuritySetup).
+ *
+ * A rule that starts to run in real time gets a handover (RealTimeJobs):
+ * one read of what arrived since its schedule stopped, until every
+ * process screens for it.
  */
-
-export const REAL_TIME_DETECTION_JOB: string = "DetectionRules:EvaluateRealTime";
-
-// How long a project's real-time rules are kept before they are read again.
-export const REAL_TIME_RULES_CACHE_TTL_MS: number = 30 * 1000;
 
 // The most projects whose rules one process keeps; the oldest go first.
 export const REAL_TIME_RULES_CACHE_MAX_PROJECTS: number = 10000;
 
-// The most events one job confirms: more candidates make more jobs.
-export const REAL_TIME_EVENTS_PER_JOB: number = 500;
-
 // The most candidates one rule takes from one write; a rule that matches more is too noisy for real time.
 export const REAL_TIME_MAX_CANDIDATES_PER_WRITE: number = 5000;
-
-// A job waits this long for its events to be readable, then twice as long, at most this many times.
-export const REAL_TIME_FIRST_DELAY_MS: number = 5 * 1000;
-export const REAL_TIME_MAX_ATTEMPTS: number = 5;
 
 // Room around the events' own times for the confirming read.
 export const REAL_TIME_TIME_PADDING_MS: number = 1000;
@@ -60,19 +67,6 @@ const ROWS_PER_TURN: number = 500;
 export interface RealTimeRule {
   id: string;
   rule: SigmaRule;
-}
-
-// An event a job names: the row's id, and when it happened (ISO 8601).
-export interface RealTimeCandidate {
-  id: string;
-  time: string;
-}
-
-export interface RealTimeJobData {
-  projectId: string;
-  ruleId: string;
-  events: Array<RealTimeCandidate>;
-  attempt: number;
 }
 
 interface CachedProject {
@@ -97,8 +91,7 @@ export function readRowTime(value: JSONValue | undefined): Date | null {
 
 export default class RealTimeDetections {
   private static cache: Map<string, CachedProject> = new Map();
-  private static loading: Map<string, Promise<Array<RealTimeRule>>> =
-    new Map();
+  private static loading: Map<string, Promise<Array<RealTimeRule>>> = new Map();
 
   // Forget every project's rules: tests, and nothing else.
   public static clearCache(): void {
@@ -265,18 +258,8 @@ export default class RealTimeDetections {
     }
   }
 
-  // A confirming job, later for every attempt: the first after a few seconds, then twice as long.
+  // A confirming job (RealTimeJobs.enqueue).
   public static async enqueue(job: RealTimeJobData): Promise<void> {
-    await Queue.addJob(
-      QueueName.Worker,
-      // The rule, the first event and the attempt: never two jobs for the same work.
-      `real-time-detection-${job.ruleId}-${job.events[0]?.id || "none"}-${job.attempt}`,
-      REAL_TIME_DETECTION_JOB,
-      job as unknown as JSONObject,
-      {
-        delayInMs: REAL_TIME_FIRST_DELAY_MS * Math.pow(2, job.attempt - 1),
-        attempts: 1,
-      },
-    );
+    await RealTimeJobs.enqueue(job);
   }
 }

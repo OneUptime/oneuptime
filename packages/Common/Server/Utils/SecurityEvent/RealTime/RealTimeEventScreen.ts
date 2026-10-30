@@ -155,7 +155,10 @@ function asText(field: FieldValue): string | undefined {
  * character), with `\` escaping the character after it - as
  * sigmaPatternToLike reads it.
  */
-type PatternPiece = { kind: "text"; text: string } | { kind: "any" } | { kind: "one" };
+type PatternPiece =
+  | { kind: "text"; text: string }
+  | { kind: "any" }
+  | { kind: "one" };
 
 export function readSigmaPattern(value: string): Array<PatternPiece> {
   const pieces: Array<PatternPiece> = [];
@@ -574,14 +577,15 @@ function screenNode(
     case "not":
       return not(screenNode(row, rule, node.child));
     case "of": {
-      const verdicts: Array<ScreenVerdict> = SigmaRuleParser.matchSelectionNames(
-        node.pattern,
-        rule.selections.map((selection: SigmaSelection): string => {
-          return selection.name;
-        }),
-      ).map((name: string): ScreenVerdict => {
-        return screenNode(row, rule, { kind: "selection", name });
-      });
+      const verdicts: Array<ScreenVerdict> =
+        SigmaRuleParser.matchSelectionNames(
+          node.pattern,
+          rule.selections.map((selection: SigmaSelection): string => {
+            return selection.name;
+          }),
+        ).map((name: string): ScreenVerdict => {
+          return screenNode(row, rule, { kind: "selection", name });
+        });
 
       if (verdicts.length === 0) {
         return "maybe";

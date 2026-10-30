@@ -97,8 +97,14 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
             { lookbackInHours: 24 },
             { continueOnFailure: true },
           ),
-          step(SecurityPlaybookActionType.AddCaseNote, {
-            note: "Triage checklist for {{case.number}}:\n\n- [ ] Is the activity expected for these entities?\n- [ ] Did any entity match threat intel?\n- [ ] Is anything else in the project talking to them?\n- [ ] Contain, or close with a verdict.",
+          // The triage checklist, as the case's own tasks to tick off.
+          step(SecurityPlaybookActionType.AddCaseTasks, {
+            tasks: [
+              "Check the activity is expected for these entities",
+              "Check whether any entity matched threat intel",
+              "Check what else in the project talks to them",
+              "Contain them, or close the case with a verdict",
+            ],
           }),
         ];
       },
@@ -181,8 +187,14 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
             {},
             { continueOnFailure: true },
           ),
-          step(SecurityPlaybookActionType.AddCaseNote, {
-            note: "Response checklist for {{case.number}}:\n\n- [ ] Open the traces in the evidence note: did any request reach the app, or the database?\n- [ ] Watch the session replays: what did the attacker do before and after?\n- [ ] Block the source: add a Run a runbook step to this playbook, with a runbook that blocks an address.\n- [ ] Review the AI's fix before it is merged.",
+          // The response checklist, as the case's own tasks to tick off.
+          step(SecurityPlaybookActionType.AddCaseTasks, {
+            tasks: [
+              "Open the traces in the evidence note: did any request reach the app, or the database?",
+              "Watch the session replays: what did the attacker do before and after?",
+              "Block the source: a Run a runbook step with a runbook that blocks an address does it next time",
+              "Review the AI's fix before it is merged",
+            ],
           }),
         ];
       },

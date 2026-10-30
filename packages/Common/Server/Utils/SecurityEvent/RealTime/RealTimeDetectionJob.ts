@@ -16,12 +16,15 @@ import DetectionRuleEvaluator, {
   DETECTION_RULE_REAL_TIME_SELECT,
 } from "../DetectionRuleEvaluator";
 import RealTimeDetections, {
+  REAL_TIME_TIME_PADDING_MS,
+} from "./RealTimeDetections";
+import {
   REAL_TIME_EVENTS_PER_JOB,
   REAL_TIME_MAX_ATTEMPTS,
-  REAL_TIME_TIME_PADDING_MS,
   RealTimeCandidate,
   RealTimeJobData,
-} from "./RealTimeDetections";
+  RealTimeWindow,
+} from "./RealTimeJobs";
 
 /*
  * THE WORKER'S HALF OF A REAL-TIME RULE (RealTimeDetections screens, this
@@ -32,7 +35,34 @@ import RealTimeDetections, {
  *
  * Kept apart from the screen, so every path that writes security events
  * loads the screen alone and never the engine.
+ *
+ * A handover (RealTimeJobs) names a window instead: every event of it is
+ * read, for a rule that has just started to run in real time.
  */
+
+// A handover's window, read defensively: two times, the first before the second.
+function readRealTimeWindow(value: unknown): RealTimeWindow | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record: JSONObject = value as JSONObject;
+  const startTime: unknown = record["startTime"];
+  const endTime: unknown = record["endTime"];
+
+  if (typeof startTime !== "string" || typeof endTime !== "string") {
+    return undefined;
+  }
+
+  const start: number = new Date(startTime).getTime();
+  const end: number = new Date(endTime).getTime();
+
+  if (Number.isNaN(start) || Number.isNaN(end) || start >= end) {
+    return undefined;
+  }
+
+  return { startTime, endTime };
+}
 
 // What a job carries, read defensively: a job written by an older version, or a broken one, names nothing.
 export function readRealTimeJobData(value: unknown): RealTimeJobData | null {
@@ -78,12 +108,14 @@ export function readRealTimeJobData(value: unknown): RealTimeJobData | null {
   }
 
   const attempt: number = Number(data["attempt"]);
+  const window: RealTimeWindow | undefined = readRealTimeWindow(data["window"]);
 
   return {
     projectId,
     ruleId,
     events,
     attempt: Number.isInteger(attempt) && attempt > 0 ? attempt : 1,
+    ...(window ? { window } : {}),
   };
 }
 
@@ -141,23 +173,19 @@ export default class RealTimeDetectionJob {
    */
   @CaptureSpan()
   public static async evaluate(job: RealTimeJobData): Promise<void> {
+    if (job.window) {
+      await this.handOver(job, job.window);
+      return;
+    }
+
     if (job.events.length === 0) {
       return;
     }
 
     const projectId: ObjectID = new ObjectID(job.projectId);
-    const rule: DetectionRule | null = await DetectionRuleService.findOneBy({
-      query: {
-        _id: job.ruleId,
-        projectId,
-      },
-      select: DETECTION_RULE_REAL_TIME_SELECT,
-      props: {
-        isRoot: true,
-      },
-    });
+    const rule: DetectionRule | null = await this.findRealTimeRule(job);
 
-    if (!rule || rule.isEnabled === false || rule.isRealTime !== true) {
+    if (!rule) {
       return;
     }
 
@@ -201,6 +229,48 @@ export default class RealTimeDetectionJob {
       restrictTo: SQL`_id IN ${{ type: TableColumnType.ArrayText, value: ids }}`,
       startTime,
       endTime,
+    });
+  }
+
+  // The job's rule, while it is on and in real time: a rule turned off, or back on its schedule, since runs nothing.
+  private static async findRealTimeRule(
+    job: RealTimeJobData,
+  ): Promise<DetectionRule | null> {
+    const rule: DetectionRule | null = await DetectionRuleService.findOneBy({
+      query: {
+        _id: job.ruleId,
+        projectId: new ObjectID(job.projectId),
+      },
+      select: DETECTION_RULE_REAL_TIME_SELECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!rule || rule.isEnabled === false || rule.isRealTime !== true) {
+      return null;
+    }
+
+    return rule;
+  }
+
+  /*
+   * A handover: every event of the window, read as a scheduled run reads
+   * its own - no screen, no ids - for a rule still on and in real time.
+   */
+  private static async handOver(
+    job: RealTimeJobData,
+    window: RealTimeWindow,
+  ): Promise<void> {
+    const rule: DetectionRule | null = await this.findRealTimeRule(job);
+
+    if (!rule) {
+      return;
+    }
+
+    await DetectionRuleEvaluator.evaluateRealTime(rule, {
+      startTime: new Date(window.startTime),
+      endTime: new Date(window.endTime),
     });
   }
 }

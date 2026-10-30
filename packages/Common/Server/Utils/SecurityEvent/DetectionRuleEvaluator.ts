@@ -141,12 +141,13 @@ export interface DetectionRuleSetupTest {
 /*
  * A real-time run (RealTime/RealTimeDetections): the rule reads only the
  * events ingest screened for it (`restrictTo`, their ids) over the times
- * they happened, and does everything a scheduled run does - alert,
- * incident, finding, case, risk - but leaves the rule's schedule as it
- * was: a real-time rule runs on no interval.
+ * they happened - or, handing a rule over to real time (RealTimeJobs),
+ * every event of the window - and does everything a scheduled run does:
+ * alert, incident, finding, case, risk. It leaves the rule's schedule as
+ * it was: a real-time rule runs on no interval.
  */
 export interface DetectionRuleRealTimeRun {
-  restrictTo: Statement;
+  restrictTo?: Statement | undefined;
   startTime: Date;
   endTime: Date;
 }

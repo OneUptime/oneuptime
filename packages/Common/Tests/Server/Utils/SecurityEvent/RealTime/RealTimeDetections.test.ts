@@ -16,7 +16,15 @@ import RealTimeDetections, {
   RealTimeJobData,
   readRowTime,
 } from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
+import RealTimeJobs, {
+  REAL_TIME_HANDOVER_MARGIN_MS,
+  getRealTimeHandoverWindow,
+} from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeJobs";
 import { buildSecurityEventDbRow } from "../../../../../Server/Utils/SecurityEvent/SecurityEventRow";
+import {
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
+  DETECTION_MAX_LOOKBACK_IN_MINUTES,
+} from "../../../../../Types/SecurityEvent/DetectionFindingConstants";
 import OneUptimeDate from "../../../../../Types/Date";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -171,16 +179,19 @@ function jobs(): Array<RealTimeJobData> {
 
 describe("RealTimeDetections.screen: a write's half", () => {
   test("reads the project's enabled real-time rules, as OneUptime", async () => {
-    await RealTimeDetections.screen({ projectId: PROJECT_ID, rows: [event({})] });
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [event({})],
+    });
 
     expect(findBy).toHaveBeenCalledTimes(1);
     expect(
       (findBy.mock.calls[0]![0] as { query: JSONObject; props: JSONObject })
         .query,
     ).toEqual({ projectId: PROJECT_ID, isEnabled: true, isRealTime: true });
-    expect(
-      (findBy.mock.calls[0]![0] as { props: JSONObject }).props,
-    ).toEqual({ isRoot: true });
+    expect((findBy.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
+      isRoot: true,
+    });
   });
 
   test("queues a confirming job for each rule some events may match, naming those events and when they happened", async () => {
@@ -260,16 +271,27 @@ describe("RealTimeDetections.screen: a write's half", () => {
     const start: number = new Date("2026-10-30T09:00:00.000Z").getTime();
 
     now.mockReturnValue(new Date(start) as never);
-    await RealTimeDetections.screen({ projectId: PROJECT_ID, rows: [event({})] });
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [event({})],
+    });
 
     now.mockReturnValue(
       new Date(start + REAL_TIME_RULES_CACHE_TTL_MS - 1) as never,
     );
-    await RealTimeDetections.screen({ projectId: PROJECT_ID, rows: [event({})] });
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [event({})],
+    });
     expect(findBy).toHaveBeenCalledTimes(1);
 
-    now.mockReturnValue(new Date(start + REAL_TIME_RULES_CACHE_TTL_MS) as never);
-    await RealTimeDetections.screen({ projectId: PROJECT_ID, rows: [event({})] });
+    now.mockReturnValue(
+      new Date(start + REAL_TIME_RULES_CACHE_TTL_MS) as never,
+    );
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [event({})],
+    });
     expect(findBy).toHaveBeenCalledTimes(2);
     expect(REAL_TIME_RULES_CACHE_TTL_MS).toBe(30 * 1000);
   });
@@ -383,9 +405,10 @@ describe("RealTimeDetectionJob: the worker's half", () => {
   let evaluateRealTime: Spy;
 
   beforeEach(() => {
-    findOneBy = getJestSpyOn(DetectionRuleService, "findOneBy").mockResolvedValue(
-      storedRule(RULE_ID, AUDIT_CLEARED) as never,
-    );
+    findOneBy = getJestSpyOn(
+      DetectionRuleService,
+      "findOneBy",
+    ).mockResolvedValue(storedRule(RULE_ID, AUDIT_CLEARED) as never);
     countReadable = getJestSpyOn(
       RealTimeDetectionJob,
       "countReadable",
@@ -452,9 +475,9 @@ describe("RealTimeDetectionJob: the worker's half", () => {
     expect(evaluateRealTime).not.toHaveBeenCalled();
     expect(addJob).toHaveBeenCalledTimes(1);
     expect(addJob.mock.calls[0]![3]).toEqual({ ...JOB, attempt: 3 });
-    expect(
-      (addJob.mock.calls[0]![4] as { delayInMs: number }).delayInMs,
-    ).toBe(REAL_TIME_FIRST_DELAY_MS * 4);
+    expect((addJob.mock.calls[0]![4] as { delayInMs: number }).delayInMs).toBe(
+      REAL_TIME_FIRST_DELAY_MS * 4,
+    );
   });
 
   test("after the last attempt, what can be read is confirmed; nothing readable confirms nothing", async () => {
@@ -505,5 +528,196 @@ describe("RealTimeDetectionJob: the worker's half", () => {
       events: [{ id: "row-1", time: "2026-10-30T09:00:01.000Z" }],
       attempt: 1,
     });
+  });
+});
+
+/*
+ * THE HANDOVER: a rule that starts to run in real time - taken off its
+ * schedule, turned back on, or created so - would miss what arrives before
+ * every process has read it again, and, off its schedule, what arrived
+ * since its last scheduled run. One read of that window, once its late
+ * events are in, closes the gap.
+ */
+describe("the handover to real time", () => {
+  const NOW: Date = new Date("2026-10-30T09:00:00.000Z");
+  const HANDED_UNTIL: Date = new Date(
+    NOW.getTime() + REAL_TIME_RULES_CACHE_TTL_MS + REAL_TIME_HANDOVER_MARGIN_MS,
+  );
+
+  test("reads from the rule's last scheduled run until every process screens for it", () => {
+    const lastRun: Date = new Date("2026-10-30T08:52:00.000Z");
+
+    expect(
+      getRealTimeHandoverWindow({
+        now: NOW,
+        lastEvaluatedAt: lastRun,
+        evaluationIntervalInMinutes: 5,
+      }),
+    ).toEqual({ startTime: lastRun, endTime: HANDED_UNTIL });
+    // Every process has read the rule again by then.
+    expect(HANDED_UNTIL.getTime() - NOW.getTime()).toBeGreaterThan(
+      REAL_TIME_RULES_CACHE_TTL_MS,
+    );
+  });
+
+  test("a rule that never ran reads the interval a scheduled rule's first run would", () => {
+    expect(
+      getRealTimeHandoverWindow({ now: NOW, evaluationIntervalInMinutes: 5 })
+        .startTime,
+    ).toEqual(
+      new Date(
+        NOW.getTime() -
+          DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000 -
+          5 * 60000,
+      ),
+    );
+    // No interval reads one minute.
+    expect(
+      getRealTimeHandoverWindow({ now: NOW, lastEvaluatedAt: null }).startTime,
+    ).toEqual(
+      new Date(
+        NOW.getTime() - DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000 - 60000,
+      ),
+    );
+  });
+
+  test("reads at most as far back as a run does", () => {
+    expect(
+      getRealTimeHandoverWindow({
+        now: NOW,
+        lastEvaluatedAt: new Date("2026-10-01T00:00:00.000Z"),
+      }).startTime,
+    ).toEqual(
+      new Date(
+        HANDED_UNTIL.getTime() - DETECTION_MAX_LOOKBACK_IN_MINUTES * 60000,
+      ),
+    );
+  });
+
+  test("is queued to run once the window's late events are in, once for each time the rule starts", async () => {
+    getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW as never);
+
+    await RealTimeJobs.enqueueHandover({
+      projectId: PROJECT_ID,
+      ruleId: new ObjectID(RULE_ID),
+      startTime: new Date("2026-10-30T08:52:00.000Z"),
+      endTime: HANDED_UNTIL,
+    });
+
+    expect(addJob).toHaveBeenCalledTimes(1);
+
+    const [, jobId, name, data, options] = addJob.mock.calls[0] as [
+      unknown,
+      string,
+      string,
+      RealTimeJobData,
+      { delayInMs: number; attempts: number },
+    ];
+
+    expect(jobId).toBe(
+      `real-time-handover-${RULE_ID}-${HANDED_UNTIL.getTime()}`,
+    );
+    expect(name).toBe(REAL_TIME_DETECTION_JOB);
+    expect(data).toEqual({
+      projectId: PROJECT_ID.toString(),
+      ruleId: RULE_ID,
+      events: [],
+      attempt: 1,
+      window: {
+        startTime: "2026-10-30T08:52:00.000Z",
+        endTime: HANDED_UNTIL.toISOString(),
+      },
+    });
+    // As a scheduled run reads: its window's end, and the time late events take.
+    expect(options).toEqual({
+      delayInMs:
+        HANDED_UNTIL.getTime() -
+        NOW.getTime() +
+        DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000,
+      attempts: 1,
+    });
+    expect(readRealTimeJobData(data)).toEqual(data);
+  });
+
+  test("the Worker reads every event of the window, for a rule still on and in real time", async () => {
+    getJestSpyOn(DetectionRuleService, "findOneBy").mockResolvedValue(
+      storedRule(RULE_ID, AUDIT_CLEARED) as never,
+    );
+    const countReadable: Spy = getJestSpyOn(
+      RealTimeDetectionJob,
+      "countReadable",
+    );
+    const evaluateRealTime: Spy = getJestSpyOn(
+      DetectionRuleEvaluator,
+      "evaluateRealTime",
+    ).mockResolvedValue(null as never);
+
+    await RealTimeDetectionJob.evaluate({
+      projectId: PROJECT_ID.toString(),
+      ruleId: RULE_ID,
+      events: [],
+      attempt: 1,
+      window: {
+        startTime: "2026-10-30T08:52:00.000Z",
+        endTime: "2026-10-30T09:00:35.000Z",
+      },
+    });
+
+    expect(countReadable).not.toHaveBeenCalled();
+    expect(evaluateRealTime).toHaveBeenCalledTimes(1);
+    // No ids: every event of the window.
+    expect(evaluateRealTime.mock.calls[0]![1]).toEqual({
+      startTime: new Date("2026-10-30T08:52:00.000Z"),
+      endTime: new Date("2026-10-30T09:00:35.000Z"),
+    });
+  });
+
+  test("a rule turned off, or back on its schedule, before its handover reads nothing", async () => {
+    const off: DetectionRule = storedRule(RULE_ID, AUDIT_CLEARED);
+    off.isEnabled = false;
+    const scheduled: DetectionRule = storedRule(RULE_ID, AUDIT_CLEARED);
+    scheduled.isRealTime = false;
+    const findOneBy: Spy = getJestSpyOn(DetectionRuleService, "findOneBy");
+    const evaluateRealTime: Spy = getJestSpyOn(
+      DetectionRuleEvaluator,
+      "evaluateRealTime",
+    ).mockResolvedValue(null as never);
+
+    for (const rule of [off, scheduled, null]) {
+      findOneBy.mockResolvedValueOnce(rule as never);
+      await RealTimeDetectionJob.evaluate({
+        projectId: PROJECT_ID.toString(),
+        ruleId: RULE_ID,
+        events: [],
+        attempt: 1,
+        window: {
+          startTime: "2026-10-30T08:52:00.000Z",
+          endTime: "2026-10-30T09:00:35.000Z",
+        },
+      });
+    }
+
+    expect(evaluateRealTime).not.toHaveBeenCalled();
+  });
+
+  test("a window that is not one is read as none", () => {
+    const job: JSONObject = {
+      projectId: PROJECT_ID.toString(),
+      ruleId: RULE_ID,
+      events: [],
+      attempt: 1,
+    };
+
+    for (const window of [
+      {
+        startTime: "2026-10-30T09:00:35.000Z",
+        endTime: "2026-10-30T08:52:00.000Z",
+      },
+      { startTime: "never", endTime: "2026-10-30T09:00:35.000Z" },
+      { startTime: 1 },
+      "2026-10-30",
+    ]) {
+      expect(readRealTimeJobData({ ...job, window } as never)).toEqual(job);
+    }
   });
 });

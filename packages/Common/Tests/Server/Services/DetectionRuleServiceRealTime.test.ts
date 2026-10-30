@@ -9,15 +9,28 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { DETECTION_EVALUATION_DELAY_IN_SECONDS } from "../../../Types/SecurityEvent/DetectionFindingConstants";
 import { DETECTION_REAL_TIME_RULES_MAX } from "../../../Types/SecurityEvent/RealTimeDetection";
+import RealTimeJobs, {
+  REAL_TIME_HANDOVER_MARGIN_MS,
+  REAL_TIME_RULES_CACHE_TTL_MS,
+} from "../../../Server/Utils/SecurityEvent/RealTime/RealTimeJobs";
 import { getJestSpyOn } from "../../Spy";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * Saving a rule that runs in real time: only one that fires on one event -
  * no correlation, a threshold of 1, no distinct count field, no regular
  * expression - and at most 50 in a project, whenever a write turns real
  * time on or changes what a real-time rule reads; a rule put back on its
- * schedule starts it from now, so it never reads again what real time did.
+ * schedule starts it from now, so it never reads again what real time did;
+ * and a rule that starts to run in real time is handed over, so it misses
+ * nothing between its schedule and the screen.
  */
 
 type Spy = ReturnType<typeof getJestSpyOn>;
@@ -26,6 +39,10 @@ type HookCaller = {
   onBeforeCreate: (
     createBy: CreateBy<DetectionRule>,
   ) => Promise<OnCreate<DetectionRule>>;
+  onCreateSuccess: (
+    onCreate: OnCreate<DetectionRule>,
+    createdItem: DetectionRule,
+  ) => Promise<DetectionRule>;
   onBeforeUpdate: (
     updateBy: UpdateBy<DetectionRule>,
   ) => Promise<OnUpdate<DetectionRule>>;
@@ -127,9 +144,10 @@ describe("creating a rule that runs in real time", () => {
     ).resolves.toBeDefined();
 
     // The project's real-time rules are counted.
-    expect(
-      (count.mock.calls[0]![0] as { query: JSONObject }).query,
-    ).toEqual({ projectId: PROJECT_ID, isRealTime: true });
+    expect((count.mock.calls[0]![0] as { query: JSONObject }).query).toEqual({
+      projectId: PROJECT_ID,
+      isRealTime: true,
+    });
   });
 
   test("any other is refused, saying why and what to change", async () => {
@@ -179,9 +197,23 @@ describe("creating a rule that runs in real time", () => {
   });
 });
 
+const NOW: Date = new Date("2026-10-30T09:00:00.000Z");
+const LAST_RUN: Date = new Date("2026-10-30T08:52:00.000Z");
+// When every process screens for a rule that starts now, and a little more.
+const HANDED_UNTIL: Date = new Date(
+  NOW.getTime() + REAL_TIME_RULES_CACHE_TTL_MS + REAL_TIME_HANDOVER_MARGIN_MS,
+);
+
+function atNow(): void {
+  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW as never);
+}
+
 describe("turning real time on, or changing what a real-time rule reads", () => {
   test("turning it on checks the rule as it will be, and counts the project's others", async () => {
-    const hold: Spy = holding(storedRule({ isRealTime: false }));
+    atNow();
+    const hold: Spy = holding(
+      storedRule({ isRealTime: false, lastEvaluatedAt: LAST_RUN }),
+    );
     const count: Spy = realTimeRulesInProject(10);
 
     const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
@@ -192,7 +224,17 @@ describe("turning real time on, or changing what a real-time rule reads", () => 
     expect(
       (count.mock.calls[0]![0] as { query: JSONObject }).query["_id"],
     ).toBeDefined();
-    expect(result.carryForward).toBeNull();
+    // Off its schedule: handed over from its last run.
+    expect(result.carryForward).toEqual({
+      enteringRealTime: [
+        {
+          id: RULE_ID,
+          projectId: PROJECT_ID,
+          startTime: LAST_RUN,
+          endTime: HANDED_UNTIL,
+        },
+      ],
+    });
   });
 
   test("turning it on for a rule that waits for a count is refused", async () => {
@@ -244,7 +286,7 @@ describe("turning real time on, or changing what a real-time rule reads", () => 
     expect(count).not.toHaveBeenCalled();
   });
 
-  test("an update that cannot end real time reads no row", async () => {
+  test("an update that can neither start nor end real time reads no row", async () => {
     const hold: Spy = getJestSpyOn(
       DetectionRuleService,
       "findRowsAndHoldUpdateToThem",
@@ -254,8 +296,185 @@ describe("turning real time on, or changing what a real-time rule reads", () => 
     await service.onBeforeUpdate(updateBy({ sigmaRuleYaml: SINGLE }));
     await service.onBeforeUpdate(updateBy({ matchCountThreshold: 1 }));
     await service.onBeforeUpdate(updateBy({ distinctCountField: " " }));
+    // Turning a rule off starts nothing.
+    await service.onBeforeUpdate(updateBy({ isEnabled: false }));
 
     expect(hold).not.toHaveBeenCalled();
+  });
+});
+
+describe("handing a rule over to real time", () => {
+  let handover: Spy;
+
+  beforeEach(() => {
+    atNow();
+    realTimeRulesInProject(0);
+    handover = getJestSpyOn(RealTimeJobs, "enqueueHandover").mockResolvedValue(
+      undefined as never,
+    );
+  });
+
+  test("off its schedule: from its last scheduled run until every process screens for it, once the rule is written", async () => {
+    holding(storedRule({ isRealTime: false, lastEvaluatedAt: LAST_RUN }));
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      updateBy({ isRealTime: true }),
+    );
+
+    expect(handover).not.toHaveBeenCalled();
+
+    await service.onUpdateSuccess(result, [RULE_ID]);
+
+    expect(handover).toHaveBeenCalledTimes(1);
+    expect(handover).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      ruleId: RULE_ID,
+      startTime: LAST_RUN,
+      endTime: HANDED_UNTIL,
+    });
+  });
+
+  test("a rule that never ran: the interval a scheduled rule's first run reads", async () => {
+    holding(storedRule({ isRealTime: false, evaluationIntervalInMinutes: 10 }));
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      updateBy({ isRealTime: true }),
+    );
+
+    expect(
+      (result.carryForward as { enteringRealTime: Array<JSONObject> })
+        .enteringRealTime[0]!["startTime"],
+    ).toEqual(
+      new Date(
+        NOW.getTime() -
+          DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000 -
+          10 * 60 * 1000,
+      ),
+    );
+  });
+
+  test("a real-time rule turned back on: from now, as every run reads", async () => {
+    holding(
+      storedRule({
+        isRealTime: true,
+        isEnabled: false,
+        lastEvaluatedAt: LAST_RUN,
+      }),
+    );
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      updateBy({ isEnabled: true }),
+    );
+
+    expect(result.carryForward).toEqual({
+      enteringRealTime: [
+        {
+          id: RULE_ID,
+          projectId: PROJECT_ID,
+          startTime: new Date(
+            NOW.getTime() - DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000,
+          ),
+          endTime: HANDED_UNTIL,
+        },
+      ],
+    });
+  });
+
+  test("a rule put in real time while off is handed over only when it is turned on", async () => {
+    holding(storedRule({ isRealTime: false, isEnabled: false }));
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      updateBy({ isRealTime: true }),
+    );
+
+    expect(result.carryForward).toBeNull();
+  });
+
+  test("saving a rule that is on and in real time already hands nothing over", async () => {
+    holding(storedRule({ isRealTime: true, isEnabled: true }));
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      updateBy({ isEnabled: true, isRealTime: true, name: "Renamed" }),
+    );
+
+    expect(result.carryForward).toBeNull();
+
+    await service.onUpdateSuccess(result, [RULE_ID]);
+
+    expect(handover).not.toHaveBeenCalled();
+  });
+
+  test("a row the update did not write is not handed over", async () => {
+    await service.onUpdateSuccess(
+      {
+        updateBy: updateBy({ isRealTime: true }),
+        carryForward: {
+          enteringRealTime: [
+            {
+              id: RULE_ID,
+              projectId: PROJECT_ID,
+              startTime: LAST_RUN,
+              endTime: HANDED_UNTIL,
+            },
+          ],
+        },
+      },
+      [],
+    );
+
+    expect(handover).not.toHaveBeenCalled();
+  });
+
+  test("a handover that cannot be queued never fails the save", async () => {
+    handover.mockRejectedValue(new Error("Redis is down") as never);
+    holding(storedRule({ isRealTime: false, lastEvaluatedAt: LAST_RUN }));
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      updateBy({ isRealTime: true }),
+    );
+
+    await expect(
+      service.onUpdateSuccess(result, [RULE_ID]),
+    ).resolves.toBeDefined();
+    expect(handover).toHaveBeenCalledTimes(1);
+  });
+
+  test("a rule created in real time: the interval a first run reads; a scheduled or switched-off one, nothing", async () => {
+    const created: DetectionRule = storedRule({
+      isRealTime: true,
+      evaluationIntervalInMinutes: 5,
+    });
+
+    await expect(
+      service.onCreateSuccess(
+        { createBy: createBy({}), carryForward: null },
+        created,
+      ),
+    ).resolves.toBe(created);
+    expect(handover).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      ruleId: RULE_ID,
+      startTime: new Date(
+        NOW.getTime() -
+          DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000 -
+          5 * 60 * 1000,
+      ),
+      endTime: HANDED_UNTIL,
+    });
+
+    handover.mockClear();
+
+    for (const other of [
+      storedRule({ isRealTime: false }),
+      storedRule({ isRealTime: true, isEnabled: false }),
+    ]) {
+      await service.onCreateSuccess(
+        { createBy: createBy({}), carryForward: null },
+        other,
+      );
+    }
+
+    expect(handover).not.toHaveBeenCalled();
   });
 });
 
