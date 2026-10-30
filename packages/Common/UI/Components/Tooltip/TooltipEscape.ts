@@ -135,9 +135,20 @@ const onWindowKeyDown: (event: KeyboardEvent) => void = (
  * on the window too has mounted (the playlist player, a widget being
  * dragged): listeners of one target run in the order they were added, so
  * a tooltip hears Escape before any of them.
+ *
+ * Only on a window that can be listened to. Code runs without a DOM too -
+ * App's node tests import page code after standing a bare `window` in (a
+ * location and a history, no addEventListener), and every one of them
+ * failed on this module's import while it took any `window` for a
+ * browser's. A tooltip that starts to show asks again, so a window that
+ * can be listened to by then is.
  */
 export const listenForTooltipEscape: () => void = (): void => {
-  if (isListeningForEscape || typeof window === "undefined") {
+  if (
+    isListeningForEscape ||
+    typeof window === "undefined" ||
+    typeof window.addEventListener !== "function"
+  ) {
     return;
   }
 
