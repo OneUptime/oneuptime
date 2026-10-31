@@ -6,7 +6,7 @@ import {
   getKubernetesMetricById,
 } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import {
-  KUBERNETES_WORKLOAD_KINDS,
+  KUBERNETES_WORKLOAD_SCOPE_KINDS,
   KubernetesResourceScope,
   KubernetesWorkloadKind,
   MonitorStepKubernetesMonitorUtil,
@@ -18,7 +18,8 @@ import {
  * that kind's: Job Failed Pods scoped to "nightly-export" filters on the
  * Job's name. The field used to start on Deployment for every metric, and a
  * Job Failed Pods monitor scoped to one Job read nothing until the person
- * noticed and picked "Job".
+ * noticed and picked "Job". The HPA metrics had no kind they could start
+ * on: they carry the HPA's own name, and no Workload Kind named an HPA.
  */
 
 const EXPECTED_WORKLOAD_KINDS: Record<string, KubernetesWorkloadKind> = {
@@ -30,23 +31,33 @@ const EXPECTED_WORKLOAD_KINDS: Record<string, KubernetesWorkloadKind> = {
   "job-failed-pods": "job",
   "job-failed-pods-increase": "job",
   "job-successful-pods": "job",
+  "hpa-current-replicas": "hpa",
+  "hpa-desired-replicas": "hpa",
+  "hpa-max-replicas": "hpa",
+  "hpa-min-replicas": "hpa",
 };
 
-// Categories of Workload-scoped metrics that are about no one kind, and why.
+/*
+ * Categories of Workload-scoped metrics that are about no one kind, and
+ * why. None since the HPA got a kind of its own.
+ */
 const WORKLOAD_SCOPED_WITHOUT_A_KIND: Partial<
   Record<KubernetesMetricCategory, string>
-> = {
-  HPA: "An HPA is not one of the workload kinds; its metrics carry the HPA's own name.",
-};
+> = {};
 
 const METRICS: Array<KubernetesMetricDefinition> = getAllKubernetesMetrics();
 
 const OFFERED_KINDS: Array<KubernetesWorkloadKind> =
-  KUBERNETES_WORKLOAD_KINDS.map((kind: { value: KubernetesWorkloadKind }) => {
-    return kind.value;
-  });
+  KUBERNETES_WORKLOAD_SCOPE_KINDS.map(
+    (kind: { value: KubernetesWorkloadKind }) => {
+      return kind.value;
+    },
+  );
 
-// The workload kind a metric's name is for: `k8s.job.failed_pods` is a Job's.
+/*
+ * The kind a metric's name is for: `k8s.job.failed_pods` is a Job's,
+ * `k8s.hpa.current_replicas` an HPA's.
+ */
 function getKindTheNameSays(
   metric: KubernetesMetricDefinition,
 ): KubernetesWorkloadKind | undefined {
@@ -80,13 +91,12 @@ describe("Kubernetes metrics name the workload kind they are about", () => {
     }
   });
 
-  test("pod, container, node, control-plane and HPA metrics have no kind", () => {
+  test("pod, container, node and control-plane metrics have no kind", () => {
     const categoriesWithoutKinds: Array<KubernetesMetricCategory> = [
       "Pod",
       "Container",
       "Node",
       "ControlPlane",
-      "HPA",
     ];
 
     for (const metric of METRICS) {
@@ -99,10 +109,34 @@ describe("Kubernetes metrics name the workload kind they are about", () => {
     }
   });
 
+  test("every HPA metric is about an HPA, and a name is read as the HPA's own", () => {
+    const hpaMetrics: Array<KubernetesMetricDefinition> = METRICS.filter(
+      (metric: KubernetesMetricDefinition) => {
+        return metric.category === "HPA";
+      },
+    );
+
+    expect(hpaMetrics.length).toBe(4);
+
+    for (const metric of hpaMetrics) {
+      expect({ id: metric.id, workloadKind: metric.workloadKind }).toEqual({
+        id: metric.id,
+        workloadKind: "hpa",
+      });
+      expect(metric.metricName).toMatch(/^k8s\.hpa\./);
+      expect(
+        MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+          workloadType: metric.workloadKind,
+          workloadName: "web",
+        }),
+      ).toBe("resource.k8s.hpa.name");
+    }
+  });
+
   test.each(METRICS)(
     "$id: a metric named for a workload kind has that kind",
     (metric: KubernetesMetricDefinition) => {
-      // k8s.job.*, k8s.deployment.*, ..., k8s.cronjob.*: the kind, or none.
+      // k8s.job.*, k8s.deployment.*, ..., k8s.hpa.*: the kind, or none.
       expect({ id: metric.id, workloadKind: metric.workloadKind }).toEqual({
         id: metric.id,
         workloadKind: getKindTheNameSays(metric),
@@ -117,7 +151,10 @@ describe("Kubernetes metrics name the workload kind they are about", () => {
       }
 
       expect(OFFERED_KINDS).toContain(metric.workloadKind);
-      expect(metric.category).toBe("Workload");
+      // An HPA's metrics have a category of their own.
+      expect(metric.category).toBe(
+        metric.workloadKind === "hpa" ? "HPA" : "Workload",
+      );
       expect(metric.defaultResourceScope).toBe(
         KubernetesResourceScope.Workload,
       );

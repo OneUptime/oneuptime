@@ -7,6 +7,7 @@ import {
 } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import MonitorStepKubernetesMonitor, {
   KUBERNETES_WORKLOAD_KINDS,
+  KUBERNETES_WORKLOAD_SCOPE_KINDS,
   KubernetesResourceScope,
   MonitorStepKubernetesMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
@@ -19,19 +20,22 @@ import ObjectID from "../../../Types/ObjectID";
  * Failures scoped to "nightly-export" filters on the Job's name. The field
  * used to start on Deployment for every template, and a Job Failures monitor
  * scoped to one Job read nothing until the person noticed and picked "Job".
+ * HPA Saturated at Max Replicas had no kind it could start on: its metrics
+ * carry the HPA's own name, and no Workload Kind named an HPA.
  */
 
 const EXPECTED_WORKLOAD_KINDS: Record<string, string> = {
   "k8s-deployment-replica-mismatch": "deployment",
   "k8s-job-failures": "job",
   "k8s-daemonset-unavailable": "daemonset",
+  "k8s-hpa-at-max-replicas": "hpa",
 };
 
-// Templates with a Workload scope that watch no one kind, and why.
-const WORKLOAD_SCOPED_WITHOUT_A_KIND: Record<string, string> = {
-  "k8s-hpa-at-max-replicas":
-    "An HPA is not one of the workload kinds; its metrics carry the HPA's own name.",
-};
+/*
+ * Templates with a Workload scope that watch no one kind, and why. None
+ * since the HPA got a kind of its own.
+ */
+const WORKLOAD_SCOPED_WITHOUT_A_KIND: Record<string, string> = {};
 
 const ARGS: KubernetesAlertTemplateArgs = {
   clusterIdentifier: "prod",
@@ -49,9 +53,9 @@ function getKubernetesMonitor(
 }
 
 /*
- * The workload kinds a template's queries name: a metric of the kind
- * (`k8s.job.failed_pods.increase`), or a filter or group-by key on the
- * kind's name (`resource.k8s.job.name`).
+ * The kinds a template's queries name: a metric of the kind
+ * (`k8s.job.failed_pods.increase`, `k8s.hpa.max_replicas`), or a filter or
+ * group-by key on the kind's name (`resource.k8s.job.name`).
  */
 function getKindsTheQueriesName(
   template: KubernetesAlertTemplate,
@@ -67,7 +71,7 @@ function getKindsTheQueriesName(
       ...(queryConfig.metricQueryData.groupByAttributeKeys || []),
     ];
 
-    for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+    for (const kind of KUBERNETES_WORKLOAD_SCOPE_KINDS) {
       if (
         metricName.startsWith(`k8s.${kind.value}.`) ||
         keys.includes(`resource.k8s.${kind.value}.name`)
@@ -138,7 +142,7 @@ describe("Kubernetes templates name the workload kind they watch", () => {
   );
 
   test("a template's kind is one the Workload Kind field offers, on a Workload scope", () => {
-    const offered: Array<string> = KUBERNETES_WORKLOAD_KINDS.map(
+    const offered: Array<string> = KUBERNETES_WORKLOAD_SCOPE_KINDS.map(
       (kind: { value: string }) => {
         return kind.value;
       },
@@ -173,6 +177,47 @@ describe("Kubernetes templates name the workload kind they watch", () => {
         expect(queryConfig.metricQueryData.groupByAttributeKeys).toContain(key);
       }
     }
+  });
+
+  test("HPA Saturated at Max Replicas: a name is read as the HPA's own, which its series carry and its alerts are grouped by", () => {
+    const template: KubernetesAlertTemplate = getKubernetesAlertTemplateById(
+      "k8s-hpa-at-max-replicas",
+    )!;
+    const monitor: MonitorStepKubernetesMonitor =
+      getKubernetesMonitor(template);
+
+    expect(template.workloadKind).toBe("hpa");
+    expect(monitor.resourceScope).toBe(KubernetesResourceScope.Workload);
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+        workloadType: template.workloadKind,
+        workloadName: "web",
+      }),
+    ).toBe("resource.k8s.hpa.name");
+
+    // Every query reads an HPA's own metric, per HPA.
+    for (const queryConfig of monitor.metricViewConfig
+      .queryConfigs as Array<MetricQueryConfigData>) {
+      expect(queryConfig.metricQueryData.filterData.metricName).toMatch(
+        /^k8s\.hpa\./,
+      );
+      expect(queryConfig.metricQueryData.groupByAttributeKeys).toContain(
+        "resource.k8s.hpa.name",
+      );
+    }
+  });
+
+  test("the field offers every workload kind, then HorizontalPodAutoscaler, which no pod belongs to", () => {
+    expect(KUBERNETES_WORKLOAD_SCOPE_KINDS).toEqual([
+      ...KUBERNETES_WORKLOAD_KINDS,
+      { label: "HorizontalPodAutoscaler", value: "hpa" },
+    ]);
+    // A pod's workloads, which the agent gives pod and container metrics.
+    expect(
+      KUBERNETES_WORKLOAD_KINDS.map((kind: { value: string }) => {
+        return kind.value;
+      }),
+    ).not.toContain("hpa");
   });
 
   test("the reasons name only templates that exist, have a Workload scope and no kind", () => {
