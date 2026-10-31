@@ -43,10 +43,6 @@ import { DASHBOARD_AUTO_REFRESH_FALLBACK } from "Common/Types/Dashboard/Dashboar
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 
 /*
- * The toolbar's main row; the box at its end that holds the controls and
- * the ⋯ menu; and the controls.
- */
-/*
  * The dashboard's name and its description, each on one line: as wide as
  * its words, up to its line, and cut short at its own end - an English name
  * on a Persian page keeps its start in view. The line it sits on puts it on
@@ -55,6 +51,10 @@ import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 export const DASHBOARD_TOOLBAR_TEXT_CLASS_NAME: string =
   "inline-block max-w-full truncate align-top";
 
+/*
+ * The toolbar's main row; the box at its end that holds the controls and
+ * the ⋯ menu; and the controls.
+ */
 export const DASHBOARD_TOOLBAR_ROW_TEST_ID: string = "dashboard-toolbar-row";
 export const DASHBOARD_TOOLBAR_END_TEST_ID: string = "dashboard-toolbar-end";
 export const DASHBOARD_TOOLBAR_CONTROLS_TEST_ID: string =
