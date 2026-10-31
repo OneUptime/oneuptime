@@ -1029,7 +1029,134 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
     }
   });
+
+  /*
+   * What the restarts and Job failures increases carry, and what a Workload
+   * scope watches: said where the English page says it, with the same
+   * names, code and links.
+   */
+  it("says what a Workload scope watches, under the scope table, as the English page does", () => {
+    for (const markdown of [
+      englishPage(KUBERNETES),
+      readPage(language, KUBERNETES),
+    ]) {
+      const between: Array<string> = afterScopeTable(markdown);
+
+      expect({ language, paragraphs: between.length }).toEqual({
+        language,
+        paragraphs: 1,
+      });
+      // The names of the workloads stay as Kubernetes writes them.
+      for (const name of ["Deployment", "ReplicaSet", "Job"]) {
+        expect(between[0]).toContain(name);
+      }
+    }
+  });
+
+  it("says the increases carry what the counts carry, naming each count, as the English page does", () => {
+    const note: (markdown: string) => string = (markdown: string): string => {
+      return (
+        markdown.split("\n").find((line: string): boolean => {
+          return line.includes("**Job Failed Pods (Increase)**");
+        }) || ""
+      );
+    };
+    const english: string = note(englishPage(KUBERNETES));
+    const translated: string = note(readPage(language, KUBERNETES));
+
+    for (const name of ["**Container Restarts**", "**Job Failed Pods**"]) {
+      expect({ name, times: occurrences(translated, name) }).toEqual({
+        name,
+        times: occurrences(english, name),
+      });
+    }
+    expect(occurrences(english, "**Container Restarts**")).toBe(2);
+    expect(occurrences(english, "**Job Failed Pods**")).toBe(2);
+  });
+
+  it("says in the troubleshooting entries what a monitor scoped to a workload needs, as the English page does", () => {
+    for (const [code, mentions] of [
+      [
+        "`k8s.container.restarts.increase`",
+        "](/docs/monitor/kubernetes-agent#",
+      ],
+      ["`k8s.job.failed_pods.increase`", "CronJob"],
+    ] as Array<[string, string]>) {
+      const english: string = troubleshootingEntry(
+        englishPage(KUBERNETES),
+        code,
+      );
+      const translated: string = troubleshootingEntry(
+        readPage(language, KUBERNETES),
+        code,
+      );
+
+      expect({
+        code,
+        mentions,
+        times: occurrences(translated, mentions),
+      }).toEqual({
+        code,
+        mentions,
+        times: occurrences(english, mentions),
+      });
+      expect(occurrences(translated, code)).toBe(occurrences(english, code));
+    }
+  });
 });
+
+function occurrences(text: string, part: string): number {
+  return text.split(part).length - 1;
+}
+
+/*
+ * The paragraphs between the Resource scope table - the one table whose
+ * Cluster row has no filter, a dash - and the heading after it.
+ */
+function afterScopeTable(markdown: string): Array<string> {
+  const lines: Array<string> = markdown.split("\n");
+  const clusterRow: number = lines.findIndex((line: string): boolean => {
+    return line.startsWith("| ") && line.endsWith(" | — |");
+  });
+  expect(clusterRow).toBeGreaterThan(-1);
+  let at: number = clusterRow;
+
+  while (at < lines.length && (lines[at] as string).startsWith("| ")) {
+    at++;
+  }
+
+  const paragraphs: Array<string> = [];
+
+  for (; at < lines.length; at++) {
+    const line: string = lines[at] as string;
+
+    if (line.startsWith("#")) {
+      break;
+    }
+    if (line.trim()) {
+      paragraphs.push(line);
+    }
+  }
+
+  return paragraphs;
+}
+
+// The :::details troubleshooting entry that names `code` and the allowlist.
+function troubleshootingEntry(markdown: string, code: string): string {
+  return (
+    markdown
+      .split(":::details ")
+      .slice(1)
+      .map((entry: string): string => {
+        return entry.substring(0, entry.indexOf("\n:::"));
+      })
+      .find((entry: string): boolean => {
+        return (
+          entry.includes(code) && entry.includes("`filters.metrics.include`")
+        );
+      }) || ""
+  );
+}
 
 /*
  * The comparisons are the shared ones (DocsTranslationChecks); these pages
