@@ -85,13 +85,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| 容器 | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| 容器 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**Node Ready Condition** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时告警。
+> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**Node Ready Condition** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时告警。 **Container Restarts** 是容器的累计重启计数；**Container Restarts (Increase)** 是代理随每个样本发送的值，即自它上一次采样该容器以来的重启次数，所以它在一个窗口内的总和就是该窗口内的重启次数。
 
 ## 监控条件
 
@@ -158,7 +158,10 @@ flowchart TB
 **Cluster Stopped Reporting** 会在集群的代理 10 分钟内没有任何数据到达时触发：代理被卸载或不断崩溃、它的 API 密钥被撤销、它失去了通往 OneUptime 的路由，或者集群的 API 服务器不再响应它。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** 和 **Job Failures** 统计的是重启计数或失败 Pod 计数在窗口内增长了多少，而不是计数本身，因此重启或失败停止后会自动恢复。增长只能在同一分钟的两个样本之间看到：在代理 30 秒的间隔下大约是一半。崩溃循环会一再重启并被捕获；单次重启可能被漏掉。
+> **CrashLoopBackOff Detection** 累加代理随每个样本发送的 `k8s.container.restarts.increase`，即自它上一次采样该容器以来的重启次数。因此无论样本相隔多远，它都会计入每一次重启；重启停止后会自动恢复；重新创建的 Pod 会从头计数，而不会被当作重启。旧版代理不发送 `k8s.container.restarts.increase`：请先[升级代理](/docs/monitor/kubernetes-agent#升级)。在此之前用该模板创建的监控读取的是 `k8s.container.restarts` 在每一分钟内增长了多少，会漏掉崩溃循环约一半的重启：请删除它并重新用模板创建。
+
+> [!NOTE]
+> **Job Failures** 统计的是 Job 的失败 Pod 计数在窗口内增长了多少，而不是计数本身，因此失败停止后会自动恢复。增长只能在同一分钟的两个样本之间看到：在代理 30 秒的间隔下大约是一半。用尽重试次数的 Job 会被捕获；单次失败可能被漏掉。
 
 ### 捕捉原因，而不仅仅是症状
 
@@ -187,7 +190,7 @@ flowchart TB
 :::
 
 :::details CrashLoopBackOff Detection 没有因一次重启而触发
-当容器的重启计数在 15 分钟内增长、且容器在其中不到一半的时间处于就绪状态时，该模板触发；因此重启一次后立即恢复的容器不会告警。增长只能在同一分钟的两个样本之间看到，所以单次重启可能被漏掉；每隔几分钟就重启的崩溃循环会被捕获。
+当容器在 15 分钟内重启、且它在其中不到一半的时间处于就绪状态时，该模板触发；因此重启一次后立即恢复的容器不会告警。该模板读取 `k8s.container.restarts.increase`，而旧版代理不发送它：请[升级代理](/docs/monitor/kubernetes-agent#升级)。在此之前用该模板创建的监控读取的是 `k8s.container.restarts` 在同一分钟的两个样本之间增长了多少，会漏掉跨两分钟的样本之间的重启：请删除它并重新用模板创建。如果 `filters.metrics.include` 列出了代理要发送的指标，请把 `k8s.container.restarts.increase` 加进去。
 :::
 
 ## 后续步骤

@@ -198,6 +198,24 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Cluster,
     unit: "count",
   },
+  /*
+   * What to alert on for restarts: the agent sends, with each sample, the
+   * restarts since its previous sample of the container (the chart's
+   * metrics/restarts-increase pipeline), so their Sum over a window is the
+   * restarts in it - what CrashLoopBackOff Detection reads.
+   * k8s.container.restarts above is the running total, for the charts.
+   */
+  {
+    id: "container-restarts-increase",
+    friendlyName: "Container Restarts (Increase)",
+    description:
+      "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+    metricName: "k8s.container.restarts.increase",
+    category: "Container",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: "count",
+  },
   {
     id: "container-cpu-limit",
     friendlyName: "Container CPU Limit",

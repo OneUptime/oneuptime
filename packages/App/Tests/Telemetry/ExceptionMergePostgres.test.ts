@@ -15,6 +15,7 @@ import TelemetryExceptionMerge, {
 } from "Common/Server/Utils/Telemetry/TelemetryExceptionMerge";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { DataSource, EntityManager } from "Common/node_modules/typeorm";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
@@ -243,6 +244,12 @@ describePostgres("merging exceptions against Postgres", () => {
         }
         return data.entries.length;
       }) as never);
+
+    /*
+     * No ClickHouse here: an unmerge finds none of the survivor's own
+     * occurrences unless a test says when they were seen.
+     */
+    jest.spyOn(TelemetryExceptionMerge, "readOwnSeen").mockResolvedValue(null);
 
     await database.query(`DELETE FROM "${schema}"."TelemetryException"`);
   });
@@ -485,5 +492,109 @@ describePostgres("merging exceptions against Postgres", () => {
 
       expect([step, problems]).toEqual([step, []]);
     }
+  });
+
+  /*
+   * The list narrowed by an attribute filter, a link from a span or a log
+   * and the API look exceptions up by the fingerprints of occurrences: a
+   * merged exception's fingerprint finds the exception it was merged into
+   * (TelemetryExceptionService.withMergedFingerprintAliases), through the
+   * service's own read of this schema.
+   */
+  test("a merged exception's fingerprint finds the exception it was merged into", async () => {
+    jest
+      .spyOn(TelemetryExceptionService, "getRepository")
+      .mockReturnValue(database.getRepository(TelemetryException) as never);
+
+    await ingest(["a", "b", "c"]);
+    await merge("a", ["b"]);
+
+    async function lookUp(fingerprints: Array<string>): Promise<Array<string>> {
+      const found: Array<TelemetryException> =
+        await TelemetryExceptionService.findBy({
+          query: {
+            projectId,
+            fingerprint: new Includes(fingerprints),
+          },
+          select: { fingerprint: true },
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      return found
+        .map((row: TelemetryException): string => {
+          return row.fingerprint || "";
+        })
+        .sort();
+    }
+
+    // The occurrences of b count on a: the list shows a for them.
+    expect(await lookUp(["b"])).toEqual(["a"]);
+    expect(await lookUp(["b", "c"])).toEqual(["a", "c"]);
+    expect(
+      (
+        await TelemetryExceptionService.countBy({
+          query: { projectId, fingerprint: "b" },
+          props: { isRoot: true },
+        })
+      ).positiveNumber,
+    ).toBe(1);
+
+    // Unmerged, b's fingerprint is its own again.
+    await unmerge("b");
+    expect(await lookUp(["b"])).toEqual(["b"]);
+  });
+
+  test("an unmerge gives the survivor back its own first and last seen", async () => {
+    const day: (n: number) => Date = (n: number): Date => {
+      return new Date(Date.UTC(2026, 9, 1 + n));
+    };
+
+    // a was seen on days 5 and 20, b on days 1 and 25.
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
+      { ...occurrence("a"), occurredAt: day(5) },
+      { ...occurrence("a"), occurredAt: day(20) },
+      { ...occurrence("b"), occurredAt: day(1) },
+      { ...occurrence("b"), occurredAt: day(25) },
+    ]);
+
+    await merge("a", ["b"]);
+
+    async function seen(fingerprint: string): Promise<[string, string]> {
+      const [found]: Array<{ firstSeenAt: Date; lastSeenAt: Date }> =
+        await database.query(
+          `SELECT "firstSeenAt", "lastSeenAt" FROM "${schema}"."TelemetryException" WHERE "fingerprint" = $1`,
+          [fingerprint],
+        );
+      return [
+        new Date(found!.firstSeenAt).toISOString(),
+        new Date(found!.lastSeenAt).toISOString(),
+      ];
+    }
+
+    expect(await seen("a")).toEqual([
+      day(1).toISOString(),
+      day(25).toISOString(),
+    ]);
+
+    // ClickHouse holds a's own occurrences, by a's fingerprint.
+    jest.spyOn(TelemetryExceptionMerge, "readOwnSeen").mockResolvedValue({
+      firstSeenAt: day(5),
+      lastSeenAt: day(20),
+      firstSeenInRelease: null,
+      lastSeenInRelease: null,
+    });
+
+    expect(await unmerge("b")).toBe(ExceptionUnmergeOutcome.Unmerged);
+    expect(await seen("a")).toEqual([
+      day(5).toISOString(),
+      day(20).toISOString(),
+    ]);
+    // b keeps its own, as it always did.
+    expect(await seen("b")).toEqual([
+      day(1).toISOString(),
+      day(25).toISOString(),
+    ]);
   });
 });

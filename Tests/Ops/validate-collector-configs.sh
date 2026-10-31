@@ -317,6 +317,30 @@ if (found === 0) {
 }
 ' "${WORK_DIR}/kubernetes-agent.rendered.yaml" "${WORK_DIR}" >"${WORK_DIR}/k8s-configs.txt"
 
+# The cluster collector's metrics/restarts-increase pipeline (the restarts
+# CrashLoopBackOff Detection sums) is in what is validated, its gauge made a
+# sum in metric context: that is where the collector the chart pins has
+# convert_gauge_to_sum.
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [config] = process.argv.slice(1);
+const collector = yaml.load(fs.readFileSync(config, "utf8"));
+const contexts = (collector.processors["transform/restarts-increase"] || { metric_statements: [] })
+  .metric_statements.filter((group) => {
+    return group.statements.some((statement) => {
+      return statement.startsWith("convert_gauge_to_sum(");
+    });
+  })
+  .map((group) => {
+    return group.context;
+  });
+if (!collector.service.pipelines["metrics/restarts-increase"] || contexts.join(",") !== "metric") {
+  throw new Error(`${config}: no metrics/restarts-increase pipeline converting its gauge in metric context`);
+}
+' "${WORK_DIR}/k8s-validate-kubernetes-agent-deployment.yaml"
+
 while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
@@ -387,6 +411,18 @@ for (const role of ["deployment", "daemonset"]) {
   }
   const config = yaml.load(configMap.data["otel-collector-config.yaml"]);
   if (role === "deployment") {
+    // Before 0.108.0 convert_gauge_to_sum is a datapoint function, so the
+    // restarts pipeline converts its gauge there on this collector.
+    const transform = config.processors["transform/restarts-increase"];
+    if (
+      !config.service.pipelines["metrics/restarts-increase"] ||
+      !transform ||
+      !transform.metric_statements.some((group) => {
+        return group.context === "datapoint";
+      })
+    ) {
+      throw new Error(`${rendered}: no metrics/restarts-increase pipeline converting its gauge in datapoint context`);
+    }
     if (!config.receivers.k8sobjects) {
       throw new Error(`${rendered}: the Deployment config has no k8sobjects receiver to set aside`);
     }
