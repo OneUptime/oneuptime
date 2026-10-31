@@ -39012,5 +39012,5 @@
   "Release to add them.": "برای افزودن، رها کنید.",
   "Chosen files": "فایل‌های انتخاب‌شده",
   "Click to choose a file or drag & drop.": "برای انتخاب فایل کلیک کنید یا آن را بکشید و رها کنید.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید."
 }

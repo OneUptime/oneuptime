@@ -6,9 +6,17 @@ import {
   getCephMetricById,
   getCephMetricByMetricName,
   getCephMetricsByCategory,
+  getCephCustomMetricAggregations,
+  getCephGroupByKeyForScope,
 } from "../../../Types/Monitor/CephMetricCatalog";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import { CephResourceScope } from "../../../Types/Monitor/MonitorStepCephMonitor";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { describe, expect, test } from "@jest/globals";
+
+const SAYS_SUM_COUNTS: RegExp = /sum (it )?to count|sum across|sum to count/i;
+const SAYS_GROUP_BY_POOL: RegExp = /group (both )?by pool_id/i;
+const SAYS_ADVANCED: RegExp = /Advanced/;
 
 describe("CephMetricCatalog", () => {
   const allMetrics: Array<CephMetricDefinition> = getAllCephMetrics();
@@ -123,9 +131,7 @@ describe("CephMetricCatalog - defaults that do not add scrapes together (regress
     for (const metric of getAllCephMetrics()) {
       expect({
         id: metric.id,
-        says: /sum (it )?to count|sum across|sum to count/i.test(
-          metric.description,
-        ),
+        says: SAYS_SUM_COUNTS.test(metric.description),
       }).toEqual({ id: metric.id, says: false });
     }
   });
@@ -137,5 +143,102 @@ describe("CephMetricCatalog - defaults that do not add scrapes together (regress
       expect(metric?.defaultAggregation).toBe("Min");
       expect(metric?.description).toContain("the minimum reads 0");
     }
+  });
+});
+
+/*
+ * A Custom Metric is judged pool by pool or daemon by daemon, as the
+ * templates are: ungrouped, a per-pool or per-OSD metric pooled the whole
+ * cluster into one value, and the catalog told users to group by pool_id
+ * in a form that could not. And it offers no Sum or Count, which add up
+ * the 2 to 3 scrapes in every minute.
+ */
+describe("Ceph Custom Metric: grouping and aggregations", () => {
+  test("a per-pool metric groups by pool_id, a per-daemon one by ceph_daemon, a cluster one not at all", () => {
+    expect(getCephGroupByKeyForScope(CephResourceScope.Pool)).toBe("pool_id");
+    expect(getCephGroupByKeyForScope(CephResourceScope.Osd)).toBe(
+      "ceph_daemon",
+    );
+    expect(getCephGroupByKeyForScope(CephResourceScope.Mon)).toBe(
+      "ceph_daemon",
+    );
+    expect(getCephGroupByKeyForScope(CephResourceScope.Cluster)).toBe(
+      undefined,
+    );
+  });
+
+  test("the placement-group metrics are per pool, and OSD Up and quorum per daemon", () => {
+    for (const metricName of [
+      "ceph_pg_total",
+      "ceph_pg_active",
+      "ceph_pg_clean",
+      "ceph_pg_degraded",
+      "ceph_pg_undersized",
+    ]) {
+      expect(
+        getCephGroupByKeyForScope(
+          getCephMetricByMetricName(metricName)?.defaultResourceScope,
+        ),
+      ).toBe("pool_id");
+    }
+
+    for (const metricName of [
+      "ceph_osd_up",
+      "ceph_osd_in",
+      "ceph_mon_quorum_status",
+    ]) {
+      expect(
+        getCephGroupByKeyForScope(
+          getCephMetricByMetricName(metricName)?.defaultResourceScope,
+        ),
+      ).toBe("ceph_daemon");
+    }
+  });
+
+  test("no description sends a Custom Metric to a group-by it does not have", () => {
+    for (const metric of getAllCephMetrics()) {
+      if (SAYS_GROUP_BY_POOL.test(metric.description)) {
+        expect({ id: metric.id, saysAdvanced: true }).toEqual({
+          id: metric.id,
+          saysAdvanced: SAYS_ADVANCED.test(metric.description),
+        });
+      }
+    }
+  });
+
+  test("Sum and Count are not offered, but a monitor saved with one keeps it", () => {
+    expect(getCephCustomMetricAggregations(undefined)).toEqual([
+      MetricsAggregationType.Avg,
+      MetricsAggregationType.Max,
+      MetricsAggregationType.Min,
+    ]);
+    expect(
+      getCephCustomMetricAggregations(MetricsAggregationType.Min),
+    ).toHaveLength(3);
+    expect(getCephCustomMetricAggregations(MetricsAggregationType.Sum)).toEqual(
+      [
+        MetricsAggregationType.Avg,
+        MetricsAggregationType.Max,
+        MetricsAggregationType.Min,
+        MetricsAggregationType.Sum,
+      ],
+    );
+  });
+
+  test("no catalog metric defaults to an aggregation the form does not offer", () => {
+    for (const metric of getAllCephMetrics()) {
+      expect({
+        id: metric.id,
+        offered: getCephCustomMetricAggregations(undefined).includes(
+          metric.defaultAggregation,
+        ),
+      }).toEqual({ id: metric.id, offered: true });
+    }
+  });
+
+  test("the health-check metric says a cleared check reads 0", () => {
+    expect(
+      getCephMetricByMetricName("ceph_health_detail")?.description,
+    ).toContain("0 after it clears");
   });
 });

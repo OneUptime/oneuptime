@@ -39012,5 +39012,5 @@
   "Release to add them.": "放開即可新增。",
   "Chosen files": "已選檔案",
   "Click to choose a file or drag & drop.": "按一下以選擇一個檔案，或將檔案拖放到此處。",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} 將成為此例外的一部分：它已有的和新的出現都計入這裡，並從清單中移除。您可以在它的頁面上取消合併。"
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} 將成為此例外的一部分：它已有的和新的出現都計入這裡，並從清單中移除。您可以在它的頁面上取消合併。"
 }

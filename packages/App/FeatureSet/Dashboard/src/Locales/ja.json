@@ -39012,5 +39012,5 @@
   "Release to add them.": "離すと追加されます。",
   "Chosen files": "選択したファイル",
   "Click to choose a file or drag & drop.": "クリックしてファイルを1つ選択するか、ドラッグ＆ドロップしてください。",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。"
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。"
 }

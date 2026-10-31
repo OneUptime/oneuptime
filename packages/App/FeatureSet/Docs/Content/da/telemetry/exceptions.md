@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Talt igen; genåbnet,<br/>hvis den var løst"]
 ```
 
-- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse.
+- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse. En ny undtagelse grupperes i stedet efter sin type og funktionerne og filerne i din egen kode i sin stack trace: linjenumre, biblioteksframes og beskeden udelades, så varianter kastet fra den samme kode er én undtagelse. Uden stack trace grupperer beskeden den, som ovenfor. Undtagelser registreret før denne gruppering beholder deres.
 - **En ny forekomst genåbner en løst undtagelse.** Sker den igen, efter at du har løst den, holdt rettelsen ikke, og undtagelsen markeres som **Regression**. En forekomst fra før du løste den, som først når OneUptime senere, genåbner den ikke.
 - **En arkiveret undtagelse forbliver arkiveret.** Dens nye forekomster tælles stadig, men de sender ikke længere notifikationer.
 
@@ -198,7 +198,7 @@ Tjek først visningen: **Problemer** skjuler brugerfejl og forventede afvisninge
 :::
 
 :::details Én fejl vises som flere undtagelser
-Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse.
+Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse. Nye undtagelser grupperes i stedet efter funktionerne i din egen kode, så det gælder mest undtagelser registreret før; flet to, der er den samme fejl, fra **Lignende undtagelser**.
 :::
 
 :::details En løst undtagelse bliver ved med at komme tilbage

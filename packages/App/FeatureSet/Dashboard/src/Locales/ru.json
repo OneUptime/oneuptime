@@ -39012,5 +39012,5 @@
   "Release to add them.": "Отпустите, чтобы добавить их.",
   "Chosen files": "Выбранные файлы",
   "Click to choose a file or drag & drop.": "Нажмите, чтобы выбрать файл, или перетащите его сюда.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице."
 }
