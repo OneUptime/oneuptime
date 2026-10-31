@@ -1,7 +1,12 @@
 import {
+  EXCEPTION_GROUP_FINGERPRINTS_ROUTE,
+  buildExceptionGroupFingerprintsRequests,
   getGroupFingerprints,
   getMergedFingerprints,
 } from "../../FeatureSet/Dashboard/src/Utils/ExceptionGroupFingerprints";
+import { MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP } from "Common/Types/Telemetry/ExceptionGroupFingerprints";
+import fs from "fs";
+import path from "path";
 import { buildExceptionOccurrenceQuery } from "../../FeatureSet/Dashboard/src/Utils/ExceptionDetailData";
 import { buildExceptionTrendRequest } from "../../FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation";
 import { buildExceptionTrendZoomRequest } from "../../FeatureSet/Dashboard/src/Components/Exceptions/ExceptionTrendZoom";
@@ -132,5 +137,79 @@ describe("the occurrence queries of the page", () => {
     });
 
     expect(request!["fingerprints"]).toEqual(["own"]);
+  });
+});
+
+/*
+ * What the page holds only by id - the security events above an
+ * exception's Overview, the Exceptions monitor form's preview of resolved
+ * ones - is asked of the server (POST /telemetry-exception/group-fingerprints,
+ * TelemetryExceptionService.getGroupFingerprints): each id once, ids only,
+ * in requests the server takes.
+ */
+describe("asking for the group fingerprints of exceptions held by id", () => {
+  const A: string = "30000000-0000-4000-8000-00000000000a";
+  const B: string = "30000000-0000-4000-8000-00000000000b";
+
+  test("each id once, as given, ids only", () => {
+    expect(
+      buildExceptionGroupFingerprintsRequests([
+        A,
+        ` ${B} `,
+        A.toUpperCase(),
+        "not-an-id",
+        "",
+        7 as unknown as string,
+      ]),
+    ).toEqual([{ telemetryExceptionIds: [A, B] }]);
+  });
+
+  test("nothing to ask about is no request", () => {
+    expect(buildExceptionGroupFingerprintsRequests([])).toEqual([]);
+    expect(buildExceptionGroupFingerprintsRequests(["nope"])).toEqual([]);
+  });
+
+  test(`at most ${MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP} to a request, every one asked`, () => {
+    const ids: Array<string> = Array.from(
+      { length: MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP * 2 + 1 },
+      (): string => {
+        return ObjectID.generate().toString();
+      },
+    );
+
+    const requests: Array<JSONObject> =
+      buildExceptionGroupFingerprintsRequests(ids);
+
+    expect(
+      requests.map((request: JSONObject): number => {
+        return (request["telemetryExceptionIds"] as Array<string>).length;
+      }),
+    ).toEqual([
+      MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP,
+      MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP,
+      1,
+    ]);
+    expect(
+      requests.flatMap((request: JSONObject): Array<string> => {
+        return request["telemetryExceptionIds"] as Array<string>;
+      }),
+    ).toEqual(ids);
+  });
+
+  test("the route is the one the server serves", () => {
+    const api: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../Common/Server/API/TelemetryExceptionAPI.ts",
+      ),
+      "utf8",
+    );
+
+    expect(EXCEPTION_GROUP_FINGERPRINTS_ROUTE).toBe(
+      `${new TelemetryException().getCrudApiPath()?.toString()}/group-fingerprints`,
+    );
+    expect(api).toContain(
+      "`${new this.entityType().getCrudApiPath()?.toString()}/group-fingerprints`",
+    );
   });
 });

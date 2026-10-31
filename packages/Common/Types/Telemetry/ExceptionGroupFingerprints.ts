@@ -66,3 +66,76 @@ export function getOccurrenceFingerprintQuery(
     ? fingerprints[0]!
     : new Includes([...fingerprints]);
 }
+
+/*
+ * THE GROUP FINGERPRINTS OF SOME EXCEPTIONS, FROM THE DASHBOARD.
+ *
+ * POST /telemetry-exception/group-fingerprints with { telemetryExceptionIds }
+ * answers { exceptions: [{ telemetryExceptionId, fingerprints }] }: each
+ * exception the reader may read, in the order asked, with its group's
+ * fingerprints (TelemetryExceptionService.getGroupFingerprints). What an
+ * exception's page reads its security events by, and what the Exceptions
+ * monitor form's preview leaves out with a resolved or archived exception.
+ * The server writes it; the Dashboard reads it back defensively.
+ */
+
+/*
+ * The most exceptions one request asks about: as many as the Exceptions
+ * monitor form's preview leaves out of each status.
+ */
+export const MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP: number = 1000;
+
+// An exception asked about, and the fingerprints its occurrences carry.
+export interface ExceptionGroupFingerprintsOfException {
+  telemetryExceptionId: string;
+  // Its own first, then those merged into it.
+  fingerprints: Array<string>;
+}
+
+/*
+ * The answer's entries, in its order, leaving out any that is not one: an
+ * exception without an id, or without a fingerprint. Each one's
+ * fingerprints are held to the group's bound.
+ */
+export function readExceptionGroupFingerprints(
+  value: unknown,
+): Array<ExceptionGroupFingerprintsOfException> {
+  const exceptions: unknown =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)["exceptions"]
+      : undefined;
+
+  if (!Array.isArray(exceptions)) {
+    return [];
+  }
+
+  const read: Array<ExceptionGroupFingerprintsOfException> = [];
+
+  for (const entry of exceptions) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+
+    const record: Record<string, unknown> = entry as Record<string, unknown>;
+    const telemetryExceptionId: string =
+      typeof record["telemetryExceptionId"] === "string"
+        ? record["telemetryExceptionId"].trim()
+        : "";
+    const given: Array<unknown> = Array.isArray(record["fingerprints"])
+      ? (record["fingerprints"] as Array<unknown>)
+      : [];
+    // Its own comes first: without it, the entry is not one.
+    const own: string = typeof given[0] === "string" ? given[0] : "";
+
+    if (!telemetryExceptionId || !own) {
+      continue;
+    }
+
+    read.push({
+      telemetryExceptionId,
+      fingerprints: toExceptionGroupFingerprints(own, given.slice(1)),
+    });
+  }
+
+  return read;
+}
