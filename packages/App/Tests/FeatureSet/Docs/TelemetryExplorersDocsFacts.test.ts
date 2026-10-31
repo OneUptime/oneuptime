@@ -1186,8 +1186,10 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
       "Depth",
     ]);
     expect(firstColumn(section(page, "## Read a trace"))).toEqual(numbers);
-    expect(header).toContain(
-      'title="Show only the spans with an error status"',
+    // Each number is drawn in the reader's language, the Errors one's tooltip too.
+    expect(header).toContain("{translator.translateText(stat.label)}");
+    expect(header.replace(/\s+/g, " ")).toContain(
+      'title={translator.translateText( "Show only the spans with an error status", )}',
     );
 
     const views: string = between(
@@ -1211,8 +1213,15 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
       "Service map",
       "Operations",
     ]);
-    expect(traceExplorer).toContain("Critical path");
-    expect(traceExplorer).toContain("Errors only");
+    // Drawn in the reader's language, as every translation names them.
+    expect(traceExplorer).toContain('translator.translateText("Critical path")');
+    expect(traceExplorer).toContain('translator.translateText("Errors only")');
+    expect(page).toContain(
+      "Turn on **Critical path** to highlight the chain of spans that decided how long the request took.",
+    );
+    expect(page).toContain(
+      "turn on **Errors only** to keep only the spans that failed.",
+    );
   });
 
   it("marks an operation called 10 or more times from one parent, and loads 500 spans at a time", () => {
@@ -2829,9 +2838,15 @@ describe("the explorers together", () => {
       "Root spans": "common:Types/Telemetry/TraceSpanType.ts",
       "All spans": "common:Types/Telemetry/TraceSpanType.ts",
       "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
-      "Critical path": "Components/Traces/TraceExplorer.tsx",
-      "Errors only": "Components/Traces/TraceExplorer.tsx",
     };
+
+    // The trace page's own toggles are keys now, drawn in every language.
+    for (const word of ["Critical path", "Errors only"]) {
+      expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
+        word,
+        isKey: true,
+      });
+    }
     const readDrawnIn: (source: string) => string = (
       source: string,
     ): string => {

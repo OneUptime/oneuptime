@@ -81,12 +81,12 @@ Sotto, scegliete una di quattro viste:
 
 | Vista | Cosa mostra |
 | --- | --- |
-| **Waterfall** | Ogni span su una linea temporale, annidato sotto lo span che lo ha avviato. Attivate **Critical path** per evidenziare la catena di span che ha deciso quanto è durata la richiesta. |
+| **Cascata** | Ogni span su una linea temporale, annidato sotto lo span che lo ha avviato. Attivate **Percorso critico** per evidenziare la catena di span che ha deciso quanto è durata la richiesta. |
 | **Flame graph** | Lo stesso albero come barre impilate, dove le barre più larghe hanno impiegato più tempo. |
-| **Service map** | I servizi per cui è passata la richiesta e le chiamate tra di loro. |
-| **Operations** | Una riga per servizio e nome di span, con chiamate, errori, tempo proprio e tempo totale. Un'operazione chiamata 10 o più volte da uno stesso span padre viene segnalata: spesso una query N+1 o un ciclo che si potrebbe raggruppare. |
+| **Mappa dei servizi** | I servizi per cui è passata la richiesta e le chiamate tra di loro. |
+| **Operazioni** | Una riga per servizio e nome di span, con chiamate, errori, tempo proprio e tempo totale. Un'operazione chiamata 10 o più volte da uno stesso span padre viene segnalata: spesso una query N+1 o un ciclo che si potrebbe raggruppare. |
 
-Fate clic su uno span in qualsiasi vista per aprirne il pannello, con schede per attributi, eventi, log, eccezioni e link, e per il suo profilo o la sua chiamata LLM quando ne ha uno. Cercate tra gli span della traccia per nome, ID o servizio con la casella di ricerca accanto alle viste (premete `/`), e attivate **Errors only** per tenere solo gli span falliti.
+Fate clic su uno span in qualsiasi vista per aprirne il pannello, con schede per attributi, eventi, log, eccezioni e link, e per il suo profilo o la sua chiamata LLM quando ne ha uno. Cercate tra gli span della traccia per nome, ID o servizio con la casella di ricerca accanto alle viste (premete `/`), e attivate **Solo errori** per tenere solo gli span falliti.
 
 Una traccia grande carica 500 span alla volta. Fate clic sul pulsante in fondo alla traccia per caricarne altri, o tutti.
 
