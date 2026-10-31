@@ -94,6 +94,7 @@ Kopieer onder **Delen** de link en stuur hem naar de mensen die het formulier mo
 | **Sjablonen** | Benoemde sets antwoorden waarmee men het formulier kan beginnen, hoe elk sjabloon de vragen stelt, het sjabloon waarmee het formulier opent en de eigen link van elk sjabloon. |
 | **Bij verzenden** | Wat elke inzending aanmaakt en hoe elk veld ervan wordt ingevuld. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt. |
 | **Delen** | **Accepteert inzendingen**, de **Deellink**, het bericht na het verzenden en, onder **Meer instellingen**, de **IP-toelatingslijst**. |
+| **Aangepaste domeinen** | De eigen domeinen van het formulier, zoals `report.acme.com`, met hun DNS-records en certificaten. Zie [Aangepaste domeinen](/docs/forms/sharing-and-security#aangepaste-domeinen). |
 | **Inzendingen** | Elke inzending via het formulier, de nieuwste eerst, met de antwoorden en wat ze heeft aangemaakt. |
 | **Formulier dupliceren** | Onder **Geavanceerd**: een kopie van het formulier, voor u benoemd, met de vragen, sjablonen, instellingen onder Bij verzenden, huisstijl, bedankbericht en IP-toelatingslijst, en een eigen link. De kopie staat eerst uit en opent in haar editor. |
 | **Formulier verwijderen** | Het verwijderen van het formulier, onder **Geavanceerd**. De inzendingen worden mee verwijderd; de incidenten en gebeurtenissen die het heeft aangemaakt niet. |
@@ -135,6 +136,10 @@ Met formulieren kunnen mensen buiten uw team incidenten en onderhoudsgebeurtenis
 | **Read Form** | Formulieren, hun vragen, instellingen en links bekijken. | De bovenstaande, plus Project Member, Viewer en de rollen voor incidenten en gepland onderhoud |
 | **Read Form Submission** | De inzendingen en hun antwoorden bekijken. | Project Owner, Project Admin |
 | **Delete Form Submission** | Inzendingen verwijderen. | Project Owner, Project Admin |
+| **Create Form Domain** | Een [aangepast domein](/docs/forms/sharing-and-security#aangepaste-domeinen) aan een formulier toevoegen. | Project Owner, Project Admin en **Edit Form** |
+| **Edit Form Domain** | De aangepaste domeinen van een formulier controleren, en hun certificaten bestellen, opnieuw laten uitgeven of wisselen. | Project Owner, Project Admin en **Edit Form** |
+| **Delete Form Domain** | De aangepaste domeinen van een formulier verwijderen. | Project Owner, Project Admin en **Edit Form** |
+| **Read Form Domain** | De aangepaste domeinen van een formulier zien, hun DNS-records en hoe ver elk is op weg naar HTTPS. | Iedereen met **Read Form** |
 
 Inzendingen bevatten wat onbekenden hebben ingetypt (namen, e-mailadressen en antwoorden die misschien nooit in het record terechtkomen), dus alleen projecteigenaren en -beheerders zien ze, tenzij u **Read Form Submission** verleent. Wie een formulier kan lezen, kan de link zien en delen. Een formulier verzenden vraagt helemaal geen machtiging. Hoe rollen en gedetailleerde machtigingen samenwerken, leest u in [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ Op OneUptime Cloud hebben formulieren het abonnement **Growth** of hoger nodig, 
 
 ## Formulieren via de API
 
-Formulieren zijn een gewone API-resource op `/api/form`, en hun inzendingen op `/api/form-submission`, die u kunt lezen en verwijderen maar niet aanmaken of bewerken. De [API-referentie](/reference) bevat de volledige vorm van aanvragen en antwoorden.
+Formulieren zijn een gewone API-resource op `/api/form`, en hun inzendingen op `/api/form-submission`, die u kunt lezen en verwijderen maar niet aanmaken of bewerken. De [API-referentie](/reference) bevat de volledige vorm van aanvragen en antwoorden. De aangepaste domeinen van een formulier staan op `/api/form-domain`.
 
 ### Vragen en instellingen
 
@@ -255,7 +260,7 @@ Formulieren hebben de gegenereerde workflowcomponenten: **On Create Form**, **On
 
 ### De eigen eindpunten van de openbare pagina
 
-De openbare pagina praat met twee routes die geen API-sleutel nodig hebben: `GET /api/form/public/<shareKey>`, die naam, beschrijving en vragen van het formulier teruggeeft (en, als die er zijn, het logo, de alternatieve tekst van het logo en de favicon, de afbeeldingen als base64, en de sjablonen, met hun antwoorden op de vragen die de pagina stelt), en `POST /api/form/public/<shareKey>/submit`, die het formulier verzendt en in `templateId` het sjabloon noemt waarmee de inzender begon. Het zijn de eigen eindpunten van de pagina, geen API om op te bouwen: elke aanroep gaat langs de beveiliging van het formulier (zie [Delen & beveiliging](/docs/forms/sharing-and-security)), en ze veranderen mee met de pagina. Gebruik `POST /api/incident` met een API-sleutel om incidenten vanuit uw eigen code aan te maken: zie [Een incident melden](/docs/incidents/declaring-incidents).
+De openbare pagina praat met twee routes die geen API-sleutel nodig hebben: `GET /api/form/public/<shareKey>`, die naam, beschrijving en vragen van het formulier teruggeeft (en, als die er zijn, het logo, de alternatieve tekst van het logo en de favicon, de afbeeldingen als base64, en de sjablonen, met hun antwoorden op de vragen die de pagina stelt), en `POST /api/form/public/<shareKey>/submit`, die het formulier verzendt en in `templateId` het sjabloon noemt waarmee de inzender begon. Het zijn de eigen eindpunten van de pagina, geen API om op te bouwen: elke aanroep gaat langs de beveiliging van het formulier (zie [Delen & beveiliging](/docs/forms/sharing-and-security)), en ze veranderen mee met de pagina. Gebruik `POST /api/incident` met een API-sleutel om incidenten vanuit uw eigen code aan te maken: zie [Een incident melden](/docs/incidents/declaring-incidents). Op een [aangepast domein](/docs/forms/sharing-and-security#aangepaste-domeinen) van een formulier gebruikt de pagina in plaats daarvan `GET /api/form/custom-domain` en `POST /api/form/custom-domain/submit` op dat domein, die geen sleutel bevatten: het domein wijst het formulier aan.
 
 ## Waar uw incidentformulieren zijn gebleven
 

@@ -94,6 +94,7 @@ flowchart TB
 | **模板** | 人们可以用来开始填写表单的命名答案集、每个模板如何提问、表单打开时使用的模板，以及每个模板自己的链接。 |
 | **提交时** | 每次提交创建什么，以及其每个字段如何填写。**编辑设置** 用于更改默认值和始终适用的内容。 |
 | **分享** | **接受提交**、**分享链接**、提交后显示的消息，以及 **更多设置** 中的 **IP 允许列表**。 |
+| **自定义域名** | 表单自己的域名，例如 `report.acme.com`，以及它们的 DNS 记录和证书。请参阅 [自定义域名](/docs/forms/sharing-and-security#自定义域名)。 |
 | **提交记录** | 通过该表单进行的每一次提交，最新的在前，并显示答案和所创建的内容。 |
 | **复制表单** | 位于 **高级** 下：表单的副本，会自动命名，带有原表单的问题、模板、提交时设置、品牌、感谢消息和 IP 允许列表，以及它自己的链接。副本创建时处于关闭状态，并在其构建器中打开。 |
 | **删除表单** | 位于 **高级** 下，用于删除表单。其提交记录会一并删除，但它创建的事件和维护事件不会被删除。 |
@@ -135,6 +136,10 @@ flowchart TB
 | **Read Form** | 查看表单及其问题、设置和链接。 | 以上角色，以及 Project Member、Viewer，和事件与计划维护相关角色 |
 | **Read Form Submission** | 查看提交及其答案。 | Project Owner, Project Admin |
 | **Delete Form Submission** | 删除提交。 | Project Owner, Project Admin |
+| **Create Form Domain** | 为表单添加 [自定义域名](/docs/forms/sharing-and-security#自定义域名)。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Edit Form Domain** | 检查表单的自定义域名，以及订购、重新签发或更换它们的证书。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Delete Form Domain** | 移除表单的自定义域名。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Read Form Domain** | 查看表单的自定义域名、它们的 DNS 记录，以及每个域名在通往 HTTPS 的路上走到了哪一步。 | 拥有 **Read Form** 的任何人 |
 
 提交中包含陌生人输入的内容（姓名、电子邮件地址，以及可能永远不会进入记录的答案），因此除非您授予 **Read Form Submission**，否则只有项目所有者和管理员能看到它们。任何能读取表单的人都能看到并分享其链接。提交表单不需要任何权限。关于角色和细粒度权限如何组合，请参阅 [用户、团队与权限](/docs/permissions/index)。
 
@@ -144,7 +149,7 @@ flowchart TB
 
 ## 通过 API 使用表单
 
-表单是位于 `/api/form` 的普通 API 资源，其提交位于 `/api/form-submission`，提交可以读取和删除，但不能创建或编辑。[API 参考](/reference) 中有完整的请求和响应结构。
+表单是位于 `/api/form` 的普通 API 资源，其提交位于 `/api/form-submission`，提交可以读取和删除，但不能创建或编辑。[API 参考](/reference) 中有完整的请求和响应结构。 表单的自定义域名位于 `/api/form-domain`。
 
 ### 问题和设置
 
@@ -255,7 +260,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 公开页面自己的端点
 
-公开页面与两个不需要 API 密钥的路由通信：`GET /api/form/public/<shareKey>` 返回表单的名称、描述和问题，如果有的话，还会返回其徽标、徽标的替代文本和网站图标（图片为 base64），以及其模板和这些模板对页面所问问题的答案；`POST /api/form/public/<shareKey>/submit` 用于提交表单，并在 `templateId` 中指明提交者所用的模板。它们是页面自己的端点，而不是供您在其上构建的 API：每次调用都要经过表单的保护措施（请参阅 [分享与安全](/docs/forms/sharing-and-security)），并且会随页面一起变化。要从您自己的代码创建事件，请使用 API 密钥调用 `POST /api/incident`，请参阅 [声明事件](/docs/incidents/declaring-incidents)。
+公开页面与两个不需要 API 密钥的路由通信：`GET /api/form/public/<shareKey>` 返回表单的名称、描述和问题，如果有的话，还会返回其徽标、徽标的替代文本和网站图标（图片为 base64），以及其模板和这些模板对页面所问问题的答案；`POST /api/form/public/<shareKey>/submit` 用于提交表单，并在 `templateId` 中指明提交者所用的模板。它们是页面自己的端点，而不是供您在其上构建的 API：每次调用都要经过表单的保护措施（请参阅 [分享与安全](/docs/forms/sharing-and-security)），并且会随页面一起变化。要从您自己的代码创建事件，请使用 API 密钥调用 `POST /api/incident`，请参阅 [声明事件](/docs/incidents/declaring-incidents)。 在表单的 [自定义域名](/docs/forms/sharing-and-security#自定义域名) 上，页面改为使用该域名上的 `GET /api/form/custom-domain` 和 `POST /api/form/custom-domain/submit`，它们不含任何密钥：由域名指明表单。
 
 ## 您的事件表单去了哪里
 

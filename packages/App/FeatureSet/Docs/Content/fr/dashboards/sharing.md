@@ -146,7 +146,7 @@ Une personne qui peut seulement lire le domaine, comme un Viewer ou un Settings 
 
 Il en va de même pour les clés d'API. Une clé qui peut seulement lire les domaines de tableaux de bord ne peut pas appeler `verify-cname`, `order-ssl` ou `reissue-ssl` sur `/dashboard-domain`. Donnez-lui **Read Dashboard Domain** et **Edit Dashboard Domain** si elle en a besoin.
 
-Un domaine appartient à un seul tableau de bord du projet à la fois. Vous pouvez associer plusieurs domaines personnalisés à un même tableau de bord si vous servez le même contenu à plusieurs publics : un tableau de bord client à votre marque, un tableau de bord partenaire co-brandé, ou une page de santé publique avec sa propre URL.
+Un domaine appartient à un seul tableau de bord du projet à la fois. Vous pouvez associer plusieurs domaines personnalisés à un même tableau de bord si vous servez le même contenu à plusieurs publics : un tableau de bord client à votre marque, un tableau de bord partenaire co-brandé, ou une page de santé publique avec sa propre URL. Un nom déjà utilisé par une page de statut ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
 
 ## Image de marque
 

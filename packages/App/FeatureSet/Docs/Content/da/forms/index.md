@@ -94,6 +94,7 @@ Under **Del** kopierer du linket og sender det til dem, der skal bruge formulare
 | **Skabeloner** | Navngivne sæt af svar, man kan starte formularen fra, hvordan hver stiller spørgsmålene, den formularen åbner med, og hver skabelons eget link. |
 | **Ved indsendelse** | Hvad hver indsendelse opretter, og hvordan hvert felt i den udfyldes. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder. |
 | **Del** | **Modtager indsendelser**, **Delingslink**, beskeden efter indsendelse og, under **Yderligere indstillinger**, **IP-tilladelsesliste**. |
+| **Brugerdefinerede domæner** | Formularens egne domæner, som `report.acme.com`, med deres DNS-poster og certifikater. Se [Brugerdefinerede domæner](/docs/forms/sharing-and-security#brugerdefinerede-domæner). |
 | **Indsendelser** | Hver indsendelse via formularen, nyeste først, med dens svar og det, den oprettede. |
 | **Duplikér formular** | Under **Avanceret**: en kopi af formularen, navngivet for dig, med dens spørgsmål, skabeloner, indstillinger under Ved indsendelse, branding, takkebesked og IP-tilladelsesliste og sit eget link. Kopien starter slået fra og åbner i sin editor. |
 | **Slet formular** | Sletning af formularen, under **Avanceret**. Dens indsendelser slettes med den; de hændelser og begivenheder, den oprettede, gør ikke. |
@@ -135,6 +136,10 @@ Formularer lader folk uden for dit team oprette hændelser og vedligeholdelsesbe
 | **Read Form** | Se formularer, deres spørgsmål, indstillinger og links. | De ovennævnte plus Project Member, Viewer og rollerne for hændelser og planlagt vedligeholdelse |
 | **Read Form Submission** | Se indsendelserne og deres svar. | Project Owner, Project Admin |
 | **Delete Form Submission** | Slette indsendelser. | Project Owner, Project Admin |
+| **Create Form Domain** | Tilføje et [brugerdefineret domæne](/docs/forms/sharing-and-security#brugerdefinerede-domæner) til en formular. | Project Owner, Project Admin og **Edit Form** |
+| **Edit Form Domain** | Tjekke en formulars brugerdefinerede domæner, og bestille, genudstede eller skifte deres certifikater. | Project Owner, Project Admin og **Edit Form** |
+| **Delete Form Domain** | Fjerne en formulars brugerdefinerede domæner. | Project Owner, Project Admin og **Edit Form** |
+| **Read Form Domain** | Se en formulars brugerdefinerede domæner, deres DNS-poster og hvor langt hvert er på vejen mod HTTPS. | Alle med **Read Form** |
 
 Indsendelser indeholder det, fremmede har skrevet (navne, e-mailadresser og svar, der måske aldrig når posten), så kun projektejere og -administratorer ser dem, medmindre du giver **Read Form Submission**. Alle, der kan læse en formular, kan se og dele dens link. Det kræver ingen tilladelse at indsende en formular. Hvordan roller og detaljerede tilladelser spiller sammen, kan du læse om i [Brugere, teams og tilladelser](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ På OneUptime Cloud kræver formularer planen **Growth** eller højere, og en fo
 
 ## Formularer via API'et
 
-Formularer er en almindelig API-ressource på `/api/form`, og deres indsendelser på `/api/form-submission`, som du kan læse og slette, men ikke oprette eller redigere. [API-referencen](/reference) har de fulde former for anmodninger og svar.
+Formularer er en almindelig API-ressource på `/api/form`, og deres indsendelser på `/api/form-submission`, som du kan læse og slette, men ikke oprette eller redigere. [API-referencen](/reference) har de fulde former for anmodninger og svar. En formulars brugerdefinerede domæner findes på `/api/form-domain`.
 
 ### Spørgsmål og indstillinger
 
@@ -255,7 +260,7 @@ Formularer har de genererede workflow-komponenter: **On Create Form**, **On Upda
 
 ### Den offentlige sides egne endepunkter
 
-Den offentlige side taler med to ruter, der ikke kræver en API-nøgle: `GET /api/form/public/<shareKey>`, som returnerer formularens navn, beskrivelse og spørgsmål (og, når den har dem, dens logo, logoets alternative tekst og dens favicon, billederne som base64, samt dens skabeloner med deres svar på de spørgsmål, siden stiller), og `POST /api/form/public/<shareKey>/submit`, som indsender den og i `templateId` angiver den skabelon, indsenderen startede fra. Det er sidens egne endepunkter, ikke et API at bygge videre på: hvert kald går gennem formularens beskyttelse (se [Deling & sikkerhed](/docs/forms/sharing-and-security)), og de ændrer sig med siden. Brug `POST /api/incident` med en API-nøgle for at oprette hændelser fra din egen kode: se [Opret en hændelse](/docs/incidents/declaring-incidents).
+Den offentlige side taler med to ruter, der ikke kræver en API-nøgle: `GET /api/form/public/<shareKey>`, som returnerer formularens navn, beskrivelse og spørgsmål (og, når den har dem, dens logo, logoets alternative tekst og dens favicon, billederne som base64, samt dens skabeloner med deres svar på de spørgsmål, siden stiller), og `POST /api/form/public/<shareKey>/submit`, som indsender den og i `templateId` angiver den skabelon, indsenderen startede fra. Det er sidens egne endepunkter, ikke et API at bygge videre på: hvert kald går gennem formularens beskyttelse (se [Deling & sikkerhed](/docs/forms/sharing-and-security)), og de ændrer sig med siden. Brug `POST /api/incident` med en API-nøgle for at oprette hændelser fra din egen kode: se [Opret en hændelse](/docs/incidents/declaring-incidents). På en formulars [brugerdefinerede domæne](/docs/forms/sharing-and-security#brugerdefinerede-domæner) bruger siden i stedet `GET /api/form/custom-domain` og `POST /api/form/custom-domain/submit` på det domæne, som ikke nævner nogen nøgle: domænet udpeger formularen.
 
 ## Hvor dine hændelsesformularer blev af
 

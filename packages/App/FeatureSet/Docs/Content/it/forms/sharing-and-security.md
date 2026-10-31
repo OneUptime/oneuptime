@@ -1,10 +1,11 @@
 # Condivisione e sicurezza
 
-Un modulo è aperto a chiunque abbia il suo link, e ogni invio può chiamare il tuo team di reperibilità o mettere una finestra di manutenzione nel tuo calendario. Questa pagina tratta la pagina **Condividi** del modulo — il link, la disattivazione del modulo, il messaggio dopo l'invio e la lista IP consentiti — e ogni altro controllo che una richiesta supera lungo il percorso.
+Un modulo è aperto a chiunque abbia il suo link, e ogni invio può chiamare il tuo team di reperibilità o mettere una finestra di manutenzione nel tuo calendario. Questa pagina tratta la pagina **Condividi** del modulo — il link, la disattivazione del modulo, il messaggio dopo l'invio e la lista IP consentiti — e ogni altro controllo che una richiesta supera lungo il percorso. Spiega anche come pubblicare il modulo sul tuo dominio.
 
 :::cards
 - [Condividere il link](#condividere-il-link): Copialo, aprilo e reimpostalo quando arriva troppo lontano.
 - [Un link per ogni modello](#un-link-per-ogni-modello): Un segnalibro per caso, un solo modulo dietro a tutti.
+- [Domini personalizzati](#domini-personalizzati): Pubblica il modulo sul tuo dominio, con un certificato gratuito.
 - [Cosa protegge un modulo](#cosa-protegge-un-modulo): Ogni controllo che una richiesta supera, in ordine.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Cosa significa ogni messaggio sulla pagina del modulo, e cosa fare.
 :::
@@ -14,17 +15,17 @@ Un modulo è aperto a chiunque abbia il suo link, e ogni invio può chiamare il 
 | Scheda | Cosa contiene |
 | --- | --- |
 | **Stato** | **Accetta invii** — se il link del modulo funziona. |
-| **Link di condivisione** | Il link, con **Copia link**, **Apri modulo** e **Reimposta link**. |
+| **Link di condivisione** | Ogni indirizzo a cui risponde il modulo, ciascuno con **Copia link**, e **Reimposta link**. |
 | **Dopo l'invio** | Il **Messaggio di ringraziamento** che le persone vedono dopo l'invio, sotto il numero di ciò che il modulo ha creato. |
 | **Altre impostazioni** | La **Lista IP consentiti**, chiusa finché non la apri. |
 
 ## Condividere il link
 
-La scheda **Link di condivisione** mostra il link del modulo, come `https://oneuptime.com/accounts/form/<share-key>`:
+La scheda **Link di condivisione** elenca ogni indirizzo a cui risponde il modulo: prima i suoi [domini personalizzati](#domini-personalizzati), poi il suo link su OneUptime, come `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Copia link** lo copia.
-- **Apri modulo** apre il modulo in una nuova scheda, come lo vedono le persone.
-- **Reimposta link** dà al modulo un nuovo link, dopo la tua conferma. Il vecchio link smette subito di funzionare e mostra il messaggio di non disponibilità, quindi tutti quelli con cui l'hai condiviso hanno bisogno di quello nuovo. Usalo quando un link è arrivato più lontano del dovuto.
+- Ogni indirizzo apre il modulo in una nuova scheda del browser, come lo vedono gli altri, e **Copia link** accanto lo copia.
+- Un dominio personalizzato che non funziona ancora è segnato come **Non ancora attivo**, con il motivo. Senza domini personalizzati, una riga sotto il link offre **Aggiungi un dominio personalizzato**.
+- **Reimposta link** dà al modulo un nuovo link, dopo la tua conferma. Il vecchio link smette subito di funzionare e mostra il messaggio di non disponibilità, quindi tutti quelli con cui l'hai condiviso hanno bisogno di quello nuovo. Usalo quando un link è arrivato più lontano del dovuto. I domini personalizzati del modulo non contengono alcuna chiave, e continuano a funzionare.
 
 Chiunque abbia il link può aprire il modulo e inviarlo, senza un account OneUptime e senza accedere. Aver effettuato l'accesso non cambia nulla: OneUptime sa chi ha inviato solo dal nome e dall'email digitati nel modulo. Quindi tratta il link come un numero di telefono del tuo team di reperibilità. Condividilo dove lo troveranno le persone che devono usarlo — una pagina della intranet, un runbook del supporto, un messaggio fissato in una chat — e non su un sito web pubblico, a meno che tu non voglia invii da chiunque.
 
@@ -34,19 +35,71 @@ I link ai vecchi moduli di incidente, `/accounts/incident-form/<share-key>`, apr
 
 ### Un link per ogni modello
 
-Ognuno dei [modelli](/docs/forms/building#modelli) del modulo ha un link proprio: il link del modulo con `?template=` e l'id del modello, come `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copia link** nella pagina **Modelli** del modulo lo copia. Apre il modulo compilato con quel modello, quindi un team può salvare un link per caso nei segnalibri mentre tu mantieni un solo modulo. Quando il mittente sceglie un altro modello, l'indirizzo nel suo browser lo segue, quindi il link che copia è il modulo come lo vede.
+Ognuno dei [modelli](/docs/forms/building#modelli) del modulo ha un link proprio: il link del modulo con `?template=` e l'id del modello, come `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copia link** nella pagina **Modelli** del modulo lo copia. Apre il modulo compilato con quel modello, quindi un team può salvare un link per caso nei segnalibri mentre tu mantieni un solo modulo. Quando il mittente sceglie un altro modello, l'indirizzo nel suo browser lo segue, quindi il link che copia è il modulo come lo vede. Su un [dominio personalizzato](#domini-personalizzati), il link di un modello è il dominio con lo stesso `?template=`, come `https://report.acme.com/?template=<template-id>`, e **Reimposta link** lo lascia funzionare.
 
 Il link di un modello è il link del modulo: funziona finché il modulo è in **Accetta invii**, e **Reimposta link** lo ritira insieme al resto. Un link che indica un modello che hai eliminato apre il modulo come se non ne indicasse nessuno — con il modello predefinito, se c'è.
 
 ### Disattivare un modulo
 
-Per smettere di accettare invii senza eliminare il modulo, disattiva **Accetta invii**. Il link mostra allora "Questo modulo non è disponibile. Potrebbe essere stato disattivato oppure il link potrebbe non essere più valido.", e la scheda **Link di condivisione** ti ricorda che il modulo è disattivato. Riattivalo e lo stesso link funziona di nuovo.
+Per smettere di accettare invii senza eliminare il modulo, disattiva **Accetta invii**. Il link mostra allora "Questo modulo non è disponibile. Potrebbe essere stato disattivato oppure il link potrebbe non essere più valido.", e la scheda **Link di condivisione** ti ricorda che il modulo è disattivato. Riattivalo e lo stesso link funziona di nuovo. I domini personalizzati del modulo mostrano lo stesso messaggio finché è disattivato.
 
 ### Il messaggio di ringraziamento
 
 Dopo un invio, la pagina dice "Grazie — la tua risposta è stata inviata." e dà il numero di ciò che è stato creato, poi il tuo **Messaggio di ringraziamento**, in Markdown. Usalo per dire cosa succede dopo, e a chi rivolgersi quando qualcosa è urgente. Senza di esso, la pagina mostra solo il messaggio standard.
 
 Un'immagine nella descrizione o nel messaggio di ringraziamento del modulo viene mostrata a tutti quelli che aprono il link finché il modulo è in **Accetta invii**. Disattiva il modulo, o togli l'immagine, e l'immagine torna privata, a meno che qualcos'altro che tutti vedono la contenga ancora.
+
+## Domini personalizzati
+
+Di base, un modulo è pubblicato al suo link, sull'indirizzo di OneUptime. Per pubblicarlo su un dominio tuo, come `report.acme.com`, apri la pagina **Domini personalizzati** del modulo, subito dopo **Condividi** nel suo menu laterale. Funziona come i [domini personalizzati di una pagina di stato](/docs/status-pages/branding-and-domains#domini-personalizzati).
+
+Portare il modulo sul tuo dominio richiede tre passaggi, e solo i primi due spettano a te:
+
+1. **Aggiungere il dominio**: un sottodominio e uno dei tuoi domini verificati.
+2. **Aggiungere il suo record CNAME** presso il tuo provider DNS. La finestra di dialogo **Configurazione DNS** si apre con il record appena aggiungi il dominio.
+3. **Il certificato SSL gratuito viene emesso automaticamente** non appena il record viene trovato. Non c'è nessun pulsante da premere.
+
+Quando il dominio funziona, la scheda **Link di condivisione** lo elenca sopra il link del modulo. Entrambi aprono lo stesso modulo.
+
+### Aggiungere un dominio
+
+Fai clic su **Crea: Dominio del modulo**. La finestra di dialogo è una sola pagina:
+
+- **Sottodominio**: solo l'etichetta, con il testo segnaposto `report (leave blank for root)`. Inserisci solo `report`, non il nome host completo. Lascialo vuoto o inserisci `@` per usare il dominio radice.
+- **Dominio**: uno dei domini verificati in **Impostazioni del progetto** > **Avanzato** > **Domini**, dove dimostri con un record TXT che un dominio è tuo. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Altri campi**: chiuso. Aprilo solo per usare un certificato tuo: attiva **Carica certificato personalizzato** e incolla il **Certificato** e la sua **Chiave privata del certificato**.
+
+Fai di nuovo clic su **Crea: Dominio del modulo** per aggiungerlo. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome di un dominio e il suo modulo sono fissati appena viene aggiunto, quindi **Modifica** cambia solo il suo certificato: per cambiare l'uno o l'altro, aggiungi il nuovo dominio ed elimina quello vecchio.
+
+Un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo, quindi un nome che uno di essi ha già, in qualsiasi progetto, viene rifiutato: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### Configurazione DNS e Verifica ora
+
+La finestra di dialogo **Configurazione DNS** mostra il record da aggiungere presso il tuo provider DNS, ogni campo con un pulsante per copiarlo: **Tipo** `CNAME`, **Nome** il dominio completo che hai aggiunto, e **Valore** il record CNAME della tua installazione. Per un dominio radice, molti provider DNS non permettono un record CNAME: usa invece il record ALIAS, ANAME o CNAME flattening del tuo provider, con lo stesso valore.
+
+OneUptime controlla ogni dominio non verificato ogni 15 minuti, e quando trova il record ordina il certificato Let's Encrypt gratuito del dominio nello stesso controllo. Per controllare subito, fai clic su **Verifica ora**. Finché un dominio non funziona, la sua riga ha un'azione **Configurazione DNS** che apre la stessa finestra, dove **Verifica ora** ordina di nuovo anche un certificato non riuscito o scaduto, al massimo una volta per dominio ogni 15 minuti. Il rinnovo è automatico, molto prima che il certificato scada.
+
+La colonna **Stato** dice a che punto è ogni dominio sulla strada verso HTTPS, con gli stessi otto stati dei domini di una pagina di stato: vedi [Leggere la colonna Stato del dominio](/docs/status-pages/branding-and-domains#leggere-la-colonna-stato-del-dominio). Quando un ordine non è riuscito, il motivo è sulla riga sotto: di solito un record CAA del tuo dominio che non permette `letsencrypt.org` o, su un'installazione self-hosted, un server che Let's Encrypt non riesce a raggiungere sulla porta 80.
+
+Una volta ordinato un certificato gratuito per un dominio, la sua riga mostra **Reissue SSL**, che chiede a Let's Encrypt un certificato completamente nuovo prima del rinnovo automatico, una volta ogni 24 ore per dominio. Nel frattempo il modulo resta online con il certificato attuale. Un certificato che hai caricato lo rinnovi tu: modifica il dominio e incolla quello nuovo.
+
+### Cosa mostra il dominio
+
+Un dominio mostra il suo modulo alla radice, come `https://report.acme.com`, e nient'altro di OneUptime: nessuna pagina di accesso e nessun altro modulo. Ogni altro indirizzo del dominio apre il modulo alla radice, mantenendo la sua query, così anche il link di un modello funziona lì. La pagina è quella del modulo: il suo logo o nessuno, mai quello di OneUptime, il suo nome come titolo della scheda, con il tema chiaro e senza le analisi di OneUptime. Il captcha, i file e il messaggio di ringraziamento funzionano lì come sul link, e si applica ogni controllo di [Cosa protegge un modulo](#cosa-protegge-un-modulo), con il dominio come pagina propria del modulo.
+
+- **Reimposta link** cambia solo il link del modulo su OneUptime: i suoi domini non contengono alcuna chiave, quindi continuano a funzionare.
+- Disattivare **Accetta invii** chiude il modulo anche sui suoi domini, con il messaggio di non disponibilità.
+- Eliminare il modulo elimina i suoi domini, e **Duplica modulo** non ne copia nessuno. Un dominio eliminato smette subito di mostrare il modulo.
+
+### Su un'installazione self-hosted
+
+I moduli usano il record CNAME delle pagine di stato: `STATUS_PAGE_CNAME_RECORD` in `config.env`, oppure `statusPage.cnameRecord` nel chart Helm. Per dare ai domini dei moduli una destinazione propria, imposta `FORM_CNAME_RECORD`: in `config.env` per Docker Compose, oppure con l'`extraEnv` dell'intero chart in Helm. Senza nessuno dei due, la pagina **Domini personalizzati** dice che i domini personalizzati non sono abilitati invece di mostrare un record, e OneUptime non verifica i domini dei moduli e non ordina certificati per loro.
+
+Il server deve rispondere sulla porta 80, dove Let's Encrypt controlla ogni dominio. Un'installazione senza chiave dell'account Let's Encrypt, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` nel chart Helm), non ordina certificati: il dominio di un modulo funziona appena il suo record è verificato, servito con l'HTTPS del tuo proxy o con un certificato che carichi. Con il captcha attivo, una chiave del sito che elenca i nomi host su cui funziona deve elencare anche i domini del modulo.
+
+### Chi può gestire i domini
+
+I proprietari e gli amministratori del progetto, e chiunque abbia **Edit Form**, possono aggiungere i domini di un modulo, controllarli, riemettere i loro certificati ed eliminarli. Possono farlo anche i permessi solo per i domini di un modulo, come **Edit Form Domain**: la [Panoramica dei moduli](/docs/forms/index#autorizzazioni) li elenca. Chiunque possa leggere un modulo vede i suoi domini, il loro **Stato** e il record in **Configurazione DNS**; per loro **Verifica ora** e **Reissue SSL** sono bloccati e dicono quale permesso serve. Una chiave API funziona allo stesso modo su `/form-domain`: `verify-cname`, `order-ssl` e `reissue-ssl` richiedono **Edit Form Domain** o **Edit Form**.
 
 ## Cosa protegge un modulo
 
@@ -145,6 +198,10 @@ Quando la tua istanza OneUptime ha hCaptcha attivo, il modulo mostra un captcha,
 - Il modulo è stato eliminato.
 - Su OneUptime Cloud, il progetto è sotto il piano **Growth**, o il suo abbonamento non è pagato.
 - Il link è stato troncato quando è stato copiato.
+:::
+
+:::details Il dominio del modulo non mostra il modulo
+Apri la pagina **Domini personalizzati** del modulo e leggi la colonna **Stato** del dominio: finché il suo record non è verificato e il suo certificato non è pronto, un browser mostra un avviso sul certificato, o niente del tutto. Un dominio che non è più nella pagina, perché è stato eliminato lui o il suo modulo, mostra una pagina non trovata, e uno il cui dominio principale non è più verificato mostra il messaggio di non disponibilità. Su un'installazione self-hosted, controlla che il record punti al tuo server OneUptime e che il server risponda sulle porte 80 e 443.
 :::
 
 :::details Il modulo può essere aperto solo da una rete consentita

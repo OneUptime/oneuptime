@@ -22,7 +22,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * same way, under the public choice.
  *
  * Now both list every address the page or dashboard answers at, the same
- * way (PublicAddresses):
+ * way (PublicAddresses) - and so does a form's Share Link card, for a form
+ * on its own domains:
  *
  *   - its custom domains first: each one that is live as a link to
  *     https://<domain>, opened in a new tab, with Copy link; each one that
@@ -95,8 +96,8 @@ export const isCustomDomainLive: (state: CustomDomainState) => boolean = (
 
 /*
  * A live custom domain is served over HTTPS - it is live because it has a
- * certificate - at its root: a status page and a dashboard both answer at
- * the root of their own domain. One the installation issues no certificate
+ * certificate - at its root: a status page, a dashboard and a form all
+ * answer at the root of their own domain. One the installation issues no certificate
  * for is opened as the installation itself is reached - https, or http on
  * an installation without TLS - as the server links to it.
  */

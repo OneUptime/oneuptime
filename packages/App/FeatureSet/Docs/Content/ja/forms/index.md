@@ -94,6 +94,7 @@ flowchart TB
 | **テンプレート** | フォームを始めるときに使える名前付きの回答セット、それぞれが質問をどう尋ねるか、フォームを開いたときのテンプレート、テンプレートごとのリンク。 |
 | **送信時** | 各送信が何を作成し、その各項目がどう入力されるか。**設定を編集** で既定値と常に適用される内容を変更します。 |
 | **共有** | **送信を受け付ける**、**共有リンク**、送信後に表示されるメッセージ、**その他の設定** の **IP 許可リスト**。 |
+| **カスタムドメイン** | `report.acme.com` のようなフォーム独自のドメインと、その DNS レコードと証明書。 [カスタムドメイン](/docs/forms/sharing-and-security#カスタムドメイン) を参照してください。 |
 | **送信履歴** | フォームから行われたすべての送信。新しい順で、回答と作成されたものが表示されます。 |
 | **フォームを複製** | **詳細** の下: フォームのコピー。名前は自動で付けられ、質問、テンプレート、送信時の設定、ブランディング、お礼のメッセージ、IP 許可リスト、そして独自のリンクを持ちます。コピーは最初はオフで、ビルダーで開きます。 |
 | **フォームを削除** | **詳細** の下にあるフォームの削除。送信履歴も一緒に削除されますが、作成されたインシデントやイベントは削除されません。 |
@@ -135,6 +136,10 @@ flowchart TB
 | **Read Form** | フォーム、その質問、設定、リンクの閲覧。 | 上記に加えて Project Member、Viewer、インシデントと定期メンテナンスのロール |
 | **Read Form Submission** | 送信とその回答の閲覧。 | Project Owner, Project Admin |
 | **Delete Form Submission** | 送信の削除。 | Project Owner, Project Admin |
+| **Create Form Domain** | フォームに [カスタムドメイン](/docs/forms/sharing-and-security#カスタムドメイン) を追加する。 | Project Owner, Project Admin、 **Edit Form** |
+| **Edit Form Domain** | フォームのカスタムドメインを確認し、その証明書を注文、再発行、または切り替える。 | Project Owner, Project Admin、 **Edit Form** |
+| **Delete Form Domain** | フォームのカスタムドメインを削除する。 | Project Owner, Project Admin、 **Edit Form** |
+| **Read Form Domain** | フォームのカスタムドメイン、その DNS レコード、各ドメインが HTTPS までのどの段階にあるかを見る。 | **Read Form** を持つすべての人 |
 
 送信には見知らぬ人が入力した内容 (名前、メールアドレス、レコードには載らないかもしれない回答) が含まれるため、**Read Form Submission** を付与しない限り、閲覧できるのはプロジェクトのオーナーと管理者だけです。フォームを閲覧できる人は誰でも、そのリンクを確認して共有できます。フォームの送信には権限は一切必要ありません。ロールと細かな権限の組み合わせ方については、[ユーザー、チーム、権限](/docs/permissions/index) を参照してください。
 
@@ -144,7 +149,7 @@ OneUptime Cloud では、フォームには **Growth** 以上のプランが必�
 
 ## API からフォームを使う
 
-フォームは `/api/form` にある通常の API リソースで、送信は `/api/form-submission` にあります。送信は読み取りと削除はできますが、作成や編集はできません。リクエストとレスポンスの完全な形式は [API リファレンス](/reference) にあります。
+フォームは `/api/form` にある通常の API リソースで、送信は `/api/form-submission` にあります。送信は読み取りと削除はできますが、作成や編集はできません。リクエストとレスポンスの完全な形式は [API リファレンス](/reference) にあります。 フォームのカスタムドメインは `/api/form-domain` にあります。
 
 ### 質問と設定
 
@@ -255,7 +260,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 公開ページ専用のエンドポイント
 
-公開ページは API キーを必要としない 2 つのルートと通信します。`GET /api/form/public/<shareKey>` はフォームの名前、説明、質問を返し、ある場合はロゴ、ロゴの代替テキスト、ファビコン (画像は base64)、そしてページが尋ねる質問への回答を含むテンプレートも返します。`POST /api/form/public/<shareKey>/submit` はフォームを送信し、送信者が使い始めたテンプレートを `templateId` で示します。これらはページ専用のエンドポイントであり、これを土台に何かを作るための API ではありません。すべての呼び出しはフォームの保護を通り ([共有とセキュリティ](/docs/forms/sharing-and-security) を参照)、ページとともに変更されます。自分のコードからインシデントを作成するには、API キーを使って `POST /api/incident` を呼び出します。[インシデントの宣言](/docs/incidents/declaring-incidents) を参照してください。
+公開ページは API キーを必要としない 2 つのルートと通信します。`GET /api/form/public/<shareKey>` はフォームの名前、説明、質問を返し、ある場合はロゴ、ロゴの代替テキスト、ファビコン (画像は base64)、そしてページが尋ねる質問への回答を含むテンプレートも返します。`POST /api/form/public/<shareKey>/submit` はフォームを送信し、送信者が使い始めたテンプレートを `templateId` で示します。これらはページ専用のエンドポイントであり、これを土台に何かを作るための API ではありません。すべての呼び出しはフォームの保護を通り ([共有とセキュリティ](/docs/forms/sharing-and-security) を参照)、ページとともに変更されます。自分のコードからインシデントを作成するには、API キーを使って `POST /api/incident` を呼び出します。[インシデントの宣言](/docs/incidents/declaring-incidents) を参照してください。 フォームの [カスタムドメイン](/docs/forms/sharing-and-security#カスタムドメイン) では、ページは代わりにそのドメイン上の `GET /api/form/custom-domain` と `POST /api/form/custom-domain/submit` を使います。これらはキーを含まず、ドメインがフォームを示します。
 
 ## インシデントフォームの移行先
 

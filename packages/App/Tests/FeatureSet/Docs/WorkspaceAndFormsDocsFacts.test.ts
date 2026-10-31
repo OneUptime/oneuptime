@@ -1,6 +1,7 @@
 import { readPage } from "./DocsContentSupport";
 import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
+import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import { RECORD_CHANNEL_TEXT } from "../../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
@@ -2079,12 +2080,22 @@ describe("Forms, against the builder, the Share page and the public page", () =>
 
     const linkCard: string = readSource("formShareLinkCard");
 
-    for (const key of ["shareLinkTitle", "copyLink", "openForm", "resetLink"]) {
+    for (const key of ["shareLinkTitle", "resetLink"]) {
       expect({ key, used: linkCard.includes(`FormsCopy.${key}`) }).toEqual({
         key,
         used: true,
       });
     }
+
+    /*
+     * The card's addresses are the shared list's (PublicAddresses): each
+     * one opens in a new tab and has its own Copy link, the form's own
+     * domains first, so the card has no Copy Link or Open Form of its own.
+     */
+    expect(linkCard).toContain("<PublicAddresses");
+    expect(linkCard).toContain("kind={FORM_CUSTOM_DOMAINS}");
+    expect(linkCard).not.toContain("FormsCopy.copyLink");
+    expect(Object.keys(FormsCopy)).not.toContain("openForm");
 
     const rows: Array<Array<string>> = tableHeaded(
       section(englishPage(SHARING), 2, "The Share page"),
@@ -2106,8 +2117,23 @@ describe("Forms, against the builder, the Share page and the public page", () =>
       }),
     );
     expect(rows[1]?.[1]).toBe(
-      `The link, with **${FormsCopy.copyLink}**, **${FormsCopy.openForm}** and **${FormsCopy.resetLink}**.`,
+      `Every address the form answers at, each with **${PublicAddressCopy.copyLink}**, and **${FormsCopy.resetLink}**.`,
     );
+
+    // The list's own words, as the Sharing the link section names them.
+    const sharing: string = section(englishPage(SHARING), 2, "Sharing the link");
+
+    for (const label of [
+      PublicAddressCopy.copyLink,
+      PublicAddressCopy.notLiveYet,
+      PublicAddressCopy.addCustomDomainLink,
+      FormsCopy.resetLink,
+    ]) {
+      expect({ label, named: sharing.includes(`**${label}**`) }).toEqual({
+        label,
+        named: true,
+      });
+    }
     expect(rows[0]?.[1]).toContain(`**${FormsCopy.acceptingSubmissions}**`);
     expect(rows[2]?.[1]).toContain(`**${FormsCopy.successMessageTitle}**`);
     expect(rows[3]?.[1]).toContain(`**${FormsCopy.ipAllowlistTitle}**`);

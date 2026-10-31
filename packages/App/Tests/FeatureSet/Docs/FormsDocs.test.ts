@@ -49,6 +49,7 @@ import {
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import Form from "Common/Models/DatabaseModels/Form";
+import FormDomain from "Common/Models/DatabaseModels/FormDomain";
 import { UPLOAD_OUTSIDE_PROJECT_MESSAGE } from "Common/Server/Services/FileService";
 import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
 import {
@@ -1339,18 +1340,57 @@ describe("Forms docs", () => {
           new FormSubmission().getDeletePermissions(),
         ],
       ];
+      /*
+       * A form's custom domains (FormDomain): added, checked and removed by
+       * project owners and admins and by Edit Form - which resets the link
+       * the domains stand beside - or by their own permission; seen by
+       * everyone who can read the form.
+       */
+      const domainRows: Array<[Permission, Array<Permission>]> = [
+        [Permission.CreateFormDomain, new FormDomain().getCreatePermissions()],
+        [Permission.EditFormDomain, new FormDomain().getUpdatePermissions()],
+        [Permission.DeleteFormDomain, new FormDomain().getDeletePermissions()],
+        [Permission.ReadFormDomain, new FormDomain().getReadPermissions()],
+      ];
 
       expect(
         rows.map((row: Array<string>): string => {
           return row[0] as string;
         }),
       ).toEqual(
-        expected.map(
+        [...expected, ...domainRows].map(
           ([permission]: [Permission, Array<Permission>]): string => {
             return `**${PermissionHelper.getTitle(permission)}**`;
           },
         ),
       );
+
+      for (const [index, [permission, holders]] of domainRows.entries()) {
+        const who: string = (rows[expected.length + index] as Array<string>)[2] as string;
+
+        if (permission === Permission.ReadFormDomain) {
+          // Everyone who can read a form, and the permission itself.
+          expect([...holders].sort()).toEqual(
+            [...new Form().getReadPermissions(), permission].sort(),
+          );
+          expect(who).toBe(
+            `Everyone with **${PermissionHelper.getTitle(Permission.ReadForm)}**`,
+          );
+          continue;
+        }
+
+        expect([...holders].sort()).toEqual(
+          [
+            permission,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.EditForm,
+          ].sort(),
+        );
+        expect(who).toBe(
+          `Project Owner, Project Admin, and **${PermissionHelper.getTitle(Permission.EditForm)}**`,
+        );
+      }
 
       for (const [index, [permission, holders]] of expected.entries()) {
         const who: string = (rows[index] as Array<string>)[2] as string;
@@ -1682,6 +1722,8 @@ describe("Forms docs: templates, hidden questions and Duplicate Form", () => {
       "**Templates**",
       "**On Submit**",
       "**Share**",
+      // The form's own domains, right after its link.
+      "**Custom Domains**",
       "**Submissions**",
       "**Duplicate Form**",
       "**Delete Form**",

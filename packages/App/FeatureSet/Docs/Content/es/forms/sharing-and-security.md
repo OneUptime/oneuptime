@@ -1,10 +1,11 @@
 # Compartir y seguridad
 
-Un formulario está abierto a cualquiera que tenga su enlace, y cada envío puede avisar a tu equipo de guardia o poner una ventana de mantenimiento en tu calendario. Esta página trata de la página **Compartir** del formulario — el enlace, desactivar el formulario, el mensaje después de enviar y la lista de IP permitidas — y de cada otra comprobación que pasa una solicitud por el camino.
+Un formulario está abierto a cualquiera que tenga su enlace, y cada envío puede avisar a tu equipo de guardia o poner una ventana de mantenimiento en tu calendario. Esta página trata de la página **Compartir** del formulario — el enlace, desactivar el formulario, el mensaje después de enviar y la lista de IP permitidas — y de cada otra comprobación que pasa una solicitud por el camino. También explica cómo servir el formulario en tu propio dominio.
 
 :::cards
 - [Compartir el enlace](#compartir-el-enlace): Cópialo, ábrelo y restablécelo cuando llegue demasiado lejos.
 - [Un enlace para cada plantilla](#un-enlace-para-cada-plantilla): Un marcador por caso, un solo formulario detrás de todos.
+- [Dominios personalizados](#dominios-personalizados): Sirve el formulario en tu propio dominio, con un certificado gratuito.
 - [Qué protege un formulario](#qué-protege-un-formulario): Cada comprobación que pasa una solicitud, en orden.
 - [Solución de problemas](#solución-de-problemas): Qué significa cada mensaje de la página del formulario, y qué hacer.
 :::
@@ -14,17 +15,17 @@ Un formulario está abierto a cualquiera que tenga su enlace, y cada envío pued
 | Tarjeta | Lo que contiene |
 | --- | --- |
 | **Estado** | **Acepta envíos** — si el enlace del formulario funciona. |
-| **Enlace para compartir** | El enlace, con **Copiar enlace**, **Abrir formulario** y **Restablecer enlace**. |
+| **Enlace para compartir** | Cada dirección en la que responde el formulario, cada una con **Copiar enlace**, y **Restablecer enlace**. |
 | **Después de enviar** | El **Mensaje de agradecimiento** que ven las personas cuando envían, bajo el número de lo que creó el formulario. |
 | **Más ajustes** | La **Lista de IP permitidas**, plegada hasta que la abras. |
 
 ## Compartir el enlace
 
-La tarjeta **Enlace para compartir** muestra el enlace del formulario, como `https://oneuptime.com/accounts/form/<share-key>`:
+La tarjeta **Enlace para compartir** enumera cada dirección en la que responde el formulario: primero sus [dominios personalizados](#dominios-personalizados), luego su enlace en OneUptime, como `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Copiar enlace** lo copia.
-- **Abrir formulario** abre el formulario en una pestaña nueva, tal como lo ven las personas.
-- **Restablecer enlace** da al formulario un enlace nuevo, después de que lo confirmes. El enlace anterior deja de funcionar al momento y muestra el mensaje de no disponible, así que todas las personas con las que lo compartiste necesitan el nuevo. Úsalo cuando un enlace ha llegado más lejos de lo que debía.
+- Cada dirección abre el formulario en una pestaña nueva, tal como lo ve la gente, y **Copiar enlace** a su lado la copia.
+- Un dominio personalizado que aún no funciona se marca como **Aún no activo**, con el motivo. Sin dominio personalizado, una línea bajo el enlace ofrece **Añadir un dominio personalizado**.
+- **Restablecer enlace** da al formulario un enlace nuevo, después de que lo confirmes. El enlace anterior deja de funcionar al momento y muestra el mensaje de no disponible, así que todas las personas con las que lo compartiste necesitan el nuevo. Úsalo cuando un enlace ha llegado más lejos de lo que debía. Los dominios personalizados del formulario no llevan clave, y siguen funcionando.
 
 Cualquiera que tenga el enlace puede abrir el formulario y enviarlo, sin una cuenta de OneUptime y sin iniciar sesión. Tener la sesión iniciada no cambia nada: OneUptime solo sabe quién envió por el nombre y el correo escritos en el formulario. Así que trata el enlace como un número de teléfono de tu equipo de guardia. Compártelo donde lo encontrarán las personas que deben usarlo — una página de la intranet, un runbook de soporte, un mensaje fijado en un chat — y no en un sitio web público, salvo que quieras envíos de cualquiera.
 
@@ -34,19 +35,71 @@ Los enlaces a los antiguos formularios de incidente, `/accounts/incident-form/<s
 
 ### Un enlace para cada plantilla
 
-Cada una de las [plantillas](/docs/forms/building#plantillas) del formulario tiene un enlace propio: el enlace del formulario con `?template=` y el id de la plantilla, como `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copiar enlace** en la página **Plantillas** del formulario lo copia. Abre el formulario con esa plantilla rellenada, así que un equipo puede guardar un marcador por caso mientras tú mantienes un solo formulario. Cuando el remitente elige otra plantilla, la dirección de su navegador la sigue, así que el enlace que copia es el formulario tal como lo ve.
+Cada una de las [plantillas](/docs/forms/building#plantillas) del formulario tiene un enlace propio: el enlace del formulario con `?template=` y el id de la plantilla, como `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copiar enlace** en la página **Plantillas** del formulario lo copia. Abre el formulario con esa plantilla rellenada, así que un equipo puede guardar un marcador por caso mientras tú mantienes un solo formulario. Cuando el remitente elige otra plantilla, la dirección de su navegador la sigue, así que el enlace que copia es el formulario tal como lo ve. En un [dominio personalizado](#dominios-personalizados), el enlace de una plantilla es el dominio con el mismo `?template=`, como `https://report.acme.com/?template=<template-id>`, y **Restablecer enlace** lo deja funcionando.
 
 El enlace de una plantilla es el enlace del formulario: funciona mientras el formulario está en **Acepta envíos**, y **Restablecer enlace** lo retira junto con el resto. Un enlace que nombra una plantilla que eliminaste abre el formulario como si no nombrara ninguna — con la plantilla predeterminada, si la hay.
 
 ### Desactivar un formulario
 
-Para dejar de aceptar envíos sin eliminar el formulario, desactiva **Acepta envíos**. El enlace muestra entonces "Este formulario no está disponible. Es posible que se haya desactivado o que el enlace esté desactualizado.", y la tarjeta **Enlace para compartir** te recuerda que el formulario está desactivado. Vuelve a activarlo y el mismo enlace funciona de nuevo.
+Para dejar de aceptar envíos sin eliminar el formulario, desactiva **Acepta envíos**. El enlace muestra entonces "Este formulario no está disponible. Es posible que se haya desactivado o que el enlace esté desactualizado.", y la tarjeta **Enlace para compartir** te recuerda que el formulario está desactivado. Vuelve a activarlo y el mismo enlace funciona de nuevo. Los dominios personalizados del formulario muestran el mismo mensaje mientras está desactivado.
 
 ### El mensaje de agradecimiento
 
 Después de un envío, la página dice "Gracias: tu respuesta se ha enviado." y da el número de lo que se creó, y luego tu **Mensaje de agradecimiento**, en Markdown. Úsalo para decir qué pasa a continuación, y adónde acudir cuando algo es urgente. Sin él, la página muestra solo el mensaje estándar.
 
 Una imagen en la descripción o el mensaje de agradecimiento del formulario se muestra a todos los que abren el enlace mientras el formulario está en **Acepta envíos**. Desactiva el formulario, o quita la imagen, y la imagen vuelve a ser privada, salvo que algo más que ve todo el mundo la siga conteniendo.
+
+## Dominios personalizados
+
+De entrada, un formulario se sirve en su enlace, en la dirección propia de OneUptime. Para servirlo en un dominio tuyo, como `report.acme.com`, abre la página **Dominios personalizados** del formulario, justo después de **Compartir** en su menú lateral. Funciona como los [dominios personalizados de una página de estado](/docs/status-pages/branding-and-domains#dominios-personalizados).
+
+Poner el formulario en tu propio dominio lleva tres pasos, y solo los dos primeros son tuyos:
+
+1. **Añadir el dominio**: un subdominio y uno de tus dominios verificados.
+2. **Añadir su registro CNAME** en tu proveedor de DNS. El cuadro de diálogo **Configuración de DNS** se abre con el registro en cuanto añades el dominio.
+3. **El certificado SSL gratuito se emite automáticamente** en cuanto se encuentra el registro. No hay ningún botón que pulsar.
+
+Cuando el dominio funciona, la tarjeta **Enlace para compartir** lo muestra encima del enlace del formulario. Los dos abren el mismo formulario.
+
+### Añadir un dominio
+
+Haz clic en **Crear Dominio de formulario**. El cuadro de diálogo es una sola página:
+
+- **Subdominio**: solo la etiqueta, con el texto de ejemplo `report (leave blank for root)`. Escribe solo `report`, no el nombre de host completo. Déjalo vacío o escribe `@` para usar el dominio raíz.
+- **Dominio**: uno de los dominios verificados en **Ajustes del proyecto** > **Avanzado** > **Dominios**, donde demuestras con un registro TXT que un dominio es tuyo. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
+- **Más campos**: plegado. Ábrelo solo para usar un certificado propio: activa **Subir certificado personalizado** y pega el **Certificado** y su **Clave privada del certificado**.
+
+Haz clic de nuevo en **Crear Dominio de formulario** para añadirlo. El cuadro de diálogo se cierra y se abre la **Configuración de DNS** del nuevo dominio. El nombre de un dominio y su formulario quedan fijos en cuanto se añade, así que **Editar** solo cambia su certificado: para cambiar cualquiera de los dos, añade el nuevo dominio y elimina el antiguo.
+
+Un dominio muestra una sola página de estado, un solo panel o un solo formulario, así que se rechaza un nombre que ya tenga cualquiera de ellos, en cualquier proyecto: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### Configuración de DNS y Comprobar ahora
+
+El cuadro de diálogo **Configuración de DNS** muestra el registro que debes añadir en tu proveedor de DNS, cada campo con un botón para copiarlo: **Tipo** `CNAME`, **Nombre** el dominio completo que añadiste, y **Valor** el registro CNAME de tu instalación. Para un dominio raíz, muchos proveedores de DNS no permiten un registro CNAME: usa en su lugar el registro ALIAS, ANAME o CNAME aplanado de tu proveedor, con el mismo valor.
+
+OneUptime comprueba cada dominio sin verificar cada 15 minutos, y cuando encuentra el registro pide el certificado gratuito de Let's Encrypt del dominio en esa misma comprobación. Para comprobarlo al momento, haz clic en **Comprobar ahora**. Mientras un dominio no funciona, su fila tiene una acción **Configuración de DNS** que abre el mismo cuadro de diálogo, donde **Comprobar ahora** también vuelve a pedir un certificado que falló o caducó, como mucho una vez por dominio cada 15 minutos. La renovación es automática, mucho antes de que caduque el certificado.
+
+La columna **Estado** dice en qué punto está cada dominio en su camino hacia HTTPS, con los mismos ocho estados que los dominios de una página de estado: consulta [Leer la columna Estado del dominio](/docs/status-pages/branding-and-domains#leer-la-columna-estado-del-dominio). Cuando un pedido falló, el motivo está en la línea de debajo: normalmente un registro CAA de tu dominio que no permite `letsencrypt.org` o, en una instalación autoalojada, un servidor al que Let's Encrypt no llega por el puerto 80.
+
+Cuando ya se ha pedido un certificado gratuito para un dominio, su fila muestra **Volver a emitir SSL**, que pide a Let's Encrypt un certificado totalmente nuevo antes de la renovación automática, una vez cada 24 horas por dominio. Mientras tanto, el formulario sigue en línea con el certificado actual. Un certificado que subiste lo renuevas tú: edita el dominio y pega el nuevo.
+
+### Qué muestra el dominio
+
+Un dominio muestra su formulario en su raíz, como `https://report.acme.com`, y nada más de OneUptime: ninguna página de inicio de sesión ni ningún otro formulario. Cualquier otra dirección del dominio abre el formulario en su raíz, conservando su consulta, así que el enlace de una plantilla también funciona allí. La página es la del formulario: su logotipo o ninguno, nunca el de OneUptime, su nombre como título de la pestaña, con el tema claro y sin las analíticas de OneUptime. El captcha, los archivos y el mensaje de agradecimiento funcionan allí como en el enlace, y se aplica cada comprobación de [Qué protege un formulario](#qué-protege-un-formulario), con el dominio como la página propia del formulario.
+
+- **Restablecer enlace** solo cambia el enlace del formulario en OneUptime: sus dominios no llevan clave, así que siguen funcionando.
+- Desactivar **Acepta envíos** cierra el formulario también en sus dominios, con el mensaje de no disponible.
+- Eliminar el formulario elimina sus dominios, y **Duplicar formulario** no copia ninguno. Un dominio eliminado deja de mostrar el formulario al momento.
+
+### En una instalación autoalojada
+
+Los formularios usan el registro CNAME de las páginas de estado: `STATUS_PAGE_CNAME_RECORD` en `config.env`, o `statusPage.cnameRecord` en el chart de Helm. Para dar a los dominios de formularios un destino propio, define `FORM_CNAME_RECORD`: en `config.env` para Docker Compose, o con el `extraEnv` de todo el chart en Helm. Sin ninguno de los dos, la página **Dominios personalizados** dice que los dominios personalizados no están habilitados en lugar de mostrar un registro, y OneUptime no verifica dominios de formularios ni pide certificados para ellos.
+
+El servidor debe responder en el puerto 80, donde Let's Encrypt comprueba cada dominio. Una instalación sin clave de cuenta de Let's Encrypt, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` en el chart de Helm), no pide certificados: el dominio de un formulario funciona en cuanto se verifica su registro, servido con el HTTPS de tu propio proxy o con un certificado que subas. Con el captcha activado, una clave de sitio que enumere los nombres de host en los que funciona debe enumerar también los dominios del formulario.
+
+### Quién puede gestionar los dominios
+
+Los propietarios y administradores del proyecto, y cualquiera con **Edit Form**, pueden añadir los dominios de un formulario, comprobarlos, volver a emitir sus certificados y eliminarlos. También pueden hacerlo los permisos solo para los dominios de un formulario, como **Edit Form Domain**: la [Visión general de los formularios](/docs/forms/index#permisos) los enumera. Cualquiera que pueda leer un formulario ve sus dominios, su **Estado** y el registro en **Configuración de DNS**; para esas personas, **Comprobar ahora** y **Volver a emitir SSL** están bloqueados y dicen qué permiso necesitan. Una clave de API funciona igual en `/form-domain`: `verify-cname`, `order-ssl` y `reissue-ssl` necesitan **Edit Form Domain** o **Edit Form**.
 
 ## Qué protege un formulario
 
@@ -145,6 +198,10 @@ Cuando tu instancia de OneUptime tiene hCaptcha activado, el formulario muestra 
 - El formulario se eliminó.
 - En OneUptime Cloud, el proyecto está por debajo del plan **Growth**, o su suscripción está impagada.
 - El enlace se cortó al copiarlo.
+:::
+
+:::details El dominio del formulario no muestra el formulario
+Abre la página **Dominios personalizados** del formulario y lee la columna **Estado** del dominio: hasta que su registro esté verificado y su certificado esté listo, un navegador muestra una advertencia de certificado, o nada en absoluto. Un dominio que ya no está en la página, porque se eliminó él o su formulario, muestra una página de no encontrado, y uno cuyo dominio principal ya no está verificado muestra el mensaje de no disponible. En una instalación autoalojada, comprueba que el registro apunte a tu servidor de OneUptime y que el servidor responda en los puertos 80 y 443.
 :::
 
 :::details El formulario solo puede abrirse desde una red permitida

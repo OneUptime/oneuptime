@@ -214,7 +214,7 @@ I **Domän** (platshållare `Select domain`) väljer du en av dina verifierade d
 Klicka på **Skapa Statussida Domän**. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas, med posten som ska läggas till.
 :::
 
-En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla.
+En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
 
 ### DNS-inställning och verifiering
 

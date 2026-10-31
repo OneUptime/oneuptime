@@ -146,7 +146,7 @@ Chi può solo leggere il dominio, come un Viewer o un Settings Viewer, vede comu
 
 Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle dashboard non può chiamare `verify-cname`, `order-ssl` o `reissue-ssl` su `/dashboard-domain`. Dalle **Read Dashboard Domain** ed **Edit Dashboard Domain** se ne ha bisogno.
 
-Un dominio appartiene a una sola dashboard del progetto alla volta. Puoi collegare più di un dominio personalizzato a una singola dashboard se servi lo stesso contenuto a più pubblici: una dashboard per i clienti con il tuo marchio, una dashboard per un partner con doppio marchio, o una pagina pubblica sullo stato di salute con il proprio URL.
+Un dominio appartiene a una sola dashboard del progetto alla volta. Puoi collegare più di un dominio personalizzato a una singola dashboard se servi lo stesso contenuto a più pubblici: una dashboard per i clienti con il tuo marchio, una dashboard per un partner con doppio marchio, o una pagina pubblica sullo stato di salute con il proprio URL. Un nome che una pagina di stato o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
 
 ## Branding
 

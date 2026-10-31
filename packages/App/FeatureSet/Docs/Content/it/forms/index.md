@@ -94,6 +94,7 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Modelli** | Insiemi di risposte con un nome da cui si può iniziare il modulo, come ognuno pone le domande, quello con cui il modulo si apre e il link proprio di ciascuno. |
 | **All'invio** | Cosa crea ogni invio e come viene compilato ognuno dei suoi campi. **Modifica impostazioni** cambia i valori predefiniti e ciò che vale sempre. |
 | **Condividi** | **Accetta invii**, il **Link di condivisione**, il messaggio mostrato dopo l'invio e, in **Altre impostazioni**, la **Lista IP consentiti**. |
+| **Domini personalizzati** | I domini propri del modulo, come `report.acme.com`, con i loro record DNS e certificati. Vedi [Domini personalizzati](/docs/forms/sharing-and-security#domini-personalizzati). |
 | **Invii** | Ogni invio fatto tramite il modulo, il più recente per primo, con le sue risposte e ciò che ha creato. |
 | **Duplica modulo** | In **Avanzato**: una copia del modulo, con un nome scelto per te, con le sue domande, i modelli, le impostazioni All'invio, il branding, il messaggio di ringraziamento e la lista degli IP consentiti, e un link proprio. La copia parte disattivata e si apre nel suo editor. |
 | **Elimina modulo** | L'eliminazione del modulo, in **Avanzato**. I suoi invii vengono eliminati con lui; gli incidenti e gli eventi che ha creato no. |
@@ -135,6 +136,10 @@ I moduli permettono a persone esterne al tuo team di creare incidenti ed eventi 
 | **Read Form** | Vedere i moduli, le loro domande, le impostazioni e i link. | I precedenti, più Project Member, Viewer e i ruoli di incidenti e manutenzione programmata |
 | **Read Form Submission** | Vedere gli invii e le loro risposte. | Project Owner, Project Admin |
 | **Delete Form Submission** | Eliminare gli invii. | Project Owner, Project Admin |
+| **Create Form Domain** | Aggiungere un [dominio personalizzato](/docs/forms/sharing-and-security#domini-personalizzati) a un modulo. | Project Owner, Project Admin e **Edit Form** |
+| **Edit Form Domain** | Controllare i domini personalizzati di un modulo, e ordinare, riemettere o cambiare i loro certificati. | Project Owner, Project Admin e **Edit Form** |
+| **Delete Form Domain** | Rimuovere i domini personalizzati di un modulo. | Project Owner, Project Admin e **Edit Form** |
+| **Read Form Domain** | Vedere i domini personalizzati di un modulo, i loro record DNS e a che punto è ciascuno sulla strada verso HTTPS. | Chiunque abbia **Read Form** |
 
 Gli invii contengono ciò che hanno scritto degli sconosciuti (nomi, indirizzi e-mail e risposte che forse non arrivano mai al record), quindi li vedono solo i proprietari e gli amministratori del progetto, a meno che tu non conceda **Read Form Submission**. Chi può leggere un modulo può vederne e condividerne il link. Inviare un modulo non richiede alcuna autorizzazione. Per come si combinano ruoli e autorizzazioni granulari, vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ Su OneUptime Cloud, i moduli richiedono il piano **Growth** o superiore, e la **
 
 ## I moduli tramite l'API
 
-I moduli sono una normale risorsa API in `/api/form`, e i loro invii in `/api/form-submission`, che puoi leggere ed eliminare ma non creare né modificare. Il [riferimento API](/reference) contiene la forma completa di richieste e risposte.
+I moduli sono una normale risorsa API in `/api/form`, e i loro invii in `/api/form-submission`, che puoi leggere ed eliminare ma non creare né modificare. Il [riferimento API](/reference) contiene la forma completa di richieste e risposte. I domini personalizzati di un modulo sono in `/api/form-domain`.
 
 ### Domande e impostazioni
 
@@ -255,7 +260,7 @@ I moduli hanno i componenti di workflow generati: **On Create Form**, **On Updat
 
 ### Gli endpoint propri della pagina pubblica
 
-La pagina pubblica comunica con due route che non richiedono una chiave API: `GET /api/form/public/<shareKey>`, che restituisce il nome, la descrizione e le domande del modulo (e il suo logo, il testo alternativo del logo e la sua favicon, le immagini in base64, quando li ha, e i suoi modelli, con le loro risposte alle domande che la pagina pone), e `POST /api/form/public/<shareKey>/submit`, che lo invia indicando in `templateId` il modello da cui chi invia è partito. Sono gli endpoint propri della pagina, non un'API su cui costruire: ogni chiamata passa per le protezioni del modulo (vedi [Condivisione e sicurezza](/docs/forms/sharing-and-security)) e cambiano insieme alla pagina. Per creare incidenti dal tuo codice, usa `POST /api/incident` con una chiave API: vedi [Dichiarare un incidente](/docs/incidents/declaring-incidents).
+La pagina pubblica comunica con due route che non richiedono una chiave API: `GET /api/form/public/<shareKey>`, che restituisce il nome, la descrizione e le domande del modulo (e il suo logo, il testo alternativo del logo e la sua favicon, le immagini in base64, quando li ha, e i suoi modelli, con le loro risposte alle domande che la pagina pone), e `POST /api/form/public/<shareKey>/submit`, che lo invia indicando in `templateId` il modello da cui chi invia è partito. Sono gli endpoint propri della pagina, non un'API su cui costruire: ogni chiamata passa per le protezioni del modulo (vedi [Condivisione e sicurezza](/docs/forms/sharing-and-security)) e cambiano insieme alla pagina. Per creare incidenti dal tuo codice, usa `POST /api/incident` con una chiave API: vedi [Dichiarare un incidente](/docs/incidents/declaring-incidents). Su un [dominio personalizzato](/docs/forms/sharing-and-security#domini-personalizzati) di un modulo, la pagina usa invece `GET /api/form/custom-domain` e `POST /api/form/custom-domain/submit` su quel dominio, che non contengono alcuna chiave: è il dominio a indicare il modulo.
 
 ## Dove sono finiti i tuoi moduli di incidente
 

@@ -146,7 +146,7 @@ Wer die Domain nur lesen darf, etwa ein Viewer oder ein Settings Viewer, sieht w
 
 Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Dashboard-Domains nur lesen darf, kann `verify-cname`, `order-ssl` oder `reissue-ssl` auf `/dashboard-domain` nicht aufrufen. Geben Sie ihm **Read Dashboard Domain** und **Edit Dashboard Domain**, wenn er das braucht.
 
-Eine Domain gehört jeweils zu einem Dashboard des Projekts. Sie können einem Dashboard mehr als eine eigene Domain zuordnen, wenn Sie denselben Inhalt mehreren Zielgruppen bereitstellen: ein kundennahes Dashboard unter Ihrer eigenen Marke, ein gemeinsam gebrandetes Partner-Dashboard oder eine öffentliche Statusseite mit eigener URL.
+Eine Domain gehört jeweils zu einem Dashboard des Projekts. Sie können einem Dashboard mehr als eine eigene Domain zuordnen, wenn Sie denselben Inhalt mehreren Zielgruppen bereitstellen: ein kundennahes Dashboard unter Ihrer eigenen Marke, ein gemeinsam gebrandetes Partner-Dashboard oder eine öffentliche Statusseite mit eigener URL. Ein Name, den schon eine Statusseite oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
 
 ## Branding
 

@@ -214,7 +214,7 @@ Wählen Sie in **Domäne** (Platzhalter `Select domain`) eine Ihrer verifizierte
 Klicken Sie auf **Statusseite Domain erstellen**. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich, mit dem hinzuzufügenden Eintrag.
 :::
 
-Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte.
+Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
 
 ### DNS-Einrichtung und Verifizierung
 

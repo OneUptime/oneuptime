@@ -214,7 +214,7 @@ Kies in **Domein** (plaatshouder `Select domain`) een van uw geverifieerde domei
 Klik op **Statuspagina Domein aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent, met het record dat u moet toevoegen.
 :::
 
-De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander subdomein te gebruiken, voegt u dat domein toe en verwijdert u het oude.
+De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander subdomein te gebruiken, voegt u dat domein toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
 
 ### DNS-instelling en verificatie
 

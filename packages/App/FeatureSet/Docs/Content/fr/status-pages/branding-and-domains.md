@@ -214,7 +214,7 @@ Dans **Domaine** (texte indicatif `Select domain`), choisissez l'un de vos domai
 Cliquez sur **Créer : Domaine de la page de statut**. La boîte de dialogue se ferme et la **Configuration DNS** du nouveau domaine s'ouvre, avec l'enregistrement à ajouter.
 :::
 
-Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser un autre sous-domaine, ajoutez ce domaine et supprimez l'ancien.
+Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser un autre sous-domaine, ajoutez ce domaine et supprimez l'ancien. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
 
 ### Configuration DNS et vérification
 

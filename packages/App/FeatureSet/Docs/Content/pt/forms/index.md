@@ -94,6 +94,7 @@ Em **Partilhar**, copie o link e envie para as pessoas que devem usar o formulá
 | **Modelos** | Conjuntos de respostas com nome a partir dos quais se pode começar o formulário, como cada um faz as perguntas, aquele com que o formulário abre e o link próprio de cada um. |
 | **Ao enviar** | O que cada envio cria e como cada campo dele é preenchido. **Editar definições** muda os valores padrão e o que sempre vale. |
 | **Partilhar** | **Aceita envios**, o **Link de compartilhamento**, a mensagem mostrada depois do envio e, em **Mais configurações**, a **Lista de IPs permitidos**. |
+| **Domínios personalizados** | Os domínios próprios do formulário, como `report.acme.com`, com os seus registros DNS e certificados. Veja [Domínios personalizados](/docs/forms/sharing-and-security#domínios-personalizados). |
 | **Envios** | Cada envio feito pelo formulário, o mais recente primeiro, com as respostas e o que ele criou. |
 | **Duplicar formulário** | Em **Avançado**: uma cópia do formulário, com nome dado para você, com as perguntas, os modelos, as configurações de Ao enviar, a marca, a mensagem de agradecimento e a lista de IPs permitidos, e um link próprio. A cópia começa desligada e abre no editor. |
 | **Eliminar formulário** | A exclusão do formulário, em **Avançado**. Os envios são excluídos junto; os incidentes e eventos que ele criou, não. |
@@ -135,6 +136,10 @@ Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos 
 | **Read Form** | Ver os formulários, as perguntas, as configurações e os links. | Os acima, mais Project Member, Viewer e as funções de incidentes e de manutenção programada |
 | **Read Form Submission** | Ver os envios e as respostas. | Project Owner, Project Admin |
 | **Delete Form Submission** | Excluir envios. | Project Owner, Project Admin |
+| **Create Form Domain** | Adicionar um [domínio personalizado](/docs/forms/sharing-and-security#domínios-personalizados) a um formulário. | Project Owner, Project Admin e **Edit Form** |
+| **Edit Form Domain** | Verificar os domínios personalizados de um formulário, e pedir, reemitir ou trocar os seus certificados. | Project Owner, Project Admin e **Edit Form** |
+| **Delete Form Domain** | Remover os domínios personalizados de um formulário. | Project Owner, Project Admin e **Edit Form** |
+| **Read Form Domain** | Ver os domínios personalizados de um formulário, os seus registros DNS e em que ponto cada um está no caminho até o HTTPS. | Qualquer pessoa com **Read Form** |
 
 Os envios contêm o que desconhecidos digitaram (nomes, endereços de e-mail e respostas que talvez nunca cheguem ao registro), então só os proprietários e administradores do projeto os veem, a menos que você conceda **Read Form Submission**. Quem pode ler um formulário pode ver e compartilhar o link dele. Enviar um formulário não exige permissão nenhuma. Para saber como funções e permissões granulares se combinam, veja [Usuários, equipes e permissões](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ No OneUptime Cloud, os formulários exigem o plano **Growth** ou superior, e a *
 
 ## Formulários pela API
 
-Os formulários são um recurso comum da API em `/api/form`, e os envios em `/api/form-submission`, que você pode ler e excluir, mas não criar nem editar. A [referência da API](/reference) traz o formato completo das solicitações e respostas.
+Os formulários são um recurso comum da API em `/api/form`, e os envios em `/api/form-submission`, que você pode ler e excluir, mas não criar nem editar. A [referência da API](/reference) traz o formato completo das solicitações e respostas. Os domínios personalizados de um formulário ficam em `/api/form-domain`.
 
 ### Perguntas e configurações
 
@@ -255,7 +260,7 @@ Os formulários têm os componentes de workflow gerados: **On Create Form**, **O
 
 ### Os endpoints próprios da página pública
 
-A página pública conversa com duas rotas que não exigem chave de API: `GET /api/form/public/<shareKey>`, que devolve o nome, a descrição e as perguntas do formulário (e o logotipo, o texto alternativo do logotipo e o favicon, as imagens em base64, quando os tem, e os modelos, com as respostas deles às perguntas que a página faz), e `POST /api/form/public/<shareKey>/submit`, que envia o formulário, indicando em `templateId` o modelo a partir do qual quem envia começou. São os endpoints próprios da página, não uma API sobre a qual construir: cada chamada passa pelas proteções do formulário (veja [Partilha e segurança](/docs/forms/sharing-and-security)) e eles mudam junto com a página. Para criar incidentes a partir do seu próprio código, use `POST /api/incident` com uma chave de API: veja [Declarar um incidente](/docs/incidents/declaring-incidents).
+A página pública conversa com duas rotas que não exigem chave de API: `GET /api/form/public/<shareKey>`, que devolve o nome, a descrição e as perguntas do formulário (e o logotipo, o texto alternativo do logotipo e o favicon, as imagens em base64, quando os tem, e os modelos, com as respostas deles às perguntas que a página faz), e `POST /api/form/public/<shareKey>/submit`, que envia o formulário, indicando em `templateId` o modelo a partir do qual quem envia começou. São os endpoints próprios da página, não uma API sobre a qual construir: cada chamada passa pelas proteções do formulário (veja [Partilha e segurança](/docs/forms/sharing-and-security)) e eles mudam junto com a página. Para criar incidentes a partir do seu próprio código, use `POST /api/incident` com uma chave de API: veja [Declarar um incidente](/docs/incidents/declaring-incidents). Num [domínio personalizado](/docs/forms/sharing-and-security#domínios-personalizados) de um formulário, a página usa no lugar `GET /api/form/custom-domain` e `POST /api/form/custom-domain/submit` nesse domínio, que não levam chave nenhuma: o domínio indica o formulário.
 
 ## Para onde foram seus formulários de incidente
 

@@ -146,7 +146,7 @@ Quien solo puede leer el dominio, como un Viewer o un Settings Viewer, sigue vie
 
 Lo mismo vale para las claves de API. Una clave que solo puede leer los dominios de paneles no puede llamar a `verify-cname`, `order-ssl` ni `reissue-ssl` en `/dashboard-domain`. Dale **Read Dashboard Domain** y **Edit Dashboard Domain** si lo necesita.
 
-Un dominio pertenece a un solo panel del proyecto a la vez. Puedes asociar más de un dominio personalizado a un mismo panel si sirves el mismo contenido a varios públicos: un panel para clientes con tu propia marca, un panel de socio con marca compartida, o una página de salud pública con su propia URL.
+Un dominio pertenece a un solo panel del proyecto a la vez. Puedes asociar más de un dominio personalizado a un mismo panel si sirves el mismo contenido a varios públicos: un panel para clientes con tu propia marca, un panel de socio con marca compartida, o una página de salud pública con su propia URL. Se rechaza un nombre que ya use una página de estado o un formulario, en cualquier proyecto: un dominio muestra una sola página de estado, un solo panel o un solo formulario.
 
 ## Marca
 

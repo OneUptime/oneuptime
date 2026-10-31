@@ -146,7 +146,7 @@ Wie het domein alleen mag lezen, zoals een Viewer of een Settings Viewer, ziet n
 
 Hetzelfde geldt voor API-sleutels. Een sleutel die alleen dashboarddomeinen mag lezen, kan `verify-cname`, `order-ssl` of `reissue-ssl` op `/dashboard-domain` niet aanroepen. Geef hem **Read Dashboard Domain** en **Edit Dashboard Domain** als hij dat nodig heeft.
 
-Een domein hoort bij één dashboard van het project tegelijk. Je kunt meer dan één aangepast domein aan één dashboard koppelen als je dezelfde inhoud aan meerdere doelgroepen aanbiedt: een klantgericht dashboard in je eigen huisstijl, een co-branded partnerdashboard, of een openbare gezondheidspagina met een eigen URL.
+Een domein hoort bij één dashboard van het project tegelijk. Je kunt meer dan één aangepast domein aan één dashboard koppelen als je dezelfde inhoud aan meerdere doelgroepen aanbiedt: een klantgericht dashboard in je eigen huisstijl, een co-branded partnerdashboard, of een openbare gezondheidspagina met een eigen URL. Een naam die een statuspagina of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
 
 ## Huisstijl
 

@@ -214,7 +214,7 @@ En **Dominio** (texto de ejemplo `Select domain`), elige uno de tus dominios ver
 Haz clic en **Crear Dominio de la página de estado**. El cuadro de diálogo se cierra y se abre la **Configuración de DNS** del nuevo dominio, con el registro que hay que añadir.
 :::
 
-El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otro subdominio, añade ese dominio y elimina el antiguo.
+El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otro subdominio, añade ese dominio y elimina el antiguo. Se rechaza un nombre que ya use un panel o un formulario, en cualquier proyecto: un dominio muestra una sola página de estado, un solo panel o un solo formulario.
 
 ### Configuración de DNS y verificación
 

@@ -94,6 +94,7 @@ Kopieren Sie unter **Teilen** den Link und senden Sie ihn an die Personen, die d
 | **Vorlagen** | Benannte Sätze von Antworten, mit denen man das Formular beginnen kann, wie jede die Fragen stellt, die, mit der es sich öffnet, und der eigene Link jeder Vorlage. |
 | **Beim Absenden** | Was jede Einreichung anlegt und wie jedes ihrer Felder ausgefüllt wird. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt. |
 | **Teilen** | **Nimmt Einreichungen an**, der **Link zum Teilen**, die Meldung nach dem Absenden und, unter **Weitere Einstellungen**, die **IP-Zulassungsliste**. |
+| **Benutzerdefinierte Domains** | Die eigenen Domains des Formulars, etwa `report.acme.com`, mit ihren DNS-Einträgen und Zertifikaten. Siehe [Eigene Domains](/docs/forms/sharing-and-security#eigene-domains). |
 | **Einreichungen** | Jede Einreichung über das Formular, die neueste zuerst, mit ihren Antworten und dem, was sie angelegt hat. |
 | **Formular duplizieren** | Unter **Erweitert**: eine Kopie des Formulars, für Sie benannt, mit seinen Fragen, Vorlagen, Einstellungen unter Beim Absenden, Branding, Dankesmeldung und IP-Zulassungsliste und einem eigenen Link. Die Kopie ist zunächst ausgeschaltet und öffnet sich in ihrem Editor. |
 | **Formular löschen** | Das Löschen des Formulars, unter **Erweitert**. Seine Einreichungen werden mit ihm gelöscht; die Vorfälle und Ereignisse, die es angelegt hat, nicht. |
@@ -135,6 +136,10 @@ Formulare erlauben Menschen außerhalb Ihres Teams, Vorfälle und Wartungsereign
 | **Read Form** | Formulare, ihre Fragen, ihre Einstellungen und ihre Links sehen. | Die oben genannten sowie Project Member, Viewer und die Rollen für Vorfälle und geplante Wartung |
 | **Read Form Submission** | Die Einreichungen und ihre Antworten sehen. | Project Owner, Project Admin |
 | **Delete Form Submission** | Einreichungen löschen. | Project Owner, Project Admin |
+| **Create Form Domain** | Einem Formular eine [eigene Domain](/docs/forms/sharing-and-security#eigene-domains) hinzufügen. | Project Owner, Project Admin und **Edit Form** |
+| **Edit Form Domain** | Die eigenen Domains eines Formulars prüfen und ihre Zertifikate bestellen, neu ausstellen oder wechseln. | Project Owner, Project Admin und **Edit Form** |
+| **Delete Form Domain** | Die eigenen Domains eines Formulars entfernen. | Project Owner, Project Admin und **Edit Form** |
+| **Read Form Domain** | Die eigenen Domains eines Formulars sehen, ihre DNS-Einträge und wie weit jede auf dem Weg zu HTTPS ist. | Alle mit **Read Form** |
 
 Einreichungen enthalten, was Fremde eingetippt haben – Namen, E-Mail-Adressen und Antworten, die vielleicht nie im Datensatz landen –, daher sehen sie nur Projektinhaber und -administratoren, es sei denn, Sie gewähren **Read Form Submission**. Wer ein Formular lesen kann, kann seinen Link sehen und teilen. Ein Formular abzusenden braucht überhaupt keine Berechtigung. Wie Rollen und granulare Berechtigungen zusammenwirken, lesen Sie unter [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ In OneUptime Cloud brauchen Formulare den Tarif **Growth** oder höher, und die 
 
 ## Formulare über die API
 
-Formulare sind eine gewöhnliche API-Ressource unter `/api/form` und ihre Einreichungen unter `/api/form-submission`, die Sie lesen und löschen, aber nicht anlegen oder bearbeiten können. Die [API-Referenz](/reference) enthält die vollständigen Formen von Anfragen und Antworten.
+Formulare sind eine gewöhnliche API-Ressource unter `/api/form` und ihre Einreichungen unter `/api/form-submission`, die Sie lesen und löschen, aber nicht anlegen oder bearbeiten können. Die [API-Referenz](/reference) enthält die vollständigen Formen von Anfragen und Antworten. Die eigenen Domains eines Formulars liegen unter `/api/form-domain`.
 
 ### Fragen und Einstellungen
 
@@ -255,7 +260,7 @@ Formulare haben die erzeugten Workflow-Komponenten – **On Create Form**, **On 
 
 ### Die eigenen Endpunkte der öffentlichen Seite
 
-Die öffentliche Seite spricht mit zwei Routen, die keinen API-Schlüssel brauchen: `GET /api/form/public/<shareKey>`, die Name, Beschreibung und Fragen des Formulars zurückgibt – und, wenn vorhanden, sein Logo, den Alternativtext des Logos und sein Favicon, die Bilder base64-kodiert, sowie seine Vorlagen mit ihren Antworten auf die Fragen, die die Seite stellt –, und `POST /api/form/public/<shareKey>/submit`, die es absendet und in `templateId` die Vorlage nennt, mit der die einreichende Person begonnen hat. Es sind die eigenen Endpunkte der Seite, keine API, auf der man aufbauen sollte: Jeder Aufruf durchläuft die Schutzmaßnahmen des Formulars – siehe [Teilen & Sicherheit](/docs/forms/sharing-and-security) –, und sie ändern sich mit der Seite. Um Vorfälle aus Ihrem eigenen Code anzulegen, verwenden Sie `POST /api/incident` mit einem API-Schlüssel – siehe [Einen Vorfall melden](/docs/incidents/declaring-incidents).
+Die öffentliche Seite spricht mit zwei Routen, die keinen API-Schlüssel brauchen: `GET /api/form/public/<shareKey>`, die Name, Beschreibung und Fragen des Formulars zurückgibt – und, wenn vorhanden, sein Logo, den Alternativtext des Logos und sein Favicon, die Bilder base64-kodiert, sowie seine Vorlagen mit ihren Antworten auf die Fragen, die die Seite stellt –, und `POST /api/form/public/<shareKey>/submit`, die es absendet und in `templateId` die Vorlage nennt, mit der die einreichende Person begonnen hat. Es sind die eigenen Endpunkte der Seite, keine API, auf der man aufbauen sollte: Jeder Aufruf durchläuft die Schutzmaßnahmen des Formulars – siehe [Teilen & Sicherheit](/docs/forms/sharing-and-security) –, und sie ändern sich mit der Seite. Um Vorfälle aus Ihrem eigenen Code anzulegen, verwenden Sie `POST /api/incident` mit einem API-Schlüssel – siehe [Einen Vorfall melden](/docs/incidents/declaring-incidents). Auf einer [eigenen Domain](/docs/forms/sharing-and-security#eigene-domains) eines Formulars verwendet die Seite stattdessen `GET /api/form/custom-domain` und `POST /api/form/custom-domain/submit` auf dieser Domain, die keinen Schlüssel nennen: Die Domain bestimmt das Formular.
 
 ## Wo Ihre Vorfallsformulare geblieben sind
 

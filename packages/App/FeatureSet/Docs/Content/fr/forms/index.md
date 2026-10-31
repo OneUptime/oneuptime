@@ -94,6 +94,7 @@ Dans **Partager**, copiez le lien et envoyez-le aux personnes qui doivent utilis
 | **Modèles** | Des ensembles de réponses nommés à partir desquels on peut commencer le formulaire, la façon dont chacun pose les questions, celui avec lequel il s'ouvre et le lien propre à chacun. |
 | **À la soumission** | Ce que crée chaque soumission et comment chacun de ses champs est rempli. **Modifier les paramètres** change les valeurs par défaut et ce qui s'applique toujours. |
 | **Partager** | **Accepte les soumissions**, le **Lien de partage**, le message affiché après la soumission et, sous **Plus de paramètres**, la **Liste d'autorisation IP**. |
+| **Domaines personnalisés** | Les domaines propres du formulaire, comme `report.acme.com`, avec leurs enregistrements DNS et leurs certificats. Voir [Domaines personnalisés](/docs/forms/sharing-and-security#domaines-personnalisés). |
 | **Soumissions** | Chaque soumission faite par le formulaire, la plus récente en premier, avec ses réponses et ce qu'elle a créé. |
 | **Dupliquer le formulaire** | Sous **Avancé** : une copie du formulaire, nommée pour vous, avec ses questions, ses modèles, ses paramètres À la soumission, son image de marque, son message de remerciement et sa liste d'autorisation IP, et un lien qui lui est propre. La copie est d'abord désactivée et s'ouvre sur son éditeur. |
 | **Supprimer le formulaire** | La suppression du formulaire, sous **Avancé**. Ses soumissions sont supprimées avec lui ; les incidents et événements qu'il a créés ne le sont pas. |
@@ -135,6 +136,10 @@ Les formulaires permettent à des personnes extérieures à votre équipe de cr�
 | **Read Form** | Voir les formulaires, leurs questions, leurs paramètres et leurs liens. | Les rôles ci-dessus, plus Project Member, Viewer et les rôles d'incident et de maintenance planifiée |
 | **Read Form Submission** | Voir les soumissions et leurs réponses. | Project Owner, Project Admin |
 | **Delete Form Submission** | Supprimer des soumissions. | Project Owner, Project Admin |
+| **Create Form Domain** | Ajouter un [domaine personnalisé](/docs/forms/sharing-and-security#domaines-personnalisés) à un formulaire. | Project Owner, Project Admin et **Edit Form** |
+| **Edit Form Domain** | Vérifier les domaines personnalisés d'un formulaire, et commander, réémettre ou changer leurs certificats. | Project Owner, Project Admin et **Edit Form** |
+| **Delete Form Domain** | Retirer les domaines personnalisés d'un formulaire. | Project Owner, Project Admin et **Edit Form** |
+| **Read Form Domain** | Voir les domaines personnalisés d'un formulaire, leurs enregistrements DNS et où en est chacun sur le chemin vers HTTPS. | Toute personne qui a **Read Form** |
 
 Les soumissions contiennent ce que des inconnus ont saisi (noms, adresses e-mail et réponses qui n'atteignent peut-être jamais l'enregistrement) ; seuls les propriétaires et administrateurs du projet les voient donc, sauf si vous accordez **Read Form Submission**. Quiconque peut lire un formulaire peut voir et partager son lien. Soumettre un formulaire ne demande aucune autorisation. Pour savoir comment les rôles et les autorisations granulaires se combinent, voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ Sur OneUptime Cloud, les formulaires demandent le plan **Growth** ou supérieur,
 
 ## Les formulaires par l'API
 
-Les formulaires sont une ressource d'API ordinaire à `/api/form`, et leurs soumissions à `/api/form-submission`, que vous pouvez lire et supprimer mais pas créer ni modifier. La [référence de l'API](/reference) donne la forme complète des requêtes et des réponses.
+Les formulaires sont une ressource d'API ordinaire à `/api/form`, et leurs soumissions à `/api/form-submission`, que vous pouvez lire et supprimer mais pas créer ni modifier. La [référence de l'API](/reference) donne la forme complète des requêtes et des réponses. Les domaines personnalisés d'un formulaire sont à `/api/form-domain`.
 
 ### Questions et paramètres
 
@@ -255,7 +260,7 @@ Les formulaires ont les composants de workflow générés : **On Create Form**, 
 
 ### Les points de terminaison propres à la page publique
 
-La page publique communique avec deux routes qui ne demandent pas de clé d'API : `GET /api/form/public/<shareKey>`, qui renvoie le nom, la description et les questions du formulaire (ainsi que son logo, le texte alternatif du logo et son favicon, les images en base64, quand il en a, et ses modèles, avec leurs réponses aux questions que pose la page), et `POST /api/form/public/<shareKey>/submit`, qui le soumet en nommant dans `templateId` le modèle à partir duquel la personne a commencé. Ce sont les points de terminaison propres à la page, pas une API sur laquelle construire : chaque appel passe par les protections du formulaire (voir [Partage et sécurité](/docs/forms/sharing-and-security)), et ils changent avec la page. Pour créer des incidents depuis votre propre code, utilisez `POST /api/incident` avec une clé d'API : voir [Déclarer un incident](/docs/incidents/declaring-incidents).
+La page publique communique avec deux routes qui ne demandent pas de clé d'API : `GET /api/form/public/<shareKey>`, qui renvoie le nom, la description et les questions du formulaire (ainsi que son logo, le texte alternatif du logo et son favicon, les images en base64, quand il en a, et ses modèles, avec leurs réponses aux questions que pose la page), et `POST /api/form/public/<shareKey>/submit`, qui le soumet en nommant dans `templateId` le modèle à partir duquel la personne a commencé. Ce sont les points de terminaison propres à la page, pas une API sur laquelle construire : chaque appel passe par les protections du formulaire (voir [Partage et sécurité](/docs/forms/sharing-and-security)), et ils changent avec la page. Pour créer des incidents depuis votre propre code, utilisez `POST /api/incident` avec une clé d'API : voir [Déclarer un incident](/docs/incidents/declaring-incidents). Sur un [domaine personnalisé](/docs/forms/sharing-and-security#domaines-personnalisés) d'un formulaire, la page utilise à la place `GET /api/form/custom-domain` et `POST /api/form/custom-domain/submit` sur ce domaine, qui ne portent aucune clé : c'est le domaine qui désigne le formulaire.
 
 ## Ce que sont devenus vos formulaires d'incident
 

@@ -94,6 +94,7 @@ Under **Del** kopierer du lenken og sender den til dem som skal bruke skjemaet. 
 | **Maler** | Navngitte sett med svar man kan starte skjemaet fra, hvordan hver mal stiller spørsmålene, malen skjemaet åpner med, og hver mals egen lenke. |
 | **Ved innsending** | Hva hver innsending oppretter, og hvordan hvert felt fylles ut. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder. |
 | **Del** | **Tar imot innsendinger**, **Delingslenke**, meldingen som vises etter innsending, og, under **Flere innstillinger**, **IP-tillatelsesliste**. |
+| **Egendefinerte domener** | Skjemaets egne domener, som `report.acme.com`, med DNS-postene og sertifikatene deres. Se [Egendefinerte domener](/docs/forms/sharing-and-security#egendefinerte-domener). |
 | **Innsendinger** | Hver innsending gjennom skjemaet, nyeste først, med svarene og det den opprettet. |
 | **Dupliser skjema** | Under **Avansert**: en kopi av skjemaet, navngitt for deg, med spørsmålene, malene, innstillingene under Ved innsending, merkevaren, takkemeldingen og IP-tillatelseslisten, og en egen lenke. Kopien starter avslått og åpner i byggeverktøyet. |
 | **Slett skjema** | Sletting av skjemaet, under **Avansert**. Innsendingene slettes sammen med det; hendelsene det opprettet, gjør ikke det. |
@@ -135,6 +136,10 @@ Skjemaer lar folk utenfor teamet ditt opprette hendelser og vedlikeholdshendelse
 | **Read Form** | Se skjemaer, spørsmålene, innstillingene og lenkene deres. | De over, pluss Project Member, Viewer og rollene for hendelser og planlagt vedlikehold |
 | **Read Form Submission** | Se innsendingene og svarene. | Project Owner, Project Admin |
 | **Delete Form Submission** | Slette innsendinger. | Project Owner, Project Admin |
+| **Create Form Domain** | Legge til et [egendefinert domene](/docs/forms/sharing-and-security#egendefinerte-domener) på et skjema. | Project Owner, Project Admin og **Edit Form** |
+| **Edit Form Domain** | Sjekke et skjemas egendefinerte domener, og bestille, utstede på nytt eller bytte sertifikatene deres. | Project Owner, Project Admin og **Edit Form** |
+| **Delete Form Domain** | Fjerne et skjemas egendefinerte domener. | Project Owner, Project Admin og **Edit Form** |
+| **Read Form Domain** | Se et skjemas egendefinerte domener, DNS-postene deres og hvor langt hvert har kommet på veien mot HTTPS. | Alle med **Read Form** |
 
 Innsendinger inneholder det fremmede har skrevet (navn, e-postadresser og svar som kanskje aldri havner i posten), så bare prosjekteiere og -administratorer ser dem, med mindre du gir **Read Form Submission**. Alle som kan lese et skjema, kan se og dele lenken. Det krever ingen tillatelse å sende inn et skjema. Hvordan roller og detaljerte tillatelser spiller sammen, finner du i [Brukere, team og tillatelser](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ På OneUptime Cloud krever skjemaer planen **Growth** eller høyere, og et skjem
 
 ## Skjemaer via API-et
 
-Skjemaer er en vanlig API-ressurs på `/api/form`, og innsendingene på `/api/form-submission`, som du kan lese og slette, men ikke opprette eller redigere. [API-referansen](/reference) har de fullstendige formene på forespørsler og svar.
+Skjemaer er en vanlig API-ressurs på `/api/form`, og innsendingene på `/api/form-submission`, som du kan lese og slette, men ikke opprette eller redigere. [API-referansen](/reference) har de fullstendige formene på forespørsler og svar. Et skjemas egendefinerte domener ligger på `/api/form-domain`.
 
 ### Spørsmål og innstillinger
 
@@ -255,7 +260,7 @@ Skjemaer har de genererte arbeidsflytkomponentene: **On Create Form**, **On Upda
 
 ### Den offentlige sidens egne endepunkter
 
-Den offentlige siden snakker med to ruter som ikke krever en API-nøkkel: `GET /api/form/public/<shareKey>`, som returnerer skjemaets navn, beskrivelse og spørsmål (og, når det har dem, logoen, logoens alternative tekst og favikonet, bildene som base64, og malene, med svarene deres på spørsmålene siden stiller), og `POST /api/form/public/<shareKey>/submit`, som sender det inn og i `templateId` oppgir malen innsenderen startet fra. Det er sidens egne endepunkter, ikke et API å bygge videre på: hvert kall går gjennom skjemaets beskyttelse (se [Deling og sikkerhet](/docs/forms/sharing-and-security)), og de endres sammen med siden. Bruk `POST /api/incident` med en API-nøkkel for å opprette hendelser fra din egen kode: se [Opprette en hendelse](/docs/incidents/declaring-incidents).
+Den offentlige siden snakker med to ruter som ikke krever en API-nøkkel: `GET /api/form/public/<shareKey>`, som returnerer skjemaets navn, beskrivelse og spørsmål (og, når det har dem, logoen, logoens alternative tekst og favikonet, bildene som base64, og malene, med svarene deres på spørsmålene siden stiller), og `POST /api/form/public/<shareKey>/submit`, som sender det inn og i `templateId` oppgir malen innsenderen startet fra. Det er sidens egne endepunkter, ikke et API å bygge videre på: hvert kall går gjennom skjemaets beskyttelse (se [Deling og sikkerhet](/docs/forms/sharing-and-security)), og de endres sammen med siden. Bruk `POST /api/incident` med en API-nøkkel for å opprette hendelser fra din egen kode: se [Opprette en hendelse](/docs/incidents/declaring-incidents). På et skjemas [egendefinerte domene](/docs/forms/sharing-and-security#egendefinerte-domener) bruker siden i stedet `GET /api/form/custom-domain` og `POST /api/form/custom-domain/submit` på det domenet, som ikke nevner noen nøkkel: domenet peker ut skjemaet.
 
 ## Hvor hendelsesskjemaene dine ble av
 

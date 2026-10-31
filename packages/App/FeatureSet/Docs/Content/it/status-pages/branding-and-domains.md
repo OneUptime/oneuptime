@@ -214,7 +214,7 @@ In **Dominio** (segnaposto `Select domain`), scegliete uno dei vostri domini ver
 Fate clic su **Crea: Pagina di stato Dominio**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
 :::
 
-Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio.
+Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
 
 ### Configurazione DNS e verifica
 

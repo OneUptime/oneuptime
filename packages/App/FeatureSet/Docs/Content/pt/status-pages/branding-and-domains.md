@@ -214,7 +214,7 @@ Em **Domínio** (texto de exemplo `Select domain`), escolha um dos seus domínio
 Clique em **Criar: Página de status Domínio**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre, com o registro a adicionar.
 :::
 
-O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo.
+O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.
 
 ### Configuração de DNS e verificação
 

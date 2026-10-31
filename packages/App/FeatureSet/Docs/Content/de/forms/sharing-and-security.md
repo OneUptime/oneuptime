@@ -1,10 +1,11 @@
 # Teilen & Sicherheit
 
-Ein Formular steht allen offen, die seinen Link haben, und jede Einreichung kann Ihr Bereitschaftsteam alarmieren oder ein Wartungsfenster in Ihren Kalender setzen. Diese Seite behandelt die Seite **Teilen** des Formulars — den Link, das Ausschalten des Formulars, die Nachricht nach dem Einreichen und die IP-Zulassungsliste — und jede weitere Prüfung, die eine Anfrage unterwegs besteht.
+Ein Formular steht allen offen, die seinen Link haben, und jede Einreichung kann Ihr Bereitschaftsteam alarmieren oder ein Wartungsfenster in Ihren Kalender setzen. Diese Seite behandelt die Seite **Teilen** des Formulars — den Link, das Ausschalten des Formulars, die Nachricht nach dem Einreichen und die IP-Zulassungsliste — und jede weitere Prüfung, die eine Anfrage unterwegs besteht. Außerdem behandelt sie, wie Sie das Formular unter Ihrer eigenen Domain ausliefern.
 
 :::cards
 - [Den Link teilen](#den-link-teilen): Kopieren, öffnen und zurücksetzen, wenn er sich zu weit verbreitet.
 - [Ein Link für jede Vorlage](#ein-link-für-jede-vorlage): Ein Lesezeichen pro Fall, ein Formular dahinter.
+- [Eigene Domains](#eigene-domains): Das Formular unter Ihrer eigenen Domain ausliefern, mit kostenlosem Zertifikat.
 - [Was ein Formular schützt](#was-ein-formular-schützt): Jede Prüfung, die eine Anfrage besteht, in Reihenfolge.
 - [Fehlerbehebung](#fehlerbehebung): Was jede Meldung auf der Formularseite bedeutet und was zu tun ist.
 :::
@@ -14,17 +15,17 @@ Ein Formular steht allen offen, die seinen Link haben, und jede Einreichung kann
 | Karte | Was sie enthält |
 | --- | --- |
 | **Status** | **Nimmt Einreichungen an** — ob der Link des Formulars funktioniert. |
-| **Link zum Teilen** | Den Link, mit **Link kopieren**, **Formular öffnen** und **Link zurücksetzen**. |
+| **Link zum Teilen** | Jede Adresse, unter der das Formular erreichbar ist, jeweils mit **Link kopieren**, und **Link zurücksetzen**. |
 | **Nach dem Absenden** | Die **Dankesnachricht**, die Leute nach dem Einreichen sehen, unter der Nummer dessen, was das Formular erstellt hat. |
 | **Weitere Einstellungen** | Die **IP-Zulassungsliste**, eingeklappt, bis Sie sie öffnen. |
 
 ## Den Link teilen
 
-Die Karte **Link zum Teilen** zeigt den Link des Formulars, etwa `https://oneuptime.com/accounts/form/<share-key>`:
+Die Karte **Link zum Teilen** listet jede Adresse, unter der das Formular erreichbar ist: zuerst seine [eigenen Domains](#eigene-domains), dann seinen Link auf OneUptime, etwa `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Link kopieren** kopiert ihn.
-- **Formular öffnen** öffnet das Formular in einem neuen Tab, so wie Leute es sehen.
-- **Link zurücksetzen** gibt dem Formular nach Ihrer Bestätigung einen neuen Link. Der alte Link funktioniert sofort nicht mehr und zeigt die Nicht-verfügbar-Meldung, daher brauchen alle, mit denen Sie ihn geteilt haben, den neuen. Nutzen Sie es, wenn sich ein Link weiter verbreitet hat, als er sollte.
+- Jede Adresse öffnet das Formular in einem neuen Tab, so wie Leute es sehen, und **Link kopieren** daneben kopiert sie.
+- Eine eigene Domain, die noch nicht live ist, ist mit **Noch nicht live** markiert, samt Grund. Ohne eigene Domain bietet eine Zeile unter dem Link **Benutzerdefinierte Domain hinzufügen** an.
+- **Link zurücksetzen** gibt dem Formular nach Ihrer Bestätigung einen neuen Link. Der alte Link funktioniert sofort nicht mehr und zeigt die Nicht-verfügbar-Meldung, daher brauchen alle, mit denen Sie ihn geteilt haben, den neuen. Nutzen Sie es, wenn sich ein Link weiter verbreitet hat, als er sollte. Die eigenen Domains des Formulars nennen keinen Schlüssel und funktionieren weiter.
 
 Alle mit dem Link können das Formular öffnen und einreichen, ohne OneUptime-Konto und ohne Anmeldung. Angemeldet zu sein ändert nichts: OneUptime weiß, wer eingereicht hat, nur aus dem Namen und der E-Mail, die ins Formular getippt wurden. Behandeln Sie den Link also wie eine Telefonnummer Ihres Bereitschaftsteams. Teilen Sie ihn dort, wo die Leute, die ihn nutzen sollen, ihn finden — eine Intranetseite, ein Support-Runbook, eine angeheftete Chatnachricht — und nicht auf einer öffentlichen Website, außer Sie möchten Einreichungen von allen.
 
@@ -34,19 +35,71 @@ Links auf die alten Vorfallsformulare, `/accounts/incident-form/<share-key>`, ö
 
 ### Ein Link für jede Vorlage
 
-Jede der [Vorlagen](/docs/forms/building#vorlagen) des Formulars hat einen eigenen Link: den Link des Formulars mit `?template=` und der ID der Vorlage, etwa `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Link kopieren** auf der Seite **Vorlagen** des Formulars kopiert ihn. Er öffnet das Formular mit dieser Vorlage ausgefüllt, sodass ein Team einen Link pro Fall als Lesezeichen speichern kann, während Sie ein einziges Formular pflegen. Wählt die einreichende Person eine andere Vorlage, folgt die Adresse in ihrem Browser, sodass der Link, den sie kopiert, das Formular so ist, wie sie es sieht.
+Jede der [Vorlagen](/docs/forms/building#vorlagen) des Formulars hat einen eigenen Link: den Link des Formulars mit `?template=` und der ID der Vorlage, etwa `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Link kopieren** auf der Seite **Vorlagen** des Formulars kopiert ihn. Er öffnet das Formular mit dieser Vorlage ausgefüllt, sodass ein Team einen Link pro Fall als Lesezeichen speichern kann, während Sie ein einziges Formular pflegen. Wählt die einreichende Person eine andere Vorlage, folgt die Adresse in ihrem Browser, sodass der Link, den sie kopiert, das Formular so ist, wie sie es sieht. Auf einer [eigenen Domain](#eigene-domains) ist der Link einer Vorlage die Domain mit demselben `?template=`, etwa `https://report.acme.com/?template=<template-id>`, und **Link zurücksetzen** lässt ihn weiter funktionieren.
 
 Der Link einer Vorlage ist der Link des Formulars: Er funktioniert, solange das Formular **Nimmt Einreichungen an** ist, und **Link zurücksetzen** zieht ihn mit den übrigen zurück. Ein Link, der eine gelöschte Vorlage nennt, öffnet das Formular, als nenne er keine — mit der Standardvorlage, falls es eine gibt.
 
 ### Ein Formular ausschalten
 
-Um keine Einreichungen mehr anzunehmen, ohne das Formular zu löschen, schalten Sie **Nimmt Einreichungen an** aus. Der Link zeigt dann "Dieses Formular ist nicht verfügbar. Möglicherweise wurde es deaktiviert, oder der Link ist nicht mehr aktuell.", und die Karte **Link zum Teilen** erinnert Sie daran, dass das Formular ausgeschaltet ist. Schalten Sie es wieder ein, und derselbe Link funktioniert wieder.
+Um keine Einreichungen mehr anzunehmen, ohne das Formular zu löschen, schalten Sie **Nimmt Einreichungen an** aus. Der Link zeigt dann "Dieses Formular ist nicht verfügbar. Möglicherweise wurde es deaktiviert, oder der Link ist nicht mehr aktuell.", und die Karte **Link zum Teilen** erinnert Sie daran, dass das Formular ausgeschaltet ist. Schalten Sie es wieder ein, und derselbe Link funktioniert wieder. Die eigenen Domains des Formulars zeigen dieselbe Meldung, solange es ausgeschaltet ist.
 
 ### Die Dankesnachricht
 
 Nach einer Einreichung sagt die Seite "Vielen Dank – Ihre Antwort wurde übermittelt." und nennt die Nummer dessen, was erstellt wurde, dann Ihre **Dankesnachricht**, in Markdown. Sagen Sie damit, was als Nächstes passiert und wohin man sich wendet, wenn etwas dringend ist. Ohne sie zeigt die Seite nur die Standardnachricht.
 
 Ein Bild in der Beschreibung oder der Dankesnachricht des Formulars wird allen gezeigt, die den Link öffnen, solange das Formular **Nimmt Einreichungen an** ist. Schalten Sie das Formular aus oder nehmen Sie das Bild heraus, und das Bild ist wieder privat, außer etwas anderes, das alle sehen, enthält es noch.
+
+## Eigene Domains
+
+Standardmäßig wird ein Formular unter seinem Link ausgeliefert, auf der eigenen Adresse von OneUptime. Um es unter einer eigenen Domain wie `report.acme.com` auszuliefern, öffnen Sie die Seite **Benutzerdefinierte Domains** des Formulars, direkt nach **Teilen** in seinem Seitenmenü. Sie funktioniert wie die [eigenen Domains einer Statusseite](/docs/status-pages/branding-and-domains#eigene-domains).
+
+Das Formular auf Ihre eigene Domain zu bringen dauert drei Schritte, und nur die ersten beiden sind Ihre:
+
+1. **Die Domain hinzufügen**: eine Subdomain und eine Ihrer verifizierten Domains.
+2. **Ihren CNAME-Eintrag hinzufügen** bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** öffnet sich mit dem Eintrag, sobald Sie die Domain hinzufügen.
+3. **Das kostenlose SSL-Zertifikat wird automatisch ausgestellt**, sobald der Eintrag gefunden ist. Es gibt keine Schaltfläche dafür.
+
+Sobald die Domain live ist, listet die Karte **Link zum Teilen** sie über dem Link des Formulars. Beide öffnen dasselbe Formular.
+
+### Eine Domain hinzufügen
+
+Klicken Sie auf **Formular-Domain erstellen**. Der Dialog ist eine Seite:
+
+- **Subdomain**: nur die Bezeichnung, Platzhalter `report (leave blank for root)`. Geben Sie nur `report` ein, nicht den ganzen Hostnamen. Lassen Sie das Feld leer oder geben Sie `@` ein, um die Stammdomain zu verwenden.
+- **Domäne**: eine der Domains, die unter **Projekteinstellungen** > **Erweitert** > **Domänen** verifiziert sind, wo Sie mit einem TXT-Eintrag nachweisen, dass Ihnen eine Domain gehört. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
+- **Weitere Felder**: eingeklappt. Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden: Schalten Sie **Benutzerdefiniertes Zertifikat hochladen** ein und fügen Sie das **Zertifikat** und seinen **Privater Schlüssel des Zertifikats** ein.
+
+Klicken Sie erneut auf **Formular-Domain erstellen**, um sie hinzuzufügen. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich. Name und Formular einer Domain stehen fest, sobald sie hinzugefügt ist, daher ändert **Bearbeiten** nur ihr Zertifikat: Um eines davon zu ändern, fügen Sie die neue Domain hinzu und löschen die alte.
+
+Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular, daher wird ein Name abgelehnt, den eines davon schon hat, in welchem Projekt auch immer: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### DNS-Einrichtung und Jetzt prüfen
+
+Der Dialog **DNS-Einrichtung** zeigt den Eintrag, den Sie bei Ihrem DNS-Anbieter anlegen, jedes Feld mit einer Kopierschaltfläche: **Typ** `CNAME`, **Name** die vollständige Domain, die Sie hinzugefügt haben, und **Wert** der CNAME-Eintrag Ihrer Installation. Für eine Stammdomain erlauben viele DNS-Anbieter keinen CNAME-Eintrag: Verwenden Sie stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.
+
+OneUptime prüft jede nicht verifizierte Domain alle 15 Minuten, und wenn es den Eintrag findet, bestellt es in derselben Prüfung das kostenlose Let's-Encrypt-Zertifikat der Domain. Um sofort zu prüfen, klicken Sie auf **Jetzt prüfen**. Bis eine Domain live ist, hat ihre Zeile eine Aktion **DNS-Einrichtung**, die denselben Dialog öffnet; dort bestellt **Jetzt prüfen** auch ein fehlgeschlagenes oder abgelaufenes Zertifikat neu, höchstens einmal pro Domain alle 15 Minuten. Die Verlängerung geschieht automatisch, lange bevor das Zertifikat abläuft.
+
+Die Spalte **Status** sagt, wie weit jede Domain auf ihrem Weg zu HTTPS ist, in denselben acht Zuständen wie die Domains einer Statusseite: siehe [Die Spalte Status der Domain lesen](/docs/status-pages/branding-and-domains#die-spalte-status-der-domain-lesen). Ist eine Bestellung fehlgeschlagen, steht der Grund in der Zeile darunter: meist ein CAA-Eintrag Ihrer Domain, der `letsencrypt.org` nicht erlaubt, oder, bei einer selbst gehosteten Installation, ein Server, den Let's Encrypt auf Port 80 nicht erreicht.
+
+Sobald für eine Domain ein kostenloses Zertifikat bestellt wurde, zeigt ihre Zeile **SSL neu ausstellen**, das bei Let's Encrypt vor der automatischen Verlängerung ein ganz neues Zertifikat anfordert, einmal alle 24 Stunden pro Domain. Das Formular bleibt währenddessen mit dem aktuellen Zertifikat online. Ein hochgeladenes Zertifikat verlängern Sie selbst: Bearbeiten Sie die Domain und fügen Sie das neue ein.
+
+### Was die Domain zeigt
+
+Eine Domain zeigt ihr Formular an ihrer Wurzel, etwa `https://report.acme.com`, und sonst nichts von OneUptime: keine Anmeldeseite und kein anderes Formular. Jede andere Adresse auf der Domain öffnet das Formular an ihrer Wurzel und behält ihre Abfrage, sodass auch der Link einer Vorlage dort funktioniert. Die Seite gehört dem Formular: sein Logo oder keines, nie das von OneUptime, sein Name als Titel des Tabs, im hellen Design und ohne die Analysen von OneUptime. Captcha, Dateien und Dankesnachricht funktionieren dort wie über den Link, und jede Prüfung unter [Was ein Formular schützt](#was-ein-formular-schützt) gilt, mit der Domain als eigener Seite des Formulars.
+
+- **Link zurücksetzen** ändert nur den Link des Formulars auf OneUptime: Seine Domains nennen keinen Schlüssel und funktionieren daher weiter.
+- **Nimmt Einreichungen an** auszuschalten schließt das Formular auch auf seinen Domains, mit der Nicht-verfügbar-Meldung.
+- Das Löschen des Formulars löscht seine Domains, und **Formular duplizieren** kopiert keine davon. Eine gelöschte Domain zeigt das Formular sofort nicht mehr.
+
+### Auf einer selbst gehosteten Installation
+
+Formulare verwenden den CNAME-Eintrag der Statusseiten: `STATUS_PAGE_CNAME_RECORD` in `config.env` oder `statusPage.cnameRecord` im Helm-Chart. Um Formular-Domains ein eigenes Ziel zu geben, setzen Sie `FORM_CNAME_RECORD`: in `config.env` für Docker Compose oder mit dem chartweiten `extraEnv` im Helm-Chart. Ohne beides sagt die Seite **Benutzerdefinierte Domains**, dass eigene Domains nicht aktiviert sind, statt einen Eintrag zu zeigen, und OneUptime verifiziert keine Formular-Domains und bestellt keine Zertifikate für sie.
+
+Der Server muss auf Port 80 antworten, wo Let's Encrypt jede Domain prüft. Eine Installation ohne Let's-Encrypt-Kontoschlüssel, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` im Helm-Chart), bestellt keine Zertifikate: Die Domain eines Formulars ist live, sobald ihr Eintrag verifiziert ist, und wird mit dem HTTPS Ihres eigenen Proxys oder einem hochgeladenen Zertifikat ausgeliefert. Mit eingeschaltetem Captcha muss ein Site-Key, der die Hostnamen auflistet, auf denen er funktioniert, auch die Domains des Formulars auflisten.
+
+### Wer Domains verwalten kann
+
+Projektinhaber und Administratoren sowie alle mit **Edit Form** können die Domains eines Formulars hinzufügen, prüfen, ihre Zertifikate neu ausstellen und sie löschen. Das können auch die Berechtigungen nur für die Domains eines Formulars, etwa **Edit Form Domain**: Die [Formulare – Übersicht](/docs/forms/index#berechtigungen) listet sie. Alle, die ein Formular lesen können, sehen seine Domains, ihren **Status** und den Eintrag in **DNS-Einrichtung**; für sie sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung sie brauchen. Ein API-Schlüssel funktioniert genauso auf `/form-domain`: `verify-cname`, `order-ssl` und `reissue-ssl` brauchen **Edit Form Domain** oder **Edit Form**.
 
 ## Was ein Formular schützt
 
@@ -145,6 +198,10 @@ Hat Ihre OneUptime-Instanz hCaptcha eingeschaltet, zeigt das Formular ein Captch
 - Das Formular wurde gelöscht.
 - In OneUptime Cloud liegt das Projekt unter dem Tarif **Growth**, oder sein Abonnement ist unbezahlt.
 - Der Link wurde beim Kopieren abgeschnitten.
+:::
+
+:::details Die Domain des Formulars zeigt das Formular nicht
+Öffnen Sie die Seite **Benutzerdefinierte Domains** des Formulars und lesen Sie die Spalte **Status** der Domain: Bis ihr Eintrag verifiziert und ihr Zertifikat vorhanden ist, zeigt ein Browser eine Zertifikatswarnung oder gar nichts. Eine Domain, die nicht mehr auf der Seite steht, weil sie oder ihr Formular gelöscht wurde, zeigt eine Nicht-gefunden-Seite, und eine, deren übergeordnete Domain nicht mehr verifiziert ist, die Nicht-verfügbar-Meldung. Prüfen Sie auf einer selbst gehosteten Installation, dass der Eintrag auf Ihren OneUptime-Server zeigt und dass der Server auf den Ports 80 und 443 antwortet.
 :::
 
 :::details Das Formular lässt sich nur aus einem erlaubten Netz öffnen

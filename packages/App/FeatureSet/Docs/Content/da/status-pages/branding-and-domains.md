@@ -214,7 +214,7 @@ I **Domæne** (pladsholder `Select domain`) vælger du et af dine bekræftede do
 Klik på **Opret Statusside Domæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner med den post, der skal tilføjes.
 :::
 
-Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle.
+Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
 
 ### DNS-opsætning og bekræftelse
 

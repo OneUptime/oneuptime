@@ -214,7 +214,7 @@ I **Domene** (plassholder `Select domain`) velger du ett av de verifiserte domen
 Klikk på **Opprett Statusside Domene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes, med posten som skal legges til.
 :::
 
-Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke et annet underdomene legger du til det domenet og sletter det gamle.
+Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke et annet underdomene legger du til det domenet og sletter det gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.
 
 ### DNS-oppsett og verifisering
 
