@@ -5,6 +5,7 @@ import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
 import FileService, { FileFacts } from "./FileService";
 import FormSubmissionService from "./FormSubmissionService";
+import FormDomainService from "./FormDomainService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import SubscriptionPlan, {
   PlanType,
@@ -550,6 +551,65 @@ export class Service extends DatabaseService<Model> {
     const built: BuiltPublicForm = await this.buildPublicFormFor(form);
 
     return built.form;
+  }
+
+  /**
+   * What the form's page on its own domain shows (FormDomain): the form that
+   * domain answers with, found by the name the request came to - never by a
+   * key the request names - and then read exactly as a visit to its link
+   * reads it, every check included: a form that is off, below its plan, or
+   * outside its IP allowlist answers on its domain as on its link. A name no
+   * form has gets the one answer every unavailable form gets.
+   *
+   * hostname is the request's own Host, normalized
+   * (normalizeStatusPageRequestHost): never X-Forwarded-Host, which a caller
+   * writes.
+   */
+  @CaptureSpan()
+  public async getPublicFormOnCustomDomain(data: {
+    hostname: string | null;
+    clientIp: string | undefined;
+  }): Promise<PublicForm> {
+    return await this.getPublicForm({
+      shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
+      clientIp: data.clientIp,
+    });
+  }
+
+  /**
+   * A submission from the form's page on its own domain: to the form that
+   * domain answers with (see getPublicFormOnCustomDomain), held to every
+   * rule a submission through its link is - the captcha, the answers, the
+   * form's hourly ceiling and its hourly allowance of files, which the link
+   * and the domain share: they are one form.
+   */
+  @CaptureSpan()
+  public async submitPublicFormOnCustomDomain(data: {
+    hostname: string | null;
+    request: PublicFormSubmissionRequest;
+    clientIp: string | undefined;
+    captchaRemoteIp?: string | undefined;
+  }): Promise<PublicFormSubmissionResult> {
+    return await this.submitPublicForm({
+      shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
+      request: data.request,
+      clientIp: data.clientIp,
+      captchaRemoteIp: data.captchaRemoteIp,
+    });
+  }
+
+  // The key of the form a name answers with, or the not-available answer.
+  private async getShareKeyOnCustomDomain(
+    hostname: string | null,
+  ): Promise<string> {
+    const shareKey: string | null =
+      await FormDomainService.getShareKeyOfFormOnDomain(hostname);
+
+    if (!shareKey) {
+      throw new NotFoundException(FORM_NOT_AVAILABLE_MESSAGE);
+    }
+
+    return shareKey;
   }
 
   /**

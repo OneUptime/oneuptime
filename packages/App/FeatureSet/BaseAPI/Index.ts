@@ -116,6 +116,7 @@ import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMain
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
 import FormAPI from "Common/Server/API/FormAPI";
+import FormDomainAPI from "Common/Server/API/FormDomainAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
 import AlertEpisodeAPI from "Common/Server/API/AlertEpisodeAPI";
 import IncidentEpisodeMemberAPI from "Common/Server/API/IncidentEpisodeMemberAPI";
@@ -4905,6 +4906,13 @@ const BaseAPIFeatureSet: FeatureSet = {
         FormSubmissionService,
       ).getRouter(),
     );
+
+    /*
+     * A form's own domains, with Check now, Order SSL, Reissue SSL and the
+     * Status column's certificates (the routes its page calls on the domain
+     * are the form API's, above).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FormDomainAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

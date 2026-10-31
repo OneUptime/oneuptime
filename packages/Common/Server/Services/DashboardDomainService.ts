@@ -34,6 +34,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ArrayUtil from "../../Utils/Array";
 import { CustomDomainVerificationResult } from "../../Types/CustomDomain/CustomDomainVerification";
 import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCertificates";
+import CustomDomainConflicts, {
+  CustomDomainKind,
+} from "../Utils/CustomDomain/CustomDomainConflicts";
 
 const DASHBOARD_DOMAIN_EGRESS_LABEL: string = "Dashboard domain";
 
@@ -168,6 +171,16 @@ export class Service extends ProjectReferencesService<DashboardDomain> {
         ? `${normalizedSubdomain}.${baseDomain}`
         : baseDomain;
     }
+
+    /*
+     * One name, one thing to show: a name a status page or a form already
+     * has, in any project, is refused (CustomDomainConflicts) - the visit
+     * could only ever lead to one of them.
+     */
+    await CustomDomainConflicts.assertNameIsFree({
+      kind: CustomDomainKind.Dashboard,
+      fullDomain: createBy.data.fullDomain || "",
+    });
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 

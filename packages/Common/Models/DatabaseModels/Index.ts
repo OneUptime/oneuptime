@@ -148,6 +148,7 @@ import IncidentState from "./IncidentState";
 import IncidentStateTimeline from "./IncidentStateTimeline";
 import Form from "./Form";
 import FormSubmission from "./FormSubmission";
+import FormDomain from "./FormDomain";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -724,6 +725,7 @@ const AllModelTypes: Array<{
   IncidentPostmortemStatus,
   Form,
   FormSubmission,
+  FormDomain,
 
   AlertState,
   Alert,

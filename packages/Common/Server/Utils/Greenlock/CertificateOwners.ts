@@ -1,5 +1,6 @@
 import { Host } from "../../EnvironmentConfig";
 import DashboardDomainService from "../../Services/DashboardDomainService";
+import FormDomainService from "../../Services/FormDomainService";
 import StatusPageDomainService from "../../Services/StatusPageDomainService";
 
 export type OwnedDomainsLookup = (
@@ -26,6 +27,12 @@ export interface CertificateOwner {
  * deletes them a month after they expire.
  */
 export default class CertificateOwners {
+  /*
+   * The name of the form domains' entry, which FormDomainService leaves out
+   * when it asks whether anything else claims a name it is letting go of.
+   */
+  public static readonly FORM_DOMAINS_OWNER_NAME: string = "form domains";
+
   // The installation's own HOST, without a port, as CoreSSL orders it.
   public static getPrimaryHostname(host: string = Host): string {
     return (host.trim().toLowerCase().split(":")[0] || "").trim();
@@ -47,6 +54,14 @@ export default class CertificateOwners {
           domains: Array<string>,
         ): Promise<Array<string>> => {
           return await DashboardDomainService.getOwnedDomains(domains);
+        },
+      },
+      {
+        name: CertificateOwners.FORM_DOMAINS_OWNER_NAME,
+        getOwnedDomains: async (
+          domains: Array<string>,
+        ): Promise<Array<string>> => {
+          return await FormDomainService.getOwnedDomains(domains);
         },
       },
       {
