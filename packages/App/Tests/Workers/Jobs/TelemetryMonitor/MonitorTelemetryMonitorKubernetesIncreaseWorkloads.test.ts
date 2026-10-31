@@ -1296,7 +1296,7 @@ describe("the rows this suite stores are the agent's", () => {
       ).toBe(true);
     }
 
-    // Every kind the scope's Workload Kind offers is a name some pod carries.
+    // Every workload kind a pod belongs to is a name some pod carries.
     for (const key of WORKLOAD_KEYS) {
       expect(
         rows[RESTARTS_INCREASE]!.some((row: StoredMetricRow): boolean => {

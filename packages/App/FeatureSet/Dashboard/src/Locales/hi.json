@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "एक ही पैरेंट से ×{{count}}",
   "Link copied": "लिंक कॉपी हो गया",
   "event attributes": "इवेंट की विशेषताएँ",
-  "link attributes": "लिंक की विशेषताएँ"
+  "link attributes": "लिंक की विशेषताएँ",
+  "HPA Name": "HPA नाम",
+  "e.g. my-hpa": "उदा. my-hpa"
 }

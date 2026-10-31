@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "1 つの親から ×{{count}}",
   "Link copied": "リンクをコピーしました",
   "event attributes": "イベントの属性",
-  "link attributes": "リンクの属性"
+  "link attributes": "リンクの属性",
+  "HPA Name": "HPA 名",
+  "e.g. my-hpa": "例: my-hpa"
 }

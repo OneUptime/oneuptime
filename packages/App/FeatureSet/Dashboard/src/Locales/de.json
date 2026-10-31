@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} von einem übergeordneten Span",
   "Link copied": "Link kopiert",
   "event attributes": "Ereignisattribute",
-  "link attributes": "Link-Attribute"
+  "link attributes": "Link-Attribute",
+  "HPA Name": "HPA-Name",
+  "e.g. my-hpa": "z. B. my-hpa"
 }

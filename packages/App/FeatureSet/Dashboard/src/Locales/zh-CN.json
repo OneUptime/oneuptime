@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "来自同一父级 ×{{count}}",
   "Link copied": "链接已复制",
   "event attributes": "事件属性",
-  "link attributes": "链接属性"
+  "link attributes": "链接属性",
+  "HPA Name": "HPA 名称",
+  "e.g. my-hpa": "例如 my-hpa"
 }

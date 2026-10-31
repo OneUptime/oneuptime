@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} från ett överordnat spann",
   "Link copied": "Länken har kopierats",
   "event attributes": "händelseattribut",
-  "link attributes": "länkattribut"
+  "link attributes": "länkattribut",
+  "HPA Name": "HPA-namn",
+  "e.g. my-hpa": "t.ex. my-hpa"
 }

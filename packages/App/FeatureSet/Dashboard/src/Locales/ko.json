@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "하나의 상위에서 ×{{count}}",
   "Link copied": "링크를 복사했습니다",
   "event attributes": "이벤트 속성",
-  "link attributes": "링크 속성"
+  "link attributes": "링크 속성",
+  "HPA Name": "HPA 이름",
+  "e.g. my-hpa": "예: my-hpa"
 }

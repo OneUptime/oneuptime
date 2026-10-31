@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} from one parent",
   "Link copied": "Link copied",
   "event attributes": "event attributes",
-  "link attributes": "link attributes"
+  "link attributes": "link attributes",
+  "HPA Name": "HPA Name",
+  "e.g. my-hpa": "e.g. my-hpa"
 }
