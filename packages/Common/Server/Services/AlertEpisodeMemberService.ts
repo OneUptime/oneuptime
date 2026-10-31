@@ -1,3 +1,7 @@
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import PrivateRecordPermission from "../Types/Database/Permissions/PrivateRecordPermission";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -48,6 +52,7 @@ import EpisodeMembersAdd, {
   ALERT_NOT_FOUND_REASON,
   ALERT_NOUNS,
   EpisodeMembersAddResult,
+  ALERT_PRIVATE_REASON,
 } from "../../Types/Episode/EpisodeMembersAdd";
 import EpisodeMembersBatch, {
   EpisodeMemberFeedMention,
@@ -63,7 +68,7 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import type { PendingRecord } from "./DatabaseService";
+import DatabaseService, { PendingRecord } from "./DatabaseService";
 import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
 /*
@@ -493,7 +498,7 @@ export class Service extends ProjectReferencesService<Model> {
     const episode: AlertEpisode | null = await CallerVisibleRead.find(() => {
       return AlertEpisodeService.findOneById({
         id: data.alertEpisodeId,
-        select: { _id: true, projectId: true },
+        select: { _id: true, projectId: true, isPrivate: true },
         props: createBy.props,
       });
     });
@@ -503,6 +508,12 @@ export class Service extends ProjectReferencesService<Model> {
         "The episode to add the alert to does not exist in this project, or you do not have access to it.",
       );
     }
+
+    await this.assertEpisodeReached({
+      episode: episode,
+      episodeId: data.alertEpisodeId,
+      props: createBy.props,
+    });
 
     const alert: Alert | null = await CallerVisibleRead.find(() => {
       return AlertService.findOneById({
@@ -1077,7 +1088,7 @@ export class Service extends ProjectReferencesService<Model> {
     const episode: AlertEpisode | null = await CallerVisibleRead.find(() => {
       return AlertEpisodeService.findOneById({
         id: alertEpisodeId,
-        select: { _id: true, projectId: true },
+        select: { _id: true, projectId: true, isPrivate: true },
         props: data.props,
       });
     });
@@ -1088,11 +1099,21 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    const visibleAlertIds: Set<string> = await this.findAlertIdsCallerCanSee({
-      projectId: projectId,
-      alertIds: alertIds,
+    await this.assertEpisodeReached({
+      episode: episode,
+      episodeId: alertEpisodeId,
       props: data.props,
     });
+
+    const {
+      visible: visibleAlertIds,
+      outOfReach: alertIdsOutOfReach,
+    }: { visible: Set<string>; outOfReach: Set<string> } =
+      await this.findAlertIdsCallerCanSee({
+        projectId: projectId,
+        alertIds: alertIds,
+        props: data.props,
+      });
 
     const alertIdsInEpisode: Set<string> = await this.findAlertIdsInEpisode({
       alertEpisodeId: alertEpisodeId,
@@ -1123,6 +1144,11 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (!visibleAlertIds.has(key)) {
         result.notAdded.push({ id: key, reason: ALERT_NOT_FOUND_REASON });
+        continue;
+      }
+
+      if (alertIdsOutOfReach.has(key)) {
+        result.notAdded.push({ id: key, reason: ALERT_PRIVATE_REASON });
         continue;
       }
 
@@ -1254,6 +1280,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertSeverityId: true,
             alertNumber: true,
             alertNumberWithPrefix: true,
+            isPrivate: true,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -1274,6 +1301,26 @@ export class Service extends ProjectReferencesService<Model> {
     if (!allVisible) {
       throw new BadDataException(
         "Some of the alerts to add to the episode do not exist in this project, or you do not have access to them.",
+      );
+    }
+
+    /*
+     * A private one the caller sees but whose owners' permissions do not let
+     * them add it to an episode refuses the whole create, as one they cannot
+     * see does (PrivateRecordPermission).
+     */
+    const outOfReach: Set<string> =
+      await PrivateRecordWriteCheck.findUnreachable({
+        modelType: Model,
+        type: DatabaseRequestType.Create,
+        recordService: AlertService as unknown as DatabaseService<BaseModel>,
+        records: alerts,
+        props: data.props,
+      });
+
+    if (outOfReach.size > 0) {
+      throw new NotAuthorizedException(
+        "Some of the alerts to add to the episode are private, and none of the teams of yours that own them may add them to an episode.",
       );
     }
 
@@ -1565,11 +1612,40 @@ export class Service extends ProjectReferencesService<Model> {
    * them: privacy, labels and owners decide, as on the alerts list. A read
    * the caller may not make at all finds none.
    */
+  /*
+   * A PRIVATE EPISODE IS ADDED TO ONLY THROUGH THE TEAMS THAT OWN IT: its
+   * members are a part of it, changed only with the permissions of the
+   * teams that own it and of the people named as its owners
+   * (PrivateRecordPermission). `episode` is the caller's own read of it,
+   * isPrivate with it: one that is not private is not asked again.
+   */
+  private async assertEpisodeReached(data: {
+    episode: AlertEpisode;
+    episodeId: ObjectID | string;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const reaches: boolean = await PrivateRecordWriteCheck.reaches({
+      modelType: Model,
+      type: DatabaseRequestType.Create,
+      recordService:
+        AlertEpisodeService as unknown as DatabaseService<BaseModel>,
+      recordId: new ObjectID(data.episodeId.toString()),
+      props: data.props,
+      readRecord: data.episode,
+    });
+
+    if (!reaches) {
+      throw new NotAuthorizedException(
+        `You do not have permission to add alerts to this episode. ${PrivateRecordPermission.PRIVATE_WRITE_REASON}`,
+      );
+    }
+  }
+
   private async findAlertIdsCallerCanSee(data: {
     projectId: ObjectID;
     alertIds: Array<ObjectID>;
     props: DatabaseCommonInteractionProps;
-  }): Promise<Set<string>> {
+  }): Promise<{ visible: Set<string>; outOfReach: Set<string> }> {
     const alerts: Array<Alert> =
       (await CallerVisibleRead.find(() => {
         return AlertService.findBy({
@@ -1579,6 +1655,7 @@ export class Service extends ProjectReferencesService<Model> {
           },
           select: {
             _id: true,
+            isPrivate: true,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -1586,11 +1663,25 @@ export class Service extends ProjectReferencesService<Model> {
         });
       })) || [];
 
-    return new Set(
-      alerts.map((alert: Alert): string => {
-        return EpisodeMembersAdd.normalizeId(alert._id || "");
+    return {
+      visible: new Set(
+        alerts.map((alert: Alert): string => {
+          return EpisodeMembersAdd.normalizeId(alert._id || "");
+        }),
+      ),
+      /*
+       * Of them, the private ones the caller's add does not reach: a
+       * alert's membership is a part of it, changed only with the
+       * permissions of the teams that own it (PrivateRecordPermission).
+       */
+      outOfReach: await PrivateRecordWriteCheck.findUnreachable({
+        modelType: Model,
+        type: DatabaseRequestType.Create,
+        recordService: AlertService as unknown as DatabaseService<BaseModel>,
+        records: alerts,
+        props: data.props,
       }),
-    );
+    };
   }
 
   // The alerts among `alertIds` that are in the episode already.

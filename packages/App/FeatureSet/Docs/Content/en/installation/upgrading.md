@@ -1698,6 +1698,24 @@ API, SSO, or the Slack and Microsoft Teams apps.
   permission over the whole project. It is now removed before the label is,
   which leaves what everyone may do as it was before the delete. A
   permission that keeps another of its labels stays.
+- **A private incident, alert or episode is changed only through the teams
+  that own it.** Someone on a team that may change incidents and on another
+  team that owns a private incident and may only view it could change that
+  incident through the first team: edit it, change its state, add notes,
+  owners and roles, and delete it, from the dashboard, the API, bulk
+  actions, Slack, Microsoft Teams and OneUptime AI. Now a private record is
+  changed only with the permissions of the teams that own it, each with its
+  own scope and labels, and of the people named as its owners, and the same
+  goes for its notes, owners, state history, roles, links, episode members
+  and calls. Its state history, public notes, roles, SLA and measurements
+  are now read, like its other parts, only by those who may read it.
+  Project owners and admins, and workflow steps, change every private
+  record as before. A team that owns private records but holds no
+  permissions lets its members see them and change none of them, and a
+  pending invitation no longer shows a team's private records. Give the
+  teams that own private records the permissions their members should act
+  with, or make those members owners. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

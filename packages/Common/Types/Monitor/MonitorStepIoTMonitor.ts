@@ -45,6 +45,14 @@ export default interface MonitorStepIoTMonitor {
   resourceFilters: IoTDeviceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
+  /*
+   * Each device is judged on its latest reading in the window, not on every
+   * reading in it: a device that reported down and then up again is up.
+   * Device Offline sets it - a down reading is a state, and holding it for
+   * the whole 30-minute window kept the incident open that long after the
+   * device came back. Not set: every reading in the window counts.
+   */
+  judgeLatestReading?: boolean | undefined;
 }
 
 export class MonitorStepIoTMonitorUtil {
@@ -66,5 +74,40 @@ export class MonitorStepIoTMonitorUtil {
 
   public static toJSON(monitor: MonitorStepIoTMonitor): JSONObject {
     return monitor as any as JSONObject;
+  }
+
+  /*
+   * A per-device breakdown judged on each device's latest reading
+   * (judgeLatestReading): every query's and formula's series keeps only its
+   * newest row. A series with no rows stays empty, so a silent device is
+   * still judged by its no-data policy.
+   */
+  public static keepLatestReadings<
+    T extends {
+      aggregatedResults: Array<{ data: Array<{ timestamp: Date }> }>;
+    },
+  >(series: Array<T>): Array<T> {
+    return series.map((entry: T): T => {
+      return {
+        ...entry,
+        aggregatedResults: entry.aggregatedResults.map(
+          (result: { data: Array<{ timestamp: Date }> }) => {
+            let latest: { timestamp: Date } | undefined = undefined;
+
+            for (const row of result.data || []) {
+              if (
+                !latest ||
+                new Date(row.timestamp).getTime() >
+                  new Date(latest.timestamp).getTime()
+              ) {
+                latest = row;
+              }
+            }
+
+            return { ...result, data: latest ? [latest] : [] };
+          },
+        ),
+      };
+    });
   }
 }

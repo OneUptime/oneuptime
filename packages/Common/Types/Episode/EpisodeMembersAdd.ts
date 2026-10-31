@@ -79,6 +79,18 @@ export const ALERT_NOT_FOUND_REASON: string =
 export const INCIDENT_NOT_FOUND_REASON: string =
   "This incident does not exist in this project, or you do not have access to it.";
 
+/*
+ * A private alert or incident the caller sees, that their permission to add
+ * to episodes does not reach: it is changed only with the permissions of the
+ * teams that own it and of the people named as its owners
+ * (PrivateRecordPermission).
+ */
+export const ALERT_PRIVATE_REASON: string =
+  "This alert is private, and none of the teams of yours that own it may add it to an episode.";
+
+export const INCIDENT_PRIVATE_REASON: string =
+  "This incident is private, and none of the teams of yours that own it may add it to an episode.";
+
 export interface EpisodeMemberNotAdded {
   // The incident's or alert's id, as asked for.
   id: string;

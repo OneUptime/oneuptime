@@ -118,6 +118,8 @@ Un criterio solo dispara cuando la condición se cumple en cada minuto de su ven
 
 Un dispositivo registrado también se mantiene como desconectado en el inventario de la flota, mientras que uno no registrado se elimina tras 15 minutos de silencio. La detección del silencio necesita la política de datos ausentes **Treat As Zero** en el criterio de `iot_device_up`, que tienen los monitores Device Offline creados desde la plantilla. Un monitor Device Offline creado antes de que existiera el registro de dispositivos necesita que se establezca a mano, o debe volver a crearse desde la plantilla.
 
+**Device Offline** juzga cada dispositivo por su lectura más reciente, así que un dispositivo que informó caída y luego volvió a estar activo está activo en la siguiente comprobación. Un monitor Device Offline que sigue fuera de línea hasta que la lectura de caída tiene 30 minutos se creó antes de que la plantilla hiciera esto: vuelve a elegir la plantilla en **Sobre qué alertar** para actualizarlo.
+
 > [!NOTE]
 > Un dispositivo no registrado que se queda en silencio, sin Last Will ni informe de la pasarela, solo deja de enviar datos, y un monitor agrupado por dispositivo no puede señalarlo. Registre sus dispositivos, o dé a un dispositivo crítico un monitor propio (**Custom Metric**, con su **ID del dispositivo**) y establezca **Si no hay datos** en **Disparador**. La detección del silencio también necesita que al menos otro dispositivo de la flota siga informando: una flota que se apaga por completo, por ejemplo durante una caída de la pasarela, genera un incidente para el monitor, no uno por dispositivo.
 

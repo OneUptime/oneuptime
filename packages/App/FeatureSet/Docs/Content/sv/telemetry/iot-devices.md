@@ -195,7 +195,7 @@ En telemetrinyttolast kan också innehålla `"attributes"`, en mappning av strä
 
 ### Offlineidentifiering med Last Will
 
-Registrera en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med nyttolasten `offline`. Om enheten dör eller försvinner från nätverket publicerar OneUptime `iot_device_up = 0` för den i samma ögonblick som dess session avslutas, vilket utlöser den inbyggda larmmallen Device Offline och markerar enheten som nere i inventariet, utan avfrågning. Publicera `online` till samma ämne efter anslutningen, så att enheten visas som uppe igen.
+Registrera en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med nyttolasten `offline`. Om enheten dör eller försvinner från nätverket publicerar OneUptime `iot_device_up = 0` för den i samma ögonblick som dess session avslutas, vilket utlöser den inbyggda larmmallen Device Offline och markerar enheten som nere i inventariet, utan avfrågning. Publicera `online` till samma ämne efter anslutningen, så att enheten visas som uppe igen. Varje avläsning som enheten publicerar räknas också som uppe, så en enhet som fortsätter att skicka avläsningar förblir uppe utan att publicera sin status igen.
 
 ### Exempel
 
@@ -281,7 +281,7 @@ OneUptime känner igen dessa `iot_*`-mätvärdesnamn. Skicka bara de som är men
 | `iot_battery_percent` | Batteriladdning, `0` till `100` (%). |
 | `iot_signal_strength_dbm` | Trådlös signalstyrka i dBm, till exempel RSSI för Wi-Fi, LoRa eller mobilnät. |
 | `iot_temperature_celsius` | Enhetens eller sensorns temperatur i °C. |
-| `iot_cpu_usage_ratio` | CPU-användning som ett förhållande från `0` till `1`. OneUptime lagrar och visar det som en procentsats. |
+| `iot_cpu_usage_ratio` | CPU-användning som ett förhållande från `0` till `1`. OneUptime lagrar det som det skickas, och enhetsinventariet visar det som en procentsats. |
 | `iot_memory_usage_bytes` | Använt minne, i byte. |
 | `iot_memory_size_bytes` | Totalt minne på enheten, i byte. |
 | `iot_uptime_seconds` | Sekunder sedan enheten senast startade. |
@@ -289,7 +289,7 @@ OneUptime känner igen dessa `iot_*`-mätvärdesnamn. Skicka bara de som är men
 ## Kontrollera att flottan visas
 
 1. Kontrollera att enheten, gatewayens collector eller MQTT-klienten skickar utan fel: leta efter exportfel och HTTP-svar `401` eller `422` i dess loggar, eller en anslutning som nekas med returkod 4.
-2. Öppna **Produkter → Infrastruktur → IoT → All Fleets**. Flottan visas som `iot/<fleet>` inom en minut eller så efter de första avläsningarna.
+2. Öppna **Produkter → Infrastruktur → IoT → All Fleets**. Flottan visas under sitt namn inom en minut eller så efter de första avläsningarna.
 3. Öppna flottans sida **Enheter**. Varje enhet du skickade från ska finnas med sitt senaste batteri, signal, temperatur, CPU, minne och status uppe eller nere.
 4. Öppna flottans sida **Mätvärden** för att visa någon av `iot_*`-serierna i ett diagram.
 

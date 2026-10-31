@@ -92,6 +92,13 @@ export interface ComponentProps {
    * the usual suggestions.
    */
   standing?: EventStanding | undefined;
+  /*
+   * Whether the reader may change the record's state, as the header's
+   * state buttons ask it (a private record's scope included): false, and
+   * nothing asks OneUptime AI to acknowledge it for them - it acts within
+   * their permissions, and would only refuse. Left out, it is offered.
+   */
+  mayChangeState?: boolean | undefined;
 }
 
 /*
@@ -206,9 +213,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     findActiveAssistantMessage(view);
   const activityLine: string | null = describeThreadActivity(view, translator);
   const standing: EventStanding | undefined = props.standing;
+  const mayChangeState: boolean | undefined = props.mayChangeState;
   const suggestions: Array<SuggestedPrompt> = useMemo(() => {
-    return getSuggestedPrompts(subjectType, stage, standing);
-  }, [subjectType, stage, standing]);
+    return getSuggestedPrompts(subjectType, stage, standing, mayChangeState);
+  }, [subjectType, stage, standing, mayChangeState]);
 
   const sendBlocker: string | null = getSendBlocker({
     view,

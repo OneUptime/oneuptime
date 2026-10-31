@@ -6,6 +6,9 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
+import PrivateRecordScopeProvider from "../../../Components/PrivateRecord/PrivateRecordScopeProvider";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -24,7 +27,20 @@ const AlertEpisodeViewLayout: FunctionComponent<
       breadcrumbLinks={getAlertsBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >
-      <Outlet />
+      {/*
+       * A private episode is changed only with the permissions of the teams
+       * that own it: every page of it offers only what the reader may do
+       * there (PrivateRecordScopeProvider).
+       */}
+      <PrivateRecordScopeProvider
+        modelType={AlertEpisode}
+        modelId={modelId}
+        ownerTeamModelType={AlertEpisodeOwnerTeam}
+        ownerUserModelType={AlertEpisodeOwnerUser}
+        ownerKey="alertEpisodeId"
+      >
+        <Outlet />
+      </PrivateRecordScopeProvider>
     </ModelPage>
   );
 };

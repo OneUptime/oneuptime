@@ -1785,6 +1785,30 @@ jobs:
           Tests/Server/API/OwnedScopePerTeamPostgres.test.ts
           --forceExit
 
+      # Clones the migrated incident, owner, note, state, team, label and
+      # permission tables into an isolated schema and sends reads, changes,
+      # deletes and creates of a private incident and its parts through the
+      # CRUD routes and the real user middleware (block 33: a member of a
+      # team that may change incidents and of a view-only team that alone
+      # owns a private incident changed it through the first team). A
+      # private record is changed only with the permissions of the teams
+      # that own it, each with its own scope and labels, and of the people
+      # named as its owners; reads, public incidents and admins are as
+      # before - a matrix of team grants, owners and incidents, about a
+      # minute.
+      - name: Test that a private incident is changed only through its owners on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_SCOPE_TESTS: "true"
+          RECORD_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/PrivateRecordOwnerTeamsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated team, custom role, API key, label, Kubernetes
       # cluster (labels and owners) and Docker host tables into an isolated
       # schema and presses a cluster's Test connection and Reset agent, and a

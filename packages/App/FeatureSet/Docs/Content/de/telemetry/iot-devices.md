@@ -195,7 +195,7 @@ Ein Telemetrie-Payload kann außerdem `"attributes"` enthalten, eine Map von Zei
 
 ### Offline-Erkennung mit Last Will
 
-Registrieren Sie einen MQTT-Last-Will auf `oneuptime/<fleet>/<device>/status` mit dem Payload `offline`. Fällt das Gerät aus oder verschwindet es aus dem Netzwerk, veröffentlicht OneUptime für es `iot_device_up = 0` in dem Moment, in dem seine Sitzung endet; das löst die mitgelieferte Alarmvorlage Device Offline aus und markiert das Gerät im Inventar als ausgefallen, ohne Polling. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als verfügbar erscheint.
+Registrieren Sie einen MQTT-Last-Will auf `oneuptime/<fleet>/<device>/status` mit dem Payload `offline`. Fällt das Gerät aus oder verschwindet es aus dem Netzwerk, veröffentlicht OneUptime für es `iot_device_up = 0` in dem Moment, in dem seine Sitzung endet; das löst die mitgelieferte Alarmvorlage Device Offline aus und markiert das Gerät im Inventar als ausgefallen, ohne Polling. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als verfügbar erscheint. Jeder Messwert, den das Gerät veröffentlicht, zählt ebenfalls als verfügbar, sodass ein Gerät, das weiter Messwerte sendet, verfügbar bleibt, ohne seinen Status erneut zu veröffentlichen.
 
 ### Beispiele
 
@@ -281,7 +281,7 @@ OneUptime erkennt diese `iot_*`-Metriknamen. Senden Sie nur die, die für Ihr Ge
 | `iot_battery_percent` | Akkuladung, `0` bis `100` (%). |
 | `iot_signal_strength_dbm` | Funksignalstärke in dBm, etwa der RSSI von WLAN, LoRa oder Mobilfunk. |
 | `iot_temperature_celsius` | Geräte- oder Sensortemperatur in °C. |
-| `iot_cpu_usage_ratio` | CPU-Nutzung als Verhältnis von `0` bis `1`. OneUptime speichert und zeigt sie als Prozentsatz. |
+| `iot_cpu_usage_ratio` | CPU-Nutzung als Verhältnis von `0` bis `1`. OneUptime speichert sie so, wie sie gesendet wird, und das Geräteinventar zeigt sie als Prozentsatz. |
 | `iot_memory_usage_bytes` | Genutzter Speicher, in Bytes. |
 | `iot_memory_size_bytes` | Gesamtspeicher des Geräts, in Bytes. |
 | `iot_uptime_seconds` | Sekunden seit dem letzten Start des Geräts. |
@@ -289,7 +289,7 @@ OneUptime erkennt diese `iot_*`-Metriknamen. Senden Sie nur die, die für Ihr Ge
 ## Prüfen, ob die Flotte erscheint
 
 1. Prüfen Sie, ob das Gerät, der Collector des Gateways oder der MQTT-Client fehlerfrei sendet: Suchen Sie in seinen Logs nach Exportfehlern und HTTP-Antworten `401` oder `422` oder nach einer mit Rückgabecode 4 abgelehnten Verbindung.
-2. Öffnen Sie **Produkte → Infrastruktur → IoT → Alle Flotten**. Die Flotte erscheint innerhalb etwa einer Minute nach ihren ersten Messwerten als `iot/<fleet>`.
+2. Öffnen Sie **Produkte → Infrastruktur → IoT → Alle Flotten**. Die Flotte erscheint innerhalb etwa einer Minute nach ihren ersten Messwerten unter ihrem Namen.
 3. Öffnen Sie die Seite **Geräte** der Flotte. Jedes Gerät, für das Sie gesendet haben, sollte mit seinen neuesten Werten für Akku, Signal, Temperatur, CPU, Speicher und Verfügbarkeit aufgeführt sein.
 4. Öffnen Sie die Seite **Metriken** der Flotte, um jede der `iot_*`-Serien darzustellen.
 
