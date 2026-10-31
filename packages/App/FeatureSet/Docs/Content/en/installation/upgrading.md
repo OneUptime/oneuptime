@@ -956,6 +956,19 @@ API, SSO, or the Slack and Microsoft Teams apps.
   See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),
   [Run Rules on Existing Resources](/docs/configuration/run-rules-now#before-you-begin)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **On the Enterprise Edition, a team's compliance status is read only by
+  someone who may read its compliance rules.** The team's **Compliance**
+  page (`GET /api/team/compliance-status/:teamId`) now takes what reading
+  the rules takes: `ProjectOwner`, `ProjectAdmin`, `ProjectMember`,
+  `Viewer` or `ReadProjectTeam`, and no team block on them. A member whose
+  teams grant none of these was refused the rules but shown them on that
+  page, together with which members meet them, and is now refused with a
+  `422`. Every other role OneUptime ships grants none of them: the Settings
+  roles (`SettingsAdmin`, `SettingsMember`, `SettingsViewer`), which read
+  teams, the billing roles and the roles of every product area, such as
+  `OnCallAdmin` and `MonitorViewer`. Anyone in the project still lists a
+  team's members.
+  See [Users, Teams & Permissions](/docs/permissions/index).
 - **Who owns a resource, and a setting that holds credentials, are named
   only by someone who may read them.** The owners of every resource - on-call
   policies and schedules, monitor groups, dashboards, incoming call

@@ -366,6 +366,7 @@ const PROSE_LEADS: Array<string> = [
   "A record moved under another one, or given more records in a list, gets only records its editor may read, and a create permission restricted to labels or to Owned scope holds the record it creates.",
   "The one record a write names, and a change of a record's labels, keep to the caller's permissions too.",
   "What a subscription, a rule's Run Now, an LLM provider list and an AI plan's approval reach stays within what they are allowed.",
+  "On the Enterprise Edition, a team's compliance status is read only by someone who may read its compliance rules.",
   "Who owns a resource, and a setting that holds credentials, are named only by someone who may read them.",
   "Adding and removing owners keeps to the `Owned` scope.",
   "The `Owned` scope narrows every resource with owners.",
