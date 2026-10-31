@@ -48,6 +48,11 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
   /*
+   * The Microsoft cloud this server's Microsoft Teams runs in: the
+   * Dashboard links to Teams on that cloud's own web host.
+   */
+  "MICROSOFT_TEAMS_CLOUD",
+  /*
    * Public OAuth client ids: the Video Calls page offers the one-click
    * Connect for a provider whose app this server has.
    */
@@ -1670,6 +1675,14 @@ export const MicrosoftTeamsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
 export const MicrosoftTeamsAppTenantId: string | null =
   process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;
+/*
+ * The Microsoft cloud this server's Microsoft Teams runs in, for the Teams
+ * bot and the Teams meetings app alike: commercial when unset, gcc,
+ * gcc-high or dod (Types/Workspace/MicrosoftTeamsCloud.ts). Read through
+ * MicrosoftTeamsHosts, which refuses a value that names no cloud.
+ */
+export const MicrosoftTeamsCloudSetting: string | null =
+  process.env["MICROSOFT_TEAMS_CLOUD"] || null;
 
 /*
  * The apps behind the one-click Connect of a video call provider
@@ -1703,6 +1716,13 @@ export const MicrosoftTeamsMeetingsAppClientId: string | null =
   process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID"] || null;
 export const MicrosoftTeamsMeetingsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET"] || null;
+/*
+ * The tenant a single-tenant Teams meetings app is registered in: its
+ * sign-in goes there rather than to "organizations", which Microsoft
+ * refuses for such an app (AADSTS50194). Unset for a multitenant app.
+ */
+export const MicrosoftTeamsMeetingsAppTenantId: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID"] || null;
 
 // GitHub App Configuration
 export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;

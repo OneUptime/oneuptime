@@ -551,6 +551,35 @@ describe("MicrosoftTeamsUtil.isAppInstalledInTeam", () => {
       expect(secondCall.headers["Authorization"]).toBe(`Bearer ${GRAPH_TOKEN}`);
     });
 
+    test("a next page that is not on Microsoft Graph is not followed with the token, and the answer is Unknown", async () => {
+      mockAccessToken();
+      const getSpy: jest.SpyInstance = mockGraphPages([
+        {
+          value: [
+            installedAppJson({
+              displayName: "Planner",
+              externalId: "some-other-app-id",
+            }),
+          ],
+          "@odata.nextLink": "https://collector.attacker.example/page-2",
+        },
+        {
+          value: [
+            installedAppJson({
+              displayName: "OneUptime",
+              externalId: CLIENT_ID,
+            }),
+          ],
+        },
+      ]);
+
+      await expect(callIsAppInstalledInTeam()).resolves.toBe(
+        MicrosoftTeamsAppInstallState.Unknown,
+      );
+      // Graph's own first page only: the token went nowhere else.
+      expect(getSpy).toHaveBeenCalledTimes(1);
+    });
+
     test("stops paginating as soon as it finds the match", async () => {
       mockAccessToken();
       const getSpy: jest.SpyInstance = mockGraphPages([

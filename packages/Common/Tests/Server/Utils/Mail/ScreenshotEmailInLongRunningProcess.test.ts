@@ -40,6 +40,12 @@ interface ScreenshotResult {
     sameData: boolean;
     pointsAtAttachment: boolean;
   }>;
+  // An uploaded logo carried beside the screenshot (EmailCarriedLogos).
+  carried: Attempt<{
+    logos: number;
+    logoShown: boolean;
+    screenshotKept: boolean;
+  }>;
 }
 
 interface ProcessReport {
@@ -62,6 +68,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
             contents: [
               'export { default as Markdown, MarkdownContentType } from "./Server/Types/Markdown";',
               'export { default as EmailInlineImages } from "./Server/Utils/Mail/EmailInlineImages";',
+              'export { default as EmailCarriedLogos } from "./Server/Utils/Mail/EmailCarriedLogos";',
               'export { parseInlineImageDataUri } from "./Utils/Markdown/InlineImageDataUri";',
             ].join("\n"),
             resolveDir: process.cwd(),
@@ -87,6 +94,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           Markdown,
           MarkdownContentType,
           EmailInlineImages,
+          EmailCarriedLogos,
           parseInlineImageDataUri,
         } = bundle.exports;
 
@@ -147,7 +155,26 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
               };
             });
 
-            screenshots.push({ megabytes, parsedByteLength, renderedWithImage, attached });
+            const carried = await attempt(async () => {
+              const logoAddress = "https://oneuptime.acme.test/status-page-api/logo/2b0f6f3f-6c11-4bd1-8bb0-0d3b1c0e58f1";
+              const logo = {
+                dataUri: "data:image/png;base64," + screenshot(0),
+                fileName: "logo.png",
+              };
+              const result = await EmailCarriedLogos.carry(
+                '<img src="' + logoAddress + '" alt="Acme">' + html,
+                async (address) => {
+                  return address === logoAddress ? logo : null;
+                },
+              );
+              return {
+                logos: result.logos.length,
+                logoShown: result.html.startsWith('<img src="' + logo.dataUri + '" alt="Acme">'),
+                screenshotKept: result.html.includes('<img src="' + dataUri + '"'),
+              };
+            });
+
+            screenshots.push({ megabytes, parsedByteLength, renderedWithImage, attached, carried });
           }
 
           process.stdout.write(JSON.stringify({ oldBase64Pattern, screenshots }));
@@ -167,7 +194,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
 }
 
 describe("A screenshot in an email, where V8 compiles regular expressions unoptimized", () => {
-  test("is parsed, rendered and attached at 3 and at 12 megabytes", () => {
+  test("is parsed, rendered and attached at 3 and at 12 megabytes, beside an uploaded logo the email carries", () => {
     const report: ProcessReport = runWithUnoptimizedRegularExpressions();
 
     /*
@@ -191,6 +218,10 @@ describe("A screenshot in an email, where V8 compiles regular expressions unopti
       expect(screenshot.attached).toEqual({
         ok: true,
         value: { images: 1, sameData: true, pointsAtAttachment: true },
+      });
+      expect(screenshot.carried).toEqual({
+        ok: true,
+        value: { logos: 1, logoShown: true, screenshotKept: true },
       });
     }
   }, 300000);

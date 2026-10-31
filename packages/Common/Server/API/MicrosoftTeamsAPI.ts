@@ -71,14 +71,30 @@ import WorkspaceConnectCompletion, {
 import MicrosoftTeamsActionAnswer from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsCommands from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 import MicrosoftTeamsSignInAuthorityUtil, {
-  MICROSOFT_ANY_ORGANIZATION,
-  MICROSOFT_LOGIN_ORIGIN,
   MicrosoftTeamsSignInAuthority,
 } from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
+import MicrosoftTeamsHosts from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHosts";
+import { MicrosoftTeamsCloudHosts } from "../../Types/Workspace/MicrosoftTeamsCloud";
 
-// Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
-const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
-  "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
+/*
+ * The delegated Microsoft Graph permissions "sign in with Microsoft Teams"
+ * asks for - authorize and token requests must agree - as scopes on the
+ * Graph of this server's Microsoft cloud (MicrosoftTeamsHosts).
+ */
+const MICROSOFT_TEAMS_USER_SIGN_IN_PERMISSIONS: ReadonlyArray<string> = [
+  "User.Read",
+  "Team.ReadBasic.All",
+  "Channel.ReadBasic.All",
+  "ChannelMessage.Send",
+];
+
+const getUserSignInScopes: () => string = (): string => {
+  return MICROSOFT_TEAMS_USER_SIGN_IN_PERMISSIONS.map(
+    (permission: string): string => {
+      return MicrosoftTeamsHosts.getGraphScope(permission);
+    },
+  ).join(" ");
+};
 
 // The admin-consent sign-in only needs an ID token, to learn the tenant.
 const ADMIN_CONSENT_SIGN_IN_SCOPES: string = "openid profile";
@@ -657,7 +673,7 @@ export default class MicrosoftTeamsAPI {
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
           grant_type: "client_credentials",
-          scope: "https://graph.microsoft.com/.default",
+          scope: MicrosoftTeamsHosts.getGraphDefaultScope(),
         },
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
@@ -701,7 +717,7 @@ export default class MicrosoftTeamsAPI {
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            "https://graph.microsoft.com/v1.0/teams?$select=id,displayName",
+            MicrosoftTeamsHosts.getGraphUrl("/teams?$select=id,displayName"),
           ),
           headers: {
             Authorization: `Bearer ${appAccessToken}`,
@@ -960,7 +976,7 @@ export default class MicrosoftTeamsAPI {
           )}&response_type=code&redirect_uri=${encodeURIComponent(
             MicrosoftTeamsAPI.getUserSignInRedirectUri(),
           )}&response_mode=query&scope=${encodeURIComponent(
-            MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES,
+            getUserSignInScopes(),
           )}&state=${encodeURIComponent(state)}`;
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1066,7 +1082,7 @@ export default class MicrosoftTeamsAPI {
                 client_id: credentials.clientId,
                 client_secret: credentials.clientSecret,
                 redirect_uri: MicrosoftTeamsAPI.getUserSignInRedirectUri(),
-                scope: MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES,
+                scope: getUserSignInScopes(),
               },
               headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -1094,7 +1110,7 @@ export default class MicrosoftTeamsAPI {
           const userProfileResponse:
             | HTTPErrorResponse
             | HTTPResponse<JSONObject> = await API.get<JSONObject>({
-            url: URL.fromString("https://graph.microsoft.com/v1.0/me"),
+            url: URL.fromString(MicrosoftTeamsHosts.getGraphUrl("/me")),
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
@@ -1246,12 +1262,12 @@ export default class MicrosoftTeamsAPI {
             tenantId: existingTenantId,
           });
 
-          const authorizationUrl: string = `${MICROSOFT_LOGIN_ORIGIN}/${encodeURIComponent(
-            existingTenantId || MICROSOFT_ANY_ORGANIZATION,
-          )}/v2.0/adminconsent?client_id=${encodeURIComponent(
+          const authorizationUrl: string = `${MicrosoftTeamsSignInAuthorityUtil.getAdminConsentUrl(
+            existingTenantId,
+          )}?client_id=${encodeURIComponent(
             MicrosoftTeamsAppClientId,
           )}&scope=${encodeURIComponent(
-            "https://graph.microsoft.com/.default",
+            MicrosoftTeamsHosts.getGraphDefaultScope(),
           )}&redirect_uri=${encodeURIComponent(
             MicrosoftTeamsAPI.getAdminConsentRedirectUri(),
           )}&state=${encodeURIComponent(state)}`;
@@ -1485,6 +1501,18 @@ export default class MicrosoftTeamsAPI {
           });
         }
 
+        // A setting that names no Microsoft cloud stops every Teams request.
+        const cloudProblem: string | null =
+          MicrosoftTeamsHosts.getSettingProblem();
+
+        if (cloudProblem) {
+          return Response.sendJsonObjectResponse(req, res, {
+            error: cloudProblem,
+          });
+        }
+
+        const cloud: MicrosoftTeamsCloudHosts = MicrosoftTeamsHosts.getCloud();
+
         return Response.sendJsonObjectResponse(req, res, {
           status:
             "Local configuration is present. This does NOT confirm the integration works.",
@@ -1492,6 +1520,19 @@ export default class MicrosoftTeamsAPI {
           botId: MicrosoftTeamsAppClientId,
           // To compare with the app registration's Directory (tenant) ID.
           tenantId: appTenantId,
+          /*
+           * The Microsoft cloud the bot, the sign-ins and Graph go to
+           * (MICROSOFT_TEAMS_CLOUD): an app registered in another cloud's
+           * tenant is unknown to these hosts.
+           */
+          cloud: cloud.title,
+          hosts: {
+            signIn: cloud.signInOrigin,
+            graph: cloud.graphOrigin,
+            botFrameworkChannel:
+              cloud.botChannelService ||
+              "Azure public cloud (the Bot Framework's default)",
+          },
           messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
           /*
            * Where connecting an account signs people in, said because a
@@ -1503,6 +1544,7 @@ export default class MicrosoftTeamsAPI {
             "MICROSOFT_TEAMS_APP_CLIENT_ID is set",
             "MICROSOFT_TEAMS_APP_CLIENT_SECRET is set",
             "MICROSOFT_TEAMS_APP_TENANT_ID is set",
+            "MICROSOFT_TEAMS_CLOUD names a Microsoft cloud: " + cloud.title,
           ],
           notVerified: [
             "That an Azure Bot resource exists for this client id",
@@ -1519,6 +1561,9 @@ export default class MicrosoftTeamsAPI {
             "That the Azure Bot has the Microsoft Teams channel enabled",
             "That the client secret is valid and has not expired",
             "That the tenant id is the Directory (tenant) ID of the app registration",
+            "That the app registration, the Azure Bot and your Microsoft 365 tenant are all in the " +
+              cloud.title +
+              " cloud",
             "That the Teams app package installed in your teams was built from this deployment",
           ],
           nextStep: `Open the installed OneUptime app in Microsoft Teams and confirm its bot id is ${MicrosoftTeamsAppClientId}. If it is not, that package cannot receive messages from this deployment — download the manifest from Project Settings > Workspace > Microsoft Teams and upload that instead.`,

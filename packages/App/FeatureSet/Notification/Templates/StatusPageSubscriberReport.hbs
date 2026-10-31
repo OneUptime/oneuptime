@@ -1,7 +1,11 @@
 {{> Start this}}
 
-<!-- Preheader (hidden inbox preview) -->
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f1f5f9;opacity:0;">{{statusPageName}} uptime report — {{report.averageUptimePercent}} average uptime for {{report.reportPeriodName}}.</div>
+{{!--
+  The inbox preview line, hidden as Partials/Start.hbs hides every other
+  email's: never by a text colour close to its background, which spam
+  filters score as hidden text (SpamAssassin's HTML_FONT_LOW_CONTRAST).
+--}}
+<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{statusPageName}} uptime report — {{report.averageUptimePercent}} average uptime for {{report.reportPeriodName}}.</div>
 
 {{> CustomLogo this}}
 
@@ -20,7 +24,7 @@
           <tbody>
             <tr>
               <td align="center" style="padding:28px 24px 26px 24px;">
-                <p style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Average Uptime</p>
+                <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Average Uptime</p>
                 <p style="Margin:0;font-size:44px;line-height:52px;letter-spacing:-1.2px;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.averageUptimePercent}}</p>
                 <p style="Margin:10px 0 0 0;font-size:13px;line-height:18px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.reportStartDate}} &ndash; {{report.reportEndDate}} ({{report.reportTimezone}})</p>
               </td>
@@ -38,6 +42,17 @@
 <!-- /Hero Stat -->
 
 <!-- Supporting Stats Strip (Downtime · Incidents · Resources) -->
+{{!--
+  Each tile names what it counts first, as the hero above does: a screen
+  reader, and the email's text part (Common/Server/Utils/Mail/
+  EmailPlainText.ts reads st-Stat-label), say "Downtime: 21m", never "21m"
+  and then what it was. The value is a div, so the text part keeps the
+  three tiles on three lines. The tiles sit at the top of the strip, so
+  their labels line up however long a value wraps. On a phone the strip is
+  three rows, each label on the left and its value on the right
+  (st-Stat in Partials/Style.hbs): a third of a phone was too narrow for
+  "4 hours, 39 minutes", which took three lines, or broke "minutes" in two.
+--}}
 <table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
   <tbody>
     <tr>
@@ -46,17 +61,17 @@
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f8fafc" style="width:100%;table-layout:fixed;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
           <tbody>
             <tr>
-              <td width="33%" align="center" valign="middle" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
-                <p style="Margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalDowntimeInHoursAndMinutes}}</p>
-                <p style="Margin:6px 0 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Downtime</p>
+              <td width="33%" align="center" valign="top" class="st-Stat" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
+                <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Downtime</p>
+                <div class="st-Stat-value" style="margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalDowntimeInHoursAndMinutes}}</div>
               </td>
-              <td width="33%" align="center" valign="middle" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
-                <p style="Margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalIncidents}}</p>
-                <p style="Margin:6px 0 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Incidents</p>
+              <td width="33%" align="center" valign="top" class="st-Stat" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
+                <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Incidents</p>
+                <div class="st-Stat-value" style="margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalIncidents}}</div>
               </td>
-              <td width="34%" align="center" valign="middle" style="padding:18px 8px;">
-                <p style="Margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalResources}}</p>
-                <p style="Margin:6px 0 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Resources</p>
+              <td width="34%" align="center" valign="top" class="st-Stat" style="padding:18px 8px;">
+                <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Resources</p>
+                <div class="st-Stat-value" style="margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalResources}}</div>
               </td>
             </tr>
           </tbody>

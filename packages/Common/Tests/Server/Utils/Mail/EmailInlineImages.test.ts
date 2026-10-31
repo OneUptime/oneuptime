@@ -652,3 +652,102 @@ describe("EmailInlineImages.leaveOut - an email without its images", () => {
     expect(run.result).toBe(html);
   });
 });
+
+describe("EmailInlineImages.replaceImageSources - an image's address, swapped", () => {
+  /*
+   * How an email carries a logo an operator uploaded in place of its
+   * address (EmailCarriedLogos): every <img> is read the way attach() reads
+   * it, and only the src of a tag the caller answers for changes.
+   */
+  const LOGO: string = `data:image/png;base64,${PNG}`;
+
+  test("each src is handed over as it is written, and only those answered for change", () => {
+    const seen: Array<string> = [];
+    const html: string = [
+      '<p>Header</p><img src="https://acme.test/logo?v&#x3D;7" alt="Acme" height="32">',
+      "<img src='https://acme.test/chart.png' alt='Chart'>",
+      "<img src=https://acme.test/unquoted.png alt=Unquoted>",
+      `<img alt="Shot" src="${LOGO}">`,
+    ].join("");
+
+    const replaced: string = EmailInlineImages.replaceImageSources(
+      html,
+      (source: string): string | null => {
+        seen.push(source);
+        return source.startsWith("https://acme.test/logo") ? LOGO : null;
+      },
+    );
+
+    expect(seen).toEqual([
+      "https://acme.test/logo?v&#x3D;7",
+      "https://acme.test/chart.png",
+      "https://acme.test/unquoted.png",
+      LOGO,
+    ]);
+    expect(replaced).toBe(
+      [
+        `<p>Header</p><img src="${LOGO}" alt="Acme" height="32">`,
+        "<img src='https://acme.test/chart.png' alt='Chart'>",
+        "<img src=https://acme.test/unquoted.png alt=Unquoted>",
+        `<img alt="Shot" src="${LOGO}">`,
+      ].join(""),
+    );
+  });
+
+  test("the first src is the one a browser reads, and the one changed", () => {
+    const replaced: string = EmailInlineImages.replaceImageSources(
+      '<img src="https://a.test/one.png" src="https://a.test/two.png">',
+      (source: string): string | null => {
+        return source === "https://a.test/one.png" ? LOGO : null;
+      },
+    );
+
+    expect(replaced).toBe(`<img src="${LOGO}" src="https://a.test/two.png">`);
+  });
+
+  test("an image without a src, and every other tag, is left exactly as it is", () => {
+    const html: string =
+      '<img alt="No source"><a href="https://a.test/x.png">x</a><imgx src="https://a.test/y.png"><p>src="https://a.test/z.png"</p>';
+
+    expect(
+      EmailInlineImages.replaceImageSources(html, (): string => {
+        return LOGO;
+      }),
+    ).toBe(html);
+  });
+
+  test("HTML without an image comes back as it was, the caller never asked", () => {
+    const asked: Array<string> = [];
+    const replace: (source: string) => null = (source: string): null => {
+      asked.push(source);
+      return null;
+    };
+
+    for (const html of ["", "<p>Hello</p>", "plain text"]) {
+      expect(EmailInlineImages.replaceImageSources(html, replace)).toBe(html);
+    }
+
+    expect(asked).toEqual([]);
+  });
+
+  test("linear: a body of twenty thousand images beside a screenshot of megabytes", () => {
+    const shot: string = pngOfSize(3 * 1024 * 1024);
+    const html: string = `${'<img src="https://a.test/logo.png" alt="Logo">'.repeat(20000)}${image(shot)}`;
+
+    const run: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return EmailInlineImages.replaceImageSources(
+          html,
+          (source: string): string | null => {
+            return source === "https://a.test/logo.png" ? LOGO : null;
+          },
+        );
+      },
+      limitInMs: 2000,
+    });
+
+    expect(run.inMs).toBeLessThan(2000);
+    expect(run.result.split(LOGO).length - 1).toBe(20000);
+    expect(run.result.endsWith(image(shot))).toBe(true);
+  });
+});

@@ -69,6 +69,7 @@ x-common-variables: &common-variables
 
   MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
   MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
+  MICROSOFT_TEAMS_CLOUD: ${MICROSOFT_TEAMS_CLOUD:-}
 
   # Video calls: the public client ids of the apps behind the one-click
   # Connect of Zoom, Google Meet and Microsoft Teams (see config.example.env).
@@ -244,6 +245,7 @@ x-common-runtime-variables: &common-runtime-variables
   ZOOM_APP_WEBHOOK_SECRET_TOKEN: ${ZOOM_APP_WEBHOOK_SECRET_TOKEN:-}
   GOOGLE_MEET_APP_CLIENT_SECRET: ${GOOGLE_MEET_APP_CLIENT_SECRET:-}
   MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET:-}
+  MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID: ${MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID:-}
 
   # Cloud > Connect: the AWS identity that signs in to customers' read-only
   # IAM roles (see config.example.env). Unset, AWS connects with an access key.

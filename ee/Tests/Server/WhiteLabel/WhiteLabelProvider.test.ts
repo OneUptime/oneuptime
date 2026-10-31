@@ -191,6 +191,70 @@ describe("getProductBranding", () => {
   });
 });
 
+/*
+ * The bytes of the logo getProductBranding names, which an email carries
+ * inside itself rather than load from that address (core's
+ * EmailCarriedLogos): the same license rule, the same cache.
+ */
+describe("getProductBrandingLogo", () => {
+  test("is the stored logo for light backgrounds while the license allows it", async () => {
+    const harness: Harness = createHarness(SETTINGS);
+
+    await harness.provider.refresh();
+
+    expect(harness.provider.getProductBrandingLogo()).toBe(PNG_BYTES);
+  });
+
+  test("is the logo getProductBranding names, never the logo for dark backgrounds", async () => {
+    const harness: Harness = createHarness({ ...SETTINGS, logo: null });
+
+    await harness.provider.refresh();
+
+    expect(harness.provider.getProductBranding()?.logoUrl).toBeUndefined();
+    expect(harness.provider.getProductBrandingLogo()).toBeNull();
+  });
+
+  test("is null while the license does not allow it, and reads nothing", () => {
+    const harness: Harness = createHarness(SETTINGS);
+    harness.allowed.value = false;
+
+    expect(harness.provider.getProductBrandingLogo()).toBeNull();
+    expect(harness.loads.count).toBe(0);
+  });
+
+  test("is null until the settings are read, and starts reading them", async () => {
+    const harness: Harness = createHarness(SETTINGS);
+
+    expect(harness.provider.getProductBrandingLogo()).toBeNull();
+    await settle();
+
+    expect(harness.loads.count).toBe(1);
+    expect(harness.provider.getProductBrandingLogo()).toBe(PNG_BYTES);
+  });
+
+  test("answers from the cache: one read for every email within the TTL", async () => {
+    const harness: Harness = createHarness(SETTINGS);
+
+    await harness.provider.refresh();
+
+    for (let index: number = 0; index < 50; index++) {
+      harness.provider.getProductBrandingLogo();
+    }
+
+    expect(harness.loads.count).toBe(1);
+  });
+
+  test("is null, never an error, when asking the license throws", () => {
+    const harness: Harness = createHarness(SETTINGS, {
+      isAllowed: (): boolean => {
+        throw new Error("license unreadable");
+      },
+    });
+
+    expect(harness.provider.getProductBrandingLogo()).toBeNull();
+  });
+});
+
 describe("caching", () => {
   test("reads once within the TTL", async () => {
     const harness: Harness = createHarness(SETTINGS);

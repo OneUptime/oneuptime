@@ -7,7 +7,6 @@ import { VideoCallTranscriptRead } from "../../../../../Server/Utils/VideoCall/T
 import VideoCallTranscriptReader, {
   VideoCallTranscriptReaderCall,
 } from "../../../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
-import { MICROSOFT_GRAPH_BASE_URL } from "../../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
 import VideoCallHttpClient from "../../../../../Server/Utils/VideoCall/VideoCallHttpClient";
 import APIException from "../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -24,6 +23,9 @@ import {
 } from "../VideoCallTestFetch";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
+
+// Microsoft Graph of the commercial cloud, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_GRAPH_BASE_URL: string = "https://graph.microsoft.com/v1.0";
 
 type ZoomTokenGetter = () => Promise<{
   accessToken: string;

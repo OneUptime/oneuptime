@@ -14,10 +14,7 @@ import VideoCallConnectionService from "../../../Server/Services/VideoCallConnec
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
-import MicrosoftTeamsMeetingsOAuthApp, {
-  MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES,
-  MICROSOFT_TEAMS_MEETINGS_SCOPE,
-} from "../../../Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
+import MicrosoftTeamsMeetingsOAuthApp from "../../../Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
 import { VideoCallOAuthGrant } from "../../../Server/Utils/VideoCall/OAuth/VideoCallOAuth";
 import IncidentCallRecordingSetting from "../../../Server/Utils/VideoCall/Transcripts/IncidentCallRecordingSetting";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
@@ -133,6 +130,14 @@ const GRANT: VideoCallOAuthGrant = {
     externalAccountId: "0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11",
   },
 };
+
+// The commercial cloud's Graph scopes, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_TEAMS_MEETINGS_SCOPE: string =
+  "https://graph.microsoft.com/OnlineMeetings.ReadWrite";
+const MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES: Array<string> = [
+  "https://graph.microsoft.com/Calendars.ReadWrite",
+  "https://graph.microsoft.com/OnlineMeetingTranscript.Read.All",
+];
 
 const BASE_SCOPES: Array<string> = [
   "openid",

@@ -149,6 +149,12 @@ export interface VideoCallOAuthApp {
 export interface VideoCallOAuthAppCredentials {
   clientId: string;
   clientSecret: string;
+  /*
+   * Microsoft only: the Microsoft Entra tenant a single-tenant app is
+   * registered in (MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID), where its
+   * sign-in goes. Unset, a multitenant app signs in at "organizations".
+   */
+  tenantId?: string | undefined;
 }
 
 // Used when a token response does not say how long its access token lasts.

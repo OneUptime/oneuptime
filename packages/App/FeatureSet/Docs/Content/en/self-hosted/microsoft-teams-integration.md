@@ -194,6 +194,7 @@ Notes:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | The **Application (client) ID**. It is also the bot id in the Teams app package, so it must be a GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | The client secret's **Value**, not its ID. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | The **Directory (tenant) ID**. The bot authenticates as a single-tenant app in this tenant, and people sign in to it to connect their Microsoft Teams account. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Only for a Microsoft 365 tenant in a US Government cloud: `gcc`, `gcc-high` or `dod`. Leave it unset for the commercial cloud. See [US Government clouds](#us-government-clouds). |
 | `HOST` | `host` | Your public hostname. Redirect URIs, the messaging endpoint and the Teams app package are built from it. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service only calls HTTPS endpoints. |
 
@@ -202,6 +203,21 @@ All three `MICROSOFT_TEAMS_APP_*` values are required:
 - Without the client ID, the Microsoft Teams page shows the setup guide instead of **Grant Admin Consent**.
 - Without the client ID or the secret, connecting ends with **"Microsoft Teams is not set up on this OneUptime server."**
 - Without the tenant ID, the bot cannot authenticate, so posting and the bot endpoint fail.
+
+## US Government clouds
+
+If your Microsoft 365 tenant is in one of Microsoft's US Government clouds, set `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) to that cloud. The bot, the Microsoft Teams sign-ins and the [Teams meetings app](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server) then use its hosts:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 cloud | Sign-in | Microsoft Graph |
+| --- | --- | --- | --- |
+| Unset | Commercial | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+For GCC High and DoD, create the app registration and the Azure Bot in Azure Government: in steps 1 to 5, use the [Azure Government portal](https://portal.azure.us) instead of the Azure portal. Everything else is the same. To check which cloud the server uses, run `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: it names the cloud and its hosts.
+
+A value that names no cloud stops every Microsoft Teams request with an error that names `MICROSOFT_TEAMS_CLOUD`, so your tenant's sign-ins are never sent to the commercial cloud. Microsoft Teams operated by 21Vianet, in China, is not supported.
 
 ## Network access
 
@@ -237,7 +253,7 @@ OneUptime's [Private Network Access settings](/docs/self-hosted/private-network-
 
 ### Outbound access and IP restrictions
 
-Allow DNS resolution and outbound HTTPS from the OneUptime application. It uses `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework authentication/channel endpoints, and the connector service URL supplied for a conversation. The commercial-cloud fallback connector is `https://smba.trafficmanager.net/teams/`; conversation service URLs can differ. Apply [Microsoft's firewall guidance](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) and inspect blocked traffic during testing; this is not an exhaustive hostname list.
+Allow DNS resolution and outbound HTTPS from the OneUptime application. It uses `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework authentication/channel endpoints, and the connector service URL supplied for a conversation. The commercial-cloud fallback connector is `https://smba.trafficmanager.net/teams/`; conversation service URLs can differ. Apply [Microsoft's firewall guidance](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) and inspect blocked traffic during testing; this is not an exhaustive hostname list. In a [US Government cloud](#us-government-clouds), these are that cloud's own hosts.
 
 Microsoft does not support fixed inbound Bot Framework IP allowlists because its source addresses change. Teams client media IP ranges do not describe bot webhook sources. Keep Bot Framework authentication enabled instead of treating a source IP as proof of identity.
 

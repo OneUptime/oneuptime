@@ -1,5 +1,9 @@
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import {
+  CarriedLogo,
+  toCarriedLogo,
+} from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 import URL from "Common/Types/API/URL";
 import ProductBrandingUtil, {
@@ -18,7 +22,10 @@ import Dictionary from "Common/Types/Dictionary";
  *   isBrandRenamed    "true" when it goes by another name, else absent
  *   brandWebsiteUrl   where "Powered by" links when renamed, when it has one
  *   brandLogoUrl      the installation's logo, absolute, when it has one an
- *                     email can show (a PNG, JPEG or GIF)
+ *                     email can show (a PNG, JPEG or GIF); just before the
+ *                     email goes out, the logo itself goes in its place
+ *                     (getCarriedProductLogo), so opening the email fetches
+ *                     nothing
  *   oneUptimeLogoUrl  OneUptime's own logo, where the header shows it (not
  *                     renamed, no logo of its own): a data: URL, sent as an
  *                     image inside the email (EmailLogo), never an address
@@ -114,6 +121,58 @@ export const getCurrentEmailBrandingVariables: () => Dictionary<string> =
   (): Dictionary<string> => {
     return getEmailBrandingVariables(EnterpriseEdition.getProductBranding());
   };
+
+// The name the installation's own logo goes by as an attachment.
+export const PRODUCT_LOGO_ATTACHMENT_NAME: string = "logo";
+
+/*
+ * Each logo's bytes as an email carries them, written once for every email
+ * that shows the logo until the enterprise module reads its settings
+ * again, which hands over new bytes.
+ */
+const carriedProductLogos: WeakMap<Buffer, CarriedLogo | null> = new WeakMap<
+  Buffer,
+  CarriedLogo | null
+>();
+
+/*
+ * The installation's own logo, carried inside an email that shows it by
+ * `address` (Common/Server/Utils/Mail/EmailCarriedLogos.ts): when `address`
+ * is the address brandLogoUrl gives the header (getEmailBrandingVariables)
+ * and the enterprise module hands over the logo's bytes, a PNG, JPEG or
+ * GIF small enough to go in every email. Null for any other address, and
+ * for a logo that cannot go, which the header then shows from its address,
+ * as before.
+ */
+export const getCarriedProductLogo: (address: string) => CarriedLogo | null = (
+  address: string,
+): CarriedLogo | null => {
+  const branding: ProductBranding | null =
+    EnterpriseEdition.getProductBranding();
+
+  if (!branding?.logoUrl || branding.isLogoEmailSafe !== true) {
+    return null;
+  }
+
+  if (toAbsoluteUrl(branding.logoUrl) !== address) {
+    return null;
+  }
+
+  const bytes: Buffer | null = EnterpriseEdition.getProductBrandingLogo();
+
+  if (!bytes) {
+    return null;
+  }
+
+  if (!carriedProductLogos.has(bytes)) {
+    carriedProductLogos.set(
+      bytes,
+      toCarriedLogo(bytes, PRODUCT_LOGO_ATTACHMENT_NAME),
+    );
+  }
+
+  return carriedProductLogos.get(bytes) || null;
+};
 
 /*
  * A subject template with OneUptime's name replaced by a reference to the

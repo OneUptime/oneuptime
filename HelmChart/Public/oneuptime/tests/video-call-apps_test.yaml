@@ -150,3 +150,110 @@ tests:
               secretKeyRef:
                 name: zoom-app-secret
                 key: webhookSecretToken
+
+  # A Teams meetings app registered for one organization only is refused at
+  # Microsoft's "organizations" endpoint (AADSTS50194), so its sign-in goes
+  # to the tenant MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID names. A multi-tenant
+  # app leaves it empty.
+  - it: leaves the Teams meetings app's tenant empty, for a multi-tenant app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+            value: ""
+
+  - it: passes a single-tenant Teams meetings app's tenant to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftTeamsMeetingsApp.clientId: 6c1a8d3e-1111-4222-8333-944455556666
+      microsoftTeamsMeetingsApp.clientSecret: ms-client-secret
+      microsoftTeamsMeetingsApp.tenantId: 0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+            value: 0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11
+
+  - it: passes it to the worker too, whose refresh of a sign-in stored without a tenant goes there
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      microsoftTeamsMeetingsApp.clientId: 6c1a8d3e-1111-4222-8333-944455556666
+      microsoftTeamsMeetingsApp.clientSecret: ms-client-secret
+      microsoftTeamsMeetingsApp.tenantId: 0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+            value: 0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11
+
+  - it: reads the Teams meetings app's tenant from its existing secret when the secret names a key for it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftTeamsMeetingsApp.existingSecret.name: microsoft-teams-meetings-app-secret
+      microsoftTeamsMeetingsApp.existingSecret.clientIdKey: clientId
+      microsoftTeamsMeetingsApp.existingSecret.clientSecretKey: clientSecret
+      microsoftTeamsMeetingsApp.existingSecret.tenantIdKey: tenantId
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+            valueFrom:
+              secretKeyRef:
+                name: microsoft-teams-meetings-app-secret
+                key: tenantId
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: microsoft-teams-meetings-app-secret
+                key: clientSecret
+
+  - it: keeps the tenant a plain value beside an existing secret made for the id and the secret alone
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftTeamsMeetingsApp.existingSecret.name: microsoft-teams-meetings-app-secret
+      microsoftTeamsMeetingsApp.existingSecret.clientIdKey: clientId
+      microsoftTeamsMeetingsApp.existingSecret.clientSecretKey: clientSecret
+      microsoftTeamsMeetingsApp.tenantId: contoso.onmicrosoft.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+            value: contoso.onmicrosoft.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: microsoft-teams-meetings-app-secret
+                key: clientId

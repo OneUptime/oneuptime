@@ -133,6 +133,11 @@ const SOURCES: Record<string, string> = {
   emailLogo: `${COMMON_SERVER}/Utils/Mail/EmailLogo.ts`,
   emailBranding: "packages/App/FeatureSet/Notification/Utils/EmailBranding.ts",
   statusPageEmailLogo: `${COMMON_SERVER}/Utils/StatusPage/StatusPageEmailLogo.ts`,
+  statusPageCarriedLogo: `${COMMON_SERVER}/Utils/StatusPage/StatusPageCarriedLogo.ts`,
+  emailCarriedLogos: `${COMMON_SERVER}/Utils/Mail/EmailCarriedLogos.ts`,
+  notificationMailService:
+    "packages/App/FeatureSet/Notification/Services/MailService.ts",
+  notificationIndex: "packages/App/FeatureSet/Notification/Index.ts",
   composeBase: "docker-compose.base.yml",
   updateCheckJob:
     "packages/App/FeatureSet/Workers/Jobs/InstanceUpdate/CheckForNewVersion.ts",
@@ -2440,9 +2445,39 @@ describe("Architecture, against the compose file and the chart", () => {
     ).toBe(true);
   });
 
-  it("says a logo you upload is shown from your OneUptime URL, as the emails build it", () => {
+  it("says a logo you upload travels inside the email too, when it is a PNG, JPEG or GIF of up to 512 KB", () => {
     expect(page).toContain(
-      "Images you upload yourself, such as your own logo or a status page's, are shown from your OneUptime URL, which the people who read those emails need to be able to reach.",
+      "A logo you upload yourself, such as your own or a status page's, travels inside the email too when it is a PNG, JPEG or GIF of up to 512 KB.",
+    );
+
+    // The types and the size the page names are the ones an email carries.
+    const carriedLogos: string = readSource("emailCarriedLogos");
+
+    expect(carriedLogos).toContain(
+      "export const MAX_CARRIED_LOGO_BYTES: number = 512 * 1024;",
+    );
+    expect(carriedLogos.split(WHITESPACE).join("")).toContain(
+      'CARRIED_LOGO_TYPES:ReadonlyArray<InlineImageMimeType>=["image/png","image/jpeg","image/gif",];',
+    );
+
+    // Both logos are carried as every email goes out: the installation's own, and a status page's.
+    expect(readSource("notificationMailService")).toContain(
+      "await EmailCarriedLogos.carry(",
+    );
+    expect(readSource("notificationMailService")).toContain(
+      "getCarriedProductLogo(address)",
+    );
+    expect(readSource("notificationIndex")).toContain(
+      "return StatusPageCarriedLogo.readAddress(address);",
+    );
+    expect(readSource("statusPageCarriedLogo")).toContain(
+      "return toCarriedLogo(logo?.file, STATUS_PAGE_LOGO_ATTACHMENT_NAME);",
+    );
+  });
+
+  it("says any other image you upload is shown from your OneUptime URL, as the emails build it", () => {
+    expect(page).toContain(
+      "Any other image you upload is shown from your OneUptime URL, which the people who read those emails need to be able to reach.",
     );
 
     // The installation's own logo, on HOST; a status page's, on the host given.

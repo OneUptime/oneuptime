@@ -1,6 +1,4 @@
-import MicrosoftTeamsMeetingClient, {
-  MICROSOFT_GRAPH_BASE_URL,
-} from "../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
+import MicrosoftTeamsMeetingClient from "../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
 import VideoCallHttpClient from "../../../../Server/Utils/VideoCall/VideoCallHttpClient";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import APIException from "../../../../Types/Exception/ApiException";
@@ -14,6 +12,9 @@ import {
   scriptedFetch,
 } from "./VideoCallTestFetch";
 import { describe, expect, test } from "@jest/globals";
+
+// Microsoft Graph of the commercial cloud, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_GRAPH_BASE_URL: string = "https://graph.microsoft.com/v1.0";
 
 /*
  * The Microsoft Teams half of incident calls: the client-credentials token,

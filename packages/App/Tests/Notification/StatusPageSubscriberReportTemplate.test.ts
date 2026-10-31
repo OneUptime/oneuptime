@@ -265,7 +265,108 @@ beforeAll(() => {
   });
 });
 
+/*
+ * The supporting stat strip under the hero (Downtime, Incidents,
+ * Resources): its three tiles, each from its <td> on, as rendered.
+ */
+function statTiles(html: string): Array<string> {
+  return html
+    .split("<td ")
+    .filter((part: string): boolean => {
+      return part.startsWith('width="33%"') || part.startsWith('width="34%"');
+    })
+    .map((part: string): string => {
+      return part.slice(0, part.indexOf("</td>"));
+    });
+}
+
+/*
+ * Each tile names what it counts before its number - a screen reader and
+ * the text part read "Downtime: 21m" (st-Stat-label) - and sits at the top
+ * of the strip, so the three labels line up however long a value wraps.
+ */
+function expectLabelsFirstAndLinedUp(
+  html: string,
+  values: Array<[string, string]>,
+): void {
+  const tiles: Array<string> = statTiles(html);
+
+  expect(tiles).toHaveLength(3);
+
+  tiles.forEach((tile: string, index: number): void => {
+    const [label, value] = values[index]!;
+    const labelAt: number = tile.indexOf(`class="st-Stat-label"`);
+
+    expect(tile).toContain('valign="top"');
+    expect(labelAt).toBeGreaterThan(-1);
+    expect(tile.indexOf(`>${label}</p>`)).toBeGreaterThan(labelAt);
+    expect(tile.indexOf(`>${value}</div>`)).toBeGreaterThan(
+      tile.indexOf(`>${label}</p>`),
+    );
+  });
+}
+
+interface NumberSize {
+  fontSize: string | undefined;
+  lineHeight: string | undefined;
+}
+
+// How big a stat tile draws its number: the value <div>'s own style.
+function readNumberSize(tile: string): NumberSize {
+  const valueAt: number = tile.indexOf("<div ");
+
+  expect(valueAt).toBeGreaterThan(-1);
+
+  const value: string = tile.slice(valueAt, tile.indexOf(">", valueAt));
+  const styleAt: number = value.indexOf('style="');
+
+  expect(styleAt).toBeGreaterThan(-1);
+
+  const declarations: Map<string, string> = new Map();
+
+  for (const declaration of value
+    .slice(styleAt + 'style="'.length, value.lastIndexOf('"'))
+    .split(";")) {
+    const colonAt: number = declaration.indexOf(":");
+
+    if (colonAt > -1) {
+      declarations.set(
+        declaration.slice(0, colonAt).trim().toLowerCase(),
+        declaration.slice(colonAt + 1).trim(),
+      );
+    }
+  }
+
+  return {
+    fontSize: declarations.get("font-size"),
+    lineHeight: declarations.get("line-height"),
+  };
+}
+
 describe("StatusPageSubscriberReport.hbs", () => {
+  test("each supporting stat names what it counts first, at the top of its tile", () => {
+    const report: StatusPageReport = buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+
+    expectLabelsFirstAndLinedUp(
+      renderReportTemplate({
+        statusPageName: "WBHQ Status Page",
+        hasResources: "true",
+        statusPageUrl: "https://status.example.com",
+        detailsUrl: "https://status.example.com",
+        report: report,
+      }),
+      [
+        ["Downtime", "2 days, 0 minutes"],
+        ["Incidents", "3"],
+        ["Resources", String(report.totalResources)],
+      ],
+    );
+  });
+
   describe("a status page with nested groups", () => {
     let html: string = "";
 
@@ -458,6 +559,53 @@ describe("the default report template offered to customers", () => {
     });
   }
 
+  test("names each supporting stat first, at the top of its tile, as the built-in report does", () => {
+    const report: StatusPageReport = buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+
+    expectLabelsFirstAndLinedUp(renderDefaultBody(report), [
+      ["Downtime", "2 days, 0 minutes"],
+      ["Incidents", "3"],
+      ["Resources", String(report.totalResources)],
+    ]);
+  });
+
+  /*
+   * A phone's tile is about 90 pixels wide. At 24px a bold "minutes" was
+   * wider than that, and the template's overflow-wrap broke it in two
+   * ("minute" over "s"); at the built-in report's 22px it fits whole.
+   */
+  test("draws each stat's number at the built-in report's size, so a word such as 'minutes' fits a phone's tile whole", () => {
+    const report: StatusPageReport = buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+
+    const builtIn: Array<NumberSize> = statTiles(
+      renderReportTemplate({
+        statusPageName: "WBHQ Status Page",
+        hasResources: "true",
+        statusPageUrl: "https://status.example.com",
+        detailsUrl: "https://status.example.com",
+        report: report,
+      }),
+    ).map(readNumberSize);
+    const starter: Array<NumberSize> = statTiles(renderDefaultBody(report)).map(
+      readNumberSize,
+    );
+
+    expect(builtIn).toEqual([
+      { fontSize: "22px", lineHeight: "28px" },
+      { fontSize: "22px", lineHeight: "28px" },
+      { fontSize: "22px", lineHeight: "28px" },
+    ]);
+    expect(starter).toEqual(builtIn);
+  });
+
   test("renders the same nested hierarchy", () => {
     const html: string = renderDefaultBody(
       buildReport({
@@ -516,4 +664,210 @@ describe("the default report template offered to customers", () => {
     expect(html).toContain("Per-resource breakdown");
     expect(renderedRows(html)).toEqual([{ name: "Router", indent: 0 }]);
   });
+});
+
+const PHONE_MEDIA_QUERY: string = "@media only screen and (max-width: 600px)";
+
+/*
+ * The rules of an email's phone block (PHONE_MEDIA_QUERY), each selector
+ * with its declarations, read with indexOf - never a pattern over markup.
+ */
+function phoneRules(html: string): Map<string, Map<string, string>> {
+  const mediaAt: number = html.indexOf(PHONE_MEDIA_QUERY);
+
+  expect(mediaAt).toBeGreaterThan(-1);
+
+  const blockStart: number = html.indexOf("{", mediaAt) + 1;
+  let depth: number = 1;
+  let blockEnd: number = blockStart;
+
+  while (depth > 0 && blockEnd < html.length) {
+    if (html[blockEnd] === "{") {
+      depth++;
+    } else if (html[blockEnd] === "}") {
+      depth--;
+    }
+
+    blockEnd++;
+  }
+
+  const rules: Map<string, Map<string, string>> = new Map();
+
+  for (const rule of html.slice(blockStart, blockEnd - 1).split("}")) {
+    const openAt: number = rule.indexOf("{");
+
+    if (openAt === -1) {
+      continue;
+    }
+
+    const declarations: Map<string, string> = new Map();
+
+    for (const declaration of rule.slice(openAt + 1).split(";")) {
+      const colonAt: number = declaration.indexOf(":");
+
+      if (colonAt > -1) {
+        declarations.set(
+          declaration.slice(0, colonAt).trim(),
+          declaration.slice(colonAt + 1).trim(),
+        );
+      }
+    }
+
+    rules.set(rule.slice(0, openAt).trim(), declarations);
+  }
+
+  return rules;
+}
+
+/*
+ * What makes the stat strip three rows on a phone, by the selector after
+ * each template's own prefix: the cells stack, full width, without the
+ * tiles' inline dividers (stacked, they would run down the strip's right
+ * edge), each label on the left and its value - a little smaller - on the
+ * right.
+ */
+const PHONE_STAT_RULES: Array<[string, Record<string, string>]> = [
+  [
+    "td.st-Stat",
+    {
+      display: "block !important",
+      width: "auto !important",
+      "border-right": "0 !important",
+      "text-align": "right !important",
+    },
+  ],
+  [
+    ".st-Stat .st-Stat-label",
+    { float: "left !important", margin: "0 16px 0 0 !important" },
+  ],
+  [
+    ".st-Stat .st-Stat-value",
+    { "font-size": "18px !important", "line-height": "26px !important" },
+  ],
+];
+
+// The starter a status page is offered for its own report template, rendered.
+function renderStarter(report: StatusPageReport): string {
+  const body: string =
+    getDefaultSubscriberNotificationTemplate(
+      StatusPageSubscriberNotificationEventType.SubscriberReport,
+      StatusPageSubscriberNotificationMethod.Email,
+    )?.body || "";
+
+  expect(body).not.toBe("");
+
+  return Handlebars.compile(body)({
+    statusPageName: "WBHQ Status Page",
+    detailsUrl: "https://status.example.com",
+    report: report,
+  });
+}
+
+/*
+ * ON A PHONE, THE UPTIME REPORT'S THREE STATS ARE ROWS.
+ *
+ * Side by side, each stat has a third of the strip: about 90 pixels on a
+ * phone, where "4 hours, 39 minutes" took three lines and a wider font
+ * broke "minutes" in two. Under 600 pixels both the built-in report and
+ * the starter make the strip three rows - DOWNTIME on the left, "4 hours,
+ * 39 minutes" on the right - the way the text part reads it. A mail client
+ * without media queries keeps the three tiles.
+ */
+describe("on a phone, the uptime report's three stats are rows", () => {
+  const report: () => StatusPageReport = (): StatusPageReport => {
+    return buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+  };
+
+  const renderBuiltIn: () => string = (): string => {
+    return renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "true",
+      statusPageUrl: "https://status.example.com",
+      detailsUrl: "https://status.example.com",
+      report: report(),
+    });
+  };
+
+  const renderOffered: () => string = (): string => {
+    return renderStarter(report());
+  };
+
+  test.each([
+    { name: "the built-in report", prefix: "body[override] " },
+    { name: "the starter", prefix: ".st-StandaloneReport " },
+  ])(
+    "$name stacks its stat cells into rows, label left and value right",
+    (template: { name: string; prefix: string }) => {
+      const rules: Map<string, Map<string, string>> = phoneRules(
+        template.name === "the starter" ? renderOffered() : renderBuiltIn(),
+      );
+
+      for (const [selector, declarations] of PHONE_STAT_RULES) {
+        const rule: Map<string, string> | undefined = rules.get(
+          template.prefix + selector,
+        );
+
+        expect(rule).toBeDefined();
+
+        for (const [property, value] of Object.entries(declarations)) {
+          expect(`${selector} ${property}: ${rule?.get(property)}`).toBe(
+            `${selector} ${property}: ${value}`,
+          );
+        }
+      }
+
+      /*
+       * And no rule of the phone block draws a divider: a client that
+       * drops the block would not draw it, so dividers are inline, above a
+       * row (EmailDetailCardDividers holds Style.hbs to it).
+       */
+      for (const [selector, declarations] of rules) {
+        for (const property of declarations.keys()) {
+          expect(`${selector} ${property}`).not.toContain("border-top");
+          expect(`${selector} ${property}`).not.toContain("border-bottom");
+        }
+      }
+    },
+  );
+
+  test.each([
+    { name: "the built-in report", render: renderBuiltIn },
+    { name: "the starter", render: renderOffered },
+  ])(
+    "$name marks each stat for those rules, and only the stats",
+    (template: { name: string; render: () => string }) => {
+      const html: string = template.render();
+      const tiles: Array<string> = statTiles(html);
+
+      expect(tiles).toHaveLength(3);
+
+      // Each cell is a stat, its label and its value marked as such.
+      for (const tile of tiles) {
+        expect(tile.slice(0, tile.indexOf(">"))).toContain('class="st-Stat"');
+        expect(tile).toContain('<p class="st-Stat-label" ');
+        expect(tile).toContain('<div class="st-Stat-value" ');
+      }
+
+      /*
+       * The hero's "Average Uptime" is a stat label too - the text part
+       * reads it - but in no stat cell: on a phone it stays centered above
+       * its number.
+       */
+      const heroAt: number = html.indexOf(">Average Uptime</p>");
+      const heroBoxAt: number = Math.max(
+        html.lastIndexOf("<td ", heroAt),
+        html.lastIndexOf("<div ", heroAt),
+      );
+
+      expect(heroAt).toBeGreaterThan(-1);
+      expect(heroAt).toBeLessThan(html.indexOf('class="st-Stat"'));
+      expect(html.slice(heroBoxAt, html.indexOf(">", heroBoxAt))).not.toContain(
+        "st-Stat",
+      );
+    },
+  );
 });

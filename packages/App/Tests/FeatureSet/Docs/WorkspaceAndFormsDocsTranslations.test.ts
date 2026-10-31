@@ -295,6 +295,8 @@ const PROVIDER_CONSOLES: Array<string> = [
   "Object ID",
   "Users",
   "Accounts in any organizational directory",
+  // The registration a single-tenant Teams meetings app is made with.
+  "Accounts in this organizational directory only",
   "Web",
 ];
 

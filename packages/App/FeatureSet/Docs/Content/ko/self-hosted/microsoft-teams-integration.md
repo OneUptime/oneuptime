@@ -194,6 +194,7 @@ Microsoft Teams에서 **Apps > Manage your apps**를 열고 **Upload an app**, �
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Teams 앱 패키지의 봇 ID이기도 하므로 GUID여야 합니다. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | 클라이언트 비밀의 ID가 아니라 **Value**. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. 봇은 이 테넌트에서 단일 테넌트 앱으로 인증하며, 사람들은 Microsoft Teams 계정을 연결할 때 이 테넌트에 로그인합니다. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | 미국 정부 클라우드에 있는 Microsoft 365 테넌트에만 해당합니다: `gcc`, `gcc-high` 또는 `dod`. 상용 클라우드에서는 비워 둡니다. [미국 정부 클라우드](#미국-정부-클라우드)를 참조하세요. |
 | `HOST` | `host` | 공개 호스트 이름. 리디렉션 URI, 메시징 엔드포인트, Teams 앱 패키지가 이 값으로 만들어집니다. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service는 HTTPS 엔드포인트만 호출합니다. |
 
@@ -202,6 +203,21 @@ Microsoft Teams에서 **Apps > Manage your apps**를 열고 **Upload an app**, �
 - 클라이언트 ID가 없으면 Microsoft Teams 페이지에 **관리자 동의 부여** 대신 설정 가이드가 표시됩니다.
 - 클라이언트 ID나 비밀이 없으면 연결이 **"이 OneUptime 서버에는 Microsoft Teams가 설정되어 있지 않습니다."** 메시지와 함께 끝납니다.
 - 테넌트 ID가 없으면 봇이 인증할 수 없으므로 게시와 봇 엔드포인트가 모두 실패합니다.
+
+## 미국 정부 클라우드
+
+Microsoft 365 테넌트가 Microsoft의 미국 정부 클라우드 중 하나에 있다면 `MICROSOFT_TEAMS_CLOUD`(Helm에서는 `microsoftTeamsApp.cloud`)를 해당 클라우드로 설정하세요. 그러면 봇, Microsoft Teams 로그인, [Teams 회의 앱](/docs/workspace-connections/video-calls#자체-호스팅-서버에서-한-번의-클릭으로-연결하기)이 그 클라우드의 호스트를 사용합니다:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 클라우드 | 로그인 | Microsoft Graph |
+| --- | --- | --- | --- |
+| 설정 안 함 | 상용 | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+GCC High와 DoD에서는 앱 등록과 Azure Bot을 Azure Government에 만드세요. 1단계부터 5단계까지는 Azure Portal 대신 [Azure Government Portal](https://portal.azure.us)을 사용합니다. 나머지는 모두 같습니다. 서버가 어떤 클라우드를 사용하는지 확인하려면 `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`을 실행하세요. 클라우드와 그 호스트를 알려 줍니다.
+
+어떤 클라우드도 가리키지 않는 값은 `MICROSOFT_TEAMS_CLOUD`를 지목하는 오류로 모든 Microsoft Teams 요청을 멈추므로, 테넌트의 로그인이 상용 클라우드로 보내지는 일은 없습니다. 중국에서 21Vianet이 운영하는 Microsoft Teams는 지원하지 않습니다.
 
 ## 네트워크 액세스
 
@@ -237,7 +253,7 @@ OneUptime의 [사설 네트워크 액세스 설정](/docs/self-hosted/private-ne
 
 ### 아웃바운드 액세스와 IP 제한
 
-OneUptime 앱에서 DNS 확인과 아웃바운드 HTTPS를 허용합니다. `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework의 인증 및 채널 엔드포인트, 그리고 대화마다 제공되는 커넥터 서비스 URL을 사용합니다. 상용 클라우드의 대체 커넥터는 `https://smba.trafficmanager.net/teams/`이며, 대화의 서비스 URL은 이와 다를 수 있습니다. [Microsoft의 방화벽 지침](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)을 적용하고 테스트 중에 차단된 트래픽을 살펴보세요. 이것은 호스트 이름의 전체 목록이 아닙니다.
+OneUptime 앱에서 DNS 확인과 아웃바운드 HTTPS를 허용합니다. `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework의 인증 및 채널 엔드포인트, 그리고 대화마다 제공되는 커넥터 서비스 URL을 사용합니다. 상용 클라우드의 대체 커넥터는 `https://smba.trafficmanager.net/teams/`이며, 대화의 서비스 URL은 이와 다를 수 있습니다. [Microsoft의 방화벽 지침](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)을 적용하고 테스트 중에 차단된 트래픽을 살펴보세요. 이것은 호스트 이름의 전체 목록이 아닙니다. [미국 정부 클라우드](#미국-정부-클라우드)에서는 이들이 그 클라우드 자체의 호스트입니다.
 
 Microsoft는 Bot Framework 인바운드 트래픽에 대한 고정 IP 허용 목록을 지원하지 않습니다. 원본 주소가 바뀌기 때문입니다. Teams 클라이언트의 미디어 IP 범위는 봇 웹후크의 원본을 나타내지 않습니다. 원본 IP를 신원의 증거로 취급하지 말고 Bot Framework 인증을 켜 두세요.
 

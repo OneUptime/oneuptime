@@ -194,6 +194,7 @@ Microsoft Teams で **Apps > Manage your apps** を開き、**Upload an app**、
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**。Teams アプリパッケージのボット ID でもあるため、GUID でなければなりません。 |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | クライアントシークレットの **Value** (ID ではありません)。 |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**。ボットはこのテナントでシングルテナントアプリとして認証し、ユーザーは Microsoft Teams アカウントを接続するときにこのテナントにサインインします。 |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | 米国政府向けクラウドにある Microsoft 365 テナントの場合のみ: `gcc`、`gcc-high`、`dod` のいずれか。商用クラウドでは未設定のままにします。[米国政府向けクラウド](#米国政府向けクラウド)を参照してください。 |
 | `HOST` | `host` | 公開ホスト名。リダイレクト URI、メッセージングエンドポイント、Teams アプリパッケージはこれをもとに組み立てられます。 |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`。Azure Bot Service は HTTPS のエンドポイントしか呼び出しません。 |
 
@@ -202,6 +203,21 @@ Microsoft Teams で **Apps > Manage your apps** を開き、**Upload an app**、
 - クライアント ID がないと、Microsoft Teams のページには **管理者の同意を付与** の代わりにセットアップガイドが表示されます。
 - クライアント ID かシークレットがないと、接続は **"この OneUptime サーバーでは Microsoft Teams が設定されていません。"** で終わります。
 - テナント ID がないとボットが認証できないため、投稿もボットのエンドポイントも失敗します。
+
+## 米国政府向けクラウド
+
+Microsoft 365 テナントが Microsoft の米国政府向けクラウドのいずれかにある場合は、`MICROSOFT_TEAMS_CLOUD` (Helm では `microsoftTeamsApp.cloud`) をそのクラウドに設定します。ボット、Microsoft Teams のサインイン、[Teams の会議アプリ](/docs/workspace-connections/video-calls#セルフホストのサーバーでのワンクリック接続)は、そのクラウドのホストを使うようになります:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 のクラウド | サインイン | Microsoft Graph |
+| --- | --- | --- | --- |
+| 未設定 | 商用 | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+GCC High と DoD では、アプリ登録と Azure Bot を Azure Government に作成します。ステップ 1 から 5 では、Azure Portal の代わりに [Azure Government Portal](https://portal.azure.us) を使います。それ以外は同じです。サーバーが使っているクラウドを確認するには、`curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` を実行します。クラウドとそのホストが表示されます。
+
+どのクラウドも表さない値では、Microsoft Teams へのすべてのリクエストが `MICROSOFT_TEAMS_CLOUD` を名指しするエラーで止まるため、テナントのサインインが商用クラウドに送られることはありません。中国の 21Vianet が運営する Microsoft Teams はサポートされていません。
 
 ## ネットワークアクセス
 
@@ -237,7 +253,7 @@ OneUptime の [プライベートネットワークアクセスの設定](/docs/
 
 ### 送信アクセスと IP 制限
 
-OneUptime アプリからの DNS 解決と送信 HTTPS を許可します。`graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework の認証エンドポイントとチャネルエンドポイント、そして会話ごとに渡されるコネクタサービスの URL を使います。商用クラウドのフォールバックのコネクタは `https://smba.trafficmanager.net/teams/` ですが、会話のサービス URL はこれと異なる場合があります。[Microsoft のファイアウォールのガイダンス](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) に従い、テスト中にブロックされた通信を調べてください。これはホスト名の完全な一覧ではありません。
+OneUptime アプリからの DNS 解決と送信 HTTPS を許可します。`graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework の認証エンドポイントとチャネルエンドポイント、そして会話ごとに渡されるコネクタサービスの URL を使います。商用クラウドのフォールバックのコネクタは `https://smba.trafficmanager.net/teams/` ですが、会話のサービス URL はこれと異なる場合があります。[Microsoft のファイアウォールのガイダンス](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) に従い、テスト中にブロックされた通信を調べてください。これはホスト名の完全な一覧ではありません。 [米国政府向けクラウド](#米国政府向けクラウド)では、これらはそのクラウド自身のホストになります。
 
 Microsoft は、Bot Framework の受信トラフィックについて固定の IP 許可リストをサポートしていません。送信元アドレスが変わるためです。Teams クライアントのメディア用 IP 範囲は、ボットの Webhook の送信元を表すものではありません。送信元 IP を身元の証明として扱うのではなく、Bot Framework の認証を有効にしたままにしてください。
 

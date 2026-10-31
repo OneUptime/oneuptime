@@ -363,6 +363,13 @@ here would override the image's own marker.
   {{- else }}
   value: {{ $.Values.microsoftTeamsApp.tenantId }}
   {{- end }}
+{{- /*
+The Microsoft cloud the server's Microsoft Teams runs in, for the Teams bot and
+the Teams meetings app alike: empty for the commercial cloud, or gcc, gcc-high
+or dod. Not a secret: the Dashboard reads it too, for its links to Teams.
+*/}}
+- name: MICROSOFT_TEAMS_CLOUD
+  value: {{ default "" $.Values.microsoftTeamsApp.cloud | quote }}
 
 {{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
@@ -783,6 +790,23 @@ to `default`, and would render as unset - a relay again where billing is on.
       key: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.clientSecretKey | quote }}
   {{- else }}
   value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientSecret | quote }}
+  {{- end }}
+
+{{- /*
+The tenant a single-tenant Teams meetings app is registered in, where its
+sign-in goes; empty for a multi-tenant app. From the existing secret only when
+it names a tenantIdKey: a secret made for the id and the secret alone keeps
+working.
+*/}}
+{{- $teamsMeetingsSecret := $.Values.microsoftTeamsMeetingsApp.existingSecret | default dict }}
+- name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+  {{- if $teamsMeetingsSecret.tenantIdKey }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $teamsMeetingsSecret.name | quote }}
+      key: {{ $teamsMeetingsSecret.tenantIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.microsoftTeamsMeetingsApp.tenantId | quote }}
   {{- end }}
 
 {{- /*

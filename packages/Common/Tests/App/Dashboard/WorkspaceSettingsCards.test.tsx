@@ -739,4 +739,21 @@ describe("the OneUptime app's link in Microsoft Teams", () => {
       "https://teams.microsoft.com/l/app/a%2Fb%3Fc%3Dd%23e",
     );
   });
+
+  test("on a server in a US Government cloud (MICROSOFT_TEAMS_CLOUD), that cloud's Teams", () => {
+    expect(getMicrosoftTeamsAppLink(TEAMS_CLIENT_ID, "gcc-high")).toBe(
+      `https://gov.teams.microsoft.us/l/app/${TEAMS_CLIENT_ID}`,
+    );
+    expect(getMicrosoftTeamsAppLink(TEAMS_CLIENT_ID, "DoD")).toBe(
+      `https://dod.teams.microsoft.us/l/app/${TEAMS_CLIENT_ID}`,
+    );
+    // GCC is Teams on the commercial cloud's web.
+    expect(getMicrosoftTeamsAppLink(TEAMS_CLIENT_ID, "gcc")).toBe(
+      `https://teams.microsoft.com/l/app/${TEAMS_CLIENT_ID}`,
+    );
+    // A setting that names no cloud costs only the link: the commercial one.
+    expect(getMicrosoftTeamsAppLink(TEAMS_CLIENT_ID, "usgov")).toBe(
+      `https://teams.microsoft.com/l/app/${TEAMS_CLIENT_ID}`,
+    );
+  });
 });

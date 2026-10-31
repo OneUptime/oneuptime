@@ -554,10 +554,94 @@ describe("Video Calls docs - connecting in one click", () => {
       "GOOGLE_MEET_APP_CLIENT_SECRET",
       "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
       "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET",
+      "MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID",
     ]) {
       expect(section).toContain(variable);
       expect(environment).toContain(`process.env["${variable}"]`);
     }
+  });
+
+  test("a single-tenant Teams meetings app: its tenant setting, as the server, the chart and Compose read it", () => {
+    const section: string = sectionOf(
+      readPage(),
+      "one-click-connect-on-a-self-hosted-server",
+    );
+    const sentence: string | undefined = section
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.includes("MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID");
+      });
+
+    expect(sentence).toContain(
+      "If your organization allows no multitenant apps, register it for **Accounts in this organizational directory only** and set `MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID` (Helm `microsoftTeamsMeetingsApp.tenantId`) to its **Directory (tenant) ID**: sign-ins then go to your tenant, where only your organization's members and guests can sign in.",
+    );
+
+    const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+    const read: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(repositoryRoot, relative), "utf8");
+    };
+
+    // The server reads it, and hands it to the Teams meetings app.
+    expect(read("packages/Common/Server/EnvironmentConfig.ts")).toContain(
+      'process.env["MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID"]',
+    );
+    expect(
+      read(
+        "packages/Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthApps.ts",
+      ),
+    ).toContain("tenantId = MicrosoftTeamsMeetingsAppTenantId;");
+    // The chart's value the page names, and the variable it sets from it.
+    expect(read("HelmChart/Public/oneuptime/values.yaml")).toContain(
+      "microsoftTeamsMeetingsApp:\n  clientId:\n  clientSecret:\n  tenantId:\n",
+    );
+    expect(read("HelmChart/Public/oneuptime/templates/_helpers.tpl")).toContain(
+      'value: {{ default "" $.Values.microsoftTeamsMeetingsApp.tenantId | quote }}',
+    );
+    // And Docker Compose passes it from config.env.
+    expect(read("docker-compose.base.yml")).toContain(
+      "MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID: ${MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID:-}",
+    );
+    expect(read("config.example.env")).toContain(
+      "\nMICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID=\n",
+    );
+  });
+
+  test("a Teams meetings app in a US Government cloud: MICROSOFT_TEAMS_CLOUD, which the meetings app's sign-ins, scopes and meetings follow", () => {
+    const section: string = sectionOf(
+      readPage(),
+      "one-click-connect-on-a-self-hosted-server",
+    );
+    const bullet: string | undefined = section
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- **Microsoft Teams**:");
+      });
+
+    expect(bullet).toContain(
+      "If your Microsoft 365 tenant is in a US Government cloud, register the app in that cloud's Microsoft Entra admin center and set `MICROSOFT_TEAMS_CLOUD`, as for the [Microsoft Teams bot](/docs/self-hosted/microsoft-teams-integration#us-government-clouds): its sign-ins and meetings then go to that cloud's hosts.",
+    );
+
+    const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+    const read: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(repositoryRoot, relative), "utf8");
+    };
+    const videoCall: string = "packages/Common/Server/Utils/VideoCall";
+
+    // The one-click app signs in, and asks for its scopes, on the cloud's hosts.
+    const oneClick: string = read(
+      `${videoCall}/OAuth/MicrosoftTeamsMeetingsOAuthApp.ts`,
+    );
+    expect(oneClick).toContain("MicrosoftTeamsHosts.getSignInOrigin()");
+    expect(oneClick).toContain("MicrosoftTeamsHosts.getGraphScope(");
+    // A project's own app, and the meetings and transcripts, on the cloud's Graph.
+    const meetings: string = read(
+      `${videoCall}/Providers/MicrosoftTeamsMeetingClient.ts`,
+    );
+    expect(meetings).toContain('MicrosoftTeamsHosts.getGraphUrl("")');
+    expect(meetings).toContain("MicrosoftTeamsHosts.getGraphDefaultScope()");
+    expect(
+      read(`${videoCall}/Transcripts/MicrosoftTeamsTranscriptClient.ts`),
+    ).toContain("getMicrosoftGraphBaseUrl()");
   });
 });
 

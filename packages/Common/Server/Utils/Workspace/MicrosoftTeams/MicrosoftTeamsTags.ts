@@ -15,6 +15,7 @@ import API from "../../../../Utils/API";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
 import {
   WorkspaceUserGroupError,
   WorkspaceUserGroupPerson,
@@ -49,7 +50,15 @@ import MicrosoftTeamsUtil, {
  * under the same name, when somebody is on call again.
  */
 
-const GRAPH_TEAMS_URL: string = "https://graph.microsoft.com/v1.0/teams";
+/*
+ * A team's address on Microsoft Graph, on the Graph of this server's
+ * Microsoft cloud (MicrosoftTeamsHosts).
+ */
+const getTeamUrl: (teamId: string) => string = (teamId: string): string => {
+  return MicrosoftTeamsHosts.getGraphUrl(
+    `/teams/${encodeURIComponent(teamId)}`,
+  );
+};
 
 // The most pages of tags or members read for one answer.
 const MAX_PAGES: number = 20;
@@ -200,9 +209,7 @@ export default class MicrosoftTeamsTags {
     teamId: string;
   }): Promise<Array<MicrosoftTeamsTagInfo>> {
     const tags: Array<MicrosoftTeamsTagInfo> = [];
-    let url: string | null = `${GRAPH_TEAMS_URL}/${encodeURIComponent(
-      data.teamId,
-    )}/tags`;
+    let url: string | null = `${getTeamUrl(data.teamId)}/tags`;
     let pages: number = 0;
 
     while (url && pages < MAX_PAGES) {
@@ -289,7 +296,7 @@ export default class MicrosoftTeamsTags {
 
     const body: JSONObject = await MicrosoftTeamsTags.request({
       method: GraphMethod.Post,
-      url: `${GRAPH_TEAMS_URL}/${encodeURIComponent(data.teamId)}/tags`,
+      url: `${getTeamUrl(data.teamId)}/tags`,
       accessToken: data.accessToken,
       body: {
         displayName: data.name.substring(
@@ -660,9 +667,7 @@ export default class MicrosoftTeamsTags {
   }
 
   private static getTagUrl(data: { teamId: string; tagId: string }): string {
-    return `${GRAPH_TEAMS_URL}/${encodeURIComponent(
-      data.teamId,
-    )}/tags/${encodeURIComponent(data.tagId)}`;
+    return `${getTeamUrl(data.teamId)}/tags/${encodeURIComponent(data.tagId)}`;
   }
 
   private static readValues(body: JSONObject): Array<unknown> {
@@ -672,30 +677,13 @@ export default class MicrosoftTeamsTags {
   }
 
   /*
-   * The next page of a Graph answer: only Graph's own address is followed,
+   * The next page of a Graph answer: only this cloud's Graph is followed,
    * so an answer cannot send the token elsewhere.
    */
   private static readNextLink(body: JSONObject): string | null {
-    const next: unknown = body["@odata.nextLink"];
+    const next: string | null = MicrosoftTeamsHosts.readGraphNextLink(body);
 
-    if (typeof next !== "string" || !next) {
-      return null;
-    }
-
-    try {
-      const parsed: globalThis.URL = new globalThis.URL(next);
-
-      if (
-        parsed.protocol !== "https:" ||
-        parsed.host !== "graph.microsoft.com"
-      ) {
-        return null;
-      }
-
-      return parsed.toString();
-    } catch {
-      return null;
-    }
+    return next ? new globalThis.URL(next).toString() : null;
   }
 
   private static readTag(value: unknown): MicrosoftTeamsTagInfo | null {

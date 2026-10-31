@@ -179,6 +179,11 @@ export interface FakeEnterpriseModuleOptions {
    */
   productBranding?: ProductBranding | null | undefined;
   /*
+   * What getProductBrandingLogo() answers: the bytes of the logo the
+   * branding names. Defaults to null (no logo).
+   */
+  productBrandingLogo?: Buffer | null | undefined;
+  /*
    * What getBillingProvider() answers: the payment provider BillingService
    * hands its calls to. Defaults to null (no provider, as with billing off).
    */
@@ -267,6 +272,9 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
   public productBranding: ProductBranding | null;
   // When set, getProductBranding throws it.
   public productBrandingError: Error | undefined = undefined;
+  public productBrandingLogo: Buffer | null;
+  // When set, getProductBrandingLogo throws it.
+  public productBrandingLogoError: Error | undefined = undefined;
   public billingProvider: BillingProvider | null;
   // When set, getBillingProvider throws it.
   public billingProviderError: Error | undefined = undefined;
@@ -287,6 +295,7 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
         ? createAuditLogRecorderSpy()
         : options.auditLogRecorder;
     this.productBranding = options.productBranding || null;
+    this.productBrandingLogo = options.productBrandingLogo || null;
     this.billingProvider = options.billingProvider || null;
     this.projectBillingHooks = options.projectBillingHooks || null;
   }
@@ -297,6 +306,14 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
     }
 
     return this.productBranding;
+  }
+
+  public getProductBrandingLogo(): Buffer | null {
+    if (this.productBrandingLogoError) {
+      throw this.productBrandingLogoError;
+    }
+
+    return this.productBrandingLogo;
   }
 
   public getBillingProvider(): BillingProvider | null {

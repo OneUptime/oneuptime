@@ -1,5 +1,6 @@
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import logger from "../../Logger";
+import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
 
 /*
  * Where a proactive Microsoft Teams send is allowed to go.
@@ -29,11 +30,19 @@ import logger from "../../Logger";
  *  - *.teams.microsoft.us: GCC High and DoD
  *    (smba.infra.gov.teams.microsoft.us, smba.infra.dod.teams.microsoft.us).
  *  - *.botapi.skype.com: Teams preview rings (canary.botapi.skype.com).
+ *
+ * When no service URL was ever captured for a conversation, a send goes to
+ * the Teams service of the Microsoft cloud this server's Teams runs in
+ * (MicrosoftTeamsHosts, MICROSOFT_TEAMS_CLOUD): smba.trafficmanager.net for
+ * the commercial cloud, smba.infra.gcc.teams.microsoft.com for GCC,
+ * smba.infra.gov.teams.microsoft.us for GCC High and
+ * smba.infra.dod.teams.microsoft.us for DoD.
  */
 export default class MicrosoftTeamsServiceUrl {
   // Used when no service URL was ever captured for the conversation.
-  public static readonly COMMERCIAL_CLOUD_DEFAULT: string =
-    "https://smba.trafficmanager.net/teams/";
+  public static getDefault(): string {
+    return MicrosoftTeamsHosts.getDefaultServiceUrl();
+  }
 
   private static readonly TRUSTED_HOSTS: Array<string> = [
     "smba.trafficmanager.net",
@@ -77,15 +86,14 @@ export default class MicrosoftTeamsServiceUrl {
   }
 
   /*
-   * The service URL to send to: the captured one, or the commercial default
+   * The service URL to send to: the captured one, or the cloud's default
    * when none was captured. A captured URL that is not a Microsoft host is
-   * refused rather than replaced. Quietly falling back to the commercial
-   * endpoint would hide the bad value, and would misroute GCC and DoD
-   * tenants anyway.
+   * refused rather than replaced. Quietly falling back to the default
+   * endpoint would hide the bad value.
    */
   public static resolve(serviceUrl: string | undefined | null): string {
     if (!serviceUrl) {
-      return MicrosoftTeamsServiceUrl.COMMERCIAL_CLOUD_DEFAULT;
+      return MicrosoftTeamsServiceUrl.getDefault();
     }
 
     if (!MicrosoftTeamsServiceUrl.isTrusted(serviceUrl)) {
@@ -101,14 +109,14 @@ export default class MicrosoftTeamsServiceUrl {
     return serviceUrl;
   }
 
-  // The first trusted URL among candidates, or the commercial default.
+  // The first trusted URL among candidates, or the cloud's default.
   public static firstTrustedOrDefault(
     candidates: Array<string | undefined | null>,
   ): string {
     return (
       candidates.find((candidate: string | undefined | null) => {
         return MicrosoftTeamsServiceUrl.isTrusted(candidate);
-      }) || MicrosoftTeamsServiceUrl.COMMERCIAL_CLOUD_DEFAULT
+      }) || MicrosoftTeamsServiceUrl.getDefault()
     );
   }
 }

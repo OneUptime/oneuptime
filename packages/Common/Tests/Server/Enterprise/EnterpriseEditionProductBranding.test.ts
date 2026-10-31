@@ -131,7 +131,92 @@ describe("EnterpriseEdition.getProductBranding", () => {
   });
 });
 
+/*
+ * EnterpriseEdition.getProductBrandingLogo: the bytes of the logo the
+ * branding names, which an email carries inside itself rather than load
+ * from the logo's address (Server/Utils/Mail/EmailCarriedLogos).
+ */
+describe("EnterpriseEdition.getProductBrandingLogo", () => {
+  const LOGO_BYTES: Buffer = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02,
+  ]);
+
+  test("is null on the Community Edition", () => {
+    uninstallEnterpriseModule();
+
+    expect(EnterpriseEdition.getProductBrandingLogo()).toBeNull();
+  });
+
+  test("is null when the module has no logo, or no say in it (an older module)", () => {
+    installFakeEnterpriseModule({ productBrandingLogo: null });
+
+    expect(EnterpriseEdition.getProductBrandingLogo()).toBeNull();
+
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      productBrandingLogo: LOGO_BYTES,
+    });
+    (fake as unknown as Record<string, unknown>)["getProductBrandingLogo"] =
+      undefined;
+
+    expect(EnterpriseEdition.getProductBrandingLogo()).toBeNull();
+  });
+
+  test("is the bytes the module hands it", () => {
+    installFakeEnterpriseModule({ productBrandingLogo: LOGO_BYTES });
+
+    expect(EnterpriseEdition.getProductBrandingLogo()).toBe(LOGO_BYTES);
+  });
+
+  test("is null for anything that is not bytes, or no bytes at all", () => {
+    for (const answer of [Buffer.alloc(0), "iVBORw0KGgo=", 42, {}]) {
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
+      fake.productBrandingLogo = answer as unknown as Buffer;
+
+      expect(EnterpriseEdition.getProductBrandingLogo()).toBeNull();
+    }
+  });
+
+  test("is null, never an error, when the module throws, and says so once", () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      productBrandingLogo: LOGO_BYTES,
+    });
+    fake.productBrandingLogoError = new Error("logo exploded");
+
+    expect(EnterpriseEdition.getProductBrandingLogo()).toBeNull();
+    expect(EnterpriseEdition.getProductBrandingLogo()).toBeNull();
+
+    const warnings: Array<string> = warnSpy.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return String(call[0]);
+      },
+    );
+
+    expect(
+      warnings.filter((warning: string): boolean => {
+        return warning.includes("emails load it from its address instead");
+      }),
+    ).toHaveLength(1);
+  });
+});
+
 describe("the module contract", () => {
+  test("getProductBrandingLogo may be left out, and when present must be a function", () => {
+    const leftOut: FakeEnterpriseModule = new FakeEnterpriseModule();
+    (leftOut as unknown as Record<string, unknown>)["getProductBrandingLogo"] =
+      undefined;
+
+    expect(EnterpriseServerModuleShape.findProblems(leftOut)).toEqual([]);
+
+    const notAFunction: FakeEnterpriseModule = new FakeEnterpriseModule();
+    (notAFunction as unknown as Record<string, unknown>)[
+      "getProductBrandingLogo"
+    ] = "logo.png";
+
+    expect(EnterpriseServerModuleShape.findProblems(notAFunction)).toEqual([
+      '"getProductBrandingLogo", when present, must be a function',
+    ]);
+  });
+
   test("getProductBranding may be left out", () => {
     const fake: FakeEnterpriseModule = new FakeEnterpriseModule();
     (fake as unknown as Record<string, unknown>)["getProductBranding"] =
