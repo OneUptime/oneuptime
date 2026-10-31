@@ -721,9 +721,10 @@ function phoneRules(html: string): Map<string, Map<string, string>> {
 
 /*
  * What makes the stat strip three rows on a phone, by the selector after
- * each template's own prefix: the cells stack, full width, with a line
- * between two rows, each label on the left and its value - a little
- * smaller - on the right.
+ * each template's own prefix: the cells stack, full width, without the
+ * tiles' inline dividers (stacked, they would run down the strip's right
+ * edge), each label on the left and its value - a little smaller - on the
+ * right.
  */
 const PHONE_STAT_RULES: Array<[string, Record<string, string>]> = [
   [
@@ -735,7 +736,6 @@ const PHONE_STAT_RULES: Array<[string, Record<string, string>]> = [
       "text-align": "right !important",
     },
   ],
-  ["td.st-Stat--next", { "border-top": "1px solid #e2e8f0 !important" }],
   [
     ".st-Stat .st-Stat-label",
     { float: "left !important", margin: "0 16px 0 0 !important" },
@@ -819,6 +819,18 @@ describe("on a phone, the uptime report's three stats are rows", () => {
           );
         }
       }
+
+      /*
+       * And no rule of the phone block draws a divider: a client that
+       * drops the block would not draw it, so dividers are inline, above a
+       * row (EmailDetailCardDividers holds Style.hbs to it).
+       */
+      for (const [selector, declarations] of rules) {
+        for (const property of declarations.keys()) {
+          expect(`${selector} ${property}`).not.toContain("border-top");
+          expect(`${selector} ${property}`).not.toContain("border-bottom");
+        }
+      }
     },
   );
 
@@ -833,18 +845,10 @@ describe("on a phone, the uptime report's three stats are rows", () => {
 
       expect(tiles).toHaveLength(3);
 
-      // Each cell is a stat; the second and third draw the line above them.
-      expect(tiles[0]!.slice(0, tiles[0]!.indexOf(">"))).toContain(
-        'class="st-Stat"',
-      );
-
-      for (const tile of tiles.slice(1)) {
-        expect(tile.slice(0, tile.indexOf(">"))).toContain(
-          'class="st-Stat st-Stat--next"',
-        );
-      }
-
+      // Each cell is a stat, its label and its value marked as such.
       for (const tile of tiles) {
+        expect(tile.slice(0, tile.indexOf(">"))).toContain('class="st-Stat"');
+        expect(tile).toContain('<p class="st-Stat-label" ');
         expect(tile).toContain('<div class="st-Stat-value" ');
       }
 

@@ -1032,8 +1032,7 @@ const reportDefaults: EventDefaults = {
     .st-StandaloneReport .st-ReportIndent { margin-left: 0 !important; }
     .st-StandaloneReport table[aria-label="Uptime by resource"] td { padding: 10px 6px !important; font-size: 12px !important; line-height: 18px !important; }
     .st-StandaloneReport table[aria-label="Uptime by resource"] th { padding: 10px 4px !important; font-size: 11px !important; line-height: 16px !important; }
-    .st-StandaloneReport td.st-Stat { display: block !important; width: auto !important; padding: 12px 16px !important; border-right: 0 !important; text-align: right !important; }
-    .st-StandaloneReport td.st-Stat--next { border-top: 1px solid #e2e8f0 !important; }
+    .st-StandaloneReport td.st-Stat { display: block !important; width: auto !important; padding: 10px 16px !important; border-right: 0 !important; text-align: right !important; }
     .st-StandaloneReport .st-Stat .st-Stat-label { float: left !important; margin: 0 16px 0 0 !important; line-height: 26px !important; }
     .st-StandaloneReport .st-Stat .st-Stat-value { font-size: 18px !important; line-height: 26px !important; }
   }
@@ -1053,11 +1052,11 @@ const reportDefaults: EventDefaults = {
         <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Downtime</p>
         <div class="st-Stat-value" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; color: #0f172a;">{{report.totalDowntimeInHoursAndMinutes}}</div>
       </td>
-      <td width="33%" align="center" valign="top" class="st-Stat st-Stat--next" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
+      <td width="33%" align="center" valign="top" class="st-Stat" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
         <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Incidents</p>
         <div class="st-Stat-value" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; color: #0f172a;">{{report.totalIncidents}}</div>
       </td>
-      <td width="34%" align="center" valign="top" class="st-Stat st-Stat--next" style="padding: 18px 8px;">
+      <td width="34%" align="center" valign="top" class="st-Stat" style="padding: 18px 8px;">
         <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Resources</p>
         <div class="st-Stat-value" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; color: #0f172a;">{{report.totalResources}}</div>
       </td>
