@@ -224,8 +224,8 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
       # The same hop into the metrics pipeline: 0.96.0 has the forward
-      # connector, and connectors on by default, as every collector since
-      # 0.86.0 does.
+      # connector, and connectors have been on by default since 0.74.0 (the
+      # service.connectors gate went in 0.81.0).
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n        - cumulative_to_delta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n"
