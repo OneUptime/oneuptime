@@ -533,7 +533,10 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Storage Array"
         placeholder="Select a storage array..."
         options={resources.options}
-        value={monitorStepStorageArrayMonitor.arrayIdentifier}
+        value={resources.valueOf({
+          value: monitorStepStorageArrayMonitor.arrayIdentifier,
+          resourceId: monitorStepStorageArrayMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}

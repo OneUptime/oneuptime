@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Opnieuw geteld;<br/>heropend als opgelost"]
 ```
 
-- **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering.
+- **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering. Een nieuwe uitzondering wordt in plaats daarvan gegroepeerd op haar type en de functies en bestanden van uw eigen code in de stacktrace: regelnummers, bibliotheekframes en het bericht tellen niet mee, zodat varianten uit dezelfde code één uitzondering zijn. Zonder stacktrace groepeert haar bericht haar, zoals hierboven. Uitzonderingen die vóór deze groepering zijn vastgelegd, houden de hunne.
 - **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand, en de uitzondering wordt gemarkeerd als **Regressie**. Een voorval van vóór het oplossen dat OneUptime pas later bereikt, heropent haar niet.
 - **Een gearchiveerde uitzondering blijft gearchiveerd.** Haar nieuwe voorvallen worden nog geteld, maar sturen geen meldingen meer.
 
@@ -51,6 +51,8 @@ Ga naar **Producten → Observability → Uitzonderingen**. De badge op het tabb
 ### Een status kiezen
 
 Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De grafiek boven de lijst toont hoeveel voorvallen in de loop van de tijd **Niet-afgehandeld** en hoeveel **Afgehandeld** waren. Een rij gemarkeerd als **Regressie** kwam terug nadat ze was opgelost, en een rij gemarkeerd als **Nieuw** werd voor het eerst gezien in de afgelopen 24 uur.
+
+Elke rij toont ook hoeveel gebruikers de uitzondering in de gekozen periode trof, en een kleine grafiek van haar voorvallen in die periode. Een voorval noemt zijn gebruiker met het attribuut `user.id`, `enduser.id` of `enduser.pseudo.id`, op de uitzonderingsgebeurtenis, de span of het logrecord, of de resource; voorvallen die geen gebruiker noemen, worden niet geteld.
 
 ### Kiezen wat als probleem telt
 
@@ -99,6 +101,8 @@ Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het v
 
 **Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
 
+**Activiteit**, onderaan het **Overzicht** van de uitzondering, toont wie haar wanneer heeft gewijzigd, nieuwste eerst: wie haar heeft opgelost, heropend, gearchiveerd of toegewezen, een andere uitzondering met haar heeft samengevoegd of er een heeft gesplitst, en wanneer ze terugkwam nadat ze was opgelost. Elke wijziging staat er, gedaan op de pagina van de uitzondering, in de lijst, onder **Bulkacties**, via de API of door OneUptime zelf, en een wijziging met een API-sleutel draagt de naam van de sleutel.
+
 ## Foutklassen
 
 Elke uitzondering heeft een foutklasse, die zegt wiens probleem het is. OneUptime AI stelt die in wanneer het een inzicht over de uitzondering beoordeelt, zoals een nieuwe of sterk toenemende uitzondering: zie [AI SRE](/docs/ai/ai-sre#inzichten-proactieve-detectie). Een uitzondering die het niet heeft beoordeeld, blijft `unknown`.
@@ -130,6 +134,8 @@ De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent he
 ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt verstuurd, en van de attributen van een span worden er maar een paar verstuurd, zoals de route en de statuscode. De uitleg gebruikt de LLM-provider en de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Iedereen die de uitzondering mag lezen, kan er een vragen.
 
 Onder de kaarten toont **Vergelijkbare uitzonderingen** tot vijf andere uitzonderingen die op deze lijken: het **Zelfde bericht** zodra de waarden eruit zijn, de **Zelfde plek in de code** in uw code, of een **Vergelijkbaar bericht** met grotendeels dezelfde woorden. Eén oorzaak kan in meerdere uitzonderingen terechtkomen, dus **Controleren met OneUptime AI** zegt van elke of het **Waarschijnlijk dezelfde bug**, **Een verwante bug** of **Een andere bug** is, en waarom. De controle gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Het antwoord wordt bewaard tot de volgende keer dat er een uitzondering optreedt.
+
+Voeg een uitzondering die OneUptime AI **Waarschijnlijk dezelfde bug** noemt en die bij dezelfde service hoort, met deze samen via **Samenvoegen** ernaast: haar voorvallen, de eerdere en elk nieuw, tellen vanaf dan bij deze uitzondering en staan op haar pagina, en ze verdwijnt uit de lijst. **Samengevoegd met deze uitzondering** eronder toont wat is samengevoegd, en **Splitsen** ernaast, of op de eigen pagina van een samengevoegde uitzondering, geeft haar haar eigen plek in de lijst terug, met haar voorvallen sindsdien. Samenvoegen en splitsen vereisen toestemming om uitzonderingen te bewerken.
 
 ## Verhelpen met AI
 
@@ -194,7 +200,7 @@ Controleer eerst de weergave: **Problemen** verbergt gebruikersfouten en verwach
 :::
 
 :::details Eén fout verschijnt als meerdere uitzonderingen
-De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering.
+De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering. Nieuwe uitzonderingen worden in plaats daarvan gegroepeerd op de functies van uw eigen code, dus dit geldt vooral voor eerder vastgelegde uitzonderingen; voeg er twee die dezelfde bug zijn samen via **Vergelijkbare uitzonderingen**.
 :::
 
 :::details Een opgeloste uitzondering komt steeds terug

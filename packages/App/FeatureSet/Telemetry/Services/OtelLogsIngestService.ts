@@ -35,6 +35,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
 import LogsQueueService from "./Queue/LogsQueueService";
 import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import OtelIngestBaseService, {
@@ -234,6 +235,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       if (batch.length === 0) {
         continue;
       }
+
+      // Each occurrence stored under its exception's fingerprint (v1 or v2).
+      await ExceptionUtil.assignRowGroupFingerprints(batch);
 
       const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
         ExceptionInstanceService,
@@ -1669,6 +1673,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       exceptionType: extracted.exceptionType,
     });
 
+    // Grouping v2's: which of the two it keeps is decided as it is stored.
+    const fingerprintV2: string = ExceptionUtil.getFingerprintV2({
+      projectId: data.projectId,
+      primaryEntityId: data.primaryEntityId,
+      message: extracted.message,
+      stackTrace: extracted.stackTrace,
+      exceptionType: extracted.exceptionType,
+    });
+
     const release: string =
       (finalAttributes["resource.service.version"] as string) || "";
     const environment: string = readDeploymentEnvironment(finalAttributes, {
@@ -1699,7 +1712,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       traceId: traceId,
       spanId: spanId,
       sessionId: sessionId,
+      /*
+       * The user the log record names (Common/Utils/Exceptions/
+       * ExceptionUserId): its own attributes, then its resource's, as stored
+       * after the scrub rules and pipelines. Read here because the row's
+       * attribute bag below deliberately keeps none of the log's.
+       */
+      userId: readExceptionUserId([finalAttributes]),
       fingerprint: fingerprint,
+      fingerprintV2: fingerprintV2,
       spanName: "",
       release: release,
       environment: environment,
@@ -1711,6 +1732,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     data.pendingExceptionUpserts.push({
       fingerprint: fingerprint,
+      fingerprintV2: fingerprintV2,
       projectId: data.projectId,
       primaryEntityId: data.primaryEntityId,
       primaryEntityType: data.serviceMetadata.primaryEntityType,

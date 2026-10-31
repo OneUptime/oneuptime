@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime 如何為 IoT 建立模型
 
-- **機群**：一組裝置，例如 `building-a-sensors` 或 `field-gateways`。它來自 `iot.fleet.name` 資源屬性，在 OneUptime 中會顯示為遙測服務 `iot/<fleet>`。也請設定 `service.name=iot/<fleet>`，讓日誌和指標歸入同一個服務。
+- **機群**：一組裝置，例如 `building-a-sensors` 或 `field-gateways`。它來自 `iot.fleet.name` 資源屬性，在 OneUptime 中會顯示為遙測服務 `iot/<fleet>`。也請設定 `service.name=iot/<fleet>`，讓日誌和指標歸入同一個服務。機群名稱比對時不區分大小寫：為 `warehouse` 傳送的讀數會進入機群 `Warehouse`，並以該名稱儲存。
 - **裝置**：機群中的一台裝置，由每個資料點上的 `device.id` 屬性命名。機群的清單以 `device.id` 為鍵。
 
 | 屬性 | 設定位置 | 必要 | 說明 |
@@ -195,7 +195,7 @@ OneUptime 會在 CONNECT 階段以傳回碼 4（bad username or password）拒�
 
 ### 使用 Last Will 偵測離線
 
-在 `oneuptime/<fleet>/<device>/status` 上註冊一個酬載為 `offline` 的 MQTT Last Will。如果裝置停止運作或從網路中斷線，OneUptime 會在其工作階段結束的那一刻為它發布 `iot_device_up = 0`，進而觸發內建的 Device Offline 警示範本，並在清單中將該裝置標記為停止運作，不需要輪詢。連線後向同一個主題發布 `online`，裝置就會再次顯示為運作中。
+在 `oneuptime/<fleet>/<device>/status` 上註冊一個酬載為 `offline` 的 MQTT Last Will。如果裝置停止運作或從網路中斷線，OneUptime 會在其工作階段結束的那一刻為它發布 `iot_device_up = 0`，進而觸發內建的 Device Offline 警示範本，並在清單中將該裝置標記為停止運作，不需要輪詢。連線後向同一個主題發布 `online`，裝置就會再次顯示為運作中。裝置發布的任何讀數也都算作在線，因此持續傳送讀數的裝置無需再次發布狀態即可保持在線。
 
 ### 範例
 
@@ -281,7 +281,7 @@ OneUptime 會辨識以下 `iot_*` 指標名稱。只傳送對你的裝置有意�
 | `iot_battery_percent` | 電池電量，`0` 到 `100`（%）。 |
 | `iot_signal_strength_dbm` | 以 dBm 表示的無線訊號強度，例如 Wi-Fi、LoRa 或行動網路的 RSSI。 |
 | `iot_temperature_celsius` | 裝置或感測器的溫度，單位為 °C。 |
-| `iot_cpu_usage_ratio` | 以 `0` 到 `1` 的比率表示的 CPU 使用率。OneUptime 會將其儲存並顯示為百分比。 |
+| `iot_cpu_usage_ratio` | 以 `0` 到 `1` 的比率表示的 CPU 使用率。OneUptime 依傳送時的值儲存，裝置清單會將其顯示為百分比。 |
 | `iot_memory_usage_bytes` | 使用中的記憶體，單位為位元組。 |
 | `iot_memory_size_bytes` | 裝置上的記憶體總量，單位為位元組。 |
 | `iot_uptime_seconds` | 裝置自上次開機以來的秒數。 |
@@ -289,7 +289,7 @@ OneUptime 會辨識以下 `iot_*` 指標名稱。只傳送對你的裝置有意�
 ## 檢查機群是否出現
 
 1. 檢查裝置、閘道上的 Collector 或 MQTT 用戶端是否在沒有錯誤的情況下傳送：在其日誌中尋找匯出失敗和 HTTP `401` 或 `422` 回應，或以傳回碼 4 被拒絕的連線。
-2. 開啟 **產品 → 基礎設施 → IoT → All Fleets**。在第一批讀數送達後大約一分鐘內，機群會以 `iot/<fleet>` 出現。
+2. 開啟 **產品 → 基礎設施 → IoT → All Fleets**。在第一批讀數送達後大約一分鐘內，機群會以它的名稱出現。
 3. 開啟機群的 **裝置** 頁面。你傳送過資料的每台裝置都應列在其中，並顯示其最新的電量、訊號、溫度、CPU、記憶體以及運作中或停止運作的狀態。
 4. 開啟機群的 **指標** 頁面，即可繪製任何 `iot_*` 序列的圖表。
 

@@ -58,8 +58,18 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
   ButtonStyleType,
+  OUTLINE_BUTTON_CLASS_NAME,
+  OUTLINE_BUTTON_HOVER_CLASS_NAMES,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import {
+  SnmpWalkExportFile,
+  SnmpWalkExportFormat,
+  buildSnmpWalkExport,
+} from "./SnmpWalkExport";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
@@ -110,6 +120,42 @@ interface PollData {
   attempt: number;
   consecutiveFailures: number;
 }
+
+/*
+ * The line that opens the results: what the last walk read (the summary)
+ * and the actions on it. From sm up the actions sit at the summary's end
+ * while the summary keeps at least 18rem beside them; on a narrower card -
+ * the device page beside its side menu leaves the card 430px at a 768px
+ * window - they go under the summary, at its start, instead of squeezing it
+ * into a column a few words wide ("1,000 OIDs read / under / 1.3.6.1.2.1.2
+ * so / far."). On a phone the two are always one over the other.
+ */
+export const SNMP_WALK_RESULT_HEADER_CLASS_NAME: string =
+  "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between";
+
+// The summary's share of that line: what the actions leave, 18rem at least.
+export const SNMP_WALK_RESULT_SUMMARY_CLASS_NAME: string =
+  "min-w-0 sm:grow sm:basis-72";
+
+/*
+ * The actions: Download, and Continue walking when there is more. On a
+ * phone, one a line and each as wide as the card, as a phone's buttons
+ * are; from sm up side by side, each its own width, at the summary's end
+ * or under it. The gap spaces them, so Button's own dialog-footer margin
+ * (md:ml-3) is cleared.
+ */
+export const SNMP_WALK_RESULT_ACTIONS_CLASS_NAME: string =
+  "grid grid-cols-1 gap-2 sm:flex sm:flex-none sm:flex-wrap sm:items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>button]:sm:w-auto";
+
+/*
+ * The Download menu's trigger: a small bordered button, as Continue
+ * walking beside it is - the outline button's border, fill, words and
+ * focus ring, and an arrow that says it opens a menu. As wide as the card
+ * on a phone, like the button under it.
+ */
+export const SNMP_WALK_DOWNLOAD_TRIGGER_CLASS_NAME: string = `${OUTLINE_BUTTON_CLASS_NAME} ${
+  OUTLINE_BUTTON_HOVER_CLASS_NAMES[ButtonStyleType.OUTLINE]
+} w-full items-center gap-1.5 sm:w-auto ${ButtonSize.Small}`;
 
 const DEVICE_SELECT: Select<NetworkDevice> = {
   name: true,
@@ -1034,6 +1080,78 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Saves what the walk read as a file (SnmpWalkExport): every OID of it,
+   * continued pages and all, whatever the filter shows.
+   */
+  const downloadWalk: (format: SnmpWalkExportFormat) => void = (
+    format: SnmpWalkExportFormat,
+  ): void => {
+    if (!lastResult || rows.length === 0) {
+      return;
+    }
+
+    const file: SnmpWalkExportFile = buildSnmpWalkExport({
+      rows: rows,
+      format: format,
+      deviceName: device?.name,
+      rootOid: lastResult.rootOid,
+      exportedAt: OneUptimeDate.getCurrentDate(),
+    });
+
+    downloadFile({
+      content: file.content,
+      filename: file.filename,
+      mimeType: file.mimeType,
+    });
+  };
+
+  /*
+   * Download, beside Continue walking: a bordered button like it, with the
+   * two formats under it - text the way snmpwalk prints it, and CSV.
+   */
+  const getDownloadMenu: () => ReactElement = (): ReactElement => {
+    return (
+      <MoreMenu
+        dataTestId="snmp-walk-download"
+        ariaLabel="Download this walk"
+        isMenuPortaled={true}
+        elementToBeShownInsteadOfButton={
+          <button
+            type="button"
+            className={SNMP_WALK_DOWNLOAD_TRIGGER_CLASS_NAME}
+            data-testid="snmp-walk-download-button"
+          >
+            <Icon icon={IconProp.Download} className="h-4 w-4" />
+            <span>{translator.translateText("Download")}</span>
+            <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
+          </button>
+        }
+      >
+        {[
+          <MoreMenuItem
+            key="text"
+            text="snmpwalk text (.txt)"
+            icon={IconProp.DocumentText}
+            dataTestId="snmp-walk-download-text"
+            onClick={() => {
+              downloadWalk(SnmpWalkExportFormat.Text);
+            }}
+          />,
+          <MoreMenuItem
+            key="csv"
+            text="CSV spreadsheet (.csv)"
+            icon={IconProp.TableCells}
+            dataTestId="snmp-walk-download-csv"
+            onClick={() => {
+              downloadWalk(SnmpWalkExportFormat.Csv);
+            }}
+          />,
+        ]}
+      </MoreMenu>
+    );
+  };
+
   const getResults: () => ReactElement = (): ReactElement => {
     if (!lastResult) {
       return <></>;
@@ -1051,8 +1169,11 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
         className="mt-6 border-t border-gray-100 pt-5"
         data-testid="snmp-walk-result"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
+        <div
+          className={SNMP_WALK_RESULT_HEADER_CLASS_NAME}
+          data-testid="snmp-walk-result-header"
+        >
+          <div className={SNMP_WALK_RESULT_SUMMARY_CLASS_NAME}>
             {/*
              * A count reads as the results' title; "nothing under it, and
              * why that may be" is an explanation, and reads as one.
@@ -1099,24 +1220,32 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
                 .join(" · ")}
             </p>
           </div>
-          {continueAfter && props.canWalk ? (
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0 sm:flex-none">
-              <Button
-                title="Continue walking"
-                icon={IconProp.ChevronDown}
-                buttonStyle={ButtonStyleType.NORMAL}
-                buttonSize={ButtonSize.Small}
-                dataTestId="snmp-walk-continue"
-                disabled={Boolean(running)}
-                onClick={() => {
-                  startWalk({
-                    rootOid: lastResult.rootOid,
-                    afterOid: continueAfter,
-                  }).catch(() => {
-                    // startWalk reports its own failures.
-                  });
-                }}
-              />
+          {rows.length > 0 || (continueAfter && props.canWalk) ? (
+            <div
+              className={SNMP_WALK_RESULT_ACTIONS_CLASS_NAME}
+              data-testid="snmp-walk-result-actions"
+            >
+              {rows.length > 0 ? getDownloadMenu() : <></>}
+              {continueAfter && props.canWalk ? (
+                <Button
+                  title="Continue walking"
+                  icon={IconProp.ChevronDown}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId="snmp-walk-continue"
+                  disabled={Boolean(running)}
+                  onClick={() => {
+                    startWalk({
+                      rootOid: lastResult.rootOid,
+                      afterOid: continueAfter,
+                    }).catch(() => {
+                      // startWalk reports its own failures.
+                    });
+                  }}
+                />
+              ) : (
+                <></>
+              )}
             </div>
           ) : (
             <></>

@@ -36,6 +36,23 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import PrivateRecordPermission from "../../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
+
+/*
+ * A write of an incident, an alert or an episode - or of a part of one - is
+ * narrowed to the teams that own it when the record is private
+ * (PrivateRecordPermission), with a condition only SQL can answer. Its own
+ * suites hold that rule (PrivateRecordPermission, PrivateRecordParts and
+ * PrivateRecordOwnerTeamsPostgres); this one holds what the scope, labels
+ * and blocks reach beside it, for records that are not private.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(PrivateRecordPermission, "addPrivateRecordScopeToQuery")
+    .mockImplementation(((_modelType: unknown, query: unknown): unknown => {
+      return query;
+    }) as never);
+});
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../../../Server/Utils/Logger");

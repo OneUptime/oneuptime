@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Talt igen; genåbnet,<br/>hvis den var løst"]
 ```
 
-- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse.
+- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse. En ny undtagelse grupperes i stedet efter sin type og funktionerne og filerne i din egen kode i sin stack trace: linjenumre, biblioteksframes og beskeden udelades, så varianter kastet fra den samme kode er én undtagelse. Uden stack trace grupperer beskeden den, som ovenfor. Undtagelser registreret før denne gruppering beholder deres.
 - **En ny forekomst genåbner en løst undtagelse.** Sker den igen, efter at du har løst den, holdt rettelsen ikke, og undtagelsen markeres som **Regression**. En forekomst fra før du løste den, som først når OneUptime senere, genåbner den ikke.
 - **En arkiveret undtagelse forbliver arkiveret.** Dens nye forekomster tælles stadig, men de sender ikke længere notifikationer.
 
@@ -51,6 +51,8 @@ Gå til **Produkter → Observabilitet → Undtagelser**. Mærket på fanen **Un
 ### Vælg en status
 
 Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid. En række markeret **Regression** kom igen, efter at den var løst, og en markeret **Ny** blev set første gang inden for de seneste 24 timer.
+
+Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med.
 
 ### Vælg, hvad der tæller som et problem
 
@@ -99,6 +101,8 @@ For at ændre flere på én gang markerer du deres rækker i listen, eller felte
 
 **Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
 
+**Aktivitet** nederst i undtagelsens **Oversigt** viser, hvem der ændrede den og hvornår, nyeste først: hvem der løste, genåbnede, arkiverede eller tildelte den, flettede en anden undtagelse ind i den eller fjernede fletningen af en, og hvornår den kom igen, efter at den var løst. Hver ændring står der, foretaget på undtagelsens side, i listen, under **Massehandlinger**, via API'et eller af OneUptime selv, og en ændring foretaget med en API-nøgle bærer nøglens navn.
+
 ## Fejlklasser
 
 Hver undtagelse har en fejlklasse, der siger, hvis problem det er. OneUptime AI sætter den, når den gennemgår en indsigt om undtagelsen, såsom en ny eller hastigt stigende undtagelse: se [AI SRE](/docs/ai/ai-sre#indsigter-proaktiv-detektion). En undtagelse, den ikke har gennemgået, forbliver `unknown`.
@@ -130,6 +134,8 @@ Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den 
 ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
 Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Svaret gemmes til næste forekomst.
+
+Flet en, som OneUptime AI kalder **Sandsynligvis den samme fejl**, og som hører til samme tjeneste, ind i denne undtagelse med **Flet** ved siden af: dens forekomster, de hidtidige og hver ny, tælles fra da af på denne undtagelse og vises på dens side, og den forsvinder fra listen. **Flettet ind i denne undtagelse** nedenfor viser, hvad der er flettet ind, og **Fjern fletning** ved siden af hver, eller på en flettet undtagelses egen side, giver den sin egen plads i listen tilbage, med dens forekomster siden. At flette og fjerne fletning kræver tilladelse til at redigere undtagelser.
 
 ## Ret den med AI
 
@@ -194,7 +200,7 @@ Tjek først visningen: **Problemer** skjuler brugerfejl og forventede afvisninge
 :::
 
 :::details Én fejl vises som flere undtagelser
-Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse.
+Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse. Nye undtagelser grupperes i stedet efter funktionerne i din egen kode, så det gælder mest undtagelser registreret før; flet to, der er den samme fejl, fra **Lignende undtagelser**.
 :::
 
 :::details En løst undtagelse bliver ved med at komme tilbage

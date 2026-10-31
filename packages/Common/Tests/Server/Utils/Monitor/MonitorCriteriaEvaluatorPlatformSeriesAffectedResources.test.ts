@@ -310,8 +310,8 @@ function metricNameOf(queryConfig: MetricQueryConfigData): string {
  * monitor, built the way the worker builds it:
  *
  *  - per query, one row per minute per resource, each carrying the raw
- *    datapoint attributes (aggregatePerSeriesFromRawMetrics keeps the
- *    bucket's first datapoint's attribute map);
+ *    datapoint attributes (the worker's grouped read asks ClickHouse for
+ *    the bucket's newest datapoint's attribute map, includeSampleAttributes);
  *  - series labels / fingerprints from the template's group-by keys;
  *  - each series' formula slots evaluated by MetricFormulaEvaluator, as
  *    appendFormulaResults does — their rows carry only the group labels;

@@ -149,10 +149,12 @@ import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
 import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncements";
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
+import BindInfrastructureMonitorSteps from "./BindInfrastructureMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddSecurityCaseTargetAndTaskNotificationSettingsForUsers from "./AddSecurityCaseTargetAndTaskNotificationSettingsForUsers";
 import AddSecurityHuntNotificationSettingsForUsers from "./AddSecurityHuntNotificationSettingsForUsers";
+import AddUserIdToExceptionInstance from "./AddUserIdToExceptionInstance";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
@@ -913,6 +915,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddSecurityHuntNotificationSettingsForUsers(),
   /*
+   * The exceptions list counts each exception's affected users: adds the
+   * column that names the user an occurrence happened to
+   * (ExceptionInstance.userId, String DEFAULT ''). Metadata-only and
+   * idempotent; occurrences stored before it read as naming no user. No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddUserIdToExceptionInstance(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -946,6 +958,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Binds every infrastructure monitor's step to its resource's id and stores
+   * its value as the resource has it (InfrastructureResourceBinding), so a
+   * rename of a cluster, vCenter or host keeps its monitors. Reads the
+   * resource tables; idempotent.
+   */
+  new BindInfrastructureMonitorSteps(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

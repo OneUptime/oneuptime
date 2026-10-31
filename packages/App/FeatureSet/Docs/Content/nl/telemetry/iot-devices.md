@@ -24,7 +24,7 @@ flowchart TB
 
 ## Hoe OneUptime IoT modelleert
 
-- **Vloot**: een groep apparaten, zoals `building-a-sensors` of `field-gateways`. Hij komt uit het resource-attribuut `iot.fleet.name` en verschijnt in OneUptime als de telemetrieservice `iot/<fleet>`. Stel ook `service.name=iot/<fleet>` in, zodat logs en metrics onder dezelfde service samenkomen.
+- **Vloot**: een groep apparaten, zoals `building-a-sensors` of `field-gateways`. Hij komt uit het resource-attribuut `iot.fleet.name` en verschijnt in OneUptime als de telemetrieservice `iot/<fleet>`. Stel ook `service.name=iot/<fleet>` in, zodat logs en metrics onder dezelfde service samenkomen. De naam van een vloot wordt herkend ongeacht hoofdletters: een meting voor `warehouse` komt in de vloot `Warehouse` terecht en wordt onder die naam opgeslagen.
 - **Apparaat**: één apparaat in een vloot, benoemd door het attribuut `device.id` op elk datapunt. De inventaris van de vloot is gesleuteld op `device.id`.
 
 | Attribuut | Ingesteld op | Vereist | Beschrijving |
@@ -195,7 +195,7 @@ Een telemetriepayload kan ook `"attributes"` bevatten, een map met strings die o
 
 ### Offline-detectie met Last Will
 
-Registreer een MQTT Last Will op `oneuptime/<fleet>/<device>/status` met de payload `offline`. Als het apparaat uitvalt of van het netwerk verdwijnt, publiceert OneUptime er `iot_device_up = 0` voor op het moment dat zijn sessie eindigt, waardoor het meegeleverde waarschuwingssjabloon Device Offline afgaat en het apparaat in de inventaris als down wordt gemarkeerd, zonder polling. Publiceer na het verbinden `online` op hetzelfde topic, zodat het apparaat weer als up wordt weergegeven.
+Registreer een MQTT Last Will op `oneuptime/<fleet>/<device>/status` met de payload `offline`. Als het apparaat uitvalt of van het netwerk verdwijnt, publiceert OneUptime er `iot_device_up = 0` voor op het moment dat zijn sessie eindigt, waardoor het meegeleverde waarschuwingssjabloon Device Offline afgaat en het apparaat in de inventaris als down wordt gemarkeerd, zonder polling. Publiceer na het verbinden `online` op hetzelfde topic, zodat het apparaat weer als up wordt weergegeven. Elke meting die het apparaat publiceert telt ook als beschikbaar, dus een apparaat dat metingen blijft sturen, blijft beschikbaar zonder zijn status opnieuw te publiceren.
 
 ### Voorbeelden
 
@@ -281,7 +281,7 @@ OneUptime herkent deze `iot_*`-metricnamen. Stuur alleen de namen die voor je ap
 | `iot_battery_percent` | Batterijlading, `0` tot `100` (%). |
 | `iot_signal_strength_dbm` | Draadloze signaalsterkte in dBm, zoals wifi-, LoRa- of mobiele RSSI. |
 | `iot_temperature_celsius` | Apparaat- of sensortemperatuur in °C. |
-| `iot_cpu_usage_ratio` | CPU-gebruik als verhouding van `0` tot `1`. OneUptime slaat het op en toont het als percentage. |
+| `iot_cpu_usage_ratio` | CPU-gebruik als verhouding van `0` tot `1`. OneUptime slaat het op zoals het verstuurd is, en de apparaatinventaris toont het als percentage. |
 | `iot_memory_usage_bytes` | Gebruikt geheugen, in bytes. |
 | `iot_memory_size_bytes` | Totaal geheugen op het apparaat, in bytes. |
 | `iot_uptime_seconds` | Seconden sinds het apparaat voor het laatst opstartte. |
@@ -289,7 +289,7 @@ OneUptime herkent deze `iot_*`-metricnamen. Stuur alleen de namen die voor je ap
 ## Controleren of de vloot verschijnt
 
 1. Controleer of het apparaat, de collector van de gateway of de MQTT-client zonder fouten verstuurt: zoek in de logs naar exportfouten en HTTP-antwoorden `401` of `422`, of naar een verbinding die met returncode 4 is geweigerd.
-2. Open **Producten → Infrastructuur → IoT → All Fleets**. De vloot verschijnt binnen ongeveer een minuut na de eerste metingen als `iot/<fleet>`.
+2. Open **Producten → Infrastructuur → IoT → All Fleets**. De vloot verschijnt binnen ongeveer een minuut na de eerste metingen onder haar naam.
 3. Open de pagina **Apparaten** van de vloot. Elk apparaat waarvoor je hebt verstuurd, hoort te staan met zijn laatste batterij, signaal, temperatuur, CPU, geheugen en up- of down-status.
 4. Open de pagina **Metrieken** van de vloot om een van de `iot_*`-series in een grafiek te tonen.
 

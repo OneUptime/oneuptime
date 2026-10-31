@@ -58,6 +58,8 @@ export interface SimilarExceptionsWithEvidence {
  */
 const CANDIDATE_SELECT: { [key: string]: true } = {
   _id: true,
+  // Whether it can be merged into the exception: only within one service.
+  primaryEntityId: true,
   exceptionType: true,
   occuranceCount: true,
   lastSeenAt: true,
@@ -249,8 +251,17 @@ export default class SimilarExceptionsReader {
     return {
       target,
       similar: ranked.map((entry: RankedSimilar<SimilarExceptionCandidate>) => {
+        const isSameService: boolean =
+          Boolean(target.primaryEntityId) &&
+          entry.candidate.exception.primaryEntityId
+            ?.toString()
+            .toLowerCase() === target.primaryEntityId?.toString().toLowerCase();
+
         return {
-          similar: toSimilarException(entry),
+          similar: {
+            ...toSimilarException(entry),
+            ...(isSameService ? { isSameService: true } : {}),
+          },
           exception: entry.candidate.exception,
         };
       }),

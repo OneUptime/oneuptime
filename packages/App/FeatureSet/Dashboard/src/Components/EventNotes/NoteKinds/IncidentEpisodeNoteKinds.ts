@@ -57,6 +57,8 @@ export function getIncidentEpisodePublicNoteKind(data: {
       RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route,
       { modelId: incidentEpisodeId },
     ),
+    // A private episode's page points here only for a reader who may write one.
+    siblingModelType: IncidentEpisodeInternalNote,
     isPrivateEvent: data.isPrivate === true,
   };
 }

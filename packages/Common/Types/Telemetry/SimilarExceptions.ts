@@ -36,6 +36,11 @@ export interface SimilarException {
   isResolved: boolean;
   isArchived: boolean;
   reason: SimilarExceptionReason;
+  /*
+   * True when it belongs to the same service as the exception it is similar
+   * to: only then can it be merged into it (TelemetryExceptionMerge).
+   */
+  isSameService?: boolean | undefined;
 }
 
 export enum DuplicateVerdictKind {
@@ -120,6 +125,7 @@ export function readSimilarExceptions(value: unknown): Array<SimilarException> {
       isResolved: entry["isResolved"] === true,
       isArchived: entry["isArchived"] === true,
       reason: reason as SimilarExceptionReason,
+      ...(entry["isSameService"] === true ? { isSameService: true } : {}),
     });
 
     if (result.length >= MAX_SIMILAR_EXCEPTIONS) {

@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Sí"| count["Contada otra vez;<br/>reabierta si resuelta"]
 ```
 
-- **Una excepción por servicio y error.** La huella se calcula a partir del servicio, el tipo de excepción, el mensaje y el stack trace. Antes se quitan los valores que cambian de una llamada a otra: UUID y otros identificadores, marcas de tiempo, direcciones IP y de correo, y números de siete o más dígitos. Así, `Order id=1042 not found` y `Order id=2077 not found` son una sola excepción.
+- **Una excepción por servicio y error.** La huella se calcula a partir del servicio, el tipo de excepción, el mensaje y el stack trace. Antes se quitan los valores que cambian de una llamada a otra: UUID y otros identificadores, marcas de tiempo, direcciones IP y de correo, y números de siete o más dígitos. Así, `Order id=1042 not found` y `Order id=2077 not found` son una sola excepción. Una excepción nueva se agrupa en cambio por su tipo y por las funciones y archivos de su propio código en su stack trace: se dejan fuera los números de línea, los frames de bibliotecas y el mensaje, así que las variantes lanzadas desde el mismo código son una sola excepción. Sin stack trace, la agrupa su mensaje, como arriba. Las excepciones registradas antes de esta agrupación conservan la suya.
 - **Una ocurrencia nueva reabre una excepción resuelta.** Si vuelve a ocurrir después de resolverla, la corrección no funcionó, y la excepción se marca como **Regresión**. Una ocurrencia anterior a la resolución que llega tarde a OneUptime no la reabre.
 - **Una excepción archivada sigue archivada.** Sus nuevas ocurrencias se siguen contando, pero dejan de notificar.
 
@@ -51,6 +51,8 @@ Vaya a **Productos → Observabilidad → Excepciones**. La insignia de la pesta
 ### Elegir un estado
 
 Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo. Una fila marcada como **Regresión** volvió después de resolverse, y una marcada como **Nuevo** se vio por primera vez en las últimas 24 horas.
+
+Cada fila muestra también a cuántos usuarios afectó la excepción en el intervalo elegido y un pequeño gráfico de sus ocurrencias en ese intervalo. Una ocurrencia nombra a su usuario con el atributo `user.id`, `enduser.id` o `enduser.pseudo.id`, en el evento de la excepción, en su span o registro de log, o en su recurso; las ocurrencias que no nombran a ningún usuario no se cuentan.
 
 ### Elegir qué cuenta como problema
 
@@ -99,6 +101,8 @@ Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre l
 
 **Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez.
 
+**Actividad**, al final de la **Vista general** de la excepción, dice quién la cambió y cuándo, lo más reciente primero: quién la resolvió, reabrió, archivó o asignó, fusionó otra excepción con ella o separó una, y cuándo volvió a ocurrir después de resolverse. Ahí está cada cambio, hecho en la página de la excepción, en la lista, en **Acciones masivas**, mediante la API o por OneUptime mismo, y un cambio hecho con una clave de API lleva el nombre de la clave.
+
 ## Clases de error
 
 Cada excepción tiene una clase de error, que dice de quién es el problema. OneUptime AI la fija cuando revisa un insight sobre la excepción, como una excepción nueva o que se dispara: consulte [AI SRE](/docs/ai/ai-sre#hallazgos-detección-proactiva). Una excepción que no ha revisado se queda en `unknown`.
@@ -130,6 +134,8 @@ La explicación se guarda en la excepción, así que la siguiente persona que la
 Los ID, las direcciones de correo e IP y los tokens se quitan de todo lo que se envía, y de los atributos de un span solo se envían unos pocos, como su ruta y su código de estado. La explicación usa el proveedor de LLM y los créditos de IA del proyecto, y no se ofrece mientras **Habilitar IA** esté desactivado. Cualquiera que pueda leer la excepción puede pedir una.
 
 Debajo de las tarjetas, **Excepciones similares** enumera hasta cinco excepciones más que se parecen a esta: el **Mismo mensaje** una vez quitados los valores, la **Misma ubicación en el código** de su código, o un **Mensaje similar** con la mayoría de las mismas palabras. Una misma causa puede acabar en varias excepciones, así que **Comprobar con OneUptime AI** dice de cada una si es **Probablemente el mismo error**, **Un error relacionado** o **Un error distinto**, y por qué. La comprobación usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado. Su respuesta se guarda hasta la siguiente ocurrencia.
+
+Fusione con esta excepción una que OneUptime AI llame **Probablemente el mismo error**, del mismo servicio, con **Fusionar** a su lado: sus ocurrencias, las anteriores y cada nueva, cuentan desde entonces en esta excepción y aparecen en su página, y sale de la lista. **Fusionadas con esta excepción**, debajo, enumera lo fusionado, y **Separar** al lado de cada una, o en la página de una excepción fusionada, le devuelve su propio lugar en la lista, con sus ocurrencias desde entonces. Fusionar y separar requieren permiso para editar excepciones.
 
 ## Corregirla con IA
 
@@ -194,7 +200,7 @@ Compruebe primero la vista: **Problemas** oculta los errores de usuario y las de
 :::
 
 :::details Un error aparece como varias excepciones
-La huella incluye el mensaje y el stack trace. Cuando difieren, por ejemplo cuando un mensaje incluye un número corto o un nombre que cambia en cada llamada, cada variante es su propia excepción.
+La huella incluye el mensaje y el stack trace. Cuando difieren, por ejemplo cuando un mensaje incluye un número corto o un nombre que cambia en cada llamada, cada variante es su propia excepción. Las excepciones nuevas se agrupan en cambio por las funciones de su propio código, así que esto afecta sobre todo a excepciones registradas antes; fusione dos que sean el mismo error desde **Excepciones similares**.
 :::
 
 :::details Una excepción resuelta vuelve una y otra vez

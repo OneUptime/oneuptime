@@ -115,7 +115,7 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
 - **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %: las configuraciones de colector de OneUptime los dejan fuera del scraper `filesystem` con `exclude_fs_types`, y una configuración propia necesita lo mismo.
 - **Promedio de carga** es una longitud bruta de la cola de ejecución, no dividida por el número de núcleos: 4 es saturación en un host de 2 núcleos y rutina en uno de 32, así que súbalo en hosts grandes.
-- **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos solo informa en Linux.
+- **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos informa en Linux, macOS y BSD, no en Windows.
 
 ## Métricas recopiladas
 

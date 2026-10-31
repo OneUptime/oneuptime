@@ -439,11 +439,20 @@ export function getSendBlocker(data: {
  * and a resolved one is asked how the response went and what would stop
  * it coming back, in the places of what to do right now and what else it
  * affects. Not known - the usual ones, as before.
+ *
+ * And they ask OneUptime AI to act only where the reader may themselves:
+ * it acts within their permissions, so a reader who may not change the
+ * record's state (`mayChangeState` false: the header's Acknowledge is
+ * locked or not there for them - a private record whose owning team of
+ * theirs may only view it among them) is not offered the request to
+ * acknowledge it, which would only be refused. Not known - offered, as
+ * before.
  */
 export function getSuggestedPrompts(
   subjectType: InvestigationConversationSubjectType,
   stage?: AIInvestigationStage | undefined,
   standing?: EventStanding | undefined,
+  mayChangeState?: boolean | undefined,
 ): Array<SuggestedPrompt> {
   const isResolved: boolean = standing === EventStanding.Resolved;
   const prompts: Array<SuggestedPrompt> = [
@@ -480,7 +489,11 @@ export function getSuggestedPrompts(
     },
   ];
 
-  if (!isResolved && standing !== EventStanding.Acknowledged) {
+  if (
+    !isResolved &&
+    standing !== EventStanding.Acknowledged &&
+    mayChangeState !== false
+  ) {
     prompts.push({
       label:
         subjectType === "incident"

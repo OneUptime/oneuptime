@@ -1325,6 +1325,55 @@ describe("StorageArrayAlertTemplates - capacity tiering", () => {
 });
 
 describe("StorageArrayAlertTemplates - builders", () => {
+  /*
+   * The threshold read as a bare number in the metric's own unit, with no
+   * unit list: a latency threshold of 5 meant 5 microseconds. The display
+   * unit is the catalog's, for the metric's label filters.
+   */
+  test("buildStorageArrayMonitorConfig: the display unit is the catalog's, for the metric's filters", () => {
+    const unitOf: (
+      metricName: string,
+      attributes?: Record<string, string>,
+    ) => string | undefined = (
+      metricName: string,
+      attributes?: Record<string, string>,
+    ): string | undefined => {
+      return buildStorageArrayMonitorConfig({
+        arrayIdentifier: "pure-prod-01",
+        storageSystem: FA,
+        metricName,
+        metricAlias: "m",
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        ...(attributes ? { attributes } : {}),
+      }).metricViewConfig.queryConfigs[0]!.metricAliasData!.legendUnit;
+    };
+
+    expect(
+      unitOf("purefa_array_performance_latency_usec", {
+        dimension: "usec_per_read_op",
+      }),
+    ).toBe("µs");
+    expect(unitOf("purefa_array_space_utilization")).toBe("%");
+    // A 0-1 ratio, spelled so a "%" threshold converts to it.
+    expect(
+      unitOf("purefb_file_systems_space_bytes", { space: "available_ratio" }),
+    ).toBe("1");
+    // A metric the catalog does not know, and a count, have none.
+    expect(unitOf("purefa_not_a_metric")).toBeUndefined();
+    // A unit asked for wins.
+    expect(
+      buildStorageArrayMonitorConfig({
+        arrayIdentifier: "pure-prod-01",
+        metricName: "purefa_array_performance_latency_usec",
+        metricAlias: "m",
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "ms",
+      }).metricViewConfig.queryConfigs[0]!.metricAliasData!.legendUnit,
+    ).toBe("ms");
+  });
+
   test("buildStorageArrayMonitorConfig: one query, no group-by key unless asked, platform carried", () => {
     const config: MonitorStepStorageArrayMonitor =
       buildStorageArrayMonitorConfig({
@@ -1348,7 +1397,8 @@ describe("StorageArrayAlertTemplates - builders", () => {
               title: "used",
               description: "used",
               legend: "used",
-              legendUnit: undefined,
+              // The catalog's unit for the metric (see the next test).
+              legendUnit: "%",
             },
             metricQueryData: {
               filterData: {

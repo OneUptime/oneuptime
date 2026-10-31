@@ -64,7 +64,7 @@ Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynge
 En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
 - **Endre** — velg en annen [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool.
+- **Custom Metric** (under **Flere felt**) — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool. En metrikk som føres per pool eller per daemon, vurderes pool for pool eller daemon for daemon, med én hendelse hver.
 - **Avansert** (under **Flere felt**) — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
 
 ### Sjekk kriteriene
@@ -87,7 +87,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **OSD** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `ceph_daemon`, for eksempel `osd.3`. |
 | **Pool ID** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `pool_id`, for eksempel `2`. |
 | **Ceph Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter med metrikkens vanlige aggregering. |
+| **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum** eller **Minimum**. Starter med metrikkens vanlige aggregering. En sum eller en telling ville legge sammen hver skraping i et minutt, så de er overlatt til **Avansert**. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
@@ -95,7 +95,7 @@ Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_
 
 ### Serier for health checks
 
-`ceph_health_detail` eksporterer **én serie per aktivt health check**, med etikettene `name` (for eksempel `OSD_NEARFULL` eller `RECENT_CRASH`) og `severity`. En serie finnes bare mens checken utløses, så ingen serie betyr frisk. For å varsle på et hvilket som helst Ceph-health check filtrerer du på `name`, utløser på **Maksimum** over `0` og gjenoppretter ved `0` med **Hvis ingen data** satt til **Treat As Zero** — akkurat slik malene for health checks er bygget. `ceph_daemon_health_metrics` fungerer på samme måte per daemon, med en `type`-etikett (for eksempel `SLOW_OPS`) og `ceph_daemon`.
+`ceph_health_detail` eksporterer **én serie per helsesjekk**, merket `name` (for eksempel `OSD_NEARFULL` eller `RECENT_CRASH`) og `severity`. En sjekks serie er `1` mens sjekken er aktiv og `0` etter at den er ryddet, og en sjekk som aldri har slått til, har ingen serie. For å varsle på et hvilket som helst Ceph-health check filtrerer du på `name`, utløser på **Maksimum** over `0` og gjenoppretter ved `0` med **Hvis ingen data** satt til **Treat As Zero** — akkurat slik malene for health checks er bygget. `ceph_daemon_health_metrics` fungerer på samme måte per daemon, med en `type`-etikett (for eksempel `SLOW_OPS`) og `ceph_daemon`.
 
 ## Ferdige varselmaler
 
@@ -270,7 +270,7 @@ Malene som overvåker `ceph_health_detail` — Daemon Crash, Monitor Clock Skew,
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Serier for health checks, også `ceph_daemon_health_metrics`, finnes bare mens en check utløses, så det er forventet å ikke finne noen mens klyngen er frisk.
+En helsesjekk som aldri har slått til, har ingen serie, `ceph_daemon_health_metrics` inkludert, og en som er ryddet, er `0`, så det er forventet å finne ingen, eller bare nuller, mens klyngen er frisk.
 :::
 
 :::details Tellere som ceph_pool_wr_bytes bare vokser

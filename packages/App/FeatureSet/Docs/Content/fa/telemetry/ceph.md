@@ -133,7 +133,7 @@ Everything is ready. Begin running and processing data.
 
 | دسته | متریک‌ها |
 | --- | --- |
-| سلامت خوشه | `ceph_health_status` (0 = OK، 1 = WARN، 2 = ERR)، `ceph_health_detail` (یک سری به ازای هر بررسی سلامت فعال، با برچسب‌های `name` و `severity`، از Quincy به بعد؛ پشتوانه الگوهای هشدار بررسی سلامت و **Active Health Checks** در نمای کلی)، `ceph_healthcheck_slow_ops`، `ceph_daemon_health_metrics` (به ازای هر دیمن، با کلید `type`)، `ceph_mon_quorum_status`، `ceph_mon_metadata`، `ceph_cluster_total_bytes`، `ceph_cluster_total_used_bytes` |
+| سلامت خوشه | `ceph_health_status` (0 = OK، 1 = WARN، 2 = ERR)، `ceph_health_detail` (یک سری به ازای هر بررسی سلامت، 1 تا وقتی فعال است و 0 پس از برطرف شدن، با برچسب‌های `name` و `severity`، از Quincy به بعد؛ پشتوانه الگوهای هشدار بررسی سلامت و **Active Health Checks** در نمای کلی)، `ceph_healthcheck_slow_ops`، `ceph_daemon_health_metrics` (به ازای هر دیمن، با کلید `type`)، `ceph_mon_quorum_status`، `ceph_mon_metadata`، `ceph_cluster_total_bytes`، `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`، `ceph_osd_in`، `ceph_osd_apply_latency_ms`، `ceph_osd_commit_latency_ms`، `ceph_osd_stat_bytes`، `ceph_osd_stat_bytes_used`، `ceph_osd_numpg`، `ceph_osd_metadata`، به ازای هر OSD با برچسب `ceph_daemon` (مانند `osd.3`) |
 | استخر | `ceph_pool_stored`، `ceph_pool_max_avail`، `ceph_pool_objects`، `ceph_pool_rd`، `ceph_pool_wr`، `ceph_pool_rd_bytes`، `ceph_pool_wr_bytes`، `ceph_pool_metadata`. سری‌های داده فقط یک برچسب `pool_id` دارند؛ نام استخر روی `ceph_pool_metadata` است. |
 | گروه‌های جای‌گذاری | `ceph_pg_total`، `ceph_pg_active`، `ceph_pg_clean`، `ceph_pg_degraded`، `ceph_pg_undersized` (همه به ازای هر استخر، با `pool_id`)، `ceph_num_objects_degraded`، `ceph_num_objects_misplaced` |

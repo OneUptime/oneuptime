@@ -1196,19 +1196,24 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               onChange={async (files: Array<FileModel>) => {
-                const strippedFiles: Array<FileModel> = files.map(
-                  (i: FileModel) => {
-                    const strippedModel: FileModel = new FileModel();
-                    strippedModel._id = i._id!;
-                    if (i.name) {
-                      strippedModel.name = i.name;
-                    }
-                    if (i.fileType) {
-                      strippedModel.fileType = i.fileType;
-                    }
-                    return strippedModel;
-                  },
-                );
+                /*
+                 * Files kept in the browser are the value itself, bytes and
+                 * all; uploaded ones are named by what was uploaded.
+                 */
+                const strippedFiles: Array<FileModel> = props.field
+                  .keepFilesInBrowser
+                  ? files
+                  : files.map((i: FileModel) => {
+                      const strippedModel: FileModel = new FileModel();
+                      strippedModel._id = i._id!;
+                      if (i.name) {
+                        strippedModel.name = i.name;
+                      }
+                      if (i.fileType) {
+                        strippedModel.fileType = i.fileType;
+                      }
+                      return strippedModel;
+                    });
 
                 let fileResult: FileModel | Array<FileModel> | null =
                   strippedFiles;
@@ -1236,6 +1241,9 @@ const FormField: <T extends GenericObject>(
               }
               isMultiFilePicker={isMultiFileField}
               maxFileSizeInBytes={props.field.maxFileSizeInBytes}
+              maxFiles={props.field.maxFiles}
+              hint={props.field.fileHint}
+              keepFilesInBrowser={props.field.keepFilesInBrowser}
               dataTestId={props.field.dataTestId}
               initialValue={
                 props.currentValues &&

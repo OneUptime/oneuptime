@@ -162,6 +162,15 @@ import {
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
+
+// What the alert's state gate asks about: a row of its state timeline.
+const PRIVATE_RECORD_STATE_TIMELINE: AlertStateTimeline =
+  new AlertStateTimeline();
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -208,6 +217,14 @@ const advancedSection: FormFieldCollapsibleSection<Alert> =
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * What the reader holds on this alert when it is private: its state is
+   * changed only with the permissions of the teams that own it
+   * (PrivateRecordScope), and the conversation's request to acknowledge it
+   * follows its state buttons.
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -855,6 +872,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     resolvedStateIds: resolvedStateIds,
   });
 
+  /*
+   * Whether the reader may change the alert's state, as its header's
+   * Acknowledge asks it: the conversation asks OneUptime AI to acknowledge
+   * it only for a reader who may, since it acts within their permissions
+   * (on a private alert, those of their teams that own it).
+   */
+  const mayChangeState: boolean = PermissionGate.check(
+    new AlertStateTimeline(),
+    ModelAction.Create,
+    privateRecordOptions,
+  ).isAllowed;
+
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
 
   const formatDate: FormatDateFunction = (
@@ -1140,6 +1169,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   investigationStage={slot.investigationStage}
                   fold={slot.fold}
                   standing={standing}
+                  mayChangeState={mayChangeState}
                 />
               );
             }}

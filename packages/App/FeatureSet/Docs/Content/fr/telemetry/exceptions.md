@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Oui"| count["Comptée de nouveau ;<br/>rouverte si résolue"]
 ```
 
-- **Une exception par service et par erreur.** L'empreinte est calculée à partir du service, du type d'exception, du message et de la stack trace. Les valeurs qui changent d'un appel à l'autre en sont d'abord retirées : UUID et autres identifiants, horodatages, adresses IP et e-mail, et nombres de sept chiffres ou plus. Ainsi `Order id=1042 not found` et `Order id=2077 not found` forment une seule exception.
+- **Une exception par service et par erreur.** L'empreinte est calculée à partir du service, du type d'exception, du message et de la stack trace. Les valeurs qui changent d'un appel à l'autre en sont d'abord retirées : UUID et autres identifiants, horodatages, adresses IP et e-mail, et nombres de sept chiffres ou plus. Ainsi `Order id=1042 not found` et `Order id=2077 not found` forment une seule exception. Une nouvelle exception est plutôt regroupée par son type et par les fonctions et fichiers de votre propre code dans sa stack trace : les numéros de ligne, les frames des bibliothèques et le message sont ignorés, si bien que les variantes levées par le même code sont une seule exception. Sans stack trace, c'est son message qui la regroupe, comme ci-dessus. Les exceptions enregistrées avant ce regroupement gardent le leur.
 - **Une nouvelle occurrence rouvre une exception résolue.** Si elle se reproduit après que vous l'avez résolue, le correctif n'a pas tenu, et l'exception est marquée **Régression**. Une occurrence antérieure à la résolution qui n'arrive dans OneUptime que plus tard ne la rouvre pas.
 - **Une exception archivée reste archivée.** Ses nouvelles occurrences sont toujours comptées, mais elles ne déclenchent plus de notification.
 
@@ -51,6 +51,8 @@ Ouvrez **Produits → Observabilité → Exceptions**. Le badge de l'onglet **Ex
 ### Choisir un statut
 
 Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps. Une ligne marquée **Régression** est revenue après avoir été résolue, et une ligne marquée **Nouveau** a été vue pour la première fois au cours des dernières 24 heures.
+
+Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la période choisie, avec un petit graphique de ses occurrences sur cette période. Une occurrence nomme son utilisateur avec l'attribut `user.id`, `enduser.id` ou `enduser.pseudo.id`, sur l'événement d'exception, son span ou son enregistrement de log, ou sa ressource ; les occurrences qui ne nomment aucun utilisateur ne sont pas comptées.
 
 ### Choisir ce qui compte comme un problème
 
@@ -99,6 +101,8 @@ Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la c
 
 **Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois.
 
+**Activité**, en bas de la **Vue d'ensemble** de l'exception, indique qui l'a modifiée et quand, les plus récentes en premier : qui l'a résolue, rouverte, archivée ou attribuée, a fusionné une autre exception avec elle ou en a défusionné une, et quand elle est revenue après avoir été résolue. Chaque modification y figure, faite sur la page de l'exception, dans la liste, sous **Actions groupées**, par l'API ou par OneUptime lui-même, et une modification faite avec une clé API porte le nom de la clé.
+
 ## Classes d'erreur
 
 Chaque exception a une classe d'erreur, qui dit à qui revient le problème. OneUptime AI la définit quand il trie un insight sur l'exception, comme une exception nouvelle ou en forte hausse : voir [AI SRE](/docs/ai/ai-sre#analyses-détection-proactive). Une exception qu'il n'a pas triée reste `unknown`.
@@ -130,6 +134,8 @@ L'explication est conservée sur l'exception : la personne suivante qui l'ouvre 
 Les identifiants, les adresses e-mail et IP et les jetons sont retirés de tout ce qui est envoyé, et seuls quelques attributs d'un span sont envoyés, comme sa route et son code de statut. L'explication utilise le fournisseur LLM et les crédits IA du projet, et n'est pas proposée tant que **Activer l'IA** est désactivé. Toute personne qui peut lire l'exception peut en demander une.
 
 Sous les cartes, **Exceptions similaires** liste jusqu'à cinq autres exceptions qui ressemblent à celle-ci : le **Même message** une fois les valeurs retirées, le **Même emplacement dans le code** de votre code, ou un **Message similaire** avec la plupart des mêmes mots. Une même cause peut se retrouver dans plusieurs exceptions, donc **Vérifier avec OneUptime AI** dit de chacune si c'est **Probablement le même bug**, **Un bug lié** ou **Un autre bug**, et pourquoi. La vérification utilise les crédits d'IA du projet et n'est pas proposée tant que **Activer l'IA** est désactivé. Sa réponse est conservée jusqu'à la prochaine occurrence.
+
+Fusionnez avec cette exception celle que OneUptime AI juge **Probablement le même bug**, dans le même service, avec **Fusionner** à côté : ses occurrences, passées et à venir, comptent dès lors sur cette exception et apparaissent sur sa page, et elle quitte la liste. **Fusionnées avec cette exception** en dessous liste ce qui a été fusionné, et **Défusionner** à côté de chacune, ou sur la page d'une exception fusionnée, lui rend sa propre place dans la liste, avec ses occurrences depuis. Fusionner et défusionner demandent la permission de modifier les exceptions.
 
 ## La corriger avec l'IA
 
@@ -194,7 +200,7 @@ Vérifiez d'abord la vue : **Problèmes** masque les erreurs d'utilisateur et le
 :::
 
 :::details Une erreur apparaît comme plusieurs exceptions
-L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemple quand un message contient un petit nombre ou un nom qui change à chaque appel, chaque variante est sa propre exception.
+L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemple quand un message contient un petit nombre ou un nom qui change à chaque appel, chaque variante est sa propre exception. Les nouvelles exceptions sont plutôt regroupées par les fonctions de votre propre code, cela concerne donc surtout les exceptions enregistrées avant ; fusionnez-en deux qui sont le même bug depuis **Exceptions similaires**.
 :::
 
 :::details Une exception résolue revient sans cesse

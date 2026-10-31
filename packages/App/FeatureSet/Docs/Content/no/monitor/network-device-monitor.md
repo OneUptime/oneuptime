@@ -394,6 +394,8 @@ Hver rad sier hvor OID-en er kjent: en verdi som en leverandørs helsemal samler
 - **Opprett varsel** vises når OID-en samles inn, og åpner en ny nettverksenhetsmonitor for enheten med ett kriterium på OID-en. En teller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en terskel du setter selv; en oppetid varsler under ti minutter (enheten startet på nytt), alt annet når det endrer seg fra verdien som ble lest.
 - **Kopier OID**, i radens meny, kopierer OID-en.
 
+**Last ned**, ved siden av sammendraget av walken, lagrer det walken leste, som en fil: **snmpwalk-tekst (.txt)**, én OID per linje slik `snmpwalk -On` skriver den, som alle SNMP-verktøy og all leverandørstøtte kan lese, eller **CSV-regneark (.csv)** med navnet, MIB-en, typen og verdien til hver OID. Filen inneholder hver OID walken leste, også fortsatte walker, uansett hva filteret viser, og har navn etter enheten, undertreet og tidspunktet den ble lagret. Alle som kan lese enhetens siste walk, kan laste den ned.
+
 En walk som feiler, sier hvorfor, og hva du bør kontrollere: en enhet som ikke svarer (SNMP slått av, UDP 161 blokkert eller, på v1 og v2c, en feil community-streng, som en agent ignorerer uten et ord), en SNMPv3-bruker, et passord eller en protokoll som enheten avviste, eller en del av treet som SNMP-visningen til påloggingsinformasjonen utelater. En walk som stopper underveis, beholder det den har lest. En walk krever tillatelsen **Create Network Device Diagnostic** og en sonde som er ny nok til SNMP-walk: med en eldre ber siden deg oppdatere den.
 
 ### SNMP-tabeller
@@ -753,6 +755,8 @@ Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended 
 
 Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Network Device og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
 
+De fleste svitsjer, rutere, brannmurer og skrivere har også et nettgrensesnitt på sin egen adresse. **Overvåk nettgrensesnitt**, på det samme kortet, åpner en **Nettsted**-monitor for det: `https://` på enhetens adresse, med **Tillat selvsignerte sertifikater** slått på, siden en enhets nettgrensesnitt nesten alltid har et, kontrollert fra enhetens egen probe og med navn etter enheten. Endre URL-en hvis grensesnittet svarer på `http`, på en annen port eller under en sti, og lagre deretter. Kortet viser monitoren så lenge navnet inneholder enhetens navn og URL-en er på enhetens adresse; den endrer ikke enhetens status.
+
 For å opprette en fra **Monitorer** i stedet:
 
 1. Gå til **Monitorer** og klikk på **Opprett monitor**.
@@ -760,6 +764,8 @@ For å opprette en fra **Monitorer** i stedet:
 3. Velg nettverksenheten det skal varsles om. Alt om innsamling av data — vertsnavn, påloggingsinformasjon, tidsplan, grensesnittwalks, helse-OID-er — kommer fra enheten; monitoren velger bare hva det skal varsles om, gjennom kriteriene sine.
 
 En nettverksenhetsmonitor har ikke noe eget intervall: den vurderes hver gang enhetens pollingresultater kommer inn, og hver gang en trap fra enheten kommer inn.
+
+Når pollingen stopper, vurderes monitoren likevel. Når en enhet har gått tre pollingintervaller, og minst ti minutter, uten polling, vurderes monitorene dens hvert femte minutt som en polling som ikke nådde den: et kriterium som treffer at **SNMP Device Is Online** er False, for eksempel **Device unreachable**, utløses, og hendelsen sier hvorfor ingen polling kom, for eksempel at sonden er nede eller at enheten ikke har noen sonde. En enhet med polling slått av, eller med [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), blir latt være. Neste polling vurderer monitoren som vanlig.
 
 ### En enhets hendelser og varsler
 

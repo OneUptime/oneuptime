@@ -190,7 +190,7 @@ Hvert spørsmål har sin egen `id` (bokstaver, sifre, `-` og `_`), en `source`, 
 
 | `source` | Hva det spør om |
 | --- | --- |
-| `Question` | Et av skjemaets egne spørsmål, besvart etter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` eller `DateTime`. En nedtrekksliste viser `dropdownOptions`, ett per linje. |
+| `Question` | Et av skjemaets egne spørsmål, besvart etter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En nedtrekksliste viser `dropdownOptions`, ett per linje. |
 | `TargetField` | Et felt i det skjemaet oppretter, angitt med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hendelse; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedlikeholdshendelse. Et felt som besvares ved å velge, viser postene det tilbyr i `allowedOptionIds`. |
 | `TargetCustomField` | Et av hendelsens egendefinerte felt, angitt med `customFieldId`. |
 | `Submitter` | Innsenderens `Name` eller `Email`, angitt med `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+Svaret på et filspørsmål er filene slik de ble lagret, hver med sin `fileId`, `name`, `fileType` og `size`. Selve filene ligger på det innsendingen opprettet: i det egendefinerte filfeltet eller som vedlegg til det private notatet.
 
 ### Arbeidsflyter
 

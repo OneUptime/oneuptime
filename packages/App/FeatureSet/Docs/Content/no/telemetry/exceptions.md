@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Telt igjen; gjenåpnet<br/>hvis det var løst"]
 ```
 
-- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak.
+- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak. Et nytt unntak grupperes i stedet etter typen og funksjonene og filene i din egen kode i stack trace: linjenumre, bibliotekframes og meldingen holdes utenfor, så varianter kastet fra den samme koden er ett unntak. Uten stack trace grupperer meldingen det, som over. Unntak registrert før denne grupperingen beholder sin.
 - **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen, og unntaket merkes som **Regresjon**. En forekomst fra før du løste det, som først når OneUptime senere, gjenåpner det ikke.
 - **Et arkivert unntak forblir arkivert.** De nye forekomstene telles fortsatt, men de sender ikke lenger varsler.
 
@@ -51,6 +51,8 @@ Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak**
 ### Velg en status
 
 Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid. En rad merket **Regresjon** kom tilbake etter at den ble løst, og en merket **Ny** ble sett første gang i løpet av de siste 24 timene.
+
+Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke.
 
 ### Velg hva som teller som et problem
 
@@ -99,6 +101,8 @@ For å endre flere samtidig krysser du av radene deres i listen, eller boksen ov
 
 **Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
 
+**Aktivitet** nederst i unntakets **Oversikt** viser hvem som endret det og når, nyeste først: hvem som løste, gjenåpnet, arkiverte eller tildelte det, slo sammen et annet unntak med det eller delte opp et, og når det kom tilbake etter at det var løst. Hver endring står der, gjort på unntakets side, i listen, under **Massehandlinger**, via API-et eller av OneUptime selv, og en endring gjort med en API-nøkkel bærer nøkkelens navn.
+
 ## Feilklasser
 
 Hvert unntak har en feilklasse, som sier hvem sitt problem det er. OneUptime AI setter den når den går gjennom en innsikt om unntaket, som et nytt unntak eller et som øker kraftig: se [AI SRE](/docs/ai/ai-sre#innsikt-proaktiv-oppdagelse). Et unntak den ikke har gått gjennom, forblir `unknown`.
@@ -130,6 +134,8 @@ Forklaringen lagres på unntaket, så den neste som åpner det leser den med en 
 ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
 Under kortene viser **Lignende unntak** opptil fem andre unntak som ligner på dette: med **Samme melding** når verdiene er tatt ut, med **Samme sted i koden** i koden din, eller med **Lignende melding** med de fleste av de samme ordene. Én årsak kan havne i flere unntak, så **Sjekk med OneUptime AI** sier om hvert om det er **Sannsynligvis den samme feilen**, **En relatert feil** eller **En annen feil**, og hvorfor. Sjekken bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Svaret lagres til neste forekomst.
+
+Slå et som OneUptime AI kaller **Sannsynligvis den samme feilen**, og som hører til samme tjeneste, sammen med dette unntaket med **Slå sammen** ved siden av: forekomstene, de hittil og hver ny, telles fra da av på dette unntaket og vises på siden dets, og det forsvinner fra listen. **Slått sammen med dette unntaket** nedenfor viser hva som er slått sammen, og **Del opp** ved siden av hvert, eller på et sammenslått unntaks egen side, gir det tilbake sin egen plass i listen, med forekomstene siden. Å slå sammen og dele opp krever tillatelse til å redigere unntak.
 
 ## Rett det med AI
 
@@ -194,7 +200,7 @@ Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisning
 :::
 
 :::details Én feil vises som flere unntak
-Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak.
+Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**.
 :::
 
 :::details Et løst unntak kommer stadig tilbake

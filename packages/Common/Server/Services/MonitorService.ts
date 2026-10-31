@@ -117,6 +117,7 @@ import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import InfrastructureResourceBinding from "../Utils/Monitor/InfrastructureResourceBinding";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import ProbeMonitorsNotification, {
@@ -869,7 +870,7 @@ export class Service extends ProjectReferencesService<Model> {
         );
 
       if (isMonitorStepsWritten && updateBy.data.monitorSteps) {
-        (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+        const writtenMonitorSteps: MonitorSteps =
           await this.assignWrittenMonitorStepIds({
             monitorSteps: updateBy.data.monitorSteps as
               | MonitorSteps
@@ -877,6 +878,44 @@ export class Service extends ProjectReferencesService<Model> {
             matchedMonitors: monitors,
             tenantId: updateBy.props.tenantId,
           });
+
+        /*
+         * An infrastructure step keeps its resource's id
+         * (InfrastructureResourceBinding) - for a write to monitors of one
+         * project and one type, which every dashboard and API write is. A
+         * step the write leaves as it was keeps the resource it is bound to.
+         */
+        const projectIds: Set<string> = new Set<string>(
+          monitors.map((monitor: Model): string => {
+            return monitor.projectId?.toString() || "";
+          }),
+        );
+        const monitorTypes: Set<string> = new Set<string>(
+          monitors.map((monitor: Model): string => {
+            return (updateBy.data.monitorType ||
+              monitor.monitorType ||
+              "") as string;
+          }),
+        );
+
+        if (
+          monitors.length > 0 &&
+          projectIds.size === 1 &&
+          monitorTypes.size === 1 &&
+          monitors[0]!.projectId
+        ) {
+          await InfrastructureResourceBinding.bindMonitorSteps({
+            projectId: monitors[0]!.projectId,
+            monitorType: (updateBy.data.monitorType ||
+              monitors[0]!.monitorType) as MonitorType | undefined,
+            monitorSteps: writtenMonitorSteps,
+            storedMonitorSteps:
+              monitors.length === 1 ? monitors[0]!.monitorSteps : undefined,
+          });
+        }
+
+        (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+          writtenMonitorSteps;
       }
 
       for (const monitor of monitors) {
@@ -2122,6 +2161,18 @@ export class Service extends ProjectReferencesService<Model> {
         ),
         defaultMonitorStatusId: monitorStatus.id,
       });
+
+      // An infrastructure step keeps its resource's id (InfrastructureResourceBinding).
+      const createProjectId: ObjectID | undefined =
+        createBy.data.projectId || createBy.props.tenantId;
+
+      if (createProjectId) {
+        await InfrastructureResourceBinding.bindMonitorSteps({
+          projectId: createProjectId,
+          monitorType: createBy.data.monitorType,
+          monitorSteps: createBy.data.monitorSteps as MonitorSteps,
+        });
+      }
     }
 
     return { createBy, carryForward: null };

@@ -6,6 +6,7 @@ import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "Common/Server/API/BillingPaymentMethodAPI";
 import FileAPI from "Common/Server/API/FileAPI";
+import CustomFieldFileAPI from "Common/Server/API/CustomFieldFileAPI";
 import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
@@ -187,6 +188,10 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import SecurityCaseEvidenceAPI from "Common/Server/API/SecurityCaseEvidenceAPI";
 import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
+import TelemetryExceptionActivity from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
+import TelemetryExceptionActivityService, {
+  Service as TelemetryExceptionActivityServiceType,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
@@ -3611,6 +3616,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new TelemetryExceptionAPI().getRouter(),
     );
 
+    // An exception's activity timeline, read as the exception is.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityServiceType
+      >(
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new KubernetesResourceAPI().getRouter(),
@@ -6080,6 +6097,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new WorkspaceNotificationSummaryAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
+    /*
+     * The files records' File and Multiple files custom fields hold, to the
+     * people who may read the records (CustomFieldFileAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CustomFieldFileAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MonitorGroupAPI().getRouter(),

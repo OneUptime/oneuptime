@@ -12,8 +12,10 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import PermissionGate, {
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -256,6 +258,14 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
   const rootCauseHeadingId: string = useId();
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
+  /*
+   * On a private record's page, what the reader holds on it: Edit is offered
+   * only when a team of theirs that owns it may change it
+   * (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new props.modelType());
+
   const formFields: Fields<TBaseModel> = [
     {
       field: {
@@ -287,6 +297,7 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
   const editGate: PermissionGateResult = PermissionGate.checkFormUpdate(
     new props.modelType(),
     formFields,
+    privateRecordOptions,
   );
 
   const buttons: Array<CardButtonSchema> = [];

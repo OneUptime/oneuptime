@@ -213,7 +213,10 @@ describe("the upsert statement", () => {
     jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
       manager: {
         query: async (sql: string, params: Array<unknown>): Promise<void> => {
-          calls.push({ sql, params });
+          // The upsert; the merged-exception lookup before it finds none.
+          if (sql.includes("INSERT INTO")) {
+            calls.push({ sql, params });
+          }
         },
       },
     } as never);
@@ -243,7 +246,9 @@ describe("the upsert statement", () => {
     jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
       manager: {
         query: async (sql: string): Promise<void> => {
-          calls.push(sql);
+          if (sql.includes("INSERT INTO")) {
+            calls.push(sql);
+          }
         },
       },
     } as never);

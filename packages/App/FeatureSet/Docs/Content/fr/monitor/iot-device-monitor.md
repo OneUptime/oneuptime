@@ -118,6 +118,8 @@ La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte
 
 Un appareil enregistré est aussi conservé comme hors ligne dans l'inventaire de la flotte, alors qu'un appareil non enregistré en est retiré après 15 minutes de silence. La détection du silence nécessite la politique d'absence de données **Treat As Zero** sur le critère `iot_device_up`, que possèdent les moniteurs Device Offline créés à partir du modèle. Un moniteur Device Offline créé avant l'existence de l'enregistrement des appareils doit la recevoir à la main, ou être recréé à partir du modèle.
 
+**Device Offline** juge chaque appareil sur sa mesure la plus récente : un appareil qui s'est signalé indisponible puis de nouveau disponible est disponible au contrôle suivant. Un moniteur Device Offline qui reste hors ligne jusqu'à ce que la mesure d'indisponibilité ait 30 minutes a été créé avant que le modèle ne fasse cela : choisissez de nouveau le modèle sous **Sur quoi alerter** pour le mettre à jour.
+
 > [!NOTE]
 > Un appareil non enregistré qui devient silencieux, sans Last Will ni rapport de passerelle, cesse seulement d'envoyer des données, et un moniteur regroupé par appareil ne peut pas l'isoler. Enregistrez vos appareils, ou donnez à un appareil critique son propre moniteur (**Custom Metric**, avec son **ID de l'appareil**) et réglez **En l'absence de données** sur **Déclencheur**. La détection du silence nécessite aussi qu'au moins un autre appareil de la flotte continue de signaler : une flotte qui s'éteint complètement, lors d'une panne de passerelle par exemple, lève un seul incident pour le moniteur, et non un par appareil.
 

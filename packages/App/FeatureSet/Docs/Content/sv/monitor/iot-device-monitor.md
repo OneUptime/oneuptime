@@ -118,6 +118,8 @@ Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret 
 
 En registrerad enhet behålls också som offline i flottans inventarium, medan en oregistrerad tas bort efter 15 minuters tystnad. Detektering av tystnad kräver regeln **Treat As Zero** för saknade data på kriteriet för `iot_device_up`, som Device Offline-monitorer skapade från mallen har. En Device Offline-monitor som skapades innan enhetsregistrering fanns måste få den satt manuellt eller skapas om från mallen.
 
+**Device Offline** bedömer varje enhet utifrån dess senaste avläsning, så en enhet som rapporterade att den var nere och sedan uppe igen är uppe vid nästa kontroll. En Device Offline-monitor som förblir offline tills nere-avläsningen är 30 minuter gammal skapades innan mallen gjorde detta: välj mallen igen under **Vad som ska larmas om** för att uppdatera den.
+
 > [!NOTE]
 > En oregistrerad enhet som blir tyst utan en Last Will eller en gatewayrapport slutar bara skicka data, och en monitor som grupperar per enhet kan inte peka ut den. Registrera dina enheter, eller ge en kritisk enhet en egen monitor (**Custom Metric**, med dess **Device ID**), och sätt **Om ingen data** till **Utlösare**. Detektering av tystnad kräver också att minst en annan enhet i flottan fortfarande rapporterar: en flotta som blir helt mörk, till exempel under ett gatewayavbrott, skapar en incident för monitorn, inte en per enhet.
 

@@ -153,6 +153,8 @@ Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kat
 
 Vorlagen auf objektbezogenen Metriken werten jeden Knoten, Pod, jedes Deployment, jeden Job, jedes DaemonSet oder jeden HPA einzeln aus, sodass ein Cluster mit mehreren fehlerhaften Pods einen Vorfall pro Pod erhält statt eines für den ganzen Cluster.
 
+**High Node CPU Request Commitment** und **High Node Memory Request Commitment** zählen nur die Requests von Pods, die nicht beendet sind, so wie der Scheduler. Der Cluster meldet die Requests eines Pods, der Succeeded oder Failed ist, etwa eines beendeten Jobs, weiter, bis der Pod gelöscht wird: Diese werden nicht mitgezählt.
+
 **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Agent des Clusters eintrifft: Der Agent wurde deinstalliert oder stürzt immer wieder ab, sein API-Schlüssel wurde widerrufen, er hat die Verbindung zu OneUptime verloren, oder der API-Server des Clusters antwortet ihm nicht mehr. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 
 > [!NOTE]

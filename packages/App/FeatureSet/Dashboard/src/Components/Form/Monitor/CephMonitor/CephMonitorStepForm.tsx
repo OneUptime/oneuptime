@@ -34,7 +34,11 @@ import {
   getCephDefaultAlertTemplateId,
 } from "Common/Types/Monitor/CephAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
-import { CephMetricDefinition } from "Common/Types/Monitor/CephMetricCatalog";
+import {
+  CephMetricDefinition,
+  getCephCustomMetricAggregations,
+  getCephGroupByKeyForScope,
+} from "Common/Types/Monitor/CephMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
@@ -62,13 +66,24 @@ export interface ComponentProps {
   monitorName?: string | undefined;
 }
 
-const aggregationOptions: Array<DropdownOption> = [
-  { label: "Average", value: MetricsAggregationType.Avg },
-  { label: "Maximum", value: MetricsAggregationType.Max },
-  { label: "Minimum", value: MetricsAggregationType.Min },
-  { label: "Sum", value: MetricsAggregationType.Sum },
-  { label: "Count", value: MetricsAggregationType.Count },
-];
+const aggregationLabels: Partial<Record<MetricsAggregationType, string>> = {
+  [MetricsAggregationType.Avg]: "Average",
+  [MetricsAggregationType.Max]: "Maximum",
+  [MetricsAggregationType.Min]: "Minimum",
+  [MetricsAggregationType.Sum]: "Sum",
+  [MetricsAggregationType.Count]: "Count",
+};
+
+// The aggregations offered (getCephCustomMetricAggregations: no Sum or Count).
+function getCephAggregationOptions(
+  current: MetricsAggregationType | undefined,
+): Array<DropdownOption> {
+  return getCephCustomMetricAggregations(current).map(
+    (type: MetricsAggregationType): DropdownOption => {
+      return { label: aggregationLabels[type] || type, value: type };
+    },
+  );
+}
 
 const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -273,6 +288,14 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
       rollingTime:
         monitorStepCephMonitor.rollingTime || RollingTime.Past5Minutes,
       aggregationType: metric.defaultAggregation,
+      /*
+       * Each pool or daemon on its own, one incident each, as the templates
+       * judge them: ungrouped, a per-pool or per-OSD metric pooled every
+       * pool or OSD of the cluster into one value.
+       */
+      groupByAttributeKey: getCephGroupByKeyForScope(
+        metric.defaultResourceScope,
+      ),
     });
 
     props.onChange(config);
@@ -306,7 +329,10 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
         title="Ceph Cluster"
         placeholder="Select a Ceph cluster..."
         options={resources.options}
-        value={monitorStepCephMonitor.clusterIdentifier}
+        value={resources.valueOf({
+          value: monitorStepCephMonitor.clusterIdentifier,
+          resourceId: monitorStepCephMonitor.resourceId,
+        })}
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
@@ -442,10 +468,12 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
                 required={true}
               />
               <Dropdown
-                options={aggregationOptions}
-                value={aggregationOptions.find((option: DropdownOption) => {
-                  return option.value === customAggregation;
-                })}
+                options={getCephAggregationOptions(customAggregation)}
+                value={getCephAggregationOptions(customAggregation).find(
+                  (option: DropdownOption) => {
+                    return option.value === customAggregation;
+                  },
+                )}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {

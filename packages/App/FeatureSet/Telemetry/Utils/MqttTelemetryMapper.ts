@@ -481,14 +481,86 @@ export function parseMqttPublish(data: {
   }
 
   if (topic.kind === "metric") {
-    return parseSingleMetricPayload({
-      topic: topic as ParsedMqttTopic & { kind: "metric" },
-      text,
-      nowMs: data.nowMs,
-    });
+    return withImpliedDeviceUp(
+      parseSingleMetricPayload({
+        topic: topic as ParsedMqttTopic & { kind: "metric" },
+        text,
+        nowMs: data.nowMs,
+      }),
+    );
   }
 
-  return parseTelemetryPayload({ topic, text, nowMs: data.nowMs });
+  return withImpliedDeviceUp(
+    parseTelemetryPayload({ topic, text, nowMs: data.nowMs }),
+  );
+}
+
+/*
+ * A device-authenticated publish held to its credential: a device may only
+ * publish under its own fleet and device. Fleet names compare
+ * case-insensitively (fleet find-or-create is case-insensitive); device ids
+ * compare byte-exact (device.id labels are verbatim). Returns the payload
+ * with the fleet as OneUptime stores it - not as the topic spelled it, since
+ * everything that reads a fleet's data (its pages, its monitors) matches the
+ * stored name - or null when the topic names another fleet or device.
+ */
+export function scopePublishToDevice(data: {
+  payload: MqttIngestPayload;
+  device: { fleetName: string; externalId: string };
+}): MqttIngestPayload | null {
+  const isSameFleet: boolean =
+    data.payload.fleetName.toLowerCase() ===
+    data.device.fleetName.toLowerCase();
+  const isSameDevice: boolean =
+    data.payload.deviceId === data.device.externalId;
+
+  if (!isSameFleet || !isSameDevice) {
+    return null;
+  }
+
+  return { ...data.payload, fleetName: data.device.fleetName };
+}
+
+/*
+ * A device that publishes a reading is up. Only the status topic carried
+ * iot_device_up, so a registered device that announced itself online once
+ * and then sent only readings looked silent to Device Offline - which
+ * counts a device as present by its iot_device_up - and was declared down
+ * when its window passed. A reading publish now carries iot_device_up = 1
+ * at the reading's time, with the readings' attributes (the device's kind
+ * among them, which keys its inventory row), unless it carries an
+ * iot_device_up of its own.
+ */
+function withImpliedDeviceUp(
+  result: MqttPublishParseResult,
+): MqttPublishParseResult {
+  if (!result.payload) {
+    return result;
+  }
+
+  const hasOwnStatus: boolean = result.payload.points.some(
+    (point: MqttMetricPoint): boolean => {
+      return point.name === MQTT_DEVICE_UP_METRIC_NAME;
+    },
+  );
+
+  if (hasOwnStatus) {
+    return result;
+  }
+
+  return {
+    payload: {
+      ...result.payload,
+      points: [
+        ...result.payload.points,
+        {
+          name: MQTT_DEVICE_UP_METRIC_NAME,
+          value: 1,
+          attributes: { ...(result.payload.points[0]?.attributes || {}) },
+        },
+      ],
+    },
+  };
 }
 
 /*

@@ -133,7 +133,7 @@ AI 代理自己的设置见 [AI 代理](#ai-代理)。
 
 | 类别 | 指标 |
 | --- | --- |
-| 集群健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每个活动的健康检查一个序列，带 `name` 和 `severity` 标签，从 Quincy 开始；健康检查警报模板和概览中 **Active Health Checks** 的数据来源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（按守护进程，以 `type` 为键）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
+| 集群健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每个健康检查一个序列（活动期间为 1，清除后为 0），带 `name` 和 `severity` 标签，从 Quincy 开始；健康检查警报模板和概览中 **Active Health Checks** 的数据来源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（按守护进程，以 `type` 为键）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，按 OSD 以 `ceph_daemon` 标签区分（例如 `osd.3`） |
 | 存储池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。数据序列只带有 `pool_id` 标签；存储池的名称在 `ceph_pool_metadata` 上。 |
 | 归置组 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（均按存储池，以 `pool_id` 区分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |

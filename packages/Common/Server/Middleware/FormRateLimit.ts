@@ -176,6 +176,13 @@ export const FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
   "Submissions cannot be accepted right now. Please try again in a few minutes.";
 
 /*
+ * The form's hourly allowance of files is used up (FormFileAllowance): a
+ * submission with no file still goes through, so it says what is too much.
+ */
+export const FORM_FILES_RATE_LIMIT_MESSAGE: string =
+  "This form is receiving too many files right now. Please try again later.";
+
+/*
  * A submission the per-form ceiling refused. Thrown from inside
  * FormService (reserveFormSubmission), where there is no response to
  * write a header on, so it carries when to come back; the submit route
@@ -185,10 +192,37 @@ export const FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
 export class FormCeilingException extends TooManyRequestsException {
   public readonly retryAfterSeconds: number;
 
-  public constructor(retryAfterSeconds: number) {
-    super(FORM_TOTAL_RATE_LIMIT_MESSAGE);
+  public constructor(
+    retryAfterSeconds: number,
+    message: string = FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  ) {
+    super(message);
     this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+/*
+ * How many megabytes of files one form may take in, every address together,
+ * per window: what a leaked link can make the database hold, however many
+ * submissions the per-form ceiling lets through. 200 MB an hour is twenty
+ * submissions with the most a submission carries (FormFileAnswer), far past
+ * what people reporting a problem attach.
+ */
+export interface FormFileCeiling {
+  windowSeconds: number;
+  limitInBytes: number;
+}
+
+// Where a form's allowance of files is counted now (getFileAllowanceCounter).
+export interface FormFileAllowanceCounter {
+  // The form, as its counters are keyed (getFormKey).
+  formKey: string;
+  // The Redis key of this window's count.
+  key: string;
+  ttlSeconds: number;
+  limitInBytes: number;
+  // When this window ends: what a refusal says to wait.
+  secondsUntilWindowEnd: number;
 }
 
 const parsePositiveInt: (rawValue: string | undefined) => number | null = (
@@ -283,6 +317,20 @@ const SUBMIT_BUCKET: FormRateLimitBucketConfig = {
     limit: parsePositiveIntFromEnv("SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW", 60),
   },
   failsClosed: true,
+};
+
+const FILE_CEILING: FormFileCeiling = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS",
+    60 * 60,
+  ),
+  limitInBytes:
+    parsePositiveIntFromEnv(
+      "SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW",
+      200,
+    ) *
+    1024 *
+    1024,
 };
 
 /*
@@ -592,6 +640,46 @@ export default class FormRateLimit {
         FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       );
     }
+  }
+
+  // The files ceiling in force, for tests and operators' diagnostics.
+  public static getFileCeiling(): FormFileCeiling {
+    return { ...FILE_CEILING };
+  }
+
+  /*
+   * Where a form's hourly allowance of files is counted, as of now: its
+   * key, keyed on the form (never on a client), the window it lasts and
+   * what it may hold. The counting is FormFileAllowance's
+   * (Server/Utils/Form/FormFileAllowance): this file only counts clients,
+   * through ClientRateLimitCounter.
+   */
+  public static getFileAllowanceCounter(
+    shareKey: string | undefined,
+  ): FormFileAllowanceCounter {
+    const formKey: string = FormRateLimit.getFormKey(shareKey);
+
+    return {
+      formKey: formKey,
+      key: `${KEY_PREFIX}${FormRateLimitBucket.Submit}:fb:${formKey}:${FormRateLimit.getWindowIndex(
+        FILE_CEILING.windowSeconds,
+      )}`,
+      ttlSeconds: FILE_CEILING.windowSeconds * TTL_MULTIPLIER,
+      limitInBytes: FILE_CEILING.limitInBytes,
+      secondsUntilWindowEnd: FormRateLimit.getSecondsUntilWindowEnd(
+        FILE_CEILING.windowSeconds,
+      ),
+    };
+  }
+
+  /*
+   * Whether the files counter being down should be logged now: once an
+   * interval, as for the submit counters (shouldLogCounterUnavailable).
+   */
+  public static shouldLogFileCounterUnavailable(): boolean {
+    return FormRateLimit.shouldLogCounterUnavailable(
+      FormRateLimitBucket.Submit,
+    );
   }
 
   /*

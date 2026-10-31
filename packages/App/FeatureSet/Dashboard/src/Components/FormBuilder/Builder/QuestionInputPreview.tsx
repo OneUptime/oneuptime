@@ -27,6 +27,8 @@ export const FORM_ANSWER_TYPE_ICONS: Record<
   [CustomFieldType.Boolean]: IconProp.CheckCircle,
   [CustomFieldType.Date]: IconProp.Calendar,
   [CustomFieldType.DateTime]: IconProp.Clock,
+  [CustomFieldType.File]: IconProp.PaperClip,
+  [CustomFieldType.MultipleFiles]: IconProp.DocumentDuplicate,
   Email: IconProp.Email,
 };
 
@@ -151,6 +153,25 @@ const QuestionInputPreview: FunctionComponent<ComponentProps> = (
       return (
         <div className={`${BOX_CLASS_NAME} h-9`} aria-hidden="true">
           {tx(FormsCopy.inputPlaceholderNumber)}
+        </div>
+      );
+
+    // A drop zone, as the public page draws one.
+    case CustomFieldType.File:
+    case CustomFieldType.MultipleFiles:
+      return (
+        <div
+          className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-200 bg-gray-50 px-3 text-sm text-gray-400"
+          aria-hidden="true"
+        >
+          <Icon icon={IconProp.Upload} className="h-4 w-4" />
+          <span className="truncate">
+            {tx(
+              props.answerType === CustomFieldType.File
+                ? FormsCopy.inputFile
+                : FormsCopy.inputFiles,
+            )}
+          </span>
         </div>
       );
 

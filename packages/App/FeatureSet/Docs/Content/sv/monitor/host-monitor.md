@@ -115,7 +115,7 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 - **Minne** utesluter buffertar och sidcache, så att en värd som mest innehåller cache inte utlöser den.
 - **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla: OneUptimes collector-konfigurationer utelämnar dem från skrapan `filesystem` med `exclude_fs_types`, och en egen konfiguration behöver detsamma.
 - **Belastningsmedelvärde** är en rå längd på körkön, inte delad med antalet kärnor: 4 är mättnad på en värd med 2 kärnor och rutin på en med 32, så höj den på stora värdar.
-- **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Processkrapan rapporterar bara på Linux.
+- **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Skraparen för processer rapporterar på Linux, macOS och BSD, inte på Windows.
 
 ## Insamlade mätvärden
 

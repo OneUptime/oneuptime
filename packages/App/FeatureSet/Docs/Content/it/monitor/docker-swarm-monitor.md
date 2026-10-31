@@ -94,6 +94,8 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 L'elenco di **Su cosa avvisare** offre cinque modelli. Ognuno costruisce un monitor completo: una query, un criterio che scatta e uno che ripristina. Tutti i modelli tranne **Cluster Stopped Reporting** raggruppano la loro query per `resource.container.name`, così ogni task viene giudicato separatamente e riceve il proprio incidente e il proprio avviso, la cui causa principale elenca i task interessati e i loro valori. Le soglie sono punti di partenza modificabili.
 
+Questi modelli leggono inoltre solo i task di Swarm: un container avviato in altro modo su un nodo, tra cui quello dell'agente stesso, viene escluso. Una query **Custom Metric** o **Avanzato** legge ogni container che l'agente riporta; il filtro **Nome del servizio** la restringe ai task di un servizio.
+
 Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |

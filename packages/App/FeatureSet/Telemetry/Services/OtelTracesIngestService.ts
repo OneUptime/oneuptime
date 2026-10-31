@@ -90,6 +90,7 @@ import TelemetryFanInWriter, {
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
+import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -116,6 +117,12 @@ type ExceptionEventPayload = {
    * never reach it.
    */
   sessionId: string;
+  /*
+   * The user the occurrence happened to (Common/Utils/Exceptions/
+   * ExceptionUserId), read from the exception event, then the span and its
+   * resource, after the scrub rules; '' when none names one.
+   */
+  userId: string;
   spanStatusCode: SpanStatus;
   spanName: string;
   message: string;
@@ -125,6 +132,8 @@ type ExceptionEventPayload = {
   attributes: JSONObject;
   time: ParsedUnixNano;
   fingerprint: string;
+  // Grouping v2's, until submitExceptionsBuffer picks the group's.
+  fingerprintV2: string;
   release: string;
   environment: string;
   parsedFrames: string;
@@ -262,6 +271,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       if (batch.length === 0) {
         continue;
       }
+
+      // Each occurrence stored under its exception's fingerprint (v1 or v2).
+      await ExceptionUtil.assignRowGroupFingerprints(batch);
 
       const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
         ExceptionInstanceService,
@@ -1018,6 +1030,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                          */
                         sessionId: (spanRow["sessionId"] as string) || "",
                         resourceAttributes: resourceAttributes,
+                        // Post-scrub, post-pipeline, for the same reason.
+                        spanAttributes:
+                          (spanRow["attributes"] as JSONObject) || {},
                         serviceMetadata: serviceDictionary[serviceName]!,
                       },
                       scrubRules: scrubRules,
@@ -1315,6 +1330,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        */
       sessionId: string;
       resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+      /*
+       * The span's attributes as stored - resource attributes under
+       * "resource.", then the span's own - after the scrub rules and
+       * pipelines: where the user an exception happened to is named, as
+       * the event's own bag rarely does.
+       */
+      spanAttributes: JSONObject;
       serviceMetadata: TelemetryServiceMetadata;
     };
     scrubRules: Array<CompiledTraceScrubRule>;
@@ -1367,6 +1389,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           exceptionType: exceptionType,
         });
 
+        /*
+         * And grouping v2's, from the same pre-scrub content: what a new
+         * exception is grouped by. Which of the two the occurrence keeps is
+         * decided when the batch is stored (assignRowGroupFingerprints).
+         */
+        const fingerprintV2: string = ExceptionUtil.getFingerprintV2({
+          projectId: spanContext.projectId,
+          primaryEntityId: spanContext.primaryEntityId,
+          message: rawException.message,
+          stackTrace: rawException.stackTrace,
+          exceptionType: exceptionType,
+        });
+
         // Extract release and environment from resource attributes
         const release: string =
           (spanContext.resourceAttributes[
@@ -1394,6 +1429,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           spanId: spanContext.spanId,
           traceId: spanContext.traceId,
           sessionId: spanContext.sessionId,
+          // The event's own attributes first, then the span's and its resource's.
+          userId: readExceptionUserId([
+            scrubbed.attributes,
+            spanContext.spanAttributes,
+          ]),
           spanStatusCode: spanContext.spanStatusCode,
           spanName: spanContext.spanName,
           message: message,
@@ -1403,6 +1443,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           attributes: scrubbed.attributes,
           time: rawException.time,
           fingerprint: fingerprint,
+          fingerprintV2: fingerprintV2,
           release: release,
           environment: environment,
           parsedFrames: parsedFramesJson,
@@ -1413,6 +1454,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
         data.pendingExceptionUpserts.push({
           fingerprint: fingerprint,
+          fingerprintV2: fingerprintV2,
           projectId: spanContext.projectId,
           primaryEntityId: spanContext.primaryEntityId,
           primaryEntityType: spanContext.serviceMetadata.primaryEntityType,
@@ -1719,7 +1761,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       traceId: data.traceId || "",
       spanId: data.spanId || "",
       sessionId: data.sessionId || "",
+      userId: data.userId || "",
       fingerprint: data.fingerprint,
+      fingerprintV2: data.fingerprintV2,
       spanName: data.spanName || "",
       release: data.release || "",
       environment: data.environment || "",

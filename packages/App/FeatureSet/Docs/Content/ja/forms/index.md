@@ -190,7 +190,7 @@ OneUptime Cloud では、フォームには **Growth** 以上のプランが必�
 
 | `source` | 尋ねる内容 |
 | --- | --- |
-| `Question` | フォーム独自の質問で、`type` に応じて回答します: `Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date`、`DateTime`。ドロップダウンは `dropdownOptions` を 1 行に 1 つずつ一覧表示します。 |
+| `Question` | フォーム独自の質問で、`type` に応じて回答します: `Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date`、`DateTime`、`File`、`MultipleFiles`。ドロップダウンは `dropdownOptions` を 1 行に 1 つずつ一覧表示します。 |
 | `TargetField` | フォームが作成するものの項目で、`targetField` で指定します: インシデントなら `title`、`description`、`incidentSeverityId`、`monitors`、`labels`、`impactStartedAt`、メンテナンスイベントなら `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages`、`labels`。選択で回答する項目は、提示するレコードを `allowedOptionIds` に一覧表示します。 |
 | `TargetCustomField` | インシデントまたはイベントのカスタムフィールドの 1 つで、`customFieldId` で指定します。 |
 | `Submitter` | 送信者の `Name` または `Email` で、`submitterField` で指定します。 |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+ファイルの質問への回答は、保存されたとおりのファイルで、それぞれ `fileId`、`name`、`fileType`、`size` を持ちます。ファイル自体は、送信が作成したものの上にあります。そのファイルのカスタムフィールドの中か、非公開メモの添付ファイルです。
 
 ### ワークフロー
 

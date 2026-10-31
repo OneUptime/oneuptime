@@ -190,7 +190,7 @@ flowchart TB
 
 | `source` | 詢問的內容 |
 | --- | --- |
-| `Question` | 表單自己的問題，依 `type` 作答：`Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date` 或 `DateTime`。下拉式選單會列出其 `dropdownOptions`，每行一個。 |
+| `Question` | 表單自己的問題，依 `type` 作答：`Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date`、`DateTime`、`File` 或 `MultipleFiles`。下拉式選單會列出其 `dropdownOptions`，每行一個。 |
 | `TargetField` | 表單所建立內容的一個欄位，由 `targetField` 指定：事件為 `title`、`description`、`incidentSeverityId`、`monitors`、`labels` 和 `impactStartedAt`；維護事件為 `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages` 和 `labels`。透過選擇作答的欄位會在 `allowedOptionIds` 中列出其提供的紀錄。 |
 | `TargetCustomField` | 事件或維護事件的某個自訂欄位，由 `customFieldId` 指定。 |
 | `Submitter` | 提交者的 `Name` 或 `Email`，由 `submitterField` 指定。 |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+檔案問題的回答就是保存下來的檔案，每個檔案都帶有 `fileId`、`name`、`fileType` 和 `size`。檔案本身位於提交所建立的內容上：在其檔案自訂欄位中，或附加在其私人備註上。
 
 ### 工作流程
 

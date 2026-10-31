@@ -89,9 +89,11 @@ export const PROXMOX_AGENT_INSTALL_NAME: InstallScriptName =
 export const PROXMOX_AGENT_INSTALL_DIR: string = "/opt/oneuptime-proxmox-agent";
 
 /*
- * The collector image agents/ProxmoxAgent/docker-compose.yml pins, which
- * its config reports as the agent's version. The journald wrapper image
- * below is built on it too.
+ * The collector image agents/ProxmoxAgent/docker-compose.yml pins
+ * (PROXMOX_AGENT_COLLECTOR_VERSION). Its config reports the agent's files
+ * release instead, PROXMOX_AGENT_VERSION: the collector's, its last number
+ * raised each time the files change on that collector. The journald wrapper
+ * image below is built on it too.
  */
 export const PROXMOX_AGENT_COLLECTOR_IMAGE: string =
   "otel/opentelemetry-collector-contrib:0.161.0";

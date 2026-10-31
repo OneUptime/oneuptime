@@ -90,8 +90,9 @@ function dockerTitleSuffix(args: DockerAlertTemplateArgs): string {
  * `oneuptime.agent.version`), so Swarm container identity is stored
  * `resource.`-prefixed too, and DockerSwarmAlertTemplates.ts groups by
  * `resource.container.name` like these do. The bare `container.name`
- * matches no stored attribute: aggregatePerSeriesFromRawMetrics labels a
- * missing key "", which would collapse every container into ONE series
+ * matches no stored attribute: the worker's grouped read (GROUP BY
+ * attributes['key'], MonitorTelemetryMonitor.readQueryDataPoints) reads a
+ * missing key as "", which would collapse every container into ONE series
  * with an empty label.
  */
 
@@ -242,8 +243,9 @@ export function buildDockerMonitorConfig(args: {
  * `aggregationTemporality`/`isMonotonic` so the browser can suggest a rate
  * view. So the delta has to be built from what the worker does honour: two
  * queries over the same metric, one Max and one Min, plus a formula
- * subtracting them. `aggregatePerSeriesFromRawMetrics` buckets rows per
- * (series, minute) using EACH query's own aggregation, so `max - min` is
+ * subtracting them. The worker's grouped read buckets rows per (series,
+ * minute) in ClickHouse using EACH query's own aggregation (a window up to
+ * three hours is bucketed by the minute), so `max - min` is
  * the counter's increase WITHIN each minute, and the criteria's
  * `EvaluateOverTimeType.Sum` totals those increases across the window.
  *

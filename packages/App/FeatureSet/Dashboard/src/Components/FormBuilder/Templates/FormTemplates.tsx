@@ -11,6 +11,7 @@ import {
   FormTemplateEditorQuestion,
   FormTemplateSettingSummary,
   getFormTemplateAnsweredLabels,
+  getFormTemplateAnswerFields,
   getFormTemplateEditorQuestions,
   getFormTemplateEditorValues,
   getFormTemplateQuestionAsked,
@@ -27,7 +28,6 @@ import {
   BuiltPublicForm,
   buildPublicForm,
   FormCustomFieldDefinition,
-  PublicFormField,
 } from "Common/Types/Form/FormPublic";
 import FormTargetType, {
   readFormTargetType,
@@ -300,14 +300,11 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
       ),
     );
 
+    // A file question is asked its own way here, but never answered.
     const answerFields: Array<Field<JSONObject>> = buildPublicFormFields(
       {
         ...built.form,
-        fields: questions.map(
-          (question: FormTemplateEditorQuestion): PublicFormField => {
-            return question.field;
-          },
-        ),
+        fields: getFormTemplateAnswerFields(questions),
       },
       { dataTestIdPrefix: "form-template-field" },
     ).map((field: Field<JSONObject>, index: number): Field<JSONObject> => {

@@ -8,6 +8,7 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
+import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
@@ -2233,11 +2234,107 @@ export default abstract class OtelIngestBaseService {
       return null;
     }
 
-    return await this.discoverMatchedIoTFleet({
+    const fleetId: ObjectID | null = await this.discoverMatchedIoTFleet({
       projectId: data.projectId,
       attributes: data.attributes,
       fleetName: fleetName,
     });
+
+    // The rows are built from these attributes next (StoredIoTFleetName).
+    if (fleetId) {
+      await this.stampStoredIoTFleetNameOnAttributes({
+        attributes: data.attributes,
+        fleetId: fleetId,
+      });
+    }
+
+    return fleetId;
+  }
+
+  /*
+   * The fleet's stored name, by id, for a minute - as long as the
+   * discovered-resource ids stay in the in-process cache - so a fleet costs
+   * one read a minute per worker, and a rename shows within a minute.
+   */
+  private static storedIoTFleetNames: Map<
+    string,
+    { name: string; expiresAtMs: number }
+  > = new Map();
+
+  private static readonly STORED_IOT_FLEET_NAME_TTL_MS: number = 60 * 1000;
+  private static readonly STORED_IOT_FLEET_NAME_CACHE_SIZE: number = 10000;
+
+  protected static async getStoredIoTFleetName(
+    fleetId: ObjectID,
+  ): Promise<string | null> {
+    const key: string = fleetId.toString();
+    const cached: { name: string; expiresAtMs: number } | undefined =
+      this.storedIoTFleetNames.get(key);
+
+    if (cached && cached.expiresAtMs > Date.now()) {
+      return cached.name;
+    }
+
+    const fleet: { name?: string | undefined } | null =
+      await IoTFleetService.findOneById({
+        id: fleetId,
+        select: { name: true },
+        props: { isRoot: true },
+      });
+    const name: string = (fleet?.name || "").trim();
+
+    if (!name) {
+      return null;
+    }
+
+    if (
+      !this.storedIoTFleetNames.has(key) &&
+      this.storedIoTFleetNames.size >= this.STORED_IOT_FLEET_NAME_CACHE_SIZE
+    ) {
+      const oldest: string | undefined = this.storedIoTFleetNames
+        .keys()
+        .next().value;
+
+      if (oldest !== undefined) {
+        this.storedIoTFleetNames.delete(oldest);
+      }
+    }
+
+    this.storedIoTFleetNames.set(key, {
+      name,
+      expiresAtMs: Date.now() + this.STORED_IOT_FLEET_NAME_TTL_MS,
+    });
+
+    return name;
+  }
+
+  /*
+   * Writes the fleet's stored name onto a reading whose fleet name differs
+   * from it only in case or spacing (StoredIoTFleetName). Best-effort: a
+   * failed read leaves the name as sent, and never fails the ingest.
+   */
+  protected static async stampStoredIoTFleetNameOnAttributes(data: {
+    attributes: JSONArray;
+    fleetId: ObjectID;
+  }): Promise<void> {
+    try {
+      const storedName: string | null = await this.getStoredIoTFleetName(
+        data.fleetId,
+      );
+
+      if (storedName) {
+        stampStoredIoTFleetName({
+          attributes: data.attributes,
+          storedName: storedName,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Could not read the stored name of IoT fleet ${data.fleetId.toString()}; its readings keep the name they were sent with: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverIoTFleet" })

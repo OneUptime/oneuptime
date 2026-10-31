@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime의 IoT 모델
 
-- **플릿**: `building-a-sensors`나 `field-gateways` 같은 디바이스 그룹입니다. `iot.fleet.name` 리소스 속성에서 정해지며, OneUptime에서는 텔레메트리 서비스 `iot/<fleet>`로 나타납니다. 로그와 메트릭이 같은 서비스 아래에 정렬되도록 `service.name=iot/<fleet>`도 설정하세요.
+- **플릿**: `building-a-sensors`나 `field-gateways` 같은 디바이스 그룹입니다. `iot.fleet.name` 리소스 속성에서 정해지며, OneUptime에서는 텔레메트리 서비스 `iot/<fleet>`로 나타납니다. 로그와 메트릭이 같은 서비스 아래에 정렬되도록 `service.name=iot/<fleet>`도 설정하세요. 플릿 이름은 대소문자를 구분하지 않고 맞춰집니다. `warehouse` 로 보낸 측정값은 `Warehouse` 플릿에 들어가며 그 이름으로 저장됩니다.
 - **디바이스**: 플릿 안의 디바이스 하나로, 각 데이터 포인트의 `device.id` 속성으로 이름이 정해집니다. 플릿의 인벤토리는 `device.id`를 키로 합니다.
 
 | 속성 | 설정 위치 | 필수 | 설명 |
@@ -195,7 +195,7 @@ telemetry 페이로드에는 모든 데이터 포인트에 붙는 문자열 맵�
 
 ### Last Will을 이용한 오프라인 감지
 
-`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT Last Will을 등록하세요. 디바이스가 꺼지거나 네트워크에서 끊기면, OneUptime은 세션이 끝나는 순간 그 디바이스의 `iot_device_up = 0`을 게시하며, 이는 폴링 없이 기본 Device Offline 알림 템플릿을 발생시키고 인벤토리에서 디바이스를 다운으로 표시합니다. 연결 후 같은 토픽에 `online`을 게시하면 디바이스가 다시 업으로 표시됩니다.
+`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT Last Will을 등록하세요. 디바이스가 꺼지거나 네트워크에서 끊기면, OneUptime은 세션이 끝나는 순간 그 디바이스의 `iot_device_up = 0`을 게시하며, 이는 폴링 없이 기본 Device Offline 알림 템플릿을 발생시키고 인벤토리에서 디바이스를 다운으로 표시합니다. 연결 후 같은 토픽에 `online`을 게시하면 디바이스가 다시 업으로 표시됩니다. 디바이스가 게시하는 모든 측정값도 가동 중으로 셈하므로, 측정값을 계속 보내는 디바이스는 상태를 다시 게시하지 않아도 가동 중으로 남습니다.
 
 ### 예시
 
@@ -281,7 +281,7 @@ OneUptime은 다음 `iot_*` 메트릭 이름을 인식합니다. 디바이스에
 | `iot_battery_percent` | 배터리 충전량, `0`~`100`(%). |
 | `iot_signal_strength_dbm` | dBm 단위 무선 신호 강도(Wi-Fi, LoRa, 셀룰러 RSSI 등). |
 | `iot_temperature_celsius` | °C 단위 디바이스 또는 센서 온도. |
-| `iot_cpu_usage_ratio` | `0`에서 `1`까지의 비율로 나타낸 CPU 사용량. OneUptime은 이를 백분율로 저장하고 표시합니다. |
+| `iot_cpu_usage_ratio` | `0`에서 `1`까지의 비율로 나타낸 CPU 사용량. OneUptime은 보낸 값 그대로 저장하고, 디바이스 인벤토리는 이를 백분율로 표시합니다. |
 | `iot_memory_usage_bytes` | 사용 중인 메모리(바이트). |
 | `iot_memory_size_bytes` | 디바이스의 전체 메모리(바이트). |
 | `iot_uptime_seconds` | 디바이스가 마지막으로 부팅된 후의 초. |
@@ -289,7 +289,7 @@ OneUptime은 다음 `iot_*` 메트릭 이름을 인식합니다. 디바이스에
 ## 플릿이 나타나는지 확인
 
 1. 디바이스, 게이트웨이 Collector, 또는 MQTT 클라이언트가 오류 없이 보내는지 확인하세요. 로그에서 내보내기 실패와 HTTP `401` 또는 `422` 응답, 또는 반환 코드 4로 거부된 연결을 찾으세요.
-2. **제품 → 인프라 → IoT → All Fleets**를 엽니다. 첫 측정값 후 1분 정도 안에 플릿이 `iot/<fleet>`로 나타납니다.
+2. **제품 → 인프라 → IoT → All Fleets**를 엽니다. 첫 측정값 후 1분 정도 안에 플릿이 자신의 이름으로 나타납니다.
 3. 플릿의 **디바이스** 페이지를 엽니다. 보낸 각 디바이스가 최신 배터리, 신호, 온도, CPU, 메모리, 업 또는 다운 상태와 함께 나열되어야 합니다.
 4. 플릿의 **메트릭** 페이지를 열어 `iot_*` 시계열을 차트로 보세요.
 

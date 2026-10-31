@@ -94,6 +94,8 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 A lista de **Sobre o que alertar** oferece cinco modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Cluster Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada tarefa é avaliada separadamente e recebe seu próprio incidente e seu próprio alerta, cuja causa raiz lista as tarefas afetadas e seus valores. Os limites são pontos de partida que você pode editar.
 
+Esses modelos também leem apenas as tarefas do Swarm: um contêiner iniciado de outra forma em um nó, entre eles o do próprio agente, fica de fora. Uma consulta de **Custom Metric** ou **Avançado** lê todos os contêineres que o agente informa; o filtro **Nome do serviço** a restringe às tarefas de um serviço.
+
 Salvo indicação contrária na tabela, um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |

@@ -118,6 +118,8 @@ Ein Kriterium löst nur aus, wenn die Bedingung für jede Minute seines Fensters
 
 Ein registriertes Gerät bleibt außerdem als offline im Inventar der Flotte, während ein nicht registriertes nach 15 Minuten Stille entfernt wird. Die Erkennung von Stille braucht die Regel **Treat As Zero** für fehlende Daten beim Kriterium für `iot_device_up`, die Device-Offline-Monitore aus der Vorlage haben. Ein Device-Offline-Monitor, der erstellt wurde, bevor es die Geräteregistrierung gab, braucht sie von Hand gesetzt oder muss aus der Vorlage neu erstellt werden.
 
+**Device Offline** beurteilt jedes Gerät nach seinem letzten Messwert, sodass ein Gerät, das sich als ausgefallen und dann wieder als verfügbar gemeldet hat, bei der nächsten Prüfung verfügbar ist. Ein Device-Offline-Monitor, der offline bleibt, bis der Ausfall-Messwert 30 Minuten alt ist, wurde erstellt, bevor die Vorlage das tat: Wählen Sie die Vorlage unter **Worüber benachrichtigt wird** erneut, um ihn zu aktualisieren.
+
 > [!NOTE]
 > Ein nicht registriertes Gerät, das ohne Last Will oder Gateway-Meldung verstummt, hört nur auf, Daten zu senden, und ein pro Gerät gruppierter Monitor kann es nicht herausgreifen. Registrieren Sie Ihre Geräte, oder geben Sie einem kritischen Gerät einen eigenen Monitor (**Custom Metric**, mit seiner **Geräte-ID**) und setzen Sie **Bei keinen Daten** auf **Auslöser**. Die Erkennung von Stille braucht außerdem mindestens ein anderes Gerät der Flotte, das noch meldet: Eine Flotte, die komplett dunkel wird, etwa bei einem Gateway-Ausfall, löst einen Vorfall für den Monitor aus, nicht einen pro Gerät.
 

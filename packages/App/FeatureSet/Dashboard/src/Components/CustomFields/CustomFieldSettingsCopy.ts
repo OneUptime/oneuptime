@@ -31,6 +31,8 @@ export const CUSTOM_FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
   [CustomFieldType.DateTime]: "Date and time",
   [CustomFieldType.LongText]: "Long text",
   [CustomFieldType.Markdown]: "Rich text (Markdown)",
+  [CustomFieldType.File]: "File",
+  [CustomFieldType.MultipleFiles]: "Multiple files",
 };
 
 export interface CustomFieldTypeOption {

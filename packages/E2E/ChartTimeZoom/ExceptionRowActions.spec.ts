@@ -163,7 +163,12 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
     const menu: Locator = page.getByRole("menu");
 
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole("menuitem")).toHaveText(["Resolve", "Archive"]);
+    // And, since #5422, Assign to me.
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Resolve",
+      "Archive",
+      "Assign to me",
+    ]);
 
     await menu.getByRole("menuitem", { name: "Resolve", exact: true }).click();
 
@@ -337,8 +342,15 @@ test.describe("Bulk Actions on the exceptions list", () => {
 
     await page.getByRole("button", { name: "Bulk Actions" }).click();
     const menu: Locator = page.getByRole("menu");
-    // Both are unresolved and live: what they can take, and nothing else.
-    await expect(menu.getByRole("menuitem")).toHaveText(["Resolve", "Archive"]);
+    /*
+     * Both are unresolved and live: what they can take, and nothing else -
+     * and, since #5422, Assign to… for the ticked exceptions.
+     */
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Resolve",
+      "Archive",
+      "Assign to…",
+    ]);
 
     await fs.mkdir(SCREENSHOTS, { recursive: true });
     await page.screenshot({
