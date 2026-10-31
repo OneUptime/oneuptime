@@ -628,6 +628,14 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
          * first. Both metrics come from the k8s_cluster receiver, which
          * stamps all three keys itself (the restarts pipeline takes only
          * container.id off), so the queries line up.
+         *
+         * Both also carry the pod's workload names, from the same
+         * k8sattributes in the agent's metrics pipeline: the restarts
+         * pipeline hands the increase to it once it is made. So a Workload
+         * scope (a Deployment's name, say) filters both queries alike, and
+         * the alert names the workload its container belongs to. An agent
+         * from before that sends the increase without them, and a scoped
+         * monitor reads no restart from it.
          */
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",
@@ -1189,6 +1197,13 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
          * by absence, which is the behaviour we want here. A Job recreated
          * under the same name is the same series: its first sample sends
          * nothing, its failures after that count.
+         *
+         * The increase is a copy on the Job's own resource, so it carries
+         * what k8s.job.failed_pods carries: the Job's name, UID and
+         * namespace. A Workload scope of kind Job filters on that name; the
+         * pods a Job retries with never reach its resource, so a retry is
+         * the same series. The receiver puts no CronJob on a Job's
+         * metrics: a CronJob's runs are Jobs of their own.
          */
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",

@@ -50,6 +50,37 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "- transform/job-failures-increase\\n[\\s\\S]*- transform/job-failures-increase\\n"
 
+  - it: makes the copy on the count's own resource, before anything adds to it, so the two carry the same workload attributes
+    asserts:
+      # copy_metric puts the copy beside the count, under the same resource
+      # and scope; the copy is made right after the memory limiter, before
+      # k8sattributes and resource, so whatever they add they add to both.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n"
+      # The copy is made in metric context, where a resource cannot be
+      # changed, and no group of the processor works on the resource.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/job-failures-increase:\\n    error_mode: ignore\\n    metric_statements:\\n(?:      [^\\n]*\\n)*?      - context: resource\\n(?:      [^\\n]*\\n)*?  cumulative_to_delta/job-failures-increase:\\n"
+      # The Job's name, UID and namespace - what Job Failures groups by and
+      # a Workload scope of kind Job filters on - are never taken off or
+      # rewritten anywhere in the cluster collector.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?:delete_key|delete_matching_keys|set)\\(attributes[^\\n]*k8s\\.(?:job|namespace)\\.(?:name|uid)"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "keep_(?:matching_)?keys\\(|key: k8s\\.(?:job|namespace)\\.(?:name|uid)\\b"
+
+  - it: and k8sattributes adds nothing that changes with a retry, since it finds a pod by an IP, a UID or a connection, none of which a Job's resource names
+    asserts:
+      # The pod a Job retries with never reaches the Job's resource, so a
+      # retry leaves the Job's series as it is.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    pod_association:\\n      - sources:\\n          - from: resource_attribute\\n            name: k8s\\.pod\\.ip\\n      - sources:\\n          - from: resource_attribute\\n            name: k8s\\.pod\\.uid\\n      - sources:\\n          - from: connection\\n\\n"
+
   - it: copies k8s.job.failed_pods and makes the copy a cumulative sum, in metric context on the collector the chart pins
     asserts:
       # The whole processor, up to the next one: a copy under its own name,

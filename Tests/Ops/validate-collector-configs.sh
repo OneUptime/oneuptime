@@ -320,7 +320,8 @@ if (found === 0) {
 # The cluster collector's metrics/restarts-increase pipeline (the restarts
 # CrashLoopBackOff Detection sums) is in what is validated, its gauge made a
 # sum in metric context: that is where the collector the chart pins has
-# convert_gauge_to_sum.
+# convert_gauge_to_sum. And so is the forward connector it hands the
+# increases to the metrics pipeline through, for their workload names.
 node -e '
 const fs = require("fs");
 const yaml = require("js-yaml");
@@ -336,8 +337,17 @@ const contexts = (collector.processors["transform/restarts-increase"] || { metri
   .map((group) => {
     return group.context;
   });
-if (!collector.service.pipelines["metrics/restarts-increase"] || contexts.join(",") !== "metric") {
+const pipeline = collector.service.pipelines["metrics/restarts-increase"];
+if (!pipeline || contexts.join(",") !== "metric") {
   throw new Error(`${config}: no metrics/restarts-increase pipeline converting its gauge in metric context`);
+}
+if (
+  !collector.connectors ||
+  !("forward/restarts-increase" in collector.connectors) ||
+  pipeline.exporters.join(",") !== "forward/restarts-increase" ||
+  !collector.service.pipelines.metrics.receivers.includes("forward/restarts-increase")
+) {
+  throw new Error(`${config}: metrics/restarts-increase does not hand its increases to the metrics pipeline through forward/restarts-increase`);
 }
 ' "${WORK_DIR}/k8s-validate-kubernetes-agent-deployment.yaml"
 
@@ -449,6 +459,16 @@ for (const role of ["deployment", "daemonset"]) {
       })
     ) {
       throw new Error(`${rendered}: no metrics/restarts-increase pipeline converting its gauge in datapoint context`);
+    }
+    // And hands the increases to the metrics pipeline through the forward
+    // connector, which this collector has too.
+    if (
+      !config.connectors ||
+      !("forward/restarts-increase" in config.connectors) ||
+      config.service.pipelines["metrics/restarts-increase"].exporters.join(",") !== "forward/restarts-increase" ||
+      !config.service.pipelines.metrics.receivers.includes("forward/restarts-increase")
+    ) {
+      throw new Error(`${rendered}: metrics/restarts-increase does not hand its increases to the metrics pipeline through forward/restarts-increase`);
     }
     // And the Job failures copy, its gauge made a sum there too.
     const jobFailures = config.processors["transform/job-failures-increase"];

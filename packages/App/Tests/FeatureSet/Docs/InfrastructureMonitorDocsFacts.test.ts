@@ -56,7 +56,10 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepDockerMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerMonitor";
 import { MonitorStepDockerSwarmMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import { MonitorStepHostMonitorUtil } from "Common/Types/Monitor/MonitorStepHostMonitor";
-import { MonitorStepKubernetesMonitorUtil } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import {
+  KUBERNETES_WORKLOAD_KINDS,
+  MonitorStepKubernetesMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepPodmanMonitorUtil } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorType, {
@@ -1423,6 +1426,107 @@ describe(`${KUBERNETES}: the template table`, () => {
     );
     expect(englishPage(KUBERNETES)).toContain(
       "StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |",
+    );
+  });
+
+  /*
+   * The restarts increase used to leave the agent with the receiver's
+   * attributes alone, without the workload names k8sattributes gives the
+   * cluster's other container metrics: a monitor scoped to a workload read
+   * none of its restarts. The chart now hands it to the metrics pipeline,
+   * whose k8sattributes gives it the names (after the conversion).
+   */
+  it("says the restarts the agent sends carry what the running count carries, the pod's workload names included, as the chart's pipelines give them", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "It carries what **Container Restarts** carries, the workload names of the container's pod included, but not the container's ID, which changes with every restart.",
+    );
+
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    // The restarts pipeline hands its increases to the metrics pipeline...
+    expect(chart).toContain(
+      "            - cumulative_to_delta/restarts-increase\n          exporters:\n            - forward/restarts-increase\n",
+    );
+    expect(chart).toContain(
+      "          receivers:\n            - k8s_cluster\n            # The restarts since each container's previous sample, made in\n",
+    );
+    // ...whose k8sattributes extracts every workload a Workload Kind names...
+    for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+      expect(chart).toContain(`            - k8s.${kind.value}.name\n`);
+    }
+    // ...and never the container's ID, which comes off the increase.
+    expect(chart).toContain('delete_key(attributes, "container.id")');
+    expect(chart).not.toContain("            - container.id\n");
+  });
+
+  it("says the Job failures the agent sends carry what the count carries: the Job's name and namespace", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "It carries what **Job Failed Pods** carries: the Job's name and namespace.",
+    );
+    // A copy on the count's own resource, made before anything adds to it.
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    expect(chart).toContain(
+      "            - memory_limiter\n            # The failures since each Job's previous sample, for Job Failures\n",
+    );
+    expect(chart).toContain(
+      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n            - transform/pod-level-mark\n            - k8sattributes\n",
+    );
+    // A Job scope filters on the Job's own name.
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+        workloadType: "job",
+        workloadName: "nightly-export",
+      }),
+    ).toBe("resource.k8s.job.name");
+  });
+
+  it("says a Workload scope watches the workload's containers and pods, and a workload's own metrics carry only its own name", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "A container's and a pod's metrics carry the names of the workloads the pod belongs to (a Deployment's pod carries the Deployment's name and its ReplicaSet's), so a Workload scope watches that workload's containers and pods. A workload's own metrics, such as a Job's failed pods, carry only their own workload's name: scope them to that workload's kind.",
+    );
+    // Right under the scope table, before the Time Range.
+    const page: string = englishPage(KUBERNETES);
+    expect(
+      page.indexOf("so a Workload scope watches that workload's containers"),
+    ).toBeGreaterThan(
+      page.indexOf("| Pod | A pod | **Namespace**, **Pod Name** |"),
+    );
+    expect(
+      page.indexOf("so a Workload scope watches that workload's containers"),
+    ).toBeLessThan(page.indexOf("### Time Range"));
+
+    /*
+     * Both of the agent's collectors give pod and container telemetry the
+     * same workload names.
+     */
+    for (const config of [
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      "HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml",
+    ]) {
+      const chart: string = source(config);
+      for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+        expect({
+          config,
+          kind: kind.value,
+          extracted: chart.includes(`            - k8s.${kind.value}.name\n`),
+        }).toEqual({
+          config,
+          kind: kind.value,
+          extracted: true,
+        });
+      }
+    }
+  });
+
+  it("says in the troubleshooting entries what a monitor scoped to a workload needs", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it. A monitor scoped to a workload also needs the workload names on `k8s.container.restarts.increase`, which an older agent sends it without: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading).\n:::",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.job.failed_pods.increase` to it. A monitor scoped to a workload must name the Job itself: a Job's failed pods carry its name and namespace, not the CronJob that created it.\n:::",
     );
   });
 

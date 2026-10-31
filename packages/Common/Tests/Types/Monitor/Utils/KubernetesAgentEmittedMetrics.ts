@@ -212,7 +212,8 @@ export const ALLOWLISTED_SCRAPE_METRICS: ReadonlyArray<string> = [
  *   - k8s.container.restarts.increase, from k8s.container.restarts in its
  *     metrics/restarts-increase pipeline (tests/restarts-increase_test.yaml):
  *     the restarts since its previous sample of the container, which
- *     CrashLoopBackOff Detection sums;
+ *     CrashLoopBackOff Detection sums; that pipeline hands it to the metrics
+ *     pipeline, which gives it the count's workload names;
  *   - k8s.job.failed_pods.increase, a copy of k8s.job.failed_pods in its
  *     metrics pipeline (tests/job-failures-increase_test.yaml): the Job's
  *     failed pods since its previous sample of the Job, which Job Failures

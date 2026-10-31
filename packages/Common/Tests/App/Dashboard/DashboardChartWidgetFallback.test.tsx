@@ -844,3 +844,227 @@ describe("a fallback's hint", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Scoped to a workload by a variable of the dashboard's own - a Deployment
+ * picker on resource.k8s.deployment.name, say - the chart's queries read
+ * that workload's series alone. kubernetes-agent sends the restarts per
+ * interval with the workload names of the container's pod (its metrics
+ * pipeline gives them the names it gives the running count), so the chart
+ * draws that Deployment's restarts per interval. An agent that sends them
+ * without the names has none for the Deployment, and the chart falls back
+ * to the running count, which carries them, with the upgrade hint - which
+ * is what that agent needs.
+ */
+describe("the Kubernetes restarts chart, scoped to a workload by a dashboard variable", () => {
+  const DEPLOYMENT_KEY: string = "resource.k8s.deployment.name";
+
+  interface StoredSeries {
+    metricName: string;
+    hour: number;
+    attributes: Record<string, string>;
+    points: Array<AggregatedModel>;
+  }
+
+  // Two Deployments' containers, in the upgraded and the older agent's windows.
+  function storedSeries(): Array<StoredSeries> {
+    const upgraded: number = 9;
+    const older: number = 6;
+    const checkout: Record<string, string> = {
+      "resource.k8s.namespace.name": "payments",
+      [DEPLOYMENT_KEY]: "checkout",
+    };
+    const search: Record<string, string> = {
+      "resource.k8s.namespace.name": "payments",
+      [DEPLOYMENT_KEY]: "search",
+    };
+
+    return [
+      // An upgraded agent: the increase carries the Deployment's name.
+      {
+        metricName: RESTARTS_PER_INTERVAL,
+        hour: upgraded,
+        attributes: checkout,
+        points: rows(upgraded, [0, 1, 0, 2, 0, 0]),
+      },
+      {
+        metricName: RESTARTS_PER_INTERVAL,
+        hour: upgraded,
+        attributes: search,
+        points: rows(upgraded, [3, 0, 0, 0, 0, 1]),
+      },
+      {
+        metricName: RESTART_COUNT,
+        hour: upgraded,
+        attributes: checkout,
+        points: rows(upgraded, [5, 6, 6, 8, 8, 8]),
+      },
+      // An agent from before: the increase has the namespace, not the name.
+      {
+        metricName: RESTARTS_PER_INTERVAL,
+        hour: older,
+        attributes: { "resource.k8s.namespace.name": "payments" },
+        points: rows(older, [0, 1, 0, 1, 0, 0]),
+      },
+      {
+        metricName: RESTART_COUNT,
+        hour: older,
+        attributes: checkout,
+        points: rows(older, [3, 3, 4, 4, 4, 5]),
+      },
+      {
+        metricName: RESTART_COUNT,
+        hour: older,
+        attributes: search,
+        points: rows(older, [9, 9, 9, 9, 9, 9]),
+      },
+    ];
+  }
+
+  function selects(
+    series: StoredSeries,
+    filter: Record<string, unknown>,
+  ): boolean {
+    return Object.entries(filter).every(
+      ([key, value]: [string, unknown]): boolean => {
+        if (value instanceof Includes) {
+          return (value.values as Array<string>).includes(
+            series.attributes[key] as string,
+          );
+        }
+        return series.attributes[key] === value;
+      },
+    );
+  }
+
+  // The data layer: each query's series its attribute filters select.
+  function answerByAttributes(
+    metricViewData: MetricViewData,
+  ): Array<AggregatedResult> {
+    const startHour: number = (
+      metricViewData.startAndEndDate?.startValue as Date
+    ).getUTCHours();
+
+    return metricViewData.queryConfigs.map(
+      (config: MetricQueryConfigData): AggregatedResult => {
+        const filter: Record<string, unknown> =
+          (config.metricQueryData.filterData.attributes as
+            | Record<string, unknown>
+            | undefined) || {};
+
+        return {
+          data: storedSeries()
+            .filter((series: StoredSeries): boolean => {
+              return (
+                series.metricName ===
+                  String(config.metricQueryData.filterData.metricName) &&
+                series.hour === startHour &&
+                selects(series, filter)
+              );
+            })
+            .flatMap((series: StoredSeries): Array<AggregatedModel> => {
+              return series.points;
+            }),
+          truncated: false,
+        };
+      },
+    );
+  }
+
+  function deploymentVariable(
+    selected: string | Array<string>,
+  ): DashboardVariable {
+    return {
+      id: "deployment",
+      name: "deployment",
+      label: "Deployment",
+      type: DashboardVariableType.TelemetryAttribute,
+      attributeKey: DEPLOYMENT_KEY,
+      ...(Array.isArray(selected)
+        ? { isMultiSelect: true, selectedValues: selected }
+        : { selectedValue: selected }),
+    } as DashboardVariable;
+  }
+
+  function askedAttributes(): Array<Record<string, unknown>> {
+    return fetchArgs().map(
+      (args: CapturedFetchArgs): Record<string, unknown> => {
+        return (args.metricViewData.queryConfigs[0]!.metricQueryData.filterData
+          .attributes || {}) as Record<string, unknown>;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    fetchResultsMock.mockImplementation(
+      (args: unknown): Promise<Array<AggregatedResult>> => {
+        return Promise.resolve(
+          answerByAttributes((args as CapturedFetchArgs).metricViewData),
+        );
+      },
+    );
+  });
+
+  test("an agent that sends the workload names: that Deployment's restarts per interval, in one request, with no hint", async () => {
+    renderChart(storedRestartsChart(), {
+      variables: [deploymentVariable("checkout")],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
+    });
+    await settle();
+
+    expect(askedMetrics()).toEqual([[RESTARTS_PER_INTERVAL]]);
+    expect(askedAttributes()[0]![DEPLOYMENT_KEY]).toBe("checkout");
+    expect(drawnQueries()).toEqual([
+      { metricName: RESTARTS_PER_INTERVAL, legend: MAIN_LEGEND },
+    ]);
+    // checkout's alone, not search's.
+    expect(drawnValues()).toEqual([0, 1, 0, 2, 0, 0]);
+    expect(screen.queryByTestId("chart-fallback-hint")).toBeNull();
+  });
+
+  test("and the Deployments a multi-select picks, in one request", async () => {
+    renderChart(storedRestartsChart(), {
+      variables: [deploymentVariable(["checkout", "search"])],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
+    });
+    await settle();
+
+    expect(askedMetrics()).toEqual([[RESTARTS_PER_INTERVAL]]);
+    expect(askedAttributes()[0]![DEPLOYMENT_KEY]).toEqual(
+      new Includes(["checkout", "search"]),
+    );
+    expect(drawnValues()).toEqual([0, 1, 0, 2, 0, 0, 3, 0, 0, 0, 0, 1]);
+    expect(screen.queryByTestId("chart-fallback-hint")).toBeNull();
+  });
+
+  test("an agent that sends the increase without them: the Deployment's running count, with the upgrade hint", async () => {
+    renderChart(storedRestartsChart(), {
+      dashboardStartAndEndDate: OLDER_AGENT_WINDOW,
+      variables: [deploymentVariable("checkout")],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("chart-fallback-hint")).toBeInTheDocument();
+    });
+
+    // The scoped increase is empty; the scoped running count is not.
+    expect(askedMetrics()).toEqual([[RESTARTS_PER_INTERVAL], [RESTART_COUNT]]);
+    for (const attributes of askedAttributes()) {
+      expect(attributes[DEPLOYMENT_KEY]).toBe("checkout");
+    }
+    expect(drawnQueries()).toEqual([
+      { metricName: RESTART_COUNT, legend: FALLBACK_LEGEND },
+    ]);
+    expect(drawnValues()).toEqual([3, 3, 4, 4, 4, 5]);
+    expect(screen.getByRole("link", { name: HINT_LINK_TEXT })).toHaveAttribute(
+      "href",
+      UPGRADE_DOCS,
+    );
+  });
+});
