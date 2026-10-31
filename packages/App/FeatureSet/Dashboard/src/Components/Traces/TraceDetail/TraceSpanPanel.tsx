@@ -31,9 +31,13 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -54,7 +58,9 @@ import {
   getProfilePresenceGate,
 } from "../../../Utils/TraceCorrelatedSignals";
 import {
+  ATTRIBUTE_COUNT,
   AttributeEntry,
+  EXCEPTION_COUNT,
   SpanEventRow,
   SpanTiming,
   TraceServiceInfo,
@@ -68,7 +74,6 @@ import {
   formatPercent,
   getLogSeverityClassName,
   getSpanTiming,
-  pluralize,
 } from "../../../Utils/TraceDetailPresentation";
 import { getPodNameFromSpanAttributes } from "../../../Utils/TracePodLogs";
 import { SpanSubtreeIds, WaterfallSpan } from "../../../Utils/TraceWaterfall";
@@ -123,6 +128,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { span } = props;
   const spanId: string = span.spanId;
+  const translator: Translator = useTranslator();
 
   const [fullSpan, setFullSpan] = useState<Span | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState<boolean>(true);
@@ -475,6 +481,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
       ? buildSpanShareUrl(window.location.href, spanId)
       : "";
 
+  // Each tab's name in English, a key of the locales: drawn in the reader's language.
   const tabs: Array<{ id: PanelTab; label: string; count: number | null }> = [
     {
       id: "attributes",
@@ -534,12 +541,13 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     });
   };
 
+  // A tab with nothing to show: its message is English, drawn in the reader's language.
   const renderEmpty: (message: string) => ReactElement = (
     message: string,
   ): ReactElement => {
     return (
       <div className="rounded-md border border-dashed border-gray-200 px-3 py-6 text-center text-xs text-gray-500">
-        {message}
+        {translator.translateText(message)}
       </div>
     );
   };
@@ -579,7 +587,8 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                       </div>
                     )}
                     <div className="break-words text-xs text-gray-900">
-                      {exception.message || "Exception"}
+                      {exception.message ||
+                        translator.translateText("Exception")}
                     </div>
                   </div>
                   {groupRoute && (
@@ -588,14 +597,14 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                       openInNewTab={true}
                       className="flex-none text-[11px] font-medium text-red-700 hover:underline"
                     >
-                      View exception
+                      {translator.translateText("View exception")}
                     </Link>
                   )}
                 </div>
                 {exception.stackTrace && (
                   <details className="mt-2">
                     <summary className="cursor-pointer text-[11px] font-medium text-red-700">
-                      Stack trace
+                      {translator.translateText("Stack trace")}
                     </summary>
                     <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
                       {exception.stackTrace.replace(/\\n/g, "\n")}
@@ -675,7 +684,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     switch (activeTab) {
       case "attributes":
         if (attributes.length === 0) {
-          return renderEmpty("This span has no attributes.");
+          return renderEmpty(translationKey("This span has no attributes."));
         }
         return (
           <div className="space-y-2">
@@ -690,8 +699,14 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                   <input
                     type="search"
                     value={attributeFilter}
-                    placeholder={`Filter ${attributes.length} attributes`}
-                    aria-label="Filter attributes"
+                    placeholder={translator.translatePlural(
+                      {
+                        one: "Filter {{count}} attribute",
+                        other: "Filter {{count}} attributes",
+                      },
+                      attributes.length,
+                    )}
+                    aria-label={translator.translateText("Filter attributes")}
                     className="w-full rounded-md border border-gray-200 py-1.5 pl-8 pr-2 text-xs placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                       setAttributeFilter(event.target.value);
@@ -700,7 +715,10 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 </div>
               ) : (
                 <span className="flex-1 text-[11px] text-gray-500">
-                  {pluralize(attributes.length, "attribute")}
+                  {translator.translatePlural(
+                    ATTRIBUTE_COUNT,
+                    attributes.length,
+                  )}
                 </span>
               )}
               <div className="ml-auto flex items-center gap-1.5">
@@ -724,7 +742,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 dataTestId="trace-span-attributes-json"
               />
             ) : filteredAttributes.length === 0 ? (
-              renderEmpty("No attributes match this filter.")
+              renderEmpty(translationKey("No attributes match this filter."))
             ) : (
               <dl
                 className="divide-y divide-gray-100 overflow-hidden rounded-md border border-gray-200"
@@ -749,7 +767,10 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                               textToBeCopied={entry.value}
                               iconOnly={true}
                               size="xs"
-                              title={`Copy ${entry.key}`}
+                              title={translator.translateTemplate(
+                                "Copy {{key}}",
+                                { key: entry.key },
+                              )}
                             />
                             <Link
                               to={getAttributeSearchRoute(entry)}
@@ -774,7 +795,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
 
       case "events":
         if (events.length === 0) {
-          return renderEmpty("No events were recorded on this span.");
+          return renderEmpty(
+            translationKey("No events were recorded on this span."),
+          );
         }
         return (
           <ol className="space-y-2" data-testid="span-events">
@@ -790,18 +813,32 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                         <span
                           className={`block break-words text-xs font-medium ${event.isException ? "text-red-700" : "text-gray-900"}`}
                         >
-                          {event.isException ? "Exception: " : ""}
-                          {event.title}
+                          {event.isException
+                            ? translator.translateTemplate(
+                                "Exception: {{name}}",
+                                { name: event.title },
+                              )
+                            : event.title}
                         </span>
                         {event.attributes.length > 0 && (
                           <span className="text-[11px] text-gray-500">
-                            {pluralize(event.attributes.length, "attribute")}
+                            {translator.translatePlural(
+                              ATTRIBUTE_COUNT,
+                              event.attributes.length,
+                            )}
                           </span>
                         )}
                       </span>
                       <span
                         className="flex-none rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-gray-600"
-                        title={`${formatOffsetNano(event.offsetFromTraceStartUnixNano)} from the start of the trace`}
+                        title={translator.translateTemplate(
+                          "{{offset}} from the start of the trace",
+                          {
+                            offset: formatOffsetNano(
+                              event.offsetFromTraceStartUnixNano,
+                            ),
+                          },
+                        )}
                       >
                         {formatOffsetNano(event.offsetFromSpanStartUnixNano)}
                       </span>
@@ -810,7 +847,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                       <div className="mt-2 border-t border-gray-100 pt-2">
                         <div className="mb-1.5 flex items-center justify-between gap-2">
                           <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                            Event attributes
+                            {translator.translateText("Event attributes")}
                           </span>
                           <CopyAttributesAsJSONButton
                             attributes={event.rawAttributes}
@@ -862,7 +899,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
         }
         if (logs.length === 0 && !podEntityKey) {
           return renderEmpty(
-            "No logs were written inside this span. The trace's logs are listed below the waterfall.",
+            translationKey(
+              "No logs were written inside this span. The trace's logs are listed below the waterfall.",
+            ),
           );
         }
         return (
@@ -896,7 +935,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
           );
         }
         if (exceptions.length === 0 && !podEntityKey) {
-          return renderEmpty("No exceptions were recorded on this span.");
+          return renderEmpty(
+            translationKey("No exceptions were recorded on this span."),
+          );
         }
         return (
           <div className="space-y-4">
@@ -916,7 +957,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
 
       case "links":
         if (links.length === 0) {
-          return renderEmpty("This span does not link to other spans.");
+          return renderEmpty(
+            translationKey("This span does not link to other spans."),
+          );
         }
         return (
           <ul className="space-y-2" data-testid="span-links">
@@ -935,23 +978,33 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 space-y-0.5 font-mono text-[11px] text-gray-700">
-                      <div className="truncate">trace {link.traceId}</div>
-                      <div className="truncate">span {link.spanId}</div>
+                      <div className="truncate">
+                        {translator.translateTemplate("trace {{traceId}}", {
+                          traceId: link.traceId,
+                        })}
+                      </div>
+                      <div className="truncate">
+                        {translator.translateTemplate("span {{spanId}}", {
+                          spanId: link.spanId,
+                        })}
+                      </div>
                     </div>
                     <Link
                       to={route}
                       className="flex-none font-medium text-indigo-600 hover:underline"
                     >
-                      {link.traceId === props.traceId
-                        ? "Show span"
-                        : "Open trace"}
+                      {translator.translateText(
+                        link.traceId === props.traceId
+                          ? "Show span"
+                          : "Open trace",
+                      )}
                     </Link>
                   </div>
                   {linkAttributes.length > 0 && (
                     <div className="mt-2 border-t border-gray-100 pt-2">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                          Link attributes
+                          {translator.translateText("Link attributes")}
                         </span>
                         <CopyAttributesAsJSONButton
                           attributes={link.attributes}
@@ -993,6 +1046,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               {describeSpanProfileScope({
                 sampleCount: profileSampleCount,
                 subtree: props.subtree,
+                translator,
               })}
             </p>
             <TraceScopedFlamegraph
@@ -1019,7 +1073,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
   return (
     <aside
       className="flex h-full min-h-0 flex-col overflow-hidden bg-white"
-      aria-label="Span details"
+      aria-label={translator.translateText("Span details")}
       data-testid="trace-span-panel"
     >
       <header className="border-b border-gray-200 px-4 py-3">
@@ -1042,7 +1096,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               className="mt-1 break-words text-sm font-semibold leading-snug text-gray-900"
               data-testid="span-panel-title"
             >
-              {span.name || "(unnamed span)"}
+              {span.name || translator.translateText("(unnamed span)")}
             </h3>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span
@@ -1057,16 +1111,19 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                   className={`h-1.5 w-1.5 rounded-full ${span.isError ? "bg-red-500" : "bg-emerald-500"}`}
                   aria-hidden="true"
                 />
-                {span.isError ? "Error" : "No error"}
+                {translator.translateText(span.isError ? "Error" : "No error")}
               </span>
               {props.isOnCriticalPath && (
                 <span className="inline-flex items-center rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-medium text-white">
-                  On critical path
+                  {translator.translateText("On critical path")}
                 </span>
               )}
               {exceptionEventCount > 0 && (
                 <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                  {pluralize(exceptionEventCount, "exception")}
+                  {translator.translatePlural(
+                    EXCEPTION_COUNT,
+                    exceptionEventCount,
+                  )}
                 </span>
               )}
             </div>
@@ -1081,7 +1138,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-              aria-label="Close span details"
+              aria-label={translator.translateText("Close span details")}
               data-testid="span-panel-close"
               onClick={props.onClose}
             >
@@ -1106,13 +1163,17 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
         >
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <div>
-              <dt className="text-gray-500">Duration</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Duration")}
+              </dt>
               <dd className="font-semibold tabular-nums text-gray-900">
                 {formatDurationNano(timing.durationUnixNano)}
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Self time</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Self time")}
+              </dt>
               <dd className="font-semibold tabular-nums text-gray-900">
                 {formatDurationNano(timing.selfTimeUnixNano)}
                 <span className="ml-1 font-normal text-gray-500">
@@ -1121,14 +1182,31 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Starts</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Starts")}
+              </dt>
               <dd className="tabular-nums text-gray-900">
-                {formatOffsetNano(timing.offsetUnixNano)}
-                <span className="ml-1 text-gray-500">into the trace</span>
+                {/*
+                 * The offset where the language puts it, the words around it
+                 * muted.
+                 */}
+                <TranslatedSentence
+                  template="{{offset}} into the trace"
+                  slots={{
+                    offset: (
+                      <span>{formatOffsetNano(timing.offsetUnixNano)}</span>
+                    ),
+                  }}
+                  renderText={(text: string): ReactNode => {
+                    return <span className="text-gray-500">{text}</span>;
+                  }}
+                />
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Children</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Children")}
+              </dt>
               <dd className="tabular-nums text-gray-900">
                 {props.childCount.toLocaleString()}
               </dd>
@@ -1136,7 +1214,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
           </dl>
           <div
             className="relative h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
-            title="Where this span sits in the trace"
+            title={translator.translateText(
+              "Where this span sits in the trace",
+            )}
           >
             <div
               className="absolute inset-y-0 rounded-full"
@@ -1158,7 +1238,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 icon={IconProp.MagnifyingGlassPlus}
                 className="h-3.5 w-3.5"
               />
-              Zoom to span
+              {translator.translateText("Zoom to span")}
             </button>
             {replayRoute && (
               <Link
@@ -1167,13 +1247,15 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 title="Open the session recording at the moment this span started"
               >
                 <Icon icon={IconProp.Film} className="h-3.5 w-3.5" />
-                Watch session
+                {translator.translateText("Watch session")}
               </Link>
             )}
           </div>
           <dl className="space-y-1.5 text-xs">
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-gray-500">Span ID</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Span ID")}
+              </dt>
               <dd className="flex min-w-0 items-center gap-1">
                 <code
                   className="truncate font-mono text-[11px] text-gray-800"
@@ -1190,13 +1272,17 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               </dd>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-gray-500">Parent</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Parent")}
+              </dt>
               <dd className="min-w-0 truncate text-right">
                 {props.parentSpan ? (
                   <button
                     type="button"
                     className="max-w-full truncate font-medium text-indigo-600 hover:underline"
-                    title={`Select ${props.parentSpan.name}`}
+                    title={translator.translateTemplate("Select {{name}}", {
+                      name: props.parentSpan.name,
+                    })}
                     data-testid="span-panel-parent"
                     onClick={() => {
                       props.onSelectSpan(props.parentSpan!.spanId);
@@ -1211,12 +1297,19 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 ) : span.parentSpanId ? (
                   <span
                     className="text-amber-700"
-                    title={`Parent span ${span.parentSpanId} was not received`}
+                    title={translator.translateTemplate(
+                      "Parent span {{spanId}} was not received",
+                      { spanId: span.parentSpanId },
+                    )}
                   >
-                    Missing ({span.parentSpanId.slice(0, 8)}…)
+                    {translator.translateTemplate("Missing ({{spanId}}…)", {
+                      spanId: span.parentSpanId.slice(0, 8),
+                    })}
                   </span>
                 ) : (
-                  <span className="text-gray-500">None — root span</span>
+                  <span className="text-gray-500">
+                    {translator.translateText("None — root span")}
+                  </span>
                 )}
               </dd>
             </div>
@@ -1227,7 +1320,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
           <div
             className="-mb-px flex flex-wrap gap-x-1"
             role="tablist"
-            aria-label="Span details"
+            aria-label={translator.translateText("Span details")}
           >
             {tabs.map(
               (tab: {
@@ -1252,7 +1345,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                       setActiveTab(tab.id);
                     }}
                   >
-                    {tab.label}
+                    {translator.translateText(tab.label)}
                     {tab.count !== null && (
                       <span
                         className={`rounded-full px-1.5 text-[10px] tabular-nums ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}

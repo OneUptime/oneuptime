@@ -5,6 +5,8 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -31,6 +33,7 @@ export interface ComponentProps {
 
 interface Column {
   key: OperationSortKey;
+  // The header and its tooltip, in English: keys of the locales.
   label: string;
   align: "left" | "right";
   hint: string;
@@ -83,6 +86,7 @@ const COLUMNS: Array<Column> = [
 const TraceOperations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [sortKey, setSortKey] = useState<OperationSortKey>("selfTime");
   const [direction, setDirection] = useState<SortDirection>("desc");
 
@@ -106,7 +110,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
-        No operations match the current filters.
+        {translator.translateText("No operations match the current filters.")}
       </div>
     );
   }
@@ -125,12 +129,14 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
           <tr>
             {COLUMNS.map((column: Column): ReactElement => {
               const isSorted: boolean = column.key === sortKey;
+              const label: string =
+                translator.translateText(column.label) || column.label;
               return (
                 <ResizableHeaderCell
                   key={column.key}
                   resize={operationColumns.getResize(
                     column.key,
-                    column.label,
+                    label,
                     column.key === "name"
                       ? ColumnWidthKind.Name
                       : ColumnWidthKind.Whole,
@@ -147,7 +153,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                 >
                   <button
                     type="button"
-                    title={column.hint}
+                    title={translator.translateText(column.hint)}
                     className={`inline-flex items-center gap-1 hover:text-gray-900 ${isSorted ? "text-gray-900" : ""}`}
                     onClick={() => {
                       if (isSorted) {
@@ -158,7 +164,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                       }
                     }}
                   >
-                    {column.label}
+                    {label}
                     {isSorted && (
                       <Icon
                         icon={
@@ -189,7 +195,9 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                 className="cursor-pointer hover:bg-gray-50"
                 data-testid="trace-operation-row"
                 tabIndex={0}
-                title="Show these spans in the waterfall"
+                title={translator.translateText(
+                  "Show these spans in the waterfall",
+                )}
                 onClick={() => {
                   props.onSelectOperation(operation);
                 }}
@@ -216,15 +224,25 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                       className="min-w-0 truncate font-medium text-gray-900"
                       title={operation.name}
                     >
-                      {operation.name || "(unnamed span)"}
+                      {operation.name ||
+                        translator.translateText("(unnamed span)")}
                     </span>
                     {isRepeated && (
                       <span
                         className="flex-none rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20"
-                        title="Called many times from a single parent span. This is often an N+1 query or a loop that could be batched."
+                        title={translator.translateText(
+                          "Called many times from a single parent span. This is often an N+1 query or a loop that could be batched.",
+                        )}
                         data-testid="trace-operation-repeated"
                       >
-                        ×{operation.maxCallsFromOneParent} from one parent
+                        {translator.translateTemplate(
+                          "×{{count}} from one parent",
+                          {
+                            count: translator.formatNumber(
+                              operation.maxCallsFromOneParent,
+                            ),
+                          },
+                        )}
                       </span>
                     )}
                   </div>
