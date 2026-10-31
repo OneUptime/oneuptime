@@ -1,11 +1,15 @@
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import MicrosoftTeamsCloudUtil, {
+  MicrosoftTeamsCloud,
+  MicrosoftTeamsCloudHosts,
+} from "../../../Types/Workspace/MicrosoftTeamsCloud";
 import { makeUnsignedJwt } from "./WorkspaceOAuthTestHelpers";
 
 /*
  * A fake Microsoft identity platform (login.microsoftonline.com) and the part
- * of Microsoft Graph a Microsoft Teams sign-in reads (/v1.0/me), to drive
+ * of Microsoft Graph a Microsoft Teams sign-in reads (/v1.0/me, /v1.0/teams), to drive
  * OneUptime's sign-ins end to end without Microsoft.
  *
  * It holds app registrations and directories, and answers the way Microsoft
@@ -36,13 +40,27 @@ import { makeUnsignedJwt } from "./WorkspaceOAuthTestHelpers";
  *    for openid and offline_access gets; tokenFromFetch answers a form
  *    posted with fetch, as the Teams meetings app posts its code
  *    (VideoCallHttpClient).
+ *  - It is one Microsoft cloud's (the commercial one unless it is made for
+ *    another: GCC High, DoD), and answers on that cloud's hosts only, as
+ *    Microsoft does: a sign-in host of another cloud knows none of its apps
+ *    (AADSTS700016), a Graph of another cloud none of its tokens, and its
+ *    Graph scopes are its own Graph's - a scope on another cloud's Graph is
+ *    refused (AADSTS500011). ID tokens name the cloud's issuer.
+ *  - Admin consent (adminConsent) sends the admin back with the tenant they
+ *    consented for, and a client credentials grant gives the app a token
+ *    that reads the tenant's teams (/v1.0/teams).
  *
  * Codes and tokens are counters, not random: nothing here is a secret.
  */
 
-export const FAKE_MICROSOFT_LOGIN_ORIGIN: string =
-  "https://login.microsoftonline.com";
+// Microsoft Graph's /me in the commercial cloud, where the fake is unless made for another.
 export const FAKE_GRAPH_ME_URL: string = "https://graph.microsoft.com/v1.0/me";
+
+// A team a tenant holds, as Graph's /teams lists it.
+export interface FakeTeam {
+  id: string;
+  displayName: string;
+}
 
 // The endpoints for every organization, which name no tenant.
 const ENDPOINTS_FOR_EVERY_ORGANIZATION: Array<string> = [
@@ -99,6 +117,8 @@ interface IssuedCode {
   authority: string;
   account: FakeAccount;
   isRedeemed: boolean;
+  // The nonce the sign-in asked for, echoed in the ID token.
+  nonce: string;
 }
 
 // What the fake was asked, for tests to read.
@@ -111,6 +131,7 @@ export interface FakeTokenRequest {
 
 const AUTHORIZE_PATH: RegExp = /^\/([^/]+)\/oauth2\/v2\.0\/authorize$/;
 const TOKEN_PATH: RegExp = /^\/([^/]+)\/oauth2\/v2\.0\/token$/;
+const ADMIN_CONSENT_PATH: RegExp = /^\/([^/]+)\/v2\.0\/adminconsent$/;
 
 export default class FakeMicrosoftIdentityPlatform {
   public readonly authorizeRequests: Array<{
@@ -121,15 +142,44 @@ export default class FakeMicrosoftIdentityPlatform {
   public readonly tokenRequests: Array<FakeTokenRequest> = [];
   // Graph reads, by the account they answered as.
   public readonly profileReads: Array<FakeAccount> = [];
+  // Every address OneUptime called, sign-in and Graph alike, in order.
+  public readonly calledUrls: Array<string> = [];
+
+  // The Microsoft cloud this fake is, and its hosts.
+  public readonly hosts: MicrosoftTeamsCloudHosts;
 
   private apps: Array<FakeAppRegistration> = [];
   private accounts: Array<FakeAccount> = [];
+  private teams: Map<string, Array<FakeTeam>> = new Map<
+    string,
+    Array<FakeTeam>
+  >();
   private codes: Map<string, IssuedCode> = new Map<string, IssuedCode>();
   private accessTokens: Map<string, FakeAccount> = new Map<
     string,
     FakeAccount
   >();
+  // App tokens, by the tenant each reads.
+  private appTokens: Map<string, string> = new Map<string, string>();
   private counter: number = 0;
+
+  public constructor(options?: { cloud?: MicrosoftTeamsCloud | undefined }) {
+    this.hosts = MicrosoftTeamsCloudUtil.getHosts(
+      options?.cloud || MicrosoftTeamsCloud.Commercial,
+    );
+  }
+
+  // Microsoft Graph's /me in this cloud.
+  public get graphMeUrl(): string {
+    return `${this.hosts.graphOrigin}/v1.0/me`;
+  }
+
+  // A team the tenant holds, as Graph lists it to an app token of the tenant.
+  public addTeam(tenantId: string, team: FakeTeam): void {
+    const key: string = tenantId.toLowerCase();
+
+    this.teams.set(key, [...(this.teams.get(key) || []), team]);
+  }
 
   public registerApp(app: FakeAppRegistration): void {
     this.apps = this.apps.filter((existing: FakeAppRegistration) => {
@@ -167,14 +217,22 @@ export default class FakeMicrosoftIdentityPlatform {
     const parsed: globalThis.URL = new globalThis.URL(url);
     const match: RegExpExecArray | null = AUTHORIZE_PATH.exec(parsed.pathname);
 
-    if (parsed.origin !== FAKE_MICROSOFT_LOGIN_ORIGIN || !match) {
+    this.calledUrls.push(url);
+
+    if (!match) {
       throw new Error(`Not Microsoft's authorize endpoint: ${url}`);
+    }
+
+    // Another cloud's sign-in knows none of this cloud's apps.
+    if (parsed.origin !== this.hosts.signInOrigin) {
+      return FakeMicrosoftIdentityPlatform.errorPage("AADSTS700016");
     }
 
     const authority: string = decodeURIComponent(match[1]!).toLowerCase();
     const clientId: string = parsed.searchParams.get("client_id") || "";
     const redirectUri: string = parsed.searchParams.get("redirect_uri") || "";
     const state: string = parsed.searchParams.get("state") || "";
+    const nonce: string = parsed.searchParams.get("nonce") || "";
 
     this.authorizeRequests.push({ authority, clientId, person });
 
@@ -239,9 +297,83 @@ export default class FakeMicrosoftIdentityPlatform {
       authority,
       account,
       isRedeemed: false,
+      nonce,
     });
 
     return back({ code });
+  }
+
+  /*
+   * A browser at `url`, Microsoft's admin consent endpoint, consented to as
+   * `person`, a Microsoft 365 administrator: sent back with the tenant the
+   * consent is for, which is the administrator's own.
+   */
+  public adminConsent(url: string, person: string): FakeAuthorizeOutcome {
+    const parsed: globalThis.URL = new globalThis.URL(url);
+    const match: RegExpExecArray | null = ADMIN_CONSENT_PATH.exec(
+      parsed.pathname,
+    );
+
+    this.calledUrls.push(url);
+
+    if (!match) {
+      throw new Error(`Not Microsoft's admin consent endpoint: ${url}`);
+    }
+
+    if (parsed.origin !== this.hosts.signInOrigin) {
+      return FakeMicrosoftIdentityPlatform.errorPage("AADSTS700016");
+    }
+
+    const authority: string = decodeURIComponent(match[1]!).toLowerCase();
+    const clientId: string = parsed.searchParams.get("client_id") || "";
+    const redirectUri: string = parsed.searchParams.get("redirect_uri") || "";
+    const state: string = parsed.searchParams.get("state") || "";
+    const scope: string = parsed.searchParams.get("scope") || "";
+    const app: FakeAppRegistration | undefined = this.findApp(clientId);
+
+    if (!app) {
+      return FakeMicrosoftIdentityPlatform.errorPage("AADSTS700016");
+    }
+
+    if (!app.redirectUris.includes(redirectUri)) {
+      return FakeMicrosoftIdentityPlatform.errorPage("AADSTS50011");
+    }
+
+    const back: (params: Record<string, string>) => FakeAuthorizeOutcome = (
+      params: Record<string, string>,
+    ): FakeAuthorizeOutcome => {
+      return {
+        redirectTo: `${redirectUri}?${new URLSearchParams({
+          ...params,
+          state,
+        }).toString()}`,
+        errorPage: null,
+      };
+    };
+
+    // Consent is asked for this cloud's Graph, or for nothing it has.
+    if (scope !== `${this.hosts.graphOrigin}/.default`) {
+      return back({
+        error: "invalid_request",
+        error_description: `AADSTS500011: The resource principal named ${scope} was not found in the tenant.`,
+      });
+    }
+
+    const account: FakeAccount | undefined = ENDPOINTS_FOR_EVERY_ORGANIZATION.includes(
+      authority,
+    )
+      ? this.homeAccountOf(person)
+      : this.accountOf(person, authority);
+
+    if (!account) {
+      return FakeMicrosoftIdentityPlatform.errorPage("AADSTS50020");
+    }
+
+    return back({
+      admin_consent: "True",
+      tenant: account.tenantId,
+      scope: scope,
+    });
   }
 
   // Microsoft's token endpoint, as OneUptime's API.post calls it.
@@ -252,7 +384,9 @@ export default class FakeMicrosoftIdentityPlatform {
     const parsed: globalThis.URL = new globalThis.URL(url);
     const match: RegExpExecArray | null = TOKEN_PATH.exec(parsed.pathname);
 
-    if (parsed.origin !== FAKE_MICROSOFT_LOGIN_ORIGIN || !match) {
+    this.calledUrls.push(url);
+
+    if (!match) {
       throw new Error(`Not Microsoft's token endpoint: ${url}`);
     }
 
@@ -274,12 +408,55 @@ export default class FakeMicrosoftIdentityPlatform {
         : new HTTPErrorResponse(status, body, {});
     };
 
+    // Another cloud's sign-in knows none of this cloud's apps.
+    if (parsed.origin !== this.hosts.signInOrigin) {
+      return answer(400, {
+        error: "unauthorized_client",
+        error_description: `AADSTS700016: Application with identifier '${clientId}' was not found in the directory.`,
+      });
+    }
+
     const app: FakeAppRegistration | undefined = this.findApp(clientId);
 
     if (!app || form["client_secret"] !== app.clientSecret) {
       return answer(401, {
         error: "invalid_client",
         error_description: "AADSTS7000215: Invalid client secret provided.",
+      });
+    }
+
+    // A scope on another cloud's Graph names nothing this cloud has.
+    const graphScopes: Array<string> = String(form["scope"] || "")
+      .split(" ")
+      .filter((scope: string): boolean => {
+        return scope.startsWith("https://");
+      });
+
+    if (
+      graphScopes.some((scope: string): boolean => {
+        return !scope.startsWith(`${this.hosts.graphOrigin}/`);
+      })
+    ) {
+      return answer(400, {
+        error: "invalid_scope",
+        error_description: `AADSTS500011: The resource principal named ${graphScopes.join(
+          " ",
+        )} was not found in the tenant.`,
+      });
+    }
+
+    if (grantType === "client_credentials") {
+      if (ENDPOINTS_FOR_EVERY_ORGANIZATION.includes(authority)) {
+        return answer(400, { error: "invalid_request" });
+      }
+
+      const appToken: string = `fake-app-token-${this.next()}`;
+      this.appTokens.set(appToken, authority);
+
+      return answer(200, {
+        token_type: "Bearer",
+        expires_in: 3599,
+        access_token: appToken,
       });
     }
 
@@ -328,9 +505,12 @@ export default class FakeMicrosoftIdentityPlatform {
       refresh_token: `fake-refresh-token-${this.next()}`,
       id_token: makeUnsignedJwt({
         aud: clientId,
+        iss: `${this.hosts.signInOrigin}/${issued.account.tenantId.toLowerCase()}/v2.0`,
         tid: issued.account.tenantId,
         oid: issued.account.objectId,
         preferred_username: issued.account.userPrincipalName,
+        nonce: issued.nonce,
+        exp: Math.floor(Date.now() / 1000) + 3600,
       }),
     });
   }
@@ -366,12 +546,67 @@ export default class FakeMicrosoftIdentityPlatform {
     };
   }
 
+  /*
+   * Microsoft Graph, as OneUptime's API.get calls it: /me for a person's
+   * token, and /teams for an app token of a tenant - on this cloud's Graph,
+   * which no other cloud's token reads.
+   */
+  public graph(
+    url: string,
+    headers: Record<string, string> | undefined,
+  ): HTTPResponse<JSONObject> | HTTPErrorResponse {
+    const parsed: globalThis.URL = new globalThis.URL(url);
+
+    this.calledUrls.push(url);
+
+    if (parsed.origin !== this.hosts.graphOrigin) {
+      return new HTTPErrorResponse(
+        401,
+        { error: { code: "InvalidAuthenticationToken" } },
+        {},
+      );
+    }
+
+    if (parsed.pathname === "/v1.0/me") {
+      return this.readProfile(url, headers);
+    }
+
+    if (parsed.pathname !== "/v1.0/teams") {
+      throw new Error(`Not a Graph read this fake answers: ${url}`);
+    }
+
+    const authorization: string = (headers || {})["Authorization"] || "";
+    const tenant: string | undefined = authorization.startsWith("Bearer ")
+      ? this.appTokens.get(authorization.substring("Bearer ".length))
+      : undefined;
+
+    if (!tenant) {
+      return new HTTPErrorResponse(
+        401,
+        { error: { code: "InvalidAuthenticationToken" } },
+        {},
+      );
+    }
+
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        value: (this.teams.get(tenant) || []).map(
+          (team: FakeTeam): JSONObject => {
+            return { id: team.id, displayName: team.displayName };
+          },
+        ),
+      },
+      {},
+    );
+  }
+
   // Microsoft Graph's /me, as OneUptime's API.get calls it.
   public readProfile(
     url: string,
     headers: Record<string, string> | undefined,
   ): HTTPResponse<JSONObject> | HTTPErrorResponse {
-    if (url !== FAKE_GRAPH_ME_URL) {
+    if (url !== this.graphMeUrl) {
       throw new Error(`Not Microsoft Graph's /me: ${url}`);
     }
 

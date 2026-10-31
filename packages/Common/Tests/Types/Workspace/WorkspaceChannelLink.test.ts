@@ -91,6 +91,49 @@ describe("Microsoft Teams", () => {
     expect(parsed.searchParams.get("tenantId")).toBe(TENANT_GUID);
   });
 
+  test("in a US Government cloud, on that cloud's Teams on the web", () => {
+    for (const [origin, host] of [
+      ["https://gov.teams.microsoft.us", "gov.teams.microsoft.us"],
+      ["https://dod.teams.microsoft.us", "dod.teams.microsoft.us"],
+    ]) {
+      const url: string | null =
+        WorkspaceChannelLinkUtil.getMicrosoftTeamsChannelUrl({
+          tenantId: TENANT_GUID,
+          teamId: TEAM_GUID,
+          channelId: TEAMS_CHANNEL,
+          channelName: "ops",
+          teamsWebOrigin: origin,
+        });
+      const parsed: URL = new URL(url!);
+
+      expect(parsed.host).toBe(host);
+      expect(parsed.pathname.startsWith("/l/channel/")).toBe(true);
+      expect(parsed.searchParams.get("groupId")).toBe(TEAM_GUID);
+      // And the page takes it: it is on Teams' host, in that cloud.
+      expect(
+        WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          url: url!,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("a link on a host that only looks like a Teams cloud's is not Teams'", () => {
+    for (const url of [
+      "https://gov.teams.microsoft.us.evil.example/l/channel/x/y",
+      "https://teams.microsoft.us/l/channel/x/y",
+      "http://gov.teams.microsoft.us/l/channel/x/y",
+    ]) {
+      expect(
+        WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          url: url,
+        }),
+      ).toBe(false);
+    }
+  });
+
   test("without a tenant, Teams finds the channel by its team", () => {
     const url: string | null =
       WorkspaceChannelLinkUtil.getMicrosoftTeamsChannelUrl({

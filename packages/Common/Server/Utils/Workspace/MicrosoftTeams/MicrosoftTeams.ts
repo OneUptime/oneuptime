@@ -2954,6 +2954,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         }
 
         nextLink = MicrosoftTeamsHosts.readGraphNextLink(response.data);
+
+        /*
+         * A next page that is not on this cloud's Graph is not followed - the
+         * request would carry the app's Graph token - so the pages not read
+         * might hold the app: say it is not known, not that it is missing.
+         */
+        if (!nextLink && response.data["@odata.nextLink"]) {
+          logger.warn(
+            `Microsoft Graph answered the installed apps of team ${data.teamId} with a next page that is not on Microsoft Graph; it was not followed.`,
+          );
+          return MicrosoftTeamsAppInstallState.Unknown;
+        }
       }
 
       return MicrosoftTeamsAppInstallState.NotInstalled;
