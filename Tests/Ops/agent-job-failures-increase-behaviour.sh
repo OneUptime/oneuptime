@@ -31,8 +31,10 @@
 #   - nothing for a count that went down in the same Job, then the next
 #     failure from it;
 #   - 0 for a Job that failed long ago;
-# with the Job's UID, name and namespace kept and the cluster name stamped;
-# and k8s.job.failed_pods itself, the Jobs' other gauges, a container's
+# with the Job's UID, name and namespace kept and the cluster name stamped:
+# exactly the attributes k8s.job.failed_pods carries at the same sample, the
+# same at every sample of a Job however many pods it retried with; and
+# k8s.job.failed_pods itself, the Jobs' other gauges, a container's
 # restart count and a Prometheus counter beside them, out as they came in.
 # Utils/KubernetesAgentJobFailuresIncreaseBehaviour.js builds the config and
 # the payloads and checks the export; KubernetesAgentJobFailuresIncrease.test.js

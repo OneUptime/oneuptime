@@ -204,12 +204,19 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    * metrics/restarts-increase pipeline), so their Sum over a window is the
    * restarts in it - what CrashLoopBackOff Detection reads.
    * k8s.container.restarts above is the running total, for the charts.
+   *
+   * The increase carries what the running total carries but container.id:
+   * the pod's namespace, name, UID and node, the container's name, and the
+   * workload names the agent's k8sattributes gives every container metric
+   * (resource.k8s.deployment.name and the rest), after the conversion. So
+   * a Workload scope, or a group-by on a workload's name, reads it as it
+   * reads the other container metrics.
    */
   {
     id: "container-restarts-increase",
     friendlyName: "Container Restarts (Increase)",
     description:
-      "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+      "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it. Carries its pod's workload names, so it can be scoped to a workload.",
     metricName: "k8s.container.restarts.increase",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -345,12 +352,17 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    * chart's transform/job-failures-increase), so their Sum over a window is
    * the failures in it - what Job Failures reads. k8s.job.failed_pods above
    * is the Job's running count, for the charts.
+   *
+   * A copy on the count's own resource, so it carries what the count
+   * carries: the Job's name, UID and namespace. The Job is the workload, so
+   * a Workload scope of kind Job reads it; the receiver puts no CronJob on a
+   * Job's metrics.
    */
   {
     id: "job-failed-pods-increase",
     friendlyName: "Job Failed Pods (Increase)",
     description:
-      "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it.",
+      "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it. Carries the Job's name and namespace, so it can be scoped to a Job.",
     metricName: "k8s.job.failed_pods.increase",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Sum,

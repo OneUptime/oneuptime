@@ -501,6 +501,137 @@ describe("agent-job-failures-increase-behaviour.sh: what it feeds the collector 
       }).toEqual({ mutation: name, caught: true });
     }
   });
+
+  test("the copy carries what the count carries at every sample: the Job's name, UID and namespace, and the cluster's attributes", () => {
+    const points = exportedAsExpected();
+    const increases = points.filter((point) => {
+      return point.metric === behaviour.INCREASE_METRIC;
+    });
+
+    expect(increases.length).toBe(behaviour.EXPECTED_INCREASES.length);
+    for (const point of increases) {
+      const original = points.find((candidate) => {
+        return (
+          candidate.metric === behaviour.FAILED_METRIC &&
+          candidate.time === point.time &&
+          candidate.resource["k8s.job.uid"] === point.resource["k8s.job.uid"]
+        );
+      });
+
+      expect(point.resource).toEqual(original.resource);
+      // The workload: the Job itself, which Job Failures groups by.
+      expect(Object.keys(point.resource).sort()).toEqual([
+        "k8s.cluster.name",
+        "k8s.job.name",
+        "k8s.job.uid",
+        "k8s.namespace.name",
+        "service.name",
+      ]);
+    }
+  });
+
+  test("a Job's retries are new pods on the same Job, so every failure of a failing Job counts in one series", () => {
+    // nightly-export fails a pod at a time, retrying with a new pod each
+    // time; its resource, and so its series, stays the Job's.
+    const nightly = behaviour.JOBS.find((entry) => {
+      return entry.job === "nightly-export";
+    });
+    expect(
+      new Set(
+        nightly.samples.map((sample) => {
+          return sample.jobUid;
+        }),
+      ).size,
+    ).toBe(1);
+    const increases = behaviour.failureIncreasesFrom(nightly.samples);
+    expect(
+      increases.filter((counted) => {
+        return counted.increase > 0;
+      }).length,
+    ).toBeGreaterThanOrEqual(4);
+    expect(
+      increases.reduce((total, counted) => {
+        return total + counted.increase;
+      }, 0),
+    ).toBe(nightly.samples[6].count - nightly.samples[0].count);
+
+    // Its payloads carry nothing of the pods: only the Job's own keys.
+    for (let index = 0; index < behaviour.SAMPLE_SECONDS.length; index++) {
+      const resource = behaviour
+        .scrapePayload(index)
+        .resourceMetrics[0].resource.attributes.map((attribute) => {
+          return attribute.key;
+        });
+      expect(resource.sort()).toEqual([
+        "k8s.job.name",
+        "k8s.job.uid",
+        "k8s.namespace.name",
+      ]);
+    }
+  });
+
+  test("its check fails an export whose copy carries other workload attributes than the count, or whose Job series split", () => {
+    const increasesOf = (points, job) => {
+      return points.filter((point) => {
+        return (
+          point.metric === behaviour.INCREASE_METRIC &&
+          point.resource["k8s.job.name"] === job
+        );
+      });
+    };
+    const mutations = {
+      "the copy lost the Job's name": (points) => {
+        delete increasesOf(points, "nightly-export")[2].resource[
+          "k8s.job.name"
+        ];
+      },
+      "the copy lost the namespace": (points) => {
+        delete increasesOf(points, "db-migrate")[0].resource[
+          "k8s.namespace.name"
+        ];
+      },
+      "the copy names a CronJob the count does not": (points) => {
+        increasesOf(points, "report-28851120")[1].resource["k8s.cronjob.name"] =
+          "report";
+      },
+      "the count names a CronJob the copy does not": (points) => {
+        points.find((point) => {
+          return (
+            point.metric === behaviour.FAILED_METRIC &&
+            point.resource["k8s.job.name"] === "report-28851120" &&
+            point.time === behaviour.sampleTimeNano(3)
+          );
+        }).resource["k8s.cronjob.name"] = "report";
+      },
+      "the copy carries another Job's UID": (points) => {
+        increasesOf(points, "legacy-sync")[1].resource["k8s.job.uid"] =
+          "nightly-export-uid";
+      },
+      "a retry split the Job's series, the count's too": (points) => {
+        // A retry's pod name on one sample of both: they still agree.
+        for (const point of points) {
+          if (
+            point.resource["k8s.job.name"] === "nightly-export" &&
+            point.time === behaviour.sampleTimeNano(4)
+          ) {
+            point.resource["k8s.pod.name"] = "nightly-export-q7x2c";
+          }
+        }
+      },
+    };
+
+    for (const [name, mutate] of Object.entries(mutations)) {
+      const points = exportedAsExpected().map((point) => {
+        return { ...point, resource: { ...point.resource } };
+      });
+      mutate(points);
+
+      expect({
+        mutation: name,
+        caught: behaviour.problemsWith(points).length > 0,
+      }).toEqual({ mutation: name, caught: true });
+    }
+  });
 });
 
 describe("agent-job-failures-increase-behaviour.sh runs where it says", () => {

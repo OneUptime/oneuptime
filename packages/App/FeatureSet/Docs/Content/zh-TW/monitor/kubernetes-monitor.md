@@ -69,6 +69,8 @@ flowchart TB
 | 節點 | 叢集中的一個節點 | **節點名稱** |
 | Pod | 一個 Pod | **命名空間**、**Pod 名稱** |
 
+容器和 Pod 的指標帶有該 Pod 所屬工作負載的名稱（Deployment 的 Pod 帶有該 Deployment 的名稱及其 ReplicaSet 的名稱），因此將範圍設為工作負載時，會監控該工作負載的容器和 Pod。工作負載本身的指標（例如 Job 的失敗 Pod）只帶有它自己的工作負載名稱：請依該工作負載的類型限定範圍。
+
 ### 時間範圍
 
 **時間範圍** 是每次評估監測器時指標查詢涵蓋的視窗，從 **Past 1 Minute** 到 **Past 365 Days**。較短的視窗（1 到 15 分鐘）適合發出警示；較長的視窗可以平滑雜訊較多的指標。
@@ -91,7 +93,7 @@ flowchart TB
 | 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 和 **Node CPU Usage** 的單位是核心而不是百分比：`0.18` 表示 0.18 個核心。**Pod Phase (Code)** 指標是一個代碼（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），請以最大值或最小值彙總，切勿使用總和。只有在代理程式的控制平面擷取開啟時，才會收到控制平面指標。**Node Ready Condition** 在 Ready 時為 1，NotReady 時為 0，Unknown 時為 -1，當機的節點回報的正是 Unknown：請在小於 1 時告警。 **Container Restarts** 是容器的累計重新啟動計數；**Container Restarts (Increase)** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該容器以來的重新啟動次數，所以它在一個視窗內的總和就是該視窗內的重新啟動次數。**Job Failed Pods** 是 Job 的累計失敗 Pod 計數；**Job Failed Pods (Increase)** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該 Job 以來失敗的 Pod 數，所以它在一個視窗內的總和就是該視窗內的失敗次數。
+> **Pod CPU Usage** 和 **Node CPU Usage** 的單位是核心而不是百分比：`0.18` 表示 0.18 個核心。**Pod Phase (Code)** 指標是一個代碼（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），請以最大值或最小值彙總，切勿使用總和。只有在代理程式的控制平面擷取開啟時，才會收到控制平面指標。**Node Ready Condition** 在 Ready 時為 1，NotReady 時為 0，Unknown 時為 -1，當機的節點回報的正是 Unknown：請在小於 1 時告警。 **Container Restarts** 是容器的累計重新啟動計數；**Container Restarts (Increase)** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該容器以來的重新啟動次數，所以它在一個視窗內的總和就是該視窗內的重新啟動次數。它帶有 **Container Restarts** 帶有的屬性，包括容器所在 Pod 的工作負載名稱，但不包括每次重新啟動都會改變的容器 ID。**Job Failed Pods** 是 Job 的累計失敗 Pod 計數；**Job Failed Pods (Increase)** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該 Job 以來失敗的 Pod 數，所以它在一個視窗內的總和就是該視窗內的失敗次數。它和 **Job Failed Pods** 一樣，帶有 Job 的名稱和命名空間。
 
 ## 監控條件
 
@@ -190,11 +192,11 @@ flowchart TB
 :::
 
 :::details CrashLoopBackOff Detection 沒有因一次重新啟動而觸發
-當容器在 15 分鐘內重新啟動、且它在其中不到一半的時間處於就緒狀態時，此範本觸發；因此重新啟動一次後立即恢復的容器不會告警。此範本讀取 `k8s.container.restarts.increase`，而舊版代理程式不會傳送它：請[升級代理程式](/docs/monitor/kubernetes-agent#升級)。在此之前用此範本建立的監控讀取的是 `k8s.container.restarts` 在同一分鐘的兩個樣本之間增加了多少，會漏掉跨兩分鐘的樣本之間的重新啟動：請刪除它並重新用範本建立。如果 `filters.metrics.include` 列出了代理程式要傳送的指標，請把 `k8s.container.restarts.increase` 加進去。
+當容器在 15 分鐘內重新啟動、且它在其中不到一半的時間處於就緒狀態時，此範本觸發；因此重新啟動一次後立即恢復的容器不會告警。此範本讀取 `k8s.container.restarts.increase`，而舊版代理程式不會傳送它：請[升級代理程式](/docs/monitor/kubernetes-agent#升級)。在此之前用此範本建立的監控讀取的是 `k8s.container.restarts` 在同一分鐘的兩個樣本之間增加了多少，會漏掉跨兩分鐘的樣本之間的重新啟動：請刪除它並重新用範本建立。如果 `filters.metrics.include` 列出了代理程式要傳送的指標，請把 `k8s.container.restarts.increase` 加進去。限定到某個工作負載的監控還需要 `k8s.container.restarts.increase` 上的工作負載名稱，而舊版代理程式傳送它時不帶這些名稱：請[升級代理程式](/docs/monitor/kubernetes-agent#升級)。
 :::
 
 :::details Job Failures 沒有因一個失敗的 Job 而觸發
-當 Job 的某個 Pod 在 15 分鐘內失敗時，此範本觸發，並在最後一次失敗的十五分鐘後恢復。此範本讀取 `k8s.job.failed_pods.increase`，而舊版代理程式不會傳送它：請[升級代理程式](/docs/monitor/kubernetes-agent#升級)。在此之前用此範本建立的監控讀取的是 `k8s.job.failed_pods` 在同一分鐘的兩個樣本之間增加了多少，會漏掉跨兩分鐘的樣本之間的失敗：請刪除它並重新用範本建立。代理程式第一次取樣某個 Job 之前的失敗是它計數的起點，因此唯一的 Pod 在最初半分鐘內就失敗的 Job 會被漏掉。如果 `filters.metrics.include` 列出了代理程式要傳送的指標，請把 `k8s.job.failed_pods.increase` 加進去。
+當 Job 的某個 Pod 在 15 分鐘內失敗時，此範本觸發，並在最後一次失敗的十五分鐘後恢復。此範本讀取 `k8s.job.failed_pods.increase`，而舊版代理程式不會傳送它：請[升級代理程式](/docs/monitor/kubernetes-agent#升級)。在此之前用此範本建立的監控讀取的是 `k8s.job.failed_pods` 在同一分鐘的兩個樣本之間增加了多少，會漏掉跨兩分鐘的樣本之間的失敗：請刪除它並重新用範本建立。代理程式第一次取樣某個 Job 之前的失敗是它計數的起點，因此唯一的 Pod 在最初半分鐘內就失敗的 Job 會被漏掉。如果 `filters.metrics.include` 列出了代理程式要傳送的指標，請把 `k8s.job.failed_pods.increase` 加進去。限定到某個工作負載的監控必須指定 Job 本身：Job 的失敗 Pod 帶有該 Job 的名稱和命名空間，而不是建立它的 CronJob 的名稱。
 :::
 
 ## 後續步驟

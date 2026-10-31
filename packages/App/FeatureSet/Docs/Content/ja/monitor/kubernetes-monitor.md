@@ -69,6 +69,8 @@ flowchart TB
 | ノード | クラスターのノード | **ノード名** |
 | Pod | Pod | **Namespace**、**Pod 名** |
 
+コンテナと Pod のメトリクスには、その Pod が属するワークロードの名前が付きます（Deployment の Pod には Deployment の名前とその ReplicaSet の名前が付きます）。そのため、スコープをワークロードにすると、そのワークロードのコンテナと Pod を監視します。Job の失敗 Pod のようなワークロード自身のメトリクスには、そのワークロード自身の名前しか付かないため、そのワークロードの種類で絞り込んでください。
+
 ### 時間範囲
 
 **時間範囲** は、モニターが評価されるたびにメトリクスクエリが対象とする期間で、**Past 1 Minute** から **Past 365 Days** まで選べます。短い期間（1～15 分）はアラートに向いており、長い期間はノイズの多いメトリクスを平滑化します。
@@ -91,7 +93,7 @@ flowchart TB
 | コントロールプレーン | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **Container Restarts** はコンテナの再起動数の累計で、**Container Restarts (Increase)** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**Job Failed Pods** は Job の失敗 Pod 数の累計で、**Job Failed Pods (Increase)** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。
+> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **Container Restarts** はコンテナの再起動数の累計で、**Container Restarts (Increase)** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**Container Restarts** と同じ属性を持ち、コンテナの Pod のワークロード名も含みますが、再起動のたびに変わるコンテナの ID は含みません。**Job Failed Pods** は Job の失敗 Pod 数の累計で、**Job Failed Pods (Increase)** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。**Job Failed Pods** と同じく、Job の名前と Namespace を持ちます。
 
 ## 監視条件
 
@@ -190,11 +192,11 @@ flowchart TB
 :::
 
 :::details 再起動で CrashLoopBackOff Detection が発火しなかった
-このテンプレートは、コンテナが 15 分以内に再起動し、かつその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。読むのは `k8s.container.restarts.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.container.restarts` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の再起動を見逃します。削除してテンプレートから作り直してください。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.container.restarts.increase` を追加してください。
+このテンプレートは、コンテナが 15 分以内に再起動し、かつその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。読むのは `k8s.container.restarts.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.container.restarts` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の再起動を見逃します。削除してテンプレートから作り直してください。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.container.restarts.increase` を追加してください。ワークロードに絞り込んだモニターには `k8s.container.restarts.increase` のワークロード名も必要ですが、古いエージェントはそれを付けずに送ります。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。
 :::
 
 :::details 失敗した Job で Job Failures が発火しなかった
-このテンプレートは、Job の Pod が 15 分以内に失敗したときに発火し、最後の失敗から 15 分後に解消します。読むのは `k8s.job.failed_pods.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.job.failed_pods` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の失敗を見逃します。削除してテンプレートから作り直してください。エージェントが Job を初めてサンプルする前の失敗はその数え始めの値になるため、唯一の Pod が最初の 30 秒以内に失敗した Job は見逃されます。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.job.failed_pods.increase` を追加してください。
+このテンプレートは、Job の Pod が 15 分以内に失敗したときに発火し、最後の失敗から 15 分後に解消します。読むのは `k8s.job.failed_pods.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.job.failed_pods` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の失敗を見逃します。削除してテンプレートから作り直してください。エージェントが Job を初めてサンプルする前の失敗はその数え始めの値になるため、唯一の Pod が最初の 30 秒以内に失敗した Job は見逃されます。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.job.failed_pods.increase` を追加してください。ワークロードに絞り込んだモニターでは Job そのものを指定してください。Job の失敗 Pod に付くのは Job の名前と Namespace で、それを作成した CronJob の名前ではありません。
 :::
 
 ## 次のステップ

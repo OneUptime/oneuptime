@@ -832,21 +832,30 @@ helm; the "Ops Config Test" workflow runs it after
 
 What the Kubernetes agent sends for container restarts, in the collector the
 chart ships (and in 0.96.0, which an upgrade with `--reuse-values` keeps, where
-the gauge is made a sum in datapoint context). It renders the chart, lifts the
-cluster collector's `metrics/restarts-increase` processors out of its ConfigMap
-as rendered (all but `memory_limiter` and `batch`), and posts them, in order,
-seven samples of what the `k8s_cluster` receiver sends for four containers - 30
-seconds, five minutes and an hour apart: `k8s.container.restarts` as an int
-gauge on the container's own resource, keyed by `container.id`, which changes
-with every restart because the kubelet runs each one as a new container, with
-`k8s.container.ready` beside it and a pod's `k8s.pod.phase`. Only
-`k8s.container.restarts.increase` may come out, as a monotonic delta sum
-without `container.id`, stamped with the cluster's name: a crash loop's
-restarts since each sample before, nothing for a pod recreated under the same
-name (a new UID) at its first sample, nothing for a count that went down in the
-same pod, and 0 for a quiet container. Kept by `container.id`, the same
-processors would count no restart at all. It needs docker and helm; the "Ops
-Config Test" workflow runs it after `agent-cpu-names-behaviour.sh`.
+the gauge is made a sum in datapoint context). It renders the chart and lifts
+both of the cluster collector's metrics pipelines out of its ConfigMap as
+rendered: `metrics/restarts-increase` (all but `memory_limiter`) into the
+`forward/restarts-increase` connector, and `metrics`, which receives from it
+(all but `memory_limiter` and `batch`), with a stand-in in place of
+`k8sattributes`, which needs a cluster: it adds each pod's workload names by
+the pod's UID, as `k8sattributes` finds them. It posts, in order, seven samples
+of what the `k8s_cluster` receiver sends for seven containers - of a
+Deployment, a StatefulSet, a DaemonSet, a CronJob's Job and a pod of no
+workload, 30 seconds, five minutes and an hour apart: `k8s.container.restarts`
+as an int gauge on the container's own resource, keyed by `container.id`,
+which changes with every restart because the kubelet runs each one as a new
+container, with `k8s.container.ready` beside it and a pod's `k8s.pod.phase`,
+and no workload name. `k8s.container.restarts.increase` must come out as a
+monotonic delta sum without `container.id`, stamped with the cluster's name: a
+crash loop's restarts since each sample before, nothing for a pod recreated
+under the same name (a new UID) at its first sample, nothing for a count that
+went down in the same pod, and 0 for a quiet container. Each increase must
+carry its pod's workload names, and exactly what `k8s.container.restarts`
+carries at the same sample but `container.id`, so a restart never splits a
+container's series. The count, the readiness and the phase must come out once
+each per sample, as they came in. Kept by `container.id`, the same processors
+would count no restart at all. It needs docker and helm; the "Ops Config Test"
+workflow runs it after `agent-cpu-names-behaviour.sh`.
 `Utils/KubernetesAgentRestartsIncreaseBehaviour.js` builds its config and
 payloads and checks what comes out.
 
@@ -854,13 +863,17 @@ payloads and checks what comes out.
 
 Holds `agent-restarts-increase-behaviour.sh` to the arithmetic and to the
 chart: the increases it expects are what `cumulative_to_delta` makes of its
-samples keyed by the pod (and none, keyed by `container.id`); its samples are
-what the kubelet reports (a new container ID with every count, a recreated pod
-under a new UID from 0) and its payloads what `k8s_cluster` sends; the
-processors it lifts are the ones the template's pipeline lists, in order; its
-check passes the export the arithmetic predicts and fails one that kept
-`container.id`, lost a restart, sent another metric, or is not a delta sum
-from the previous sample. It also holds the workflow to running the script.
+samples keyed by the pod (and none, keyed by `container.id`, and fewer, had the
+workload names been added before the conversion and found late); its samples
+are what the kubelet reports (a new container ID with every count, a recreated
+pod under a new UID from 0) and its payloads what `k8s_cluster` sends; its pods
+cover every workload name the chart's `k8sattributes` extracts; the processors
+it lifts are the ones the template's pipelines list, in order, its stand-in
+where `k8sattributes` runs; it refuses a render wired otherwise; its check
+passes the export the arithmetic predicts and fails one that kept
+`container.id`, lost a restart or a workload name, carries another pod's,
+differs from the count, sent another metric, or is not a delta sum from the
+previous sample. It also holds the workflow to running the script.
 
 ### `agent-job-failures-increase-behaviour.sh`
 
@@ -879,7 +892,10 @@ server. `k8s.job.failed_pods.increase` must come out as a monotonic delta sum
 with the Job's UID, name and namespace, stamped with the cluster's name: a
 failing Job's failures since each sample before, nothing for a Job recreated
 under the same name (a new UID) at its first sample, nothing for a count that
-went down in the same Job, and 0 for a Job that failed long ago. Everything else
+went down in the same Job, and 0 for a Job that failed long ago. Each increase
+must carry exactly what `k8s.job.failed_pods` carries at the same sample - the
+Job's name, UID and namespace, its workload - and the same at every sample of a
+Job, so the pods it retries with never split its series. Everything else
 must come out as it came in: `k8s.job.failed_pods` a gauge at every sample with
 its count, the other gauges gauges, and the counter cumulative. It needs docker
 and helm; the "Ops Config Test" workflow runs it after
@@ -897,8 +913,9 @@ recreated Job from 0) and its payloads what the `metrics` pipeline gets; the
 processors it lifts are the ones the template's pipeline runs first, in order;
 its check passes the export the arithmetic predicts and fails one that lost a
 failure or the Job's UID, sent a first sample's count, is not a delta sum from
-the previous sample, renamed or converted the count itself, or turned another
-sum into deltas. It also holds the workflow to running the script.
+the previous sample, renamed or converted the count itself, turned another sum
+into deltas, carries other workload attributes than the count, or splits a
+Job's series. It also holds the workflow to running the script.
 
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 

@@ -499,6 +499,17 @@ function jobOf(point) {
   });
 }
 
+// A resource's attributes in a stable order, to compare two resources by.
+function attributesOf(resource) {
+  return JSON.stringify(
+    Object.keys(resource)
+      .sort()
+      .map((key) => {
+        return [key, resource[key]];
+      }),
+  );
+}
+
 /*
  * What is wrong with the points the collector exported, as a list of
  * sentences; empty when nothing is.
@@ -575,6 +586,49 @@ function problemsWith(points) {
   const originals = points.filter((point) => {
     return point.metric === FAILED_METRIC;
   });
+
+  /*
+   * The copy carries what the count carries: the same resource - the Job's
+   * name, UID and namespace, its workload, and the cluster's attributes -
+   * at every sample, through the copy and the conversion.
+   */
+  for (const point of increases) {
+    const original = originals.find((candidate) => {
+      return (
+        candidate.time === point.time &&
+        candidate.resource["k8s.job.uid"] === point.resource["k8s.job.uid"]
+      );
+    });
+    if (!original) {
+      problems.push(`${lineOf(point)} has no ${FAILED_METRIC} beside it`);
+    } else if (
+      attributesOf(original.resource) !== attributesOf(point.resource)
+    ) {
+      problems.push(
+        `${lineOf(point)} carries ${attributesOf(point.resource)}, ${FAILED_METRIC} ${attributesOf(original.resource)}`,
+      );
+    }
+  }
+
+  /*
+   * And a pod the Job retries with does not split its series: every
+   * increase of one Job (by UID) carries the same attributes.
+   */
+  const attributesByJob = new Map();
+  for (const point of increases) {
+    const uid = point.resource["k8s.job.uid"];
+    if (!attributesByJob.has(uid)) {
+      attributesByJob.set(uid, new Set());
+    }
+    attributesByJob.get(uid).add(attributesOf(point.resource));
+  }
+  for (const [uid, attributes] of attributesByJob) {
+    if (attributes.size !== 1) {
+      problems.push(
+        `Job ${uid}'s increases carry ${attributes.size} sets of attributes`,
+      );
+    }
+  }
   const expectedOriginals = JOBS.flatMap((entry) => {
     return entry.samples.map((sample, index) => {
       return `${entry.namespace}/${entry.job} ${index} ${sample.count}`;
