@@ -178,7 +178,9 @@ export class Service extends ProjectReferencesService<Model> {
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     findBy.query = await this.addExceptionScope(
-      Service.hideMergedExceptions(findBy.query),
+      Service.hideMergedExceptions(
+        await this.withMergedFingerprintAliases(findBy.query),
+      ),
       findBy.props,
       DatabaseRequestType.Read,
     );
@@ -191,12 +193,136 @@ export class Service extends ProjectReferencesService<Model> {
     countBy: CountBy<Model>,
   ): Promise<PositiveNumber> {
     countBy.query = await this.addExceptionScope(
-      Service.hideMergedExceptions(countBy.query),
+      Service.hideMergedExceptions(
+        await this.withMergedFingerprintAliases(countBy.query),
+      ),
       countBy.props,
       DatabaseRequestType.Read,
     );
 
     return super.countBy(countBy);
+  }
+
+  /*
+   * A MERGED EXCEPTION'S FINGERPRINT FINDS THE ONE IT WAS MERGED INTO.
+   *
+   * The occurrences of a merged exception keep its fingerprint
+   * (TelemetryExceptionMerge), so a read that looks exceptions up by the
+   * fingerprints of occurrences - the list narrowed by an attribute or
+   * resource filter, a link from a span or a log, the API - would match
+   * only the merged row, which every read leaves out (hideMergedExceptions),
+   * and the exception those occurrences count on would be missing. Such a
+   * read finds the survivor too: each merged fingerprint it names brings in
+   * the fingerprint of the exception it was merged into. One read of the
+   * partial index on merged rows, as root - this is what the data means; who
+   * may see what is applied after, as for every read - and none for a query
+   * that names rows by id or by the merge column, which hideMergedExceptions
+   * leaves as asked.
+   */
+  public async withMergedFingerprintAliases<TQuery>(
+    query: TQuery,
+  ): Promise<TQuery> {
+    const record: Record<string, unknown> = (query || {}) as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      "_id" in record ||
+      "id" in record ||
+      "mergedIntoTelemetryExceptionId" in record
+    ) {
+      return query;
+    }
+
+    const fingerprints: Array<string> = Service.readQueriedFingerprints(
+      record["fingerprint"],
+    );
+
+    if (fingerprints.length === 0) {
+      return query;
+    }
+
+    let merged: Array<Model> = [];
+
+    try {
+      merged = await this.findBy({
+        query: {
+          ...(record["projectId"] !== undefined
+            ? { projectId: record["projectId"] }
+            : {}),
+          fingerprint: new Includes(fingerprints),
+          mergedIntoTelemetryExceptionId: QueryHelper.notNull(),
+        } as Query<Model>,
+        select: {
+          mergedIntoTelemetryException: {
+            fingerprint: true,
+          },
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      // The read as asked: the merged ones' survivors are missing, nothing else.
+      logger.error(
+        `Could not read the merged exceptions of a fingerprint lookup; it is read without them: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return query;
+    }
+
+    return Service.withFingerprintAliases(
+      query,
+      merged.map((row: Model): string => {
+        return row.mergedIntoTelemetryException?.fingerprint || "";
+      }),
+    );
+  }
+
+  // The fingerprints a query names: one, or an Includes of them.
+  public static readQueriedFingerprints(value: unknown): Array<string> {
+    const values: Array<unknown> =
+      typeof value === "string"
+        ? [value]
+        : value instanceof Includes
+          ? [...(value.values as Array<unknown>)]
+          : [];
+
+    return values.filter((entry: unknown): entry is string => {
+      return typeof entry === "string" && entry.length > 0;
+    });
+  }
+
+  // The query, its fingerprints and the survivors' fingerprints with them.
+  public static withFingerprintAliases<TQuery>(
+    query: TQuery,
+    aliases: Array<string>,
+  ): TQuery {
+    const record: Record<string, unknown> = (query || {}) as Record<
+      string,
+      unknown
+    >;
+    const fingerprints: Array<string> = Service.readQueriedFingerprints(
+      record["fingerprint"],
+    );
+    const added: Array<string> = Array.from(
+      new Set(
+        aliases.filter((alias: string): boolean => {
+          return alias.length > 0 && !fingerprints.includes(alias);
+        }),
+      ),
+    );
+
+    if (fingerprints.length === 0 || added.length === 0) {
+      return query;
+    }
+
+    return {
+      ...record,
+      fingerprint: new Includes([...fingerprints, ...added]),
+    } as TQuery;
   }
 
   /*

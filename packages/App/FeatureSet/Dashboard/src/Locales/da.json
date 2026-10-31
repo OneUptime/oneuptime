@@ -39052,5 +39052,8 @@
   "Exception assigned to me": "Undtagelse tildelt mig",
   "Is Assignee Notified": "Tildelte underrettet",
   "Notify me about exceptions assigned to me or to a team I am on.": "Giv mig besked om undtagelser, der tildeles mig eller et team, jeg er med i.",
-  "Someone assigns an exception to you, or to a team you are on.": "Nogen tildeler en undtagelse til dig eller til et team, du er med i."
+  "Someone assigns an exception to you, or to a team you are on.": "Nogen tildeler en undtagelse til dig eller til et team, du er med i.",
+  "Exception Saved View": "Gemt undtagelsesvisning",
+  "Exception Saved Views": "Gemte undtagelsesvisninger",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Gem og genbrug visninger af undtagelseslisten, herunder den aktuelle søgning, filtre, tidsinterval, status, sortering og sidestørrelse."
 }

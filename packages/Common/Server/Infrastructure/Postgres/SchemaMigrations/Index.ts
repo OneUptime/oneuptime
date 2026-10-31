@@ -236,6 +236,7 @@ import { AddTelemetryExceptionMergeIndexesAndKeys1808630000000 } from "./1808630
 import { AddTelemetryExceptionActivity1808660000000 } from "./1808660000000-AddTelemetryExceptionActivity";
 import { AddTelemetryExceptionActivityAssigneeNotified1808670000000 } from "./1808670000000-AddTelemetryExceptionActivityAssigneeNotified";
 import { AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000 } from "./1808680000000-AddTelemetryExceptionActivityAssigneeNotifiedIndex";
+import { AddExceptionSavedView1808690000000 } from "./1808690000000-AddExceptionSavedView";
 import { AddDashboardDarkThemeLogo1808700000000 } from "./1808700000000-AddDashboardDarkThemeLogo";
 import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDashboardDarkThemeLogoKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1676,6 +1677,7 @@ export default [
   AddTelemetryExceptionActivity1808660000000,
   AddTelemetryExceptionActivityAssigneeNotified1808670000000,
   AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000,
+  AddExceptionSavedView1808690000000,
   AddDashboardDarkThemeLogo1808700000000,
   AddDashboardDarkThemeLogoKey1808710000000,
 ];

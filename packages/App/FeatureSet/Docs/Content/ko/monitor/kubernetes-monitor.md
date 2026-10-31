@@ -85,13 +85,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| 컨테이너 | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| 컨테이너 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요.
+> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요. **Container Restarts**는 컨테이너의 누적 재시작 수이고, **Container Restarts (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다.
 
 ## 모니터링 기준
 
@@ -158,7 +158,10 @@ flowchart TB
 **Cluster Stopped Reporting** 템플릿은 클러스터의 에이전트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트가 제거되었거나 계속 충돌하는 경우, API 키가 취소된 경우, OneUptime으로 가는 경로를 잃은 경우, 또는 클러스터의 API 서버가 에이전트에 더 이상 응답하지 않는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection**과 **Job Failures**는 재시작 수나 실패한 Pod 수 자체가 아니라 창 안에서 그 수가 얼마나 늘었는지를 세므로, 재시작이나 실패가 멈추면 저절로 해제됩니다. 증가는 같은 분의 두 샘플 사이에서만 보이며, 에이전트의 30초 간격에서는 약 절반입니다. 크래시 루프는 계속 재시작하므로 잡히지만, 한 번의 재시작은 놓칠 수 있습니다.
+> **CrashLoopBackOff Detection**은 에이전트가 샘플마다 보내는 `k8s.container.restarts.increase`, 즉 그 컨테이너의 이전 샘플 이후 재시작 수를 더합니다. 그래서 샘플 간격이 얼마나 벌어지든 모든 재시작을 세고, 재시작이 멈추면 저절로 해제되며, 다시 만들어진 Pod는 재시작으로 읽히지 않고 새로 세기 시작합니다. 이전 에이전트는 `k8s.container.restarts.increase`를 보내지 않으므로 먼저 [업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.container.restarts`가 각 분 안에서 얼마나 늘었는지를 읽어 크래시 루프 재시작의 약 절반을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요.
+
+> [!NOTE]
+> **Job Failures**는 Job의 실패한 Pod 수 자체가 아니라 창 안에서 그 수가 얼마나 늘었는지를 세므로, 실패가 멈추면 저절로 해제됩니다. 증가는 같은 분의 두 샘플 사이에서만 보이며, 에이전트의 30초 간격에서는 약 절반입니다. 재시도를 모두 소진한 Job은 잡히지만, 한 번의 실패는 놓칠 수 있습니다.
 
 ### 증상이 아니라 원인을 잡기
 
@@ -187,7 +190,7 @@ flowchart TB
 :::
 
 :::details 재시작에 CrashLoopBackOff Detection이 발생하지 않음
-이 템플릿은 컨테이너의 재시작 수가 15분 안에 늘어나고 컨테이너가 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 증가는 같은 분의 두 샘플 사이에서만 보이므로 한 번의 재시작은 놓칠 수 있고, 몇 분마다 재시작하는 크래시 루프는 잡힙니다.
+이 템플릿은 컨테이너가 15분 안에 재시작하고 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 이 템플릿은 `k8s.container.restarts.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.container.restarts`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 재시작을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.container.restarts.increase`를 추가하세요.
 :::
 
 ## 다음 단계

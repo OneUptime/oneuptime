@@ -62,6 +62,8 @@ Ogni riga mostra anche quanti utenti l'eccezione ha colpito nell'intervallo scel
 
 Digitate una query come `type:TypeError env:production`, vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#eccezioni), oppure fate clic su un valore nella barra laterale **Filtri**: un servizio, un host o un'altra risorsa, un **Tipo di eccezione**, un **Ambiente** o una **Error Class**. **Assegnate a me** mostra solo le eccezioni assegnate a voi, e il menu di ordinamento ordina l'elenco per **Ultima volta visto**, **Visto per la prima volta** o **Più eventi**.
 
+**Viste salvate** conserva l'elenco sotto un nome, per tutti nel progetto: la ricerca, i filtri, l'intervallo di tempo, lo stato, ciò che conta come problema, **Assegnate a me**, l'ordinamento e la dimensione della pagina. Una vista con **Assegnate a me** mostra a ciascuno le eccezioni assegnate a lui, e **Cancella vista** riporta l'elenco a come si apre la prima volta. L'indirizzo della pagina nomina la vista scelta, così un link che condividete la apre. Per il resto, le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
+
 ### Aprire un'eccezione
 
 Fate clic su una riga per aprire la pagina dell'eccezione.

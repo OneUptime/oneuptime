@@ -39052,5 +39052,8 @@
   "Exception assigned to me": "मुझे असाइन किया गया अपवाद",
   "Is Assignee Notified": "असाइन किए गए को सूचित किया गया",
   "Notify me about exceptions assigned to me or to a team I am on.": "मुझे या मेरी किसी टीम को असाइन किए गए अपवादों के बारे में मुझे सूचित करें।",
-  "Someone assigns an exception to you, or to a team you are on.": "कोई आपको या आपकी किसी टीम को कोई अपवाद असाइन करता है।"
+  "Someone assigns an exception to you, or to a team you are on.": "कोई आपको या आपकी किसी टीम को कोई अपवाद असाइन करता है।",
+  "Exception Saved View": "अपवाद का सहेजा गया व्यू",
+  "Exception Saved Views": "अपवादों के सहेजे गए व्यू",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "अपवाद सूची के व्यू सहेजें और दोबारा इस्तेमाल करें, जिनमें मौजूदा खोज, फ़िल्टर, समय सीमा, स्थिति, क्रम और पेज का आकार शामिल हैं।"
 }

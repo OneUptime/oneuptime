@@ -39052,5 +39052,8 @@
   "Exception assigned to me": "استثنای واگذارشده به من",
   "Is Assignee Notified": "به واگذارشده اطلاع داده شد",
   "Notify me about exceptions assigned to me or to a team I am on.": "دربارهٔ استثناهایی که به من یا به تیمی که در آن هستم واگذار می‌شوند به من اطلاع بده.",
-  "Someone assigns an exception to you, or to a team you are on.": "کسی استثنایی را به شما یا به تیمی که در آن هستید واگذار می‌کند."
+  "Someone assigns an exception to you, or to a team you are on.": "کسی استثنایی را به شما یا به تیمی که در آن هستید واگذار می‌کند.",
+  "Exception Saved View": "نمای ذخیره‌شدهٔ استثنا",
+  "Exception Saved Views": "نماهای ذخیره‌شدهٔ استثنا",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "نماهای فهرست استثناها را ذخیره کنید و دوباره به کار ببرید، از جمله جستجو، فیلترها، بازهٔ زمانی، وضعیت، مرتب‌سازی و اندازهٔ صفحهٔ کنونی."
 }

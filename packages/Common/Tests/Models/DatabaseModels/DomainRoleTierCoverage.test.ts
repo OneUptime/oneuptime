@@ -70,6 +70,7 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
   LogSavedView: "Telemetry",
   MetricSavedView: "Telemetry",
   TraceSavedView: "Telemetry",
+  ExceptionSavedView: "Telemetry",
 
   /*
    * The whole SIEM, and not one table of it is named for its domain: a Sigma

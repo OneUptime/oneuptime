@@ -39052,5 +39052,8 @@
   "Exception assigned to me": "나에게 할당된 예외",
   "Is Assignee Notified": "담당자에게 알림 전송됨",
   "Notify me about exceptions assigned to me or to a team I am on.": "나 또는 내가 속한 팀에 할당된 예외를 알려 줍니다.",
-  "Someone assigns an exception to you, or to a team you are on.": "누군가 나 또는 내가 속한 팀에 예외를 할당합니다."
+  "Someone assigns an exception to you, or to a team you are on.": "누군가 나 또는 내가 속한 팀에 예외를 할당합니다.",
+  "Exception Saved View": "저장된 예외 보기",
+  "Exception Saved Views": "저장된 예외 보기",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "현재 검색, 필터, 시간 범위, 상태, 정렬, 페이지 크기를 포함한 예외 목록 보기를 저장하고 다시 사용합니다."
 }
