@@ -185,6 +185,7 @@ import RumApplicationService from "../Services/RumApplicationService";
 import Label from "../../Models/DatabaseModels/Label";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
+import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
 import SessionIdentity from "../../Utils/Rum/SessionIdentity";
 import SessionReplayTargeting from "../Utils/SessionReplay/SessionReplayTargeting";
@@ -7801,10 +7802,29 @@ router.post(
       /* Pin to the session the caller already knows threw, when it does. */
       const pinnedSessionId: unknown = body["sessionId"];
 
+      /*
+       * The exception's occurrences are its own and those of the exceptions
+       * merged into it, which count on it: a session that threw one of
+       * them threw this exception (TelemetryExceptionService
+       * .getGroupFingerprintsOfFingerprint). Only what the data means is
+       * read; which sessions the caller may see is the lookup's below.
+       */
+      const groupFingerprints: Array<string> =
+        await TelemetryExceptionService.getGroupFingerprintsOfFingerprint({
+          projectId: projectId,
+          fingerprint: fingerprint,
+          ...(primaryEntityId !== undefined && { primaryEntityId }),
+        });
+
       const sessions: Array<SessionReplayExceptionSession> =
         await SessionReplayReadService.getSessionsForException({
           projectId: projectId,
           exceptionFingerprint: fingerprint,
+          mergedExceptionFingerprints: groupFingerprints.filter(
+            (groupFingerprint: string): boolean => {
+              return groupFingerprint !== fingerprint;
+            },
+          ),
           ...(primaryEntityId !== undefined && { primaryEntityId }),
           ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,

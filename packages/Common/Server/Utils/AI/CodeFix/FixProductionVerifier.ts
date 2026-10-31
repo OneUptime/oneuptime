@@ -26,6 +26,7 @@ import {
   ChangeEventSource,
   readChangeEventFields,
 } from "../../../../Utils/Telemetry/ChangeEventFields";
+import { getOccurrenceFingerprintQuery } from "../../../../Types/Telemetry/ExceptionGroupFingerprints";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Services/AIRunService";
 import ChangeEventService from "../../../Services/ChangeEventService";
@@ -80,9 +81,10 @@ import TelemetryFixWatch from "./TelemetryFixWatch";
  *      compare. None within maxDeployWaitDays is Unverifiable.
  *   2. Watching: what the fix was for is measured in the deployed fix
  *      against the time before the merge:
- *        - Exception: the exception's occurrences - in the deploy's version
- *          when the service's telemetry names it, else after the rollout
- *          grace (FixProductionVerdict.decideWatchVerdict);
+ *        - Exception: the exception's occurrences, those of the exceptions
+ *          merged into it included - in the deploy's version when the
+ *          service's telemetry names it, else after the rollout grace
+ *          (FixProductionVerdict.decideWatchVerdict);
  *        - Performance: the p99 of the operation it names
  *          (PerformanceFixWatch);
  *        - Recurrence: the incidents or alerts its monitor raises
@@ -288,16 +290,32 @@ export default class FixProductionVerifier {
       return;
     }
 
+    /*
+     * Its occurrences, and those of the exceptions merged into it, which
+     * count on it (TelemetryExceptionService.getGroupFingerprints): a
+     * duplicate merged in that the fix did not stop is not fixed.
+     */
+    const fingerprints: Array<string> =
+      await TelemetryExceptionService.getGroupFingerprintsOf({
+        projectId: exception.projectId!,
+        exception: {
+          id: exception.id?.toString() || exception._id?.toString() || "",
+          fingerprint: exception.fingerprint,
+        },
+      });
+
     const [occurrencesSinceDeploy, baselineOccurrences]: [number, number] =
       await Promise.all([
         FixProductionVerifier.countOccurrencesSinceDeploy({
           exception,
+          fingerprints,
           deployedAt: shipped.deployedAt,
           deployedVersion: shipped.deployedVersion,
           now: run.now,
         }),
         FixProductionVerifier.countOccurrences({
           exception,
+          fingerprints,
           start: OneUptimeDate.addRemoveDays(
             mergedAt,
             -FIX_PRODUCTION_THRESHOLDS.baselineDays,
@@ -655,6 +673,8 @@ export default class FixProductionVerifier {
    */
   public static async countOccurrencesSinceDeploy(data: {
     exception: TelemetryException;
+    // Its group's (getGroupFingerprints); left out, its own alone.
+    fingerprints?: Array<string> | undefined;
     deployedAt: Date;
     deployedVersion?: string | undefined;
     now: Date;
@@ -674,6 +694,7 @@ export default class FixProductionVerifier {
     if (version) {
       return FixProductionVerifier.countOccurrences({
         exception: data.exception,
+        fingerprints: data.fingerprints,
         start: data.deployedAt,
         end: data.now,
         release: version,
@@ -682,6 +703,7 @@ export default class FixProductionVerifier {
 
     return FixProductionVerifier.countOccurrences({
       exception: data.exception,
+      fingerprints: data.fingerprints,
       start: OneUptimeDate.addRemoveMinutes(
         data.deployedAt,
         FIX_PRODUCTION_THRESHOLDS.rolloutGraceMinutes,
@@ -770,6 +792,8 @@ export default class FixProductionVerifier {
 
   private static async countOccurrences(data: {
     exception: TelemetryException;
+    // Its group's (getGroupFingerprints); left out, its own alone.
+    fingerprints?: Array<string> | undefined;
     start: Date;
     end: Date;
     release?: string | undefined;
@@ -781,7 +805,11 @@ export default class FixProductionVerifier {
     const count: PositiveNumber = await ExceptionInstanceService.countBy({
       query: {
         projectId: data.exception.projectId,
-        fingerprint: data.exception.fingerprint,
+        fingerprint: getOccurrenceFingerprintQuery(
+          data.fingerprints && data.fingerprints.length > 0
+            ? data.fingerprints
+            : [data.exception.fingerprint!],
+        ),
         time: new InBetween(data.start, data.end),
         ...(data.release ? { release: data.release } : {}),
       } as never,
