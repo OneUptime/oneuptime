@@ -206,7 +206,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * are read.
    */
   {
-    directory: "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
+    directory:
+      "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
     kind: "keys",
   },
 ];

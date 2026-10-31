@@ -565,7 +565,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             {getAttributeChips()}
 
             {fallbackMetricName ? (
-              <p
+              <div
                 className="flex items-start gap-1.5 text-xs text-gray-500"
                 data-testid="metric-query-fallback-note"
               >
@@ -579,7 +579,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     { metricName: fallbackMetricName },
                   )}
                 </span>
-              </p>
+              </div>
             ) : null}
 
             {/* Display Settings - collapsible */}

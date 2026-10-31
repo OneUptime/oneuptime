@@ -605,7 +605,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
                 MetricQueryFallbackUtil.getSafeLinkUrl(hint.linkUrl);
 
               return (
-                <p
+                <div
                   key={index}
                   className="flex items-start gap-1 text-xs text-gray-500"
                   data-testid="chart-fallback-hint"
@@ -636,7 +636,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
                       </>
                     ) : null}
                   </span>
-                </p>
+                </div>
               );
             },
           )}
