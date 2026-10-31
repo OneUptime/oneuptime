@@ -586,6 +586,9 @@ import MetricSavedViewService, {
 import TraceSavedViewService, {
   Service as TraceSavedViewServiceType,
 } from "Common/Server/Services/TraceSavedViewService";
+import ExceptionSavedViewService, {
+  Service as ExceptionSavedViewServiceType,
+} from "Common/Server/Services/ExceptionSavedViewService";
 import LogPipelineService, {
   Service as LogPipelineServiceType,
 } from "Common/Server/Services/LogPipelineService";
@@ -1720,6 +1723,7 @@ import TableView from "Common/Models/DatabaseModels/TableView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
+import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
@@ -4079,6 +4083,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TraceSavedView, TraceSavedViewServiceType>(
         TraceSavedView,
         TraceSavedViewService,
+      ).getRouter(),
+    );
+
+    // The exceptions list's saved views, as the traces explorer keeps its own.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ExceptionSavedView, ExceptionSavedViewServiceType>(
+        ExceptionSavedView,
+        ExceptionSavedViewService,
       ).getRouter(),
     );
 

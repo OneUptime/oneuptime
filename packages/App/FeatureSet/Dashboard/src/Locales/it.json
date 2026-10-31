@@ -39050,5 +39050,8 @@
   "Exception assigned to me": "Eccezione assegnata a me",
   "Is Assignee Notified": "Assegnatario avvisato",
   "Notify me about exceptions assigned to me or to a team I am on.": "Avvisami delle eccezioni assegnate a me o a un team di cui faccio parte.",
-  "Someone assigns an exception to you, or to a team you are on.": "Qualcuno assegna un'eccezione a te o a un team di cui fai parte."
+  "Someone assigns an exception to you, or to a team you are on.": "Qualcuno assegna un'eccezione a te o a un team di cui fai parte.",
+  "Exception Saved View": "Vista salvata delle eccezioni",
+  "Exception Saved Views": "Viste salvate delle eccezioni",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Salva e riutilizza viste dell'elenco delle eccezioni, inclusi la ricerca, i filtri, l'intervallo di tempo, lo stato, l'ordinamento e la dimensione della pagina correnti."
 }

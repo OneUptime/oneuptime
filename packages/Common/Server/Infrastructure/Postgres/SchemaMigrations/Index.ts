@@ -236,6 +236,7 @@ import { AddTelemetryExceptionMergeIndexesAndKeys1808630000000 } from "./1808630
 import { AddTelemetryExceptionActivity1808660000000 } from "./1808660000000-AddTelemetryExceptionActivity";
 import { AddTelemetryExceptionActivityAssigneeNotified1808670000000 } from "./1808670000000-AddTelemetryExceptionActivityAssigneeNotified";
 import { AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000 } from "./1808680000000-AddTelemetryExceptionActivityAssigneeNotifiedIndex";
+import { AddExceptionSavedView1808690000000 } from "./1808690000000-AddExceptionSavedView";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1674,4 +1675,5 @@ export default [
   AddTelemetryExceptionActivity1808660000000,
   AddTelemetryExceptionActivityAssigneeNotified1808670000000,
   AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000,
+  AddExceptionSavedView1808690000000,
 ];
