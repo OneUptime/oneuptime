@@ -21,6 +21,7 @@ import {
   TROUBLESHOOT_SCRIPT_FILE,
   getInstallFileUrl,
 } from "Common/Types/InstallScripts/InstallScripts";
+import { shellQuote } from "../SetupGuide/SetupGuide";
 
 /*
  * The steps the "how do I connect this?" card (ResourceConnectionGuideCard)
@@ -384,7 +385,8 @@ const getComposeAgentConnectionGuide: (
                 }),
               },
             ),
-            code: `curl -fsSL ${agent.troubleshootScriptUrl} -o troubleshoot.sh && bash troubleshoot.sh`,
+            // Quoted when it needs to be: a placeholder address is no redirection.
+            code: `curl -fsSL ${shellQuote(agent.troubleshootScriptUrl)} -o troubleshoot.sh && bash troubleshoot.sh`,
           }
         : {
             title: "Read the agent's logs",

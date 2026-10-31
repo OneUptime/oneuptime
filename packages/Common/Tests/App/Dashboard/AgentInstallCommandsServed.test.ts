@@ -391,6 +391,30 @@ describe("the commands that download an agent's files", () => {
     );
   });
 
+  test("with no address configured, every surface quotes the placeholder wherever a command downloads from it", () => {
+    const address: string = `${SETUP_GUIDE_URL_PLACEHOLDER}/install/`;
+    let downloads: number = 0;
+
+    for (const surface of everyCommand(SETUP_GUIDE_URL_PLACEHOLDER)) {
+      for (const block of surface.blocks) {
+        let at: number = block.indexOf(address);
+
+        while (at !== -1) {
+          downloads++;
+          // A bare <...> would be read as a redirection by the shell.
+          expect({
+            surface: surface.name,
+            quoted: block.charAt(at - 1),
+          }).toEqual({ surface: surface.name, quoted: "'" });
+          at = block.indexOf(address, at + address.length);
+        }
+      }
+    }
+
+    // The guides, the cards, the upgrade dialogs and the AI agent page.
+    expect(downloads).toBeGreaterThan(40);
+  });
+
   test("the note says the script is a file to read before it runs", () => {
     expect(INSTALL_SCRIPT_READ_FIRST_NOTE).toBe(
       "The first line downloads the script as install.sh, so you can read it before you run it.",
