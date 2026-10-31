@@ -644,6 +644,13 @@ jobs:
           # same day, when that run took this group 19.6 minutes: with Dashboard
           # Table Thresholds (about 2 minutes on a runner), about 19.5 on that
           # run's timings.
+          # The dashboard board's phone layout and the public dashboard's dark
+          # theme logo grew Public Dashboard Theme by 4 tests on 2026-10-31 (a
+          # dark theme logo on the dark page and following the device, at 1280
+          # and 390 pixels, and the phone's widgets in reading order with room
+          # for a chart's plot: about 20 seconds locally) and Dashboard Table
+          # Thresholds by 1 (a table's title keeps its line beside its search,
+          # at 1280 and 390: about 9 seconds): about 20.
           - group: 7
             suites: >-
               test-profiles-ui
@@ -751,6 +758,11 @@ jobs:
           # agent page, Logs and Feed, at 1280 and 390, dark, German and
           # Persian, and its UI review's guide, Change and Refresh walks, some
           # 15 seconds; master's run took 3.7 minutes for its 68): about 20.
+          # The dashboard board's phone layout grew Dashboard Time Range by 7
+          # tests on 2026-10-31 (the dashboard inside OneUptime at 1280, 1024
+          # and 768 beside the side menu and on a phone, editing on a phone,
+          # and a drag at 1024 that moves one row: about 40 seconds locally
+          # with its bundle): about 20.5.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
