@@ -209,7 +209,9 @@ const STATUS_PAGE_LOGO_BYTES: Buffer = Buffer.concat([
 const carryProductLogo: (bytes: Buffer | null) => void = (
   bytes: Buffer | null,
 ): void => {
-  jest.spyOn(EnterpriseEdition, "getProductBrandingLogo").mockReturnValue(bytes);
+  jest
+    .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+    .mockReturnValue(bytes);
 };
 
 /*

@@ -175,7 +175,7 @@ const RECORDED: Array<RecordedCase> = [
   },
   {
     name: "style-element",
-    html: '<style>p { color: #ffffff; }</style><p>Body words</p>',
+    html: "<style>p { color: #ffffff; }</style><p>Body words</p>",
     spamAssassinScoresIt: false,
   },
   {

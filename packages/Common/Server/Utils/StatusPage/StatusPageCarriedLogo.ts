@@ -49,10 +49,7 @@ interface CachedLogo {
 }
 
 export default class StatusPageCarriedLogo {
-  private static cache: Map<string, CachedLogo> = new Map<
-    string,
-    CachedLogo
-  >();
+  private static cache: Map<string, CachedLogo> = new Map<string, CachedLogo>();
 
   /**
    * The logo `address` shows, as an email carries it, when the address is a
@@ -94,7 +91,8 @@ export default class StatusPageCarriedLogo {
 
     entry.logo = StatusPageCarriedLogo.readFromDatabase(statusPageId).catch(
       (err: unknown): null => {
-        entry.expiresAtInMs = Date.now() + CARRIED_LOGO_RETRY_AFTER_FAILURE_IN_MS;
+        entry.expiresAtInMs =
+          Date.now() + CARRIED_LOGO_RETRY_AFTER_FAILURE_IN_MS;
 
         logger.error(
           `The logo of status page ${key} could not be read to go inside its emails, so they show it from its address.`,

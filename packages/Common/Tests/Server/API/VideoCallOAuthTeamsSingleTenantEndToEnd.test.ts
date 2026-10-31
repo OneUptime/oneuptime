@@ -163,7 +163,8 @@ const CONNECTION_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
 
-const connectWithSignIn: jest.Mock = VideoCallConnectionService.connectWithSignIn as any;
+const connectWithSignIn: jest.Mock =
+  VideoCallConnectionService.connectWithSignIn as any;
 const getCurrentPlan: jest.Mock = ProjectService.getCurrentPlan as any;
 
 const REDIRECT_URI: string = VideoCallOAuthApps.getRedirectUri(
@@ -244,7 +245,8 @@ describe("Microsoft Teams one-click Connect, a single-tenant app, end to end", (
       objectId: "c0c0c0c0-0000-4000-8000-000000000003",
       displayName: "Grace Hopper",
       mail: "grace@fabrikam.onmicrosoft.com",
-      userPrincipalName: "grace_fabrikam.onmicrosoft.com#EXT#@contoso.onmicrosoft.com",
+      userPrincipalName:
+        "grace_fabrikam.onmicrosoft.com#EXT#@contoso.onmicrosoft.com",
       isGuest: true,
     });
     microsoft.addAccount({

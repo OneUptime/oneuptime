@@ -1,4 +1,11 @@
-import { beforeAll, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
