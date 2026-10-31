@@ -17,6 +17,8 @@ import {
   readAgentChartValues,
 } from "./Utils/KubernetesAgentEmittedMetrics";
 import { describe, expect, test } from "@jest/globals";
+import * as fs from "fs";
+import * as path from "path";
 
 describe("KubernetesMetricCatalog", () => {
   const allMetrics: Array<KubernetesMetricDefinition> =
@@ -574,6 +576,83 @@ describe("KubernetesMetricCatalog", () => {
       for (const metric of allMetrics) {
         expect(metric.metricName).not.toMatch(/unavailable/);
       }
+    });
+  });
+
+  /*
+   * A Custom Metric monitor on the running restart count, with the list's
+   * Maximum, fires on a container's history and never recovers. The
+   * restarts the agent sends with each sample, summed over the window, are
+   * the restarts in it - what CrashLoopBackOff Detection reads.
+   */
+  describe("the restarts since each sample, beside the running count", () => {
+    test("offers them summed, beside the running count it keeps at its maximum", () => {
+      expect(
+        getKubernetesMetricByMetricName("k8s.container.restarts.increase"),
+      ).toEqual(
+        expect.objectContaining({
+          id: "container-restarts-increase",
+          friendlyName: "Container Restarts (Increase)",
+          category: "Container",
+          defaultAggregation: AggregationType.Sum,
+          defaultResourceScope: KubernetesResourceScope.Cluster,
+          unit: "count",
+        }),
+      );
+      expect(getKubernetesMetricByMetricName("k8s.container.restarts")).toEqual(
+        expect.objectContaining({
+          friendlyName: "Container Restarts",
+          category: "Container",
+          defaultAggregation: AggregationType.Max,
+        }),
+      );
+    });
+
+    test("lists it right after the running count in the picker", () => {
+      const names: Array<string> = getKubernetesMetricsByCategory(
+        "Container",
+      ).map((metric: KubernetesMetricDefinition): string => {
+        return metric.metricName;
+      });
+
+      expect(names.indexOf("k8s.container.restarts.increase")).toBe(
+        names.indexOf("k8s.container.restarts") + 1,
+      );
+    });
+
+    test("says what a sample's value is, and what its sum is", () => {
+      const description: string = getKubernetesMetricByMetricName(
+        "k8s.container.restarts.increase",
+      )!.description;
+
+      expect(description).toBe(
+        "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+      );
+      // Read as a count, with no unit to print.
+      expect(
+        MetricValueFormatter.format({
+          value: 3,
+          unit: "count",
+          metricName: "k8s.container.restarts.increase",
+        }),
+      ).toBe("3");
+    });
+
+    test("is what the shipped chart's cluster collector makes of k8s.container.restarts", () => {
+      const config: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+        ),
+        "utf8",
+      );
+
+      expect(config).toContain(
+        '- set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"',
+      );
+      expect(config).toContain(
+        "            - k8s.container.restarts.increase\n          match_type: strict\n        initial_value: drop\n",
+      );
     });
   });
 });

@@ -1287,24 +1287,25 @@ describe(`${KUBERNETES}: the template table`, () => {
     ]);
   });
 
-  it("CrashLoopBackOff Detection and Job Failures count growth in the window, not the lifetime count", () => {
-    function named(name: string): BuiltTemplate {
-      return builtTemplates.find((candidate: BuiltTemplate): boolean => {
-        return candidate.name === name;
-      }) as BuiltTemplate;
-    }
+  function named(name: string): BuiltTemplate {
+    return builtTemplates.find((candidate: BuiltTemplate): boolean => {
+      return candidate.name === name;
+    }) as BuiltTemplate;
+  }
 
+  it("CrashLoopBackOff Detection sums the restarts the agent sends with each sample", () => {
     const crashLoop: BuiltTemplate = named("CrashLoopBackOff Detection");
 
     expect(crashLoop.queries.map(metricNameOf)).toEqual([
-      "k8s.container.restarts",
-      "k8s.container.restarts",
+      "k8s.container.restarts.increase",
       "k8s.container.ready",
     ]);
-    expect(groupByOf(crashLoop)).toContain("resource.k8s.pod.name");
-    expect(crashLoop.formulas).toEqual([
-      "container_restarts_max - container_restarts_min",
+    expect(crashLoop.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+      MetricsAggregationType.Avg,
     ]);
+    expect(groupByOf(crashLoop)).toContain("resource.k8s.pod.name");
+    expect(crashLoop.formulas).toEqual([]);
     expect(comparisonOf(primary(crashLoop.first))).toEqual({
       filterType: FilterType.GreaterThan,
       value: 0,
@@ -1318,6 +1319,36 @@ describe(`${KUBERNETES}: the template table`, () => {
       comparisonOf(crashLoop.first.data!.filters[1] as CriteriaFilter),
     ).toEqual({ filterType: FilterType.LessThan, value: 0.5 });
 
+    // The chart's cluster collector makes it, from its own copy of the count.
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    expect(chart).toContain(
+      'set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"',
+    );
+    expect(chart).toContain('delete_key(attributes, "container.id")');
+
+    expect(englishPage(KUBERNETES)).toContain(
+      "**CrashLoopBackOff Detection** adds up `k8s.container.restarts.increase`, which the agent sends with every sample: the restarts since its previous sample of the container. So it counts every restart however far apart the samples are, it clears on its own once the restarts stop, and a pod that is recreated starts a new count rather than reading as restarts.",
+    );
+    // What an older agent and a monitor made from the old query need.
+    expect(englishPage(KUBERNETES)).toContain(
+      "An older agent does not send `k8s.container.restarts.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "which misses about half of a loop's restarts: delete it and create the template again.",
+    );
+    // An allowlist of metrics that leaves it out silences the template.
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it.",
+    );
+    // The limits of the per-minute delta are Job Failures' alone now.
+    expect(englishPage(KUBERNETES)).not.toContain(
+      "count how much a restart or failed-pod count grew",
+    );
+  });
+
+  it("Job Failures counts how much the failed-pod count grew in the window, not the lifetime count", () => {
     const jobFailures: BuiltTemplate = named("Job Failures");
 
     expect(jobFailures.formulas).toEqual(["failed_pods_max - failed_pods_min"]);
@@ -1326,7 +1357,13 @@ describe(`${KUBERNETES}: the template table`, () => {
     );
 
     expect(englishPage(KUBERNETES)).toContain(
-      "count how much a restart or failed-pod count grew in the window, not the count itself",
+      "**Job Failures** counts how much a Job's failed-pod count grew in the window, not the count itself, so it clears on its own once the failures stop. The growth is only seen between two samples of the same minute",
+    );
+  });
+
+  it("names the restarts the agent sends with each sample beside the running count in the metric catalog note", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "**Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it.",
     );
   });
 
