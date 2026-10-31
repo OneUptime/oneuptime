@@ -13,6 +13,7 @@ import FilterCondition from "../Filter/FilterCondition";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceScope,
+  KubernetesWorkloadKind,
 } from "./MonitorStepKubernetesMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -49,6 +50,14 @@ export interface KubernetesAlertTemplate {
   description: string;
   category: KubernetesAlertTemplateCategory;
   severity: KubernetesAlertTemplateSeverity;
+  /*
+   * The kind of workload the template watches, when it watches one: its
+   * metrics carry only that kind's name. The form's Workload Kind starts
+   * on it, so a Workload Name is read as that kind's - a Job's name for
+   * Job Failures, not a Deployment's. Unset when the template watches no
+   * one kind; the Workload Kind then starts on Deployment.
+   */
+  workloadKind?: KubernetesWorkloadKind | undefined;
   getMonitorStep: (args: KubernetesAlertTemplateArgs) => MonitorStep;
 }
 
@@ -1029,6 +1038,7 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
     "Alert when a deployment has fewer available replicas than desired for fifteen minutes. Computed per deployment as k8s.deployment.desired - k8s.deployment.available, the two replica counts the agent's k8s_cluster receiver reports — it has no unavailable-replicas series.",
   category: "Workload",
   severity: "Warning",
+  workloadKind: "deployment",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "replica_shortfall";
 
@@ -1160,6 +1170,7 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
     "Alert when a pod of a Kubernetes Job fails, and clear fifteen minutes after the last failure: a Job that retried and succeeded stops alerting on its own. Reads k8s.job.failed_pods.increase, the Job's failed pods since the agent's previous sample of it, so every failure counts however far apart the samples are. A Job recreated under the same name starts a new count. Failures before the agent's first sample of a Job, in its first half-minute, are not counted. An older Kubernetes agent does not send the increase: upgrade the agent first. One incident per Job.",
   category: "Workload",
   severity: "Warning",
+  workloadKind: "job",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "failed_pods";
 
@@ -1548,6 +1559,7 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
     "Alert when a DaemonSet is running daemon pods on nodes that no longer match its node selector, affinity or taint tolerations. k8s.daemonset.misscheduled_nodes counts nodes that ARE running the pod but should NOT be — it is not the count of nodes that are missing the pod.",
   category: "Workload",
   severity: "Warning",
+  workloadKind: "daemonset",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "misscheduled_nodes";
 
@@ -1721,6 +1733,10 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
     "Alert when a HorizontalPodAutoscaler has scaled above its minReplicas and runs at 90% or more of its maxReplicas. Computed per HPA as k8s.hpa.current_replicas ÷ k8s.hpa.max_replicas × 100, while k8s.hpa.current_replicas is above k8s.hpa.min_replicas — an HPA whose floor is already within 10% of its ceiling sits there at idle, and is not saturated. An HPA at its ceiling has no headroom left: load it cannot absorb by scaling turns straight into latency and errors, and a workload that reaches the ceiling and stays there is usually under-resourced per pod rather than genuinely at capacity.",
   category: "Workload",
   severity: "Critical",
+  /*
+   * No workloadKind: an HPA is not one of the workload kinds, and its
+   * metrics carry the HPA's own name, not the name of what it scales.
+   */
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "hpa_replica_saturation";
     const aboveMinAlias: string = "hpa_replicas_above_min";

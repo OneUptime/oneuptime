@@ -23,9 +23,17 @@ export interface KubernetesResourceFilters {
  * metrics carry them under: a pod of a StatefulSet carries
  * `k8s.statefulset.name`, of a Deployment `k8s.deployment.name`.
  */
+export type KubernetesWorkloadKind =
+  | "deployment"
+  | "statefulset"
+  | "daemonset"
+  | "replicaset"
+  | "job"
+  | "cronjob";
+
 export const KUBERNETES_WORKLOAD_KINDS: ReadonlyArray<{
   label: string;
-  value: string;
+  value: KubernetesWorkloadKind;
 }> = [
   { label: "Deployment", value: "deployment" },
   { label: "StatefulSet", value: "statefulset" },
