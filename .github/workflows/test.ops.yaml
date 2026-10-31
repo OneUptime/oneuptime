@@ -144,6 +144,30 @@ jobs:
       # container.cpu.utilization once each, the names OneUptime reads, and
       # the node and pod *.cpu.usage beside them.
       - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
+      # And for container restarts (CrashLoopBackOff Detection): the cluster
+      # collector's metrics/restarts-increase pipeline as the chart renders
+      # it, on the collector the chart pins and on 0.96.0, fed seven samples
+      # of what k8s_cluster sends for four containers - an int gauge on a
+      # resource keyed by container.id, which changes with every restart.
+      # The pipeline must send k8s.container.restarts.increase alone, the
+      # restarts since each pod's previous sample of the container (a crash
+      # loop's 0 / 1 / 0 / 1 / 2 / 1, across five minutes and an hour too),
+      # nothing for a pod recreated under its name or a count that went down,
+      # 0 for a quiet container, as a delta sum without container.id.
+      - run: bash Tests/Ops/agent-restarts-increase-behaviour.sh
+      # And for Job failures (Job Failures): the cluster collector's
+      # transform/job-failures-increase and cumulative_to_delta/
+      # job-failures-increase as the chart renders them, on the collector
+      # the chart pins and on 0.96.0, fed seven samples of what the metrics
+      # pipeline gets for four Jobs - an int gauge on the Job's own resource,
+      # keyed by its UID - beside a container's restart count and a
+      # Prometheus counter. They must send k8s.job.failed_pods.increase, the
+      # failures since each Job's previous sample (a failing Job's
+      # 0 / 1 / 0 / 1 / 2 / 1, across five minutes and an hour too), nothing
+      # for a Job recreated under its name or a count that went down, 0 for
+      # a Job done long ago, as a delta sum with the Job's UID; and the count
+      # itself and everything beside it as it came.
+      - run: bash Tests/Ops/agent-job-failures-increase-behaviour.sh
       # And for container CPU: the Docker, Podman and Docker Swarm agents
       # build container.cpu.utilization from container.cpu.usage.total
       # (copy, cumulative_to_delta, delta_to_rate, scale to percent of one

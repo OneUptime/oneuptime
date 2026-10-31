@@ -225,6 +225,10 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Node CPU Usage",
     "Pod Phase (Code)",
     "Node Ready Condition",
+    "Container Restarts",
+    "Container Restarts (Increase)",
+    "Job Failed Pods",
+    "Job Failed Pods (Increase)",
     // What every rule checks.
     "Metric Value",
     ...ANOMALY_CONDITIONS,

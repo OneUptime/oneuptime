@@ -85,13 +85,13 @@ flowchart TB
 | --- | --- |
 | پاد | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | گره | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| کانتینر | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| بار کاری | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| کانتینر | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| بار کاری | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد: `0.18` یعنی ۰٫۱۸ هسته. **Pod Phase (Code)** یک کد است (۱ Pending، ۲ Running، ۳ Succeeded، ۴ Failed، ۵ Unknown) – آن را با بیشینه یا کمینه تجمیع کنید، هرگز با جمع. متریک‌های Control Plane فقط وقتی می‌رسند که جمع‌آوری Control Plane توسط عامل روشن باشد. **Node Ready Condition** در حالت Ready برابر ۱، در NotReady برابر ۰ و در Unknown برابر ‎-۱ است و Unknown همان چیزی است که گرهِ ازکارافتاده گزارش می‌دهد: برای کمتر از ۱ هشدار دهید.
+> **Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد: `0.18` یعنی ۰٫۱۸ هسته. **Pod Phase (Code)** یک کد است (۱ Pending، ۲ Running، ۳ Succeeded، ۴ Failed، ۵ Unknown) – آن را با بیشینه یا کمینه تجمیع کنید، هرگز با جمع. متریک‌های Control Plane فقط وقتی می‌رسند که جمع‌آوری Control Plane توسط عامل روشن باشد. **Node Ready Condition** در حالت Ready برابر ۱، در NotReady برابر ۰ و در Unknown برابر ‎-۱ است و Unknown همان چیزی است که گرهِ ازکارافتاده گزارش می‌دهد: برای کمتر از ۱ هشدار دهید. **Container Restarts** شمارندهٔ پیوستهٔ راه‌اندازی‌های دوبارهٔ کانتینر است؛ **Container Restarts (Increase)** همان چیزی است که عامل با هر نمونه می‌فرستد: راه‌اندازی‌های دوباره از نمونهٔ قبلی‌اش از کانتینر، پس جمع آن در یک پنجره همان راه‌اندازی‌های دوبارهٔ آن پنجره است. **Job Failed Pods** شمارندهٔ پیوستهٔ پادهای ناموفق یک Job است؛ **Job Failed Pods (Increase)** همان چیزی است که عامل با هر نمونه می‌فرستد: پادهای Job که از نمونهٔ قبلی‌اش از آن Job ناموفق شده‌اند، پس جمع آن در یک پنجره همان شکست‌های آن پنجره است.
 
 ## معیارهای مانیتورینگ
 
@@ -158,7 +158,10 @@ flowchart TB
 **Cluster Stopped Reporting** وقتی فعال می‌شود که ده دقیقه هیچ چیزی از عامل خوشه نرسد: عامل حذف شده یا مدام از کار می‌افتد، کلید API آن باطل شده، مسیرش به OneUptime را از دست داده، یا سرور API خوشه دیگر به آن پاسخ نمی‌دهد. وقتی داده برگردد برطرف می‌شود. وقتی داده قطع شود، الگوهای دیگر چیزی برای مقایسه ندارند و آخرین وضعیت خود را نگه می‌دارند، پس این همان الگویی است که به شما خبر می‌دهد.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** و **Job Failures** می‌شمارند که شمارندهٔ راه‌اندازی دوباره یا پادهای ناموفق در پنجره چقدر رشد کرده است، نه خودِ شمارنده را، پس وقتی راه‌اندازی‌های دوباره یا شکست‌ها متوقف شوند خودبه‌خود برطرف می‌شوند. رشد فقط میان دو نمونه از یک دقیقه دیده می‌شود: با بازهٔ ۳۰ ثانیه‌ای عامل، این حدود نیمی از آن است. یک crash loop بارها و بارها دوباره راه‌اندازی می‌شود و شناسایی می‌شود؛ یک راه‌اندازی دوبارهٔ تنها ممکن است دیده نشود.
+> **CrashLoopBackOff Detection** مقدار `k8s.container.restarts.increase` را جمع می‌زند که عامل با هر نمونه می‌فرستد: راه‌اندازی‌های دوباره از نمونهٔ قبلی‌اش از کانتینر. پس هر راه‌اندازی دوباره را می‌شمارد، هر چقدر هم نمونه‌ها از هم دور باشند، وقتی راه‌اندازی‌های دوباره متوقف شوند خودبه‌خود برطرف می‌شود، و پادی که دوباره ساخته می‌شود شمارش تازه‌ای را آغاز می‌کند و راه‌اندازی دوباره خوانده نمی‌شود. عامل قدیمی‌تر `k8s.container.restarts.increase` را نمی‌فرستد: نخست [آن را ارتقا دهید](/docs/monitor/kubernetes-agent#ارتقا). مانیتوری که پیش از آن از این الگو ساخته شده است می‌خواند که `k8s.container.restarts` در درون هر دقیقه چقدر رشد کرده است، و حدود نیمی از راه‌اندازی‌های دوبارهٔ یک crash loop را از دست می‌دهد: آن را حذف کنید و الگو را دوباره بسازید.
+
+> [!NOTE]
+> **Job Failures** مقدار `k8s.job.failed_pods.increase` را جمع می‌زند که عامل با هر نمونه می‌فرستد: پادهای Job که از نمونهٔ قبلی‌اش از آن Job ناموفق شده‌اند. پس هر شکست را می‌شمارد، هر چقدر هم نمونه‌ها از هم دور باشند، وقتی شکست‌ها متوقف شوند خودبه‌خود برطرف می‌شود، و Job ای که با همان نام دوباره ساخته می‌شود شمارش تازه‌ای را آغاز می‌کند و شکست خوانده نمی‌شود. شکست‌های پیش از نخستین نمونهٔ عامل از یک Job نقطهٔ آغاز شمارش آن هستند، پس Job ای که در نیم‌دقیقهٔ نخستش شکست بخورد و هرگز دوباره تلاش نکند ممکن است دیده نشود. عامل قدیمی‌تر `k8s.job.failed_pods.increase` را نمی‌فرستد: نخست [آن را ارتقا دهید](/docs/monitor/kubernetes-agent#ارتقا). مانیتوری که پیش از آن از این الگو ساخته شده است می‌خواند که `k8s.job.failed_pods` در درون هر دقیقه چقدر رشد کرده است، و حدود نیمی از شکست‌ها را از دست می‌دهد: آن را حذف کنید و الگو را دوباره بسازید.
 
 ### علت‌ها را بگیرید، نه فقط نشانه‌ها را
 
@@ -187,7 +190,11 @@ flowchart TB
 :::
 
 :::details CrashLoopBackOff Detection برای یک راه‌اندازی دوباره فعال نشد
-این الگو وقتی فعال می‌شود که شمارندهٔ راه‌اندازی دوبارهٔ یک کانتینر در ۱۵ دقیقه رشد کند و کانتینر کمتر از نیمی از آن زمان آماده باشد، پس کانتینری که یک بار دوباره راه‌اندازی شده و بی‌درنگ برگشته است هشداری نمی‌دهد. رشد فقط میان دو نمونه از یک دقیقه دیده می‌شود، پس یک راه‌اندازی دوبارهٔ تنها ممکن است دیده نشود؛ یک crash loop هر چند دقیقه یک بار دوباره راه‌اندازی می‌شود و شناسایی می‌شود.
+این الگو وقتی فعال می‌شود که یک کانتینر در ۱۵ دقیقه دوباره راه‌اندازی شود و کمتر از نیمی از آن زمان آماده باشد، پس کانتینری که یک بار دوباره راه‌اندازی شده و بی‌درنگ برگشته است هشداری نمی‌دهد. این الگو `k8s.container.restarts.increase` را می‌خواند که عامل قدیمی‌تر نمی‌فرستد: [عامل را ارتقا دهید](/docs/monitor/kubernetes-agent#ارتقا). مانیتوری که پیش از آن از این الگو ساخته شده است می‌خواند که `k8s.container.restarts` میان دو نمونه از یک دقیقه چقدر رشد کرده است، و راه‌اندازی‌های دوبارهٔ میان نمونه‌های دو دقیقه را از دست می‌دهد: آن را حذف کنید و الگو را دوباره بسازید. اگر `filters.metrics.include` متریک‌هایی را که عامل می‌فرستد فهرست می‌کند، `k8s.container.restarts.increase` را هم به آن بیفزایید.
+:::
+
+:::details Job Failures برای یک Job ناموفق فعال نشد
+این الگو وقتی فعال می‌شود که یک پاد از یک Job در ۱۵ دقیقه شکست بخورد، و پانزده دقیقه پس از آخرین شکست برطرف می‌شود. این الگو `k8s.job.failed_pods.increase` را می‌خواند که عامل قدیمی‌تر نمی‌فرستد: [عامل را ارتقا دهید](/docs/monitor/kubernetes-agent#ارتقا). مانیتوری که پیش از آن از این الگو ساخته شده است می‌خواند که `k8s.job.failed_pods` میان دو نمونه از یک دقیقه چقدر رشد کرده است، و شکست‌های میان نمونه‌های دو دقیقه را از دست می‌دهد: آن را حذف کنید و الگو را دوباره بسازید. شکست‌های پیش از نخستین نمونهٔ عامل از یک Job نقطهٔ آغاز شمارش آن هستند، پس Job ای که تنها پادش در نیم‌دقیقهٔ نخستش شکست بخورد دیده نمی‌شود. اگر `filters.metrics.include` متریک‌هایی را که عامل می‌فرستد فهرست می‌کند، `k8s.job.failed_pods.increase` را هم به آن بیفزایید.
 :::
 
 ## گام‌های بعدی

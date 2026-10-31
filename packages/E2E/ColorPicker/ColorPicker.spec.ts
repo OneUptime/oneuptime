@@ -32,6 +32,20 @@ const boxOf: BoxOfFunction = async (locator: Locator): Promise<Box> => {
   return box;
 };
 
+/*
+ * The color field scrolls the panel it opens into view a frame later
+ * (Forms/Fields/ColorPicker's requestAnimationFrame), so a box read straight
+ * after the click can be where the panel was: Firefox in CI pressed there,
+ * on the text above the square, selecting it, and the drag picked nothing
+ * (14.0.99's gate). A trial hover returns once the element has held still
+ * for two frames, without moving the mouse.
+ */
+const stillBoxOf: BoxOfFunction = async (locator: Locator): Promise<Box> => {
+  await locator.hover({ trial: true });
+
+  return boxOf(locator);
+};
+
 type ExpectInsideFunction = (inner: Box, outer: Box, label: string) => void;
 
 // Inside, give or take a pixel of rounding.
@@ -148,7 +162,7 @@ test.describe("the Create Label dialog's color", () => {
     // In the body, scrolled into view, never over the footer.
     const body: Box = await boxOf(page.getByTestId("modal-content"));
     const footer: Box = await boxOf(page.getByTestId("modal-footer"));
-    const panelBox: Box = await boxOf(panel);
+    const panelBox: Box = await stillBoxOf(panel);
 
     expectInside(panelBox, body, "the Custom color panel");
     expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(footer.y + 1);
@@ -192,7 +206,7 @@ test.describe("the Create Label dialog's color", () => {
     const square: Locator = labelColor(page).getByTestId(
       "color-picker-saturation",
     );
-    const box: Box = await boxOf(square);
+    const box: Box = await stillBoxOf(square);
 
     // From the middle, overshooting the right edge and the top.
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -201,12 +215,10 @@ test.describe("the Create Label dialog's color", () => {
     await page.mouse.up();
 
     // Held to the top right corner: indigo's hue at full color.
+    await expect(labelColor(page)).not.toHaveAttribute("data-value", "#6366f1");
     await expect(labelColor(page)).toHaveAttribute(
       "data-value",
       /^#[0-9a-f]{6}$/,
-    );
-    expect(await labelColor(page).getAttribute("data-value")).not.toBe(
-      "#6366f1",
     );
     await expect(page.getByTestId("dialog-state")).toHaveText("open");
     await expect(page.getByTestId("modal")).toBeVisible();

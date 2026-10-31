@@ -85,13 +85,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| コンテナ | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| コンテナ | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | コントロールプレーン | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。
+> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **Container Restarts** はコンテナの再起動数の累計で、**Container Restarts (Increase)** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**Job Failed Pods** は Job の失敗 Pod 数の累計で、**Job Failed Pods (Increase)** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。
 
 ## 監視条件
 
@@ -158,7 +158,10 @@ flowchart TB
 **Cluster Stopped Reporting** は、クラスターのエージェントから 10 分間何も届かないときに発火します。エージェントがアンインストールされたかクラッシュを繰り返している場合、API キーが取り消された場合、OneUptime への経路を失った場合、またはクラスターの API サーバーがエージェントに応答しなくなった場合です。データが戻ると解決します。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** と **Job Failures** は、再起動数や失敗 Pod 数そのものではなく、ウィンドウ内でそれがどれだけ増えたかを数えるため、再起動や失敗が止まれば自動で解消します。増加は同じ分の 2 つのサンプル間でしか見えず、エージェントの 30 秒間隔ではおよそ半分です。クラッシュループは何度も再起動するので検出されますが、1 回だけの再起動は見逃されることがあります。
+> **CrashLoopBackOff Detection** は、エージェントがサンプルごとに送る `k8s.container.restarts.increase`（そのコンテナの前回のサンプル以降の再起動数）を合計します。そのため、サンプルの間隔がどれだけ空いてもすべての再起動を数え、再起動が止まれば自動で解消し、作り直された Pod は再起動として読まれずに新しく数え始めます。古いエージェントは `k8s.container.restarts.increase` を送らないため、先に[アップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.container.restarts` が各分の中でどれだけ増えたかを読むため、クラッシュループの再起動のおよそ半分を見逃します。削除してテンプレートから作り直してください。
+
+> [!NOTE]
+> **Job Failures** は、エージェントがサンプルごとに送る `k8s.job.failed_pods.increase`（その Job の前回のサンプル以降に失敗した Pod 数）を合計します。そのため、サンプルの間隔がどれだけ空いてもすべての失敗を数え、失敗が止まれば自動で解消し、同じ名前で作り直された Job は失敗として読まれずに新しく数え始めます。エージェントが Job を初めてサンプルする前の失敗はその数え始めの値になるため、最初の 30 秒以内に失敗して再試行しない Job は見逃されることがあります。古いエージェントは `k8s.job.failed_pods.increase` を送らないため、先に[アップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.job.failed_pods` が各分の中でどれだけ増えたかを読むため、失敗のおよそ半分を見逃します。削除してテンプレートから作り直してください。
 
 ### 症状だけでなく原因を捉える
 
@@ -187,7 +190,11 @@ flowchart TB
 :::
 
 :::details 再起動で CrashLoopBackOff Detection が発火しなかった
-このテンプレートは、コンテナの再起動数が 15 分以内に増え、かつコンテナがその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。増加は同じ分の 2 つのサンプル間でしか見えないため、1 回だけの再起動は見逃されることがあります。数分ごとに再起動するクラッシュループは検出されます。
+このテンプレートは、コンテナが 15 分以内に再起動し、かつその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。読むのは `k8s.container.restarts.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.container.restarts` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の再起動を見逃します。削除してテンプレートから作り直してください。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.container.restarts.increase` を追加してください。
+:::
+
+:::details 失敗した Job で Job Failures が発火しなかった
+このテンプレートは、Job の Pod が 15 分以内に失敗したときに発火し、最後の失敗から 15 分後に解消します。読むのは `k8s.job.failed_pods.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.job.failed_pods` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の失敗を見逃します。削除してテンプレートから作り直してください。エージェントが Job を初めてサンプルする前の失敗はその数え始めの値になるため、唯一の Pod が最初の 30 秒以内に失敗した Job は見逃されます。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.job.failed_pods.increase` を追加してください。
 :::
 
 ## 次のステップ

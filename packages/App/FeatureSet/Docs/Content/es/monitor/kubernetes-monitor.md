@@ -85,13 +85,13 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Contenedor | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carga de trabajo | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Contenedor | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Carga de trabajo | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plano de control | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Pod Phase (Code)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada. **Node Ready Condition** vale 1 con Ready, 0 con NotReady y -1 con Unknown, que es lo que informa un nodo caído: alerte por debajo de 1.
+> **Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Pod Phase (Code)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada. **Node Ready Condition** vale 1 con Ready, 0 con NotReady y -1 con Unknown, que es lo que informa un nodo caído: alerte por debajo de 1. **Container Restarts** es el contador acumulado de reinicios del contenedor; **Container Restarts (Increase)** es lo que el agente envía con cada muestra: los reinicios desde su muestra anterior del contenedor, así que su suma en una ventana son los reinicios que hubo en ella. **Job Failed Pods** es el contador acumulado de pods fallidos de un Job; **Job Failed Pods (Increase)** es lo que el agente envía con cada muestra: los pods del Job que fallaron desde su muestra anterior del Job, así que su suma en una ventana son los fallos que hubo en ella.
 
 ## Criterios de monitoreo
 
@@ -158,7 +158,10 @@ Las plantillas sobre métricas por objeto evalúan cada nodo, pod, deployment, j
 **Cluster Stopped Reporting** se dispara cuando no llega nada del agente del clúster durante diez minutos: el agente se desinstaló o se cae una y otra vez, se revocó su clave de API, perdió su conexión con OneUptime, o el servidor de API del clúster dejó de responderle. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** y **Job Failures** cuentan cuánto creció en la ventana un contador de reinicios o de pods fallidos, no el contador en sí, así que se resuelven solos cuando paran los reinicios o los fallos. El crecimiento solo se ve entre dos muestras del mismo minuto: con el intervalo de 30 segundos del agente, eso es aproximadamente la mitad. Un crash loop se reinicia una y otra vez y se detecta; un único reinicio puede pasar desapercibido.
+> **CrashLoopBackOff Detection** suma `k8s.container.restarts.increase`, que el agente envía con cada muestra: los reinicios desde su muestra anterior del contenedor. Así cuenta cada reinicio por muy separadas que estén las muestras, se resuelve sola cuando paran los reinicios, y un pod que se vuelve a crear empieza una cuenta nueva en lugar de leerse como reinicios. Un agente antiguo no envía `k8s.container.restarts.increase`: [actualícelo](/docs/monitor/kubernetes-agent#actualización) primero. Un monitor creado con la plantilla antes de eso lee cuánto creció `k8s.container.restarts` dentro de cada minuto, lo que pasa por alto aproximadamente la mitad de los reinicios de un crash loop: elimínelo y vuelva a crear la plantilla.
+
+> [!NOTE]
+> **Job Failures** suma `k8s.job.failed_pods.increase`, que el agente envía con cada muestra: los pods del Job que fallaron desde su muestra anterior del Job. Así cuenta cada fallo por muy separadas que estén las muestras, se resuelve sola cuando paran los fallos, y un Job que se vuelve a crear con el mismo nombre empieza una cuenta nueva en lugar de leerse como fallos. Los fallos anteriores a la primera muestra del agente de un Job son el punto de partida de su cuenta, así que un Job que falla en su primer medio minuto y nunca reintenta puede pasar desapercibido. Un agente antiguo no envía `k8s.job.failed_pods.increase`: [actualícelo](/docs/monitor/kubernetes-agent#actualización) primero. Un monitor creado con la plantilla antes de eso lee cuánto creció `k8s.job.failed_pods` dentro de cada minuto, lo que pasa por alto aproximadamente la mitad de los fallos: elimínelo y vuelva a crear la plantilla.
 
 ### Detectar causas, no solo síntomas
 
@@ -187,7 +190,11 @@ Los clústeres se registran solos a partir de los datos del agente, con el `clus
 :::
 
 :::details CrashLoopBackOff Detection no se disparó con un reinicio
-La plantilla se dispara cuando el contador de reinicios de un contenedor crece en 15 minutos mientras el contenedor estuvo listo menos de la mitad de ese tiempo, así que un contenedor que se reinició una vez y volvió enseguida no avisa. El crecimiento solo se ve entre dos muestras del mismo minuto, así que un único reinicio puede pasar desapercibido; un crash loop se reinicia cada pocos minutos y se detecta.
+La plantilla se dispara cuando un contenedor se reinicia en 15 minutos mientras estuvo listo menos de la mitad de ese tiempo, así que un contenedor que se reinició una vez y volvió enseguida no avisa. Lee `k8s.container.restarts.increase`, que un agente antiguo no envía: [actualice el agente](/docs/monitor/kubernetes-agent#actualización). Un monitor creado con la plantilla antes de eso lee cuánto creció `k8s.container.restarts` entre dos muestras del mismo minuto, y pasa por alto los reinicios entre las muestras de dos minutos: elimínelo y vuelva a crear la plantilla. Si `filters.metrics.include` enumera las métricas que envía el agente, añada `k8s.container.restarts.increase`.
+:::
+
+:::details Job Failures no se disparó con un Job fallido
+La plantilla se dispara cuando un pod de un Job falla en 15 minutos, y se resuelve quince minutos después del último fallo. Lee `k8s.job.failed_pods.increase`, que un agente antiguo no envía: [actualice el agente](/docs/monitor/kubernetes-agent#actualización). Un monitor creado con la plantilla antes de eso lee cuánto creció `k8s.job.failed_pods` entre dos muestras del mismo minuto, y pasa por alto los fallos entre las muestras de dos minutos: elimínelo y vuelva a crear la plantilla. Los fallos anteriores a la primera muestra del agente de un Job son el punto de partida de su cuenta, así que un Job cuyo único pod falla en su primer medio minuto pasa desapercibido. Si `filters.metrics.include` enumera las métricas que envía el agente, añada `k8s.job.failed_pods.increase`.
 :::
 
 ## Próximos pasos

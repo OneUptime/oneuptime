@@ -85,13 +85,13 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Werklast | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Werklast | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Controlevlak | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Pod Phase (Code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat. **Node Ready Condition** is 1 bij Ready, 0 bij NotReady en -1 bij Unknown, wat een uitgevallen node meldt: waarschuw bij minder dan 1.
+> **Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Pod Phase (Code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat. **Node Ready Condition** is 1 bij Ready, 0 bij NotReady en -1 bij Unknown, wat een uitgevallen node meldt: waarschuw bij minder dan 1. **Container Restarts** is de doorlopende herstartteller van de container; **Container Restarts (Increase)** is wat de agent met elke meting stuurt: de herstarts sinds zijn vorige meting van de container, dus de som over een venster is het aantal herstarts erin. **Job Failed Pods** is de doorlopende teller van mislukte pods van een Job; **Job Failed Pods (Increase)** is wat de agent met elke meting stuurt: de pods van de Job die sinds zijn vorige meting van de Job zijn mislukt, dus de som over een venster is het aantal fouten erin.
 
 ## Bewakingscriteria
 
@@ -158,7 +158,10 @@ Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, Dae
 **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van de agent van het cluster binnenkomt: de agent is verwijderd of crasht steeds, zijn API-sleutel is ingetrokken, hij is zijn route naar OneUptime kwijtgeraakt, of de API-server van het cluster antwoordt hem niet meer. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** en **Job Failures** tellen hoeveel een teller van herstarts of mislukte pods in het venster groeide, niet de teller zelf, en lossen zichzelf dus op zodra de herstarts of fouten stoppen. De groei is alleen zichtbaar tussen twee metingen van dezelfde minuut: bij het interval van 30 seconden van de agent is dat ongeveer de helft. Een crashloop herstart steeds opnieuw en wordt opgemerkt; één losse herstart kan onopgemerkt blijven.
+> **CrashLoopBackOff Detection** telt `k8s.container.restarts.increase` op, dat de agent met elke meting stuurt: de herstarts sinds zijn vorige meting van de container. Zo telt het elke herstart, hoe ver de metingen ook uit elkaar liggen, lost het zichzelf op zodra de herstarts stoppen, en begint een opnieuw aangemaakte pod een nieuwe telling in plaats van als herstarts te worden gelezen. Een oudere agent stuurt `k8s.container.restarts.increase` niet: [upgrade hem](/docs/monitor/kubernetes-agent#upgraden) eerst. Een monitor die daarvoor uit het sjabloon is gemaakt, leest hoeveel `k8s.container.restarts` binnen elke minuut groeide, en mist zo ongeveer de helft van de herstarts van een crashloop: verwijder hem en maak het sjabloon opnieuw aan.
+
+> [!NOTE]
+> **Job Failures** telt `k8s.job.failed_pods.increase` op, dat de agent met elke meting stuurt: de pods van de Job die sinds zijn vorige meting van de Job zijn mislukt. Zo telt het elke fout, hoe ver de metingen ook uit elkaar liggen, lost het zichzelf op zodra de fouten stoppen, en begint een Job die onder dezelfde naam opnieuw wordt aangemaakt een nieuwe telling in plaats van als fouten te worden gelezen. De fouten van een Job vóór de eerste meting ervan door de agent zijn het beginpunt van zijn telling, dus een Job die in zijn eerste halve minuut mislukt en het nooit opnieuw probeert, kan onopgemerkt blijven. Een oudere agent stuurt `k8s.job.failed_pods.increase` niet: [upgrade hem](/docs/monitor/kubernetes-agent#upgraden) eerst. Een monitor die daarvoor uit het sjabloon is gemaakt, leest hoeveel `k8s.job.failed_pods` binnen elke minuut groeide, en mist zo ongeveer de helft van de fouten: verwijder hem en maak het sjabloon opnieuw aan.
 
 ### Oorzaken vangen, niet alleen symptomen
 
@@ -187,7 +190,11 @@ Clusters registreren zichzelf uit de gegevens van de agent, onder de `clusterNam
 :::
 
 :::details CrashLoopBackOff Detection ging niet af bij een herstart
-Het sjabloon gaat af als de herstartteller van een container binnen 15 minuten groeit terwijl de container minder dan de helft daarvan gereed was, dus een container die één keer herstartte en meteen terugkwam, waarschuwt niet. De groei is alleen zichtbaar tussen twee metingen van dezelfde minuut, dus één losse herstart kan onopgemerkt blijven; een crashloop herstart om de paar minuten en wordt opgemerkt.
+Het sjabloon gaat af als een container binnen 15 minuten herstart terwijl hij minder dan de helft daarvan gereed was, dus een container die één keer herstartte en meteen terugkwam, waarschuwt niet. Het leest `k8s.container.restarts.increase`, dat een oudere agent niet stuurt: [upgrade de agent](/docs/monitor/kubernetes-agent#upgraden). Een monitor die daarvoor uit het sjabloon is gemaakt, leest hoeveel `k8s.container.restarts` groeide tussen twee metingen van dezelfde minuut, en mist de herstarts tussen de metingen van twee minuten: verwijder hem en maak het sjabloon opnieuw aan. Als `filters.metrics.include` de metrics opsomt die de agent stuurt, voeg dan `k8s.container.restarts.increase` toe.
+:::
+
+:::details Job Failures ging niet af bij een mislukte Job
+Het sjabloon gaat af als een pod van een Job binnen 15 minuten mislukt, en lost zichzelf vijftien minuten na de laatste fout op. Het leest `k8s.job.failed_pods.increase`, dat een oudere agent niet stuurt: [upgrade de agent](/docs/monitor/kubernetes-agent#upgraden). Een monitor die daarvoor uit het sjabloon is gemaakt, leest hoeveel `k8s.job.failed_pods` groeide tussen twee metingen van dezelfde minuut, en mist de fouten tussen de metingen van twee minuten: verwijder hem en maak het sjabloon opnieuw aan. De fouten van een Job vóór de eerste meting ervan door de agent zijn het beginpunt van zijn telling, dus een Job waarvan de enige pod in zijn eerste halve minuut mislukt, blijft onopgemerkt. Als `filters.metrics.include` de metrics opsomt die de agent stuurt, voeg dan `k8s.job.failed_pods.increase` toe.
 :::
 
 ## Volgende stappen

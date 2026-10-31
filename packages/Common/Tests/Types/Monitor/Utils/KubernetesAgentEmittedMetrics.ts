@@ -11,11 +11,13 @@ import path from "path";
  * receiver stopped sending as k8s.node.cpu.utilization,
  * k8s.pod.cpu.utilization and container.cpu.utilization in collector
  * 0.125.0. The node collector's transform/cpu-utilization sends them again
- * from the receiver's *.cpu.usage, and sends no container.cpu.usage. Apart
- * from that, what reaches ingest is exactly what the upstream receivers
- * emit. These lists are those receivers' default-enabled metrics — plus the
- * ones the chart's own receiver config adds — copied from each receiver's
- * metadata.yaml at the collector version the chart pins:
+ * from the receiver's *.cpu.usage, and sends no container.cpu.usage. And the
+ * cluster collector makes two metrics of its own (CHART_DERIVED_METRICS).
+ * Apart from that, what
+ * reaches ingest is exactly what the upstream receivers emit. These lists
+ * are those receivers' default-enabled metrics — plus the ones the chart's
+ * own receiver config adds — copied from each receiver's metadata.yaml at
+ * the collector version the chart pins:
  *
  *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/k8sclusterreceiver/metadata.yaml
  *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/kubeletstatsreceiver/metadata.yaml
@@ -204,9 +206,27 @@ export const ALLOWLISTED_SCRAPE_METRICS: ReadonlyArray<string> = [
   ...(agentChartValues["cost"]["metrics"]["metricsAllowlist"] as Array<string>),
 ];
 
+/*
+ * Not receiver metrics: the cluster collector makes them from k8s_cluster's
+ * (templates/configmap-deployment.yaml):
+ *   - k8s.container.restarts.increase, from k8s.container.restarts in its
+ *     metrics/restarts-increase pipeline (tests/restarts-increase_test.yaml):
+ *     the restarts since its previous sample of the container, which
+ *     CrashLoopBackOff Detection sums;
+ *   - k8s.job.failed_pods.increase, a copy of k8s.job.failed_pods in its
+ *     metrics pipeline (tests/job-failures-increase_test.yaml): the Job's
+ *     failed pods since its previous sample of the Job, which Job Failures
+ *     sums.
+ */
+export const CHART_DERIVED_METRICS: ReadonlyArray<string> = [
+  "k8s.container.restarts.increase",
+  "k8s.job.failed_pods.increase",
+];
+
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
   ...K8S_CLUSTER_RECEIVER_METRICS,
   ...KUBELETSTATS_RECEIVER_METRICS,
   ...CONTROL_PLANE_SCRAPE_METRICS,
   ...ALLOWLISTED_SCRAPE_METRICS,
+  ...CHART_DERIVED_METRICS,
 ]);

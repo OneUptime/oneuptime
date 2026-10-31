@@ -24,6 +24,8 @@ import {
   evaluateTemplateCriteria,
 } from "./Utils/TemplateCriteriaEvaluation";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import * as fs from "fs";
+import * as path from "path";
 
 /*
  * These tests lock in the subtle, easy-to-regress decisions in the
@@ -779,33 +781,115 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
    * containerStatus.restartCount — monotonic for the pod object's life —
    * and `Max` over a monotonic series is just the counter, so no per-window
    * count is computed anywhere.
+   *
+   * Then it read the counter's growth between two samples of the SAME
+   * minute (a Max and a Min query, subtracted), and missed every restart
+   * between two minutes' samples. It now sums
+   * k8s.container.restarts.increase, the restarts since the agent's
+   * previous sample of the container, which the agent sends with every
+   * sample (the chart's metrics/restarts-increase pipeline).
    */
-  test("k8s-crashloopbackoff reads the restart count's growth, not its lifetime total", () => {
-    const [offline] = getCriteriaInstances("k8s-crashloopbackoff");
+  test("k8s-crashloopbackoff sums the restarts the agent sends with each sample, never the lifetime count", () => {
+    const [offline, online] = getCriteriaInstances("k8s-crashloopbackoff");
     const queries: Array<any> = getQueryConfigs("k8s-crashloopbackoff");
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-crashloopbackoff"),
+    );
 
     expect(
       queries.map((query: any) => {
         return [
+          query.metricAliasData.metricVariable,
           query.metricQueryData.filterData.metricName,
           query.metricQueryData.filterData.aggegationType,
         ];
       }),
     ).toEqual([
-      ["k8s.container.restarts", MetricsAggregationType.Max],
-      ["k8s.container.restarts", MetricsAggregationType.Min],
-      ["k8s.container.ready", MetricsAggregationType.Avg],
+      [
+        "container_restarts",
+        "k8s.container.restarts.increase",
+        MetricsAggregationType.Sum,
+      ],
+      ["container_ready", "k8s.container.ready", MetricsAggregationType.Avg],
     ]);
+    // No formula: the criteria compare the restarts query itself.
+    expect(monitor.metricViewConfig.formulaConfigs).toEqual([]);
+    // What the root cause and the chart call it.
+    expect(queries[0].metricAliasData.title).toBe("Container Restarts");
+    expect(queries[0].metricAliasData.legend).toBe("Container Restarts");
+    // A count: no unit to convert from or to.
+    expect(queries[0].metricAliasData.legendUnit).toBeUndefined();
 
-    // No criteria compares the raw lifetime count.
-    for (const filter of offline.data.filters as Array<any>) {
-      expect([
-        "container_restarts_max",
-        "container_restarts_min",
-      ]).not.toContain(filter.metricMonitorOptions.metricAlias);
+    // Both criteria compare the restarts and the readiness, nothing else.
+    for (const instance of [offline, online]) {
+      expect(
+        (instance.data.filters as Array<any>).map((filter: any) => {
+          return filter.metricMonitorOptions.metricAlias;
+        }),
+      ).toEqual(["container_restarts", "container_ready"]);
     }
 
     expect(offline.data.description).not.toContain("cumulative");
+    expect(offline.data.description).not.toContain("same minute");
+    expect(offline.data.description).toContain(
+      "counted from the restarts the agent sends with each sample",
+    );
+  });
+
+  test("no Kubernetes template reads the lifetime restart count, which only ever grows", () => {
+    for (const template of getAllKubernetesAlertTemplates()) {
+      for (const query of getQueryConfigs(template.id)) {
+        expect({
+          template: template.id,
+          metric: query.metricQueryData.filterData.metricName,
+        }).not.toEqual({
+          template: template.id,
+          metric: "k8s.container.restarts",
+        });
+      }
+    }
+  });
+
+  test("k8s-crashloopbackoff says what it reads, that every restart counts, and that an older agent sends none of it", () => {
+    const template: KubernetesAlertTemplate = getKubernetesAlertTemplateById(
+      "k8s-crashloopbackoff",
+    )!;
+
+    expect(template.description).toContain("k8s.container.restarts.increase");
+    expect(template.description).toContain("every restart counts");
+    expect(template.description).toContain(
+      "A recreated pod starts a new count and is not a restart.",
+    );
+    expect(template.description).toContain(
+      "An older Kubernetes agent does not send the increase: upgrade the agent first.",
+    );
+    // The limits of the per-minute delta it no longer has.
+    expect(template.description).not.toContain("same minute");
+    expect(template.description).not.toContain("can go unseen");
+    expect(template.summary).toBe(
+      "A container restarts within 15 minutes and is mostly not ready.",
+    );
+  });
+
+  test("k8s-crashloopbackoff reads the metric the agent's cluster collector makes, from the count it keeps sending", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      ),
+      "utf8",
+    );
+
+    expect(config).toContain(
+      '- set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"',
+    );
+    expect(config).toContain("- 'name != \"k8s.container.restarts\"'");
+    expect(config).toContain('- delete_key(attributes, "container.id")');
+    expect(config).toContain("  cumulative_to_delta/restarts-increase:\n");
+    expect(config).toContain("        metrics/restarts-increase:\n");
+    expect(config).toContain(
+      "            - cumulative_to_delta/restarts-increase\n",
+    );
   });
 
   /*
@@ -1323,54 +1407,75 @@ describe("KubernetesAlertTemplates - Node Not Ready catches a node that went dow
 });
 
 describe("KubernetesAlertTemplates - CrashLoopBackOff reads what is happening now", () => {
+  /*
+   * One value a minute per alias: the restarts the agent sent in that
+   * minute (k8s.container.restarts.increase, summed), and the share of the
+   * minute's samples the container was ready.
+   */
   const READY_ALL_WINDOW: Array<number> = Array(15).fill(1);
   const NOT_READY_ALL_WINDOW: Array<number> = Array(15).fill(0);
-
-  // A restart count that does not move, at a given lifetime total.
-  function steady(total: number): Array<number> {
-    return Array(15).fill(total);
-  }
+  const NO_RESTARTS: Array<number> = Array(15).fill(0);
 
   test("a long-lived container with old restarts does not fire (it used to page at once, forever)", async () => {
+    // Its lifetime count is never read: every sample sends 0 more.
     expect(
       await evaluate("k8s-crashloopbackoff", {
-        container_restarts_max: steady(42),
-        container_restarts_min: steady(42),
+        container_restarts: NO_RESTARTS,
         container_ready: READY_ALL_WINDOW,
       }),
     ).toEqual({ breached: false, healthy: true });
   });
 
   test("a container crash-looping now fires at its third restart (it used to wait for the sixth)", async () => {
-    // Restarts 1, 2 and 3 of a new loop, one of them seen inside a minute.
-    const max: Array<number> = [0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3];
-    const min: Array<number> = [0, 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3];
+    // Restarts 1, 2 and 3 of a new loop, each in a minute of its own.
+    const restarts: Array<number> = [
+      0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+    ];
 
     expect(
       await evaluate("k8s-crashloopbackoff", {
-        container_restarts_max: max,
-        container_restarts_min: min,
+        container_restarts: restarts,
         container_ready: NOT_READY_ALL_WINDOW,
       }),
     ).toEqual({ breached: true, healthy: false });
   });
 
+  test("fires on a single restart of a container that stays not ready", async () => {
+    /*
+     * The per-minute delta saw a single restart only when it fell between
+     * two samples of the same minute: even odds. The increase a sample
+     * sends counts it wherever it fell.
+     */
+    const restarts: Array<number> = [...NO_RESTARTS];
+    restarts[7] = 1;
+
+    expect(
+      await evaluate("k8s-crashloopbackoff", {
+        container_restarts: restarts,
+        container_ready: NOT_READY_ALL_WINDOW,
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("a container sampled minutes apart fires: each sample brings every restart since the last one", async () => {
+    // Three minutes of the window hold a sample; between them, 2, 1 and 3 restarts.
+    expect(
+      await evaluate("k8s-crashloopbackoff", {
+        container_restarts: [2, 1, 3],
+        container_ready: [0, 0, 0],
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
   test("a one-off restart of a container that came straight back and stayed ready does not page", async () => {
-    const max: Array<number> = steady(4);
-    const min: Array<number> = steady(4);
-    max[3] = 5;
-    min[3] = 4;
-    for (let minute: number = 4; minute < 15; minute++) {
-      max[minute] = 5;
-      min[minute] = 5;
-    }
+    const restarts: Array<number> = [...NO_RESTARTS];
+    restarts[3] = 1;
     const ready: Array<number> = [...READY_ALL_WINDOW];
     ready[3] = 0.5;
 
     expect(
       await evaluate("k8s-crashloopbackoff", {
-        container_restarts_max: max,
-        container_restarts_min: min,
+        container_restarts: restarts,
         container_ready: ready,
       }),
     ).toEqual({ breached: false, healthy: true });
@@ -1379,28 +1484,66 @@ describe("KubernetesAlertTemplates - CrashLoopBackOff reads what is happening no
   test("clears when the container stops restarting", async () => {
     expect(
       await evaluate("k8s-crashloopbackoff", {
-        container_restarts_max: steady(9),
-        container_restarts_min: steady(9),
+        container_restarts: NO_RESTARTS,
         container_ready: NOT_READY_ALL_WINDOW,
       }),
     ).toEqual({ breached: false, healthy: true });
   });
 
-  test("never fires on the restart count's history, whatever it is", async () => {
+  test("whatever the readiness, a window with no restart never fires and always clears", async () => {
     const random: SeededRandom = seededRandom(1407);
 
     for (let draw: number = 0; draw < 50; draw++) {
-      const total: number = random(10000);
+      const ready: Array<number> = Array.from({ length: 15 }, (): number => {
+        return random(2);
+      });
 
-      expect(
-        await evaluate("k8s-crashloopbackoff", {
-          container_restarts_max: steady(total),
-          container_restarts_min: steady(total),
-          container_ready: Array.from({ length: 15 }, (): number => {
-            return random(2);
-          }),
+      expect({
+        ready,
+        verdict: await evaluate("k8s-crashloopbackoff", {
+          container_restarts: NO_RESTARTS,
+          container_ready: ready,
         }),
-      ).toEqual(expect.objectContaining({ breached: false }));
+      }).toEqual({ ready, verdict: { breached: false, healthy: true } });
+    }
+  });
+
+  test("any restart in the window fires while the container is mostly not ready, and none while it is mostly ready", async () => {
+    const random: SeededRandom = seededRandom(5_452);
+
+    for (let draw: number = 0; draw < 60; draw++) {
+      const restarts: Array<number> = [...NO_RESTARTS];
+      const restartCount: number = 1 + random(6);
+
+      for (let index: number = 0; index < restartCount; index++) {
+        const minute: number = random(15);
+        restarts[minute] = (restarts[minute] as number) + 1;
+      }
+
+      // Ready in fewer than half the minutes, or in more than 55% of them.
+      const readyMinutes: number = draw % 2 === 0 ? random(7) : 9 + random(7);
+      const ready: Array<number> = Array.from(
+        { length: 15 },
+        (_: unknown, minute: number): number => {
+          return minute < readyMinutes ? 1 : 0;
+        },
+      );
+      const mostlyNotReady: boolean = readyMinutes < 7.5;
+
+      expect({
+        restarts,
+        readyMinutes,
+        verdict: await evaluate("k8s-crashloopbackoff", {
+          container_restarts: restarts,
+          container_ready: ready,
+        }),
+      }).toEqual({
+        restarts,
+        readyMinutes,
+        verdict: mostlyNotReady
+          ? { breached: true, healthy: false }
+          : { breached: false, healthy: true },
+      });
     }
   });
 });
@@ -1440,42 +1583,188 @@ describe("KubernetesAlertTemplates - High Node Memory reads the working set", ()
 });
 
 describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
+  /*
+   * One value a minute: the failed pods the agent sent in that minute
+   * (k8s.job.failed_pods.increase, summed per Job).
+   */
+  const NO_FAILURES: Array<number> = Array(15).fill(0);
+
   test("a Job that failed once and then succeeded on its retry stops alerting", async () => {
-    // status.failed stays at 1 for the life of the Job object.
+    // Its status.failed stays at 1 for the life of the Job; every sample sends 0 more.
     expect(
-      await evaluate("k8s-job-failures", {
-        failed_pods_max: Array(15).fill(1),
-        failed_pods_min: Array(15).fill(1),
-      }),
+      await evaluate("k8s-job-failures", { failed_pods: NO_FAILURES }),
     ).toEqual({ breached: false, healthy: true });
   });
 
   test("a Job whose pods fail in the window fires", async () => {
+    // Three failures, each in a minute of its own.
     expect(
       await evaluate("k8s-job-failures", {
-        failed_pods_max: [0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3],
-        failed_pods_min: [0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+        failed_pods: [0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
       }),
     ).toEqual({ breached: true, healthy: false });
   });
 
-  test("never compares the lifetime failed-pod count", () => {
-    const [offline, online] = getCriteriaInstances("k8s-job-failures");
-
-    for (const instance of [offline, online]) {
-      expect(instance.data.filters[0].metricMonitorOptions.metricAlias).toBe(
-        "failed_pods",
-      );
-      expect(
-        instance.data.filters[0].metricMonitorOptions.metricAggregationType,
-      ).toBe(EvaluateOverTimeType.Sum);
-    }
+  test("fires on a single failure, wherever it fell between two samples", async () => {
+    /*
+     * The per-minute delta saw a single failure only when it fell between
+     * two samples of the same minute: even odds. The increase a sample
+     * sends counts it wherever it fell.
+     */
+    const failures: Array<number> = [...NO_FAILURES];
+    failures[9] = 1;
 
     expect(
-      getQueryConfigs("k8s-job-failures").map((query: any) => {
-        return query.metricQueryData.filterData.aggegationType;
+      await evaluate("k8s-job-failures", { failed_pods: failures }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("a Job sampled minutes apart fires: each sample brings every failure since the last one", async () => {
+    // Three minutes of the window hold a sample; between them, 2, 0 and 1 failures.
+    expect(
+      await evaluate("k8s-job-failures", { failed_pods: [2, 0, 1] }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("whatever the Job's failures, it fires on any in the window and clears on none", async () => {
+    const random: SeededRandom = seededRandom(5_460);
+
+    for (let draw: number = 0; draw < 60; draw++) {
+      const failures: Array<number> = [...NO_FAILURES];
+      const failureCount: number = draw % 3 === 0 ? 0 : 1 + random(7);
+
+      for (let index: number = 0; index < failureCount; index++) {
+        const minute: number = random(15);
+        failures[minute] = (failures[minute] as number) + 1;
+      }
+
+      expect({
+        failures,
+        verdict: await evaluate("k8s-job-failures", { failed_pods: failures }),
+      }).toEqual({
+        failures,
+        verdict:
+          failureCount > 0
+            ? { breached: true, healthy: false }
+            : { breached: false, healthy: true },
+      });
+    }
+  });
+
+  test("sums the failed pods the agent sends with each sample, never the lifetime count", () => {
+    const [offline, online] = getCriteriaInstances("k8s-job-failures");
+    const queries: Array<any> = getQueryConfigs("k8s-job-failures");
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-job-failures"),
+    );
+
+    expect(
+      queries.map((query: any) => {
+        return [
+          query.metricAliasData.metricVariable,
+          query.metricQueryData.filterData.metricName,
+          query.metricQueryData.filterData.aggegationType,
+          query.metricQueryData.groupByAttributeKeys,
+        ];
       }),
-    ).toEqual([MetricsAggregationType.Max, MetricsAggregationType.Min]);
+    ).toEqual([
+      [
+        "failed_pods",
+        "k8s.job.failed_pods.increase",
+        MetricsAggregationType.Sum,
+        ["resource.k8s.namespace.name", "resource.k8s.job.name"],
+      ],
+    ]);
+    // No formula: the criteria compare the failures query itself.
+    expect(monitor.metricViewConfig.formulaConfigs).toEqual([]);
+    // What the root cause and the chart call it.
+    expect(queries[0].metricAliasData.title).toBe("Failed Job Pods");
+    expect(queries[0].metricAliasData.legend).toBe("Failed Job Pods");
+    // A count: no unit to convert from or to.
+    expect(queries[0].metricAliasData.legendUnit).toBeUndefined();
+    expect(monitor.rollingTime).toBe(RollingTime.Past15Minutes);
+
+    for (const instance of [offline, online]) {
+      expect(
+        (instance.data.filters as Array<any>).map((filter: any) => {
+          return [
+            filter.metricMonitorOptions.metricAlias,
+            filter.metricMonitorOptions.metricAggregationType,
+          ];
+        }),
+      ).toEqual([["failed_pods", EvaluateOverTimeType.Sum]]);
+    }
+
+    expect(offline.data.description).not.toContain("same minute");
+    expect(offline.data.description).not.toContain("lower bound");
+    expect(offline.data.description).toContain(
+      "counted from the failed pods the agent sends with each sample",
+    );
+  });
+
+  test("no Kubernetes template reads the lifetime failed-pod count, which only ever grows", () => {
+    for (const template of getAllKubernetesAlertTemplates()) {
+      for (const query of getQueryConfigs(template.id)) {
+        expect({
+          template: template.id,
+          metric: query.metricQueryData.filterData.metricName,
+        }).not.toEqual({
+          template: template.id,
+          metric: "k8s.job.failed_pods",
+        });
+      }
+    }
+  });
+
+  test("says what it reads, that every failure counts, what it cannot see, and that an older agent sends none of it", () => {
+    const template: KubernetesAlertTemplate =
+      getKubernetesAlertTemplateById("k8s-job-failures")!;
+
+    expect(template.name).toBe("Job Failures");
+    expect(template.description).toContain("k8s.job.failed_pods.increase");
+    expect(template.description).toContain("every failure counts");
+    expect(template.description).toContain(
+      "A Job recreated under the same name starts a new count.",
+    );
+    expect(template.description).toContain(
+      "Failures before the agent's first sample of a Job, in its first half-minute, are not counted.",
+    );
+    expect(template.description).toContain(
+      "An older Kubernetes agent does not send the increase: upgrade the agent first.",
+    );
+    // Rendered as text on the recommendation card, so no code spans.
+    expect(template.description).not.toContain("`");
+    // The limits of the per-minute delta it no longer has.
+    expect(template.description).not.toContain("same minute");
+    expect(template.description).not.toContain("can go unseen");
+    expect(template.summary).toBe("A pod of a job fails within 15 minutes.");
+  });
+
+  test("reads the metric the agent's cluster collector makes, from the count it keeps sending", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      ),
+      "utf8",
+    );
+
+    expect(config).toContain(
+      '- copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+    );
+    expect(config).toContain(
+      '- convert_gauge_to_sum("cumulative", true) where name == "k8s.job.failed_pods.increase"',
+    );
+    expect(config).toContain(
+      "  cumulative_to_delta/job-failures-increase:\n        include:\n          metrics:\n            - k8s.job.failed_pods.increase\n          match_type: strict\n        initial_value: drop\n",
+    );
+    expect(config).toContain(
+      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n",
+    );
+    expect(AGENT_EMITTED_METRIC_NAMES).toContain(
+      "k8s.job.failed_pods.increase",
+    );
+    expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.job.failed_pods");
   });
 });
 

@@ -107,6 +107,8 @@ const DECLARED_UNITS: Map<string, string> = new Map<string, string>([
   ["k8s.hpa.current_replicas", "{pod}"],
   ["k8s.hpa.max_replicas", "{pod}"],
   ["k8s.container.restarts", "{restart}"],
+  // The agent's rename of its copy of k8s.container.restarts keeps its unit.
+  ["k8s.container.restarts.increase", "{restart}"],
   ["k8s.pod.memory_limit_utilization", "1"],
   ["k8s.node.condition_ready", "1"],
 ]);
@@ -923,29 +925,26 @@ for (const testCase of RATIO_TEMPLATE_CASES) {
 
 describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
   /*
-   * The template reads three queries per container - the restart count's
-   * per-minute Maximum and Minimum, and the container's readiness - and
-   * fires on the restarts' growth in the window while the container was
-   * ready for less than half of it. It used to read the lifetime restart
-   * count (Max > 5), so a long-lived pod past six restarts paged at once and
-   * stayed open until the pod was replaced.
+   * The template reads two queries per container - the restarts the agent
+   * sends with each sample (k8s.container.restarts.increase), summed per
+   * minute, and the container's readiness - and fires on any restart in the
+   * window while the container was ready for less than half of it. It used
+   * to read the lifetime restart count (Max > 5), so a long-lived pod past
+   * six restarts paged at once and stayed open until the pod was replaced;
+   * then the count's growth between two samples of the same minute, which
+   * missed every restart between two minutes' samples.
    */
   function crashLoopSeries(input: {
     labels: JSONObject;
     datapointAttributes: JSONObject;
-    restartsMax: Array<number>;
-    restartsMin: Array<number>;
+    // The restarts the agent sent in each minute.
+    restarts: Array<number>;
     ready: Array<number>;
   }): SeriesSpec {
     return {
       labels: input.labels,
       datapointAttributes: input.datapointAttributes,
-      queryValues: [input.restartsMax, input.restartsMin, input.ready],
-      formulaValues: input.restartsMax.map(
-        (value: number, minute: number): number => {
-          return value - input.restartsMin[minute]!;
-        },
-      ),
+      queryValues: [input.restarts, input.ready],
     };
   }
 
@@ -960,8 +959,7 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "search",
         [NODE_KEY]: "gke-node-2",
       },
-      restartsMax: [6, 7, 7, 8, 8],
-      restartsMin: [6, 6, 7, 7, 8],
+      restarts: [0, 1, 0, 1, 0],
       ready: [0, 0, 0, 0, 0],
     }),
     crashLoopSeries({
@@ -974,8 +972,7 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "checkout",
         [NODE_KEY]: "gke-node-1",
       },
-      restartsMax: [6, 7, 8, 9, 10],
-      restartsMin: [6, 6, 7, 8, 9],
+      restarts: [0, 1, 1, 1, 1],
       ready: [0, 0, 1, 0, 0],
     }),
     // Restarted once, then ready: not a crash loop.
@@ -989,11 +986,10 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "web",
         [NODE_KEY]: "gke-node-1",
       },
-      restartsMax: [3, 4, 4, 4, 4],
-      restartsMin: [3, 3, 4, 4, 4],
+      restarts: [0, 1, 0, 0, 0],
       ready: [1, 1, 1, 1, 1],
     }),
-    // Restarted 40 times in its life, none of them now.
+    // Restarted 40 times in its life, none of them now: every sample sends 0.
     crashLoopSeries({
       labels: {
         [NAMESPACE_KEY]: "payments",
@@ -1004,8 +1000,7 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "ledger",
         [NODE_KEY]: "gke-node-3",
       },
-      restartsMax: [40, 40, 40, 40, 40],
-      restartsMin: [40, 40, 40, 40, 40],
+      restarts: [0, 0, 0, 0, 0],
       ready: [1, 1, 1, 1, 1],
     }),
   ];
@@ -1032,17 +1027,49 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
     expect(section).not.toContain("ledger");
   });
 
-  test("names the restarts' growth it compared, and never the lifetime count", async () => {
+  test("names the restarts it compared, the ones the agent sends with each sample, and never the lifetime count", async () => {
     const rootCause: string = await evaluateFiring({
       step: templateStep("k8s-crashloopbackoff"),
       series: series,
     });
 
     expect(rootCause).toContain(
-      "- Formula: `container_restarts_max - container_restarts_min`",
+      `- Metric: ${describedMetric("k8s.container.restarts.increase")}`,
+    );
+    expect(describedMetric("k8s.container.restarts.increase")).toBe(
+      "Container Restarts (Increase) (`k8s.container.restarts.increase`)",
+    );
+    // No formula any more, and never the running count.
+    expect(rootCause).not.toContain("- Formula:");
+    expect(rootCause).not.toContain("container_restarts_max");
+    expect(rootCause).not.toContain(
+      `- Metric: ${describedMetric("k8s.container.restarts")}`,
     );
     expect(rootCause).not.toContain("**40**");
     expect(rootCause).not.toMatch(LONG_RAW_NUMBER);
+  });
+
+  test("compares each container's restarts summed over the window, and analyses a crash-looping one", async () => {
+    const rootCause: string = await evaluateFiring({
+      step: templateStep("k8s-crashloopbackoff"),
+      series: series,
+    });
+    const analysis: string = rootCause.substring(
+      rootCause.indexOf("**Root Cause Analysis**"),
+    );
+
+    // The window's total for the series the criteria line describes.
+    expect(rootCause).toMatch(
+      /- The sum of Container Restarts was [24], above the 0 threshold\./,
+    );
+    expect(analysis).toContain(
+      "Container restart count is elevated, indicating a potential CrashLoopBackOff condition.",
+    );
+    expect(analysis).toMatch(
+      /kubectl logs (?:search-5c4b-abc -c indexer|checkout-7d9f-2xk -c api) --previous/,
+    );
+    expect(analysis).not.toContain("ledger");
+    expect(analysis).not.toContain("web-12ab-c3d");
   });
 });
 

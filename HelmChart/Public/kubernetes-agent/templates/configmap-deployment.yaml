@@ -482,6 +482,127 @@ data:
               - set(severity_text, "WARN") where IsMap(body) and body["kind"] == "Event" and body["type"] == "Warning"
               - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and body["kind"] == "Event" and body["type"] == "Warning"
 
+      # Container restarts as OneUptime's CrashLoopBackOff Detection template
+      # counts them: k8s.container.restarts.increase, the times a container
+      # restarted since this collector's previous sample of it, which the
+      # metrics/restarts-increase pipeline below sends. k8s.container.restarts
+      # (the container status' restartCount) goes on unchanged in the metrics
+      # pipeline, for the charts.
+      #
+      # A monitor can only take the difference of samples inside one minute,
+      # so the template used to miss every restart between two samples in
+      # different minutes: about half of a crash loop at a 30-second
+      # interval. These three take it sample by sample instead:
+      #   1. filter/restarts-increase-source keeps k8s.container.restarts
+      #      alone in this pipeline's copy of what k8s_cluster sends;
+      #   2. transform/restarts-increase renames it, makes the receiver's
+      #      gauge a cumulative sum, and takes container.id off its resource.
+      #      The kubelet runs every restart as a new container, with a new ID
+      #      and the count one higher, so a series keyed by the ID never sees
+      #      its count move, and no restart would be counted;
+      #   3. cumulative_to_delta/restarts-increase sends the count minus the
+      #      previous sample's for the same pod (by UID) and container,
+      #      however long ago that was. A container's first sample (the
+      #      agent started, or the pod is new: a recreated pod has a new UID,
+      #      whatever its name) and a sample whose count went down send
+      #      nothing; a container's previous sample is kept for 2 hours.
+      # The receiver reports every container of every pod at each interval,
+      # running or waiting in CrashLoopBackOff, so a crash-looping container
+      # is sampled between its runs too (k8sclusterreceiver
+      # internal/container/containers.go at 0.161.0 and 0.96.0).
+      # tests/restarts-increase_test.yaml pins these, and
+      # Tests/Ops/agent-restarts-increase-behaviour.sh runs them in the
+      # collector the chart pins and in 0.96.0.
+      filter/restarts-increase-source:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'name != "k8s.container.restarts"'
+      transform/restarts-increase:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "container.id")
+          - context: metric
+            statements:
+              - set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"
+              - set(description, "Times the container restarted since the agent's previous sample of it.") where name == "k8s.container.restarts.increase"
+              {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.108.0")) "true" }}
+              - convert_gauge_to_sum("cumulative", true) where name == "k8s.container.restarts.increase"
+              {{- end }}
+          {{- if ne (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.108.0")) "true" }}
+          # Before collector 0.108.0, convert_gauge_to_sum is a datapoint
+          # function (from 0.108.0 a metric one, and only that from 0.113.0):
+          # 0.96.0 is what a --reuse-values upgrade keeps.
+          - context: datapoint
+            statements:
+              - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.container.restarts.increase"
+          {{- end }}
+      cumulative_to_delta/restarts-increase:
+        include:
+          metrics:
+            - k8s.container.restarts.increase
+          match_type: strict
+        initial_value: drop
+        max_staleness: 2h
+
+      # Job failures as OneUptime's Job Failures template counts them:
+      # k8s.job.failed_pods.increase, the pods of a Job that failed since this
+      # collector's previous sample of the Job. k8s.job.failed_pods (the Job's
+      # status.failed, a running count that only grows for the Job's life)
+      # goes on unchanged, for the charts. The template used to take the
+      # count's growth within each minute, and missed every failure between
+      # two samples in different minutes: about half of them at a 30-second
+      # interval.
+      #
+      # k8s_cluster sends k8s.job.failed_pods as an int gauge on the Job's own
+      # resource, keyed by k8s.job.uid (with its name and namespace), which
+      # stays the same for the Job's life (k8sclusterreceiver
+      # internal/jobs/jobs.go at 0.161.0 and 0.96.0). So unlike the restarts,
+      # nothing comes off the resource and no pipeline of its own is needed:
+      # the copy rides the metrics pipeline beside the count, two processors
+      # in it:
+      #   1. transform/job-failures-increase copies k8s.job.failed_pods, then
+      #      makes the copy's gauge a cumulative sum (in a group of its own,
+      #      after the copy is made);
+      #   2. cumulative_to_delta/job-failures-increase sends the count minus
+      #      the previous sample's for the same Job (by UID), however long ago
+      #      that was. A Job's first sample (the agent started, or the Job is
+      #      new: a Job recreated under the same name has a new UID and starts
+      #      at 0) and a sample whose count went down send nothing; a Job's
+      #      previous sample is kept for 2 hours.
+      # The receiver reports every Job in the cluster at each interval until
+      # the Job is deleted, so a failing Job is sampled between its retries.
+      # tests/job-failures-increase_test.yaml pins these, and
+      # Tests/Ops/agent-job-failures-increase-behaviour.sh runs them in the
+      # collector the chart pins and in 0.96.0.
+      transform/job-failures-increase:
+        error_mode: ignore
+        metric_statements:
+          - context: metric
+            statements:
+              - copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent's previous sample of it.") where name == "k8s.job.failed_pods"
+          {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.108.0")) "true" }}
+          - context: metric
+            statements:
+              - convert_gauge_to_sum("cumulative", true) where name == "k8s.job.failed_pods.increase"
+          {{- else }}
+          # Before collector 0.108.0, convert_gauge_to_sum is a datapoint
+          # function (from 0.108.0 a metric one, and only that from 0.113.0):
+          # 0.96.0 is what a --reuse-values upgrade keeps.
+          - context: datapoint
+            statements:
+              - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.job.failed_pods.increase"
+          {{- end }}
+      cumulative_to_delta/job-failures-increase:
+        include:
+          metrics:
+            - k8s.job.failed_pods.increase
+          match_type: strict
+        initial_value: drop
+        max_staleness: 2h
+
       {{- /* No "logs" signal here, deliberately. `filters.logs.minSeverity` is a
              POD LOG control, and no pod log flows through this collector — the
              only logs pipeline here carries the k8sobjects watch (Kubernetes
@@ -631,6 +752,11 @@ data:
             {{- end }}
           processors:
             - memory_limiter
+            # The failures since each Job's previous sample, for Job Failures
+            # (see transform/job-failures-increase). First, so filters.metrics
+            # sees the copy under the name it is sent with.
+            - transform/job-failures-increase
+            - cumulative_to_delta/job-failures-increase
             - transform/pod-level-mark
             - k8sattributes
             - transform/pod-level-unmark
@@ -711,3 +837,27 @@ data:
           exporters:
             - otlphttp
         {{- end }}
+        # The restarts since each container's previous sample, for
+        # CrashLoopBackOff Detection (see transform/restarts-increase). A
+        # pipeline of its own because its series must not carry container.id,
+        # which the receiver puts on the resource every metric of a container
+        # shares: it comes off this pipeline's copy only. k8s_cluster feeds
+        # both metrics pipelines, each its own copy. No k8sattributes here, so
+        # these carry the receiver's own pod, container, namespace and node
+        # names, not workload names.
+        metrics/restarts-increase:
+          receivers:
+            - k8s_cluster
+          processors:
+            - memory_limiter
+            - filter/restarts-increase-source
+            - transform/restarts-increase
+            {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
+            # After the rename, so filters.metrics sees the name sent.
+            - filter/telemetry
+            {{- end }}
+            - cumulative_to_delta/restarts-increase
+            - resource
+            - batch
+          exporters:
+            - otlphttp

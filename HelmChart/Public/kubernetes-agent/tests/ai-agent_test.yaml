@@ -743,7 +743,7 @@ tests:
             name: oneuptime-agent-kubernetes-agent-ai-agent-remediation
             namespace: prod
             labels:
-              helm.sh/chart: kubernetes-agent-0.7.0
+              helm.sh/chart: kubernetes-agent-0.7.2
               app.kubernetes.io/name: kubernetes-agent
               app.kubernetes.io/instance: oneuptime-agent
               app.kubernetes.io/version: "1.0.0"

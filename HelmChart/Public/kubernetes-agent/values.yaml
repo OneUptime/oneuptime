@@ -12,7 +12,7 @@
 # this chart's defaults and keeps the values you set: --reset-then-reuse-values
 # (Helm 3.14+), or `helm get values` into -f. The README's "Upgrading" section
 # has the details.
-chartDefaultsVersion: "0.7.0"
+chartDefaultsVersion: "0.7.2"
 
 # Preset for the kind of cluster you're installing into. Sets compatible
 # defaults for log collection and security context — so you don't have to

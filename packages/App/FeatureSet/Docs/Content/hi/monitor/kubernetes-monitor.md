@@ -85,13 +85,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | नोड | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| कंटेनर | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| वर्कलोड | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| कंटेनर | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| वर्कलोड | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | कंट्रोल प्लेन | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं: `0.18` का मतलब एक कोर का 0.18 है। **Pod Phase (Code)** एक कोड है (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – इसे अधिकतम या न्यूनतम से एकत्र करें, योग से कभी नहीं। कंट्रोल प्लेन मेट्रिक्स तभी आते हैं जब एजेंट का कंट्रोल प्लेन स्क्रेप चालू हो। **Node Ready Condition** Ready होने पर 1, NotReady पर 0 और Unknown पर -1 होता है, और बंद हो चुका नोड Unknown ही रिपोर्ट करता है: 1 से कम पर अलर्ट करें।
+> **Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं: `0.18` का मतलब एक कोर का 0.18 है। **Pod Phase (Code)** एक कोड है (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – इसे अधिकतम या न्यूनतम से एकत्र करें, योग से कभी नहीं। कंट्रोल प्लेन मेट्रिक्स तभी आते हैं जब एजेंट का कंट्रोल प्लेन स्क्रेप चालू हो। **Node Ready Condition** Ready होने पर 1, NotReady पर 0 और Unknown पर -1 होता है, और बंद हो चुका नोड Unknown ही रिपोर्ट करता है: 1 से कम पर अलर्ट करें। **Container Restarts** कंटेनर की चालू रीस्टार्ट गिनती है; **Container Restarts (Increase)** वह है जो एजेंट हर नमूने के साथ भेजता है: कंटेनर के अपने पिछले नमूने के बाद हुए रीस्टार्ट, इसलिए किसी विंडो में इसका योग उस विंडो के रीस्टार्ट हैं। **Job Failed Pods** किसी Job के विफल पॉड की चालू गिनती है; **Job Failed Pods (Increase)** वह है जो एजेंट हर नमूने के साथ भेजता है: Job के अपने पिछले नमूने के बाद विफल हुए उसके पॉड, इसलिए किसी विंडो में इसका योग उस विंडो की विफलताएँ हैं।
 
 ## मॉनिटरिंग मानदंड
 
@@ -158,7 +158,10 @@ flowchart TB
 **Cluster Stopped Reporting** तब ट्रिगर होता है जब दस मिनट तक क्लस्टर के एजेंट से कुछ भी नहीं आता: एजेंट अनइंस्टॉल कर दिया गया या बार-बार क्रैश हो रहा है, उसकी API कुंजी रद्द कर दी गई, उसने OneUptime तक का अपना रास्ता खो दिया, या क्लस्टर के API सर्वर ने उसे जवाब देना बंद कर दिया। डेटा लौटने पर यह ठीक हो जाता है। जब डेटा रुक जाता है, तो बाकी टेम्पलेट के पास तुलना करने के लिए कुछ नहीं होता और वे अपनी आखिरी स्थिति बनाए रखते हैं, इसलिए यही टेम्पलेट आपको बताता है।
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** और **Job Failures** यह गिनते हैं कि विंडो में रीस्टार्ट या विफल-पॉड गिनती कितनी बढ़ी, स्वयं गिनती नहीं, इसलिए रीस्टार्ट या विफलताएँ रुकते ही वे अपने आप साफ़ हो जाते हैं। बढ़ोतरी केवल एक ही मिनट के दो नमूनों के बीच दिखती है: एजेंट के 30 सेकंड के अंतराल पर यह लगभग आधी होती है। क्रैश लूप बार-बार रीस्टार्ट होता है और पकड़ा जाता है; एक अकेला रीस्टार्ट छूट सकता है।
+> **CrashLoopBackOff Detection** `k8s.container.restarts.increase` को जोड़ता है, जिसे एजेंट हर नमूने के साथ भेजता है: कंटेनर के अपने पिछले नमूने के बाद हुए रीस्टार्ट। इसलिए यह हर रीस्टार्ट गिनता है, नमूने चाहे कितनी भी दूरी पर हों, रीस्टार्ट रुकते ही अपने आप साफ़ हो जाता है, और दोबारा बनाया गया पॉड रीस्टार्ट के रूप में पढ़े जाने के बजाय नई गिनती शुरू करता है। पुराना एजेंट `k8s.container.restarts.increase` नहीं भेजता: पहले [उसे अपग्रेड करें](/docs/monitor/kubernetes-agent#अपग्रेड-करना)। उससे पहले टेम्पलेट से बना मॉनिटर यह पढ़ता है कि `k8s.container.restarts` हर मिनट के भीतर कितना बढ़ा, जिससे क्रैश लूप के लगभग आधे रीस्टार्ट छूट जाते हैं: उसे हटाएँ और टेम्पलेट फिर से बनाएँ।
+
+> [!NOTE]
+> **Job Failures** `k8s.job.failed_pods.increase` को जोड़ता है, जिसे एजेंट हर नमूने के साथ भेजता है: Job के अपने पिछले नमूने के बाद विफल हुए उसके पॉड। इसलिए यह हर विफलता गिनता है, नमूने चाहे कितनी भी दूरी पर हों, विफलताएँ रुकते ही अपने आप साफ़ हो जाता है, और उसी नाम से दोबारा बनाया गया Job विफलताओं के रूप में पढ़े जाने के बजाय नई गिनती शुरू करता है। किसी Job के एजेंट के पहले नमूने से पहले की विफलताएँ उसकी गिनती का आरंभ बिंदु होती हैं, इसलिए जो Job अपने पहले आधे मिनट में विफल हो और कभी पुनः प्रयास न करे, वह छूट सकता है। पुराना एजेंट `k8s.job.failed_pods.increase` नहीं भेजता: पहले [उसे अपग्रेड करें](/docs/monitor/kubernetes-agent#अपग्रेड-करना)। उससे पहले टेम्पलेट से बना मॉनिटर यह पढ़ता है कि `k8s.job.failed_pods` हर मिनट के भीतर कितना बढ़ा, जिससे लगभग आधी विफलताएँ छूट जाती हैं: उसे हटाएँ और टेम्पलेट फिर से बनाएँ।
 
 ### सिर्फ़ लक्षण नहीं, कारण पकड़ें
 
@@ -187,7 +190,11 @@ flowchart TB
 :::
 
 :::details CrashLoopBackOff Detection एक रीस्टार्ट पर ट्रिगर नहीं हुआ
-टेम्पलेट तब ट्रिगर होता है जब किसी कंटेनर की रीस्टार्ट गिनती 15 मिनट के भीतर बढ़ती है और कंटेनर उसमें से आधे से कम समय तैयार रहा हो, इसलिए जो कंटेनर एक बार रीस्टार्ट होकर तुरंत लौट आया वह अलर्ट नहीं भेजता। बढ़ोतरी केवल एक ही मिनट के दो नमूनों के बीच दिखती है, इसलिए एक अकेला रीस्टार्ट छूट सकता है; क्रैश लूप हर कुछ मिनट में रीस्टार्ट होता है और पकड़ा जाता है।
+टेम्पलेट तब ट्रिगर होता है जब कोई कंटेनर 15 मिनट के भीतर रीस्टार्ट होता है और वह उसमें से आधे से कम समय तैयार रहा हो, इसलिए जो कंटेनर एक बार रीस्टार्ट होकर तुरंत लौट आया वह अलर्ट नहीं भेजता। यह `k8s.container.restarts.increase` पढ़ता है, जिसे पुराना एजेंट नहीं भेजता: [एजेंट अपग्रेड करें](/docs/monitor/kubernetes-agent#अपग्रेड-करना)। उससे पहले टेम्पलेट से बना मॉनिटर यह पढ़ता है कि `k8s.container.restarts` एक ही मिनट के दो नमूनों के बीच कितना बढ़ा, और दो मिनटों के नमूनों के बीच के रीस्टार्ट चूक जाता है: उसे हटाएँ और टेम्पलेट फिर से बनाएँ। अगर `filters.metrics.include` एजेंट द्वारा भेजे जाने वाले मेट्रिक्स की सूची देता है, तो उसमें `k8s.container.restarts.increase` जोड़ें।
+:::
+
+:::details Job Failures एक विफल Job पर ट्रिगर नहीं हुआ
+टेम्पलेट तब ट्रिगर होता है जब किसी Job का कोई पॉड 15 मिनट के भीतर विफल होता है, और आख़िरी विफलता के पंद्रह मिनट बाद साफ़ हो जाता है। यह `k8s.job.failed_pods.increase` पढ़ता है, जिसे पुराना एजेंट नहीं भेजता: [एजेंट अपग्रेड करें](/docs/monitor/kubernetes-agent#अपग्रेड-करना)। उससे पहले टेम्पलेट से बना मॉनिटर यह पढ़ता है कि `k8s.job.failed_pods` एक ही मिनट के दो नमूनों के बीच कितना बढ़ा, और दो मिनटों के नमूनों के बीच की विफलताएँ चूक जाता है: उसे हटाएँ और टेम्पलेट फिर से बनाएँ। किसी Job के एजेंट के पहले नमूने से पहले की विफलताएँ उसकी गिनती का आरंभ बिंदु होती हैं, इसलिए जिस Job का इकलौता पॉड अपने पहले आधे मिनट में विफल हो, वह छूट जाता है। अगर `filters.metrics.include` एजेंट द्वारा भेजे जाने वाले मेट्रिक्स की सूची देता है, तो उसमें `k8s.job.failed_pods.increase` जोड़ें।
 :::
 
 ## अगले चरण

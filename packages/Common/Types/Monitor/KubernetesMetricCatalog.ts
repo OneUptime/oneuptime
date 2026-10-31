@@ -198,6 +198,24 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Cluster,
     unit: "count",
   },
+  /*
+   * What to alert on for restarts: the agent sends, with each sample, the
+   * restarts since its previous sample of the container (the chart's
+   * metrics/restarts-increase pipeline), so their Sum over a window is the
+   * restarts in it - what CrashLoopBackOff Detection reads.
+   * k8s.container.restarts above is the running total, for the charts.
+   */
+  {
+    id: "container-restarts-increase",
+    friendlyName: "Container Restarts (Increase)",
+    description:
+      "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+    metricName: "k8s.container.restarts.increase",
+    category: "Container",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: "count",
+  },
   {
     id: "container-cpu-limit",
     friendlyName: "Container CPU Limit",
@@ -318,6 +336,24 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     metricName: "k8s.job.failed_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Workload,
+    unit: "count",
+  },
+  /*
+   * What to alert on for Job failures: the agent sends, with each sample,
+   * the Job's pods that failed since its previous sample of the Job (the
+   * chart's transform/job-failures-increase), so their Sum over a window is
+   * the failures in it - what Job Failures reads. k8s.job.failed_pods above
+   * is the Job's running count, for the charts.
+   */
+  {
+    id: "job-failed-pods-increase",
+    friendlyName: "Job Failed Pods (Increase)",
+    description:
+      "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it.",
+    metricName: "k8s.job.failed_pods.increase",
+    category: "Workload",
+    defaultAggregation: MetricsAggregationType.Sum,
     defaultResourceScope: KubernetesResourceScope.Workload,
     unit: "count",
   },

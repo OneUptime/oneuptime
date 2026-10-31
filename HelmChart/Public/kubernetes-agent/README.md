@@ -669,6 +669,40 @@ Span attributes are OBI's defaults (`error.type`, `network.peer.address`, `db.qu
 
 See [`values.yaml`](./values.yaml) for the exhaustive list, including service mesh (Istio / Linkerd) scraping, control plane endpoints, and resource request/limit tuning.
 
+## Container restarts
+
+The cluster collector sends two restart metrics for every container:
+
+- `k8s.container.restarts`: the container status' `restartCount`, as the `k8s_cluster` receiver reports it, a running total for the pod (a gauge). For charts.
+- `k8s.container.restarts.increase`: the restarts since the collector's previous sample of the same pod and container, sent with every sample. Their sum over a window is every restart in it, however far apart the samples are. OneUptime's **CrashLoopBackOff Detection** template sums it over 15 minutes.
+
+The increase comes from a pipeline of its own, `metrics/restarts-increase` in `templates/configmap-deployment.yaml`, which `k8s_cluster` feeds as well as the `metrics` pipeline. It keeps `k8s.container.restarts` alone, renames it, takes `container.id` off its resource, makes the gauge a cumulative sum, and turns it into increases with `cumulative_to_delta` (`initial_value: drop`, `max_staleness: 2h`). `container.id` has to come off: the kubelet runs every restart as a new container with a new ID, so a series keyed by it would never see its count move. What that means for the numbers:
+
+- A crash-looping container is sampled at every interval, between its runs too: the receiver reports every container of every pod, waiting in `CrashLoopBackOff` or not.
+- A container's first sample after the agent starts, and a new pod's first sample, send no increase. A pod recreated under a new name, or under the same name as a StatefulSet's is (it gets a new UID), starts a new count at 0 rather than reading as restarts.
+- A sample whose count went down in the same pod (its node rebooted and the runtime lost its containers) sends no increase, and the next restart is counted from it.
+- Init containers, sidecars declared as init containers among them, are not reported by the receiver, so their restarts are not counted. A pod held up by its init containers stays Pending, which **Pod Stuck in Pending** catches.
+- The increase carries the receiver's own attributes (namespace, pod and its UID, container, node, image), not the workload names `k8sattributes` adds to the cluster's other metrics.
+- `filters.metrics` applies to it under its own name: an allowlist in `filters.metrics.include` must list `k8s.container.restarts.increase`, or the template gets no data.
+
+Before collector 0.108.0, `convert_gauge_to_sum` is a datapoint function; from 0.108.0 it is a metric one (and only that from 0.113.0). So the chart writes it in the context the collector it renders for (`image.tag`) has; 0.96.0 is what an upgrade with `--reuse-values` keeps.
+
+## Job failures
+
+The cluster collector sends two failure metrics for every Job:
+
+- `k8s.job.failed_pods`: the Job status' `failed`, as the `k8s_cluster` receiver reports it, a running count of the Job's failed pods that only grows for the Job's life (a gauge). For charts.
+- `k8s.job.failed_pods.increase`: the Job's pods that failed since the collector's previous sample of the same Job, sent with every sample. Their sum over a window is every failure in it, however far apart the samples are. OneUptime's **Job Failures** template sums it over 15 minutes.
+
+The receiver reports `k8s.job.failed_pods` on the Job's own resource, keyed by `k8s.job.uid`, which stays the same for the Job's life, so the increase needs no pipeline of its own: the `metrics` pipeline's first two processors make it, beside the count. `transform/job-failures-increase` copies `k8s.job.failed_pods` and makes the copy's gauge a cumulative sum, and `cumulative_to_delta/job-failures-increase` turns only the copy into increases (`initial_value: drop`, `max_staleness: 2h`). What that means for the numbers:
+
+- A failing Job is sampled at every interval, between its retries too: the receiver reports every Job until it is deleted.
+- A Job's first sample after the agent starts, and a new Job's first sample, send no increase: the agent cannot tell a new Job's first failures from an old Job's history. So a Job whose only pod fails within its first half-minute (the collection interval) is not counted. A Job recreated under the same name (a Helm hook's, a migration Job a deploy replaces) has a new UID and starts a new count at 0 rather than reading as failures.
+- A sample whose count went down in the same Job (before Job tracking with finalizers, GA in Kubernetes 1.26, the count is of the failed pods that still exist) sends no increase, and the next failure is counted from it.
+- `filters.metrics` applies to it under its own name: an allowlist in `filters.metrics.include` must list `k8s.job.failed_pods.increase`, or the template gets no data.
+
+The copy's gauge is made a sum in the same context as the restarts' (see [Container restarts](#container-restarts)).
+
 ## Upgrading
 
 ```bash
@@ -693,6 +727,10 @@ Add any `--set` you need to either command: it overrides what the release had.
 > The chart says when this has happened. Its `values.yaml` carries the version of the chart it comes with (`chartDefaultsVersion`, stamped at release), and when that is not the chart's own version, the notes Helm prints after the install or upgrade end with a **WARNING** that names what is stale (the OBI image tag, when it is not this chart's) and the command that fixes it for that release. To check yourself, compare `helm get values <release> -n <namespace> --all | grep chartDefaultsVersion` (nothing, on a chart from before it) with the chart version `helm list -n <namespace>` shows.
 >
 > What it cannot see: a template gets the merged values, never which of them you set. A release on this chart's defaults never warns, so a value you pin on purpose is never reported; a release on an older chart's defaults has its OBI tag named even when you pinned it, and the fix keeps a pinned value as it is. A values file that copies a whole older `values.yaml` (or `helm get values --all`) pins that chart's defaults, `chartDefaultsVersion` among them, and warns on every upgrade: keep only the values you changed in it, and upgrade with `-f` and that file but without `--reuse-values` or `--reset-then-reuse-values`, which would keep the copy the release stored.
+
+> ⚠️ **Job Failures reads `k8s.job.failed_pods.increase`, which an agent from an older chart does not send.** Upgrade the agent first: a monitor made from the template against an older agent never fires. A monitor made from the template before the upgrade keeps reading how much `k8s.job.failed_pods` grew within each minute, which misses about half of a Job's failures: delete it and create it again from the template. See [Job failures](#job-failures).
+
+> ⚠️ **CrashLoopBackOff Detection reads `k8s.container.restarts.increase`, which an agent from an older chart does not send.** Upgrade the agent first: a monitor made from the template against an older agent never fires. A monitor made from the template before the upgrade keeps reading how much `k8s.container.restarts` grew within each minute, which misses about half of a crash loop's restarts: delete it and create it again from the template. See [Container restarts](#container-restarts).
 
 > ⚠️ **Self-hosted OneUptime: upgrade the server first, or install the chart version that matches it.** The eBPF tracer this chart runs (OBI v0.14) names a called service in `service.peer.name` and reports a message broker's own Kafka/MQTT/NATS spans as producer/consumer spans; OneUptime servers older than this chart read neither, so the service map loses named peers and Queues count each broker as a producer and consumer of its topics. It also records its own Node.js agent injection as short `GET /json/list` and `GET /*` traces on every Node.js app, which only current servers drop.
 

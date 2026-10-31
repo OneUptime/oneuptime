@@ -85,13 +85,13 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbejdsbyrde | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Arbejdsbyrde | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrolplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** og **Node CPU Usage** er i kerner, ikke procent: `0.18` er 0,18 af en kerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregér den med Maksimum eller Minimum, aldrig Sum. Kontrolplan-metrikker kommer kun, når agentens indsamling fra kontrolplanet er slået til. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det, en node, der er gået ned, rapporterer: advar ved mindre end 1.
+> **Pod CPU Usage** og **Node CPU Usage** er i kerner, ikke procent: `0.18` er 0,18 af en kerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregér den med Maksimum eller Minimum, aldrig Sum. Kontrolplan-metrikker kommer kun, når agentens indsamling fra kontrolplanet er slået til. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det, en node, der er gået ned, rapporterer: advar ved mindre end 1. **Container Restarts** er containerens løbende genstartstæller; **Container Restarts (Increase)** er det, agenten sender med hver måling: genstarterne siden dens forrige måling af containeren, så summen over et vindue er genstarterne i det. **Job Failed Pods** er et Jobs løbende tæller af fejlede pods; **Job Failed Pods (Increase)** er det, agenten sender med hver måling: Jobbets pods, der er fejlet siden dens forrige måling af Jobbet, så summen over et vindue er fejlene i det.
 
 ## Overvågningskriterier
 
@@ -158,7 +158,10 @@ Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, D
 **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngens agent i ti minutter: agenten er afinstalleret eller går ned igen og igen, dens API-nøgle er tilbagekaldt, den har mistet sin rute til OneUptime, eller klyngens API-server er holdt op med at svare den. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** og **Job Failures** tæller, hvor meget en genstarts- eller fejlet-pod-tæller voksede i vinduet, ikke selve tælleren, så de rydder af sig selv, når genstarterne eller fejlene stopper. Væksten ses kun mellem to målinger i samme minut: ved agentens 30-sekunders interval er det omkring halvdelen. Et crash loop genstarter igen og igen og bliver fanget; en enkelt genstart kan gå ubemærket hen.
+> **CrashLoopBackOff Detection** lægger `k8s.container.restarts.increase` sammen, som agenten sender med hver måling: genstarterne siden dens forrige måling af containeren. Så den tæller hver genstart, uanset hvor langt der er mellem målingerne, den rydder af sig selv, når genstarterne stopper, og en pod, der genskabes, starter en ny tælling i stedet for at blive læst som genstarter. En ældre agent sender ikke `k8s.container.restarts.increase`: [opgradér den](/docs/monitor/kubernetes-agent#opgradering) først. En monitor, der blev oprettet fra skabelonen før da, læser, hvor meget `k8s.container.restarts` voksede inden for hvert minut, og overser derfor omkring halvdelen af et crash loops genstarter: slet den, og opret skabelonen igen.
+
+> [!NOTE]
+> **Job Failures** lægger `k8s.job.failed_pods.increase` sammen, som agenten sender med hver måling: Jobbets pods, der er fejlet siden dens forrige måling af Jobbet. Så den tæller hver fejl, uanset hvor langt der er mellem målingerne, den rydder af sig selv, når fejlene stopper, og et Job, der genskabes under samme navn, starter en ny tælling i stedet for at blive læst som fejl. Fejlene før agentens første måling af et Job er dér, hvor dets tælling starter, så et Job, der fejler i sit første halve minut og aldrig prøver igen, kan gå ubemærket hen. En ældre agent sender ikke `k8s.job.failed_pods.increase`: [opgradér den](/docs/monitor/kubernetes-agent#opgradering) først. En monitor, der blev oprettet fra skabelonen før da, læser, hvor meget `k8s.job.failed_pods` voksede inden for hvert minut, og overser derfor omkring halvdelen af fejlene: slet den, og opret skabelonen igen.
 
 ### Fang årsager, ikke kun symptomer
 
@@ -187,7 +190,11 @@ Klynger registrerer sig selv ud fra agentens data under det `clusterName`, agent
 :::
 
 :::details CrashLoopBackOff Detection udløstes ikke ved en genstart
-Skabelonen udløses, når en containers genstartstæller vokser inden for 15 minutter, mens containeren var klar i mindre end halvdelen af dem, så en container, der genstartede én gang og straks kom tilbage, sender ingen besked. Væksten ses kun mellem to målinger i samme minut, så en enkelt genstart kan gå ubemærket hen; et crash loop genstarter med få minutters mellemrum og bliver fanget.
+Skabelonen udløses, når en container genstarter inden for 15 minutter, mens den var klar i mindre end halvdelen af dem, så en container, der genstartede én gang og straks kom tilbage, sender ingen besked. Den læser `k8s.container.restarts.increase`, som en ældre agent ikke sender: [opgradér agenten](/docs/monitor/kubernetes-agent#opgradering). En monitor, der blev oprettet fra skabelonen før da, læser, hvor meget `k8s.container.restarts` voksede mellem to målinger i samme minut, og overser genstarterne mellem to minutters målinger: slet den, og opret skabelonen igen. Hvis `filters.metrics.include` angiver de metrikker, agenten sender, så føj `k8s.container.restarts.increase` til listen.
+:::
+
+:::details Job Failures udløstes ikke ved et fejlet Job
+Skabelonen udløses, når en pod i et Job fejler inden for 15 minutter, og rydder sig selv femten minutter efter den sidste fejl. Den læser `k8s.job.failed_pods.increase`, som en ældre agent ikke sender: [opgradér agenten](/docs/monitor/kubernetes-agent#opgradering). En monitor, der blev oprettet fra skabelonen før da, læser, hvor meget `k8s.job.failed_pods` voksede mellem to målinger i samme minut, og overser fejlene mellem to minutters målinger: slet den, og opret skabelonen igen. Fejlene før agentens første måling af et Job er dér, hvor dets tælling starter, så et Job, hvis eneste pod fejler i dets første halve minut, går ubemærket hen. Hvis `filters.metrics.include` angiver de metrikker, agenten sender, så føj `k8s.job.failed_pods.increase` til listen.
 :::
 
 ## Næste trin

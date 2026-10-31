@@ -1,0 +1,201 @@
+# The cluster collector sends k8s.container.restarts.increase: the times a
+# container restarted since the collector's previous sample of it, which
+# OneUptime's CrashLoopBackOff Detection template sums over 15 minutes
+# (k8s-crashloopbackoff in packages/Common/Types/Monitor/
+# KubernetesAlertTemplates.ts). The template used to read the growth of
+# k8s.container.restarts between two samples of the same minute, and missed
+# every restart between two minutes' samples: about half of a crash loop.
+#
+# The k8s_cluster receiver sends k8s.container.restarts as a gauge, on a
+# resource keyed by container.id, and the kubelet runs every restart as a new
+# container, with a new ID and the count one higher (kubelet
+# kuberuntime_container.go startContainer). So the pipeline that makes the
+# increase takes container.id off its copy and makes the gauge a cumulative
+# sum before cumulative_to_delta: a series keyed by the ID never sees its
+# count move, and cumulative_to_delta leaves gauges alone. Its own pipeline,
+# because the rest of the cluster's metrics keep container.id and
+# k8s.container.restarts goes on as the receiver sends it.
+#
+# convert_gauge_to_sum is a datapoint function before collector 0.108.0 and a
+# metric one from it (only that from 0.113.0), and `helm upgrade
+# --reuse-values` keeps 0.96.0, so the chart writes it in the context the
+# collector it renders for has (kubernetes-agent.collectorAtLeast).
+# Tests/Ops/validate-collector-configs.sh builds both renders with
+# `otelcol validate`, and Tests/Ops/agent-restarts-increase-behaviour.sh runs
+# these processors in both collectors on a crash loop.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: processors at 2 spaces and their keys at 4, pipelines at 4
+# and their lists at 8.
+suite: cluster collector sends the restarts since each container's previous sample
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+set:
+  clusterName: prod-us
+tests:
+  - it: sends them from a pipeline of its own that k8s_cluster feeds, ending in the same exporter
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n        - cumulative_to_delta/restarts-increase\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n"
+      # k8s_cluster still feeds the metrics pipeline, which sends
+      # k8s.container.restarts on as the receiver reads it, for the charts:
+      # none of these processors run there.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?:        [^\\n]*\\n)+      processors:\\n(?:        [^\\n]*\\n)*?        - (?:filter/restarts-increase-source|transform/restarts-increase|cumulative_to_delta/restarts-increase)\\n"
+      # And nothing switches the restart count off in the receiver.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "k8s\\.container\\.restarts:\\s*\\n\\s*enabled:"
+
+  - it: keeps k8s.container.restarts alone in that pipeline's copy of what k8s_cluster sends
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/restarts-increase-source:\\n    error_mode: ignore\\n    metrics:\\n      metric:\\n        - 'name != \"k8s\\.container\\.restarts\"'\\n  transform/restarts-increase:\\n"
+
+  - it: renames it, takes container.id off and makes the gauge a cumulative sum, in metric context on the collector the chart pins
+    asserts:
+      # The whole processor, up to the next one: only container.id comes
+      # off. The pod's UID, name and namespace and the container's name
+      # stay, the series a restart is counted in and the keys the template
+      # groups by.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/restarts-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"container\\.id\"\\)\\n      - context: metric\\n        statements:\\n          - set\\(name, \"k8s\\.container\\.restarts\\.increase\"\\) where name == \"k8s\\.container\\.restarts\"\\n          - set\\(description, \"Times the container restarted since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulative_to_delta/restarts-increase:\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context: datapoint"
+
+  - it: makes the gauge a sum in datapoint context for 0.96.0, which a --reuse-values upgrade keeps
+    set:
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/restarts-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"container\\.id\"\\)\\n      - context: metric\\n        statements:\\n          - set\\(name, \"k8s\\.container\\.restarts\\.increase\"\\) where name == \"k8s\\.container\\.restarts\"\\n          - set\\(description, \"Times the container restarted since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulative_to_delta/restarts-increase:\\n"
+      # Exactly once: never in metric context there too. (The Job
+      # failures copy has a convert_gauge_to_sum of its own,
+      # tests/job-failures-increase_test.yaml.)
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "convert_gauge_to_sum\\([^\\n]*k8s\\.container\\.restarts\\.increase[\\s\\S]*convert_gauge_to_sum\\([^\\n]*k8s\\.container\\.restarts\\.increase"
+
+  - it: and on the releases before 0.108.0, the one that made it a metric function
+    set:
+      image.tag: "0.107.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.container\\.restarts\\.increase\"\\n"
+
+  - it: in metric context from 0.108.0
+    set:
+      image.tag: "0.108.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulative_to_delta/restarts-increase:\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context: datapoint"
+
+  - it: reads the version at the front of a tag with a v or a digest, and a tag with none as the chart's default
+    set:
+      image.tag: "v0.96.0@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\("
+
+  - it: takes a tag that names no version for this chart's collector
+    set:
+      image.tag: latest
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context: datapoint"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n"
+
+  - it: renders the 0.96.0 form for a release upgraded with --reuse-values from chart 14.0.10
+    values:
+      - values/reuse-values-14.0.10.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.container\\.restarts\\.increase\"\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
+
+  - it: turns only the increase into the restarts since each sample, sending nothing for a first sample, with 2 hours of memory
+    asserts:
+      # initial_value drop: a container's first sample after the agent
+      # starts, or of a new pod, would otherwise send its whole count as one
+      # increase. 2h outlives the template's 15-minute window by far.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulative_to_delta/restarts-increase:\\n    include:\\n      metrics:\\n        - k8s\\.container\\.restarts\\.increase\\n      match_type: strict\\n    initial_value: drop\\n    max_staleness: 2h\\n"
+
+  - it: runs the metric filters there too, after the rename, so filters.metrics sees the name sent
+    set:
+      filters.metrics.exclude: ["k8s.pod.network.errors"]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n(?:        #[^\\n]*\\n)*        - filter/telemetry\\n        - cumulative_to_delta/restarts-increase\\n        - resource\\n        - batch\\n"
+
+  - it: and the namespace filters for metrics, which the receiver's own namespace attribute answers
+    set:
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [batch-jobs]
+          scopes: [metrics]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - transform/restarts-increase\\n(?:        #[^\\n]*\\n)*        - filter/telemetry\\n        - cumulative_to_delta/restarts-increase\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "resource\\.attributes\\[\"k8s\\.namespace\\.name\"\\] != nil and"
+
+  - it: not when the only filters are for traces, which a metrics pipeline cannot reference
+    set:
+      ebpf.enabled: true
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [batch-jobs]
+          scopes: [traces]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n        - cumulative_to_delta/restarts-increase\\n"
+
+  - it: sends them on every preset, since the cluster collector always runs
+    set:
+      preset: gke-autopilot
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
+
+  - it: sends them on EKS Fargate too
+    set:
+      preset: eks-fargate
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
