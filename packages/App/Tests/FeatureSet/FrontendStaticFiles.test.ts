@@ -268,10 +268,34 @@ describe("the real registerFrontendApp", () => {
 
     expect(handler).toContain('res.setHeader("Cache-Control", "no-store")');
     expect(handler).toContain('res.status(404).type("text/plain")');
-    // Only for the frontend's own hosts, like every other route of it.
-    expect(handler).toContain(
-      "frontendConfig.primaryHostOnly && !isPrimaryHostRequest(req)",
+    /*
+     * Only for the hosts the frontend serves its files to, like its static
+     * files and its env.js: its own hosts, or every host for one whose page
+     * is served on custom domains too (the sign-in app's form page).
+     */
+    expect(handler).toContain("if (!servesFilesTo(req))");
+  });
+
+  test("serves a frontend's files to its own hosts, or to every host when it serves them everywhere", () => {
+    const rule: string = body.slice(
+      body.indexOf("const servesFilesTo"),
+      body.indexOf("app.use("),
     );
+
+    expect(rule).toContain("!frontendConfig.primaryHostOnly");
+    expect(rule).toContain("Boolean(frontendConfig.staticFilesOnEveryHost)");
+    expect(rule).toContain("isPrimaryHostRequest(req)");
+
+    // The static files and env.js ask the same rule.
+    expect(body.split("if (!servesFilesTo(req))").length - 1).toBe(3);
+    // The pages never do: they stay on the frontend's own hosts.
+    expect(
+      body.slice(
+        body.indexOf(
+          "[frontendConfig.routePrefix, `${frontendConfig.routePrefix}/*`]",
+        ),
+      ),
+    ).toContain("frontendConfig.primaryHostOnly && !isPrimaryHostRequest(req)");
   });
 
   test("the standalone frontend servers answer the same way", () => {

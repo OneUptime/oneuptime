@@ -627,6 +627,58 @@ describe("the sign-in pages", () => {
   it("draw their body on the page's own ground, which the dark theme repaints (Theme.css)", () => {
     expect(html).toContain('<body class="h-full bg-gray-50">');
   });
+
+  /*
+   * A form on its owner's own domain is the form's page at the domain's
+   * root (App/FeatureSet/Frontend/FormDomainPage.ts): light wherever it is
+   * opened, as the form's link is.
+   */
+  it.each(["/", "/?template=t-1", "/anything"])(
+    "draw a form on its own domain (%s) light, whatever was picked and however the device is set",
+    (address: string) => {
+      const formDomainPage: string = renderView(frontendIndex("Accounts"), {
+        isFormDomainPage: true,
+        formDomainPageTitle: "Report a Problem",
+      });
+
+      for (const kept of [undefined, "dark", "system"]) {
+        expect(
+          drawnOnce(formDomainPage, {
+            kept,
+            prefersDark: true,
+            url: `https://report.acme.com${address}`,
+          }),
+        ).toEqual(LIGHT);
+      }
+    },
+  );
+});
+
+describe("the partial's alwaysLight", () => {
+  const partial: string = fs.readFileSync(THEME_PARTIAL, "utf8");
+
+  it("makes every address light, as one plain path the script reads", () => {
+    const rendered: string = ejs.render(
+      partial,
+      { alwaysLight: true, alwaysLightPathPrefixes: ["/accounts/form/"] },
+      { filename: THEME_PARTIAL },
+    );
+
+    expect(rendered).toContain('["/"]');
+    expect(rendered).not.toContain('["/accounts/form/"]');
+  });
+
+  it("only when it is true", () => {
+    for (const alwaysLight of [false, "yes", 1, undefined]) {
+      const rendered: string = ejs.render(
+        partial,
+        { alwaysLight, alwaysLightPathPrefixes: ["/accounts/form/"] },
+        { filename: THEME_PARTIAL },
+      );
+
+      expect(rendered).toContain('["/accounts/form/"]');
+    }
+  });
 });
 
 describe("the Dashboard's offline page", () => {

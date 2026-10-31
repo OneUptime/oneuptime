@@ -63,6 +63,9 @@
   }) -%>
 
   <link rel="manifest" href="/accounts/assets/img/favicons/ma">
+  <% } else { %>
+  <%# A form on its owner's domain: its visitors are not OneUptime's to measure. -%>
+  <%- include('../../../../Common/Server/Views/Partials/NoProductAnalytics') -%>
   <% } %>
   
   <% if (brandFaviconUrl) { %>
