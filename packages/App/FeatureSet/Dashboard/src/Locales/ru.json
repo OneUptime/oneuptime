@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "Кто-то назначает исключение вам или команде, в которой вы состоите.",
   "Exception Saved View": "Сохранённое представление исключений",
   "Exception Saved Views": "Сохранённые представления исключений",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Сохраняйте и используйте повторно представления списка исключений, включая текущий поиск, фильтры, диапазон времени, статус, сортировку и размер страницы."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Сохраняйте и используйте повторно представления списка исключений, включая текущий поиск, фильтры, диапазон времени, статус, сортировку и размер страницы.",
+  "Older Kubernetes agents send only the running restart count.": "Старые агенты Kubernetes отправляют только накопленное число перезапусков.",
+  "Upgrade the agent": "Обновить агент",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "Если у этого запроса нет данных за выбранный период, на графике вместо него показывается {{metricName}}."
 }

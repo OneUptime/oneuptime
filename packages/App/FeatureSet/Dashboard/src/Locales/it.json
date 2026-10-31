@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "Qualcuno assegna un'eccezione a te o a un team di cui fai parte.",
   "Exception Saved View": "Vista salvata delle eccezioni",
   "Exception Saved Views": "Viste salvate delle eccezioni",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Salva e riutilizza viste dell'elenco delle eccezioni, inclusi la ricerca, i filtri, l'intervallo di tempo, lo stato, l'ordinamento e la dimensione della pagina correnti."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Salva e riutilizza viste dell'elenco delle eccezioni, inclusi la ricerca, i filtri, l'intervallo di tempo, lo stato, l'ordinamento e la dimensione della pagina correnti.",
+  "Older Kubernetes agents send only the running restart count.": "Gli agenti Kubernetes meno recenti inviano solo il conteggio cumulativo dei riavvii.",
+  "Upgrade the agent": "Aggiorna l'agente",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "Quando questa query non ha dati nell'intervallo di tempo, il grafico mostra invece {{metricName}}."
 }

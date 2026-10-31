@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "Someone assigns an exception to you, or to a team you are on.",
   "Exception Saved View": "Exception Saved View",
   "Exception Saved Views": "Exception Saved Views",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.",
+  "Older Kubernetes agents send only the running restart count.": "Older Kubernetes agents send only the running restart count.",
+  "Upgrade the agent": "Upgrade the agent",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "When this query has no data in the time range, the chart shows {{metricName}} instead."
 }

@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "کسی استثنایی را به شما یا به تیمی که در آن هستید واگذار می‌کند.",
   "Exception Saved View": "نمای ذخیره‌شدهٔ استثنا",
   "Exception Saved Views": "نماهای ذخیره‌شدهٔ استثنا",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "نماهای فهرست استثناها را ذخیره کنید و دوباره به کار ببرید، از جمله جستجو، فیلترها، بازهٔ زمانی، وضعیت، مرتب‌سازی و اندازهٔ صفحهٔ کنونی."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "نماهای فهرست استثناها را ذخیره کنید و دوباره به کار ببرید، از جمله جستجو، فیلترها، بازهٔ زمانی، وضعیت، مرتب‌سازی و اندازهٔ صفحهٔ کنونی.",
+  "Older Kubernetes agents send only the running restart count.": "عامل‌های قدیمی‌تر Kubernetes فقط شمار تجمعی راه‌اندازی‌های مجدد را می‌فرستند.",
+  "Upgrade the agent": "ارتقای عامل",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "وقتی این کوئری در بازه زمانی داده‌ای ندارد، نمودار به جای آن {{metricName}} را نشان می‌دهد."
 }

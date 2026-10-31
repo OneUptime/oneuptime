@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "誰かがあなた、またはあなたが所属するチームに例外を割り当てました。",
   "Exception Saved View": "保存済みの例外ビュー",
   "Exception Saved Views": "保存済みの例外ビュー",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "現在の検索、フィルター、時間範囲、ステータス、並べ替え、ページサイズを含む例外一覧のビューを保存して再利用します。"
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "現在の検索、フィルター、時間範囲、ステータス、並べ替え、ページサイズを含む例外一覧のビューを保存して再利用します。",
+  "Older Kubernetes agents send only the running restart count.": "古い Kubernetes エージェントは、再起動の累計回数しか送信しません。",
+  "Upgrade the agent": "エージェントをアップグレード",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "このクエリに時間範囲内のデータがない場合、グラフには代わりに {{metricName}} が表示されます。"
 }

@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "누군가 나 또는 내가 속한 팀에 예외를 할당합니다.",
   "Exception Saved View": "저장된 예외 보기",
   "Exception Saved Views": "저장된 예외 보기",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "현재 검색, 필터, 시간 범위, 상태, 정렬, 페이지 크기를 포함한 예외 목록 보기를 저장하고 다시 사용합니다."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "현재 검색, 필터, 시간 범위, 상태, 정렬, 페이지 크기를 포함한 예외 목록 보기를 저장하고 다시 사용합니다.",
+  "Older Kubernetes agents send only the running restart count.": "이전 Kubernetes 에이전트는 누적 재시작 횟수만 보냅니다.",
+  "Upgrade the agent": "에이전트 업그레이드",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "이 쿼리에 시간 범위 내 데이터가 없으면 차트에 {{metricName}} 메트릭이 대신 표시됩니다."
 }

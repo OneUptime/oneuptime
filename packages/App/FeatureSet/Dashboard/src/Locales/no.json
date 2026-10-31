@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "Noen tildeler et unntak til deg eller til et team du er med i.",
   "Exception Saved View": "Lagret unntaksvisning",
   "Exception Saved Views": "Lagrede unntaksvisninger",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Lagre og gjenbruk visninger av unntakslisten, inkludert gjeldende søk, filtre, tidsintervall, status, sortering og sidestørrelse."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Lagre og gjenbruk visninger av unntakslisten, inkludert gjeldende søk, filtre, tidsintervall, status, sortering og sidestørrelse.",
+  "Older Kubernetes agents send only the running restart count.": "Eldre Kubernetes-agenter sender bare det samlede antallet omstarter så langt.",
+  "Upgrade the agent": "Oppgrader agenten",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "Når denne spørringen ikke har data i tidsrommet, viser diagrammet {{metricName}} i stedet."
 }

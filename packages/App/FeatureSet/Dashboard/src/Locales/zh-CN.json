@@ -39055,5 +39055,8 @@
   "Someone assigns an exception to you, or to a team you are on.": "有人将异常分配给你或你所在的团队。",
   "Exception Saved View": "已保存的异常视图",
   "Exception Saved Views": "已保存的异常视图",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "保存并重用异常列表的视图，包括当前的搜索、过滤条件、时间范围、状态、排序和每页条数。"
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "保存并重用异常列表的视图，包括当前的搜索、过滤条件、时间范围、状态、排序和每页条数。",
+  "Older Kubernetes agents send only the running restart count.": "较旧的 Kubernetes 代理只发送累计重启次数。",
+  "Upgrade the agent": "升级代理",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "当此查询在该时间范围内没有数据时，图表将改为显示 {{metricName}}。"
 }
