@@ -93,7 +93,7 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på verten, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, siste 5 minutter | Over 85 % | På eller under 76,5 % |
-| Container Restart Loop | Kritisk | Vekst i `container.restarts` per container, siste 15 minutter | Mer enn 3 omstarter i vinduet (Sum) | 2,7 eller færre |
+| Container Restart Loop | Kritisk | `container.restarts.increase`, Sum per container, siste 15 minutter | Mer enn 3 omstarter i vinduet (Sum) | 2,7 eller færre |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, siste 5 minutter | Over 2000 | På eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, siste 1 minutt | Under 120 sekunder | På eller over 132 sekunder |
 
@@ -107,7 +107,7 @@ De to prosentmalene bruker **Gjennomsnitt**: metrikkene deres er allerede prosen
 > `container.cpu.utilization` er tallet `podman stats` skriver ut, i snitt over agentens intervall på 30 sekunder: 100 % er én hel CPU-kjerne, ikke containerens samlede CPU-tildeling. En container som har fått flere kjerner, ligger godt over 100 mens den er frisk, så hev terskelen for slike.
 
 > [!NOTE]
-> `container.restarts` er en løpende total som Podman holder, så **Container Restart Loop** varsler om hvor mye den vokste i vinduet, som på Docker: en Maximum- og en Minimum-spørring per minutt, trukket fra hverandre med en formel og summert. Ved agentens innsamling hvert 30. sekund ses omtrent halvparten av omstartene, og terskelen tar allerede høyde for det. Agenten måler dessuten bare kjørende containere, så en container som avslutter i det den starter, blir sjelden målt: **Container Restarted (Low Uptime)** utløses ved hver omstart agenten ser.
+> `container.restarts` er en løpende total som Podman holder, helt til en manuell omstart eller en gjenopprettet container starter den på nytt fra 0, så agenten sender også `container.restarts.increase` med hver måling: omstartene siden dens forrige måling av containeren. **Container Restart Loop** legger dem sammen, som på Docker, så den teller hver omstart, uansett hvor langt det er mellom målingene, og en manuell omstart teller ikke. En eldre agent sender ikke `container.restarts.increase`: [oppgrader den](/docs/telemetry/podman-host#oppgradere-agenten) først. En monitor som ble laget fra malen før det, leser hvor mye `container.restarts` vokste innenfor hvert minutt, og går dermed glipp av omtrent halvparten av omstartene i en løkke: slett den og opprett malen på nytt.
 
 > [!CAUTION]
 > `container.uptime` finnes bare for kjørende containere. En container som stopper og forblir stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger omstarter og nye utrullinger, ikke en permanent nedstengning. En container som er ment å kjøre i mindre enn to minutter, forblir i varslingstilstand hele levetiden.
@@ -154,6 +154,7 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docke
 | --- | --- |
 | `container.uptime` | Sekunder siden containeren startet. Bare kjørende containere rapporterer den. |
 | `container.restarts` | Antall ganger containeren har startet på nytt. En løpende sum. |
+| `container.restarts.increase` | Omstarter siden agentens forrige måling av containeren, sendt med hver måling. Summen over et vindu er omstartene i det, så varsle på denne i stedet for den løpende totalen. |
 | `container.pids.count` | Oppgaver i containeren. Cgroup-ens pids-kontroller teller tråder så vel som prosesser. |
 
 `container.cpu.throttling_data.throttled_periods` står ikke i listen; spør etter den fra **Avansert**.
@@ -290,8 +291,8 @@ OneUptime identifiserer en vert etter `resource.host.name`, som agenten tar fra 
 Grupper spørringen etter `resource.container.name`, slik malen **High Container CPU Usage** gjør, så hver container vurderes for seg. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel. Er CPU-en til en container en flat linje uansett belastning, kjører verten en eldre agent: [oppgrader den](/docs/telemetry/podman-host#oppgradere-agenten).
 :::
 
-:::details Varselet om antall omstarter opphører aldri
-`container.restarts` er en løpende sum, så den faller ikke under terskelen av seg selv. Rett årsaken, og opprett deretter containeren på nytt for å nullstille tallet, eller hev terskelen.
+:::details Omstartsvarselet utløses aldri eller opphører aldri
+En monitor som sammenligner selve `container.restarts` med en terskel, slik en monitor laget fra en tidlig versjon av omstartsmalen gjør, utløses av containerens historikk og opphører aldri: totalen bare vokser. En monitor laget fra **Container Restart Loop** før den leste `container.restarts.increase`, måler hvor mye totalen vokste innenfor hvert minutt, og går glipp av omtrent halvparten av omstartene i en løkke. En eldre agent sender ikke `container.restarts.increase`: [oppgrader agenten](/docs/telemetry/podman-host#oppgradere-agenten), slett deretter monitoren og opprett **Container Restart Loop** på nytt.
 :::
 
 ## Neste trinn

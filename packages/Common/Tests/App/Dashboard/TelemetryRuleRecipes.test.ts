@@ -277,13 +277,11 @@ describe("the recipes each telemetry monitor type offers", () => {
         translator: ENGLISH,
       });
 
-      const filters: Array<{ checkOn: CheckOn }> = (
+      const filters: Array<CriteriaFilter> = (
         step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
-      ).flatMap(
-        (instance: { data?: { filters: Array<{ checkOn: CheckOn }> } }) => {
-          return instance.data?.filters || [];
-        },
-      );
+      ).flatMap((instance: MonitorCriteriaInstance): Array<CriteriaFilter> => {
+        return instance.data?.filters || [];
+      });
 
       expect(filters.length).toBeGreaterThan(0);
       for (const filter of filters) {

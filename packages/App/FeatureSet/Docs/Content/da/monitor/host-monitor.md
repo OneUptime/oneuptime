@@ -115,7 +115,7 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 - **Hukommelse** udelader buffere og sidecache, så en vært, der mest indeholder cache, ikke udløser den.
 - **Filsystem** åbner én hændelse pr. montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer af typen `squashfs` eller `devfs` på macOS, er altid 100 % fulde: OneUptimes collector-konfigurationer udelader dem fra scraperen `filesystem` med `exclude_fs_types`, og en konfiguration, du selv skriver, skal have det samme.
 - **Belastningsgennemsnit** er en rå længde af kørselskøen, ikke divideret med antallet af kerner: 4 er mætning på en vært med 2 kerner og rutine på en med 32, så hæv den på store værter.
-- **Antal processer** sammenligner den største enkelte procestilstand (`running`, `sleeping`, …), ikke værtens samlede antal, så det vil ikke svare til en procesliste. Scraperen for processer rapporterer kun på Linux.
+- **Antal processer** sammenligner den største enkelte procestilstand (`running`, `sleeping`, …), ikke værtens samlede antal, så det vil ikke svare til en procesliste. Scraperen for processer rapporterer på Linux, macOS og BSD, men ikke på Windows.
 
 ## Indsamlede metrikker
 

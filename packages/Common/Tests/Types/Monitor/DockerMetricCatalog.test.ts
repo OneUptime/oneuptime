@@ -187,4 +187,34 @@ describe("DockerMetricCatalog", () => {
       getDockerMetricByMetricName("container.cpu.utilization"),
     ).toBeDefined();
   });
+
+  /*
+   * A Custom Metric monitor on the lifetime count, with the list's
+   * Maximum, fires on a container's history and never recovers. The
+   * restarts the agent sends with each sample, summed over the window, are
+   * the restarts in it - what Container Restart Loop reads.
+   */
+  test("offers the restarts since each sample, summed, beside the lifetime count", () => {
+    expect(getDockerMetricByMetricName("container.restarts.increase")).toEqual(
+      expect.objectContaining({
+        category: "Container",
+        defaultAggregation: AggregationType.Sum,
+        unit: "count",
+      }),
+    );
+    expect(getDockerMetricByMetricName("container.restarts")).toEqual(
+      expect.objectContaining({
+        category: "Container",
+        defaultAggregation: AggregationType.Max,
+      }),
+    );
+  });
+
+  test("the restarts since each sample are what the shipped agent makes of container.restarts", () => {
+    expect(agentConfig).toContain("container.restarts:\n        enabled: true");
+    expect(agentConfig).toContain(
+      'copy_metric(name="container.restarts.increase", description="Times the container restarted since the agent\'s previous sample of it.") where metric.name == "container.restarts"',
+    );
+    expect(agentConfig).toContain("cumulative_to_delta/restarts-increase:");
+  });
 });

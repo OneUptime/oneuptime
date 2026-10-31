@@ -93,7 +93,7 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 | Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
-| Container Restart Loop | Critique | Croissance de `container.restarts` par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
+| Container Restart Loop | Critique | `container.restarts.increase`, Sum par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
 | High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Sous 120 secondes | À 132 secondes ou plus |
 
@@ -107,7 +107,7 @@ Les deux modèles en pourcentage utilisent **Moyenne** : leurs métriques sont d
 > `container.cpu.utilization` est le nombre qu'affiche `podman stats`, en moyenne sur l'intervalle de 30 secondes de l'agent : 100 % correspond à un cœur de CPU complet, et non à toute l'allocation de CPU du conteneur. Un conteneur doté de plusieurs cœurs affiche bien plus de 100 en bonne santé ; relevez donc le seuil pour ceux-là.
 
 > [!NOTE]
-> `container.restarts` est un total cumulé tenu par Podman, donc **Container Restart Loop** alerte sur sa croissance dans la fenêtre, comme sous Docker : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de 30 secondes de l'agent, environ la moitié des redémarrages est vue, et le seuil en tient déjà compte. L'agent n'échantillonne en outre que les conteneurs en cours d'exécution : un conteneur qui s'arrête dès son démarrage n'est presque jamais échantillonné, et **Container Restarted (Low Uptime)** se déclenche à chaque redémarrage que l'agent voit.
+> `container.restarts` est un total cumulé tenu par Podman, jusqu'à ce qu'un redémarrage manuel ou un conteneur recréé le fasse repartir de 0 : l'agent envoie donc aussi `container.restarts.increase` avec chaque mesure, soit les redémarrages depuis sa mesure précédente du conteneur. **Container Restart Loop** les additionne, comme sous Docker : il compte donc chaque redémarrage, quel que soit l'écart entre les mesures, et un redémarrage manuel n'en est pas un. Un agent plus ancien n'envoie pas `container.restarts.increase` : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent) d'abord. Un moniteur créé à partir du modèle avant cela lit de combien `container.restarts` a augmenté au sein de chaque minute, ce qui manque environ la moitié des redémarrages d'une boucle : supprimez-le et recréez le modèle.
 
 > [!CAUTION]
 > `container.uptime` n'existe que pour les conteneurs en cours d'exécution. Un conteneur qui s'arrête et reste arrêté n'envoie aucune donnée, donc **Container Restarted (Low Uptime)** détecte les redémarrages et les redéploiements, pas un arrêt définitif. Un conteneur prévu pour tourner moins de deux minutes reste en état d'alerte pendant toute sa vie.
@@ -154,6 +154,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` pointé sur le socket
 | --- | --- |
 | `container.uptime` | Secondes écoulées depuis le démarrage du conteneur. Seuls les conteneurs en cours d'exécution la remontent. |
 | `container.restarts` | Nombre de redémarrages du conteneur. Un total cumulé. |
+| `container.restarts.increase` | Redémarrages depuis la mesure précédente du conteneur par l'agent, envoyés avec chaque mesure. Leur somme sur une fenêtre donne les redémarrages de cette fenêtre : alertez donc sur celle-ci plutôt que sur le total cumulé. |
 | `container.pids.count` | Tâches dans le conteneur. Le contrôleur pids du cgroup compte les threads aussi bien que les processus. |
 
 `container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
@@ -290,8 +291,8 @@ OneUptime identifie un hôte par `resource.host.name`, que l'agent tire de `PODM
 Regroupez la requête par `resource.container.name`, comme le fait le modèle **High Container CPU Usage**, pour que chaque conteneur soit jugé séparément. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent).
 :::
 
-:::details L'alerte sur le nombre de redémarrages ne se rétablit jamais
-`container.restarts` est un total cumulé, il ne redescend donc pas de lui-même sous le seuil. Corrigez la cause, puis recréez le conteneur pour remettre le compteur à zéro, ou relevez le seuil.
+:::details L'alerte de redémarrage ne se déclenche jamais ou ne se rétablit jamais
+Un moniteur qui compare `container.restarts` lui-même à un seuil, comme celui créé à partir d'une première version du modèle de redémarrage, se déclenche sur l'historique du conteneur et ne se rétablit jamais : le total ne fait que croître. Un moniteur créé à partir de **Container Restart Loop** avant qu'il ne lise `container.restarts.increase` mesure de combien le total a augmenté au sein de chaque minute, et manque environ la moitié des redémarrages d'une boucle. Un agent plus ancien n'envoie pas `container.restarts.increase` : [mettez l'agent à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent), puis supprimez le moniteur et recréez **Container Restart Loop**.
 :::
 
 ## Étapes suivantes

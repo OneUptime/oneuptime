@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Erneut gezählt; wieder<br/>geöffnet, wenn behoben"]
 ```
 
-- **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme.
+- **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme. Eine neue Ausnahme wird stattdessen nach ihrem Typ und den Funktionen und Dateien Ihres eigenen Codes im Stack-Trace gruppiert: Zeilennummern, Bibliotheks-Frames und die Nachricht bleiben außen vor, sodass Varianten aus demselben Code eine Ausnahme sind. Ohne Stack-Trace gruppiert sie ihre Nachricht, wie oben. Ausnahmen, die vor dieser Gruppierung erfasst wurden, behalten ihre.
 - **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten, und die Ausnahme wird als **Regression** markiert. Ein Vorkommen von vor der Behebung, das OneUptime erst später erreicht, öffnet sie nicht wieder.
 - **Eine archivierte Ausnahme bleibt archiviert.** Ihre neuen Vorkommen werden weiter gezählt, lösen aber keine Benachrichtigungen mehr aus.
 
@@ -99,7 +99,9 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
-**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu.
+**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu. Die Person, der sie zugewiesen wird, oder jedes Mitglied des Teams wird benachrichtigt, wie es die Zeile **Mir zugewiesene Ausnahme** in ihren [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorgibt; wer sie zugewiesen hat, wird es nicht.
+
+**Aktivität** unten in der **Übersicht** der Ausnahme zeigt, wer sie wann geändert hat, das Neueste zuerst: wer sie gelöst, wieder geöffnet, archiviert oder zugewiesen, eine andere Ausnahme mit ihr zusammengeführt oder eine getrennt hat, und wann sie nach der Lösung erneut auftrat. Jede Änderung steht dort, ob auf der Seite der Ausnahme, in der Liste, unter **Massenaktionen**, über die API oder von OneUptime selbst gemacht, und eine Änderung mit einem API-Schlüssel trägt den Namen des Schlüssels.
 
 ## Fehlerklassen
 
@@ -198,7 +200,7 @@ Prüfen Sie zuerst die Ansicht: **Probleme** blendet Benutzerfehler und erwartet
 :::
 
 :::details Ein Fehler erscheint als mehrere Ausnahmen
-Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme.
+Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme. Neue Ausnahmen werden stattdessen nach den Funktionen Ihres eigenen Codes gruppiert, das betrifft also vor allem früher erfasste Ausnahmen; führen Sie zwei, die derselbe Fehler sind, über **Ähnliche Ausnahmen** zusammen.
 :::
 
 :::details Eine behobene Ausnahme kommt immer wieder

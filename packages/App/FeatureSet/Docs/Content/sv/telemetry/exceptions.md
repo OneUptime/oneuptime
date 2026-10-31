@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Räknas igen; öppnas<br/>igen om det var löst"]
 ```
 
-- **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag.
+- **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag. Ett nytt undantag grupperas i stället efter sin typ och funktionerna och filerna i din egen kod i sin stack trace: radnummer, biblioteksramar och meddelandet räknas inte, så varianter som kastas från samma kod är ett undantag. Utan stack trace grupperar meddelandet det, som ovan. Undantag som registrerades före den här grupperingen behåller sin.
 - **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen, och undantaget markeras som **Regression**. En förekomst från före lösningen som når OneUptime först senare öppnar det inte igen.
 - **Ett arkiverat undantag förblir arkiverat.** Dess nya förekomster räknas fortfarande, men de skickar inte längre aviseringar.
 
@@ -99,7 +99,9 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 
 Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
 
-**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång.
+**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång. Personen det tilldelas, eller varje medlem i teamet, får en avisering som raden **Undantag tilldelat mig** i deras [Aviseringsinställningar](/docs/notifications/notification-settings) säger; den som tilldelade det får ingen.
+
+**Aktivitet** längst ned i undantagets **Översikt** visar vem som ändrade det och när, nyaste först: vem som löste, öppnade igen, arkiverade eller tilldelade det, slog ihop ett annat undantag med det eller delade upp ett, och när det kom tillbaka efter att det hade lösts. Varje ändring finns där, gjord på undantagets sida, i listan, under **Massåtgärder**, via API:et eller av OneUptime självt, och en ändring gjord med en API-nyckel bär nyckelns namn.
 
 ## Felklasser
 
@@ -198,7 +200,7 @@ Kontrollera vyn först: **Problem** döljer användarfel och förväntade nekand
 :::
 
 :::details Ett fel visas som flera undantag
-Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag.
+Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**.
 :::
 
 :::details Ett löst undantag kommer tillbaka hela tiden

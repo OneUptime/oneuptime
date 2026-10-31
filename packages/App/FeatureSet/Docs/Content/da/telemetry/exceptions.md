@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Talt igen; genåbnet,<br/>hvis den var løst"]
 ```
 
-- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse.
+- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse. En ny undtagelse grupperes i stedet efter sin type og funktionerne og filerne i din egen kode i sin stack trace: linjenumre, biblioteksframes og beskeden udelades, så varianter kastet fra den samme kode er én undtagelse. Uden stack trace grupperer beskeden den, som ovenfor. Undtagelser registreret før denne gruppering beholder deres.
 - **En ny forekomst genåbner en løst undtagelse.** Sker den igen, efter at du har løst den, holdt rettelsen ikke, og undtagelsen markeres som **Regression**. En forekomst fra før du løste den, som først når OneUptime senere, genåbner den ikke.
 - **En arkiveret undtagelse forbliver arkiveret.** Dens nye forekomster tælles stadig, men de sender ikke længere notifikationer.
 
@@ -99,7 +99,9 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
 
-**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
+**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang. Den person, den tildeles, eller hvert medlem af teamet får en notifikation, som rækken **Undtagelse tildelt mig** i deres [Notifikationsindstillinger](/docs/notifications/notification-settings) siger; den, der tildelte den, får ingen.
+
+**Aktivitet** nederst i undtagelsens **Oversigt** viser, hvem der ændrede den og hvornår, nyeste først: hvem der løste, genåbnede, arkiverede eller tildelte den, flettede en anden undtagelse ind i den eller fjernede fletningen af en, og hvornår den kom igen, efter at den var løst. Hver ændring står der, foretaget på undtagelsens side, i listen, under **Massehandlinger**, via API'et eller af OneUptime selv, og en ændring foretaget med en API-nøgle bærer nøglens navn.
 
 ## Fejlklasser
 
@@ -198,7 +200,7 @@ Tjek først visningen: **Problemer** skjuler brugerfejl og forventede afvisninge
 :::
 
 :::details Én fejl vises som flere undtagelser
-Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse.
+Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse. Nye undtagelser grupperes i stedet efter funktionerne i din egen kode, så det gælder mest undtagelser registreret før; flet to, der er den samme fejl, fra **Lignende undtagelser**.
 :::
 
 :::details En løst undtagelse bliver ved med at komme tilbage

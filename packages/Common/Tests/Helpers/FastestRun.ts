@@ -178,6 +178,112 @@ export const fastestRun: FastestRunFunction = <T>(
 };
 
 /*
+ * TWO VERSIONS OF THE SAME WORK, TIMED AGAINST EACH OTHER. Two fastestRun
+ * calls, one after the other, run all of the first version's attempts before
+ * any of the second's: a stall on a busy runner - another worker, a garbage
+ * collection - that outlasts one side's few short attempts slows every one
+ * of them, and the ratio says nothing. QueryPropertyNames' patched read is
+ * four times faster than TypeORM's on a quiet machine; in 14.0.99's gate it
+ * came out 1.56 times faster, its attempts 5.5 times slower than usual and
+ * TypeORM's twice. So the two take turns: one untimed run of each first, so
+ * neither is timed cold, then COMPARED_RUN_ROUNDS rounds of one attempt
+ * each, the order switched every round, and each side's fastest attempt
+ * counts. A stall slows both sides of the rounds it lands in; the rounds it
+ * misses decide. Never adjusted for a slow runner: a ratio needs no leeway.
+ * As with fastestRun, every attempt must do the whole work again.
+ *   const runs: ComparedRuns<number, number> = fastestRunsCompared({
+ *     first: (): number => {
+ *       return before(text);
+ *     },
+ *     second: (): number => {
+ *       return after(text);
+ *     },
+ *   });
+ *   expect(runs.second.inMs * 2).toBeLessThan(runs.first.inMs);
+ */
+export const COMPARED_RUN_ROUNDS: number = 7;
+
+export interface ComparedRuns<A, B> {
+  first: FastestRun<A>;
+  second: FastestRun<B>;
+}
+
+export interface ComparedRunsOptions<A, B> {
+  first: () => A;
+  second: () => B;
+  // At least one; COMPARED_RUN_ROUNDS when left out.
+  rounds?: number | undefined;
+  // The clock, in milliseconds: performance.now when left out.
+  now?: (() => number) | undefined;
+}
+
+export type FastestRunsComparedFunction = <A, B>(
+  options: ComparedRunsOptions<A, B>,
+) => ComparedRuns<A, B>;
+
+export const fastestRunsCompared: FastestRunsComparedFunction = <A, B>(
+  options: ComparedRunsOptions<A, B>,
+): ComparedRuns<A, B> => {
+  const rounds: number =
+    options.rounds === undefined
+      ? COMPARED_RUN_ROUNDS
+      : Math.max(1, Math.floor(options.rounds));
+  const now: () => number =
+    options.now ||
+    ((): number => {
+      return performance.now();
+    });
+
+  // One untimed run of each, so neither side is timed cold.
+  options.first();
+  options.second();
+
+  let first: FastestRun<A> | null = null;
+  let second: FastestRun<B> | null = null;
+
+  for (let round: number = 1; round <= rounds; round++) {
+    if (round % 2 === 1) {
+      first = timedAttempt(options.first, first, round, now);
+      second = timedAttempt(options.second, second, round, now);
+    } else {
+      second = timedAttempt(options.second, second, round, now);
+      first = timedAttempt(options.first, first, round, now);
+    }
+  }
+
+  return {
+    first: first as FastestRun<A>,
+    second: second as FastestRun<B>,
+  };
+};
+
+// One timed attempt of a side, kept if it is that side's fastest so far.
+function timedAttempt<T>(
+  run: () => T,
+  fastest: FastestRun<T> | null,
+  attempt: number,
+  now: () => number,
+): FastestRun<T> {
+  const started: number = now();
+  const result: T = run();
+  const inMs: number = now() - started;
+
+  if (fastest === null || inMs < fastest.inMs) {
+    return {
+      result: result,
+      inMs: inMs,
+      measuredInMs: inMs,
+      slowdown: 1,
+      attempts: attempt,
+    };
+  }
+
+  fastest.attempts = attempt;
+
+  return fastest;
+}
+
+/*
  * Every attempt overran: on a slow runner, linear work does. Count the
  * fastest as it would have run on a usual runner. Not for timings of two
  * versions against each other (limit 0), nor on a test's own clock, where

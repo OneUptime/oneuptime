@@ -31,6 +31,10 @@ import {
   resolveProxmoxConnectMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
+  PROXMOX_AGENT_COLLECTOR_VERSION,
+  PROXMOX_AGENT_VERSION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
@@ -1392,19 +1396,21 @@ describe("drift guards against agents/ProxmoxAgent", () => {
   });
 
   /*
-   * The agent reports the collector it pins (oneuptime.agent.version), so
-   * the compose file must run exactly that collector - never :latest, which
-   * would make the reported version a guess - and the journald wrapper the
-   * guide builds runs the same one.
+   * The compose file runs exactly the collector the agent pins - never
+   * :latest, which would make the reported version a guess - and the
+   * journald wrapper the guide builds runs the same one. Its config reports
+   * the agent's files release (oneuptime.agent.version): the collector's,
+   * its last number raised each time the files change on that collector, as
+   * #5428's did - PROXMOX_AGENT_VERSION, which AgentFilesVersion pins.
    */
-  test("runs the pinned collector, and its config reports the pin", () => {
+  test("runs the pinned collector, and its config reports the files' release", () => {
     const image: string =
       composeFile()["services"]["oneuptime-proxmox-agent"]["image"];
     expect(image).toBe(PROXMOX_AGENT_COLLECTOR_IMAGE);
     expect(image).not.toContain(":latest");
-    const pin: string = image.split(":")[1] as string;
+    expect(image.split(":")[1]).toBe(PROXMOX_AGENT_COLLECTOR_VERSION);
     expect(PROXMOX_AGENT_COLLECTOR_CONFIG).toContain(
-      `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,
+      `      - key: oneuptime.agent.version\n        value: "${PROXMOX_AGENT_VERSION}"\n        action: upsert\n`,
     );
     const logs: string = topicTitled(
       guideFor("docker-compose").advanced,

@@ -24,7 +24,7 @@ flowchart TB
 
 ## Hoe OneUptime IoT modelleert
 
-- **Vloot**: een groep apparaten, zoals `building-a-sensors` of `field-gateways`. Hij komt uit het resource-attribuut `iot.fleet.name` en verschijnt in OneUptime als de telemetrieservice `iot/<fleet>`. Stel ook `service.name=iot/<fleet>` in, zodat logs en metrics onder dezelfde service samenkomen.
+- **Vloot**: een groep apparaten, zoals `building-a-sensors` of `field-gateways`. Hij komt uit het resource-attribuut `iot.fleet.name` en verschijnt in OneUptime als de telemetrieservice `iot/<fleet>`. Stel ook `service.name=iot/<fleet>` in, zodat logs en metrics onder dezelfde service samenkomen. De naam van een vloot wordt herkend ongeacht hoofdletters: een meting voor `warehouse` komt in de vloot `Warehouse` terecht en wordt onder die naam opgeslagen.
 - **Apparaat**: één apparaat in een vloot, benoemd door het attribuut `device.id` op elk datapunt. De inventaris van de vloot is gesleuteld op `device.id`.
 
 | Attribuut | Ingesteld op | Vereist | Beschrijving |

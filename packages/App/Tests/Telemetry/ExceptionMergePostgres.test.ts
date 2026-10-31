@@ -1,9 +1,14 @@
 import ExceptionUtil, {
   TelemetryExceptionPayload,
+  clearExistingV1FingerprintCache,
 } from "../../FeatureSet/Telemetry/Utils/Exception";
 import Entities from "Common/Models/DatabaseModels/Index";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import TelemetryExceptionMerge, {
   ExceptionMergeOutcome,
   ExceptionUnmergeOutcome,
@@ -61,6 +66,7 @@ describePostgres("merging exceptions against Postgres", () => {
   const serviceId: ObjectID = ObjectID.generate();
   const userId: ObjectID = ObjectID.generate();
   let database: DataSource;
+  let activity: Array<[string, TelemetryExceptionActivityType, string]>;
 
   function occurrence(fingerprint: string): TelemetryExceptionPayload {
     return {
@@ -221,6 +227,23 @@ describePostgres("merging exceptions against Postgres", () => {
         );
       }) as never);
 
+    // What the merges, unmerges and ingests left on the activity timelines.
+    activity = [];
+    jest
+      .spyOn(TelemetryExceptionActivityService, "record")
+      .mockImplementation((async (data: {
+        entries: Array<TelemetryExceptionActivityEntry>;
+      }) => {
+        for (const entry of data.entries) {
+          activity.push([
+            entry.telemetryExceptionId.toString(),
+            entry.activityType,
+            entry.relatedTelemetryExceptionId?.toString() || "",
+          ]);
+        }
+        return data.entries.length;
+      }) as never);
+
     await database.query(`DELETE FROM "${schema}"."TelemetryException"`);
   });
 
@@ -238,6 +261,19 @@ describePostgres("merging exceptions against Postgres", () => {
       (await read("a"))._id,
     );
     expect((await read("b")).mergedByUserId).toBe(userId.toString());
+    // Both timelines say so, once the merge is written.
+    expect(activity).toEqual([
+      [
+        (await read("a"))._id,
+        TelemetryExceptionActivityType.Merged,
+        (await read("b"))._id,
+      ],
+      [
+        (await read("b"))._id,
+        TelemetryExceptionActivityType.MergedInto,
+        (await read("a"))._id,
+      ],
+    ]);
 
     // Two of b and one of a, after the merge.
     await ingest(["b", "b", "a"]);
@@ -286,11 +322,16 @@ describePostgres("merging exceptions against Postgres", () => {
       `UPDATE "${schema}"."TelemetryException" SET "isResolved" = true, "markedAsResolvedAt" = now() - interval '1 hour' WHERE "fingerprint" = 'a'`,
     );
 
+    activity.length = 0;
     await ingest(["b"]);
 
     const survivor: GroupRow = await read("a");
     expect(survivor.isResolved).toBe(false);
     expect(survivor.regressedAt).not.toBeNull();
+    // The survivor's timeline says it came back.
+    expect(activity).toEqual([
+      [survivor._id, TelemetryExceptionActivityType.Regressed, ""],
+    ]);
   });
 
   test("merging an exception others were merged into moves them along, and each unmerge takes only its own", async () => {
@@ -316,6 +357,40 @@ describePostgres("merging exceptions against Postgres", () => {
     await unmerge("c");
     expect((await read("a")).occuranceCount).toBe(1);
     expect((await read("c")).occuranceCount).toBe(4);
+  });
+
+  /*
+   * Grouping v2 on the same database: an exception made before it keeps its
+   * v1 fingerprint and keeps receiving occurrences by it; every other
+   * occurrence is grouped by its v2 fingerprint, so a variant with other line
+   * numbers (another v1, the same v2) joins the new exception.
+   */
+  test("grouping v2: an existing exception keeps its first fingerprint, a new one is made under v2, and its variants join it", async () => {
+    clearExistingV1FingerprintCache();
+
+    // Made before grouping v2: its occurrences carried no v2 fingerprint.
+    await ingest(["old-v1"]);
+
+    const withV2: (v1: string, v2: string) => TelemetryExceptionPayload = (
+      v1: string,
+      v2: string,
+    ): TelemetryExceptionPayload => {
+      return { ...occurrence(v1), fingerprintV2: v2 };
+    };
+
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
+      withV2("old-v1", "old-v2"),
+      withV2("new-v1-line-40", "new-v2"),
+    ]);
+    clearExistingV1FingerprintCache();
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
+      withV2("new-v1-line-52", "new-v2"),
+    ]);
+
+    const current: Map<string, GroupRow> = await rows();
+    expect(Array.from(current.keys()).sort()).toEqual(["new-v2", "old-v1"]);
+    expect(current.get("old-v1")!.occuranceCount).toBe(2);
+    expect(current.get("new-v2")!.occuranceCount).toBe(2);
   });
 
   test("a seeded sweep of ingests, merges and unmerges: the counts always add up", async () => {

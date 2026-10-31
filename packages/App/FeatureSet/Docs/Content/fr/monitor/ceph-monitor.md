@@ -64,7 +64,7 @@ Sous **Configuration du moniteur Ceph**, choisissez le cluster dans **Cluster Ce
 Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
 - **Modifier** — choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez encore modifier la **Plage temporelle**.
-- **Custom Metric** (sous **Plus de champs**) — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool.
+- **Custom Metric** (sous **Plus de champs**) — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool. Une métrique tenue par pool ou par daemon est jugée pool par pool ou daemon par daemon, avec un incident chacun.
 - **Avancé** (sous **Plus de champs**) — construisez vous-même requêtes et formules sous **Sélectionner les métriques**, par exemple un ratio de capacité utilisée à partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Utilisez **Regrouper par** `ceph_daemon` ou `pool_id` pour juger chaque démon ou pool séparément.
 
 ### Vérifier les critères
@@ -87,7 +87,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | **OSD** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur le label `ceph_daemon`, par exemple `osd.3`. |
 | **Pool ID** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur le label `pool_id`, par exemple `2`. |
 | **Métrique Ceph** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). |
-| **Agrégation** | Custom Metric | Comment les échantillons sont combinés : **Moyenne**, **Maximum**, **Minimum**, **Somme** ou **Comptage**. Commence avec l'agrégation habituelle de la métrique. |
+| **Agrégation** | Custom Metric | Comment les échantillons sont combinés : **Moyenne**, **Maximum** ou **Minimum**. Commence avec l'agrégation habituelle de la métrique. Une somme ou un comptage additionnerait chaque collecte d'une minute, ils sont donc laissés à **Avancé**. |
 | **Plage temporelle** | Tous | La fenêtre glissante lue par la requête, de **Past 1 Minute** à **Past 365 Days**. Un nouveau moniteur commence à **Past 1 Minute** ; les modèles définissent la leur. |
 | **Sélectionner les métriques** | Avancé | Le générateur de requêtes : **Métrique**, **Agréger par**, **Filtrer par attributs**, **Regrouper par**, plus **Ajouter une métrique** et **Ajouter une formule** pour combiner des requêtes. |
 
@@ -95,7 +95,7 @@ Les séries de données des pools ne portent que le label `pool_id` : le nom du 
 
 ### Séries des health checks
 
-`ceph_health_detail` exporte **une série par health check actif**, avec les labels `name` (par exemple `OSD_NEARFULL` ou `RECENT_CRASH`) et `severity`. Une série n'existe que tant que son check se déclenche ; pas de série signifie donc que tout va bien. Pour alerter sur n'importe quel health check Ceph, filtrez sur son `name`, déclenchez sur **Maximum** au-dessus de `0` et rétablissez à `0` avec **En l'absence de données** réglé sur **Treat As Zero** — exactement comme sont construits les modèles de health checks. `ceph_daemon_health_metrics` fonctionne de la même façon par démon, avec un label `type` (par exemple `SLOW_OPS`) et `ceph_daemon`.
+`ceph_health_detail` exporte **une série par health check**, avec les labels `name` (par exemple `OSD_NEARFULL` ou `RECENT_CRASH`) et `severity`. La série d'un check vaut `1` tant que le check est actif et `0` une fois levé, et un check qui ne s'est jamais déclenché n'a pas de série. Pour alerter sur n'importe quel health check Ceph, filtrez sur son `name`, déclenchez sur **Maximum** au-dessus de `0` et rétablissez à `0` avec **En l'absence de données** réglé sur **Treat As Zero** — exactement comme sont construits les modèles de health checks. `ceph_daemon_health_metrics` fonctionne de la même façon par démon, avec un label `type` (par exemple `SLOW_OPS`) et `ceph_daemon`.
 
 ## Modèles d'alerte prédéfinis
 
@@ -270,7 +270,7 @@ Les modèles qui surveillent `ceph_health_detail` — Daemon Crash, Monitor Cloc
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Les séries de health checks, `ceph_daemon_health_metrics` compris, n'existent que lorsqu'un check se déclenche ; n'en trouver aucune quand le cluster est sain est donc normal.
+Un health check qui ne s'est jamais déclenché n'a pas de série, `ceph_daemon_health_metrics` compris, et un check levé vaut `0` : n'en trouver aucune, ou seulement des zéros, quand le cluster est sain est donc normal.
 :::
 
 :::details Des compteurs comme ceph_pool_wr_bytes ne font que croître

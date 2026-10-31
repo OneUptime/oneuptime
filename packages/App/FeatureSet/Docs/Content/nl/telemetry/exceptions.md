@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Opnieuw geteld;<br/>heropend als opgelost"]
 ```
 
-- **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering.
+- **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering. Een nieuwe uitzondering wordt in plaats daarvan gegroepeerd op haar type en de functies en bestanden van uw eigen code in de stacktrace: regelnummers, bibliotheekframes en het bericht tellen niet mee, zodat varianten uit dezelfde code één uitzondering zijn. Zonder stacktrace groepeert haar bericht haar, zoals hierboven. Uitzonderingen die vóór deze groepering zijn vastgelegd, houden de hunne.
 - **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand, en de uitzondering wordt gemarkeerd als **Regressie**. Een voorval van vóór het oplossen dat OneUptime pas later bereikt, heropent haar niet.
 - **Een gearchiveerde uitzondering blijft gearchiveerd.** Haar nieuwe voorvallen worden nog geteld, maar sturen geen meldingen meer.
 
@@ -99,7 +99,9 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
 
-**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
+**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe. De persoon aan wie ze is toegewezen, of elk lid van het team, krijgt een melding zoals de rij **Uitzondering aan mij toegewezen** van hun [Meldingsinstellingen](/docs/notifications/notification-settings) aangeeft; wie haar toewees, krijgt er geen.
+
+**Activiteit**, onderaan het **Overzicht** van de uitzondering, toont wie haar wanneer heeft gewijzigd, nieuwste eerst: wie haar heeft opgelost, heropend, gearchiveerd of toegewezen, een andere uitzondering met haar heeft samengevoegd of er een heeft gesplitst, en wanneer ze terugkwam nadat ze was opgelost. Elke wijziging staat er, gedaan op de pagina van de uitzondering, in de lijst, onder **Bulkacties**, via de API of door OneUptime zelf, en een wijziging met een API-sleutel draagt de naam van de sleutel.
 
 ## Foutklassen
 
@@ -198,7 +200,7 @@ Controleer eerst de weergave: **Problemen** verbergt gebruikersfouten en verwach
 :::
 
 :::details Eén fout verschijnt als meerdere uitzonderingen
-De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering.
+De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering. Nieuwe uitzonderingen worden in plaats daarvan gegroepeerd op de functies van uw eigen code, dus dit geldt vooral voor eerder vastgelegde uitzonderingen; voeg er twee die dezelfde bug zijn samen via **Vergelijkbare uitzonderingen**.
 :::
 
 :::details Een opgeloste uitzondering komt steeds terug

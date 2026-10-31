@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Telt igjen; gjenåpnet<br/>hvis det var løst"]
 ```
 
-- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak.
+- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak. Et nytt unntak grupperes i stedet etter typen og funksjonene og filene i din egen kode i stack trace: linjenumre, bibliotekframes og meldingen holdes utenfor, så varianter kastet fra den samme koden er ett unntak. Uten stack trace grupperer meldingen det, som over. Unntak registrert før denne grupperingen beholder sin.
 - **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen, og unntaket merkes som **Regresjon**. En forekomst fra før du løste det, som først når OneUptime senere, gjenåpner det ikke.
 - **Et arkivert unntak forblir arkivert.** De nye forekomstene telles fortsatt, men de sender ikke lenger varsler.
 
@@ -99,7 +99,9 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 
-**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
+**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig. Personen det tildeles, eller hvert medlem av teamet, får et varsel slik raden **Unntak tildelt meg** i deres [Varselinnstillinger](/docs/notifications/notification-settings) sier; den som tildelte det, får ikke noe.
+
+**Aktivitet** nederst i unntakets **Oversikt** viser hvem som endret det og når, nyeste først: hvem som løste, gjenåpnet, arkiverte eller tildelte det, slo sammen et annet unntak med det eller delte opp et, og når det kom tilbake etter at det var løst. Hver endring står der, gjort på unntakets side, i listen, under **Massehandlinger**, via API-et eller av OneUptime selv, og en endring gjort med en API-nøkkel bærer nøkkelens navn.
 
 ## Feilklasser
 
@@ -198,7 +200,7 @@ Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisning
 :::
 
 :::details Én feil vises som flere unntak
-Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak.
+Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**.
 :::
 
 :::details Et løst unntak kommer stadig tilbake

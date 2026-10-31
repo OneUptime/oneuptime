@@ -144,7 +144,14 @@ export function buildPodmanMonitorConfig(args: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
   groupByAttributeKey?: string | undefined;
+  /*
+   * What the query is called in an alert's root cause and on its chart
+   * ("The sum of Container Restarts ..."). The alias when unset.
+   */
+  title?: string | undefined;
 }): MonitorStepPodmanMonitor {
+  const title: string = args.title || args.metricAlias;
+
   return {
     hostIdentifier: args.hostIdentifier,
     containerFilters: {},
@@ -153,9 +160,9 @@ export function buildPodmanMonitorConfig(args: {
         {
           metricAliasData: {
             metricVariable: args.metricAlias,
-            title: args.metricAlias,
-            description: args.metricAlias,
-            legend: args.metricAlias,
+            title: title,
+            description: title,
+            legend: title,
             legendUnit: undefined,
           },
           metricQueryData: {
@@ -172,79 +179,6 @@ export function buildPodmanMonitorConfig(args: {
         },
       ],
       formulaConfigs: [],
-    },
-    rollingTime: args.rollingTime,
-  };
-}
-
-/*
- * Two queries over the SAME lifetime counter, differenced per one-minute
- * bucket and summed over the window by the criteria: the counter's growth.
- * The same house pattern, and the same limits, as
- * DockerAlertTemplates.buildDockerDeltaMonitorConfig - read that comment
- * before changing this one. In short: only growth between two samples of
- * the same minute is seen (about half of it at the agent's 30 s interval),
- * so it is a lower bound that cannot manufacture a breach, and it reads 0
- * at a 60 s interval or slower.
- */
-export function buildPodmanDeltaMonitorConfig(args: {
-  hostIdentifier: string;
-  metricName: string;
-  maxAlias: string;
-  minAlias: string;
-  resultAlias: string;
-  resultLegend: string;
-  rollingTime: RollingTime;
-  groupByAttributeKey: string;
-}): MonitorStepPodmanMonitor {
-  const buildQueryConfig: (
-    alias: string,
-    aggregationType: MetricsAggregationType,
-  ) => any = (alias: string, aggregationType: MetricsAggregationType): any => {
-    return {
-      metricAliasData: {
-        metricVariable: alias,
-        title: alias,
-        description: alias,
-        legend: alias,
-        legendUnit: undefined,
-      },
-      metricQueryData: {
-        filterData: {
-          metricName: args.metricName,
-          attributes: {},
-          aggegationType: aggregationType,
-          aggregateBy: {},
-        },
-        // Both halves group identically, or the formula's join finds nothing.
-        groupByAttributeKeys: [args.groupByAttributeKey],
-      },
-    };
-  };
-
-  return {
-    hostIdentifier: args.hostIdentifier,
-    containerFilters: {},
-    metricViewConfig: {
-      queryConfigs: [
-        buildQueryConfig(args.maxAlias, MetricsAggregationType.Max),
-        buildQueryConfig(args.minAlias, MetricsAggregationType.Min),
-      ],
-      formulaConfigs: [
-        {
-          metricAliasData: {
-            metricVariable: args.resultAlias,
-            title: args.resultLegend,
-            description: args.resultLegend,
-            legend: args.resultLegend,
-            // A dimensionless count.
-            legendUnit: undefined,
-          },
-          metricFormulaData: {
-            metricFormula: `${args.maxAlias} - ${args.minAlias}`,
-          },
-        },
-      ],
     },
     rollingTime: args.rollingTime,
   };
@@ -410,37 +344,47 @@ const highMemoryTemplate: PodmanAlertTemplate = {
 /*
  * The id stays "podman-restart-loop": it is the stable key the
  * recommendation catalog and the already-created-monitor diff match on.
+ *
+ * NOT the restart count itself. container.restarts is Podman's
+ * RestartCount for the container - a lifetime total. Thresholding it
+ * ("> 5") fired on a container's history and could never recover. Its
+ * growth between two samples of the same minute (a Max and a Min query per
+ * minute and a formula subtracting them) missed every restart between the
+ * last sample of one minute and the first of the next - about half of a
+ * crash loop at the agent's 30-second scrape, and all of it for a container
+ * sampled less than twice a minute - and read a manual restart, which
+ * starts the count again at 0, as the whole count in one minute. The agent
+ * now sends container.restarts.increase with every sample: the restarts
+ * since its previous sample of the container, however far back that was
+ * (cumulative_to_delta/restarts-increase in
+ * PodmanAgent/otel-collector-config.yaml). Summed per minute and over the
+ * window, that is every restart in the window - the same query, window and
+ * threshold as Docker's docker-restart-loop, which says more.
  */
 const containerRestartLoopTemplate: PodmanAlertTemplate = {
   id: "podman-restart-loop",
   name: "Container Restart Loop",
   summary: "A container restarts more than 3 times in 15 minutes.",
   description:
-    "Alert when a container's restart count climbs by more than 3 within fifteen minutes, indicating a crash loop. The count only grows between two samples of the same minute, and the agent samples running containers only, so a container that exits the moment it starts is rarely seen at all: Container Restarted (Low Uptime) catches every restart the agent does see. One alert per container.",
+    "Alert when a container restarts more than 3 times within fifteen minutes: Podman keeps restarting it under its restart policy, so it is crash-looping rather than recovering from a one-off failure. Reads container.restarts.increase, the restarts since the agent's previous sample of the container, so every restart counts however far apart the samples are; a restart by hand starts a new count and is not one. An older Podman agent does not send it: update the agent first. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "container_restarts";
 
     return buildPodmanMonitorStep({
-      /*
-       * NOT the restart count itself. container.restarts is the engine's
-       * RestartCount for the container - a lifetime total. Thresholding it
-       * ("> 5") fired on a container's history, and could never recover:
-       * a counter that only grows never comes back under its threshold, so
-       * the alert stayed open until the container was recreated. Its
-       * GROWTH in the window is the loop signal; the same delta, window
-       * and threshold as Docker's docker-restart-loop.
-       */
-      podmanMonitor: buildPodmanDeltaMonitorConfig({
+      podmanMonitor: buildPodmanMonitorConfig({
         hostIdentifier: args.hostIdentifier,
-        metricName: "container.restarts",
-        maxAlias: "container_restarts_max",
-        minAlias: "container_restarts_min",
-        resultAlias: metricAlias,
-        resultLegend: "Container Restarts (in window)",
-        // Fifteen minutes, for the reasons docker-restart-loop gives.
+        metricName: "container.restarts.increase",
+        metricAlias,
+        title: "Container Restarts",
         rollingTime: RollingTime.Past15Minutes,
+        /*
+         * Sum WITHIN each container's series: the restarts in each minute.
+         * A minute with no sample of the container has no row, and the
+         * increase a later sample sends still counts its restarts.
+         */
+        aggregationType: MetricsAggregationType.Sum,
         groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
@@ -453,14 +397,14 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
         value: 3,
         /*
          * Sum, not the sustained AllValues default: each sample is ONE
-         * MINUTE'S restart increment, and the window total is the count.
+         * MINUTE'S restarts, and the window total is the count.
          */
         metricAggregationType: EvaluateOverTimeType.Sum,
         incidentTitle: `[Podman] Container Restart Loop Detected - ${args.monitorName}`,
         incidentDescription: `A Podman container restarted more than 3 times in the last fifteen minutes — it is crash-looping, not recovering from a one-off failure. The affected container is named in the resources affected on this alert; read its logs and its restart policy. The alert clears once the container stops restarting.`,
         criteriaName: "Restart Loop - Restarts > 3 in 15 min",
         criteriaDescription:
-          "Triggers when a container's restart counter increases by more than 3 across the monitoring window. The growth is counted between two samples of the same minute, so it is a lower bound.",
+          "Triggers when a container restarts more than 3 times across the monitoring window, counted from the restarts the agent sends with each sample.",
       }),
       onlineCriteriaInstance: buildPodmanOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -483,8 +427,10 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
  * counters — lifetime totals for the container, as PodmanMetricCatalog
  * itself documents ("Total time the container CPU has been throttled",
  * unit ns). Nothing between ingest and the criteria evaluator turns a
- * cumulative counter into a delta or a rate: the collector pipeline has no
- * cumulativetodelta processor, OtelMetricsIngestService stores
+ * cumulative counter into a delta or a rate: the agent's pipeline deltas
+ * only container.cpu.usage.total (into container.cpu.utilization) and
+ * container.restarts (into container.restarts.increase), the throttling
+ * counters go on as they are, OtelMetricsIngestService stores
  * aggregationTemporality/isMonotonic only so the browser can auto-suggest
  * rate views, AggregationType has no rate/increase member, and
  * CompareCriteria.reduceWindow offers only Average/Sum/Max/Min.
@@ -495,7 +441,9 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
  * unreachable, leaving a permanently open alert that only a container
  * recreation can clear. getRecoveryThreshold() returns undefined at a
  * threshold of 0, so the recovery dead band does not apply here either.
- * Reinstate this template on a windowed delta, not on the raw counter.
+ * Reinstate this template on a windowed delta, not on the raw counter - an
+ * increase the agent sends with each sample, as container.restarts.increase
+ * is, is the one that counts every interval.
  */
 
 const highProcessCountTemplate: PodmanAlertTemplate = {

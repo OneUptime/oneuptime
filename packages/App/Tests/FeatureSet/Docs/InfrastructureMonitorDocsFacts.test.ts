@@ -928,31 +928,86 @@ describe("the Docker templates the page explains", () => {
     }) as BuiltTemplate;
   }
 
-  it("alert on how much a lifetime counter grew: a Maximum and a Minimum query per minute, subtracted by a formula", () => {
-    for (const name of ["Container Restart Loop", "Container CPU Throttling"]) {
-      const template: BuiltTemplate = named(name);
+  it("alert on how much throttled time grew: a Maximum and a Minimum query per minute, subtracted by a formula", () => {
+    const template: BuiltTemplate = named("Container CPU Throttling");
 
-      expect(template.queries.map(aggregationOf)).toEqual([
-        MetricsAggregationType.Max,
-        MetricsAggregationType.Min,
-      ]);
-      expect(template.formulas).toHaveLength(1);
-      expect(template.formulas[0]).toContain(" - ");
-    }
-
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Max,
+      MetricsAggregationType.Min,
+    ]);
+    expect(template.formulas).toHaveLength(1);
+    expect(template.formulas[0]).toContain(" - ");
     // The throttled time is nanoseconds; the row reads it in milliseconds.
-    expect(named("Container CPU Throttling").formulas[0]).toContain(
-      "/ 1000000",
+    expect(template.formulas[0]).toContain("/ 1000000");
+    expect(englishPage(DOCKER)).toContain(
+      "`container.cpu.throttling_data.throttled_time` only ever grows, so **Container CPU Throttling** alerts on how much it grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed.",
     );
   });
 
-  it("watch the 30-second scrape that the delta templates rely on", () => {
+  it("count every restart: Container Restart Loop sums the restarts the agent sends with each sample", () => {
+    const template: BuiltTemplate = named("Container Restart Loop");
+
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "container.restarts.increase",
+    ]);
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+    ]);
+    expect(template.formulas).toEqual([]);
+    expect(source("agents/DockerAgent/otel-collector-config.yaml")).toContain(
+      'copy_metric(name="container.restarts.increase"',
+    );
+    expect(englishPage(DOCKER)).toContain(
+      "so the agent also sends `container.restarts.increase` with every sample: the restarts since its previous sample of the container. **Container Restart Loop** adds those up, so it counts every restart however far apart the samples are, and a restart by hand is not one.",
+    );
+    // What an older agent and a monitor made from the old query need.
+    expect(englishPage(DOCKER)).toContain(
+      "An older agent does not send `container.restarts.increase`: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent) first.",
+    );
+    expect(englishPage(DOCKER)).toContain(
+      "delete it and create the template again.",
+    );
+  });
+
+  it("watch the 30-second scrape that the throttling template relies on", () => {
     expect(source("agents/DockerAgent/otel-collector-config.yaml")).toContain(
       "collection_interval: 30s",
     );
     expect(englishPage(DOCKER)).toContain(
-      "If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting.",
+      "If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and the template stops alerting.",
     );
+    expect(englishPage(DOCKER)).not.toContain("both templates stop alerting");
+  });
+});
+
+describe("the Podman restart template the page explains", () => {
+  const templates: Array<BuiltTemplate> = podmanTemplates();
+
+  it("counts every restart: Container Restart Loop sums the restarts the agent sends with each sample", () => {
+    const template: BuiltTemplate = templates.find(
+      (candidate: BuiltTemplate): boolean => {
+        return candidate.name === "Container Restart Loop";
+      },
+    ) as BuiltTemplate;
+
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "container.restarts.increase",
+    ]);
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+    ]);
+    expect(template.formulas).toEqual([]);
+    expect(source("agents/PodmanAgent/otel-collector-config.yaml")).toContain(
+      'copy_metric(name="container.restarts.increase"',
+    );
+    expect(englishPage(PODMAN)).toContain(
+      "**Container Restart Loop** adds those up, as on Docker, so it counts every restart however far apart the samples are, and a restart by hand is not one.",
+    );
+    expect(englishPage(PODMAN)).toContain(
+      "An older agent does not send `container.restarts.increase`: [upgrade it](/docs/telemetry/podman-host#upgrading-the-agent) first.",
+    );
+    // The per-minute growth it read before is gone from the page.
+    expect(englishPage(PODMAN)).not.toContain("about half of the restarts");
   });
 });
 
@@ -2359,6 +2414,18 @@ describe("the agents the pages describe", () => {
       ]) {
         expect(config).toContain(`${metric}:\n        enabled: true`);
       }
+
+      /*
+       * Not a receiver metric: the agent makes it from container.restarts,
+       * in a processor the metrics pipeline runs.
+       */
+      expect(listed).toContain("container.restarts.increase");
+      expect(config).toContain(
+        'copy_metric(name="container.restarts.increase", ',
+      );
+      // Defined, and in the metrics pipeline's processor list.
+      expect(config).toContain("  cumulative_to_delta/restarts-increase:\n");
+      expect(config).toContain("  cumulative_to_delta/restarts-increase,\n");
 
       // Collected, but not offered by the Custom Metric picker.
       expect(listed).not.toContain(

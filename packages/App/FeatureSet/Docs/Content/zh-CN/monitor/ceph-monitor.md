@@ -64,7 +64,7 @@ flowchart TB
 新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始。要监视其他内容：
 
 - **更改**：选择另一个 [模板](#预置警报模板)。模板会设置指标、过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。之后仍可以修改**时间范围**。
-- **Custom Metric**（在 **更多字段** 下）：从 **Ceph Metric** 中选择一个指标，然后设置**聚合**和**时间范围**。**OSD** 和 **Pool ID** 可以把范围缩小到一个守护进程或一个存储池。
+- **Custom Metric**（在 **更多字段** 下）：从 **Ceph Metric** 中选择一个指标，然后设置**聚合**和**时间范围**。**OSD** 和 **Pool ID** 可以把范围缩小到一个守护进程或一个存储池。按池或按守护进程分别记录的指标，会逐个池或逐个守护进程判断，每个各自产生一个事件。
 - **高级**（在 **更多字段** 下）：在**选择指标**下自己构建查询和公式，例如用 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes` 计算已用容量比例。用 **分组依据** 指定 `ceph_daemon` 或 `pool_id`，即可分别判断每个守护进程或存储池。
 
 ### 检查条件
@@ -87,7 +87,7 @@ flowchart TB
 | **OSD** | Custom Metric、高级 | 可选。与 `ceph_daemon` 标签精确匹配，例如 `osd.3`。 |
 | **Pool ID** | Custom Metric、高级 | 可选。与 `pool_id` 标签精确匹配，例如 `2`。 |
 | **Ceph Metric** | Custom Metric | [目录](#收集的指标)中的一个指标。 |
-| **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**、**最小值**、**总和**或**计数**。初始值为该指标的常用聚合。 |
+| **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**或**最小值**。初始值为该指标的常用聚合。总和或计数会把一分钟内的每次抓取加在一起，因此留给 **高级** 使用。 |
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 1 Minute** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于组合查询的**添加指标**和**添加公式**。 |
 
@@ -95,7 +95,7 @@ flowchart TB
 
 ### 健康检查序列
 
-`ceph_health_detail` 导出的是**每个活动健康检查一个序列**，带有 `name`（例如 `OSD_NEARFULL` 或 `RECENT_CRASH`）和 `severity` 标签。序列只在其检查触发期间存在，所以没有序列就表示健康。要对任意 Ceph 健康检查发出警报，请按其 `name` 过滤，在**最大值**高于 `0` 时触发，并把**如果无数据**设为 **Treat As Zero**，在 `0` 时恢复——健康检查模板正是这样构建的。`ceph_daemon_health_metrics` 以同样的方式按守护进程工作，以 `type` 标签（例如 `SLOW_OPS`）和 `ceph_daemon` 为键。
+`ceph_health_detail` 导出的是**每个健康检查一个序列**，带有 `name`（例如 `OSD_NEARFULL` 或 `RECENT_CRASH`）和 `severity` 标签。检查活动期间其序列为 `1`，清除后为 `0`，从未触发过的检查没有序列。要对任意 Ceph 健康检查发出警报，请按其 `name` 过滤，在**最大值**高于 `0` 时触发，并把**如果无数据**设为 **Treat As Zero**，在 `0` 时恢复——健康检查模板正是这样构建的。`ceph_daemon_health_metrics` 以同样的方式按守护进程工作，以 `type` 标签（例如 `SLOW_OPS`）和 `ceph_daemon` 为键。
 
 ## 预置警报模板
 
@@ -270,7 +270,7 @@ flowchart TB
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-健康检查序列（包括 `ceph_daemon_health_metrics`）只在检查触发期间存在，因此集群健康时找不到它们是正常的。
+从未触发过的健康检查（包括 `ceph_daemon_health_metrics`）没有序列，已清除的检查为 `0`，因此集群健康时找不到序列或只看到 0 都是正常的。
 :::
 
 :::details ceph_pool_wr_bytes 之类的计数器只增不减
