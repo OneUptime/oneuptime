@@ -93,7 +93,7 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 | Host Stopped Reporting | Critical | `container.memory.percent`, Count over every container on the host, past 10 minutes | No data for the whole window | Data arrives again |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, past 5 minutes | Above 85% | At or below 76.5% |
-| Container Restart Loop | Critical | Growth of `container.restarts` per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
+| Container Restart Loop | Critical | `container.restarts.increase`, Sum per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
 | Container CPU Throttling | Warning | Growth of `container.cpu.throttling_data.throttled_time` in ms per container, past 5 minutes | More than 1000 ms in the window (Sum) | 900 ms or less |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, past 5 minutes | Above 2000 | At or below 1800 |
 | Container Restarted (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Below 120 seconds | At or above 132 seconds |
@@ -110,7 +110,10 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 > `container.memory.percent` divides by the container's memory limit when one is set, and by the **host's** total memory when it is not. Check whether the container was started with `--memory` before you treat a breach as an imminent out-of-memory kill.
 
 > [!WARNING]
-> `container.restarts` and `container.cpu.throttling_data.throttled_time` only ever grow, so those two templates alert on how much they grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real activity, and the thresholds already allow for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting. The agent also samples running containers only, so a container that exits the moment it starts is rarely sampled at all: **Container Restarted (Low Uptime)** fires on every restart the agent does see.
+> `container.cpu.throttling_data.throttled_time` only ever grows, so **Container CPU Throttling** alerts on how much it grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real throttling, and the threshold already allows for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and the template stops alerting.
+
+> [!NOTE]
+> `container.restarts` only ever grows too, until a restart by hand or a recreated container starts it again at 0, so the agent also sends `container.restarts.increase` with every sample: the restarts since its previous sample of the container. **Container Restart Loop** adds those up, so it counts every restart however far apart the samples are, and a restart by hand is not one. Docker reports a container it is restarting as running, so the agent keeps sampling a crash-looping container between its runs. An older agent does not send `container.restarts.increase`: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent) first. A monitor made from the template before then reads how much `container.restarts` grew within each minute, which misses about half of a loop's restarts: delete it and create the template again.
 
 > [!CAUTION]
 > `container.uptime` exists only for running containers. A container that stops and stays stopped sends no data, so **Container Restarted (Low Uptime)** catches restarts and redeploys, not a permanent shutdown. A container meant to run for less than two minutes stays in the alerting state for its whole life. For a service that must stay up, also watch what it serves — for example with an [API Monitor](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 | --- | --- |
 | `container.uptime` | Seconds since the container started. Only running containers report it. |
 | `container.restarts` | Times the container has restarted since it was created. A lifetime counter. |
+| `container.restarts.increase` | Restarts since the agent's previous sample of the container, sent with every sample. Their sum over a window is the restarts in it, so alert on this one rather than on the lifetime count. |
 | `container.pids.count` | Tasks in the container. The cgroup pids controller counts threads as well as processes. |
 
 `container.cpu.throttling_data.throttled_periods` is not in the **Docker Metric** list; query it from **Advanced**.
@@ -288,8 +292,12 @@ OneUptime identifies a host by `resource.host.name`, which the agent takes from 
 Group the query by `resource.container.name` and aggregate with **Maximum**, as the **High Container CPU Usage** template does. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold. If a container's CPU is a flat line whatever its load, the host runs an older agent: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent).
 :::
 
-:::details The restart-loop or throttling template stopped alerting
-Both measure how much a counter grew between two samples in the same minute. If the agent's `collection_interval` is 60 seconds or more, every minute holds one sample, the growth always reads 0, and neither template fires. Keep the agent's default of 30 seconds.
+:::details The throttling template stopped alerting
+It measures how much `container.cpu.throttling_data.throttled_time` grew between two samples in the same minute. If the agent's `collection_interval` is 60 seconds or more, every minute holds one sample, the growth always reads 0, and the template never fires. Keep the agent's default of 30 seconds.
+:::
+
+:::details The restart-loop template never fires, or misses restarts
+It reads `container.restarts.increase`, which an older agent does not send: [upgrade the agent](/docs/telemetry/docker-host#upgrading-the-agent). A monitor made from the template before then reads how much `container.restarts` grew between two samples in the same minute, and misses the restarts between two minutes' samples: delete it and create the template again.
 :::
 
 ## Next steps

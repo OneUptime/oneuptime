@@ -93,7 +93,7 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 | Host Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container dell'host, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
-| Container Restart Loop | Critico | Crescita di `container.restarts` per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
+| Container Restart Loop | Critico | `container.restarts.increase`, Sum per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
 | Container Restarted (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Sotto i 120 secondi | A 132 secondi o più |
 
@@ -107,7 +107,7 @@ I due modelli in percentuale usano **Media**: le loro metriche sono già percent
 > `container.cpu.utilization` è il numero stampato da `podman stats`, in media sull'intervallo di 30 secondi dell'agente: il 100% è un core di CPU intero, non l'intera quota di CPU del container. Un container con più core segna ben oltre 100 quando è sano, quindi alzate la soglia per quei container.
 
 > [!NOTE]
-> `container.restarts` è un totale progressivo tenuto da Podman, quindi **Container Restart Loop** avvisa di quanto è cresciuto nella finestra, come su Docker: una query Maximum e una Minimum al minuto, sottratte con una formula e sommate. Con la raccolta a 30 secondi dell'agente si vede circa metà dei riavvii, e la soglia ne tiene già conto. L'agente campiona inoltre solo i container in esecuzione, quindi un container che termina appena avviato viene campionato di rado: **Container Restarted (Low Uptime)** scatta a ogni riavvio che l'agente vede.
+> `container.restarts` è un totale progressivo tenuto da Podman, finché un riavvio manuale o un container ricreato non lo fa ripartire da 0, quindi l'agente invia anche `container.restarts.increase` con ogni campione: i riavvii dal suo campione precedente del container. **Container Restart Loop** li somma, come su Docker, quindi conta ogni riavvio per quanto distanti siano i campioni, e un riavvio manuale non conta. Un agente più vecchio non invia `container.restarts.increase`: prima [aggiornatelo](/docs/telemetry/podman-host#aggiornare-lagent). Un monitor creato dal modello prima di allora legge di quanto è cresciuto `container.restarts` entro ogni minuto, e così perde circa metà dei riavvii di un loop: eliminatelo e create di nuovo il modello.
 
 > [!CAUTION]
 > `container.uptime` esiste solo per i container in esecuzione. Un container che si ferma e resta fermo non invia dati, quindi **Container Restarted (Low Uptime)** coglie riavvii e nuovi deploy, non uno spegnimento definitivo. Un container pensato per girare meno di due minuti resta in stato di avviso per tutta la sua vita.
@@ -154,6 +154,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` puntato sul socket compati
 | --- | --- |
 | `container.uptime` | Secondi dall'avvio del container. La comunicano solo i container in esecuzione. |
 | `container.restarts` | Quante volte il container si è riavviato. Un totale progressivo. |
+| `container.restarts.increase` | Riavvii dal campione precedente del container da parte dell'agente, inviati con ogni campione. La loro somma su una finestra sono i riavvii in quella finestra, quindi avvisate su questo e non sul totale progressivo. |
 | `container.pids.count` | Task nel container. Il controller pids del cgroup conta i thread oltre ai processi. |
 
 `container.cpu.throttling_data.throttled_periods` non è nell'elenco; interrogatela da **Avanzato**.
@@ -290,8 +291,8 @@ OneUptime identifica un host tramite `resource.host.name`, che l'agente prende d
 Raggruppate la query per `resource.container.name`, come fa il modello **High Container CPU Usage**, così ogni container viene giudicato separatamente. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta. Se la CPU di un container è una linea piatta qualunque sia il suo carico, sull'host gira un agente più vecchio: [aggiornatelo](/docs/telemetry/podman-host#aggiornare-lagent).
 :::
 
-:::details L'avviso sul numero di riavvii non si risolve mai
-`container.restarts` è un totale progressivo, quindi non torna da solo sotto la soglia. Risolvete la causa, poi ricreate il container per azzerare il conteggio, oppure alzate la soglia.
+:::details L'avviso sui riavvii non scatta mai o non si risolve mai
+Un monitor che confronta `container.restarts` stesso con una soglia, come fa uno creato da una prima versione del modello dei riavvii, scatta per la storia del container e non si risolve mai: il totale cresce soltanto. Uno creato da **Container Restart Loop** prima che leggesse `container.restarts.increase` misura di quanto è cresciuto il totale entro ogni minuto, e perde circa metà dei riavvii di un loop. Un agente più vecchio non invia `container.restarts.increase`: [aggiornate l'agente](/docs/telemetry/podman-host#aggiornare-lagent), poi eliminate il monitor e create di nuovo **Container Restart Loop**.
 :::
 
 ## Passaggi successivi
