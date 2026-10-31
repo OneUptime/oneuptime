@@ -22,6 +22,11 @@ const AccountsFooter: FunctionComponent<ComponentProps> = (
     return (
       <Footer
         className="border-t border-gray-100 px-8"
+        /*
+         * Centred under the form at every width, as the form is: alone, the
+         * picker would sit at the far start of a wide footer.
+         */
+        innerClassName="mx-auto w-full py-6 px-6 md:flex md:items-center md:justify-center lg:px-8"
         links={[
           {
             content: <LanguageSwitcher />,
