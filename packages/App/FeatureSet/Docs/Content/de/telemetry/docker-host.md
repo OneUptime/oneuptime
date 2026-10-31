@@ -285,6 +285,10 @@ Der Agent muss als root laufen, um `/var/run/docker.sock` zu lesen. Prüfen Sie,
 Ein älterer Agent sendet den eigenen CPU-Wert des Receivers `docker_stats`. Seit Collector 0.150.0 berechnet der Receiver ihn aus einem einzigen Stats-Messwert: die gesamte CPU, die ein Container seit seinem Start verbraucht hat, geteilt durch die gesamte CPU, die der Host seit seinem Booten verbraucht hat. Die Linie bewegt sich kaum und folgt der Last nicht, `container.cpu.usage.total` dagegen schon. [Aktualisieren Sie den Agenten](#agent-aktualisieren): Ab seinem zweiten Messwert sendet er die CPU, die jeder Container in jedem 30-Sekunden-Intervall verbraucht hat. Bereits gespeicherte Messwerte bleiben, wie sie waren.
 :::
 
+:::details Container Restart Loop löst nie aus oder übersieht Neustarts
+Ein älterer Agent sendet `container.restarts.increase` nicht, die Neustarts seit seinem vorigen Messwert jedes Containers, die die Vorlage zusammenzählt. [Aktualisieren Sie den Agenten](#agent-aktualisieren): Ab seinem zweiten Messwert jedes Containers zählt jeder Neustart. Ein Monitor, der vor der Aktualisierung aus der Vorlage erstellt wurde, liest stattdessen, wie stark `container.restarts` innerhalb jeder Minute gewachsen ist, und übersieht etwa die Hälfte der Neustarts einer Schleife: Löschen Sie ihn und erstellen Sie ihn erneut aus der Vorlage.
+:::
+
 :::details Metriken kommen an, aber keine Container-Logs
 Ihre Container verwenden höchstwahrscheinlich einen anderen Log-Treiber als `json-file`. Prüfen Sie, welche Dateien der Agent beobachtet und welchen Treiber ein Container verwendet:
 

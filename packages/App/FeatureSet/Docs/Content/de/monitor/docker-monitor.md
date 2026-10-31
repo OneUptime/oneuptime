@@ -93,7 +93,7 @@ Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Be
 | Host Stopped Reporting | Kritisch | `container.memory.percent`, Count über alle Container des Hosts, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | High Container CPU Usage | Warnung | `container.cpu.utilization`, Max pro Container, letzte 5 Minuten | Über 80 (% eines Kerns) | Bei oder unter 72 |
 | High Container Memory Usage | Warnung | `container.memory.percent`, Max pro Container, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
-| Container Restart Loop | Kritisch | Zuwachs von `container.restarts` pro Container, letzte 15 Minuten | Mehr als 3 Neustarts im Zeitfenster (Summe) | 2,7 oder weniger |
+| Container Restart Loop | Kritisch | `container.restarts.increase`, Sum pro Container, letzte 15 Minuten | Mehr als 3 Neustarts im Zeitfenster (Summe) | 2,7 oder weniger |
 | Container CPU Throttling | Warnung | Zuwachs von `container.cpu.throttling_data.throttled_time` in ms pro Container, letzte 5 Minuten | Mehr als 1000 ms im Zeitfenster (Summe) | 900 ms oder weniger |
 | High Container Process Count | Warnung | `container.pids.count`, Max pro Container, letzte 5 Minuten | Über 2000 | Bei oder unter 1800 |
 | Container Restarted (Low Uptime) | Kritisch | `container.uptime`, Min pro Container, letzte 1 Minute | Unter 120 Sekunden | Mindestens 132 Sekunden |
@@ -110,7 +110,10 @@ Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Be
 > `container.memory.percent` teilt durch das Speicherlimit des Containers, wenn eines gesetzt ist, und sonst durch den gesamten Arbeitsspeicher **des Hosts**. Prüfen Sie, ob der Container mit `--memory` gestartet wurde, bevor Sie eine Überschreitung als bevorstehenden Out-of-Memory-Kill behandeln.
 
 > [!WARNING]
-> `container.restarts` und `container.cpu.throttling_data.throttled_time` wachsen nur, daher warnen diese beiden Vorlagen danach, wie stark sie im Zeitfenster gewachsen sind: eine Maximum- und eine Minimum-Abfrage pro Minute, durch eine Formel voneinander abgezogen und summiert. Bei der 30-Sekunden-Erfassung des Agents sieht das etwa die Hälfte der tatsächlichen Aktivität, und die Schwellenwerte berücksichtigen das bereits. Wenn Sie das `collection_interval` des Agents auf 60 Sekunden oder mehr erhöhen, enthält jede Minute nur einen Messwert, und beide Vorlagen warnen nicht mehr. Der Agent erfasst außerdem nur laufende Container, sodass ein Container, der sofort nach dem Start wieder endet, kaum je erfasst wird: **Container Restarted (Low Uptime)** löst bei jedem Neustart aus, den der Agent sieht.
+> `container.cpu.throttling_data.throttled_time` wächst nur, daher warnt **Container CPU Throttling** danach, wie stark er im Zeitfenster gewachsen ist: eine Maximum- und eine Minimum-Abfrage pro Minute, durch eine Formel voneinander abgezogen und summiert. Bei der 30-Sekunden-Erfassung des Agents sieht das etwa die Hälfte der tatsächlichen Drosselung, und der Schwellenwert berücksichtigt das bereits. Wenn Sie das `collection_interval` des Agents auf 60 Sekunden oder mehr erhöhen, enthält jede Minute nur einen Messwert, und die Vorlage warnt nicht mehr.
+
+> [!NOTE]
+> `container.restarts` wächst ebenfalls nur, bis ein manueller Neustart oder ein neu erstellter Container ihn wieder bei 0 beginnen lässt, daher sendet der Agent mit jedem Messwert zusätzlich `container.restarts.increase`: die Neustarts seit seinem vorigen Messwert des Containers. **Container Restart Loop** zählt diese zusammen, erfasst also jeden Neustart, wie weit die Messwerte auch auseinanderliegen, und ein manueller Neustart zählt nicht als einer. Docker meldet einen Container, den es gerade neu startet, als laufend, daher erfasst der Agent einen Container in einer Neustartschleife auch zwischen seinen Läufen. Ein älterer Agent sendet `container.restarts.increase` nicht: [Aktualisieren Sie ihn](/docs/telemetry/docker-host#agent-aktualisieren) zuerst. Ein Monitor, der davor aus der Vorlage erstellt wurde, liest, wie stark `container.restarts` innerhalb jeder Minute gewachsen ist, und übersieht so etwa die Hälfte der Neustarts einer Schleife: Löschen Sie ihn und erstellen Sie die Vorlage erneut.
 
 > [!CAUTION]
 > `container.uptime` gibt es nur für laufende Container. Ein Container, der stoppt und gestoppt bleibt, sendet keine Daten; **Container Restarted (Low Uptime)** erkennt daher Neustarts und erneute Deployments, kein dauerhaftes Herunterfahren. Ein Container, der weniger als zwei Minuten laufen soll, bleibt sein ganzes Leben lang im Warnzustand. Für einen Dienst, der laufen muss, überwachen Sie zusätzlich, was er bereitstellt – zum Beispiel mit einer [API-Überwachung](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ Der Agent verwendet den OpenTelemetry-Receiver `docker_stats` am Docker-Socket, 
 | --- | --- |
 | `container.uptime` | Sekunden seit dem Start des Containers. Nur laufende Container melden sie. |
 | `container.restarts` | Wie oft der Container seit seiner Erstellung neu gestartet wurde. Ein Zähler über die gesamte Lebensdauer. |
+| `container.restarts.increase` | Neustarts seit dem vorigen Messwert des Agents für den Container, mit jedem Messwert gesendet. Ihre Summe über ein Zeitfenster sind die Neustarts darin, warnen Sie daher auf diese statt auf den Zähler über die gesamte Lebensdauer. |
 | `container.pids.count` | Tasks im Container. Der pids-Controller der cgroup zählt Threads ebenso wie Prozesse. |
 
 `container.cpu.throttling_data.throttled_periods` steht nicht in der Liste; fragen Sie sie über **Erweitert** ab.
@@ -288,8 +292,12 @@ OneUptime erkennt einen Host an `resource.host.name`, den der Agent aus `DOCKER_
 Gruppieren Sie die Abfrage nach `resource.container.name` und aggregieren Sie mit **Maximum**, wie es die Vorlage **High Container CPU Usage** tut. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/docker-host#agent-aktualisieren).
 :::
 
-:::details Die Vorlage für Neustartschleifen oder Drosselung warnt nicht mehr
-Beide messen, wie stark ein Zähler zwischen zwei Messwerten derselben Minute gewachsen ist. Wenn das `collection_interval` des Agents 60 Sekunden oder mehr beträgt, enthält jede Minute nur einen Messwert, der Zuwachs liest immer 0, und keine der beiden Vorlagen löst aus. Behalten Sie den Standard des Agents von 30 Sekunden bei.
+:::details Die Vorlage für Drosselung warnt nicht mehr
+Sie misst, wie stark `container.cpu.throttling_data.throttled_time` zwischen zwei Messwerten derselben Minute gewachsen ist. Wenn das `collection_interval` des Agents 60 Sekunden oder mehr beträgt, enthält jede Minute nur einen Messwert, der Zuwachs liest immer 0, und die Vorlage löst nie aus. Behalten Sie den Standard des Agents von 30 Sekunden bei.
+:::
+
+:::details Die Vorlage für Neustartschleifen löst nie aus oder übersieht Neustarts
+Sie liest `container.restarts.increase`, das ein älterer Agent nicht sendet: [Aktualisieren Sie den Agenten](/docs/telemetry/docker-host#agent-aktualisieren). Ein Monitor, der davor aus der Vorlage erstellt wurde, liest, wie stark `container.restarts` zwischen zwei Messwerten derselben Minute gewachsen ist, und übersieht die Neustarts zwischen den Messwerten zweier Minuten: Löschen Sie ihn und erstellen Sie die Vorlage erneut.
 :::
 
 ## Nächste Schritte
