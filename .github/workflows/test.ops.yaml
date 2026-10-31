@@ -158,6 +158,20 @@ jobs:
       - name: Warm the image the container CPU behaviour test loads a core with
         run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
       - run: bash Tests/Ops/container-agent-cpu-utilization-behaviour.sh
+      # And for container restarts: the Docker and Podman agents copy
+      # container.restarts to container.restarts.increase and turn the copy
+      # into the restarts since each container's previous sample
+      # (cumulative_to_delta), which Container Restart Loop sums. Fed seven
+      # samples of two containers, 30 seconds, five minutes and an hour
+      # apart, with a manual restart among them, the processors must send
+      # 0 / 2 / 4 / nothing / 1 / 3 and leave container.restarts as it was;
+      # then each agent's whole metrics pipeline runs against this runner's
+      # Docker daemon and a busybox container (warmed above) that exits a
+      # second after it starts, under --restart=always: the increases must
+      # add up to its count's growth, and some of its samples must have been
+      # taken while Docker was restarting it, which is what lets the agent
+      # see a container that is hardly ever running.
+      - run: bash Tests/Ops/container-agent-restarts-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a
