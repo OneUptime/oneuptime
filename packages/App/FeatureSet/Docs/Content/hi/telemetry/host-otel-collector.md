@@ -1193,9 +1193,11 @@ exporters:
 कलेक्टर वह भेजता है जो होस्ट बताता है; **होस्ट AI एजेंट** OneUptime AI को किसी घटना या अलर्ट की जाँच करते समय खुद होस्ट से पूछने देता है। यह केवल-पढ़ने वाले कमांड चलाता है — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — और सिर्फ़ आपकी अनुमति होने पर किसी नामित systemd यूनिट को फिर से शुरू करने जैसे सुधार लागू करता है। यह एक Linux कंटेनर है (इमेज `oneuptime/resource-ai-agent:release`) जिसका अपना इंस्टॉलर है, और उसे Docker (सिस्टम इंजन, rootless Docker नहीं) और Docker Compose प्लगइन चाहिए:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+हर OneUptime अपनी रिलीज़ का यह इंस्टॉलर ख़ुद देता है: सेल्फ़-होस्टेड OneUptime पर इसे `https://oneuptime.com` की जगह अपने URL से डाउनलोड करें। यह पहले `install.sh` के रूप में सहेजा जाता है, ताकि आप इसे चलाने से पहले पढ़ सकें।
 
 - **AI जाँच डिफ़ॉल्ट रूप से चालू है।** एजेंट के कनेक्ट होते ही OneUptime AI इस होस्ट की घटनाओं और अलर्ट की जाँच इसके साथ करता है, और होस्ट का **अवलोकन** एजेंट की स्थिति दिखाता है। रोकने के लिए, जहाँ एजेंट चलता है वहाँ `ONEUPTIME_AI_INVESTIGATION=false` सेट करें (AI एजेंट पेज पर **AI क्या कर सकता है** के अंतर्गत **बदलें** तरीका दिखाता है), या एजेंट हटा दें।
 - यह `HOST_NAME` के अंतर्गत रजिस्टर होता है; होस्ट का अपना होस्टनाम उपयोग करने के लिए इसे खाली छोड़ें, जिसे यह कलेक्टर `host.name` के रूप में बताता है, जब तक आप कोई दूसरा नाम सेट न करें। दोनों मेल खाने चाहिए, ताकि एजेंट उसी होस्ट की सेवा करे जिसे इस कलेक्टर ने बनाया। यह OneUptime में होस्ट के **AI एजेंट** पेज पर दिखता है।

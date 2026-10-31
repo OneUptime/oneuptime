@@ -108,6 +108,12 @@ export const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/docs",
   "/reference",
   /*
+   * The agents' install scripts and their files (FeatureSet/Install), which
+   * curl downloads into a shell: answered with the Dashboard's page at HTTP
+   * 200, an installer would save HTML as its docker-compose.yml.
+   */
+  "/install",
+  /*
    * The vendored browser libraries (Common/Server/Utils/VendorAssets.ts).
    * That mount terminates its own prefix with a 404, so this is belt and
    * braces - but a stylesheet answered with the dashboard's index page at
@@ -145,6 +151,13 @@ export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
    * friends), so no status page deep link is shadowed by this.
    */
   ...IngestRoutePrefixesToSkip,
+  /*
+   * The agents' install scripts, reserved here too for the same reason as
+   * ingest: an agent installed with an address that is not the primary
+   * host (an IP address, a cluster-internal name) downloads its files from
+   * that address, and must get them, not a status page.
+   */
+  "/install",
   /* Same reservation as the dashboard list above. */
   "/oneuptime-assets",
   "/.well-known",

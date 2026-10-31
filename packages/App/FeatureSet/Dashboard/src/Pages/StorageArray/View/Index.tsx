@@ -23,6 +23,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getStorageArrayConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -1529,6 +1530,7 @@ const StorageArrayOverview: FunctionComponent<
           lastSeenAt={storageArray.lastSeenAt}
           guide={getStorageArrayConnectionGuide(
             (storageArray.name as string | undefined) || "",
+            getConfiguredOneUptimeUrl(),
           )}
           documentationRoute={getViewRoute(
             PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION,

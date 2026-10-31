@@ -523,8 +523,9 @@ describe("the Database Agent install", () => {
   test("install.sh downloads a config that exists for every engine it accepts", () => {
     const script = read(`${AGENT_DIR}/install.sh`);
 
+    // From the OneUptime it reports to (/install/database-agent/configs/...).
     expect(script).toContain(
-      'download_agent_file "$REPO_BASE/configs/$AGENT_CONFIG.yaml" "$INSTALL_DIR/otel-collector-config.yaml"',
+      'download_agent_file "configs/$AGENT_CONFIG.yaml" "$INSTALL_DIR/otel-collector-config.yaml"',
     );
     expect(script).toContain(
       'AGENT_CONFIG="$(config_for_engine "$DATABASE_SYSTEM")"',

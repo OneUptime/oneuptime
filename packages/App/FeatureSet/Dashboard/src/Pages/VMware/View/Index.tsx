@@ -17,6 +17,7 @@ import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/
 import VMwareCollectionStatusCard from "../../../Components/VMware/VMwareCollectionStatusCard";
 import { isProbeCollected } from "../../../Components/VMware/VMwareProbeCollectionView";
 import { getVMwareVCenterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -2435,6 +2436,7 @@ const VMwareVCenterOverview: FunctionComponent<
           lastSeenAt={vcenter.lastSeenAt}
           guide={getVMwareVCenterConnectionGuide(
             (vcenter.name as string | undefined) || "",
+            getConfiguredOneUptimeUrl(),
           )}
           documentationRoute={RouteUtil.populateRouteParams(
             RouteMap[PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION] as Route,

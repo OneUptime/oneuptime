@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### 安裝並啟動代理程式
 
+每個 OneUptime 都提供其自身發行版本的代理程式安裝指令碼和檔案：下面的命令從 `https://oneuptime.com` 下載它們，因此在自行架設的 OneUptime 上請把這個位址換成你的 URL。安裝指令碼會先儲存為 `install.sh`，讓你可以在執行前先閱讀它。
+
 :::tabs
 @tab install.sh
 下載安裝指令碼並在管理節點上執行：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 指令碼會詢問你的 OneUptime URL、擷取金鑰和叢集名稱。它會安裝到 `/opt/oneuptime-docker-swarm-agent`，寫入一個只有擁有者能讀取的 `.env` 檔案（其中以節點的主機名稱作為 `DOCKER_SWARM_NODE_NAME`），並啟動全部三個容器。加上 `--no-ai-agent` 即可不安裝 AI 代理程式。
 @tab Docker Compose
-從 [DockerSwarmAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) 下載 `docker-compose.yml`、`otel-collector-config.yaml` 和 `inventory-snapshot.sh` 到管理節點上的一個新資料夾中：
+從你的 OneUptime 下載 `docker-compose.yml`、`otel-collector-config.yaml` 和 `inventory-snapshot.sh` 到管理節點上的一個新資料夾中：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ Collector 只在啟動時讀取其設定：請執行 `docker compose restart one
 若要讓代理程式隨節點啟動，並在失敗時重新啟動，請安裝它的 systemd 單元。它假設代理程式位於 `/opt/oneuptime-docker-swarm-agent`，也就是安裝指令碼放置它的位置：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 在管理節點上再次執行安裝指令碼，並用相同的 URL、金鑰和叢集名稱回答它的問題。它會下載最新的檔案、提取映像檔並重新啟動代理程式：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ swarm 的 `docker-compose.yml`（以及 `install.sh`）也會執行 **Docker Swa
 ## 疑難排解
 
 :::details 先執行診斷指令碼
-代理程式隨附一個指令碼 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh)，它會檢查整條鏈路：各個容器、清單輪詢器是否在管理節點上（`docker node ls`）、快照檔案、加到所有資料上的叢集名稱、權杖的格式、Collector 自身的指標，以及 OneUptime 是否接受擷取金鑰。最後一項檢查最重要。OneUptime 會以 `401` 拒絕錯誤的金鑰（已停用的金鑰或瀏覽器金鑰為 `422`），而 Collector 只會每個批次記錄一行 `Exporting failed`，很容易被忽略。該指令碼會要求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（無效）。請在管理節點上執行它：
+代理程式隨附一個指令碼 [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh)，它會檢查整條鏈路：各個容器、清單輪詢器是否在管理節點上（`docker node ls`）、快照檔案、加到所有資料上的叢集名稱、權杖的格式、Collector 自身的指標，以及 OneUptime 是否接受擷取金鑰。最後一項檢查最重要。OneUptime 會以 `401` 拒絕錯誤的金鑰（已停用的金鑰或瀏覽器金鑰為 `422`），而 Collector 只會每個批次記錄一行 `Exporting failed`，很容易被忽略。該指令碼會要求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（無效）。請在管理節點上執行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

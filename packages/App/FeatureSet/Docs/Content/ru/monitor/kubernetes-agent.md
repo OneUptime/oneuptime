@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 Запустите диагностический скрипт чарта. Он проверяет поды, ключ приема и путь из кластера наружу, спрашивает OneUptime, принят ли ключ, и выводит один вердикт. Он только читает и ничего не меняет:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Каждый OneUptime раздаёт этот скрипт своего релиза: на самостоятельно размещённом OneUptime используйте свой URL вместо `https://oneuptime.com`. Чтобы прочитать скрипт перед запуском, откройте его адрес в браузере.
 
 Типичная причина, особенно после переустановки, — неверный или отозванный ключ приема: OneUptime его отклоняет, и сборщик отбрасывает каждый пакет, пока его поды остаются в состоянии `Running`.
 :::

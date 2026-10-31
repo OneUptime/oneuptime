@@ -998,9 +998,11 @@ Telemetry usage is counted per day, so check the trend under **Project Settings 
 Start with the diagnostic script. It checks the pods' health, decodes and validates the ingestion key, checks that the cluster can reach OneUptime, and asks OneUptime whether it accepts your key, then prints one verdict naming the most likely cause:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Every OneUptime serves this script for its own release: on a self-hosted OneUptime, use your URL instead of `https://oneuptime.com`. To read the script before you run it, open its address in a browser.
 
 It only reads the cluster's state and runs a couple of probes; it changes nothing. For the most accurate egress test, install with `--set debug.enabled=true` first: this adds a small network-tools sidecar to the agent's pods, so the script tests the collector's own path out.
 

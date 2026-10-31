@@ -42,8 +42,9 @@ const UNIT_FILE = "systemd/oneuptime-vmware-agent-native.service";
 const SERVICE = "oneuptime-vmware-agent";
 const INSTALL_DIR = "/opt/oneuptime-vmware-agent";
 const UNIT_DIR = "/etc/systemd/system";
-const RAW_URL =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent";
+// Where the docs download the agent's own files: OneUptime, which serves the
+// files of its own release at /install/vmware-agent.
+const SERVED_URL = "https://oneuptime.com/install/vmware-agent";
 const RELEASES_URL =
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download";
 
@@ -281,8 +282,8 @@ printf '%s\\n' "$url" >> "$STUB_DIR/curl.log"
 case "$url" in
   ${RELEASES_URL}/v*/*)
     src="$RELEASE_DIR/\${url##*/}" ;;
-  ${RAW_URL}/*)
-    src="${AGENT_DIR}/\${url#${RAW_URL}/}" ;;
+  ${SERVED_URL}/*)
+    src="${AGENT_DIR}/\${url#${SERVED_URL}/}" ;;
   *)
     exit 22 ;;
 esac
@@ -345,9 +346,7 @@ describe("the docs' install without Docker", () => {
     expect(WITHOUT_DOCKER).toHaveLength(4);
     // The reader's user and password went in, the way the docs say.
     expect(ENV).toContain('VCENTER_USERNAME="VSPHERE\\\\oneuptime"');
-    expect(ENV).toContain(
-      'VCENTER_PASSWORD="Sp3c$ial #pass \\"q\\" \\\\ end"',
-    );
+    expect(ENV).toContain('VCENTER_PASSWORD="Sp3c$ial #pass \\"q\\" \\\\ end"');
     expect(INSTALL.split("\n")[0]).toBe('cd "$(mktemp -d)"');
     expect(ENV_CONTENT.split("\n")[0]).toBe("ONEUPTIME_URL=YOUR_ONEUPTIME_URL");
     expect(START).toBe(
@@ -366,8 +365,8 @@ describe("the docs' install without Docker", () => {
       install(env);
       expect(env.log("curl")).toEqual([
         `${RELEASES_URL}/v${PIN}/otelcol-contrib_${PIN}_linux_${release}.tar.gz`,
-        `${RAW_URL}/otel-collector-config.yaml`,
-        `${RAW_URL}/${UNIT_FILE}`,
+        `${SERVED_URL}/otel-collector-config.yaml`,
+        `${SERVED_URL}/${UNIT_FILE}`,
       ]);
       expect(
         spawnSync(env.installed("otelcol-contrib"), [], {
@@ -383,9 +382,9 @@ describe("the docs' install without Docker", () => {
 
     expect(mode(path.join(env.root, INSTALL_DIR))).toBe("755");
     expect(mode(env.installed("otelcol-contrib"))).toBe("755");
-    expect(fs.readFileSync(env.installed("otel-collector-config.yaml"), "utf8")).toBe(
-      agentFile("otel-collector-config.yaml"),
-    );
+    expect(
+      fs.readFileSync(env.installed("otel-collector-config.yaml"), "utf8"),
+    ).toBe(agentFile("otel-collector-config.yaml"));
     expect(mode(env.installed("otel-collector-config.yaml"))).toBe("644");
     expect(fs.readFileSync(env.unit(), "utf8")).toBe(agentFile(UNIT_FILE));
     expect(mode(env.unit())).toBe("644");
@@ -450,7 +449,10 @@ describe("the docs' install without Docker", () => {
     const env = setup();
     install(env);
     // A config edit, a stale unit and a new build of the pinned release.
-    fs.appendFileSync(env.installed("otel-collector-config.yaml"), "# edited\n");
+    fs.appendFileSync(
+      env.installed("otel-collector-config.yaml"),
+      "# edited\n",
+    );
     fs.writeFileSync(env.unit(), "[Unit]\nDescription=stale\n");
     writeRelease(env.releases, "amd64", "amd64-2");
     fs.rmSync(path.join(env.stubs, "systemctl.log"));
@@ -461,9 +463,9 @@ describe("the docs' install without Docker", () => {
       spawnSync(env.installed("otelcol-contrib"), [], { encoding: "utf8" })
         .stdout,
     ).toBe("fake otelcol-contrib amd64-2\n");
-    expect(fs.readFileSync(env.installed("otel-collector-config.yaml"), "utf8")).toBe(
-      agentFile("otel-collector-config.yaml"),
-    );
+    expect(
+      fs.readFileSync(env.installed("otel-collector-config.yaml"), "utf8"),
+    ).toBe(agentFile("otel-collector-config.yaml"));
     expect(fs.readFileSync(env.unit(), "utf8")).toBe(agentFile(UNIT_FILE));
     expect(fs.readFileSync(env.installed(".env"), "utf8")).toBe(`${ENV}\n`);
     expect(mode(env.installed(".env"))).toBe("600");
@@ -520,12 +522,8 @@ describe(`agents/VMwareAgent/${UNIT_FILE}`, () => {
       ),
     );
     expect(values("EnvironmentFile")).toEqual([`${INSTALL_DIR}/.env`]);
-    expect(INSTALL).toContain(
-      `-C ${INSTALL_DIR} otelcol-contrib`,
-    );
-    expect(INSTALL).toContain(
-      `${INSTALL_DIR}/otel-collector-config.yaml`,
-    );
+    expect(INSTALL).toContain(`-C ${INSTALL_DIR} otelcol-contrib`);
+    expect(INSTALL).toContain(`${INSTALL_DIR}/otel-collector-config.yaml`);
     expect(INSTALL).toContain(`${UNIT_DIR}/${SERVICE}.service`);
   });
 
@@ -648,9 +646,7 @@ describe("troubleshoot.sh on an install without Docker", () => {
     expect(result.stdout).toContain(
       `runs without Docker, as the systemd service ${SERVICE} — this script checks Docker installs only.`,
     );
-    expect(result.stdout).toContain(
-      `systemctl status ${SERVICE} --no-pager`,
-    );
+    expect(result.stdout).toContain(`systemctl status ${SERVICE} --no-pager`);
     expect(result.stdout).toContain(
       `sudo journalctl -u ${SERVICE} -n 100 --no-pager`,
     );

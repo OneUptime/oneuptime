@@ -233,7 +233,7 @@ docker compose down
 
 ## AI 代理程式
 
-上面的指令和 Compose 檔案、Docker 代理程式的 `install.sh`，以及其 [DockerAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) 中的 `docker-compose.yml`，都會執行 **Docker AI 代理程式**：第二個容器 `oneuptime-docker-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`），它會在 OneUptime AI 調查此主機上的事件或警示時，執行 OneUptime AI 要求的唯讀 `docker` 指令——`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`、`docker stats --no-stream`——而且只有在你允許時才會套用修正，例如重新啟動指定的容器。它會讀取與 Collector 相同的 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `DOCKER_HOST_NAME`，因此它服務的正是這台主機，並會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。
+上面的指令和 Compose 檔案、Docker 代理程式的 [`install.sh`](https://oneuptime.com/install/docker-agent)，以及其 [`docker-compose.yml`](https://oneuptime.com/install/docker-agent/docker-compose.yml)，都會執行 **Docker AI 代理程式**：第二個容器 `oneuptime-docker-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`），它會在 OneUptime AI 調查此主機上的事件或警示時，執行 OneUptime AI 要求的唯讀 `docker` 指令——`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`、`docker stats --no-stream`——而且只有在你允許時才會套用修正，例如重新啟動指定的容器。它會讀取與 Collector 相同的 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `DOCKER_HOST_NAME`，因此它服務的正是這台主機，並會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。
 
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該主機上的事件和警示，主機的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不安裝代理程式。
 - 除非你以 `ONEUPTIME_AI_ALLOW_WRITES=true` 啟動它，否則它是唯讀的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `web-*,api-*`）會限制修正可以觸及哪些容器。啟動時也要帶上 `ONEUPTIME_AI_FIXES`，以指定修正的執行方式——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。

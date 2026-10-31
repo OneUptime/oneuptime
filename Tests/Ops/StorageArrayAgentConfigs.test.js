@@ -479,8 +479,10 @@ describe("agents/StorageArrayAgent/install.sh", () => {
   });
 
   test("downloads the compose file and every config from this directory", () => {
+    // From the OneUptime the agent reports to, or this folder on GitHub for an older one.
+    expect(script).toContain('AGENT_FILES_PATH="install/storage-array-agent"');
     expect(script).toContain(
-      'REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent"',
+      'AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent"',
     );
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();
@@ -548,7 +550,9 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     const starts = script.split("\n").filter((line) => {
       return /^\s*(if ! )?docker compose up\b/.test(line);
     });
-    expect(starts).toEqual(["if ! docker compose up -d --force-recreate; then"]);
+    expect(starts).toEqual([
+      "if ! docker compose up -d --force-recreate; then",
+    ]);
   });
 
   test("installs where the systemd unit and the doctor script look", () => {

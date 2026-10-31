@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 Führen Sie das Diagnoseskript des Charts aus. Es prüft die Pods, den Ingestion-Schlüssel und den Weg aus dem Cluster heraus, fragt OneUptime, ob der Schlüssel akzeptiert wird, und gibt ein einziges Urteil aus. Es liest nur und ändert nichts:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Jede OneUptime-Instanz stellt dieses Skript für ihr eigenes Release bereit: Verwenden Sie bei einer selbst gehosteten Instanz Ihre URL statt `https://oneuptime.com`. Um das Skript vor dem Ausführen zu lesen, öffnen Sie seine Adresse in einem Browser.
 
 Die übliche Ursache, besonders nach einer Neuinstallation, ist ein falscher oder widerrufener Ingestion-Schlüssel: OneUptime lehnt ihn ab, und der Collector verwirft jeden Stapel, während seine Pods `Running` bleiben.
 :::

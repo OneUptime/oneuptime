@@ -1193,9 +1193,11 @@ Detrás de un proxy, el colector usa las variables estándar `HTTPS_PROXY`, `HTT
 El colector envía lo que informa un host; el **Agente de IA de host** permite que OneUptime AI pregunte al propio host mientras investiga un incidente o una alerta allí. Ejecuta comandos de solo lectura — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — y, solo si lo permites, aplica correcciones como reiniciar una unidad de systemd concreta. Es un contenedor Linux (imagen `oneuptime/resource-ai-agent:release`) con su propio instalador, que necesita Docker (el motor del sistema, no Docker rootless) y el plugin Docker Compose:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+Cada instancia de OneUptime sirve este instalador para su propia versión: en una instancia autoalojada, descárgalo de tu URL en lugar de `https://oneuptime.com`. Se guarda primero como `install.sh`, para que puedas leerlo antes de ejecutarlo.
 
 - **Las investigaciones con IA están activadas por defecto.** En cuanto el agente se conecta, OneUptime AI investiga con él los incidentes y alertas de este host, y la **Vista general** del host muestra el estado del agente. Para detenerlo, establece `ONEUPTIME_AI_INVESTIGATION=false` donde se ejecuta el agente (**Cambiar** en **Lo que puede hacer la IA**, en la página del agente de IA, muestra cómo), o quita el agente.
 - Se registra con `HOST_NAME`; déjalo vacío para usar el nombre de host propio del host, que es lo que este colector informa como `host.name` salvo que establezcas otro nombre. Ambos deben coincidir para que el agente atienda al host que creó este colector. Aparece en la página **Agente de IA** del host en OneUptime.

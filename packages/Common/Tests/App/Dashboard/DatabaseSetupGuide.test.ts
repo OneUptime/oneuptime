@@ -10,7 +10,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
 import {
   DATABASE_AGENT_INSTALL_DIRECTORY,
-  DATABASE_AGENT_RAW_URL,
+  DATABASE_AGENT_INSTALL_NAME,
   DATABASE_AGENT_SYSTEM_OPTIONS,
   DEFAULT_DATABASE_AGENT_SYSTEM,
   DatabaseDocumentationTarget,
@@ -44,6 +44,12 @@ import {
   getCollectorReceiverComponentName,
   getDatabaseSystemDisplayName,
 } from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  InstallScriptEntry,
+  InstallScriptName,
+  getInstallScriptEntry,
+} from "../../../Types/InstallScripts/InstallScripts";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * The Database Agent guide as the Documentation card lays it out: an
@@ -66,6 +72,12 @@ const AGENT_DIR: string = path.join(REPO_ROOT, "agents", "DatabaseAgent");
 
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "ingest-key-123";
+
+/*
+ * Where this OneUptime serves the agent's install script and files, for its
+ * own release: never GitHub.
+ */
+const SERVED: string = `${URL}/install/database-agent`;
 const DATABASE_ID: string = "3c1e9a52-1f2b-4c3d-9e8f-0a1b2c3d4e5f";
 const HEALTH_URL: string = "/dashboard/p1/monitors/create?monitorType=Database";
 const RECOMMENDATIONS_URL: string = `/dashboard/p1/databases/${DATABASE_ID}/recommendations`;
@@ -464,8 +476,10 @@ describe.each(SYSTEMS)("the %s guide on the product page", (system: string) => {
 
   test("the install script gets the URL, the key and the engine up front", () => {
     const script: string = variantOf(guide, "Install script");
+    expect(script).toContain(`curl -fsSL ${SERVED} -o install.sh\n`);
+    // It is a file first, to read before it runs.
     expect(script).toContain(
-      `curl -sSL ${DATABASE_AGENT_RAW_URL}/install.sh -o install.sh\n`,
+      "The first line downloads the script as `install.sh`, so you can read it before you run it.",
     );
     expect(installCommandOf(script)).toBe(
       `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} DATABASE_SYSTEM=${system} bash install.sh`,
@@ -479,11 +493,13 @@ describe.each(SYSTEMS)("the %s guide on the product page", (system: string) => {
   test("Docker Compose downloads the engine's config and writes the .env with the URL and key", () => {
     const compose: string = variantOf(guide, "Docker Compose");
     expect(compose).toContain(
-      `curl -fsSL ${DATABASE_AGENT_RAW_URL}/docker-compose.yml -o docker-compose.yml`,
+      `curl -fsSL ${SERVED}/docker-compose.yml -o docker-compose.yml`,
     );
     expect(compose).toContain(
-      `curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${engine}.yaml -o otel-collector-config.yaml`,
+      `curl -fsSL ${SERVED}/configs/${engine}.yaml -o otel-collector-config.yaml`,
     );
+    expect(compose).toContain("from this OneUptime into one folder:");
+    expect(compose).not.toContain("github.com/OneUptime");
     expect(envBlockOf(compose)).toBe(
       getDatabaseAgentEnvFile({
         oneuptimeUrl: URL,
@@ -648,7 +664,7 @@ describe.each(SYSTEMS)("the %s guide on the product page", (system: string) => {
       stepTitled(guide, "Verify the installation").markdown || "";
     expect(verify).toContain("the database appears under **Databases**");
     expect(verify).toContain(
-      `curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh\nbash troubleshoot.sh    # add -d <dir> if you installed outside ${DATABASE_AGENT_INSTALL_DIRECTORY}`,
+      `curl -fsSL ${SERVED}/troubleshoot.sh -o troubleshoot.sh\nbash troubleshoot.sh    # add -d <dir> if you installed outside ${DATABASE_AGENT_INSTALL_DIRECTORY}`,
     );
   });
 
@@ -1210,7 +1226,7 @@ describe("a Kubernetes database's guide", () => {
   test("the Deployment is prefilled for the row's namespace, engine and id", () => {
     const kubernetes: string = variantOf(guide, "Kubernetes");
     expect(kubernetes).toContain(
-      `curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/redis.yaml -o config.yaml`,
+      `curl -fsSL ${SERVED}/configs/redis.yaml -o config.yaml`,
     );
     expect(kubernetes).toContain(
       "kubectl -n cache create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml",
@@ -1452,7 +1468,11 @@ describe("the agent's own files back what the guide says", () => {
     expect(troubleshoot).toMatch(/-d\|--dir\)\s+DIR=/);
   });
 
-  test("every agent file a guide downloads exists", () => {
+  test("every agent file a guide downloads is one this OneUptime serves, and exists", () => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      InstallScriptName.DatabaseAgent,
+    );
+    expect(DATABASE_AGENT_INSTALL_NAME).toBe(InstallScriptName.DatabaseAgent);
     const urls: Set<string> = new Set<string>();
     for (const system of SYSTEMS) {
       for (const guide of [
@@ -1466,10 +1486,12 @@ describe("the agent's own files back what the guide says", () => {
         }),
       ]) {
         for (const block of getSetupGuideCodeBlocks(guide)) {
+          expect(block).not.toContain("githubusercontent");
           for (const match of block.matchAll(
-            new RegExp(`${DATABASE_AGENT_RAW_URL}/(\\S+)`, "g"),
+            new RegExp(`${escapeRegExp(SERVED)}(?:/(\\S+))?`, "g"),
           )) {
-            urls.add(match[1]!);
+            // The address alone is the install script.
+            urls.add(match[1] || "install.sh");
           }
         }
       }
@@ -1485,6 +1507,7 @@ describe("the agent's own files back what the guide says", () => {
       ].sort(),
     );
     for (const file of urls) {
+      expect(entry?.files).toContain(file);
       expect({
         file,
         exists: fs.existsSync(path.join(AGENT_DIR, file)),

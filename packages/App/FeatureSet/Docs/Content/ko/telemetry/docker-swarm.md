@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### 에이전트 설치 및 시작
 
+각 OneUptime은 자기 릴리스의 에이전트 설치 스크립트와 파일을 제공합니다. 아래 명령은 `https://oneuptime.com`에서 내려받으므로, 자체 호스팅 OneUptime에서는 이 주소를 사용자의 URL로 바꾸세요. 설치 스크립트는 먼저 `install.sh`로 저장되므로, 실행하기 전에 읽어 볼 수 있습니다.
+
 :::tabs
 @tab install.sh
 설치 스크립트를 내려받아 매니저 노드에서 실행하세요:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 스크립트는 OneUptime URL, 수집 키, 클러스터 이름을 묻습니다. `/opt/oneuptime-docker-swarm-agent`에 설치하고, 소유자만 읽을 수 있는 `.env` 파일을 쓰면서 노드의 호스트 이름을 `DOCKER_SWARM_NODE_NAME`으로 넣고, 컨테이너 세 개를 모두 시작합니다. AI 에이전트를 빼려면 `--no-ai-agent`를 추가하세요.
 @tab Docker Compose
-[DockerSwarmAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent)에서 `docker-compose.yml`, `otel-collector-config.yaml`, `inventory-snapshot.sh`를 매니저 노드의 새 폴더로 내려받으세요:
+사용 중인 OneUptime에서 `docker-compose.yml`, `otel-collector-config.yaml`, `inventory-snapshot.sh`를 매니저 노드의 새 폴더로 내려받으세요:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ Collector는 시작할 때만 구성을 읽습니다. `docker compose restart on
 노드와 함께 에이전트를 시작하고 실패하면 다시 시작하려면 systemd 유닛을 설치하세요. 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-docker-swarm-agent`에 에이전트가 있다고 가정합니다:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 매니저 노드에서 설치 스크립트를 다시 실행하고, 같은 URL, 키, 클러스터 이름으로 질문에 답하세요. 최신 파일을 내려받고, 이미지를 가져오고, 에이전트를 다시 시작합니다:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ Swarm의 `docker-compose.yml`(과 `install.sh`)은 **Docker Swarm AI 에이전�
 ## 문제 해결
 
 :::details 먼저 진단 스크립트 실행
-에이전트에는 전체 체인을 확인하는 스크립트 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh)가 함께 제공됩니다. 컨테이너, 인벤토리 폴러가 매니저에 있는지(`docker node ls`), 스냅샷 파일, 모든 것에 붙은 클러스터 이름, 토큰 형식, Collector 자체 메트릭, 그리고 OneUptime이 수집 키를 받아들이는지를 확인합니다. 마지막 확인이 가장 중요합니다. OneUptime은 잘못된 키를 `401`로 거부하며(비활성화된 키나 브라우저 키는 `422`), Collector는 이를 배치마다 `Exporting failed` 한 줄로 기록할 뿐이어서 놓치기 쉽습니다. 스크립트는 `GET <url>/otlp/v1/validate`를 요청해 `200`(유효) 또는 `401`(무효)을 직접 받습니다. 매니저 노드에서 실행하세요:
+에이전트에는 전체 체인을 확인하는 스크립트 [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh)가 함께 제공됩니다. 컨테이너, 인벤토리 폴러가 매니저에 있는지(`docker node ls`), 스냅샷 파일, 모든 것에 붙은 클러스터 이름, 토큰 형식, Collector 자체 메트릭, 그리고 OneUptime이 수집 키를 받아들이는지를 확인합니다. 마지막 확인이 가장 중요합니다. OneUptime은 잘못된 키를 `401`로 거부하며(비활성화된 키나 브라우저 키는 `422`), Collector는 이를 배치마다 `Exporting failed` 한 줄로 기록할 뿐이어서 놓치기 쉽습니다. 스크립트는 `GET <url>/otlp/v1/validate`를 요청해 `200`(유효) 또는 `401`(무효)을 직접 받습니다. 매니저 노드에서 실행하세요:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

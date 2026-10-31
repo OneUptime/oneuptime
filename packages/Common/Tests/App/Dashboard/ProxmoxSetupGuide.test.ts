@@ -8,8 +8,7 @@ import {
   PROXMOX_AGENT_COLLECTOR_CONFIG,
   PROXMOX_AGENT_CONTAINER,
   PROXMOX_AGENT_INSTALL_DIR,
-  PROXMOX_AGENT_RAW_URL,
-  PROXMOX_AGENT_SOURCE_URL,
+  PROXMOX_AGENT_INSTALL_NAME,
   PROXMOX_AI_AGENT_CONTAINER,
   PROXMOX_CONNECT_METHODS,
   PROXMOX_EXAMPLE_CLUSTER_NAME,
@@ -46,6 +45,12 @@ import {
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import {
+  InstallScriptEntry,
+  InstallScriptName,
+  getInstallScriptEntry,
+} from "../../../Types/InstallScripts/InstallScripts";
 
 /*
  * The Proxmox guide asks how to connect the cluster — the agent through the
@@ -78,6 +83,16 @@ const DOCS_DIR: string = path.join(
 
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "tik_secret_123";
+
+/*
+ * Where this OneUptime serves the agent's install script and files, for its
+ * own release: never GitHub.
+ */
+const SERVED: string = `${URL}/install/proxmox-agent`;
+
+// An address of this OneUptime's Proxmox agent files: the script, or one file.
+const SERVED_FILE_PATTERN: RegExp =
+  /https:\/\/oneuptime\.example\.com\/install\/proxmox-agent(?:\/([A-Za-z0-9._/-]+))?/g;
 
 // What ObjectID.generate() mints: the E2E spec greps the page for one.
 const UUID_KEY: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -173,13 +188,14 @@ const topicTitles: (
   });
 };
 
-// Everything a step shows: its description, its markdown and every tab.
+// Everything a step shows: its description, its markdown, every tab and its details.
 const stepText: (step: SetupGuideStep) => string = (
   step: SetupGuideStep,
 ): string => {
   return [
     step.description || "",
     step.markdown || "",
+    step.details || "",
     ...(step.variants || []).map((variant: SetupGuideStepVariant): string => {
       return variant.markdown;
     }),
@@ -192,10 +208,12 @@ const stepsText: (guide: SetupGuideContent) => string = (
   return guide.steps.map(stepText).join("\n");
 };
 
+// The install step's text: its command, then what follows the note under it.
 const installStep: (guide: SetupGuideContent) => string = (
   guide: SetupGuideContent,
 ): string => {
-  return stepTitled(guide, "Install the agent").markdown || "";
+  const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+  return [step.markdown || "", step.details || ""].join("\n\n");
 };
 
 const variantTitled: (
@@ -526,7 +544,7 @@ describe.each(AGENT_METHODS)(
         "Run the diagnostic script first",
       ).markdown;
       expect(script).toContain(
-        `curl -sSL ${PROXMOX_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh`,
+        `curl -fsSL ${SERVED}/troubleshoot.sh -o troubleshoot.sh`,
       );
       if (method === "install-script") {
         expect(script).toContain("\nbash troubleshoot.sh\n");
@@ -586,7 +604,7 @@ describe.each(AGENT_METHODS)(
 
       if (method === "install-script") {
         expect(upgrade).toContain(
-          codeBlock("bash", getProxmoxAgentUpgradeCommand()),
+          codeBlock("bash", getProxmoxAgentUpgradeCommand(URL)),
         );
         expect(upgrade).toContain("Run the install script again.");
         expect(upgrade).toContain(
@@ -601,7 +619,7 @@ describe.each(AGENT_METHODS)(
         return;
       }
 
-      const download: string = getProxmoxAgentDownloadCommand();
+      const download: string = getProxmoxAgentDownloadCommand(URL);
       expect(upgrade).toContain(codeBlock("bash", download));
       expect(upgrade).toContain(
         codeBlock("bash", PROXMOX_AGENT_RECREATE_COMMAND),
@@ -611,8 +629,8 @@ describe.each(AGENT_METHODS)(
       );
       expect(download).toBe(
         [
-          `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
-          `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+          `curl -fsSLO ${SERVED}/docker-compose.yml`,
+          `curl -fsSLO ${SERVED}/otel-collector-config.yaml`,
         ].join("\n"),
       );
       expect(PROXMOX_AGENT_RECREATE_COMMAND).toBe(
@@ -725,7 +743,7 @@ describe("the install script", () => {
       }),
     ).toBe(
       [
-        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh",
+        `curl -fsSL ${SERVED} -o install.sh`,
         `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} bash install.sh`,
       ].join("\n"),
     );
@@ -770,7 +788,7 @@ describe("the install script", () => {
       apiKey: KEY,
       hasApiKey: true,
     });
-    expect(command).not.toContain("ONEUPTIME_URL");
+    expect(command).not.toContain("ONEUPTIME_URL=");
     expect(command).toContain(`ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`);
   });
 
@@ -816,13 +834,78 @@ describe("the install script", () => {
   });
 
   test("the upgrade runs the script with nothing in its environment, which would override the .env", () => {
-    expect(getProxmoxAgentUpgradeCommand()).toBe(
-      [
-        `curl -sSL ${PROXMOX_AGENT_RAW_URL}/install.sh -o install.sh`,
-        "bash install.sh",
-      ].join("\n"),
+    expect(getProxmoxAgentUpgradeCommand(URL)).toBe(
+      [`curl -fsSL ${SERVED} -o install.sh`, "bash install.sh"].join("\n"),
     );
-    expect(getProxmoxAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
+    expect(getProxmoxAgentUpgradeCommand(URL)).not.toContain("ONEUPTIME_");
+  });
+
+  test("the script comes from the reader's own OneUptime, which serves it for its release", () => {
+    for (const oneuptimeUrl of [
+      "https://oneuptime.com",
+      "https://oneuptime.acme.internal:8443",
+      "http://10.0.0.5",
+      "https://tools.acme.com/oneuptime/",
+    ]) {
+      const command: string = getProxmoxInstallScriptCommand({
+        oneuptimeUrl: oneuptimeUrl,
+        apiKey: KEY,
+        hasApiKey: true,
+      });
+      const base: string = oneuptimeUrl.replace(/\/+$/, "");
+
+      expect(command.split("\n")[0]).toBe(
+        `curl -fsSL ${base}/install/proxmox-agent -o install.sh`,
+      );
+      // The agent reports to the OneUptime the script came from.
+      expect(command).toContain(`ONEUPTIME_URL=${oneuptimeUrl} `);
+      expect(command).not.toContain("githubusercontent");
+    }
+    expect(PROXMOX_AGENT_INSTALL_NAME).toBe(InstallScriptName.ProxmoxAgent);
+  });
+
+  /*
+   * The note is about the command's first line, so it sits right under the
+   * command - the step's markdown is the command alone - and what the
+   * script asks for comes after it, as the step's details.
+   */
+  test("the read-first note sits right under the command, before what the script asks for", () => {
+    for (const hasKey of [true, false]) {
+      const guide: SetupGuideContent = hasKey
+        ? guideFor("install-script")
+        : noKeyGuideFor("install-script");
+      const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+
+      expect(step.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+      expect(step.markdown).toBe(
+        codeBlock(
+          "bash",
+          getProxmoxInstallScriptCommand({
+            oneuptimeUrl: URL,
+            apiKey: hasKey ? KEY : SETUP_GUIDE_API_KEY_PLACEHOLDER,
+            hasApiKey: hasKey,
+          }),
+        ),
+      );
+      expect(step.details).toBeTruthy();
+      expect(step.details).not.toContain("```");
+      expect(getSetupGuideMarkdown(guide)).toContain(
+        `${step.markdown}\n\n${INSTALL_SCRIPT_READ_FIRST_NOTE}\n\n${step.details!.trim()}`,
+      );
+      // What the script asks for comes first under the note.
+      expect(step.details).toMatch(
+        hasKey
+          ? /^The command already carries your OneUptime URL/
+          : /^The script asks for your OneUptime URL and ingestion key/,
+      );
+    }
+    expect(
+      guideFor("docker-compose").steps.some(
+        (candidate: SetupGuideStep): boolean => {
+          return candidate.note === INSTALL_SCRIPT_READ_FIRST_NOTE;
+        },
+      ),
+    ).toBe(false);
   });
 
   test("uses your own exporter by answering the script's question", () => {
@@ -855,10 +938,10 @@ describe("the Docker Compose install", () => {
 
   test("downloads the two files, writes .env, then starts the agent", () => {
     const download: number = install.indexOf(
-      `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
+      `curl -fsSLO ${SERVED}/docker-compose.yml`,
     );
     const config: number = install.indexOf(
-      `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+      `curl -fsSLO ${SERVED}/otel-collector-config.yaml`,
     );
     const env: number = install.indexOf("ONEUPTIME_URL=");
     const start: number = install.indexOf("docker compose up -d");
@@ -867,8 +950,9 @@ describe("the Docker Compose install", () => {
     expect(env).toBeGreaterThan(config);
     expect(start).toBeGreaterThan(env);
     expect(install).toContain(
-      `[ProxmoxAgent directory](${PROXMOX_AGENT_SOURCE_URL})`,
+      "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:",
     );
+    expect(install).not.toContain("github.com");
     expect(install).toContain("`chmod 600 .env`");
   });
 
@@ -1480,22 +1564,25 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     expect(script).toContain(
       `INSTALL_DIR="\${INSTALL_DIR:-${PROXMOX_AGENT_INSTALL_DIR}}"`,
     );
-    expect(script).toContain(`REPO_BASE="${PROXMOX_AGENT_RAW_URL}"`);
+    // Its files come from the OneUptime it reports to.
+    expect(script).toContain('AGENT_FILES_PATH="install/proxmox-agent"');
     expect(script).toContain("Run the bundled prometheus-pve-exporter? [Y/n]");
     expect(script).toContain('PVE_EXPORTER_URL="pve-exporter:9221"');
     expect(script).toContain("Proxmox VE API host");
     expect(script).toContain("Also let it apply fixes");
   });
 
-  test("every file the guide downloads exists in the agent's directory", () => {
+  test("every file the guide downloads is one this OneUptime serves from the agent's directory", () => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      InstallScriptName.ProxmoxAgent,
+    );
     const files: Set<string> = new Set();
     for (const method of METHOD_KEYS) {
       const markdown: string = getSetupGuideMarkdown(guideFor(method));
-      for (const match of markdown.matchAll(
-        /https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/master\/agents\/([A-Za-z]+)\/([A-Za-z0-9._-]+)/g,
-      )) {
-        expect(match[1]).toBe("ProxmoxAgent");
-        files.add(match[2]!);
+      expect(markdown).not.toContain("githubusercontent");
+      for (const match of markdown.matchAll(SERVED_FILE_PATTERN)) {
+        // The address alone is the install script.
+        files.add(match[1] || "install.sh");
       }
     }
     expect(Array.from(files).sort()).toEqual([
@@ -1505,6 +1592,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
       "troubleshoot.sh",
     ]);
     for (const file of files) {
+      expect(entry?.files).toContain(file);
       expect(fs.existsSync(path.join(AGENT_DIR, file))).toBe(true);
     }
   });

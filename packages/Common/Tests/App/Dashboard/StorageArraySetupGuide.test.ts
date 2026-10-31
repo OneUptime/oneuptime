@@ -7,9 +7,8 @@ import {
   STORAGE_ARRAY_AGENT_CONTAINER,
   STORAGE_ARRAY_AGENT_FILES,
   STORAGE_ARRAY_AGENT_INSTALL_DIR,
-  STORAGE_ARRAY_AGENT_RAW_URL,
+  STORAGE_ARRAY_AGENT_INSTALL_NAME,
   STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
-  STORAGE_ARRAY_AGENT_SOURCE_URL,
   STORAGE_ARRAY_AGENT_SYSTEMD_UNIT,
   STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE,
   STORAGE_ARRAY_COLLECTOR_CONFIGS,
@@ -65,6 +64,12 @@ const AGENT_DIR: string = path.join(REPO_ROOT, "agents", "StorageArrayAgent");
 
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "tik_secret_123";
+
+/*
+ * Where this OneUptime serves the agent's install script and files, for its
+ * own release: never GitHub.
+ */
+const SERVED: string = `${URL}/install/storage-array-agent`;
 
 const PLATFORMS: Array<StorageArrayPlatform> = STORAGE_ARRAY_PLATFORMS.map(
   (option: SetupGuideOption<StorageArrayPlatform>): StorageArrayPlatform => {
@@ -527,7 +532,7 @@ describe("the install script", () => {
         platform: platform,
       });
       expect(command.split("\n")).toEqual([
-        `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh`,
+        `curl -fsSL ${SERVED} -o install.sh`,
         `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} STORAGE_ARRAY_COLLECTOR_CONFIG=${STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile} bash install.sh`,
       ]);
     },
@@ -617,6 +622,28 @@ describe("the install script", () => {
     expect(variant).not.toContain("**OneUptime URL** and **ingestion key**");
   });
 
+  /*
+   * That the first line only downloads the script is about the command, so
+   * it is the sentence right under it, before what the script asks for.
+   */
+  test("says right under the command that the script can be read before it runs", () => {
+    for (const guide of [
+      guideFor("flasharray"),
+      noKeyGuideFor("flasharray"),
+      guideFor("flashblade"),
+    ]) {
+      const variant: string = variantOf(guide, "Install script").markdown;
+
+      expect(variant).toContain(
+        "```\n\nThe first line downloads the script as `install.sh`, so you can read it before you run it.\n\n",
+      );
+      expect(
+        variant.split("The first line downloads the script")[0]!.split("```")
+          .length,
+      ).toBe(3);
+    }
+  });
+
   test("says what the script asks for, where it installs, and how it runs", () => {
     const variant: string = variantOf(
       guideFor("flasharray"),
@@ -652,11 +679,13 @@ describe("the Docker Compose install", () => {
         "Docker Compose",
       ).markdown;
       for (const file of STORAGE_ARRAY_AGENT_FILES) {
-        expect(variant).toContain(
-          `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`,
-        );
+        expect(variant).toContain(`curl -fsSLO ${SERVED}/${file}`);
       }
-      expect(variant).toContain(STORAGE_ARRAY_AGENT_SOURCE_URL);
+      expect(variant).toContain(
+        "Download the compose file and the three collector configs from this OneUptime into a new folder:",
+      );
+      expect(variant).not.toContain("github.com/OneUptime");
+      expect(STORAGE_ARRAY_AGENT_INSTALL_NAME).toBe("storage-array-agent");
       expect(variant).toContain("docker compose up -d");
       expect(variant).toContain("chmod 600 .env");
     },
@@ -800,10 +829,10 @@ describe.each(PLATFORMS)(
 
     test("runs the install script again with nothing in its environment, so the .env is reused", () => {
       expect(upgrade.markdown).toContain(
-        codeBlock("bash", getStorageArrayAgentUpgradeCommand()),
+        codeBlock("bash", getStorageArrayAgentUpgradeCommand(URL)),
       );
-      expect(getStorageArrayAgentUpgradeCommand()).toBe(
-        `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
+      expect(getStorageArrayAgentUpgradeCommand(URL)).toBe(
+        `curl -fsSL ${SERVED} -o install.sh\nbash install.sh`,
       );
       expect(upgrade.markdown).toContain(
         "reuses every value in your existing `.env`",
@@ -819,7 +848,7 @@ describe.each(PLATFORMS)(
     });
 
     test("a Compose install downloads the compose file and every config again, then pulls and recreates", () => {
-      const download: string = getStorageArrayAgentDownloadCommand();
+      const download: string = getStorageArrayAgentDownloadCommand(URL);
       expect(upgrade.markdown).toContain(codeBlock("bash", download));
       expect(upgrade.markdown).toContain(
         codeBlock("bash", STORAGE_ARRAY_AGENT_RECREATE_COMMAND),
@@ -829,7 +858,7 @@ describe.each(PLATFORMS)(
       );
       expect(download.split("\n")).toEqual(
         STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
-          return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
+          return `curl -fsSLO ${SERVED}/${file}`;
         }),
       );
       expect(STORAGE_ARRAY_AGENT_RECREATE_COMMAND).toBe(
@@ -1085,12 +1114,15 @@ describe("drift guards against agents/StorageArrayAgent", () => {
 
   test("the README upgrades the agent with the guide's commands", () => {
     const readme: string = readAgentFile("README.md");
+    // The README is read on GitHub: it names OneUptime Cloud, as the docs do.
     expect(readme).toContain(
-      "```bash\n" + getStorageArrayAgentUpgradeCommand() + "\n```",
+      "```bash\n" +
+        getStorageArrayAgentUpgradeCommand("https://oneuptime.com") +
+        "\n```",
     );
     expect(readme).toContain(
       "```bash\n" +
-        getStorageArrayAgentDownloadCommand() +
+        getStorageArrayAgentDownloadCommand("https://oneuptime.com") +
         "\n" +
         STORAGE_ARRAY_AGENT_RECREATE_COMMAND +
         "\n```",
@@ -1198,7 +1230,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
         codeBlock(
           "bash",
           [
-            `sudo curl -fsSL ${STORAGE_ARRAY_AGENT_RAW_URL}/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE} -o /etc/systemd/system/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
+            `sudo curl -fsSL ${SERVED}/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE} -o /etc/systemd/system/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
             "sudo systemctl daemon-reload",
             `sudo systemctl enable --now ${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}`,
           ].join("\n"),

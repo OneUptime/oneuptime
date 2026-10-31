@@ -130,9 +130,11 @@ docker run -d \
 A Linux host that reports through the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) has no OneUptime container to sit beside, so the Host AI agent comes with its own installer (`agents/HostAIAgent`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+Every OneUptime serves this installer for its own release: on a self-hosted OneUptime, download it from your URL instead of `https://oneuptime.com`. It is saved as `install.sh` first, so you can read it before you run it.
 
 It asks for your OneUptime URL, the project's telemetry ingestion key and the host's name, writes `/opt/oneuptime-host-ai-agent/.env` and `docker-compose.yml`, and starts the container `oneuptime-host-ai-agent`. Add `--systemd` to run it under the `oneuptime-host-ai-agent` systemd unit instead. It needs Docker (the system engine, not rootless Docker) with the Compose plugin; rootful Podman can run the same container.
 

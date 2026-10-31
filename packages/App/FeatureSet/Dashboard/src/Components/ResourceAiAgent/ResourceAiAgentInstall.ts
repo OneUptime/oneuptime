@@ -24,6 +24,9 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { AgentAiSettingsChoice } from "../AiAccess/AiAccessModes";
+import { getInstallScriptDownloadCommand } from "../SetupGuide/AgentInstallCommands";
+import { SETUP_GUIDE_URL_PLACEHOLDER } from "../SetupGuide/SetupGuide";
+import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 import {
   AgentAiSettingsInstructions,
   areFixesOn,
@@ -94,6 +97,20 @@ export interface ResourceAiAgentInstall {
   composeSnippet: string;
   // The command that starts the agent once the snippet is in place.
   startCommand: string;
+  /*
+   * The agent's own installer, where it has one (the Host AI agent): the
+   * script from the reader's OneUptime, which writes both files and starts
+   * the agent. Null for an agent its collector's installer starts. Where
+   * there is one, the page offers it first, and the snippet below folded
+   * away as the way to do it by hand.
+   */
+  installerCommand: string | null;
+  /*
+   * Under the installer, whole sentences in the reader's language: what it
+   * asks for, with the answers this page knows (this OneUptime's URL, the
+   * resource's name), and what it needs. Empty without an installer.
+   */
+  installerNotes: Array<string>;
   // The variables the agent reads, the resource's own first.
   variables: Array<ResourceAiAgentInstallVariable>;
   // What the resource needs besides the snippet (a keyring, a token role).
@@ -141,6 +158,13 @@ interface InstallSpec {
    */
   connectionVariables: Array<ConnectionVariable>;
   prerequisites: Array<string>;
+  // The agent's own installer, served by every OneUptime; null when it has none.
+  installScript: InstallScriptName | null;
+  /*
+   * What the installer needs besides what it asks for, under its command:
+   * translation keys. Only for a type with an installer.
+   */
+  installerNotes?: Array<string> | undefined;
   // What ONEUPTIME_AI_WRITE_TARGETS names for this type, and an example.
   writeTargetNoun: string | null;
   writeTargetsExample: string | null;
@@ -216,6 +240,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent restart, start, stop, kill, pause and update (memory, CPU, restart policy) containers through the Docker socket — which is root on this host, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never runs exec, run, rm or prune, never changes the agent itself or the collector beside it, and with ONEUPTIME_AI_WRITE_TARGETS set only touches the containers it names.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.PodmanHost]: {
@@ -255,6 +280,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent restart, start, stop, kill, pause and update (memory, CPU, restart policy) containers through the Podman socket — for rootful Podman that is root on this host, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never runs exec, run, rm or prune, never changes the agent itself or the collector beside it, and with ONEUPTIME_AI_WRITE_TARGETS set only touches the containers it names.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.DockerSwarmCluster]: {
@@ -291,6 +317,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent force-update (restart), roll back, scale and update services and change a node's availability through a manager's Docker socket — root on that node, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never creates or removes services or stacks, never touches secrets or configs, draining a node always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the services and nodes it names.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.ProxmoxCluster]: {
@@ -369,6 +396,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent start, resume, reboot, shut down, stop, suspend and reset guests and restart node services through the Proxmox VE API — as far as its API token's role allows, which is the hard limit. OneUptime still holds the line: it never changes configuration, deletes anything, touches snapshots or /access, migrating a guest always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the guests it names.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.VMwareVCenter]: {
@@ -440,6 +468,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent power VMs on, off, reset, suspend and reboot them and take hosts out of maintenance mode — as far as its vSphere role allows, which is the hard limit. OneUptime still holds the line: it never destroys, creates, reconfigures or snapshots a VM, migrating a VM or entering maintenance mode always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the VMs and hosts it names.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.CephCluster]: {
@@ -480,6 +509,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent mark OSDs in, out and down, set and unset cluster flags, reweight OSDs, scrub and repair PGs, fail over the mgr and restart, stop and start daemons — as far as its keyring's caps allow, which are the hard limit. OneUptime still holds the line: it never purges or destroys an OSD, never deletes or reconfigures a pool, never touches auth or config-key, pausing client I/O always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the targets it names.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.DatabaseServer]: {
@@ -587,6 +617,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent cancel a running query and end one session at a time — as far as its login's grants allow, which are the hard limit. OneUptime still holds the line: it never runs free SQL, never changes a setting, schema, data, user or replication, and never ends its own session.",
     ),
+    installScript: null,
     isStandalone: false,
   },
   [AiResourceType.Host]: {
@@ -624,13 +655,14 @@ const INSTALL_SPECS: Readonly<
           "With pid: host, tini is not pid 1: this registers it as a subreaper, so it still reaps what the agent's commands leave behind.",
       },
     ],
+    // The snippet's own: the installer writes the .env itself.
     prerequisites: [
-      translationKey(
-        "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
-      ),
       translationKey(
         "Put ONEUPTIME_URL and ONEUPTIME_TELEMETRY_INGESTION_KEY (your project's telemetry ingestion key) in a .env next to the file.",
       ),
+    ],
+    // Either way the agent runs so; the snippet shows it in its own lines.
+    installerNotes: [
       translationKey(
         "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.",
       ),
@@ -643,6 +675,7 @@ const INSTALL_SPECS: Readonly<
     writeDisclosure: translationKey(
       "Write access lets the agent restart, start, reload, stop and reset systemd units, vacuum the journal and signal processes on this host — it runs privileged in the host's namespaces, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never enables, masks or edits a unit, never reboots or powers off, changes to protected units (sshd, systemd-*, dbus, networking, docker, …) and killing a process always wait for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the units it names.",
     ),
+    installScript: InstallScriptName.HostAiAgent,
     isStandalone: true,
   },
 };
@@ -835,14 +868,50 @@ export function getResourceAiAgentStatusCommand(
     : composeCommand(resourceType, `exec ${service} wget -qO- ${url}`);
 }
 
+/*
+ * The Host AI agent's installer: its install.sh from the reader's own
+ * OneUptime, which serves it for its own release, run as root. The Host
+ * guide's "Add the OneUptime AI agent" topic shows the same command.
+ */
+export function getHostAiAgentInstallCommand(oneuptimeUrl: string): string {
+  return `${getInstallScriptDownloadCommand(oneuptimeUrl, InstallScriptName.HostAiAgent)}
+sudo bash install.sh`;
+}
+
+/*
+ * What the Host AI agent's installer asks for (agents/HostAIAgent/
+ * install.sh: the URL, the key and the host's name), with the answers the
+ * page knows: this OneUptime's URL, and the name the host reports, which
+ * the agent must register with - or, when the page could not read it, the
+ * installer's own default, the hostname.
+ */
+export function getHostAiAgentInstallerAsksText(data: {
+  oneuptimeUrl: string;
+  hostName: string | null;
+}): string {
+  return data.hostName
+    ? translateTemplate(
+        "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name ({{name}}).",
+        { url: data.oneuptimeUrl, name: data.hostName },
+      )
+    : translateTemplate(
+        "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.",
+        { url: data.oneuptimeUrl },
+      );
+}
+
 export function getResourceAiAgentInstall(data: {
   resourceType: AiResourceType;
   resourceId: string;
   identity?: string | null | undefined;
+  // The OneUptime the reader uses, which the agent's installer comes from.
+  oneuptimeUrl?: string | undefined;
 }): ResourceAiAgentInstall {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
   const spec: InstallSpec = getInstallSpec(data.resourceType);
   const identity: string | null = data.identity || null;
+  // Where the installer comes from, and the URL it is answered with.
+  const oneuptimeUrl: string = data.oneuptimeUrl || SETUP_GUIDE_URL_PLACEHOLDER;
   const service: string = getResourceAiAgentServiceName(data.resourceType);
   const noun: string =
     data.resourceType === AiResourceType.DatabaseServer ||
@@ -941,6 +1010,22 @@ export function getResourceAiAgentInstall(data: {
     whereText,
     composeSnippet: getResourceAiAgentComposeSnippet(data),
     startCommand: composeCommand(data.resourceType, `up -d ${service}`),
+    installerCommand:
+      spec.installScript === InstallScriptName.HostAiAgent
+        ? getHostAiAgentInstallCommand(oneuptimeUrl)
+        : null,
+    installerNotes:
+      spec.installScript === InstallScriptName.HostAiAgent
+        ? [
+            getHostAiAgentInstallerAsksText({
+              oneuptimeUrl: oneuptimeUrl,
+              hostName: identity,
+            }),
+            ...(spec.installerNotes || []).map((note: string): string => {
+              return translateTemplate(note);
+            }),
+          ]
+        : [],
     variables: [
       {
         name: RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,

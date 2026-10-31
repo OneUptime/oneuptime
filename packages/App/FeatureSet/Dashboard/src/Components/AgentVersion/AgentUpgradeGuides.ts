@@ -62,6 +62,7 @@ import {
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import { RESOURCE_AI_AGENT_IMAGE_REPOSITORY } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { SETUP_GUIDE_URL_PLACEHOLDER } from "../SetupGuide/SetupGuide";
 
 /*
  * How to upgrade each kind of agent, as the dialog beside an outdated agent
@@ -115,6 +116,13 @@ export interface AgentUpgradeGuide {
 }
 
 export interface AgentUpgradeGuideContext {
+  /*
+   * The OneUptime the reader uses (HOST and HTTP_PROTOCOL), which serves the
+   * agents' install scripts and files for its own release: the upgrade
+   * commands download from it, as the setup guides' install commands do.
+   * The placeholder when it is not given.
+   */
+  oneuptimeUrl?: string | undefined;
   /*
    * The Database agent's config is per engine: its Docker Compose upgrade
    * downloads that engine's file, so it is offered only when the engine is
@@ -267,7 +275,7 @@ function getContainerAgentGuide(
   };
 }
 
-function getDockerSwarmAgentGuide(): AgentUpgradeGuide {
+function getDockerSwarmAgentGuide(oneuptimeUrl: string): AgentUpgradeGuide {
   return {
     methods: [
       {
@@ -278,7 +286,7 @@ function getDockerSwarmAgentGuide(): AgentUpgradeGuide {
             description: translationKey(
               "Run it on the manager node the agent runs on, and answer with the same OneUptime URL, ingestion key and cluster name. It downloads the latest files, pulls the images and restarts the agent.",
             ),
-            code: getDockerSwarmAgentInstallScriptCommand(),
+            code: getDockerSwarmAgentInstallScriptCommand(oneuptimeUrl),
           },
         ],
       },
@@ -290,7 +298,7 @@ function getDockerSwarmAgentGuide(): AgentUpgradeGuide {
             description: translationKey(
               "Run this in the agent's folder, then re-apply any change you made to docker-compose.yml.",
             ),
-            code: getDockerSwarmAgentDownloadCommand(),
+            code: getDockerSwarmAgentDownloadCommand(oneuptimeUrl),
           },
           {
             title: PULL_AND_RECREATE,
@@ -386,7 +394,7 @@ function getInstallScriptAgentGuide(
  * which the script is pointed at with INSTALL_DIR. A Docker Compose install
  * takes the compose file and all three collector configs itself.
  */
-function getStorageArrayAgentGuide(): AgentUpgradeGuide {
+function getStorageArrayAgentGuide(oneuptimeUrl: string): AgentUpgradeGuide {
   return {
     methods: [
       {
@@ -395,7 +403,7 @@ function getStorageArrayAgentGuide(): AgentUpgradeGuide {
           {
             title: translationKey("Run the install script again"),
             description: SCRIPT_REUSES_ENV,
-            code: getStorageArrayAgentUpgradeCommand(),
+            code: getStorageArrayAgentUpgradeCommand(oneuptimeUrl),
           },
         ],
         note: OUTSIDE_INSTALL_DIRECTORY,
@@ -409,7 +417,7 @@ function getStorageArrayAgentGuide(): AgentUpgradeGuide {
             description: translationKey(
               "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
             ),
-            code: getStorageArrayAgentDownloadCommand(),
+            code: getStorageArrayAgentDownloadCommand(oneuptimeUrl),
           },
           {
             title: PULL_AND_RECREATE,
@@ -508,7 +516,7 @@ function getDatabaseAgentGuide(
           description: translationKey(
             "Run it on the machine the agent runs on. It keeps your .env and replaces docker-compose.yml and otel-collector-config.yaml with the current ones; a file you edited is kept next to the new one as <file>.bak.<timestamp>.",
           ),
-          code: getDatabaseAgentUpgradeCommand(),
+          code: getDatabaseAgentUpgradeCommand(getOneUptimeUrl(context)),
         },
       ],
       note: OUTSIDE_INSTALL_DIRECTORY,
@@ -525,7 +533,10 @@ function getDatabaseAgentGuide(
           description: translationKey(
             "Run this in the agent's folder. Your .env stays as it is.",
           ),
-          code: getDatabaseAgentDownloadCommand(context.databaseEngine),
+          code: getDatabaseAgentDownloadCommand(
+            getOneUptimeUrl(context),
+            context.databaseEngine,
+          ),
         },
         {
           title: translationKey("Recreate the agent"),
@@ -678,10 +689,17 @@ function getResourceAiAgentGuide(
  * The upgrade guide for a kind of agent, or null for a kind OneUptime does
  * not release (its version is never outdated, so nothing asks for one).
  */
+// The OneUptime the commands download from: the reader's, or the placeholder.
+function getOneUptimeUrl(context: AgentUpgradeGuideContext): string {
+  return context.oneuptimeUrl || SETUP_GUIDE_URL_PLACEHOLDER;
+}
+
 export function getAgentUpgradeGuide(
   kind: AgentKind,
   context: AgentUpgradeGuideContext = {},
 ): AgentUpgradeGuide | null {
+  const oneuptimeUrl: string = getOneUptimeUrl(context);
+
   switch (kind) {
     case AgentKind.KubernetesAgent:
       return getKubernetesAgentGuide();
@@ -706,7 +724,7 @@ export function getAgentUpgradeGuide(
         },
       });
     case AgentKind.DockerSwarmAgent:
-      return getDockerSwarmAgentGuide();
+      return getDockerSwarmAgentGuide(oneuptimeUrl);
     case AgentKind.DatabaseAgent:
       return getDatabaseAgentGuide(context);
     case AgentKind.Runner:
@@ -717,25 +735,25 @@ export function getAgentUpgradeGuide(
       return getHostCollectorGuide(context);
     case AgentKind.ProxmoxAgent:
       return getInstallScriptAgentGuide({
-        upgrade: getProxmoxAgentUpgradeCommand(),
-        download: getProxmoxAgentDownloadCommand(),
+        upgrade: getProxmoxAgentUpgradeCommand(oneuptimeUrl),
+        download: getProxmoxAgentDownloadCommand(oneuptimeUrl),
         recreate: PROXMOX_AGENT_RECREATE_COMMAND,
       });
     case AgentKind.CephAgent:
       return getInstallScriptAgentGuide({
-        upgrade: getCephAgentUpgradeCommand(),
-        download: getCephAgentDownloadCommand(),
+        upgrade: getCephAgentUpgradeCommand(oneuptimeUrl),
+        download: getCephAgentDownloadCommand(oneuptimeUrl),
         recreate: CEPH_AGENT_RECREATE_COMMAND,
       });
     case AgentKind.VMwareAgent:
       return getInstallScriptAgentGuide({
-        upgrade: getVMwareAgentUpgradeCommand(),
-        download: getVMwareAgentDownloadCommand(),
+        upgrade: getVMwareAgentUpgradeCommand(oneuptimeUrl),
+        download: getVMwareAgentDownloadCommand(oneuptimeUrl),
         recreate: VMWARE_AGENT_RECREATE_COMMAND,
-        withoutDocker: getVMwareNativeUpgradeCommand(),
+        withoutDocker: getVMwareNativeUpgradeCommand(oneuptimeUrl),
       });
     case AgentKind.StorageArrayAgent:
-      return getStorageArrayAgentGuide();
+      return getStorageArrayAgentGuide(oneuptimeUrl);
     default:
       return null;
   }

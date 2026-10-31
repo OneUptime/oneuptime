@@ -1193,9 +1193,11 @@ Derrière un proxy, le collecteur utilise les variables standard `HTTPS_PROXY`, 
 Le collecteur envoie ce qu'un hôte signale ; l'**Agent IA d'hôte** permet à OneUptime AI d'interroger l'hôte lui-même pendant qu'elle enquête sur un incident ou une alerte qui le concerne. Il exécute des commandes en lecture seule — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — et, uniquement si vous l'autorisez, applique des corrections comme le redémarrage d'une unité systemd donnée. C'est un conteneur Linux (image `oneuptime/resource-ai-agent:release`) doté de son propre programme d'installation, qui a besoin de Docker (le moteur système, pas Docker rootless) et du plugin Docker Compose :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+Chaque instance de OneUptime sert ce programme d'installation pour sa propre version : sur une instance auto-hébergée, téléchargez-le depuis votre URL au lieu de `https://oneuptime.com`. Il est d'abord enregistré sous `install.sh`, pour que vous puissiez le lire avant de l'exécuter.
 
 - **Les enquêtes IA sont activées par défaut.** Dès que l'agent se connecte, OneUptime AI enquête avec lui sur les incidents et les alertes de cet hôte, et la **Vue d'ensemble** de l'hôte affiche l'état de l'agent. Pour arrêter, définissez `ONEUPTIME_AI_INVESTIGATION=false` là où l'agent s'exécute (**Modifier**, sous **Ce que l'IA peut faire** sur la page de l'agent IA, montre comment), ou supprimez l'agent.
 - Il s'enregistre sous `HOST_NAME` ; laissez-le vide pour utiliser le nom d'hôte de la machine, qui est ce que ce collecteur signale comme `host.name`, sauf si vous définissez un autre nom. Les deux doivent correspondre, pour que l'agent serve l'hôte que ce collecteur a créé. Il apparaît sur la page **Agent IA** de l'hôte dans OneUptime.

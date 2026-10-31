@@ -130,9 +130,11 @@ docker run -d \
 [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)를 통해 보고하는 Linux 호스트에는 옆에 둘 OneUptime 컨테이너가 없으므로, 호스트 AI 에이전트는 자체 설치 프로그램(`agents/HostAIAgent`)과 함께 제공됩니다:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+각 OneUptime은 자기 릴리스의 이 설치 프로그램을 제공합니다. 자체 호스팅 OneUptime에서는 `https://oneuptime.com` 대신 사용자의 URL에서 내려받으세요. 먼저 `install.sh`로 저장되므로, 실행하기 전에 읽어 볼 수 있습니다.
 
 설치 프로그램은 OneUptime URL, 프로젝트의 텔레메트리 수집 키, 호스트 이름을 묻고, `/opt/oneuptime-host-ai-agent/.env` 와 `docker-compose.yml` 을 쓰고, 컨테이너 `oneuptime-host-ai-agent` 를 시작합니다. 대신 systemd 유닛 `oneuptime-host-ai-agent` 아래에서 실행하려면 `--systemd` 를 추가하세요. Compose 플러그인이 있는 Docker(rootless Docker가 아닌 시스템 엔진)가 필요하며, rootful Podman으로도 같은 컨테이너를 실행할 수 있습니다.
 

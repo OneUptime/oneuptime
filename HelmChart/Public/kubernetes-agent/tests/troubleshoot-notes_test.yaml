@@ -1,0 +1,37 @@
+# The notes' diagnostic command downloads troubleshoot.sh from the OneUptime
+# the agent reports to (oneuptime.url): every OneUptime serves the script of
+# its own release at /install/kubernetes-agent/troubleshoot.sh
+# (packages/App/FeatureSet/Install), so a self-hosted install's notes name
+# its own address, and never GitHub's copy of the repository.
+suite: the notes download the diagnostic script from this OneUptime
+release:
+  name: oneuptime-agent
+  namespace: oneuptime-agent
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.apiKey: key-123
+tests:
+  - it: names the configured OneUptime and the release's namespace
+    set:
+      oneuptime.url: https://oneuptime.example.com
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  curl -fsSL https://oneuptime\\.example\\.com/install/kubernetes-agent/troubleshoot\\.sh \\| bash -s -- -n oneuptime-agent\\n"
+      - notMatchRegexRaw:
+          pattern: "githubusercontent"
+
+  - it: keeps a path prefix and plain HTTP, and drops a trailing slash
+    set:
+      oneuptime.url: http://10.0.0.5:8080/oneuptime/
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  curl -fsSL http://10\\.0\\.0\\.5:8080/oneuptime/install/kubernetes-agent/troubleshoot\\.sh \\| bash -s -- -n oneuptime-agent\\n"
+
+  - it: says how to read the script before it runs
+    set:
+      oneuptime.url: https://oneuptime.com
+    asserts:
+      - matchRegexRaw:
+          pattern: "open the address in a browser to read it first\\):\\n  curl -fsSL https://oneuptime\\.com/install/kubernetes-agent/troubleshoot\\.sh "

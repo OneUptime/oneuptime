@@ -125,8 +125,14 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
       : []),
   ].join(" ");
 
+  /*
+   * Code reads left to right on every page (Theme.css lays a <pre> out so
+   * on a right-to-left one), and so does its block: on a Persian page the
+   * copy button's right-2 would otherwise mean the start of the line and
+   * cover the first characters of the code.
+   */
   return (
-    <div className="relative group">
+    <div className="relative group" dir="ltr">
       {showCopyButton && typeof props.code === "string" && (
         <button
           onClick={() => {

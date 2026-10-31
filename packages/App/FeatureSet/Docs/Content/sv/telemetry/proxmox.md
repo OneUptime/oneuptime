@@ -78,23 +78,25 @@ Rollen läggs på användaren och inte bara på token eftersom en token med priv
 
 ### Installera och starta agenten
 
+Varje OneUptime tillhandahåller agentens installationsskript och filer från sin egen version: Kommandona nedan laddar ned dem från `https://oneuptime.com`, så på en egenvärdad OneUptime ersätter du den adressen med din URL. Installationsskriptet sparas först som `install.sh`, så att du kan läsa det innan du kör det.
+
 :::tabs
 @tab install.sh
 Ladda ned installationsskriptet och kör det på maskinen som ska vara värd för agenten:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Skriptet frågar efter din OneUptime-URL, intagningsnyckeln, ett namn på klustret, Proxmox VE-API-värden, om den medföljande exportören ska köras, token-ID och hemlighet, och varje nods adress (det erbjuder klustrets egen lista så snart det har token) — och om [AI-agenten](#ai-agent) får genomföra åtgärder, och i så fall efter en egen token för det och de gäster den aldrig får ändra. Det installerar till `/opt/oneuptime-proxmox-agent`, skriver en `.env`-fil med `0600` och startar agenten med Docker Compose. Om du kör skriptet igen återanvänder det allt i den `.env` i stället för att fråga igen, och det är så du [uppgraderar agenten](#uppgradera-agenten).
 @tab Docker Compose
-Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från [ProxmoxAgent-katalogen](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) till en ny mapp:
+Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från din OneUptime till en ny mapp:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 Skapa en `.env`-fil bredvid dem. Den innehåller tokenhemligheten, så håll den privat med `chmod 600 .env`:
@@ -291,7 +293,7 @@ Om du behöver dem kör du agenten i stället och tar bort mätvärdesservern: a
 För att starta agenten med maskinen och starta om den när den misslyckas installerar du dess systemd-enhet. Den förutsätter att agenten ligger i `/opt/oneuptime-proxmox-agent`, där installationsskriptet placerar den:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +305,15 @@ Agenten rapporterar den collector-version som dess filer låser som sin **Agentv
 Collectorns image är låst i `docker-compose.yml` och dess konfiguration är en fil bredvid den, så att bara hämta images för inte agenten framåt. Kör `install.sh` igen: det återanvänder varje värde i din befintliga `.env` (inget frågas efter igen), förnyar `docker-compose.yml` och `otel-collector-config.yaml` (en fil som du har redigerat sparas som `<file>.bak.<timestamp>`), hämtar imagesen och återskapar agenten så att collectorn läser sin nya konfiguration. En `.env` från före `PVE_NODES` fortsätter att bara läsa `PVE_HOST`, och skriptet anger vilka noder du ska lägga till.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Installerade du den med Docker Compose i stället? I agentens mapp laddar du ned båda filerna igen (och gör om eventuella ändringar du hade gjort i dem), hämtar sedan imagesen och återskapar agenten:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +342,10 @@ Vad den får köra, hur åtgärder fungerar och hur du felsöker den: [Infrastru
 ## Felsökning
 
 :::details Kör diagnosskriptet först
-Agenten levereras med ett skript, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh), som kontrollerar hela kedjan: containerkörtiden, exportörens skrapning, det klusternamn som stämplas på varje mätvärde, tokenens format, collectorns egna mätvärden, och om OneUptime godtar intagningsnyckeln. Den sista kontrollen är viktigast. OneUptime nekar en felaktig nyckel med `401` (`422` för en inaktiverad nyckel eller en webbläsarnyckel), och collectorn behandlar båda som permanenta: den släpper batchen och loggar ett enda `Exporting failed`-fel, som är lätt att missa medan containern förblir frisk. Skriptet frågar `GET <url>/otlp/v1/validate` inifrån agentens nätverk för ett direkt `200` (giltig) eller `401` (ogiltig), och faller tillbaka på `POST /fluentd/v1/logs` på äldre servrar.
+Agenten levereras med ett skript, [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), som kontrollerar hela kedjan: containerkörtiden, exportörens skrapning, det klusternamn som stämplas på varje mätvärde, tokenens format, collectorns egna mätvärden, och om OneUptime godtar intagningsnyckeln. Den sista kontrollen är viktigast. OneUptime nekar en felaktig nyckel med `401` (`422` för en inaktiverad nyckel eller en webbläsarnyckel), och collectorn behandlar båda som permanenta: den släpper batchen och loggar ett enda `Exporting failed`-fel, som är lätt att missa medan containern förblir frisk. Skriptet frågar `GET <url>/otlp/v1/validate` inifrån agentens nätverk för ett direkt `200` (giltig) eller `401` (ogiltig), och faller tillbaka på `POST /fluentd/v1/logs` på äldre servrar.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 

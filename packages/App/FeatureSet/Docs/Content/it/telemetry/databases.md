@@ -300,12 +300,14 @@ Memcached non ha utenti: il receiver esegue `stats` tramite il protocollo testua
 
 ### Installa e avvia l'agent
 
+Ogni istanza di OneUptime serve lo script di installazione e i file dell'agent della propria release: i comandi qui sotto li scaricano da `https://oneuptime.com`, quindi su un'istanza self-hosted sostituisci questo indirizzo con il tuo URL. Lo script di installazione viene prima salvato come `install.sh`, così puoi leggerlo prima di eseguirlo.
+
 :::tabs
 @tab install.sh
 Scarica lo script di installazione ed eseguilo sulla macchina che ospiterà l'agent:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ A ogni domanda si può rispondere con una variabile esportata con lo stesso nome
 
 Nella password va bene qualsiasi carattere, tranne i pochi che la stringa di connessione di SQL Server non può contenere (vedi la scheda SQL Server di [Crea un utente di monitoraggio](#crea-un-utente-di-monitoraggio)). Il collector espande ancora una volta i `$` nei valori che legge (`$$` diventa `$` e `${NAME}` diventa un'altra variabile), quindi lo script scrive raddoppiato ogni `$` di `DATABASE_USERNAME` e `DATABASE_PASSWORD`, oltre a mettere i valori tra virgolette per Docker Compose.
 @tab Docker Compose
-Scarica `docker-compose.yml` e la configurazione del tuo motore dalla [directory DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) in un'unica cartella, salvando la configurazione come `otel-collector-config.yaml`:
+Scarica `docker-compose.yml` e la configurazione del tuo motore dal tuo OneUptime in un'unica cartella, salvando la configurazione come `otel-collector-config.yaml`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 Crea un file `.env` accanto a essi (`chmod 600 .env`: contiene una password):
@@ -458,7 +460,7 @@ La scheda **Documentazione** nell'app di un database rilevato genera questo mani
 Metti la configurazione del tuo motore in una ConfigMap e i segreti in un Secret (scrivi ogni `$` della password come `$$`: il collector lo espande):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ Le installazioni self-hosted possono regolare il rilevamento con queste variabil
 ### Esegui prima lo script di diagnostica
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

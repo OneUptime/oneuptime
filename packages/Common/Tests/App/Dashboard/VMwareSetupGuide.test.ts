@@ -14,10 +14,9 @@ import {
   VMWARE_AGENT_NATIVE_SELF_METRICS_URL,
   VMWARE_AGENT_NATIVE_UNIT,
   VMWARE_AGENT_NATIVE_UNIT_FILE,
-  VMWARE_AGENT_RAW_URL,
+  VMWARE_AGENT_INSTALL_NAME,
   VMWARE_AGENT_SERVICE,
   VMWARE_AGENT_SERVICE_UNIT_PATH,
-  VMWARE_AGENT_SOURCE_URL,
   VMWARE_AI_AGENT_CONTAINER,
   VMWARE_COLLECTOR_RELEASES_URL,
   VMWARE_EXAMPLE_VCENTER_NAME,
@@ -54,6 +53,12 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { parseSystemdEnvironmentFile } from "./SystemdEnvironmentFile";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import {
+  InstallScriptEntry,
+  InstallScriptName,
+  getInstallScriptEntry,
+} from "../../../Types/InstallScripts/InstallScripts";
 
 /*
  * The VMware agent guide asks how to install the agent — the install
@@ -90,6 +95,16 @@ const DOCS_DIR: string = path.join(
 
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "tik_secret_123";
+
+/*
+ * Where this OneUptime serves the agent's install script and files, for its
+ * own release: never GitHub.
+ */
+const SERVED: string = `${URL}/install/vmware-agent`;
+
+// An address of this OneUptime's VMware agent files: the script, or one file.
+const SERVED_FILE_PATTERN: RegExp =
+  /https:\/\/oneuptime\.example\.com\/install\/vmware-agent(?:\/([A-Za-z0-9._/-]+))?/g;
 
 // What ObjectID.generate() mints: the E2E spec greps the page for one.
 const UUID_KEY: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -192,13 +207,14 @@ const topicTitles: (
   });
 };
 
-// Everything a step shows: its description, its markdown and every tab.
+// Everything a step shows: its description, its markdown, every tab and its details.
 const stepText: (step: SetupGuideStep) => string = (
   step: SetupGuideStep,
 ): string => {
   return [
     step.description || "",
     step.markdown || "",
+    step.details || "",
     ...(step.variants || []).map((variant: SetupGuideStepVariant): string => {
       return variant.markdown;
     }),
@@ -211,10 +227,12 @@ const stepsText: (guide: SetupGuideContent) => string = (
   return guide.steps.map(stepText).join("\n");
 };
 
+// The install step's text: its command, then what follows the note under it.
 const installStep: (guide: SetupGuideContent) => string = (
   guide: SetupGuideContent,
 ): string => {
-  return stepTitled(guide, "Install the agent").markdown || "";
+  const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+  return [step.markdown || "", step.details || ""].join("\n\n");
 };
 
 const variantTitled: (
@@ -524,7 +542,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       "Run the diagnostic script first",
     ).markdown;
     expect(script).toContain(
-      `curl -sSL ${VMWARE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh`,
+      `curl -fsSL ${SERVED}/troubleshoot.sh -o troubleshoot.sh`,
     );
     if (method === "install-script") {
       expect(script).toContain("\nbash troubleshoot.sh\n");
@@ -714,14 +732,14 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
     if (method === "install-script") {
       expect(upgrade).toContain("re-run the install script");
       expect(upgrade).toContain(
-        codeBlock("bash", getVMwareAgentUpgradeCommand()),
+        codeBlock("bash", getVMwareAgentUpgradeCommand(URL)),
       );
       expect(upgrade).toContain("reuses every value in your existing `.env`");
       expect(upgrade).not.toContain("curl -fsSLO");
     } else if (method === "linux-service") {
       expect(upgrade).toContain("run the install commands again");
       expect(upgrade).toContain(
-        codeBlock("bash", getVMwareNativeUpgradeCommand()),
+        codeBlock("bash", getVMwareNativeUpgradeCommand(URL)),
       );
       expect(upgrade).toContain("your `.env` stays");
       expect(upgrade).toContain(
@@ -734,12 +752,12 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
         "Download `docker-compose.yml` and `otel-collector-config.yaml` again",
       );
       expect(upgrade).toContain(
-        codeBlock("bash", getVMwareAgentDownloadCommand()),
+        codeBlock("bash", getVMwareAgentDownloadCommand(URL)),
       );
       expect(upgrade).toContain(
         codeBlock("bash", VMWARE_AGENT_RECREATE_COMMAND),
       );
-      expect(upgrade.indexOf(getVMwareAgentDownloadCommand())).toBeLessThan(
+      expect(upgrade.indexOf(getVMwareAgentDownloadCommand(URL))).toBeLessThan(
         upgrade.indexOf(VMWARE_AGENT_RECREATE_COMMAND),
       );
       expect(upgrade).toContain(
@@ -836,7 +854,7 @@ describe("the install script", () => {
       }),
     ).toBe(
       [
-        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh",
+        `curl -fsSL ${SERVED} -o install.sh`,
         `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} bash install.sh`,
       ].join("\n"),
     );
@@ -880,8 +898,78 @@ describe("the install script", () => {
       apiKey: KEY,
       hasApiKey: true,
     });
-    expect(command).not.toContain("ONEUPTIME_URL");
+    expect(command).not.toContain("ONEUPTIME_URL=");
     expect(command).toContain(`ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`);
+  });
+
+  test("the script comes from the reader's own OneUptime, which serves it for its release", () => {
+    for (const oneuptimeUrl of [
+      "https://oneuptime.com",
+      "https://oneuptime.acme.internal:8443",
+      "http://10.0.0.5",
+      "https://tools.acme.com/oneuptime/",
+    ]) {
+      const command: string = getVMwareInstallScriptCommand({
+        oneuptimeUrl: oneuptimeUrl,
+        apiKey: KEY,
+        hasApiKey: true,
+      });
+      const base: string = oneuptimeUrl.replace(/\/+$/, "");
+
+      expect(command.split("\n")[0]).toBe(
+        `curl -fsSL ${base}/install/vmware-agent -o install.sh`,
+      );
+      expect(command).toContain(`ONEUPTIME_URL=${oneuptimeUrl} `);
+      expect(command).not.toContain("githubusercontent");
+    }
+    expect(VMWARE_AGENT_INSTALL_NAME).toBe(InstallScriptName.VMwareAgent);
+  });
+
+  /*
+   * The note is about the command's first line, so it sits right under the
+   * command - the step's markdown is the command alone - and what the
+   * script asks for comes after it, as the step's details.
+   */
+  test("the read-first note sits right under the command, before what the script asks for", () => {
+    for (const hasKey of [true, false]) {
+      const guide: SetupGuideContent = hasKey
+        ? guideFor("install-script")
+        : noKeyGuideFor("install-script");
+      const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+
+      expect(step.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+      expect(step.markdown).toBe(
+        codeBlock(
+          "bash",
+          getVMwareInstallScriptCommand({
+            oneuptimeUrl: URL,
+            apiKey: hasKey ? KEY : SETUP_GUIDE_API_KEY_PLACEHOLDER,
+            hasApiKey: hasKey,
+          }),
+        ),
+      );
+      expect(step.details).toBeTruthy();
+      expect(step.details).not.toContain("```");
+      expect(getSetupGuideMarkdown(guide)).toContain(
+        `${step.markdown}\n\n${INSTALL_SCRIPT_READ_FIRST_NOTE}\n\n${step.details!.trim()}`,
+      );
+      // What the script asks for comes first under the note.
+      expect(step.details).toMatch(
+        hasKey
+          ? /^The command already carries your OneUptime URL/
+          : /^The script asks for your OneUptime URL and ingestion key/,
+      );
+    }
+    for (const method of [
+      "docker-compose",
+      "linux-service",
+    ] as Array<VMwareInstallMethod>) {
+      expect(
+        guideFor(method).steps.some((candidate: SetupGuideStep): boolean => {
+          return candidate.note === INSTALL_SCRIPT_READ_FIRST_NOTE;
+        }),
+      ).toBe(false);
+    }
   });
 
   test("before a key is picked, says the script asks for the URL and key", () => {
@@ -938,10 +1026,10 @@ describe("the Docker Compose install", () => {
 
   test("downloads the two files, writes .env, makes it private, then starts the agent", () => {
     const download: number = install.indexOf(
-      `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml`,
+      `curl -fsSLO ${SERVED}/docker-compose.yml`,
     );
     const config: number = install.indexOf(
-      `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml`,
+      `curl -fsSLO ${SERVED}/otel-collector-config.yaml`,
     );
     const env: number = install.indexOf("ONEUPTIME_URL=");
     const start: number = install.indexOf(
@@ -952,8 +1040,9 @@ describe("the Docker Compose install", () => {
     expect(env).toBeGreaterThan(config);
     expect(start).toBeGreaterThan(env);
     expect(install).toContain(
-      `[VMwareAgent directory](${VMWARE_AGENT_SOURCE_URL})`,
+      "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder",
     );
+    expect(install).not.toContain("github.com/OneUptime");
   });
 
   test("the .env file carries the reader's URL and key, and a single-quoted password", () => {
@@ -1088,7 +1177,7 @@ describe("the install without Docker", () => {
   const guide: SetupGuideContent = guideFor("linux-service");
   const install: string = installStep(guide);
   const markdown: string = getSetupGuideMarkdown(guide);
-  const installCommand: string = getVMwareNativeInstallCommand();
+  const installCommand: string = getVMwareNativeInstallCommand(URL);
 
   test("downloads and installs the files, makes .env private, writes it, then starts the service — in that order", () => {
     const files: number = install.indexOf(codeBlock("bash", installCommand));
@@ -1113,8 +1202,9 @@ describe("the install without Docker", () => {
     expect(settings).toBeGreaterThan(envFile);
     expect(start).toBeGreaterThan(settings);
     expect(install).toContain(
-      `[VMwareAgent directory](${VMWARE_AGENT_SOURCE_URL})`,
+      "with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime",
     );
+    expect(install).not.toContain("github.com/OneUptime");
   });
 
   test("downloads the collector release the agent pins: the compose file's image, and the version the config reports", () => {
@@ -1178,8 +1268,8 @@ describe("the install without Docker", () => {
     );
 
     for (const line of [
-      `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml`,
-      `  ${VMWARE_AGENT_RAW_URL}/${VMWARE_AGENT_NATIVE_UNIT_FILE}`,
+      `curl -fsSLO ${SERVED}/otel-collector-config.yaml`,
+      `  ${SERVED}/${VMWARE_AGENT_NATIVE_UNIT_FILE}`,
       `sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C ${VMWARE_AGENT_INSTALL_DIR} otelcol-contrib`,
       `sudo install -m 0644 otel-collector-config.yaml ${VMWARE_AGENT_INSTALL_DIR}/otel-collector-config.yaml`,
       `sudo install -m 0644 ${VMWARE_AGENT_SERVICE}.service ${VMWARE_AGENT_SERVICE_UNIT_PATH}`,
@@ -1333,7 +1423,7 @@ describe("the install without Docker", () => {
   });
 
   test("the upgrade is the install's own download and install, then a restart — and leaves .env alone", () => {
-    const upgrade: string = getVMwareNativeUpgradeCommand();
+    const upgrade: string = getVMwareNativeUpgradeCommand(URL);
     expect(upgrade).toBe(
       `${installCommand}\nsudo systemctl daemon-reload\n${VMWARE_NATIVE_RESTART_COMMAND}`,
     );
@@ -1714,7 +1804,8 @@ describe("drift guards against agents/VMwareAgent", () => {
     expect(script).toContain(
       `INSTALL_DIR="\${INSTALL_DIR:-${VMWARE_AGENT_INSTALL_DIR}}"`,
     );
-    expect(script).toContain(`REPO_BASE="${VMWARE_AGENT_RAW_URL}"`);
+    // Its files come from the OneUptime it reports to.
+    expect(script).toContain('AGENT_FILES_PATH="install/vmware-agent"');
     expect(script).toContain('read -rsp "vSphere password: "');
     expect(script).toContain("Skip TLS certificate verification for vCenter?");
     expect(script).toContain("Collection interval");
@@ -1723,15 +1814,17 @@ describe("drift guards against agents/VMwareAgent", () => {
     expect(script).toContain("reusing it.");
   });
 
-  test("every file the guide downloads exists in the agent's directory", () => {
+  test("every file the guide downloads is one this OneUptime serves from the agent's directory", () => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      InstallScriptName.VMwareAgent,
+    );
     const files: Set<string> = new Set();
     for (const method of METHOD_KEYS) {
       const markdown: string = getSetupGuideMarkdown(guideFor(method));
-      for (const match of markdown.matchAll(
-        /https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/master\/agents\/([A-Za-z]+)\/([A-Za-z0-9._/-]+)/g,
-      )) {
-        expect(match[1]).toBe("VMwareAgent");
-        files.add(match[2]!);
+      expect(markdown).not.toContain("githubusercontent");
+      for (const match of markdown.matchAll(SERVED_FILE_PATTERN)) {
+        // The address alone is the install script.
+        files.add(match[1] || "install.sh");
       }
     }
     expect(Array.from(files).sort()).toEqual([
@@ -1742,6 +1835,7 @@ describe("drift guards against agents/VMwareAgent", () => {
       "troubleshoot.sh",
     ]);
     for (const file of files) {
+      expect(entry?.files).toContain(file);
       expect(fs.existsSync(path.join(AGENT_DIR, file))).toBe(true);
     }
   });

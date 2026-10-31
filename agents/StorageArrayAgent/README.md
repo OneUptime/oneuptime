@@ -48,15 +48,26 @@ A `purefa_info{...} 1` line means the array serves its metrics natively: use the
 ## Quick Start — Install Script
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
+
+Every OneUptime serves this script and the agent's files for its own release, at `<your OneUptime URL>/install/storage-array-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com` in the commands here. The first line saves the script as `install.sh`, so you can read it before you run it.
 
 The script asks which array this is (FlashArray with native metrics, an older FlashArray, or a FlashBlade), then for your OneUptime URL, telemetry ingestion key, a stable array name, the array's management address and the read-only user's API token (read without echo). It installs to `/opt/oneuptime-storage-array-agent`, downloads the compose file and all three collector configs, writes a `0600` `.env` file with the matching config and compose profile, and starts the agent with Docker Compose. Re-running it reuses everything in an existing `.env` instead of prompting again, and keeps any file you edited as `<file>.bak.<timestamp>` before replacing it.
 
 ## Quick Start — Docker Compose
 
-Download `docker-compose.yml` and the three `otel-collector-config*.yaml` files from this directory into a folder, then create a `.env` file next to them (`chmod 600 .env` — it holds the API token). For a FlashArray with native metrics:
+Download `docker-compose.yml` and the three `otel-collector-config*.yaml` files from your OneUptime into a folder:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+```
+
+Then create a `.env` file next to them (`chmod 600 .env` — it holds the API token). For a FlashArray with native metrics:
 
 ```bash
 ONEUPTIME_URL=https://oneuptime.com
@@ -158,7 +169,7 @@ One agent reads one array. To monitor several from the same machine, install eac
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/systemd/oneuptime-storage-array-agent.service -o /etc/systemd/system/oneuptime-storage-array-agent.service
+sudo curl -fsSL https://oneuptime.com/install/storage-array-agent/systemd/oneuptime-storage-array-agent.service -o /etc/systemd/system/oneuptime-storage-array-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-storage-array-agent
 ```
@@ -172,17 +183,17 @@ The collector and exporter images are pinned in `docker-compose.yml`, and the co
 Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and the three collector configs (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
 Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again, then pull and recreate the agent (re-apply any change you made to those files):
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.yaml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flasharray-exporter.yaml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -205,7 +216,7 @@ Then delete the read-only user (and its API token) on the array if you no longer
 `troubleshoot.sh` checks the whole chain — container runtime, the array endpoint exactly as the collector reaches it (the native endpoint or Pure's exporter, DNS, TLS, the API token), array-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation**. The last one matters most: OneUptime's OTLP endpoints refuse a bad ingestion key with `401` (`422` for a disabled key or a browser key), and the collector drops each refused batch with a single `Exporting failed` log line that is easy to miss. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network namespace for a direct 200/401 verdict:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/storage-array-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh                 # add -d <dir> if you installed outside /opt/oneuptime-storage-array-agent
 ```
 

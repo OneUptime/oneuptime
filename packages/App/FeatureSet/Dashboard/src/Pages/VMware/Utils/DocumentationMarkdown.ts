@@ -11,6 +11,16 @@ import {
   systemdEnvQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
 import { VMWARE_AGENT_VERSION } from "../../../Components/AgentVersion/AgentKind";
+import {
+  INSTALL_SCRIPT_READ_FIRST_NOTE,
+  getAgentFileDownloadCommand,
+  getInstallScriptDownloadCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import {
+  InstallScriptName,
+  getInstallFileUrl,
+} from "Common/Types/InstallScripts/InstallScripts";
 
 /*
  * The in-app install guide for the OneUptime VMware agent
@@ -72,11 +82,13 @@ export function resolveVMwareInstallMethod(
   );
 }
 
-// Where the agent's files are published, and where install.sh puts them.
-export const VMWARE_AGENT_RAW_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent";
-export const VMWARE_AGENT_SOURCE_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent";
+/*
+ * Where every OneUptime serves the agent's install script and files, for
+ * its own release (Common/Types/InstallScripts): /install/vmware-agent on
+ * the reader's OneUptime. And where install.sh puts them.
+ */
+export const VMWARE_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.VMwareAgent;
 export const VMWARE_AGENT_INSTALL_DIR: string = "/opt/oneuptime-vmware-agent";
 
 // The containers docker-compose.yml runs (their container_name).
@@ -447,15 +459,15 @@ WantedBy=multi-user.target
  * whatever root's umask is. tar replaces the binary even while the service
  * runs it, so running the block again, and restarting, is also the upgrade.
  */
-export function getVMwareNativeInstallCommand(): string {
+export function getVMwareNativeInstallCommand(oneuptimeUrl: string): string {
   return `cd "$(mktemp -d)"
 VERSION=${VMWARE_AGENT_VERSION}   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \\
   ${VMWARE_COLLECTOR_RELEASES_URL}/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.tar.gz
-curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml
+${getAgentFileDownloadCommand(oneuptimeUrl, VMWARE_AGENT_INSTALL_NAME, "otel-collector-config.yaml")}
 curl -fsSL -o ${VMWARE_AGENT_SERVICE}.service \\
-  ${VMWARE_AGENT_RAW_URL}/${VMWARE_AGENT_NATIVE_UNIT_FILE}
+  ${shellQuote(getInstallFileUrl(oneuptimeUrl, VMWARE_AGENT_INSTALL_NAME, VMWARE_AGENT_NATIVE_UNIT_FILE))}
 
 sudo install -d -m 0755 ${VMWARE_AGENT_INSTALL_DIR}
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C ${VMWARE_AGENT_INSTALL_DIR} otelcol-contrib
@@ -513,8 +525,8 @@ export const VMWARE_NATIVE_LOGS_COMMAND: string = `sudo journalctl -u ${VMWARE_A
  * then the service restarted on them. The guide's "Upgrade or uninstall the
  * agent" topic and the dialog beside an outdated agent version show it.
  */
-export function getVMwareNativeUpgradeCommand(): string {
-  return `${getVMwareNativeInstallCommand()}
+export function getVMwareNativeUpgradeCommand(oneuptimeUrl: string): string {
+  return `${getVMwareNativeInstallCommand(oneuptimeUrl)}
 sudo systemctl daemon-reload
 ${VMWARE_NATIVE_RESTART_COMMAND}`;
 }
@@ -569,7 +581,10 @@ export function getVMwareInstallScriptCommand(data: {
   }
 
   return [
-    `curl -sSL ${VMWARE_AGENT_RAW_URL}/install.sh -o install.sh`,
+    getInstallScriptDownloadCommand(
+      data.oneuptimeUrl,
+      VMWARE_AGENT_INSTALL_NAME,
+    ),
     [...environment, "bash install.sh"].join(" "),
   ].join("\n");
 }
@@ -589,18 +604,26 @@ export function getVMwareInstallScriptCommand(data: {
  * agent" topic and the dialog beside an outdated agent version
  * (Components/AgentVersion) both show these.
  */
-export function getVMwareAgentUpgradeCommand(): string {
+export function getVMwareAgentUpgradeCommand(oneuptimeUrl: string): string {
   return getVMwareInstallScriptCommand({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: oneuptimeUrl,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
   });
 }
 
-export function getVMwareAgentDownloadCommand(): string {
+export function getVMwareAgentDownloadCommand(oneuptimeUrl: string): string {
   return [
-    `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml`,
-    `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml`,
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      VMWARE_AGENT_INSTALL_NAME,
+      "docker-compose.yml",
+    ),
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      VMWARE_AGENT_INSTALL_NAME,
+      "otel-collector-config.yaml",
+    ),
   ].join("\n");
 }
 
@@ -733,20 +756,21 @@ function getInstallScriptStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the install script and run it on the machine that will host the agent.",
-    markdown: `${codeBlock(
+    // The command, then right under it that the script can be read first.
+    markdown: codeBlock(
       "bash",
       getVMwareInstallScriptCommand({
         oneuptimeUrl: context.oneuptimeUrl,
         apiKey: context.apiKey,
         hasApiKey: context.hasApiKey,
       }),
-    )}
-
-${
-  prefilled
-    ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
-    : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
-}
+    ),
+    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+    details: `${
+      prefilled
+        ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
+        : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
+    }
 
 - ${namePrompt}
 - **vCenter endpoint** — scheme and host, without \`/sdk\`, e.g. \`https://vcsa.example.com\`.
@@ -774,12 +798,12 @@ function getDockerComposeStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the agent's files, write its settings to a .env file and start it with Docker Compose.",
-    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [VMwareAgent directory](${VMWARE_AGENT_SOURCE_URL}) into a new folder:
+    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from this OneUptime into a new folder:
 
 ${codeBlock(
   "bash",
   `mkdir oneuptime-vmware-agent && cd oneuptime-vmware-agent
-${getVMwareAgentDownloadCommand()}`,
+${getVMwareAgentDownloadCommand(context.oneuptimeUrl)}`,
 )}
 
 Create a \`.env\` file next to them:
@@ -827,9 +851,9 @@ function getLinuxServiceStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the collector and its files, write the agent's settings and start it as a systemd service.",
-    markdown: `Run these on the Linux machine that will host the agent. They download \`otelcol-contrib\` ${VMWARE_AGENT_VERSION} — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's \`otel-collector-config.yaml\` and its systemd unit from the [VMwareAgent directory](${VMWARE_AGENT_SOURCE_URL}), and install them to \`${VMWARE_AGENT_INSTALL_DIR}\`:
+    markdown: `Run these on the Linux machine that will host the agent. They download \`otelcol-contrib\` ${VMWARE_AGENT_VERSION} — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's \`otel-collector-config.yaml\` and its systemd unit from this OneUptime, and install them to \`${VMWARE_AGENT_INSTALL_DIR}\`:
 
-${codeBlock("bash", getVMwareNativeInstallCommand())}
+${codeBlock("bash", getVMwareNativeInstallCommand(context.oneuptimeUrl))}
 
 The agent's settings go in \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`. It holds a password, so make it readable by root alone, then open it (\`sudoedit\` uses your \`$EDITOR\`):
 
@@ -1103,7 +1127,7 @@ The vCenter shows up tagged \`team:platform\` and \`env:production\`. Labels add
  * The topic says so, and how to run one with Docker elsewhere — the AI
  * agent alone, as the collector already runs here.
  */
-function getLinuxServiceAiAgentTopic(): SetupGuideTopic {
+function getLinuxServiceAiAgentTopic(oneuptimeUrl: string): SetupGuideTopic {
   return {
     title: "OneUptime AI agent",
     summary:
@@ -1115,7 +1139,7 @@ To add it, run it with Docker on any machine that can reach vCenter. Download th
 ${codeBlock(
   "bash",
   `mkdir oneuptime-vmware-ai-agent && cd oneuptime-vmware-ai-agent
-curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml
+${getAgentFileDownloadCommand(oneuptimeUrl, VMWARE_AGENT_INSTALL_NAME, "docker-compose.yml")}
 # write .env here: the settings of ${VMWARE_AGENT_NATIVE_ENV_FILE}, single-quoted, then:
 docker compose up -d ${VMWARE_AI_AGENT_CONTAINER}`,
 )}
@@ -1126,7 +1150,7 @@ It registers as the vCenter named \`VMWARE_VCENTER_NAME\` — the one this colle
 
 function getAiAgentTopic(context: GuideContext): SetupGuideTopic {
   if (isLinuxService(context.method)) {
-    return getLinuxServiceAiAgentTopic();
+    return getLinuxServiceAiAgentTopic(context.oneuptimeUrl);
   }
 
   const fixesHow: string =
@@ -1155,12 +1179,12 @@ function getUpgradeTopic(context: GuideContext): SetupGuideTopic {
     context.method === "install-script"
       ? `**Upgrade** — re-run the install script. It reuses every value in your existing \`.env\` (nothing is prompted for again), downloads the latest \`docker-compose.yml\` and \`otel-collector-config.yaml\`, and recreates the agent with them:
 
-${codeBlock("bash", getVMwareAgentUpgradeCommand())}`
+${codeBlock("bash", getVMwareAgentUpgradeCommand(context.oneuptimeUrl))}`
       : `Run these in the agent's folder, the one with \`docker-compose.yml\`.
 
 **Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` again; your \`.env\` stays, and a change you made to either file has to be made again:
 
-${codeBlock("bash", getVMwareAgentDownloadCommand())}
+${codeBlock("bash", getVMwareAgentDownloadCommand(context.oneuptimeUrl))}
 
 Then pull the images and recreate the agent, so the collector reads its new config:
 
@@ -1188,14 +1212,14 @@ Then remove the \`oneuptime\` user's permission in vCenter (and the OneUptime AI
  * service picks up when it restarts. The config pins the version the
  * collector reports, so the binary and the config move together.
  */
-function getLinuxServiceUpgradeTopic(): SetupGuideTopic {
+function getLinuxServiceUpgradeTopic(oneuptimeUrl: string): SetupGuideTopic {
   return {
     title: "Upgrade or uninstall the agent",
     summary:
       "Download the latest release and files and restart the agent, or stop and remove it.",
     markdown: `**Upgrade** — run the install commands again, then restart the agent. They download the collector release this OneUptime pins with the latest \`otel-collector-config.yaml\` and systemd unit, and replace the installed ones; your \`.env\` stays, and a change you made to the config has to be made again:
 
-${codeBlock("bash", getVMwareNativeUpgradeCommand())}
+${codeBlock("bash", getVMwareNativeUpgradeCommand(oneuptimeUrl))}
 
 The config reports the collector version it pins as the vCenter's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
 
@@ -1217,7 +1241,7 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getLabelsTopic(context),
     getAiAgentTopic(context),
     isLinuxService(context.method)
-      ? getLinuxServiceUpgradeTopic()
+      ? getLinuxServiceUpgradeTopic(context.oneuptimeUrl)
       : getUpgradeTopic(context),
   ];
 }
@@ -1356,7 +1380,7 @@ function getTroubleshootingTopics(
 
 ${codeBlock(
   "bash",
-  `curl -sSL ${VMWARE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+  `${getTroubleshootScriptDownloadCommand(context.oneuptimeUrl, VMWARE_AGENT_INSTALL_NAME)}
 ${runScript}`,
 )}
 

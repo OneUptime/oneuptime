@@ -55,6 +55,11 @@ function setServerVersion(version: string): void {
 }
 
 import AgentVersion from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentVersion";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
+import {
+  AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES,
+  isAgentUpgradeCommandWrapped,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentUpgradeModal";
 import {
   AgentKind,
   DOCKER_SWARM_AGENT_VERSION,
@@ -99,6 +104,12 @@ import {
   getStorageArrayAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import Route from "../../../Types/API/Route";
+
+/*
+ * The OneUptime the dialog's commands download from: this Dashboard's own
+ * (HOST and HTTP_PROTOCOL), as every setup guide's commands are.
+ */
+const READER_URL: string = getConfiguredOneUptimeUrl();
 
 const SETUP_GUIDE: Route = new Route("/dashboard/p1/docker/h1/documentation");
 
@@ -509,7 +520,7 @@ describe("the upgrade dialog", () => {
       ),
     ).toBeInTheDocument();
     expect(codeBlocksIn(dialog)).toEqual([
-      getDockerSwarmAgentInstallScriptCommand(),
+      getDockerSwarmAgentInstallScriptCommand(READER_URL),
     ]);
 
     fireEvent.click(
@@ -550,7 +561,9 @@ describe("the upgrade dialog", () => {
         }),
     ).toEqual(["Install script", "Docker Compose", "Kubernetes"]);
 
-    expect(codeBlocksIn(dialog)).toEqual([getDatabaseAgentUpgradeCommand()]);
+    expect(codeBlocksIn(dialog)).toEqual([
+      getDatabaseAgentUpgradeCommand(READER_URL),
+    ]);
     expect(
       within(dialog).getByTestId("agent-upgrade-method-note"),
     ).toHaveTextContent(
@@ -561,7 +574,7 @@ describe("the upgrade dialog", () => {
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
     expect(codeBlocksIn(dialog)).toEqual([
-      getDatabaseAgentDownloadCommand("postgresql"),
+      getDatabaseAgentDownloadCommand(READER_URL, "postgresql"),
       DATABASE_AGENT_RECREATE_COMMAND,
     ]);
 
@@ -602,6 +615,26 @@ describe("the upgrade dialog", () => {
         "Run the docker run command under Setup Instructions on this page. It starts the Runner on the new image with the same ID and key.",
       ),
     ).toBeVisible();
+  });
+});
+
+describe("which upgrade commands wrap", () => {
+  test("a command of up to five lines does; a longer script does not", () => {
+    expect(AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES).toBe(5);
+    expect(isAgentUpgradeCommandWrapped("bash install.sh")).toBe(true);
+    expect(isAgentUpgradeCommandWrapped("a\nb\nc\nd\ne")).toBe(true);
+    expect(isAgentUpgradeCommandWrapped("a\nb\nc\nd\ne\nf")).toBe(false);
+    for (const command of [
+      getProxmoxAgentUpgradeCommand(READER_URL),
+      getProxmoxAgentDownloadCommand(READER_URL),
+      getStorageArrayAgentDownloadCommand(READER_URL),
+      getDatabaseAgentUpgradeCommand(READER_URL),
+    ]) {
+      expect(isAgentUpgradeCommandWrapped(command)).toBe(true);
+    }
+    expect(
+      isAgentUpgradeCommandWrapped(getVMwareNativeUpgradeCommand(READER_URL)),
+    ).toBe(false);
   });
 });
 
@@ -763,16 +796,16 @@ describe("the agents that report the collector they pin", () => {
       AgentKind.ProxmoxAgent,
       PROXMOX_AGENT_VERSION,
       "Upgrade the OneUptime Proxmox Agent",
-      getProxmoxAgentUpgradeCommand(),
-      getProxmoxAgentDownloadCommand(),
+      getProxmoxAgentUpgradeCommand(READER_URL),
+      getProxmoxAgentDownloadCommand(READER_URL),
       PROXMOX_AGENT_RECREATE_COMMAND,
     ],
     [
       AgentKind.CephAgent,
       COLLECTOR_RELEASE,
       "Upgrade the OneUptime Ceph Agent",
-      getCephAgentUpgradeCommand(),
-      getCephAgentDownloadCommand(),
+      getCephAgentUpgradeCommand(READER_URL),
+      getCephAgentDownloadCommand(READER_URL),
       CEPH_AGENT_RECREATE_COMMAND,
     ],
   ])(
@@ -860,7 +893,9 @@ describe("the agents that report the collector they pin", () => {
         name: "Upgrade the OneUptime VMware Agent",
       }),
     ).toBeInTheDocument();
-    expect(codeBlocksIn(dialog)).toEqual([getVMwareAgentUpgradeCommand()]);
+    expect(codeBlocksIn(dialog)).toEqual([
+      getVMwareAgentUpgradeCommand(READER_URL),
+    ]);
     expect(
       within(dialog).getByText("Run the install script again"),
     ).toBeVisible();
@@ -869,7 +904,7 @@ describe("the agents that report the collector they pin", () => {
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
     expect(codeBlocksIn(dialog)).toEqual([
-      getVMwareAgentDownloadCommand(),
+      getVMwareAgentDownloadCommand(READER_URL),
       VMWARE_AGENT_RECREATE_COMMAND,
     ]);
 
@@ -883,11 +918,63 @@ describe("the agents that report the collector they pin", () => {
     fireEvent.click(
       within(dialog).getByRole("tab", { name: "Without Docker" }),
     );
-    expect(codeBlocksIn(dialog)).toEqual([getVMwareNativeUpgradeCommand()]);
+    expect(codeBlocksIn(dialog)).toEqual([
+      getVMwareNativeUpgradeCommand(READER_URL),
+    ]);
     expect(within(dialog).getByText("Install the new release")).toBeVisible();
     // Nothing in it needs the setup guide: no key, no folder.
     expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
     expect(findNestedControls(document.body)).toEqual([]);
+  });
+
+  /*
+   * A command of a few lines is read whole before it runs - the address it
+   * downloads from included - so it wraps in the dialog instead of
+   * scrolling sideways under the copy button, on a phone too. The longer
+   * script without Docker keeps its lines as written.
+   */
+  test("VMware: a command of a few lines wraps; the longer script without Docker keeps its lines", async () => {
+    render(
+      <AgentVersion
+        kind={AgentKind.VMwareAgent}
+        version="0.154.0"
+        variant="chip"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: OUTDATED_COLLECTOR }));
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    const codeClasses: () => Array<string> = (): Array<string> => {
+      return Array.from(dialog.querySelectorAll("pre code")).map(
+        (code: Element): string => {
+          return code.getAttribute("class") || "";
+        },
+      );
+    };
+
+    expect(codeClasses()).toHaveLength(1);
+    for (const className of codeClasses()) {
+      expect(className).toContain("whitespace-pre-wrap");
+    }
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Docker Compose" }),
+    );
+    expect(codeClasses()).toHaveLength(2);
+    for (const className of codeClasses()) {
+      expect(className).toContain("whitespace-pre-wrap");
+    }
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Without Docker" }),
+    );
+    expect(
+      getVMwareNativeUpgradeCommand(READER_URL).split("\n").length,
+    ).toBeGreaterThan(AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES);
+    expect(codeClasses()).toHaveLength(1);
+    for (const className of codeClasses()) {
+      expect(className).not.toContain("whitespace-pre-wrap");
+    }
   });
 
   test("Storage Array: the install script again with a note for another array's folder, or every file again", async () => {
@@ -915,7 +1002,7 @@ describe("the agents that report the collector they pin", () => {
     ).toEqual(["Install script", "Docker Compose"]);
 
     expect(codeBlocksIn(dialog)).toEqual([
-      getStorageArrayAgentUpgradeCommand(),
+      getStorageArrayAgentUpgradeCommand(READER_URL),
     ]);
     expect(
       within(dialog).getByText("Run the install script again"),
@@ -932,7 +1019,7 @@ describe("the agents that report the collector they pin", () => {
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
     expect(codeBlocksIn(dialog)).toEqual([
-      getStorageArrayAgentDownloadCommand(),
+      getStorageArrayAgentDownloadCommand(READER_URL),
       STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
     ]);
     expect(within(dialog).getByText("Download the latest files")).toBeVisible();

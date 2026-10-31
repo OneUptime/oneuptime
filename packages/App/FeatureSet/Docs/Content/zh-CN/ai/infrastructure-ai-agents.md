@@ -130,9 +130,11 @@ docker run -d \
 通过 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 上报的 Linux 主机旁边没有可以依附的 OneUptime 容器，因此主机 AI 代理自带安装程序（`agents/HostAIAgent`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+每个 OneUptime 都提供其自身发布版本的这个安装程序：在自托管的 OneUptime 上，请从你的 URL 而不是 `https://oneuptime.com` 下载它。它会先保存为 `install.sh`，方便你在运行前先阅读它。
 
 它会询问您的 OneUptime URL、项目的遥测摄取密钥和主机名称，写入 `/opt/oneuptime-host-ai-agent/.env` 和 `docker-compose.yml`，并启动容器 `oneuptime-host-ai-agent`。如需改为在 systemd 单元 `oneuptime-host-ai-agent` 下运行，请添加 `--systemd`。它需要带 Compose 插件的 Docker（系统引擎，而不是 rootless Docker）；rootful Podman 也可以运行同一个容器。
 

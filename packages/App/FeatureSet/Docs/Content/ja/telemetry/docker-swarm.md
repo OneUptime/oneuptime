@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### エージェントをインストールして起動する
 
+各 OneUptime は、自分のリリースのエージェントのインストールスクリプトとファイルを配布します。以下のコマンドは `https://oneuptime.com` からダウンロードするので、セルフホストの OneUptime ではこのアドレスを自分の URL に置き換えてください。インストールスクリプトはまず `install.sh` として保存されるので、実行する前に内容を読めます。
+
 :::tabs
 @tab install.sh
 インストールスクリプトをダウンロードし、マネージャーノードで実行します:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前を尋ねます。`/opt/oneuptime-docker-swarm-agent` にインストールし、ノードのホスト名を `DOCKER_SWARM_NODE_NAME` として含む、所有者だけが読める `.env` ファイルを書き込み、3 つのコンテナーすべてを起動します。AI エージェントを入れない場合は `--no-ai-agent` を付けます。
 @tab Docker Compose
-[DockerSwarmAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) から、`docker-compose.yml`、`otel-collector-config.yaml`、`inventory-snapshot.sh` をマネージャーノード上の新しいフォルダーにダウンロードします:
+お使いの OneUptime から、`docker-compose.yml`、`otel-collector-config.yaml`、`inventory-snapshot.sh` をマネージャーノード上の新しいフォルダーにダウンロードします:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ Collector は起動時にしか設定を読み込みません。`docker compose 
 ノードの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。インストールスクリプトが配置する `/opt/oneuptime-docker-swarm-agent` にエージェントがあることを前提としています:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 マネージャーノードでインストールスクリプトを再実行し、同じ URL、キー、クラスター名で質問に答えます。最新のファイルをダウンロードし、イメージをプルしてエージェントを再起動します:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ Swarm の `docker-compose.yml` (と `install.sh`) は **Docker Swarm AI エー�
 ## トラブルシューティング
 
 :::details まず診断スクリプトを実行する
-エージェントには、経路全体を確認するスクリプト [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh) が付属しています。コンテナー、インベントリポーラーがマネージャー上にあること (`docker node ls`)、スナップショットファイル、すべてに付与されたクラスター名、トークンの形式、Collector 自身のメトリクス、そして OneUptime が取り込みキーを受け付けるかどうかを確認します。最も重要なのは最後の確認です。OneUptime は不正なキーを `401` で拒否し (無効化されたキーやブラウザーキーでは `422`)、Collector はそれをバッチごとに `Exporting failed` の 1 行としてログに出すだけなので、見落としやすくなります。スクリプトは `GET <url>/otlp/v1/validate` を問い合わせて、`200` (有効) または `401` (無効) を直接受け取ります。マネージャーノードで実行してください:
+エージェントには、経路全体を確認するスクリプト [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh) が付属しています。コンテナー、インベントリポーラーがマネージャー上にあること (`docker node ls`)、スナップショットファイル、すべてに付与されたクラスター名、トークンの形式、Collector 自身のメトリクス、そして OneUptime が取り込みキーを受け付けるかどうかを確認します。最も重要なのは最後の確認です。OneUptime は不正なキーを `401` で拒否し (無効化されたキーやブラウザーキーでは `422`)、Collector はそれをバッチごとに `Exporting failed` の 1 行としてログに出すだけなので、見落としやすくなります。スクリプトは `GET <url>/otlp/v1/validate` を問い合わせて、`200` (有効) または `401` (無効) を直接受け取ります。マネージャーノードで実行してください:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

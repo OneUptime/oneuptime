@@ -300,12 +300,14 @@ Memcached 没有用户：接收器通过文本协议运行 `stats`，因此请�
 
 ### 安装并启动代理
 
+每个 OneUptime 都提供其自身发布版本的代理安装脚本和文件：下面的命令从 `https://oneuptime.com` 下载它们，因此在自托管的 OneUptime 上请把这个地址替换为你的 URL。安装脚本会先保存为 `install.sh`，方便你在运行前先阅读它。
+
 :::tabs
 @tab install.sh
 下载安装脚本，并在将要托管代理的机器上运行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ bash install.sh
 
 密码中可以使用任何字符，只有 SQL Server 连接字符串无法承载的少数字符除外（见 [创建监控用户](#创建监控用户) 中的 SQL Server 选项卡）。Collector 会对它读取的值中的 `$` 再展开一次（`$$` 变为 `$`，`${NAME}` 变为另一个变量），因此脚本除了为 Docker Compose 给值加引号外，还会把 `DATABASE_USERNAME` 和 `DATABASE_PASSWORD` 中的每个 `$` 写成两个。
 @tab Docker Compose
-从 [DatabaseAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 把 `docker-compose.yml` 和你的引擎对应的配置下载到同一个文件夹，并把配置保存为 `otel-collector-config.yaml`：
+从你的 OneUptime 把 `docker-compose.yml` 和你的引擎对应的配置下载到同一个文件夹，并把配置保存为 `otel-collector-config.yaml`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 在它们旁边创建一个 `.env` 文件（`chmod 600 .env`，因为其中保存着密码）：
@@ -458,7 +460,7 @@ Database Agent 的 `docker-compose.yml` 还会运行 **数据库 AI 代理**，�
 把引擎的配置放进 ConfigMap，把密钥放进 Secret（把密码中的每个 `$` 写成 `$$`，因为 Collector 会展开它）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ SQL Server 的 `sqlserver.*.rate` 指标（批处理请求、编译、锁等待�
 ### 先运行诊断脚本
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

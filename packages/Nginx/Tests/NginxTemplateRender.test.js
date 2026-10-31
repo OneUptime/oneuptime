@@ -1255,6 +1255,68 @@ for (const billingEnabled of [true, false]) {
 }
 
 // ---------------------------------------------------------------------------
+// /install/: the agents' install scripts
+// ---------------------------------------------------------------------------
+
+/*
+ * The app serves the agents' install scripts and their files
+ * (packages/App/FeatureSet/Install): curl -fsSL
+ * https://oneuptime.com/install/proxmox-agent -o install.sh. A real nginx
+ * must hand them to the app with billing on, when "location /" is the
+ * marketing Home service, as well as off, path and Host as they were sent,
+ * and leave /install.sh, Home's installer of OneUptime itself, where the
+ * marketing site goes. NginxConfig.test.js holds the same addresses to the
+ * location precedence without a running nginx.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends the agents' install scripts and files to the app (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        for (const host of ["localhost", "oneuptime.example.com"]) {
+          for (const uri of [
+            "/install/proxmox-agent",
+            "/install/proxmox-agent/",
+            "/install/vmware-agent/docker-compose.yml",
+            "/install/database-agent/configs/postgresql.yaml",
+            "/install/kubernetes-agent/troubleshoot.sh",
+            "/install/no-such-agent",
+          ]) {
+            const response = await getThroughIngress(port, uri, host);
+
+            assert.equal(response.status, 200, `${host}${uri}`);
+            assert.equal(
+              response.answer?.upstream,
+              "app",
+              `${host}${uri} must reach the app: ${response.body}`,
+            );
+            assert.equal(response.answer.url, uri);
+            assert.equal(response.answer.host, host);
+            assert.ok(
+              response.answer.forwardedFor,
+              `${host}${uri} lost X-Forwarded-For`,
+            );
+          }
+        }
+
+        const installer = await getThroughIngress(
+          port,
+          "/install.sh",
+          "localhost",
+        );
+
+        assert.equal(
+          installer.answer?.upstream,
+          billingEnabled ? "home" : "app",
+          "/install.sh must go where the marketing site goes",
+        );
+      });
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
 // /files/: the old addresses of the compliance PDFs
 // ---------------------------------------------------------------------------
 

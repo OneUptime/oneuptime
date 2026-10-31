@@ -7,9 +7,8 @@ import {
   CEPH_AGENT_COLLECTOR_CONFIG,
   CEPH_AGENT_CONTAINER,
   CEPH_AGENT_INSTALL_DIR,
-  CEPH_AGENT_RAW_URL,
+  CEPH_AGENT_INSTALL_NAME,
   CEPH_AGENT_RECREATE_COMMAND,
-  CEPH_AGENT_SOURCE_URL,
   CEPH_AI_AGENT_CONTAINER,
   CEPH_EXAMPLE_CLUSTER_NAME,
   CEPH_EXAMPLE_MGR_ENDPOINTS,
@@ -22,6 +21,12 @@ import {
   getCephSetupGuide,
   resolveCephInstallMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import {
+  InstallScriptEntry,
+  InstallScriptName,
+  getInstallScriptEntry,
+} from "../../../Types/InstallScripts/InstallScripts";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SETUP_GUIDE_URL_PLACEHOLDER,
@@ -62,6 +67,16 @@ const DOCS_DIR: string = path.join(
 
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "tik_secret_123";
+
+/*
+ * Where this OneUptime serves the agent's install script and files, for its
+ * own release: never GitHub.
+ */
+const SERVED: string = `${URL}/install/ceph-agent`;
+
+// An address of this OneUptime's Ceph agent files: the script, or one file.
+const SERVED_FILE_PATTERN: RegExp =
+  /https:\/\/oneuptime\.example\.com\/install\/ceph-agent(?:\/([A-Za-z0-9._/-]+))?/g;
 
 // What ObjectID.generate() mints: the E2E spec greps the page for one.
 const UUID_KEY: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -152,13 +167,14 @@ const topicTitles: (
   });
 };
 
-// Everything a step shows: its markdown and every tab.
+// Everything a step shows: its markdown, every tab and its details.
 const stepText: (step: SetupGuideStep) => string = (
   step: SetupGuideStep,
 ): string => {
   return [
     step.description || "",
     step.markdown || "",
+    step.details || "",
     ...(step.variants || []).map(
       (variant: { label: string; markdown: string }): string => {
         return variant.markdown;
@@ -173,10 +189,12 @@ const stepsText: (guide: SetupGuideContent) => string = (
   return guide.steps.map(stepText).join("\n");
 };
 
+// The install step's text: its command, then what follows the note under it.
 const installStep: (guide: SetupGuideContent) => string = (
   guide: SetupGuideContent,
 ): string => {
-  return stepTitled(guide, "Install the agent").markdown || "";
+  const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+  return [step.markdown || "", step.details || ""].join("\n\n");
 };
 
 // The .env block of the Docker Compose install.
@@ -392,7 +410,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
       "Run the diagnostic script first",
     ).markdown;
     expect(script).toContain(
-      `curl -sSL ${CEPH_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh`,
+      `curl -fsSL ${SERVED}/troubleshoot.sh -o troubleshoot.sh`,
     );
     expect(script).toContain("GET /otlp/v1/validate");
     if (method === "install-script") {
@@ -455,7 +473,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
 
     if (method === "install-script") {
       expect(upgrade).toContain(
-        codeBlock("bash", getCephAgentUpgradeCommand()),
+        codeBlock("bash", getCephAgentUpgradeCommand(URL)),
       );
       expect(upgrade).toContain("Run the install script again.");
       expect(upgrade).toContain(
@@ -472,7 +490,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
       return;
     }
 
-    const download: string = getCephAgentDownloadCommand();
+    const download: string = getCephAgentDownloadCommand(URL);
     expect(upgrade).toContain(codeBlock("bash", download));
     expect(upgrade).toContain(codeBlock("bash", CEPH_AGENT_RECREATE_COMMAND));
     expect(upgrade.indexOf(download)).toBeLessThan(
@@ -480,8 +498,8 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
     );
     expect(download).toBe(
       [
-        `curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml`,
-        `curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+        `curl -fsSLO ${SERVED}/docker-compose.yml`,
+        `curl -fsSLO ${SERVED}/otel-collector-config.yaml`,
       ].join("\n"),
     );
     expect(CEPH_AGENT_RECREATE_COMMAND).toBe(
@@ -600,7 +618,7 @@ describe("the install script", () => {
       }),
     ).toBe(
       [
-        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh",
+        `curl -fsSL ${SERVED} -o install.sh`,
         `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} bash install.sh`,
       ].join("\n"),
     );
@@ -669,7 +687,7 @@ describe("the install script", () => {
       apiKey: KEY,
       hasApiKey: true,
     });
-    expect(command).not.toContain("ONEUPTIME_URL");
+    expect(command).not.toContain("ONEUPTIME_URL=");
     expect(command).toContain(
       `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} bash install.sh`,
     );
@@ -721,13 +739,77 @@ describe("the install script", () => {
   });
 
   test("the upgrade runs the script with nothing in its environment, which would override the .env", () => {
-    expect(getCephAgentUpgradeCommand()).toBe(
-      [
-        `curl -sSL ${CEPH_AGENT_RAW_URL}/install.sh -o install.sh`,
-        "bash install.sh",
-      ].join("\n"),
+    expect(getCephAgentUpgradeCommand(URL)).toBe(
+      [`curl -fsSL ${SERVED} -o install.sh`, "bash install.sh"].join("\n"),
     );
-    expect(getCephAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
+    expect(getCephAgentUpgradeCommand(URL)).not.toContain("ONEUPTIME_");
+  });
+
+  test("the script comes from the reader's own OneUptime, which serves it for its release", () => {
+    for (const oneuptimeUrl of [
+      "https://oneuptime.com",
+      "https://oneuptime.acme.internal:8443",
+      "http://10.0.0.5",
+      "https://tools.acme.com/oneuptime/",
+    ]) {
+      const command: string = getCephInstallScriptCommand({
+        oneuptimeUrl: oneuptimeUrl,
+        apiKey: KEY,
+        hasApiKey: true,
+      });
+      const base: string = oneuptimeUrl.replace(/\/+$/, "");
+
+      expect(command.split("\n")[0]).toBe(
+        `curl -fsSL ${base}/install/ceph-agent -o install.sh`,
+      );
+      expect(command).toContain(`ONEUPTIME_URL=${oneuptimeUrl} `);
+      expect(command).not.toContain("githubusercontent");
+    }
+    expect(CEPH_AGENT_INSTALL_NAME).toBe(InstallScriptName.CephAgent);
+  });
+
+  /*
+   * The note is about the command's first line, so it sits right under the
+   * command - the step's markdown is the command alone - and what the
+   * script asks for comes after it, as the step's details.
+   */
+  test("the read-first note sits right under the command, before what the script asks for", () => {
+    for (const hasKey of [true, false]) {
+      const guide: SetupGuideContent = hasKey
+        ? guideFor("install-script")
+        : noKeyGuideFor("install-script");
+      const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+
+      expect(step.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+      expect(step.markdown).toBe(
+        codeBlock(
+          "bash",
+          getCephInstallScriptCommand({
+            oneuptimeUrl: URL,
+            apiKey: hasKey ? KEY : SETUP_GUIDE_API_KEY_PLACEHOLDER,
+            hasApiKey: hasKey,
+          }),
+        ),
+      );
+      expect(step.details).toBeTruthy();
+      expect(step.details).not.toContain("```");
+      expect(getSetupGuideMarkdown(guide)).toContain(
+        `${step.markdown}\n\n${INSTALL_SCRIPT_READ_FIRST_NOTE}\n\n${step.details!.trim()}`,
+      );
+      // What the script asks for comes first under the note.
+      expect(step.details).toMatch(
+        hasKey
+          ? /^The command already carries your OneUptime URL/
+          : /^The script asks for your OneUptime URL and ingestion key/,
+      );
+    }
+    expect(
+      guideFor("docker-compose").steps.some(
+        (candidate: SetupGuideStep): boolean => {
+          return candidate.note === INSTALL_SCRIPT_READ_FIRST_NOTE;
+        },
+      ),
+    ).toBe(false);
   });
 
   test("shows none of the Docker Compose instructions", () => {
@@ -755,10 +837,10 @@ describe("the Docker Compose install", () => {
 
   test("downloads the two files, writes .env, then starts the agent", () => {
     const download: number = install.indexOf(
-      `curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml`,
+      `curl -fsSLO ${SERVED}/docker-compose.yml`,
     );
     const config: number = install.indexOf(
-      `curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+      `curl -fsSLO ${SERVED}/otel-collector-config.yaml`,
     );
     const env: number = install.indexOf("ONEUPTIME_URL=");
     const start: number = install.indexOf("docker compose up -d");
@@ -767,8 +849,9 @@ describe("the Docker Compose install", () => {
     expect(env).toBeGreaterThan(config);
     expect(start).toBeGreaterThan(env);
     expect(install).toContain(
-      `[CephAgent directory](${CEPH_AGENT_SOURCE_URL})`,
+      "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:",
     );
+    expect(install).not.toContain("github.com");
   });
 
   test("the .env file carries the reader's URL and key", () => {
@@ -993,20 +1076,23 @@ describe("drift guards against agents/CephAgent", () => {
     expect(script).toContain(
       `INSTALL_DIR="\${INSTALL_DIR:-${CEPH_AGENT_INSTALL_DIR}}"`,
     );
-    expect(script).toContain(`REPO_BASE="${CEPH_AGENT_RAW_URL}"`);
+    // Its files come from the OneUptime it reports to.
+    expect(script).toContain('AGENT_FILES_PATH="install/ceph-agent"');
     expect(script).toContain('CEPH_MGR_ENDPOINTS="[$CEPH_MGR_ENDPOINTS]"');
     expect(script).toContain("[ceph]");
   });
 
-  test("every file the guide downloads exists in the agent's directory", () => {
+  test("every file the guide downloads is one this OneUptime serves from the agent's directory", () => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      InstallScriptName.CephAgent,
+    );
     const files: Set<string> = new Set();
     for (const method of METHOD_KEYS) {
       const markdown: string = getSetupGuideMarkdown(guideFor(method));
-      for (const match of markdown.matchAll(
-        /https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/master\/agents\/([A-Za-z]+)\/([A-Za-z0-9._-]+)/g,
-      )) {
-        expect(match[1]).toBe("CephAgent");
-        files.add(match[2]!);
+      expect(markdown).not.toContain("githubusercontent");
+      for (const match of markdown.matchAll(SERVED_FILE_PATTERN)) {
+        // The address alone is the install script.
+        files.add(match[1] || "install.sh");
       }
     }
     expect(Array.from(files).sort()).toEqual([
@@ -1016,9 +1102,9 @@ describe("drift guards against agents/CephAgent", () => {
       "troubleshoot.sh",
     ]);
     for (const file of files) {
+      expect(entry?.files).toContain(file);
       expect(fs.existsSync(path.join(AGENT_DIR, file))).toBe(true);
     }
-    expect(CEPH_AGENT_SOURCE_URL).toMatch(/\/tree\/master\/agents\/CephAgent$/);
   });
 
   test("the containers the guide names are the compose file's", () => {

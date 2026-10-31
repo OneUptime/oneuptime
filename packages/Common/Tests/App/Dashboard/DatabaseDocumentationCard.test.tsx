@@ -229,9 +229,11 @@ describe("DatabaseDocumentationCard", () => {
       fireEvent.click(screen.getByRole("tab", { name: "Docker Compose" }));
 
       expect(container.textContent).toContain("docker compose up -d");
+      // From this OneUptime (its address unset here, so the quoted placeholder), never GitHub.
       expect(container.textContent).toContain(
-        "/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml",
+        "curl -fsSL '<YOUR_ONEUPTIME_URL>/install/database-agent/configs/postgresql.yaml' -o otel-collector-config.yaml",
       );
+      expect(container.textContent).not.toContain("githubusercontent");
     });
 
     test("puts the picked key on the install command line once there is one", async () => {

@@ -2775,3 +2775,75 @@ test("no location hands the app a Host the caller wrote in X-Forwarded-Host", ()
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// The agents' install scripts: /install/<agent>
+// ---------------------------------------------------------------------------
+
+/*
+ * Every OneUptime serves its agents' install scripts, and the files they
+ * download, from its own image (packages/App/FeatureSet/Install):
+ * https://oneuptime.com/install/proxmox-agent. On OneUptime Cloud
+ * (BILLING_ENABLED=true) "location /" is the marketing Home service, which
+ * has no such files, so /install/ needs its own location that reaches the
+ * app whatever billing says. /install.sh is Home's installer of OneUptime
+ * itself and must stay where it is.
+ */
+const INSTALL_LOCATION_SPEC = "/install/";
+
+test("the primary ingress sends /install/ to the app whatever billing says", () => {
+  const location = getLocationBlocks(primaryServerBlock.body).find((block) => {
+    return block.spec === INSTALL_LOCATION_SPEC;
+  });
+
+  assert.ok(location, "the primary ingress has no location /install/");
+  assert.deepEqual(getDirectives(location.body, "proxy_pass"), [
+    "proxy_pass ${BACKEND_APP_TARGET};",
+  ]);
+  assert.ok(
+    !/\$billing_enabled/.test(location.body),
+    "/install/ must not depend on billing: Home has no install scripts",
+  );
+  assert.ok(
+    !hasDirective(location.body, "rewrite"),
+    "/install/ is not rewritten",
+  );
+
+  for (const header of [
+    "proxy_set_header Host $host;",
+    "proxy_set_header X-Real-IP $remote_addr;",
+    "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+    "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
+  ]) {
+    assert.ok(
+      getDirectives(location.body, "proxy_set_header").includes(header),
+      `/install/ lost ${header}`,
+    );
+  }
+});
+
+test("nginx picks /install/ for a script and its files, and leaves /install.sh to Home", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const uri of [
+    "/install/proxmox-agent",
+    "/install/proxmox-agent/",
+    "/install/database-agent/configs/postgresql.yaml",
+    "/install/kubernetes-agent/troubleshoot.sh",
+    "/install/unknown",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      INSTALL_LOCATION_SPEC,
+      `${uri} must reach the app's install scripts`,
+    );
+  }
+
+  for (const uri of ["/install.sh", "/installation", "/install"]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/",
+      `${uri} must stay with "location /"`,
+    );
+  }
+});

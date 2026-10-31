@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 चार्ट की डायग्नोस्टिक स्क्रिप्ट चलाएँ। यह पॉड, इंजेशन कुंजी और क्लस्टर से बाहर जाने के रास्ते की जाँच करती है, OneUptime से पूछती है कि कुंजी स्वीकार है या नहीं, और एक निष्कर्ष प्रिंट करती है। यह केवल पढ़ती है, और कुछ नहीं बदलती:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+हर OneUptime अपनी रिलीज़ की यह स्क्रिप्ट ख़ुद देता है: सेल्फ़-होस्टेड OneUptime पर `https://oneuptime.com` की जगह अपना URL इस्तेमाल करें। स्क्रिप्ट चलाने से पहले उसे पढ़ने के लिए, उसका पता किसी ब्राउज़र में खोलें।
 
 आम कारण, खासकर दोबारा इंस्टॉल के बाद, गलत या रद्द की गई इंजेशन कुंजी है: OneUptime उसे अस्वीकार करता है, और कलेक्टर हर बैच हटा देता है जबकि उसके पॉड `Running` बने रहते हैं।
 :::

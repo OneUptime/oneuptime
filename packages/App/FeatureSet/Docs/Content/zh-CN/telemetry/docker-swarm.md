@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### 安装并启动代理
 
+每个 OneUptime 都提供其自身发布版本的代理安装脚本和文件：下面的命令从 `https://oneuptime.com` 下载它们，因此在自托管的 OneUptime 上请把这个地址替换为你的 URL。安装脚本会先保存为 `install.sh`，方便你在运行前先阅读它。
+
 :::tabs
 @tab install.sh
 下载安装脚本并在管理节点上运行：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 脚本会询问你的 OneUptime URL、摄取密钥和集群名称。它安装到 `/opt/oneuptime-docker-swarm-agent`，写入一个只有所有者能读取的 `.env` 文件（其中以节点的主机名作为 `DOCKER_SWARM_NODE_NAME`），并启动全部三个容器。添加 `--no-ai-agent` 可不安装 AI 代理。
 @tab Docker Compose
-从 [DockerSwarmAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) 下载 `docker-compose.yml`、`otel-collector-config.yaml` 和 `inventory-snapshot.sh` 到管理节点上的一个新文件夹中：
+从你的 OneUptime 下载 `docker-compose.yml`、`otel-collector-config.yaml` 和 `inventory-snapshot.sh` 到管理节点上的一个新文件夹中：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ Collector 只在启动时读取其配置：请运行 `docker compose restart one
 要让代理随节点启动，并在失败时重新启动，请安装它的 systemd 单元。它假定代理位于 `/opt/oneuptime-docker-swarm-agent`，即安装脚本放置它的位置：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 在管理节点上再次运行安装脚本，并用相同的 URL、密钥和集群名称回答它的问题。它会下载最新文件、拉取镜像并重启代理：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ swarm 的 `docker-compose.yml`（以及 `install.sh`）还会运行 **Docker Swa
 ## 故障排查
 
 :::details 先运行诊断脚本
-代理附带一个脚本 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh)，它会检查整条链路：各个容器、清单轮询器是否在管理节点上（`docker node ls`）、快照文件、打到所有数据上的集群名称、令牌的格式、Collector 自身的指标，以及 OneUptime 是否接受摄取密钥。最后一项检查最重要。OneUptime 会以 `401` 拒绝错误的密钥（已禁用的密钥或浏览器密钥为 `422`），而 Collector 只会每个批次记录一行 `Exporting failed`，很容易被忽略。该脚本请求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（无效）。请在管理节点上运行它：
+代理附带一个脚本 [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh)，它会检查整条链路：各个容器、清单轮询器是否在管理节点上（`docker node ls`）、快照文件、打到所有数据上的集群名称、令牌的格式、Collector 自身的指标，以及 OneUptime 是否接受摄取密钥。最后一项检查最重要。OneUptime 会以 `401` 拒绝错误的密钥（已禁用的密钥或浏览器密钥为 `422`），而 Collector 只会每个批次记录一行 `Exporting failed`，很容易被忽略。该脚本请求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（无效）。请在管理节点上运行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

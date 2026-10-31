@@ -1,5 +1,6 @@
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
+  SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
   SetupGuideKeyStep,
   SetupGuideOption,
@@ -7,7 +8,18 @@ import {
   SetupGuideTopic,
   codeBlock,
   resolveSetupGuideOption,
+  shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import {
+  INSTALL_SCRIPT_READ_FIRST_NOTE,
+  getAgentFileDownloadToCommand,
+  getInstallScriptDownloadCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import {
+  InstallScriptName,
+  getInstallFileUrl,
+} from "Common/Types/InstallScripts/InstallScripts";
 
 /*
  * The Docker Swarm agent install guide. The agent (agents/DockerSwarmAgent)
@@ -19,12 +31,13 @@ import {
  * names and variables here against agents/DockerSwarmAgent.
  */
 
-// Where install.sh downloads the agent's files from.
-export const DOCKER_SWARM_AGENT_RAW_BASE_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent";
-
-export const DOCKER_SWARM_AGENT_DIRECTORY_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent";
+/*
+ * Where every OneUptime serves the agent's install script and the files it
+ * downloads, for its own release (Common/Types/InstallScripts):
+ * /install/docker-swarm-agent on the reader's OneUptime.
+ */
+export const DOCKER_SWARM_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.DockerSwarmAgent;
 
 // The files the agent is made of, as install.sh downloads them.
 export const DOCKER_SWARM_AGENT_FILES: Array<string> = [
@@ -36,6 +49,12 @@ export const DOCKER_SWARM_AGENT_FILES: Array<string> = [
 // Where install.sh puts them.
 export const DOCKER_SWARM_AGENT_INSTALL_DIR: string =
   "/opt/oneuptime-docker-swarm-agent";
+
+/*
+ * The URL install.sh offers when ONEUPTIME_URL is not set: Enter takes
+ * OneUptime Cloud.
+ */
+export const DOCKER_SWARM_AGENT_DEFAULT_URL: string = "https://oneuptime.com";
 
 export const DOCKER_SWARM_COLLECTOR_CONTAINER_NAME: string =
   "oneuptime-docker-swarm-agent";
@@ -73,8 +92,15 @@ export const DOCKER_SWARM_NODE_NAME_COMMAND: string =
   "echo \"DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')\" >> .env";
 export const DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS: string = "300";
 
-export function getDockerSwarmAgentFileUrl(fileName: string): string {
-  return `${DOCKER_SWARM_AGENT_RAW_BASE_URL}/${fileName}`;
+export function getDockerSwarmAgentFileUrl(
+  oneuptimeUrl: string,
+  fileName: string,
+): string {
+  return getInstallFileUrl(
+    oneuptimeUrl,
+    DOCKER_SWARM_AGENT_INSTALL_NAME,
+    fileName,
+  );
 }
 
 export type DockerSwarmInstallMethod = "install-script" | "docker-compose";
@@ -157,16 +183,36 @@ function isScript(data: GuideData): boolean {
  * never drift. Running the install script again is the upgrade: it fetches
  * the latest files and restarts the agent.
  */
-export function getDockerSwarmAgentInstallScriptCommand(): string {
-  return `curl -sSL ${getDockerSwarmAgentFileUrl("install.sh")} -o install.sh
-sh install.sh`;
+export function getDockerSwarmAgentInstallScriptCommand(
+  oneuptimeUrl: string,
+): string {
+  /*
+   * The script asks for the URL with this one as the answer Enter takes:
+   * the OneUptime the script and the agent's files come from. Its own
+   * answer is OneUptime Cloud, so only another OneUptime is named.
+   */
+  const run: string =
+    oneuptimeUrl === SETUP_GUIDE_URL_PLACEHOLDER ||
+    oneuptimeUrl === DOCKER_SWARM_AGENT_DEFAULT_URL
+      ? "sh install.sh"
+      : `ONEUPTIME_URL=${shellQuote(oneuptimeUrl)} sh install.sh`;
+
+  return `${getInstallScriptDownloadCommand(oneuptimeUrl, DOCKER_SWARM_AGENT_INSTALL_NAME)}
+${run}`;
 }
 
 // The agent's files, downloaded into the current folder.
-export function getDockerSwarmAgentDownloadCommand(): string {
+export function getDockerSwarmAgentDownloadCommand(
+  oneuptimeUrl: string,
+): string {
   return [
     ...DOCKER_SWARM_AGENT_FILES.map((fileName: string): string => {
-      return `curl -fsSL ${getDockerSwarmAgentFileUrl(fileName)} -o ${fileName}`;
+      return getAgentFileDownloadToCommand(
+        oneuptimeUrl,
+        DOCKER_SWARM_AGENT_INSTALL_NAME,
+        fileName,
+        fileName,
+      );
     }),
     "chmod +x inventory-snapshot.sh",
   ].join("\n");
@@ -184,7 +230,10 @@ export const DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND: string =
   "docker compose pull\ndocker compose up -d --force-recreate";
 
 function getTroubleshootScriptCommand(data: GuideData): string {
-  const download: string = `curl -sSL ${getDockerSwarmAgentFileUrl("troubleshoot.sh")} -o troubleshoot.sh`;
+  const download: string = getTroubleshootScriptDownloadCommand(
+    data.oneuptimeUrl,
+    DOCKER_SWARM_AGENT_INSTALL_NAME,
+  );
   if (isScript(data)) {
     return `${download}\nbash troubleshoot.sh`;
   }
@@ -253,9 +302,13 @@ function getInstallSteps(data: GuideData): Array<SetupGuideStep> {
         title: "Run the install script on a manager node",
         description:
           "It asks for your OneUptime URL, the ingestion key and a cluster name, then starts the agent.",
-        markdown: `${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand())}
-
-${clusterNote}
+        // The command, then right under it that the script can be read first.
+        markdown: codeBlock(
+          "bash",
+          getDockerSwarmAgentInstallScriptCommand(data.oneuptimeUrl),
+        ),
+        note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+        details: `${clusterNote}
 
 The script puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` and starts it with Docker Compose.`,
       },
@@ -279,9 +332,9 @@ The script puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` and starts it
       title: "Download the agent's files",
       description:
         "Run this in an empty folder on a manager node; it downloads the files the install script would.",
-      markdown: `${codeBlock("bash", getDockerSwarmAgentDownloadCommand())}
+      markdown: `${codeBlock("bash", getDockerSwarmAgentDownloadCommand(data.oneuptimeUrl))}
 
-They are the files in the [DockerSwarmAgent directory](${DOCKER_SWARM_AGENT_DIRECTORY_URL}).`,
+They are the files the install script downloads, from this OneUptime.`,
     },
     {
       title: "Configure and start the agent",
@@ -407,7 +460,7 @@ ${
       markdown: script
         ? `**Upgrade** — run the install script again. It downloads the latest docker-compose.yml, collector config and inventory poller into \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\`, pulls the images and restarts the agent; answer its questions with the same URL, key and cluster name:
 
-${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand())}
+${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand(data.oneuptimeUrl))}
 
 It rewrites \`.env\` from your answers and keeps only the AI agent's target lists and what AI may do (\`ONEUPTIME_AI_INVESTIGATION\`, \`ONEUPTIME_AI_FIXES\`): add back any variable you set yourself, such as \`DOCKER_API_VERSION\`. Turned on AI fixes? Run it as \`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh\` to keep them on. Left the AI agent out? Pass \`--no-ai-agent\` again.
 

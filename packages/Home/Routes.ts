@@ -1,6 +1,11 @@
 // improt API
 import "./API/BlogAPI";
-import { InstallScriptPath, StaticPath, ViewsPath } from "./Utils/Config";
+import {
+  InfrastructureAgentInstallScriptPath,
+  InstallScriptPath,
+  StaticPath,
+  ViewsPath,
+} from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
 import ProductCompare, {
   Product,
@@ -548,10 +553,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/infrastructure-agent/install.sh",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        // fetch the file from https://raw.githubusercontent.com/oneuptime/infrastructure-agent/release/Scripts/Install/Linux.sh  and send it as response
-        res.redirect(
-          "https://raw.githubusercontent.com/OneUptime/oneuptime/release/agents/InfrastructureAgent/Scripts/Install/Linux.sh",
-        );
+        /*
+         * The infrastructure agent's installer is served by every OneUptime
+         * with its docs (packages/App/FeatureSet/Docs/Static), so this
+         * address sends readers to it on this same host, never to GitHub.
+         */
+        res.redirect(InfrastructureAgentInstallScriptPath);
       },
     );
 
