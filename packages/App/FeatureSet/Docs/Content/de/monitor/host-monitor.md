@@ -115,7 +115,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 - **Arbeitsspeicher** schließt Puffer und Seitencache aus, sodass ein Host, der überwiegend Cache enthält, sie nicht auslöst.
 - **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll: Die Collector-Konfigurationen von OneUptime lassen sie mit `exclude_fs_types` im Scraper `filesystem` aus, und eine eigene Konfiguration braucht dasselbe.
 - **Lastdurchschnitt** ist eine rohe Länge der Ausführungswarteschlange, nicht durch die Anzahl der Kerne geteilt: 4 ist auf einem Host mit 2 Kernen Sättigung und auf einem mit 32 Kernen Routine; erhöhen Sie ihn daher auf großen Hosts.
-- **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet nur unter Linux.
+- **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet unter Linux, macOS und BSD, nicht unter Windows.
 
 ## Erfasste Metriken
 

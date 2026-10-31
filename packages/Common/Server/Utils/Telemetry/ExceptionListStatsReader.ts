@@ -22,6 +22,7 @@ import {
 import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
 import TelemetryExceptionService from "../../Services/TelemetryExceptionService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
@@ -52,7 +53,13 @@ const TABLE_NAME: string = AnalyticsTableName.ExceptionInstance;
 
 export interface ExceptionListStatsQuery {
   projectId: ObjectID;
+  /*
+   * The fingerprints read, and beside each the exception it counts for: its
+   * own, or the one it was merged into. Both reads group by that exception,
+   * so a user who met two merged exceptions counts once.
+   */
   fingerprints: Array<string>;
+  groupIds: Array<string>;
   startTime: Date;
   endTime: Date;
   bucketSizeInSeconds: number;
@@ -60,13 +67,13 @@ export interface ExceptionListStatsQuery {
 }
 
 interface TrendRow {
-  fingerprint: string;
+  groupId: string;
   bucket: number;
   count: number;
 }
 
 interface AffectedUsersRow {
-  fingerprint: string;
+  groupId: string;
   users: number;
 }
 
@@ -132,41 +139,58 @@ export default class ExceptionListStatsReader {
     TelemetryReadScopeUtil.appendServiceFilter(statement, query.serviceFilter);
   }
 
+  // The exception an occurrence counts for, from its fingerprint.
+  private static groupColumn(query: ExceptionListStatsQuery): Statement {
+    return SQL`transform(fingerprint, ${{
+      type: TableColumnType.Text,
+      value: new Includes(query.fingerprints),
+    }}, ${{
+      type: TableColumnType.Text,
+      value: new Includes(query.groupIds),
+    }}, '') AS grp`;
+  }
+
   /*
-   * Occurrences per fingerprint and slice. The slice is counted from the
+   * Occurrences per exception and slice. The slice is counted from the
    * range's own start, so slice 0 is its first EXCEPTION_TREND_BUCKET_COUNT-th.
    */
   public static buildTrendStatement(query: ExceptionListStatsQuery): Statement {
-    const statement: Statement = SQL`SELECT fingerprint, intDiv(toInt64(toUnixTimestamp(time)) - ${{
-      type: TableColumnType.BigNumber,
-      value: Math.floor(query.startTime.getTime() / 1000),
-    }}, ${{
-      type: TableColumnType.Number,
-      value: query.bucketSizeInSeconds,
-    }}) AS bucket, count() AS cnt FROM ${TABLE_NAME}`;
+    const statement: Statement = SQL`SELECT `;
+    statement.append(ExceptionListStatsReader.groupColumn(query));
+    statement.append(
+      SQL`, intDiv(toInt64(toUnixTimestamp(time)) - ${{
+        type: TableColumnType.BigNumber,
+        value: Math.floor(query.startTime.getTime() / 1000),
+      }}, ${{
+        type: TableColumnType.Number,
+        value: query.bucketSizeInSeconds,
+      }}) AS bucket, count() AS cnt FROM ${TABLE_NAME}`,
+    );
 
     ExceptionListStatsReader.appendWhere(statement, query);
 
-    statement.append(" GROUP BY fingerprint, bucket");
+    statement.append(" GROUP BY grp, bucket");
     statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
 
   /*
-   * Distinct users per fingerprint. Occurrences that name no user are left
+   * Distinct users per exception. Occurrences that name no user are left
    * out, so an exception none of whose occurrences names one counts nobody
    * rather than one "empty" user.
    */
   public static buildAffectedUsersStatement(
     query: ExceptionListStatsQuery,
   ): Statement {
-    const statement: Statement = SQL`SELECT fingerprint, uniq(userId) AS users FROM ${TABLE_NAME}`;
+    const statement: Statement = SQL`SELECT `;
+    statement.append(ExceptionListStatsReader.groupColumn(query));
+    statement.append(SQL`, uniq(userId) AS users FROM ${TABLE_NAME}`);
 
     ExceptionListStatsReader.appendWhere(statement, query);
 
     statement.append(" AND userId != ''");
-    statement.append(" GROUP BY fingerprint");
+    statement.append(" GROUP BY grp");
     statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
@@ -196,7 +220,7 @@ export default class ExceptionListStatsReader {
       }
 
       out.push({
-        fingerprint: String(row["fingerprint"] || ""),
+        groupId: String(row["grp"] || "").toLowerCase(),
         bucket,
         count: Math.floor(count),
       });
@@ -218,7 +242,7 @@ export default class ExceptionListStatsReader {
       }
 
       out.push({
-        fingerprint: String(row["fingerprint"] || ""),
+        groupId: String(row["grp"] || "").toLowerCase(),
         users: Math.floor(users),
       });
     }
@@ -309,7 +333,8 @@ export default class ExceptionListStatsReader {
       });
 
     const exceptionById: Map<string, TelemetryException> = new Map();
-    const idsByFingerprint: Map<string, Array<string>> = new Map();
+    // Each fingerprint read, and the exception it counts for.
+    const groupByFingerprint: Map<string, string> = new Map();
     const entityIds: Array<string> = [];
 
     for (const exception of exceptions) {
@@ -321,10 +346,9 @@ export default class ExceptionListStatsReader {
       }
 
       exceptionById.set(id, exception);
-      idsByFingerprint.set(fingerprint, [
-        ...(idsByFingerprint.get(fingerprint) || []),
-        id,
-      ]);
+      if (!groupByFingerprint.has(fingerprint)) {
+        groupByFingerprint.set(fingerprint, id);
+      }
 
       const entityId: string = exception.primaryEntityId?.toString() || "";
       if (entityId && !entityIds.includes(entityId)) {
@@ -334,6 +358,45 @@ export default class ExceptionListStatsReader {
 
     if (exceptionById.size === 0) {
       return answer;
+    }
+
+    /*
+     * The exceptions merged into these (TelemetryExceptionMerge): their
+     * occurrences keep their own fingerprint and count here, so their
+     * fingerprints are read for the exception they were merged into. As
+     * the caller, as the exceptions themselves were.
+     */
+    const members: Array<TelemetryException> =
+      await TelemetryExceptionService.findBy({
+        query: {
+          projectId: data.props.tenantId,
+          mergedIntoTelemetryExceptionId: QueryHelper.any(
+            Array.from(exceptionById.keys()),
+          ),
+        } as never,
+        select: {
+          fingerprint: true,
+          mergedIntoTelemetryExceptionId: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+
+    for (const member of members) {
+      const survivorId: string =
+        member.mergedIntoTelemetryExceptionId?.toString().toLowerCase() || "";
+      const fingerprint: string = member.fingerprint || "";
+
+      if (
+        !fingerprint ||
+        !exceptionById.has(survivorId) ||
+        groupByFingerprint.has(fingerprint)
+      ) {
+        continue;
+      }
+
+      groupByFingerprint.set(fingerprint, survivorId);
     }
 
     // Their occurrences, within the caller's telemetry read scope.
@@ -346,7 +409,8 @@ export default class ExceptionListStatsReader {
 
     const query: ExceptionListStatsQuery = {
       projectId: data.props.tenantId,
-      fingerprints: Array.from(idsByFingerprint.keys()),
+      fingerprints: Array.from(groupByFingerprint.keys()),
+      groupIds: Array.from(groupByFingerprint.values()),
       startTime: data.startTime,
       endTime: data.endTime,
       bucketSizeInSeconds,
@@ -377,15 +441,14 @@ export default class ExceptionListStatsReader {
     for (const row of ExceptionListStatsReader.toTrendRows(trendRows)) {
       const bucket: number | null = clampExceptionTrendBucket(row.bucket);
 
-      if (bucket === null) {
+      if (bucket === null || !exceptionById.has(row.groupId)) {
         continue;
       }
 
-      for (const id of idsByFingerprint.get(row.fingerprint) || []) {
-        const trend: Array<number> = trendById.get(id) || emptyExceptionTrend();
-        trend[bucket] = (trend[bucket] || 0) + row.count;
-        trendById.set(id, trend);
-      }
+      const trend: Array<number> =
+        trendById.get(row.groupId) || emptyExceptionTrend();
+      trend[bucket] = (trend[bucket] || 0) + row.count;
+      trendById.set(row.groupId, trend);
     }
 
     const usersById: Map<string, number> = new Map();
@@ -393,8 +456,8 @@ export default class ExceptionListStatsReader {
       for (const row of ExceptionListStatsReader.toAffectedUsersRows(
         userRows,
       )) {
-        for (const id of idsByFingerprint.get(row.fingerprint) || []) {
-          usersById.set(id, row.users);
+        if (exceptionById.has(row.groupId)) {
+          usersById.set(row.groupId, row.users);
         }
       }
     }

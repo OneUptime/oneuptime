@@ -24,7 +24,7 @@ flowchart TB
 
 ## Come OneUptime modella l'IoT
 
-- **Flotta**: un gruppo di dispositivi, come `building-a-sensors` o `field-gateways`. Deriva dall'attributo di risorsa `iot.fleet.name` e compare in OneUptime come servizio di telemetria `iot/<fleet>`. Imposta anche `service.name=iot/<fleet>`, così log e metriche finiscono sotto lo stesso servizio.
+- **Flotta**: un gruppo di dispositivi, come `building-a-sensors` o `field-gateways`. Deriva dall'attributo di risorsa `iot.fleet.name` e compare in OneUptime come servizio di telemetria `iot/<fleet>`. Imposta anche `service.name=iot/<fleet>`, così log e metriche finiscono sotto lo stesso servizio. Il nome di una flotta viene riconosciuto senza distinguere maiuscole e minuscole: una lettura inviata per `warehouse` arriva nella flotta `Warehouse` e viene memorizzata con quel nome.
 - **Dispositivo**: un dispositivo di una flotta, identificato dall'attributo `device.id` su ogni punto dati. L'inventario della flotta è indicizzato su `device.id`.
 
 | Attributo | Impostato su | Obbligatorio | Descrizione |
@@ -195,7 +195,7 @@ Un payload di telemetria può contenere anche `"attributes"`, una mappa di strin
 
 ### Rilevamento dello stato offline con Last Will
 
-Registra un Last Will MQTT su `oneuptime/<fleet>/<device>/status` con il payload `offline`. Se il dispositivo si spegne o esce dalla rete, OneUptime pubblica `iot_device_up = 0` per esso nel momento in cui termina la sua sessione, il che fa scattare il modello di avviso Device Offline incluso e segna il dispositivo come non attivo nell'inventario, senza polling. Pubblica `online` sullo stesso topic dopo la connessione, così il dispositivo risulta di nuovo attivo.
+Registra un Last Will MQTT su `oneuptime/<fleet>/<device>/status` con il payload `offline`. Se il dispositivo si spegne o esce dalla rete, OneUptime pubblica `iot_device_up = 0` per esso nel momento in cui termina la sua sessione, il che fa scattare il modello di avviso Device Offline incluso e segna il dispositivo come non attivo nell'inventario, senza polling. Pubblica `online` sullo stesso topic dopo la connessione, così il dispositivo risulta di nuovo attivo. Anche ogni lettura che il dispositivo pubblica conta come attivo, quindi un dispositivo che continua a inviare letture resta attivo senza pubblicare di nuovo il suo stato.
 
 ### Esempi
 
@@ -281,7 +281,7 @@ OneUptime riconosce questi nomi di metriche `iot_*`. Invia solo quelli che hanno
 | `iot_battery_percent` | Carica della batteria, da `0` a `100` (%). |
 | `iot_signal_strength_dbm` | Intensità del segnale wireless in dBm, come l'RSSI Wi-Fi, LoRa o cellulare. |
 | `iot_temperature_celsius` | Temperatura del dispositivo o del sensore in °C. |
-| `iot_cpu_usage_ratio` | Utilizzo della CPU come rapporto da `0` a `1`. OneUptime lo memorizza e lo mostra come percentuale. |
+| `iot_cpu_usage_ratio` | Utilizzo della CPU come rapporto da `0` a `1`. OneUptime lo memorizza così come viene inviato, e l'inventario dei dispositivi lo mostra come percentuale. |
 | `iot_memory_usage_bytes` | Memoria in uso, in byte. |
 | `iot_memory_size_bytes` | Memoria totale del dispositivo, in byte. |
 | `iot_uptime_seconds` | Secondi dall'ultimo avvio del dispositivo. |
@@ -289,7 +289,7 @@ OneUptime riconosce questi nomi di metriche `iot_*`. Invia solo quelli che hanno
 ## Verifica che la flotta compaia
 
 1. Verifica che il dispositivo, il collector del gateway o il client MQTT invii senza errori: cerca nei suoi log errori di esportazione e risposte HTTP `401` o `422`, oppure una connessione rifiutata con il codice di ritorno 4.
-2. Apri **Prodotti → Infrastruttura → IoT → All Fleets**. La flotta compare come `iot/<fleet>` entro un minuto circa dalle sue prime letture.
+2. Apri **Prodotti → Infrastruttura → IoT → All Fleets**. La flotta compare con il suo nome entro un minuto circa dalle sue prime letture.
 3. Apri la pagina **Dispositivi** della flotta. Ogni dispositivo che hai inviato dovrebbe comparire con i valori più recenti di batteria, segnale, temperatura, CPU, memoria e stato attivo o non attivo.
 4. Apri la pagina **Metriche** della flotta per mostrare in un grafico qualsiasi serie `iot_*`.
 

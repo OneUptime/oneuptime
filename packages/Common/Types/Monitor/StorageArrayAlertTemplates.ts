@@ -1,4 +1,5 @@
 import ObjectID from "../ObjectID";
+import PlatformMetricUnitUtil from "../../Utils/Monitor/PlatformMetricUnitUtil";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
@@ -165,7 +166,25 @@ export function buildStorageArrayMonitorConfig(args: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
   groupByAttributeKey?: string | undefined;
+  /*
+   * The series' display unit. Defaults to the unit the catalog gives the
+   * metric (for its label filters: Pure puts several quantities on one
+   * metric name), which every template and Custom Metric threw away. The
+   * criteria take it as the sample unit and, unless a threshold names its
+   * own, the threshold's: without it a latency threshold read as a bare
+   * number of microseconds, and the threshold had no unit list. The worker
+   * reads values in the same catalog units, so nothing is rescaled.
+   */
+  legendUnit?: string | undefined;
 }): MonitorStepStorageArrayMonitor {
+  const legendUnit: string | undefined =
+    args.legendUnit ??
+    PlatformMetricUnitUtil.getMetricUnit({
+      platform: "storageArray",
+      metricName: args.metricName,
+      attributes: args.attributes,
+    });
+
   return {
     arrayIdentifier: args.arrayIdentifier,
     storageSystem: args.storageSystem,
@@ -178,7 +197,7 @@ export function buildStorageArrayMonitorConfig(args: {
             title: args.metricAlias,
             description: args.metricAlias,
             legend: args.metricAlias,
-            legendUnit: undefined,
+            legendUnit: legendUnit,
           },
           metricQueryData: {
             filterData: {

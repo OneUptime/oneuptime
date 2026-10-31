@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import AlertMeasurementValueService from "./AlertMeasurementValueService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -44,6 +44,9 @@ import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -60,6 +63,36 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     this.keepRowsOnDeleteByQuery(
       StateTimelineRowsKept.forTable("AlertStateTimeline"),
     );
+  }
+
+  /*
+   * The state timeline of a private alert are read only by those who see the
+   * alert: its owners - the people named on it and the members of the
+   * teams named on it - and the project's owners and admins
+   * (applyAlertRelatedRecordPrivacyFilter), as every other part of one is
+   * (PrivateRecordParts.test). Changing or deleting them follows
+   * the private record rule (PrivateRecordPermission).
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<AlertStateTimeline>,
+  ): Promise<OnFind<AlertStateTimeline>> {
+    findBy.query = applyAlertRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<AlertStateTimeline>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyAlertRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
   }
 
   /*

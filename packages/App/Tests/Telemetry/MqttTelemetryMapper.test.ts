@@ -3,6 +3,7 @@ import {
   parseMqttPublish,
   MqttIngestPayload,
   MqttPublishParseResult,
+  scopePublishToDevice,
   MQTT_MAX_METRICS_PER_PUBLISH,
   MQTT_MAX_PAYLOAD_BYTES,
 } from "../../FeatureSet/Telemetry/Utils/MqttTelemetryMapper";
@@ -69,12 +70,14 @@ describe("parseMqttPublish — telemetry topic", () => {
     );
 
     const payload: MqttIngestPayload = expectPayload(result);
-    expect(payload.points).toHaveLength(2);
+    // The two readings, and the device being up that publishing them implies.
+    expect(payload.points).toHaveLength(3);
     expect(payload.points).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "iot_battery_percent", value: 87 }),
         // booleans coerce to 1/0
         expect.objectContaining({ name: "door_open", value: 1 }),
+        expect.objectContaining({ name: "iot_device_up", value: 1 }),
       ]),
     );
     // attributes ride every datapoint
@@ -190,6 +193,7 @@ describe("parseMqttPublish — single-metric topic", () => {
     const payload: MqttIngestPayload = expectPayload(result);
     expect(payload.points).toEqual([
       { name: "iot_temperature_celsius", value: 23.4, attributes: {} },
+      { name: "iot_device_up", value: 1, attributes: {} },
     ]);
   });
 
@@ -211,6 +215,11 @@ describe("parseMqttPublish — single-metric topic", () => {
         value: 55,
         attributes: { "iot.device.kind": "Sensor" },
       },
+      {
+        name: "iot_device_up",
+        value: 1,
+        attributes: { "iot.device.kind": "Sensor" },
+      },
     ]);
   });
 
@@ -220,6 +229,69 @@ describe("parseMqttPublish — single-metric topic", () => {
       "full",
     );
     expect(result.error).toBeDefined();
+  });
+});
+
+/*
+ * Only the status topic carried iot_device_up, and Device Offline counts a
+ * device as present by it: a registered device that published "online"
+ * once and then only readings was declared down when its window passed.
+ */
+describe("parseMqttPublish — a reading implies the device is up", () => {
+  test("a telemetry publish carries iot_device_up = 1 at the reading's time", () => {
+    const result: MqttPublishParseResult = parse(
+      "oneuptime/fleet/dev/telemetry",
+      JSON.stringify({
+        metrics: { humidity_percent: 40 },
+        timestamp: 1750000123,
+        attributes: { "iot.device.kind": "Sensor" },
+      }),
+    );
+
+    const payload: MqttIngestPayload = expectPayload(result);
+    expect(payload.timestampMs).toBe(1750000123000);
+    expect(payload.points).toEqual([
+      {
+        name: "humidity_percent",
+        value: 40,
+        attributes: { "iot.device.kind": "Sensor" },
+      },
+      {
+        name: "iot_device_up",
+        value: 1,
+        attributes: { "iot.device.kind": "Sensor" },
+      },
+    ]);
+  });
+
+  test("a publish with an iot_device_up of its own keeps it, a 0 included", () => {
+    for (const [topic, body] of [
+      [
+        "oneuptime/fleet/dev/telemetry",
+        JSON.stringify({ metrics: { iot_device_up: 0, humidity_percent: 40 } }),
+      ],
+      ["oneuptime/fleet/dev/metrics/iot_device_up", "0"],
+    ] as Array<[string, string]>) {
+      const ups: Array<{ value: number }> = expectPayload(
+        parse(topic, body),
+      ).points.filter((point: { name: string }) => {
+        return point.name === "iot_device_up";
+      });
+
+      expect({ topic, ups }).toEqual({
+        topic,
+        ups: [expect.objectContaining({ value: 0 })],
+      });
+    }
+  });
+
+  test("a status publish is its own verdict, and a rejected publish implies nothing", () => {
+    expect(
+      expectPayload(parse("oneuptime/fleet/dev/status", "offline")).points,
+    ).toEqual([{ name: "iot_device_up", value: 0, attributes: {} }]);
+    expect(
+      parse("oneuptime/fleet/dev/telemetry", "not json").error,
+    ).toBeDefined();
   });
 });
 
@@ -386,5 +458,51 @@ describe("buildOtlpMetricsBody", () => {
     expect(
       ((merged["gauge"] as JSONObject)["dataPoints"] as JSONArray).length,
     ).toBe(2);
+  });
+});
+
+/*
+ * A device-authenticated publish is held to its credential's fleet and
+ * device, and its readings carry the fleet as OneUptime stores it: a device
+ * publishing into "warehouse" for the fleet "Warehouse" wrote readings no
+ * fleet page or monitor matched.
+ */
+describe("scopePublishToDevice", () => {
+  const device: { fleetName: string; externalId: string } = {
+    fleetName: "Warehouse",
+    externalId: "door-1",
+  };
+
+  function payloadFor(fleetName: string, deviceId: string): MqttIngestPayload {
+    return {
+      fleetName,
+      deviceId,
+      timestampMs: NOW_MS,
+      points: [{ name: "iot_device_up", value: 1, attributes: {} }],
+    };
+  }
+
+  test("the device's own topic, in any case, carries the stored fleet name", () => {
+    expect(
+      scopePublishToDevice({
+        payload: payloadFor("warehouse", "door-1"),
+        device,
+      }),
+    ).toEqual(payloadFor("Warehouse", "door-1"));
+  });
+
+  test("another fleet or another device is refused, and device ids are exact", () => {
+    for (const [fleetName, deviceId] of [
+      ["Dock", "door-1"],
+      ["Warehouse", "door-2"],
+      ["Warehouse", "DOOR-1"],
+    ] as Array<[string, string]>) {
+      expect(
+        scopePublishToDevice({
+          payload: payloadFor(fleetName, deviceId),
+          device,
+        }),
+      ).toBe(null);
+    }
   });
 });

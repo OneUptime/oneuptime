@@ -190,7 +190,7 @@ Cada pregunta tiene su propio `id` (letras, dígitos, `-` y `_`), una `source`, 
 
 | `source` | Qué pregunta |
 | --- | --- |
-| `Question` | Una pregunta propia del formulario, que se responde según su `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` o `DateTime`. Un desplegable enumera sus `dropdownOptions`, una por línea. |
+| `Question` | Una pregunta propia del formulario, que se responde según su `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` o `MultipleFiles`. Un desplegable enumera sus `dropdownOptions`, una por línea. |
 | `TargetField` | Un campo de lo que crea el formulario, nombrado por `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` para un incidente; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` y `labels` para un evento de mantenimiento. Un campo que se responde eligiendo enumera los registros que ofrece en `allowedOptionIds`. |
 | `TargetCustomField` | Uno de los campos personalizados del incidente o del evento, nombrado por `customFieldId`. |
 | `Submitter` | El `Name` o el `Email` de quien envía, nombrado por `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+La respuesta a una pregunta de archivos son los archivos tal como se guardaron, cada uno con su `fileId`, `name`, `fileType` y `size`. Los archivos en sí están en lo que creó el envío: en su campo personalizado de archivo, o adjuntos a su nota privada.
 
 ### Workflows
 

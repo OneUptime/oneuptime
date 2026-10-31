@@ -81,10 +81,14 @@ Logoen beholder høyden til OneUptime-logoen den erstatter, og en bred logo tilp
 | **Avkrysningsboks** | En boks å krysse av, som en bekreftelse. |
 | **Dato** | En dag. |
 | **Dato og klokkeslett** | En dag og et klokkeslett. |
+| **Fil** | Én fil, for eksempel et skjermbilde eller et signert dokument. |
+| **Flere filer** | Opptil 10 filer, for eksempel skjermbilder og logger. |
 
 En nedtrekksliste eller et flervalg viser **Alternativer** du gir det, hvert med en valgfri farge (knappen ved siden av et alternativ åpner et sett med navngitte farger, med **Egendefinert farge** for en eksakt kode), mellom ett og 100 av dem. Å bytte et spørsmål mellom **Nedtrekksliste** og **Flervalg** beholder alternativene; et spørsmål som blir en av dem, starter med to du kan gi nytt navn, og et som slutter å være en av dem, mister dem. **Dupliser** kopierer et av skjemaets egne spørsmål rett under det.
 
 Svarene på disse spørsmålene lagres med innsendingen og vises i det private notatet på det skjemaet oppretter — de fyller ikke ut noe felt. For å fylle ut et felt legger du til selve feltet, fra de to neste gruppene.
+
+Et spørsmål av typen **Fil** eller **Flere filer** tar filer fra innsenderens datamaskin og legger dem ved det private notatet, der teamet ditt laster dem ned. Vil du heller beholde filene i et egendefinert felt på hendelsen eller arrangementet, legger du til et egendefinert felt av typen **Fil** eller **Flere filer**.
 
 ### Felt på det skjemaet oppretter
 
@@ -115,7 +119,7 @@ Hvert felt kan bare spørres om én gang; listen markerer de som allerede er på
 
 ### Egendefinerte felt
 
-Dine egendefinerte felt for hendelser — eller for planlagt vedlikehold, på et vedlikeholdsskjema — hvert et spørsmål der svaret blir feltets verdi. Spørsmålet tar typen og alternativene fra det egendefinerte feltet, og starter med navnet som spørsmål og beskrivelsen som hjelpetekst, som du kan endre.
+Dine egendefinerte felt for hendelser — eller for planlagt vedlikehold, på et vedlikeholdsskjema — hvert et spørsmål der svaret blir feltets verdi. Spørsmålet tar typen og alternativene fra det egendefinerte feltet, og starter med navnet som spørsmål og beskrivelsen som hjelpetekst, som du kan endre. Et egendefinert felt av typen **Fil** eller **Flere filer** stilles som et filspørsmål, og filene havner i feltet.
 
 Et skjema spør bare om de egendefinerte feltene du legger til det, uansett hva **Vis ved opprettelse** sier: hvert felt et skjema spør om, viser navnet, beskrivelsen og alternativene sine til alle med lenken. Når et egendefinert felt slettes, blir spørsmålet stående på skjemaet, men spørres ikke lenger om, og kortet sier det — slett spørsmålet. Et felt som opprettes igjen med samme navn, er et nytt felt: legg det til igjen.
 
@@ -232,6 +236,9 @@ Etter innsending sier siden "Takk — svaret ditt er sendt." og gir nummeret på
 | Et hvilket som helst annet tekstsvar | 10 000 tegn. |
 | Et flervalgssvar | 100 valg. |
 | **Ditt navn**, **Din e-post** | 100 tegn hver. |
+| En fil | 10 MB, av slagene et [egendefinert filfelt](/docs/incidents/settings#filfelt) tar. |
+| Et spørsmål av typen **Flere filer** | 10 filer. |
+| Filene i én innsending | 10 filer, 20 MB til sammen. |
 
 En innsending som bryter en grense, utelater et påkrevd svar eller gir et svar som ikke passer til spørsmålet, avvises med en melding som sier hvilket, og ingenting opprettes. Svar på spørsmål skjemaet ikke stiller, ignoreres.
 

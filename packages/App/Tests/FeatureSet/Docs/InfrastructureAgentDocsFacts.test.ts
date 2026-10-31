@@ -658,9 +658,12 @@ describe("the IoT devices page, against the ingest", () => {
         "oneuptime/building-a-sensors/sensor-001/telemetry",
         '{"metrics":{"iot_temperature_celsius":21.5}}',
       );
+      // The reading, and the device being up that publishing it implies.
       expect(telemetry.payload?.points).toEqual([
         { name: "iot_temperature_celsius", value: 21.5, attributes: {} },
+        { name: "iot_device_up", value: 1, attributes: {} },
       ]);
+      lineWith(IOT_PAGE, "Any reading the device publishes counts as up too");
       expect(
         rowOf(IOT_PAGE, "`oneuptime/<fleet>/<device>/telemetry`")[1],
       ).toContain('`{"metrics":{"iot_temperature_celsius":21.5}}`');

@@ -262,6 +262,13 @@ describe("which columns record a person doing something", () => {
       "linked",
       "markedAsArchived",
       "markedAsResolved",
+      /*
+       * TelemetryException.mergedByUserId: who merged an exception into
+       * another as the same bug. TelemetryExceptionMerge stamps it from the
+       * caller as the merge is made, and clears it on unmerge; the column is
+       * never writable through the API, so no request chooses it.
+       */
+      "merged",
       "overrided",
       "pinned",
       "projectCreated",

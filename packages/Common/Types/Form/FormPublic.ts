@@ -3,8 +3,23 @@ import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
 } from "../CustomField/CustomFieldDropdownOption";
+import {
+  CUSTOM_FIELD_FILE_TYPES,
+  isCustomFieldFileMimeType,
+} from "../CustomField/CustomFieldFile";
 import CustomFieldType from "../CustomField/CustomFieldType";
 import { isCustomFieldValueEmpty } from "../CustomField/CustomFieldValueMapping";
+import { isFileContentOfType } from "../File/FileContentCheck";
+import {
+  cleanFormFileName,
+  decodeBase64,
+  FORM_FILE_MAX_SIZE_IN_BYTES,
+  FORM_FILE_QUESTION_MAX_FILES,
+  FORM_SUBMISSION_FILES_MAX_TOTAL_SIZE_IN_BYTES,
+  FORM_SUBMISSION_MAX_FILES,
+  FormFileAnswer,
+  getBase64DecodedLength,
+} from "./FormFileAnswer";
 import {
   CustomFieldValueValidationError,
   validateCustomFieldValues,
@@ -94,10 +109,31 @@ export enum PublicFormFieldType {
   Dropdown = "Dropdown",
   MultiSelectDropdown = "MultiSelectDropdown",
   Email = "Email",
+  /*
+   * A file, or several, kept in the browser and sent with the answers
+   * (FormFileAnswer): there may be nobody signed in to upload as.
+   */
+  File = "File",
+  MultipleFiles = "MultipleFiles",
 }
 
 const PUBLIC_FORM_FIELD_TYPES: ReadonlyArray<string> =
   Object.values(PublicFormFieldType);
+
+// The file types: their answers are files, not text.
+export const PUBLIC_FORM_FILE_FIELD_TYPES: ReadonlyArray<PublicFormFieldType> =
+  [PublicFormFieldType.File, PublicFormFieldType.MultipleFiles];
+
+export type IsPublicFormFileFieldFunction = (field: {
+  type: PublicFormFieldType;
+}) => boolean;
+
+// Whether a question is answered with files.
+export const isPublicFormFileField: IsPublicFormFileFieldFunction = (field: {
+  type: PublicFormFieldType;
+}): boolean => {
+  return PUBLIC_FORM_FILE_FIELD_TYPES.includes(field.type);
+};
 
 // The text types: their answers are capped in length.
 export const PUBLIC_FORM_TEXT_FIELD_TYPES: ReadonlyArray<PublicFormFieldType> =
@@ -162,6 +198,15 @@ export interface PublicFormField {
   options?: Array<PublicFormFieldOption> | undefined;
   // The longest text answer it takes.
   maxLength?: number | undefined;
+  /*
+   * File and MultipleFiles only: the kinds of file it takes, the largest
+   * file, and the most files a MultipleFiles question takes - the same for
+   * every file question, told so the page can say so before anything is
+   * sent (FormFileAnswer).
+   */
+  fileTypes?: Array<string> | undefined;
+  maxFileSizeInBytes?: number | undefined;
+  maxFiles?: number | undefined;
   // An option to choose to begin with: the form's own severity.
   defaultValue?: string | undefined;
   /*
@@ -520,6 +565,18 @@ const toRecordOptions: ToRecordOptionsFunction = (data: {
   return options;
 };
 
+type SetFileLimitsFunction = (field: PublicFormField) => void;
+
+// What a file question takes, told to the page with it.
+const setFileLimits: SetFileLimitsFunction = (field: PublicFormField): void => {
+  field.fileTypes = [...CUSTOM_FIELD_FILE_TYPES];
+  field.maxFileSizeInBytes = FORM_FILE_MAX_SIZE_IN_BYTES;
+
+  if (field.type === PublicFormFieldType.MultipleFiles) {
+    field.maxFiles = FORM_FILE_QUESTION_MAX_FILES;
+  }
+};
+
 type ReadHelpTextFunction = (value: unknown) => string | undefined;
 
 const readHelpText: ReadHelpTextFunction = (
@@ -668,6 +725,8 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
           }
         } else if (PUBLIC_FORM_TEXT_FIELD_TYPES.includes(base.type)) {
           base.maxLength = FORM_TEXT_ANSWER_MAX_LENGTH;
+        } else if (isPublicFormFileField(base)) {
+          setFileLimits(base);
         }
 
         bindings[field.id] = {
@@ -767,6 +826,9 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
           }
         } else if (PUBLIC_FORM_TEXT_FIELD_TYPES.includes(base.type)) {
           base.maxLength = FORM_TEXT_ANSWER_MAX_LENGTH;
+        } else if (isPublicFormFileField(base)) {
+          // A file custom field is asked for its files, as a file question is.
+          setFileLimits(base);
         }
 
         askedCustomFieldNames.add(definition.name);
@@ -1007,6 +1069,24 @@ const NOT_OPTIONS_MESSAGE: string =
 const NOT_TEXT_MESSAGE: string = "{{field}} must be text.";
 const NOT_YES_NO_MESSAGE: string = "{{field}} must be checked or unchecked.";
 const NOT_AN_EMAIL_MESSAGE: string = "{{field}} is not a valid email address.";
+const FILE_NOT_ONE_MESSAGE: string = "{{field}} takes one file.";
+const FILE_TOO_MANY_MESSAGE: string =
+  "{{field}} takes at most {{maxLength}} files.";
+const FILE_SHAPE_MESSAGE: string =
+  "{{field}} takes a file chosen on the form, with its name, its type and its contents.";
+const FILE_TOO_LARGE_MESSAGE: string =
+  "Each file in {{field}} can be at most 10 MB.";
+const FILE_EMPTY_MESSAGE: string = "A file in {{field}} is empty.";
+const FILE_TYPE_MESSAGE: string =
+  "{{field}} takes PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP files.";
+const FILE_CONTENT_MESSAGE: string =
+  "A file in {{field}} does not hold what its type says. Upload the file as it was saved.";
+
+// What a whole submission's files are held to (FormFileAnswer).
+export const FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE: string =
+  "A response can carry at most 10 files.";
+export const FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE: string =
+  "The files of a response can be at most 20 MB together.";
 
 type FillMessageFunction = (
   template: string,
@@ -1262,6 +1342,171 @@ type ValidateOneAnswerFunction = (data: {
   errors: Array<string>;
 }) => JSONValue | undefined;
 
+type ValidateOneFileFunction = (data: {
+  field: PublicFormField;
+  entry: unknown;
+  errors: Array<string>;
+}) => FormFileAnswer | null;
+
+/*
+ * One file of a file question's answer: { name, fileType, data }, with a
+ * name, of a kind a file question takes, its data strict base64 of at most
+ * FORM_FILE_MAX_SIZE_IN_BYTES - measured before it is read - holding what
+ * its type says. The file as it is kept, or null (the problem recorded).
+ */
+const validateOneFile: ValidateOneFileFunction = (data: {
+  field: PublicFormField;
+  entry: unknown;
+  errors: Array<string>;
+}): FormFileAnswer | null => {
+  const label: string = data.field.label;
+
+  if (!isPlainObject(data.entry)) {
+    data.errors.push(fillMessage(FILE_SHAPE_MESSAGE, { field: label }));
+    return null;
+  }
+
+  const name: string = cleanFormFileName(data.entry["name"]);
+  const fileType: unknown = data.entry["fileType"];
+  const text: unknown = data.entry["data"];
+
+  if (!name || typeof fileType !== "string" || typeof text !== "string") {
+    data.errors.push(fillMessage(FILE_SHAPE_MESSAGE, { field: label }));
+    return null;
+  }
+
+  const type: string = fileType.trim().toLowerCase();
+
+  if (!isCustomFieldFileMimeType(type)) {
+    data.errors.push(fillMessage(FILE_TYPE_MESSAGE, { field: label }));
+    return null;
+  }
+
+  const length: number | null = getBase64DecodedLength(text);
+
+  if (length === null) {
+    data.errors.push(fillMessage(FILE_SHAPE_MESSAGE, { field: label }));
+    return null;
+  }
+
+  if (length > FORM_FILE_MAX_SIZE_IN_BYTES) {
+    data.errors.push(fillMessage(FILE_TOO_LARGE_MESSAGE, { field: label }));
+    return null;
+  }
+
+  if (length === 0) {
+    data.errors.push(fillMessage(FILE_EMPTY_MESSAGE, { field: label }));
+    return null;
+  }
+
+  const bytes: Uint8Array | null = decodeBase64(
+    text,
+    FORM_FILE_MAX_SIZE_IN_BYTES,
+  );
+
+  if (!bytes) {
+    data.errors.push(fillMessage(FILE_SHAPE_MESSAGE, { field: label }));
+    return null;
+  }
+
+  if (
+    !isFileContentOfType({
+      fileType: type,
+      head: bytes,
+      size: bytes.length,
+    })
+  ) {
+    data.errors.push(fillMessage(FILE_CONTENT_MESSAGE, { field: label }));
+    return null;
+  }
+
+  return { name: name, fileType: type, data: text };
+};
+
+/*
+ * A file question's answer: one file for a File question, a list of at most
+ * FORM_FILE_QUESTION_MAX_FILES for a MultipleFiles one (or one on its own),
+ * each checked by validateOneFile. A list is counted before anything reads
+ * its entries.
+ */
+const validateFileAnswer: ValidateOneAnswerFunction = (data: {
+  field: PublicFormField;
+  answer: unknown;
+  errors: Array<string>;
+}): JSONValue | undefined => {
+  const field: PublicFormField = data.field;
+  const label: string = field.label;
+  const isMultiple: boolean = field.type === PublicFormFieldType.MultipleFiles;
+
+  if (isCustomFieldValueEmpty(data.answer)) {
+    if (field.isRequired) {
+      data.errors.push(fillMessage(REQUIRED_MESSAGE, { field: label }));
+    }
+
+    return undefined;
+  }
+
+  if (Array.isArray(data.answer) && !isMultiple) {
+    data.errors.push(fillMessage(FILE_NOT_ONE_MESSAGE, { field: label }));
+    return undefined;
+  }
+
+  const entries: Array<unknown> = Array.isArray(data.answer)
+    ? data.answer
+    : [data.answer];
+  const maxFiles: number = isMultiple ? FORM_FILE_QUESTION_MAX_FILES : 1;
+
+  if (entries.length > maxFiles) {
+    data.errors.push(
+      fillMessage(FILE_TOO_MANY_MESSAGE, {
+        field: label,
+        maxLength: maxFiles,
+      }),
+    );
+    return undefined;
+  }
+
+  const files: Array<FormFileAnswer> = [];
+
+  for (const entry of entries) {
+    const file: FormFileAnswer | null = validateOneFile({
+      field: field,
+      entry: entry,
+      errors: data.errors,
+    });
+
+    if (!file) {
+      return undefined;
+    }
+
+    files.push(file);
+  }
+
+  if (isMultiple) {
+    return files as unknown as JSONValue;
+  }
+
+  return files[0] as unknown as JSONValue;
+};
+
+type GetFileAnswerFilesFunction = (value: unknown) => Array<FormFileAnswer>;
+
+// The files a checked file answer holds: one, or a list of them.
+export const getFormFileAnswerFiles: GetFileAnswerFilesFunction = (
+  value: unknown,
+): Array<FormFileAnswer> => {
+  const entries: Array<unknown> = Array.isArray(value) ? value : [value];
+
+  return entries.filter((entry: unknown): entry is FormFileAnswer => {
+    return (
+      isPlainObject(entry) &&
+      typeof entry["name"] === "string" &&
+      typeof entry["fileType"] === "string" &&
+      typeof entry["data"] === "string"
+    );
+  });
+};
+
 /*
  * One question's answer: undefined when it is unanswered or refused (the
  * problem recorded), otherwise the value to store.
@@ -1273,6 +1518,11 @@ const validateOneAnswer: ValidateOneAnswerFunction = (data: {
 }): JSONValue | undefined => {
   const field: PublicFormField = data.field;
   const label: string = field.label;
+
+  // A file question takes files, which are objects: see validateFileAnswer.
+  if (isPublicFormFileField(field)) {
+    return validateFileAnswer(data);
+  }
 
   /*
    * An answer is one value - text, a number, a yes/no - or, for a
@@ -1543,6 +1793,30 @@ export const validateFormSubmission: ValidateFormSubmissionFunction = (data: {
     }
   }
 
+  /*
+   * The files of the whole submission, every question together: so many,
+   * and so large together, at most (FormFileAnswer).
+   */
+  let fileCount: number = 0;
+  let fileBytes: number = 0;
+
+  for (const field of data.fields || []) {
+    if (!isPublicFormFileField(field) || !hasOwn(accepted, field.id)) {
+      continue;
+    }
+
+    for (const file of getFormFileAnswerFiles(accepted[field.id])) {
+      fileCount++;
+      fileBytes += getBase64DecodedLength(file.data) || 0;
+    }
+  }
+
+  if (fileCount > FORM_SUBMISSION_MAX_FILES) {
+    errors.push(FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE);
+  } else if (fileBytes > FORM_SUBMISSION_FILES_MAX_TOTAL_SIZE_IN_BYTES) {
+    errors.push(FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE);
+  }
+
   if (errors.length > 0) {
     return { isValid: false, errors: errors };
   }
@@ -1627,7 +1901,8 @@ export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
   }
 
   for (const field of data.fields || []) {
-    if (!hasOwn(stored, field.id)) {
+    // A file is chosen by whoever fills the form in: a template holds none.
+    if (!hasOwn(stored, field.id) || isPublicFormFileField(field)) {
       continue;
     }
 
@@ -1737,6 +2012,13 @@ export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
           if (!field) {
             problems.push(
               `${name} answers a question the form does not ask (${key}).`,
+            );
+            continue;
+          }
+
+          if (isPublicFormFileField(field)) {
+            problems.push(
+              `${name}: ${field.label} takes files, which whoever fills the form in chooses. A template cannot answer it.`,
             );
             continue;
           }

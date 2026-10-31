@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -30,7 +31,11 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -48,6 +53,14 @@ import { ALERT_EPISODE_MEMBER_KIND } from "../../../Components/EpisodeMembers/Ep
 const EpisodeAlerts: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * On a private record's page, what the reader holds on it: a change of it
+   * or of a part of it - a link, a member, a role - is offered only when a
+   * team of theirs that owns it may make it (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
@@ -128,6 +141,7 @@ const EpisodeAlerts: FunctionComponent<
       },
       new AlertEpisodeMember(),
       ModelAction.Create,
+      privateRecordGate(new AlertEpisodeMember()),
     ),
     PermissionGate.check(new Alert(), ModelAction.Read),
   );

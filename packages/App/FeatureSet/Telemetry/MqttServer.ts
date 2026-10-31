@@ -40,8 +40,10 @@ import MqttPacketSizeGuard from "./Utils/MqttPacketSizeGuard";
 import {
   buildOtlpMetricsBody,
   parseMqttPublish,
+  MqttIngestPayload,
   MqttPublishParseResult,
   MQTT_MAX_PAYLOAD_BYTES,
+  scopePublishToDevice,
 } from "./Utils/MqttTelemetryMapper";
 
 /*
@@ -388,19 +390,20 @@ async function handleAuthorizePublish(
      * Violations are dropped, not errored — same no-NACK reasoning as
      * malformed payloads.
      */
-    const fleetMatches: boolean =
-      parsed.payload.fleetName.toLowerCase() ===
-      authContext.device.fleetName.toLowerCase();
-    const deviceMatches: boolean =
-      parsed.payload.deviceId === authContext.device.externalId;
+    const scoped: MqttIngestPayload | null = scopePublishToDevice({
+      payload: parsed.payload,
+      device: authContext.device,
+    });
 
-    if (!fleetMatches || !deviceMatches) {
+    if (!scoped) {
       logger.warn(
         `MQTT: dropped publish to "${packet.topic}" — device credential "${authContext.device.credentialId}" is scoped to fleet "${authContext.device.fleetName}", device "${authContext.device.externalId}".`,
         { service: "telemetry" },
       );
       return;
     }
+
+    parsed.payload = scoped;
   }
 
   if (TelemetryIngestionDisabled.isDisabled()) {

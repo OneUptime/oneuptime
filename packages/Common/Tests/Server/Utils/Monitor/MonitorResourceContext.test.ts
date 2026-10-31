@@ -41,6 +41,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * MonitorResourceContext turns a monitor's own step config into the real
@@ -308,7 +309,7 @@ describe("MonitorResourceContext", () => {
           ? { _id: hostId, hostIdentifier: "prod-01-renamed" }
           : null;
       });
-    const resolveRefs: jest.SpiedFunction<
+    const resolveRefs: SpyInstance<
       typeof SeriesResourceLinker.resolveResourceRefs
     > = jest
       .spyOn(SeriesResourceLinker, "resolveResourceRefs")

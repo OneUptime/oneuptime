@@ -225,8 +225,27 @@ Le definizioni vivono in un modello proprio; i valori vivono sull'incidente stes
 | **Data e ora**                             | Una data e un'ora del giorno                          | Risoluzione prevista                               |
 | **Testo lungo**                            | Più righe di testo semplice                           | Utenti o sistemi interessati, informazioni aggiuntive |
 | **Testo formattato (Markdown)**            | Testo formattato, nell'editor Markdown con la sua modalità visuale | Un workaround con link ed elenchi     |
+| **File** | Un file, trascinato sul campo o scelto | Una richiesta di modifica firmata, uno screenshot |
+| **Più file** | Fino a 10 file | Screenshot, log e acquisizioni di pacchetti |
 
 **Testo lungo** e **Testo formattato (Markdown)** sono disponibili per i campi personalizzati di ogni risorsa, non solo degli incidenti. Un valore di testo formattato viene salvato come il Markdown in cui è stato scritto. Non esiste un tipo a pulsanti di opzione o a gruppo di caselle: usate un **Menu a tendina (selezione singola)**, un **Menu a tendina (selezione multipla)** o un **Booleano**.
+
+### Campi file
+
+Un campo **File** contiene un file e un campo **Più file** fino a 10. Nella pagina **Campi personalizzati** dell'incidente, trascina i file sul campo o fai clic su di esso per sceglierli: **Sostituisci** cambia il file di un campo **File** e **Rimuovi** toglie un file. La pagina elenca ogni file con nome e dimensione, e un clic su di esso lo scarica. I campi personalizzati di ogni altra risorsa accettano file allo stesso modo.
+
+| Cosa | Limite |
+| --- | --- |
+| Un file | 10 MB |
+| Un campo **Più file** | 10 file, 50 MB in tutto |
+| Tipi di file | File PDF, Word, RTF, Excel, PowerPoint e OpenDocument, immagini (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF e HEIC), testo semplice, file Markdown, CSV e JSON, archivi ZIP e acquisizioni di pacchetti |
+
+- **Controllato in base al contenuto.** Un file deve contenere ciò che dice il suo tipo, quindi una pagina web rinominata `report.pdf` viene rifiutata. Le immagini SVG non sono accettate, perché possono contenere script.
+- **Solo i file del tuo progetto.** Un campo accetta solo file caricati nel progetto dell'incidente.
+- **Scaricato, mai aperto nella pagina.** Solo chi può vedere l'incidente e i suoi campi personalizzati può scaricarne i file.
+- **Nominato, non collegato, ovunque altrove.** L'elenco degli incidenti e la sua esportazione CSV, il feed, i modelli di nota e i messaggi agli iscritti mostrano un campo file come i nomi dei suoi file. Il filtro dell'elenco chiede se il campo è **Con file** o con **Nessun file**. Slack e Microsoft Teams lasciano fuori i campi file dai campi personalizzati che permettono di modificare: aggiungi i file in OneUptime.
+- **Eliminati quando niente li trattiene più.** Un file rimosso o sostituito, e i file di un incidente eliminato, vengono eliminati, a meno che qualcos'altro, come un altro incidente o un modello, li trattenga ancora.
+- **Tramite l'API e Terraform.** Carica il file con `POST /api/file` nel progetto dell'incidente, inviando il suo `name`, il suo `fileType` e i byte in base64 in `file`, poi imposta il campo sull'`_id` restituito. Il campo si rilegge come i file che contiene, ciascuno con i suoi `fileId`, `name`, `fileType` e `size`. In Terraform, scrivi ogni file come `{ fileId = oneuptime_file.contract.id }`, così il piano corrisponde a ciò che il campo restituisce.
 
 ### Obbligatorio alla creazione viene controllato solo dalla dashboard
 
@@ -271,6 +290,8 @@ Quando un utente o una chiave API crea o aggiorna un incidente, ogni valore che 
 | **Data**, **Data e ora**                                          | Una data, preferibilmente come testo ISO 8601.                 |
 | **Menu a tendina (selezione singola)**                            | Una delle sue opzioni.                                         |
 | **Menu a tendina (selezione multipla)**                           | Un elenco delle sue opzioni, oppure una singola opzione da sola. |
+| **File** | L'id di un file, o `{ "fileId": "<id>" }`, di un file caricato nel progetto dell'incidente. |
+| **Più file** | Un elenco di essi, fino a 10, o uno solo. |
 
 Per un **Menu a tendina (selezione multipla)**, il rifiuto nomina le prime 10 voci che non sono tra le sue opzioni, e poi quante altre ce ne sono.
 

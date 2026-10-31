@@ -30,6 +30,8 @@ import {
   toAITemplates,
 } from "../../../Components/Postmortem/PostmortemTemplates";
 import { getPostmortemCardButtons } from "../../../Components/Postmortem/PostmortemCardButtons";
+import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import useAiOffered from "../../../Utils/UseAiOffered";
 import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
 
@@ -46,11 +48,21 @@ const POSTMORTEM_FORM_FIELDS: Fields<IncidentEpisode> = [
   },
 ];
 
+// What the postmortem's buttons ask about: the episode itself.
+const PRIVATE_RECORD_EPISODE: IncidentEpisode = new IncidentEpisode();
+
 const EpisodePostmortem: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const isAiOffered: boolean = useAiOffered();
+  /*
+   * What the reader holds on the episode when it is private: Apply Template
+   * and Generate with AI end in saving its postmortem, so they lock as Edit
+   * Postmortem does (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_EPISODE);
 
   const postmortemTemplates: PostmortemTemplatesState =
     usePostmortemTemplates();
@@ -126,6 +138,7 @@ const EpisodePostmortem: FunctionComponent<
             "Document the postmortem analysis for this episode. Include learnings, action items, and preventive measures.",
           buttons: getPostmortemCardButtons({
             model: new IncidentEpisode(),
+            privateRecordOptions: privateRecordOptions,
             hasTemplates: postmortemTemplates.templates.length > 0,
             isAiOffered: isAiOffered,
             onGenerateWithAI: () => {

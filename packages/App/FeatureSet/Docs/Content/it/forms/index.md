@@ -190,7 +190,7 @@ Ogni domanda ha un proprio `id` (lettere, cifre, `-` e `_`), una `source`, un `l
 
 | `source` | Cosa chiede |
 | --- | --- |
-| `Question` | Una domanda propria del modulo, a cui si risponde secondo il `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` o `DateTime`. Un menu a discesa elenca le sue `dropdownOptions`, una per riga. |
+| `Question` | Una domanda propria del modulo, a cui si risponde secondo il `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` o `MultipleFiles`. Un menu a discesa elenca le sue `dropdownOptions`, una per riga. |
 | `TargetField` | Un campo di ciò che il modulo crea, indicato da `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` per un incidente; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` e `labels` per un evento di manutenzione. Un campo a cui si risponde scegliendo elenca i record che offre in `allowedOptionIds`. |
 | `TargetCustomField` | Uno dei campi personalizzati dell'incidente o dell'evento, indicato da `customFieldId`. |
 | `Submitter` | Il `Name` o l'`Email` di chi invia, indicato da `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+La risposta a una domanda di file sono i file così come sono stati salvati, ciascuno con i suoi `fileId`, `name`, `fileType` e `size`. I file veri e propri sono su ciò che l'invio ha creato: nel suo campo personalizzato file, o allegati alla sua nota privata.
 
 ### Workflow
 

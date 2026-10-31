@@ -2,8 +2,14 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import React, { ReactElement, useEffect, useState } from "react";
-import { getNoteKindCreateGate, NoteCreateGate } from "./EventNoteComposer";
+import {
+  getNoteKindCreateGate,
+  isNoteCreateRefused,
+  NoteCreateGate,
+} from "./EventNoteComposer";
 import EventNoteComposerDialog, {
   NOTE_COMPOSER_DIALOG_TITLES,
 } from "./EventNoteComposerDialog";
@@ -51,6 +57,13 @@ export default function useFeedNoteActions(
   options: FeedNoteActionsOptions,
 ): FeedNoteActions {
   const translator: Translator = useTranslator();
+  /*
+   * On a private record's page, its notes are written only by a team of the
+   * reader's that owns it (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
   const [openDialog, setOpenDialog] = useState<OpenDialog | null>(null);
 
   // Every kind of note on a feed is on the same event.
@@ -77,10 +90,29 @@ export default function useFeedNoteActions(
 
   kinds.push({ visibility: "private", kind: options.privateNoteKind });
 
+  /*
+   * Whether the reader may add a private note: a private event's locked
+   * "Add Public Note" points them to one unless a private note is refused
+   * them too. Not known yet - while the permissions load - it points to one,
+   * as it always did.
+   */
+  const isPrivateNoteOffered: boolean = !isNoteCreateRefused(
+    getNoteKindCreateGate(
+      options.privateNoteKind,
+      translator,
+      privateRecordGate(new options.privateNoteKind.modelType()),
+    ),
+  );
+
   const menuItems: Array<ReactElement> = [];
 
   for (const entry of kinds) {
-    const gate: NoteCreateGate = getNoteKindCreateGate(entry.kind, translator);
+    const gate: NoteCreateGate = getNoteKindCreateGate(
+      entry.kind,
+      translator,
+      privateRecordGate(new entry.kind.modelType()),
+      isPrivateNoteOffered,
+    );
 
     if (!gate.isShown) {
       continue;

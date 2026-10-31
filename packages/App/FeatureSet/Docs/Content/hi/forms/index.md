@@ -190,7 +190,7 @@ OneUptime Cloud पर फ़ॉर्म के लिए **Growth** प्ल�
 
 | `source` | यह क्या पूछता है |
 | --- | --- |
-| `Question` | फ़ॉर्म का अपना प्रश्न, जिसका उत्तर `type` के अनुसार दिया जाता है: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` या `DateTime`। ड्रॉपडाउन अपने `dropdownOptions` दिखाता है, हर पंक्ति में एक। |
+| `Question` | फ़ॉर्म का अपना प्रश्न, जिसका उत्तर `type` के अनुसार दिया जाता है: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` या `MultipleFiles`। ड्रॉपडाउन अपने `dropdownOptions` दिखाता है, हर पंक्ति में एक। |
 | `TargetField` | फ़ॉर्म जो बनाता है उसका एक फ़ील्ड, जिसे `targetField` से बताया जाता है: घटना के लिए `title`, `description`, `incidentSeverityId`, `monitors`, `labels` और `impactStartedAt`; रखरखाव इवेंट के लिए `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` और `labels`। चुनकर उत्तर दिए जाने वाला फ़ील्ड अपने दिए जाने वाले रिकॉर्ड `allowedOptionIds` में बताता है। |
 | `TargetCustomField` | घटना या इवेंट का कोई कस्टम फ़ील्ड, जिसे `customFieldId` से बताया जाता है। |
 | `Submitter` | भेजने वाले का `Name` या `Email`, जिसे `submitterField` से बताया जाता है। |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+फ़ाइल प्रश्न का उत्तर वे फ़ाइलें हैं जैसे वे सहेजी गईं, हर एक अपनी `fileId`, `name`, `fileType` और `size` के साथ। फ़ाइलें ख़ुद उस पर हैं जो सबमिशन ने बनाया: उसके फ़ाइल कस्टम फ़ील्ड में, या उसके निजी नोट से जुड़ी हुई।
 
 ### वर्कफ़्लो
 

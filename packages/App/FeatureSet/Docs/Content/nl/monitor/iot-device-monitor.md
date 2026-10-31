@@ -118,6 +118,8 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 
 Een geregistreerd apparaat blijft ook als offline in de inventaris van de vloot staan, terwijl een niet-geregistreerd apparaat na 15 minuten stilte wordt verwijderd. Stiltedetectie vereist het beleid **Treat As Zero** voor ontbrekende gegevens op het criterium voor `iot_device_up`, dat Device Offline-monitoren die vanuit het template zijn gemaakt al hebben. Een Device Offline-monitor die is gemaakt voordat apparaatregistratie bestond, moet het met de hand ingesteld krijgen, of opnieuw vanuit het template worden gemaakt.
 
+**Device Offline** beoordeelt elk apparaat op zijn laatste meting, dus een apparaat dat uitval en daarna weer beschikbaarheid meldde, is bij de volgende controle beschikbaar. Een Device Offline-monitor die offline blijft tot de uitvalmeting 30 minuten oud is, is gemaakt voordat het sjabloon dit deed: kies het sjabloon opnieuw onder **Waarover te waarschuwen** om hem bij te werken.
+
 > [!NOTE]
 > Een niet-geregistreerd apparaat dat stil wordt, zonder Last Will of gatewaymelding, stopt alleen met het sturen van gegevens, en een monitor die per apparaat groepeert, kan het er niet uitpikken. Registreer je apparaten, of geef een kritiek apparaat een eigen monitor (**Custom Metric**, met zijn **Device ID**) en stel **Als geen gegevens** in op **Trigger**. Stiltedetectie vereist ook dat ten minste één ander apparaat van de vloot nog rapporteert: een vloot die volledig op zwart gaat, bijvoorbeeld tijdens een gatewaystoring, geeft één incident voor de monitor, niet één per apparaat.
 

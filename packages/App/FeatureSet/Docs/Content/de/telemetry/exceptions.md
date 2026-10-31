@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Erneut gezählt; wieder<br/>geöffnet, wenn behoben"]
 ```
 
-- **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme.
+- **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme. Eine neue Ausnahme wird stattdessen nach ihrem Typ und den Funktionen und Dateien Ihres eigenen Codes im Stack-Trace gruppiert: Zeilennummern, Bibliotheks-Frames und die Nachricht bleiben außen vor, sodass Varianten aus demselben Code eine Ausnahme sind. Ohne Stack-Trace gruppiert sie ihre Nachricht, wie oben. Ausnahmen, die vor dieser Gruppierung erfasst wurden, behalten ihre.
 - **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten, und die Ausnahme wird als **Regression** markiert. Ein Vorkommen von vor der Behebung, das OneUptime erst später erreicht, öffnet sie nicht wieder.
 - **Eine archivierte Ausnahme bleibt archiviert.** Ihre neuen Vorkommen werden weiter gezählt, lösen aber keine Benachrichtigungen mehr aus.
 
@@ -133,6 +133,8 @@ IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesende
 
 Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Ihre Antwort wird bis zum nächsten Auftreten gespeichert.
 
+Eine, die OneUptime AI **Wahrscheinlich derselbe Fehler** nennt und die zum selben Dienst gehört, führen Sie mit **Zusammenführen** daneben mit dieser Ausnahme zusammen: Ihre Vorkommen, die bisherigen und jedes neue, zählen von da an bei dieser Ausnahme und erscheinen auf ihrer Seite, und sie verschwindet aus der Liste. **Mit dieser Ausnahme zusammengeführt** darunter listet, was zusammengeführt wurde, und **Trennen** daneben, oder auf der eigenen Seite einer zusammengeführten Ausnahme, gibt ihr ihren eigenen Platz in der Liste zurück, samt ihrer Vorkommen seither. Zusammenführen und Trennen erfordern die Berechtigung, Ausnahmen zu bearbeiten.
+
 ## Mit KI beheben
 
 Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe, die einen Pull Request in Ihrem Code-Repository öffnet:
@@ -196,7 +198,7 @@ Prüfen Sie zuerst die Ansicht: **Probleme** blendet Benutzerfehler und erwartet
 :::
 
 :::details Ein Fehler erscheint als mehrere Ausnahmen
-Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme.
+Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme. Neue Ausnahmen werden stattdessen nach den Funktionen Ihres eigenen Codes gruppiert, das betrifft also vor allem früher erfasste Ausnahmen; führen Sie zwei, die derselbe Fehler sind, über **Ähnliche Ausnahmen** zusammen.
 :::
 
 :::details Eine behobene Ausnahme kommt immer wieder

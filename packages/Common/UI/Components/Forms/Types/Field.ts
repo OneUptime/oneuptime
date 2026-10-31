@@ -247,6 +247,23 @@ export default interface Field<TEntity> {
    * so, and refuses a larger file before uploading it.
    */
   maxFileSizeInBytes?: number | undefined;
+  /*
+   * MultipleFiles fields: the most files the field holds. The picker says
+   * so, and takes no more.
+   */
+  maxFiles?: number | undefined;
+  /*
+   * File and MultipleFiles fields: what the picker says it takes, in place
+   * of its list of types, for a field that takes many kinds of file.
+   */
+  fileHint?: string | undefined;
+  /*
+   * File and MultipleFiles fields: keep the files in the browser rather than
+   * uploading them, so the field's value is the files themselves, bytes and
+   * all - for a page with nobody signed in to upload as (a public form, which
+   * sends them with its answers).
+   */
+  keepFilesInBrowser?: boolean | undefined;
   sideLink?: FormFieldSideLink | undefined;
   validation?: {
     minLength?: number | undefined;

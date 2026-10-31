@@ -55,7 +55,12 @@ import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "../../Utils/PrivateRecordScope";
 import {
   translateNamedAction,
   translationKey,
@@ -243,6 +248,14 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
   const model: TBaseModel = useMemo(() => {
     return new props.modelType();
   }, [props.modelType]);
+
+  /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its changes are offered only when a team of theirs that owns it
+   * may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
   const singularName: string =
     props.singularName?.trim() || model.singularName || "";
 
@@ -735,9 +748,16 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
   } = (
     action: ModelAction,
   ): { show: boolean; disabled: boolean; tooltip: string | undefined } => {
-    const result: PermissionGateResult = PermissionGate.check(model, action, {
-      singularName: singularName || undefined,
-    });
+    const result: PermissionGateResult = PermissionGate.check(
+      model,
+      action,
+      withPrivateRecordGateOptions(
+        {
+          singularName: singularName || undefined,
+        },
+        privateRecordOptions,
+      ),
+    );
 
     if (result.isAllowed) {
       return { show: true, disabled: false, tooltip: undefined };

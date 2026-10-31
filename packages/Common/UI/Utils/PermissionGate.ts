@@ -10,6 +10,7 @@ import Permission, {
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
+import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import {
   getGlobalTranslator,
   translatableTerm,
@@ -204,6 +205,14 @@ export interface PermissionGateOptions extends HeldPermissionsOptions {
    */
   verb?: string | undefined;
   /*
+   * Why the private record the page is open on refuses what the reader's
+   * own permissions would allow, in their language (PrivateRecordScope):
+   * `held` is then what they hold on that record, and a refusal of it that
+   * their whole snapshot would allow says this instead of naming a
+   * permission they hold.
+   */
+  privateRecordReason?: string | undefined;
+  /*
    * The message's first sentence, whole - one translation key - when the
    * reader knows the operation by what it does rather than by its model: a
    * new row on an incident's state timeline is "change this incident's
@@ -345,6 +354,23 @@ export default class PermissionGate {
     options?: PermissionGateOptions | undefined,
   ): PermissionGateResult {
     /*
+     * Who reads a private record is its owners, with any read permission of
+     * theirs: only its changes are held to the teams that own it. A read is
+     * asked of the whole snapshot (PrivateRecordScope) - also while the page
+     * is still reading who owns the record, when its scope has no reason yet.
+     */
+    if (
+      action === ModelAction.Read &&
+      options?.privateRecordReason !== undefined
+    ) {
+      options = {
+        ...options,
+        held: undefined,
+        privateRecordReason: undefined,
+      };
+    }
+
+    /*
      * A master admin is allowed everything, everywhere. Every gate in the UI
      * already ORs this in - except the bulk delete one, which is why that gate
      * used to disagree with the per-row Delete button next to it.
@@ -394,6 +420,29 @@ export default class PermissionGate {
       return { isAllowed: true };
     }
 
+    /*
+     * Refused on a private record that the reader's own permissions would
+     * allow: the teams of theirs that own it may not (PrivateRecordScope).
+     * Said so - naming a permission they hold would only puzzle them.
+     */
+    if (
+      options?.privateRecordReason &&
+      this.snapshotAllows(model, action, {
+        ...options,
+        held: undefined,
+        permissions: undefined,
+      })
+    ) {
+      return {
+        isAllowed: false,
+        disabledReason: `${this.buildFirstSentence({
+          singularName: options?.singularName || model.singularName || "item",
+          verb: (options?.verb?.trim() || action).toLowerCase(),
+          sentence: options?.sentence,
+        })} ${options.privateRecordReason}`,
+      };
+    }
+
     return {
       isAllowed: false,
       disabledReason: this.buildMissingPermissionMessage({
@@ -404,6 +453,54 @@ export default class PermissionGate {
         held: held,
       }),
     };
+  }
+
+  /*
+   * WHAT THE READER HOLDS ON ONE PRIVATE RECORD (PrivateRecordHeld): null
+   * when it is all they hold - a record that is not private, one they are
+   * named an owner of, a reader who acts on every private record of the
+   * project or a master admin - and otherwise what the rows of the teams of
+   * theirs that own it hold. Read from the stored snapshot, as every gate
+   * reads it; the page open on the record hands it to its gates
+   * (PrivateRecordScope).
+   */
+  public static getHeldOnPrivateRecord(data: {
+    isPrivate: boolean;
+    isOwnedByReader: boolean;
+    owningTeamIds: ReadonlyArray<string>;
+  }): HeldPermissions | null {
+    if (User.isMasterAdmin()) {
+      return null;
+    }
+
+    return PrivateRecordHeld.getHeldOnRecord({
+      rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+      globalPermissions:
+        PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+      isPrivate: data.isPrivate,
+      isOwnedByPerson: data.isOwnedByReader,
+      owningTeamIds: data.owningTeamIds,
+    });
+  }
+
+  /*
+   * The ids of the teams the reader's permissions are granted on
+   * (UserPermission.teamId), as the stored snapshot names them: the teams
+   * whose permissions they act with.
+   */
+  public static getTeamIdsOfReader(): Array<string> {
+    const teamIds: Array<string> = [];
+
+    for (const row of PermissionUtil.getProjectPermissions()?.permissions ||
+      []) {
+      const teamId: string | null = PrivateRecordHeld.getId(row?.teamId);
+
+      if (teamId && !teamIds.includes(teamId.toLowerCase())) {
+        teamIds.push(teamId.toLowerCase());
+      }
+    }
+
+    return teamIds;
   }
 
   /*
@@ -758,6 +855,22 @@ export default class PermissionGate {
     permissions: Array<Permission>;
     held: HeldPermissions;
   }): string {
+    return this.appendPermissionsToSentence({
+      sentence: this.buildFirstSentence(data),
+      permissions: data.permissions,
+      held: data.held,
+    });
+  }
+
+  /*
+   * A refusal's first sentence, in the reader's language: "You do not have
+   * permission to <verb> this <item>." - or the caller's own whole sentence.
+   */
+  private static buildFirstSentence(data: {
+    singularName: string;
+    verb: string;
+    sentence?: string | undefined;
+  }): string {
     const singularName: string = data.singularName;
     const verb: string = data.verb;
 
@@ -765,7 +878,7 @@ export default class PermissionGate {
     const template: string | undefined = MISSING_PERMISSION_TEMPLATES[verb];
     const ownSentence: string = data.sentence?.trim() || "";
 
-    const sentence: string = ownSentence
+    return ownSentence
       ? translator.translateText(ownSentence) || ownSentence
       : template
         ? translator.translateTemplate(template, {
@@ -778,12 +891,6 @@ export default class PermissionGate {
               itemName: translatableTerm(singularName),
             },
           );
-
-    return this.appendPermissionsToSentence({
-      sentence: sentence,
-      permissions: data.permissions,
-      held: data.held,
-    });
   }
 
   /*

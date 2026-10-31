@@ -24,7 +24,7 @@ flowchart TB
 
 ## Cómo modela OneUptime el IoT
 
-- **Flota**: un grupo de dispositivos, como `building-a-sensors` o `field-gateways`. Sale del atributo de recurso `iot.fleet.name` y aparece en OneUptime como el servicio de telemetría `iot/<fleet>`. Establece también `service.name=iot/<fleet>` para que los logs y las métricas queden en el mismo servicio.
+- **Flota**: un grupo de dispositivos, como `building-a-sensors` o `field-gateways`. Sale del atributo de recurso `iot.fleet.name` y aparece en OneUptime como el servicio de telemetría `iot/<fleet>`. Establece también `service.name=iot/<fleet>` para que los logs y las métricas queden en el mismo servicio. El nombre de una flota se compara sin distinguir mayúsculas: una lectura enviada para `warehouse` llega a la flota `Warehouse` y se guarda con ese nombre.
 - **Dispositivo**: un dispositivo de una flota, identificado por el atributo `device.id` de cada punto de datos. El inventario de la flota se indexa por `device.id`.
 
 | Atributo | Se establece en | Obligatorio | Descripción |
@@ -195,7 +195,7 @@ Un payload de telemetría también puede llevar `"attributes"`, un mapa de caden
 
 ### Detección de offline con Last Will
 
-Registra un Last Will de MQTT en `oneuptime/<fleet>/<device>/status` con el payload `offline`. Si el dispositivo muere o se cae de la red, OneUptime publica `iot_device_up = 0` para él en el momento en que termina su sesión, lo que dispara la plantilla de alerta Device Offline incluida y marca el dispositivo como caído en el inventario, sin sondeos. Publica `online` en el mismo topic después de conectarte, para que el dispositivo vuelva a aparecer como activo.
+Registra un Last Will de MQTT en `oneuptime/<fleet>/<device>/status` con el payload `offline`. Si el dispositivo muere o se cae de la red, OneUptime publica `iot_device_up = 0` para él en el momento en que termina su sesión, lo que dispara la plantilla de alerta Device Offline incluida y marca el dispositivo como caído en el inventario, sin sondeos. Publica `online` en el mismo topic después de conectarte, para que el dispositivo vuelva a aparecer como activo. Cualquier lectura que publique el dispositivo también cuenta como activo, así que un dispositivo que sigue enviando lecturas sigue activo sin volver a publicar su estado.
 
 ### Ejemplos
 
@@ -281,7 +281,7 @@ OneUptime reconoce estos nombres de métricas `iot_*`. Envía solo los que tenga
 | `iot_battery_percent` | Carga de la batería, de `0` a `100` (%). |
 | `iot_signal_strength_dbm` | Intensidad de la señal inalámbrica en dBm, como el RSSI de Wi-Fi, LoRa o red móvil. |
 | `iot_temperature_celsius` | Temperatura del dispositivo o del sensor en °C. |
-| `iot_cpu_usage_ratio` | Uso de CPU como proporción de `0` a `1`. OneUptime lo guarda y lo muestra como porcentaje. |
+| `iot_cpu_usage_ratio` | Uso de CPU como proporción de `0` a `1`. OneUptime lo guarda tal como se envía, y el inventario de dispositivos lo muestra como porcentaje. |
 | `iot_memory_usage_bytes` | Memoria en uso, en bytes. |
 | `iot_memory_size_bytes` | Memoria total del dispositivo, en bytes. |
 | `iot_uptime_seconds` | Segundos desde el último arranque del dispositivo. |
@@ -289,7 +289,7 @@ OneUptime reconoce estos nombres de métricas `iot_*`. Envía solo los que tenga
 ## Comprueba que aparece la flota
 
 1. Comprueba que el dispositivo, el colector del gateway o el cliente MQTT envía sin errores: busca fallos de exportación y respuestas HTTP `401` o `422` en sus logs, o una conexión rechazada con el código de retorno 4.
-2. Abre **Productos → Infraestructura → IoT → Todas las flotas**. La flota aparece como `iot/<fleet>` en más o menos un minuto tras sus primeras lecturas.
+2. Abre **Productos → Infraestructura → IoT → Todas las flotas**. La flota aparece con su nombre en más o menos un minuto tras sus primeras lecturas.
 3. Abre la página **Dispositivos** de la flota. Cada dispositivo que enviaste debería aparecer con su último valor de batería, señal, temperatura, CPU, memoria y estado activo o caído.
 4. Abre la página **Métricas** de la flota para graficar cualquiera de las series `iot_*`.
 

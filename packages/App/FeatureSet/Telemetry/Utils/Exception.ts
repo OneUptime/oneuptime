@@ -5,6 +5,11 @@ import Crypto from "Common/Utils/Crypto";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import logger from "Common/Server/Utils/Logger";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
+import {
+  getExceptionGroupingKey,
+  getExceptionGroupingText,
+} from "Common/Server/Utils/Telemetry/ExceptionGrouping";
+import { JSONObject } from "Common/Types/JSON";
 
 export interface ExceptionFingerprintInput {
   message?: string;
@@ -15,7 +20,13 @@ export interface ExceptionFingerprintInput {
 }
 
 export interface TelemetryExceptionPayload {
+  /*
+   * The exception's group. Built as the first fingerprint (v1), with the
+   * grouping v2 one beside it, until assignGroupFingerprints picks which
+   * one the occurrence belongs to.
+   */
   fingerprint: string;
+  fingerprintV2?: string | undefined;
   projectId: ObjectID;
   primaryEntityId: ObjectID;
   primaryEntityType?: ServiceType;
@@ -40,6 +51,27 @@ export interface TelemetryExceptionPayload {
    * worker reads it stands in.
    */
   occurredAt?: Date | undefined;
+}
+
+/*
+ * Whether an exception exists under a v1 fingerprint, by project and
+ * fingerprint, for a few minutes: the same few exceptions make most of every
+ * batch, and an existing exception never stops existing under its
+ * fingerprint. Capped, and cleared whole when full.
+ */
+const EXISTING_V1_CACHE_TTL_MS: number = 10 * 60 * 1000;
+const EXISTING_V1_CACHE_MAX_ENTRIES: number = 100000;
+const existingV1Cache: Map<string, { exists: boolean; at: number }> = new Map();
+
+export function clearExistingV1FingerprintCache(): void {
+  existingV1Cache.clear();
+}
+
+// One occurrence's two fingerprints, wherever they are carried.
+interface GroupFingerprintCandidate {
+  projectId: string;
+  v1: string;
+  v2: string;
 }
 
 /*
@@ -140,6 +172,197 @@ export default class ExceptionUtil {
     return normalizeExceptionText(text);
   }
 
+  /*
+   * The grouping v2 fingerprint (Common/Server/Utils/Telemetry/
+   * ExceptionGrouping): the type and the functions and modules of the
+   * occurrence's own code, without line numbers or library frames. What a
+   * new exception is grouped by; see assignGroupFingerprints.
+   */
+  public static getFingerprintV2(data: ExceptionFingerprintInput): string {
+    return Crypto.getSha256Hash(
+      getExceptionGroupingText({
+        projectId: data.projectId?.toString() || "",
+        primaryEntityId: data.primaryEntityId?.toString() || "",
+        key: getExceptionGroupingKey({
+          exceptionType: data.exceptionType,
+          message: data.message,
+          stackTrace: data.stackTrace,
+        }),
+      }),
+    );
+  }
+
+  /*
+   * WHICH FINGERPRINT AN OCCURRENCE IS GROUPED BY.
+   *
+   * An exception that existed before grouping v2 keeps its first (v1)
+   * fingerprint: an occurrence whose v1 fingerprint is an exception's is
+   * that exception's, as before. Every other occurrence is grouped by its v2
+   * fingerprint, so a new exception is made under it, and its later
+   * occurrences find it whatever their line numbers or library frames. So the
+   * switch neither splits an existing exception nor merges two.
+   *
+   * One indexed read per project for the v1 fingerprints a batch holds that
+   * are not cached. When it fails, the occurrence keeps its v1 fingerprint:
+   * grouped as before v2, never lost.
+   *
+   * Returns the fingerprint to use, by `projectId|v1|v2`.
+   */
+  public static async resolveGroupFingerprints(
+    candidates: Array<GroupFingerprintCandidate>,
+    now: number = Date.now(),
+  ): Promise<Map<string, string>> {
+    const chosen: Map<string, string> = new Map();
+    const toLookUp: Map<string, Set<string>> = new Map();
+
+    for (const candidate of candidates) {
+      if (!candidate.v2 || candidate.v2 === candidate.v1) {
+        continue;
+      }
+
+      const cached: { exists: boolean; at: number } | undefined =
+        existingV1Cache.get(`${candidate.projectId}|${candidate.v1}`);
+
+      if (cached && now - cached.at < EXISTING_V1_CACHE_TTL_MS) {
+        continue;
+      }
+
+      const fingerprints: Set<string> =
+        toLookUp.get(candidate.projectId) || new Set<string>();
+      fingerprints.add(candidate.v1);
+      toLookUp.set(candidate.projectId, fingerprints);
+    }
+
+    const failedProjects: Set<string> = new Set<string>();
+
+    for (const [projectId, fingerprints] of toLookUp) {
+      try {
+        const rows: Array<{ fingerprint: string }> =
+          await TelemetryExceptionService.getRepository().manager.query(
+            `SELECT "fingerprint" FROM "TelemetryException" WHERE "projectId" = $1 AND "fingerprint" = ANY($2::text[]) AND "deletedAt" IS NULL`,
+            [projectId, Array.from(fingerprints)],
+          );
+        const existing: Set<string> = new Set<string>(
+          (rows || []).map((row: { fingerprint: string }): string => {
+            return row.fingerprint;
+          }),
+        );
+
+        if (
+          existingV1Cache.size + fingerprints.size >
+          EXISTING_V1_CACHE_MAX_ENTRIES
+        ) {
+          existingV1Cache.clear();
+        }
+
+        for (const fingerprint of fingerprints) {
+          existingV1Cache.set(`${projectId}|${fingerprint}`, {
+            exists: existing.has(fingerprint),
+            at: now,
+          });
+        }
+      } catch (err) {
+        failedProjects.add(projectId);
+        logger.warn(
+          `Could not read which exceptions of project ${projectId} keep their first fingerprint; the batch is grouped as before grouping v2: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    for (const candidate of candidates) {
+      const key: string = `${candidate.projectId}|${candidate.v1}|${candidate.v2}`;
+
+      if (!candidate.v2 || failedProjects.has(candidate.projectId)) {
+        chosen.set(key, candidate.v1);
+        continue;
+      }
+
+      const cached: { exists: boolean; at: number } | undefined =
+        existingV1Cache.get(`${candidate.projectId}|${candidate.v1}`);
+
+      chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);
+    }
+
+    return chosen;
+  }
+
+  /*
+   * The occurrence rows of a batch, each given the fingerprint of the
+   * exception it belongs to (resolveGroupFingerprints) before they are
+   * stored: the row keeps no fingerprintV2 of its own.
+   */
+  public static async assignRowGroupFingerprints(
+    rows: Array<JSONObject>,
+  ): Promise<void> {
+    const candidates: Array<GroupFingerprintCandidate> = [];
+
+    for (const row of rows) {
+      if (typeof row["fingerprintV2"] === "string") {
+        candidates.push({
+          projectId: String(row["projectId"] || ""),
+          v1: String(row["fingerprint"] || ""),
+          v2: row["fingerprintV2"] as string,
+        });
+      }
+    }
+
+    if (candidates.length === 0) {
+      return;
+    }
+
+    const chosen: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints(candidates);
+
+    for (const row of rows) {
+      if (typeof row["fingerprintV2"] !== "string") {
+        continue;
+      }
+
+      const key: string = `${String(row["projectId"] || "")}|${String(row["fingerprint"] || "")}|${row["fingerprintV2"] as string}`;
+      row["fingerprint"] = chosen.get(key) || row["fingerprint"];
+      delete row["fingerprintV2"];
+    }
+  }
+
+  // The same, for the exception group upserts of a batch.
+  public static async assignPayloadGroupFingerprints(
+    payloads: Array<TelemetryExceptionPayload>,
+  ): Promise<Array<TelemetryExceptionPayload>> {
+    const candidates: Array<GroupFingerprintCandidate> = payloads
+      .filter((payload: TelemetryExceptionPayload): boolean => {
+        return Boolean(payload && payload.fingerprintV2 && payload.projectId);
+      })
+      .map((payload: TelemetryExceptionPayload): GroupFingerprintCandidate => {
+        return {
+          projectId: payload.projectId.toString(),
+          v1: payload.fingerprint,
+          v2: payload.fingerprintV2 as string,
+        };
+      });
+
+    if (candidates.length === 0) {
+      return payloads;
+    }
+
+    const chosen: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints(candidates);
+
+    return payloads.map(
+      (payload: TelemetryExceptionPayload): TelemetryExceptionPayload => {
+        if (!payload || !payload.fingerprintV2 || !payload.projectId) {
+          return payload;
+        }
+
+        const { fingerprintV2, ...rest } = payload;
+        const key: string = `${payload.projectId.toString()}|${payload.fingerprint}|${fingerprintV2}`;
+
+        return { ...rest, fingerprint: chosen.get(key) || payload.fingerprint };
+      },
+    );
+  }
+
   public static getFingerprint(data: ExceptionFingerprintInput): string {
     const message: string = data.message || "";
     const stackTrace: string = data.stackTrace || "";
@@ -223,8 +446,23 @@ export default class ExceptionUtil {
       return;
     }
 
+    /*
+     * An occurrence of a merged exception counts on the one it was merged
+     * into as well (resolveMergedExceptions): the batch gains a copy of it
+     * under the survivor's key before it is aggregated.
+     */
+    /*
+     * Each occurrence is grouped by the fingerprint of the exception it
+     * belongs to (assignPayloadGroupFingerprints), and then an occurrence of
+     * a merged exception counts on the one it was merged into as well
+     * (withMergedSurvivors).
+     */
     const aggregated: Map<string, AggregatedException> =
-      ExceptionUtil.aggregateExceptions(exceptions);
+      ExceptionUtil.aggregateExceptions(
+        await ExceptionUtil.withMergedSurvivors(
+          await ExceptionUtil.assignPayloadGroupFingerprints(exceptions),
+        ),
+      );
 
     if (aggregated.size === 0) {
       return;
@@ -407,6 +645,147 @@ export default class ExceptionUtil {
   }
 
   /*
+   * THE FINGERPRINT ALIASES OF MERGED EXCEPTIONS.
+   *
+   * An exception merged into another (TelemetryExceptionMerge) keeps its
+   * fingerprint, and that fingerprint is from then on an alias of the one it
+   * was merged into: an occurrence of it is counted on both - on its own
+   * row, which keeps counting so an unmerge gives it back exactly, and on
+   * the survivor's, which the lists show. One indexed read per batch and
+   * project (the partial index on merged rows), and none of the batch's
+   * occurrences is ever dropped: when the read fails, the batch is counted
+   * as it would have been before any merge.
+   *
+   * Returns, per project, the merged fingerprints the batch holds and the
+   * survivor each points at.
+   */
+  public static async resolveMergedExceptions(
+    exceptions: Array<TelemetryExceptionPayload>,
+  ): Promise<Map<string, MergedExceptionSurvivor>> {
+    const survivors: Map<string, MergedExceptionSurvivor> = new Map();
+    const fingerprintsByProject: Map<string, Set<string>> = new Map();
+
+    for (const exception of exceptions) {
+      if (!exception || !exception.projectId || !exception.fingerprint) {
+        continue;
+      }
+
+      const projectId: string = exception.projectId.toString();
+      const fingerprints: Set<string> =
+        fingerprintsByProject.get(projectId) || new Set<string>();
+      fingerprints.add(exception.fingerprint);
+      fingerprintsByProject.set(projectId, fingerprints);
+    }
+
+    for (const [projectId, fingerprints] of fingerprintsByProject) {
+      try {
+        const rows: Array<{
+          fingerprint: string;
+          primaryEntityId: string;
+          survivorPrimaryEntityId: string;
+          survivorFingerprint: string;
+        }> = await TelemetryExceptionService.getRepository().manager.query(
+          `SELECT m."fingerprint" AS "fingerprint",
+                  m."primaryEntityId"::text AS "primaryEntityId",
+                  s."primaryEntityId"::text AS "survivorPrimaryEntityId",
+                  s."fingerprint" AS "survivorFingerprint"
+           FROM "TelemetryException" m
+           JOIN "TelemetryException" s
+             ON s."_id" = m."mergedIntoTelemetryExceptionId"
+            AND s."deletedAt" IS NULL
+           WHERE m."projectId" = $1
+             AND m."fingerprint" = ANY($2::text[])
+             AND m."mergedIntoTelemetryExceptionId" IS NOT NULL
+             AND m."deletedAt" IS NULL`,
+          [projectId, Array.from(fingerprints)],
+        );
+
+        for (const row of rows || []) {
+          if (!row.survivorFingerprint || !row.survivorPrimaryEntityId) {
+            continue;
+          }
+
+          survivors.set(
+            mergedExceptionKey(projectId, row.primaryEntityId, row.fingerprint),
+            {
+              primaryEntityId: new ObjectID(row.survivorPrimaryEntityId),
+              fingerprint: row.survivorFingerprint,
+            },
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Could not read the merged exceptions of project ${projectId}; the batch is counted without them: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    return survivors;
+  }
+
+  /*
+   * The batch, plus a copy of each occurrence of a merged exception under
+   * its survivor's key. The copy carries no message, stack trace, type or
+   * environment: the survivor keeps its own (the upsert never overwrites a
+   * value with an empty one), while its count, seen times, releases and
+   * unhandled flag take in the occurrence - and a resolved survivor reopens
+   * as Regressed, as it would for an occurrence of its own.
+   */
+  public static async withMergedSurvivors(
+    exceptions: Array<TelemetryExceptionPayload>,
+  ): Promise<Array<TelemetryExceptionPayload>> {
+    const survivors: Map<string, MergedExceptionSurvivor> =
+      await ExceptionUtil.resolveMergedExceptions(exceptions);
+
+    if (survivors.size === 0) {
+      return exceptions;
+    }
+
+    const out: Array<TelemetryExceptionPayload> = [...exceptions];
+
+    for (const exception of exceptions) {
+      if (
+        !exception ||
+        !exception.projectId ||
+        !exception.primaryEntityId ||
+        !exception.fingerprint
+      ) {
+        continue;
+      }
+
+      const survivor: MergedExceptionSurvivor | undefined = survivors.get(
+        mergedExceptionKey(
+          exception.projectId.toString(),
+          exception.primaryEntityId.toString(),
+          exception.fingerprint,
+        ),
+      );
+
+      if (!survivor) {
+        continue;
+      }
+
+      out.push({
+        fingerprint: survivor.fingerprint,
+        projectId: exception.projectId,
+        primaryEntityId: survivor.primaryEntityId,
+        ...(exception.primaryEntityType
+          ? { primaryEntityType: exception.primaryEntityType }
+          : {}),
+        ...(exception.release ? { release: exception.release } : {}),
+        ...(exception.unhandled !== undefined
+          ? { unhandled: exception.unhandled }
+          : {}),
+        ...(exception.occurredAt ? { occurredAt: exception.occurredAt } : {}),
+      });
+    }
+
+    return out;
+  }
+
+  /*
    * Group payloads by (projectId, primaryEntityId, fingerprint), sum
    * occurrence counts, and pick the most-informative metadata to
    * carry into the INSERT/UPDATE. We prefer non-empty message /
@@ -528,6 +907,20 @@ export default class ExceptionUtil {
 
     return out;
   }
+}
+
+// Where an occurrence of a merged exception is counted as well.
+export interface MergedExceptionSurvivor {
+  primaryEntityId: ObjectID;
+  fingerprint: string;
+}
+
+function mergedExceptionKey(
+  projectId: string,
+  primaryEntityId: string,
+  fingerprint: string,
+): string {
+  return `${projectId.toLowerCase()}|${primaryEntityId.toLowerCase()}|${fingerprint}`;
 }
 
 export interface AggregatedException {

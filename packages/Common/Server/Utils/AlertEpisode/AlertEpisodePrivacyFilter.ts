@@ -33,7 +33,7 @@ export function getAlertEpisodeSelfPrivacyRaw(
       return (
         `(${alias} IS NULL OR ${alias} = FALSE OR ` +
         `"AlertEpisode"."_id" IN (SELECT aeou."alertEpisodeId" FROM "AlertEpisodeOwnerUser" aeou WHERE aeou."userId" = :${uidRid} AND aeou."deletedAt" IS NULL) OR ` +
-        `"AlertEpisode"."_id" IN (SELECT aeot."alertEpisodeId" FROM "AlertEpisodeOwnerTeam" aeot INNER JOIN "TeamMember" tm ON tm."teamId" = aeot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND aeot."deletedAt" IS NULL))`
+        `"AlertEpisode"."_id" IN (SELECT aeot."alertEpisodeId" FROM "AlertEpisodeOwnerTeam" aeot INNER JOIN "TeamMember" tm ON tm."teamId" = aeot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND aeot."deletedAt" IS NULL))`
       );
     },
     {
@@ -63,7 +63,7 @@ export function getAlertEpisodeRelatedRecordPrivacyRaw(
         `(${alias} IN (SELECT ae."_id" FROM "AlertEpisode" ae WHERE ae."deletedAt" IS NULL AND (` +
         `ae."isPrivate" IS NULL OR ae."isPrivate" = FALSE OR ` +
         `ae."_id" IN (SELECT aeou."alertEpisodeId" FROM "AlertEpisodeOwnerUser" aeou WHERE aeou."userId" = :${uidRid} AND aeou."deletedAt" IS NULL) OR ` +
-        `ae."_id" IN (SELECT aeot."alertEpisodeId" FROM "AlertEpisodeOwnerTeam" aeot INNER JOIN "TeamMember" tm ON tm."teamId" = aeot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND aeot."deletedAt" IS NULL))))`
+        `ae."_id" IN (SELECT aeot."alertEpisodeId" FROM "AlertEpisodeOwnerTeam" aeot INNER JOIN "TeamMember" tm ON tm."teamId" = aeot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND aeot."deletedAt" IS NULL))))`
       );
     },
     {
