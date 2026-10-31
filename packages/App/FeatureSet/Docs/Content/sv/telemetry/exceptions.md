@@ -62,6 +62,8 @@ Varje rad visar också hur många användare undantaget drabbade under den valda
 
 Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**. **Tilldelade till mig** visar bara de undantag som är tilldelade dig, och sorteringsmenyn ordnar listan efter **Senast sedd**, **Först sedd** eller **Flest händelser**.
 
+**Sparade vyer** behåller listan under ett namn, för alla i projektet: sökningen, filtren, tidsintervallet, statusen, vad som räknas som ett problem, **Tilldelade till mig**, sorteringen och sidstorleken. En vy med **Tilldelade till mig** visar var och en de undantag som är tilldelade dem, och **Rensa vy** återställer listan som den öppnas från början. Sidans adress namnger vyn du valde, så en länk du delar öppnar den. I övrigt fungerar sparade vyer som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
+
 ### Öppna ett undantag
 
 Klicka på en rad för att öppna undantagets sida.

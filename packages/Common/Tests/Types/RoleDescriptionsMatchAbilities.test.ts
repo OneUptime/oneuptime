@@ -579,7 +579,12 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       ...creates("LogItemV3", "SpanItemV3", "MetricItemV3"),
       ["delete", "LogItemV3"],
       ["delete", "SpanItemV3"],
-      ...manages("LogSavedView", "TraceSavedView", "MetricSavedView"),
+      ...manages(
+        "LogSavedView",
+        "TraceSavedView",
+        "MetricSavedView",
+        "ExceptionSavedView",
+      ),
       ["create", "MetricType"],
       ["update", "MetricType"],
     ],

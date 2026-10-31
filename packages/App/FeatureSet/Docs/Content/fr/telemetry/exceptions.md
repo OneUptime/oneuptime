@@ -62,6 +62,8 @@ Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la 
 
 Tapez une requête comme `type:TypeError env:production`, voir [Syntaxe de recherche](/docs/telemetry/search-syntax#exceptions), ou cliquez sur une valeur de la barre latérale **Filtres** : un service, un hôte ou une autre ressource, un **Type d'exception**, un **Environnement** ou une **Classe d'erreur**. **Attribuées à moi** n'affiche que les exceptions qui vous sont attribuées, et le menu de tri classe la liste par **Vu pour la dernière fois**, **Vu pour la première fois** ou **Le plus d'événements**.
 
+**Vues enregistrées** garde la liste sous un nom, pour tout le projet : la recherche, les filtres, la plage de temps, le statut, ce qui compte comme un problème, **Attribuées à moi**, le tri et la taille de page. Une vue avec **Attribuées à moi** montre à chacun les exceptions qui lui sont attribuées, et **Effacer la vue** remet la liste comme elle s'ouvre au départ. L'adresse de la page nomme la vue choisie, donc un lien que vous partagez l'ouvre. Pour le reste, les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
+
 ### Ouvrir une exception
 
 Cliquez sur une ligne pour ouvrir la page de l'exception.

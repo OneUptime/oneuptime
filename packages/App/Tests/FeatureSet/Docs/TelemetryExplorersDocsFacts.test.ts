@@ -2179,6 +2179,69 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   /*
+   * The list's saved views: what one keeps, Assigned to me read for whoever
+   * opens it, Clear view back to the list's own defaults, the address
+   * naming the view, and the project's views - the traces explorer's
+   * control over a table of the list's own.
+   */
+  it("saves the list as a view for the project, opened from Saved Views and by its link", () => {
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const savedView: string = readDashboardSource(
+      "Utils/ExceptionSavedView.ts",
+    );
+    const dropdown: string = readCommonSource(
+      "UI/Components/TelemetryViewer/components/SavedViewsDropdown.tsx",
+    );
+    const model: string = readCommonSource(
+      "Models/DatabaseModels/ExceptionSavedView.ts",
+    );
+    const search: string = section(page, "### Search and filter");
+
+    expect(search).toContain(
+      "**Saved Views** keeps the list under a name, for everyone in the project: the search, filters, time range, status, what counts as an issue, **Assigned to me**, the sort and the page size. A view with **Assigned to me** shows each person the exceptions assigned to them, and **Clear view** puts the list back as it first opens. The page's address names the view you picked, so a link you share opens it.",
+    );
+
+    // The control, its labels, and the project's own table of views.
+    expect(viewer).toContain("<TelemetrySavedViewsControl<ExceptionSavedView>");
+    expect(viewer).toContain("modelType={ExceptionSavedView}");
+    expect(dropdown).toContain('trigger: translationKey("Saved Views"),');
+    expect(dropdown).toContain('{translator.translateText("Clear view")}');
+    expect(model).toContain('tableName: "ExceptionSavedView"');
+    expect(model).toContain("Permission.ProjectMember,");
+
+    // What a view keeps.
+    for (const field of [
+      "search: state.search,",
+      "timeRange: serializeSavedViewTimeRange(state.timeRange),",
+      "pageSize: state.pageSize,",
+      "exceptionStatus: state.status,",
+      "exceptionClassScope: state.classScope,",
+      "exceptionAssignedToMe: state.assignedToMe,",
+      "exceptionSort: state.sort,",
+    ]) {
+      expect(savedView).toContain(field);
+    }
+
+    // Assigned to me is the reader's own: the list asks for its user's.
+    expect(viewer).toContain("setAssignedToMe(view.assignedToMe);");
+    expect(viewer).toContain("q.assignToUserId = UserUtil.getUserId();");
+
+    // Clear view is the empty state: the list's defaults for each field.
+    expect(savedView).toContain(
+      "status: readOne(state.exceptionStatus, STATUS_VALUES) || defaults.status,",
+    );
+
+    // The address names the view, and a link naming one opens it.
+    expect(viewer).toContain("savedView: selectedSavedViewId || null,");
+    expect(viewer).toContain('params.get("savedView")');
+    expect(viewer).toContain(
+      "initialSavedViewId={initialUrlState.savedViewId}",
+    );
+  });
+
+  /*
    * An assignment is told to whoever it hands the exception to: the person,
    * or each member of the team, through their own setting of the event the
    * notification settings page names, and never to whoever assigned it.
