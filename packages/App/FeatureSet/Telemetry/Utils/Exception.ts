@@ -61,8 +61,7 @@ export interface TelemetryExceptionPayload {
  */
 const EXISTING_V1_CACHE_TTL_MS: number = 10 * 60 * 1000;
 const EXISTING_V1_CACHE_MAX_ENTRIES: number = 100000;
-const existingV1Cache: Map<string, { exists: boolean; at: number }> =
-  new Map();
+const existingV1Cache: Map<string, { exists: boolean; at: number }> = new Map();
 
 export function clearExistingV1FingerprintCache(): void {
   existingV1Cache.clear();
@@ -249,7 +248,10 @@ export default class ExceptionUtil {
           }),
         );
 
-        if (existingV1Cache.size + fingerprints.size > EXISTING_V1_CACHE_MAX_ENTRIES) {
+        if (
+          existingV1Cache.size + fingerprints.size >
+          EXISTING_V1_CACHE_MAX_ENTRIES
+        ) {
           existingV1Cache.clear();
         }
 

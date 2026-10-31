@@ -8,10 +8,11 @@ import { normalizeExceptionText } from "./ExceptionSanitizer";
  * WHAT MAKES TWO OCCURRENCES THE SAME EXCEPTION: GROUPING V2.
  *
  * The first fingerprint (v1, ExceptionUtil.getFingerprint) hashes the
- * normalized message and the whole stack trace. Any edit above the throw
- * moves its line numbers, a library upgrade changes its library frames, and
- * a message that embeds a short value differs on every call: each variant
- * became its own exception.
+ * normalized message and the whole stack trace as written. A line number it
+ * does not recognise (Python's `line 42`, Java's `Cart.java:42`) moves with
+ * any edit above the throw, a library upgrade changes the library frames,
+ * and a message that embeds a short value differs on every call: each
+ * variant became its own exception.
  *
  * v2 groups by what the bug is - where in your own code it was thrown:
  *
@@ -149,12 +150,12 @@ export function normalizeFrameModule(fileName: string): string {
       continue;
     }
 
-    const pieces: Array<string> = segment.split(".").filter(
-      (piece: string, index: number, all: Array<string>): boolean => {
+    const pieces: Array<string> = segment
+      .split(".")
+      .filter((piece: string, index: number, all: Array<string>): boolean => {
         // A hash between a name and its extension, never the name itself.
         return index === 0 || index === all.length - 1 || !isContentHash(piece);
-      },
-    );
+      });
 
     segments.push(collapseLongDigitRuns(pieces.join(".")));
   }
@@ -254,7 +255,11 @@ export function getExceptionGroupingKey(input: {
   const all: Array<string> = framesKey(frames);
 
   if (all.length > 0) {
-    return { basis: ExceptionGroupingBasis.AllFrames, exceptionType, parts: all };
+    return {
+      basis: ExceptionGroupingBasis.AllFrames,
+      exceptionType,
+      parts: all,
+    };
   }
 
   return {

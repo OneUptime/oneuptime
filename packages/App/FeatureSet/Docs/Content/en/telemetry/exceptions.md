@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Yes"| count["Counted again;<br/>reopened if Resolved"]
 ```
 
-- **One exception per service and error.** The fingerprint is made from the service, the exception type, the message and the stack trace. Values that change from call to call are taken out first: UUIDs and other IDs, timestamps, IP and email addresses, and numbers of seven digits or more. So `Order id=1042 not found` and `Order id=2077 not found` are one exception.
+- **One exception per service and error.** The fingerprint is made from the service, the exception type, the message and the stack trace. Values that change from call to call are taken out first: UUIDs and other IDs, timestamps, IP and email addresses, and numbers of seven digits or more. So `Order id=1042 not found` and `Order id=2077 not found` are one exception. A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above. Exceptions recorded before this grouping keep theirs.
 - **A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold, and the exception is marked **Regressed**. An occurrence from before you resolved it that reaches OneUptime late does not reopen it.
 - **An archived exception stays archived.** Its new occurrences are still counted, but they stop notifying.
 
@@ -198,7 +198,7 @@ Check the lens first: **Issues** hides user errors and expected denials, so pick
 :::
 
 :::details One error shows up as several exceptions
-The fingerprint includes the message and the stack trace. When they differ, for example when a message embeds a short number or a name that changes on every call, each variant is its own exception.
+The fingerprint includes the message and the stack trace. When they differ, for example when a message embeds a short number or a name that changes on every call, each variant is its own exception. New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.
 :::
 
 :::details A resolved exception keeps coming back

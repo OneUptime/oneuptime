@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Sim"| count["Contada de novo;<br/>reaberta se resolvida"]
 ```
 
-- **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção.
+- **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção. Uma exceção nova é agrupada, em vez disso, pelo seu tipo e pelas funções e arquivos do seu próprio código no stack trace: números de linha, frames de bibliotecas e a mensagem ficam de fora, então variantes lançadas pelo mesmo código são uma exceção só. Sem stack trace, é a mensagem que a agrupa, como acima. As exceções registradas antes deste agrupamento mantêm o delas.
 - **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou, e a exceção é marcada como **Regressão**. Uma ocorrência anterior à resolução que só chega ao OneUptime depois não a reabre.
 - **Uma exceção arquivada continua arquivada.** As novas ocorrências dela continuam sendo contadas, mas deixam de gerar notificações.
 
@@ -198,7 +198,7 @@ Verifique primeiro a lente: **Problemas** oculta erros de usuário e negações 
 :::
 
 :::details Um erro aparece como várias exceções
-A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria.
+A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria. As exceções novas são agrupadas pelas funções do seu próprio código, então isto afeta sobretudo exceções registradas antes; mescle duas que sejam o mesmo bug em **Exceções semelhantes**.
 :::
 
 :::details Uma exceção resolvida sempre volta
