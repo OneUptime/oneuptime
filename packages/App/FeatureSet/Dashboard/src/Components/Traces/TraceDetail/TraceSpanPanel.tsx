@@ -504,11 +504,15 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
       label: "Links",
       count: isDetailLoading ? null : links.length,
     },
+    /*
+     * "Profile samples", as the trace's Related signals name the same tab:
+     * the locales word "Profile" alone as a person's profile.
+     */
     ...(profileSampleCount > 0
       ? [
           {
             id: "profile" as PanelTab,
-            label: "Profile",
+            label: "Profile samples",
             count: profileSampleCount,
           },
         ]
@@ -851,7 +855,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                           </span>
                           <CopyAttributesAsJSONButton
                             attributes={event.rawAttributes}
-                            subject="event attributes"
+                            subject={translationKey("event attributes")}
                             dataTestId="span-event-attributes-copy-json"
                           />
                         </div>
@@ -1008,7 +1012,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                         </span>
                         <CopyAttributesAsJSONButton
                           attributes={link.attributes}
-                          subject="link attributes"
+                          subject={translationKey("link attributes")}
                           dataTestId="span-link-attributes-copy-json"
                         />
                       </div>

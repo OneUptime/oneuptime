@@ -251,7 +251,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
             size="md"
             variant="ghost"
             label="Copy link"
-            copiedLabel="Link copied"
+            copiedLabel={translator.translateText("Link copied") || ""}
             title="Copy a link to this trace"
             className="w-full !border-gray-300 font-medium !text-gray-700 shadow-sm sm:w-auto"
           />

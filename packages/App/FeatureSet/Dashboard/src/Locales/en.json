@@ -39119,5 +39119,8 @@
   "{{offset}} from the start of the trace": "{{offset}} from the start of the trace",
   "{{offset}} into the trace": "{{offset}} into the trace",
   "{{percent}} of spans": "{{percent}} of spans",
-  "×{{count}} from one parent": "×{{count}} from one parent"
+  "×{{count}} from one parent": "×{{count}} from one parent",
+  "Link copied": "Link copied",
+  "event attributes": "event attributes",
+  "link attributes": "link attributes"
 }
