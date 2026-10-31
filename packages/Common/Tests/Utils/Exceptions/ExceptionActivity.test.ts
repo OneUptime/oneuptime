@@ -378,7 +378,7 @@ describe("a seeded sweep of states and writes", () => {
       const releaseAfter: string | null =
         after["isResolved"] === undefined
           ? before.resolvedInReleaseAfter
-          : ((after["resolvedInReleaseAfter"] as string | null) ?? null);
+          : (after["resolvedInReleaseAfter"] as string | null) ?? null;
       const resolutionChanged: boolean =
         resolvedAfter !== before.isResolved ||
         (resolvedAfter && releaseAfter !== before.resolvedInReleaseAfter);
@@ -391,11 +391,11 @@ describe("a seeded sweep of states and writes", () => {
       const userAfter: string | null =
         after["assignToUserId"] === undefined
           ? before.assignToUserId
-          : ((after["assignToUserId"] as string | null) ?? null);
+          : (after["assignToUserId"] as string | null) ?? null;
       const teamAfter: string | null =
         after["assignToTeamId"] === undefined
           ? before.assignToTeamId
-          : ((after["assignToTeamId"] as string | null) ?? null);
+          : (after["assignToTeamId"] as string | null) ?? null;
       const assigneeChanged: boolean =
         userAfter !== before.assignToUserId ||
         teamAfter !== before.assignToTeamId;

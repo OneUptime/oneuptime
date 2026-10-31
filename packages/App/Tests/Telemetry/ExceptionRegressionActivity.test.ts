@@ -104,9 +104,7 @@ afterEach(() => {
 
 describe("the upsert hands back the exceptions it reopened", () => {
   test("it is wrapped so only rows reopened by this statement come back", async () => {
-    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
-      occurrence("a"),
-    ]);
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([occurrence("a")]);
 
     expect(upserts).toHaveLength(1);
     const sql: string = upserts[0]!;
@@ -149,20 +147,21 @@ describe("the upsert hands back the exceptions it reopened", () => {
         TelemetryExceptionActivityType.Regressed,
         "2.0.1",
       ],
-      [B, PROJECT_ID.toString(), TelemetryExceptionActivityType.Regressed, null],
+      [
+        B,
+        PROJECT_ID.toString(),
+        TelemetryExceptionActivityType.Regressed,
+        null,
+      ],
     ]);
   });
 
   test("a batch that reopens nothing records nothing", async () => {
     reopened = [];
-    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
-      occurrence("a"),
-    ]);
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([occurrence("a")]);
 
     reopened = undefined;
-    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
-      occurrence("a"),
-    ]);
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([occurrence("a")]);
 
     expect(recorded).toHaveLength(0);
   });

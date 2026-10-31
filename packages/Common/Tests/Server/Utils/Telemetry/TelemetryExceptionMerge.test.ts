@@ -90,7 +90,9 @@ let activity: Array<{
   actor: TelemetryExceptionActivityActor;
 }>;
 
-function activityLines(): Array<[string, TelemetryExceptionActivityType, string]> {
+function activityLines(): Array<
+  [string, TelemetryExceptionActivityType, string]
+> {
   return activity.flatMap(
     (call: {
       entries: Array<TelemetryExceptionActivityEntry>;

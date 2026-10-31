@@ -21,7 +21,6 @@ import React, {
   useState,
 } from "react";
 import {
-  ANOTHER_EXCEPTION,
   API_KEY_ACTOR_TEMPLATE,
   EXCEPTION_ACTIVITY_FOLDED_COUNT,
   EXCEPTION_ACTIVITY_LIMIT,
@@ -31,7 +30,6 @@ import {
   FIRST_SEEN_IN_RELEASE_TEMPLATE,
   FIRST_SEEN_TEMPLATE,
   ONEUPTIME_ACTOR,
-  SOMEONE,
   getExceptionActivityLines,
 } from "../../Utils/ExceptionActivityPresentation";
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
@@ -150,11 +148,13 @@ const ExceptionActivity: FunctionComponent<ComponentProps> = (
         : line.actor.name
       : ONEUPTIME_ACTOR;
 
+    /*
+     * What the sentence names. One whose person, team or exception is gone
+     * has a sentence without it (getExceptionActivityLine).
+     */
     const slots: Record<string, ReactNode> = {
       actor: name(actor),
-      assignee: name(
-        line.assigneeName || translator.translateText(SOMEONE) || SOMEONE,
-      ),
+      assignee: name(line.assigneeName || ""),
       release: (
         <span className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-700">
           {line.release || ""}
@@ -166,12 +166,10 @@ const ExceptionActivity: FunctionComponent<ComponentProps> = (
           to={exceptionRoute(line.relatedException.id)}
           dataTestId="exception-activity-related"
         >
-          {line.relatedException.name ||
-            translator.translateText(ANOTHER_EXCEPTION) ||
-            ANOTHER_EXCEPTION}
+          {line.relatedException.name}
         </AppLink>
       ) : (
-        name(translator.translateText(ANOTHER_EXCEPTION) || ANOTHER_EXCEPTION)
+        <></>
       ),
     };
 

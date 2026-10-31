@@ -100,13 +100,39 @@ export const FIRST_SEEN_IN_RELEASE_TEMPLATE: string = translationKey(
   "First seen in {{release}}",
 );
 
+/*
+ * The same sentences for a person, team or exception that is no longer
+ * there - deleted since, so the entry no longer names it. Whole sentences
+ * rather than a word such as "someone" in the slot: a language whose nouns
+ * take a case (German, Russian, Hindi) words each its own way.
+ */
+export const EXCEPTION_ACTIVITY_TEMPLATES_WITHOUT_NAME: Partial<
+  Record<TelemetryExceptionActivityType, string>
+> = {
+  [TelemetryExceptionActivityType.Assigned]: translationKey(
+    "{{actor}} assigned this exception",
+  ),
+  [TelemetryExceptionActivityType.Unassigned]: translationKey(
+    "{{actor}} unassigned this exception",
+  ),
+  [TelemetryExceptionActivityType.Merged]: translationKey(
+    "{{actor}} merged another exception into this exception",
+  ),
+  [TelemetryExceptionActivityType.MergedInto]: translationKey(
+    "{{actor}} merged this exception into another one",
+  ),
+  [TelemetryExceptionActivityType.Unmerged]: translationKey(
+    "{{actor}} unmerged another exception from this exception",
+  ),
+  [TelemetryExceptionActivityType.UnmergedFrom]: translationKey(
+    "{{actor}} unmerged this exception from another one",
+  ),
+};
+
 // Who did it when no person did: an API key, or OneUptime itself.
 export const API_KEY_ACTOR_TEMPLATE: string =
   translationKey("{{name}} (API key)");
 export const ONEUPTIME_ACTOR: string = "OneUptime";
-// A person or team that is no longer there.
-export const SOMEONE: string = translationKey("someone");
-export const ANOTHER_EXCEPTION: string = translationKey("another exception");
 
 // The longest name of another exception the timeline writes out.
 export const RELATED_EXCEPTION_NAME_MAX_LENGTH: number = 120;
@@ -298,20 +324,36 @@ export function getExceptionActivityLine(
     readText(entry.assigneeTeam?.name) ||
     null;
 
+  const relatedException: { id: string; name: string } | null =
+    relatedId && relatedName ? { id: relatedId, name: relatedName } : null;
+
+  // An entry whose person, team or exception is gone says so in a sentence of its own.
+  const isNameGone: boolean =
+    activityType === TelemetryExceptionActivityType.Assigned ||
+    activityType === TelemetryExceptionActivityType.Unassigned
+      ? !assigneeName
+      : EXCEPTION_ACTIVITY_TEMPLATES_WITHOUT_NAME[activityType] !== undefined
+        ? !relatedException
+        : false;
+
+  let template: string = EXCEPTION_ACTIVITY_TEMPLATES[activityType];
+
+  if (activityType === TelemetryExceptionActivityType.Regressed && release) {
+    template = REGRESSED_IN_RELEASE_TEMPLATE;
+  } else if (isNameGone) {
+    template =
+      EXCEPTION_ACTIVITY_TEMPLATES_WITHOUT_NAME[activityType] || template;
+  }
+
   return {
     key: entry.id?.toString() || `${activityType}-${entry.createdAt}`,
     activityType,
     icon: LOOK[activityType].icon,
     tone: LOOK[activityType].tone,
-    template:
-      activityType === TelemetryExceptionActivityType.Regressed && release
-        ? REGRESSED_IN_RELEASE_TEMPLATE
-        : EXCEPTION_ACTIVITY_TEMPLATES[activityType],
+    template,
     actor: getExceptionActivityActor(entry),
     assigneeName,
-    relatedException: relatedId
-      ? { id: relatedId, name: relatedName || "" }
-      : null,
+    relatedException,
     release,
     at: toDate(entry.createdAt),
   };

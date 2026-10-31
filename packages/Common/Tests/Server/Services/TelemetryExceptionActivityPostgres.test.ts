@@ -105,8 +105,7 @@ describePostgres("exception activity against Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["EXCEPTION_ACTIVITY_TEST_DATABASE_HOST"] || "localhost",
+      host: process.env["EXCEPTION_ACTIVITY_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["EXCEPTION_ACTIVITY_TEST_DATABASE_PORT"] || "5400",
       ),
@@ -269,26 +268,29 @@ describePostgres("exception activity against Postgres", () => {
     });
 
     // The caller may read a, not b: the exceptions' own scope says so.
-    jest
-      .spyOn(TelemetryExceptionService, "findBy")
-      .mockImplementation((async (findBy: FindBy<TelemetryException>) => {
-        expect(findBy.props.userId?.toString()).toBe(PRIYA.toString());
-        const model: TelemetryException = new TelemetryException();
-        model._id = a;
-        return [model];
-      }) as never);
+    jest.spyOn(TelemetryExceptionService, "findBy").mockImplementation((async (
+      findBy: FindBy<TelemetryException>,
+    ) => {
+      expect(findBy.props.userId?.toString()).toBe(PRIYA.toString());
+      const model: TelemetryException = new TelemetryException();
+      model._id = a;
+      return [model];
+    }) as never);
 
-    const read: (id: string) => Promise<Array<TelemetryExceptionActivity>> =
-      async (id: string): Promise<Array<TelemetryExceptionActivity>> => {
-        return await TelemetryExceptionActivityService.findBy({
-          query: { telemetryExceptionId: new ObjectID(id) },
-          select: { activityType: true, apiKeyName: true, createdAt: true },
-          sort: { createdAt: SortOrder.Descending },
-          limit: 10,
-          skip: 0,
-          props: teammate(),
-        });
-      };
+    const read: (
+      id: string,
+    ) => Promise<Array<TelemetryExceptionActivity>> = async (
+      id: string,
+    ): Promise<Array<TelemetryExceptionActivity>> => {
+      return await TelemetryExceptionActivityService.findBy({
+        query: { telemetryExceptionId: new ObjectID(id) },
+        select: { activityType: true, apiKeyName: true, createdAt: true },
+        sort: { createdAt: SortOrder.Descending },
+        limit: 10,
+        skip: 0,
+        props: teammate(),
+      });
+    };
 
     expect(
       (await read(a)).map((entry: TelemetryExceptionActivity) => {

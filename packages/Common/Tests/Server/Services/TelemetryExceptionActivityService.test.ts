@@ -91,9 +91,9 @@ describe("who an entry credits", () => {
   });
 
   test("nobody - OneUptime itself - otherwise", () => {
-    expect(TelemetryExceptionActivityService.getActor({ isRoot: true })).toEqual(
-      {},
-    );
+    expect(
+      TelemetryExceptionActivityService.getActor({ isRoot: true }),
+    ).toEqual({});
     expect(TelemetryExceptionActivityService.getActor(undefined)).toEqual({});
   });
 });
@@ -286,31 +286,31 @@ describe("reading an exception's activity", () => {
     readableIds = [A];
     readsAs = [];
 
-    jest
-      .spyOn(TelemetryExceptionService, "findBy")
-      .mockImplementation((async (findBy: FindBy<TelemetryException>) => {
-        readsAs.push(findBy.props);
+    jest.spyOn(TelemetryExceptionService, "findBy").mockImplementation((async (
+      findBy: FindBy<TelemetryException>,
+    ) => {
+      readsAs.push(findBy.props);
 
-        if (readableIds === "refuse") {
-          throw new NotAuthorizedException(
-            "You do not have permission to read Exceptions.",
-          );
-        }
-
-        const asked: Array<string> = idsOf(
-          (findBy.query as Record<string, unknown>)["_id"],
+      if (readableIds === "refuse") {
+        throw new NotAuthorizedException(
+          "You do not have permission to read Exceptions.",
         );
+      }
 
-        return (readableIds as Array<string>)
-          .filter((id: string): boolean => {
-            return asked.includes(id);
-          })
-          .map((id: string): TelemetryException => {
-            const model: TelemetryException = new TelemetryException();
-            model._id = id;
-            return model;
-          });
-      }) as never);
+      const asked: Array<string> = idsOf(
+        (findBy.query as Record<string, unknown>)["_id"],
+      );
+
+      return (readableIds as Array<string>)
+        .filter((id: string): boolean => {
+          return asked.includes(id);
+        })
+        .map((id: string): TelemetryException => {
+          const model: TelemetryException = new TelemetryException();
+          model._id = id;
+          return model;
+        });
+    }) as never);
   });
 
   async function keep(
@@ -401,8 +401,9 @@ describe("reading an exception's activity", () => {
 
   test("root and master admins read as asked", async () => {
     expect(await keep({}, { isRoot: true })).toEqual({});
-    expect(await keep({ activityType: "Resolved" }, { isMasterAdmin: true }))
-      .toEqual({ activityType: "Resolved" });
+    expect(
+      await keep({ activityType: "Resolved" }, { isMasterAdmin: true }),
+    ).toEqual({ activityType: "Resolved" });
     expect(readsAs).toHaveLength(0);
   });
 

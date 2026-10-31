@@ -20,6 +20,7 @@ import { MemoryRouter } from "react-router-dom";
 import ExceptionActivity from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionActivity";
 import {
   EXCEPTION_ACTIVITY_FOLDED_COUNT,
+  ExceptionActivityLine,
   getExceptionActivityLine,
   getExceptionActivityLines,
   getRelatedExceptionName,
@@ -207,7 +208,7 @@ describe("each kind of entry, as a sentence", () => {
     ]);
   });
 
-  test("assignments name the person or the team; one no longer there is someone", async () => {
+  test("assignments name the person or the team; one no longer there, a sentence without it", async () => {
     renderActivity([
       entry(TelemetryExceptionActivityType.Assigned, {
         user: person("Priya Raman", "priya@example.com"),
@@ -223,13 +224,13 @@ describe("each kind of entry, as a sentence", () => {
     ]);
 
     expect(await sentences()).toEqual([
-      "Alex Kim unassigned this exception from someone",
+      "Alex Kim unassigned this exception",
       "Priya Raman assigned this exception to Alex Kim",
       "Priya Raman assigned this exception to Platform",
     ]);
   });
 
-  test("merges link the other exception; one deleted since is another exception", async () => {
+  test("merges link the other exception; one deleted since, a sentence without it", async () => {
     renderActivity([
       entry(TelemetryExceptionActivityType.Merged, {
         user: person("Priya Raman", "priya@example.com"),
@@ -254,7 +255,7 @@ describe("each kind of entry, as a sentence", () => {
     ]);
 
     expect(await sentences()).toEqual([
-      "Alex Kim unmerged this exception from another exception",
+      "Alex Kim unmerged this exception from another one",
       "Alex Kim unmerged another exception from this exception",
       "Priya Raman merged this exception into RangeError: too far",
       "Priya Raman merged TypeError: x is undefined into this exception",
@@ -263,8 +264,9 @@ describe("each kind of entry, as a sentence", () => {
     const links: Array<HTMLElement> = screen.getAllByTestId(
       "exception-activity-related",
     );
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(2);
     expect(links[0]!.getAttribute("href")).toContain(OTHER_ID);
+    expect(links[1]!.getAttribute("href")).toContain(OTHER_ID);
   });
 
   test("an entry of a kind this Dashboard does not know is left out", async () => {
@@ -397,7 +399,9 @@ describe("the timeline", () => {
       expect(getListMock).toHaveBeenCalledTimes(2);
     });
     await waitFor(async () => {
-      expect(await sentences()).toEqual(["Priya Raman resolved this exception"]);
+      expect(await sentences()).toEqual([
+        "Priya Raman resolved this exception",
+      ]);
     });
   });
 });
@@ -412,9 +416,11 @@ describe("the lines, apart from the card", () => {
     );
 
     expect(
-      getExceptionActivityLines([older, newer]).map((line) => {
-        return line.activityType;
-      }),
+      getExceptionActivityLines([older, newer]).map(
+        (line: ExceptionActivityLine): TelemetryExceptionActivityType => {
+          return line.activityType;
+        },
+      ),
     ).toEqual([
       TelemetryExceptionActivityType.Reopened,
       TelemetryExceptionActivityType.Resolved,

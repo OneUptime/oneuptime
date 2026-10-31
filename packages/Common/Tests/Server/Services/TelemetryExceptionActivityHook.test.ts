@@ -241,21 +241,9 @@ describe("the update hooks record what a write changed", () => {
         },
       ),
     ).toEqual([
-      [
-        TelemetryExceptionActivityType.Assigned,
-        ALEX.toString(),
-        null,
-      ],
-      [
-        TelemetryExceptionActivityType.Assigned,
-        null,
-        PLATFORM.toString(),
-      ],
-      [
-        TelemetryExceptionActivityType.Unassigned,
-        null,
-        PLATFORM.toString(),
-      ],
+      [TelemetryExceptionActivityType.Assigned, ALEX.toString(), null],
+      [TelemetryExceptionActivityType.Assigned, null, PLATFORM.toString()],
+      [TelemetryExceptionActivityType.Unassigned, null, PLATFORM.toString()],
     ]);
   });
 
@@ -319,21 +307,25 @@ describe("the update hooks record what a write changed", () => {
   });
 
   test("OneUptime's own changes - an AI fix merged, a fix that did not hold - are credited to nobody: OneUptime", async () => {
-    await runHooks({ isResolved: true, markedAsResolvedAt: new Date() }, {
-      isRoot: true,
-    });
+    await runHooks(
+      { isResolved: true, markedAsResolvedAt: new Date() },
+      {
+        isRoot: true,
+      },
+    );
 
     rowsBefore = [exceptionRow({ id: A, isResolved: true })];
-    await runHooks({ isResolved: false, regressedAt: new Date() }, {
-      isRoot: true,
-    });
+    await runHooks(
+      { isResolved: false, regressedAt: new Date() },
+      {
+        isRoot: true,
+      },
+    );
 
     expect(
-      recorded.map(
-        (call: { actor: TelemetryExceptionActivityActor }) => {
-          return call.actor;
-        },
-      ),
+      recorded.map((call: { actor: TelemetryExceptionActivityActor }) => {
+        return call.actor;
+      }),
     ).toEqual([{}, {}]);
     expect(recordedTypes()).toEqual([
       TelemetryExceptionActivityType.Resolved,
