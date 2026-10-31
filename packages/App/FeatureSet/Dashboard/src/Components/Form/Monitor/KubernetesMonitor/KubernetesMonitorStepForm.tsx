@@ -2,6 +2,7 @@ import MonitorStepKubernetesMonitor, {
   DEFAULT_KUBERNETES_WORKLOAD_KIND,
   KUBERNETES_WORKLOAD_KINDS,
   KubernetesResourceFilters,
+  KubernetesWorkloadKind,
   MonitorStepKubernetesMonitorUtil,
   KubernetesResourceScope,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
@@ -38,7 +39,10 @@ import {
   getKubernetesDefaultAlertTemplateId,
 } from "Common/Types/Monitor/KubernetesAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
-import { KubernetesMetricDefinition } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import {
+  KubernetesMetricDefinition,
+  getKubernetesMetricById,
+} from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
@@ -97,7 +101,7 @@ const resourceScopeOptions: Array<DropdownOption> = [
 
 /*
  * The kinds of workload a Workload Name can name; Deployment first. A
- * template that watches one kind starts the field on it.
+ * template or metric that watches one kind starts the field on it.
  */
 const workloadKindOptions: Array<DropdownOption> =
   KUBERNETES_WORKLOAD_KINDS.map(
@@ -184,26 +188,30 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const templateAppliedWithoutResourceRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
-  // The Workload Kind the person picked, which a template switch keeps.
+  /*
+   * The Workload Kind the person picked, which a template or metric switch
+   * keeps.
+   */
   const pickedWorkloadKindRef: React.MutableRefObject<string | undefined> =
     useRef<string | undefined>(undefined);
 
   /*
    * The filters a scope starts on. A Workload scope starts on the kind the
-   * person picked, else on the kind the template watches, so a Workload
-   * Name is read as that kind's: a Job's name for Job Failures. Otherwise
-   * on none, and a name is read as a Deployment's.
+   * person picked, else on the kind the template or metric watches, so a
+   * Workload Name is read as that kind's: a Job's name for Job Failures or
+   * Job Failed Pods. Otherwise on none, and a name is read as a
+   * Deployment's.
    */
   const getStartingResourceFilters: (input: {
     resourceScope: KubernetesResourceScope;
-    template: KubernetesAlertTemplate | undefined;
+    workloadKind: KubernetesWorkloadKind | undefined;
   }) => KubernetesResourceFilters = (input: {
     resourceScope: KubernetesResourceScope;
-    template: KubernetesAlertTemplate | undefined;
+    workloadKind: KubernetesWorkloadKind | undefined;
   }): KubernetesResourceFilters => {
     const workloadType: string | undefined =
       input.resourceScope === KubernetesResourceScope.Workload
-        ? pickedWorkloadKindRef.current || input.template?.workloadKind
+        ? pickedWorkloadKindRef.current || input.workloadKind
         : undefined;
 
     return workloadType ? { workloadType } : {};
@@ -217,6 +225,19 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     React.useState<MetricsAggregationType>(MetricsAggregationType.Avg);
   const [customResourceScope, setCustomResourceScope] =
     React.useState<KubernetesResourceScope>(KubernetesResourceScope.Cluster);
+
+  // The kind the chosen template, else the chosen metric, watches.
+  const getChosenWorkloadKind: () => KubernetesWorkloadKind | undefined = ():
+    | KubernetesWorkloadKind
+    | undefined => {
+    if (selectedTemplateId) {
+      return getKubernetesAlertTemplateById(selectedTemplateId)?.workloadKind;
+    }
+
+    return selectedMetricId
+      ? getKubernetesMetricById(selectedMetricId)?.workloadKind
+      : undefined;
+  };
 
   const resources: InfrastructureResources<KubernetesCluster> =
     useInfrastructureResources<KubernetesCluster>({
@@ -343,7 +364,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
           ...templateMonitor.resourceFilters,
           ...getStartingResourceFilters({
             resourceScope: templateMonitor.resourceScope,
-            template,
+            workloadKind: template.workloadKind,
           }),
         },
       });
@@ -423,7 +444,16 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       aggregationType: metric.defaultAggregation,
     });
 
-    props.onChange(config);
+    props.onChange({
+      ...config,
+      resourceFilters: {
+        ...config.resourceFilters,
+        ...getStartingResourceFilters({
+          resourceScope: metric.defaultResourceScope,
+          workloadKind: metric.workloadKind,
+        }),
+      },
+    });
     /*
      * The template's criteria compared the template's own metric; kept, they
      * judged this one by another threshold and named another incident. A
@@ -585,8 +615,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                     workloadName: value || undefined,
                     /*
                      * The kind travels with the name: the worker reads a
-                     * name as the kind's (Deployment unless the template
-                     * or the person set one).
+                     * name as the kind's (Deployment unless the template,
+                     * the metric or the person set one).
                      */
                     workloadType:
                       monitorStepKubernetesMonitor.resourceFilters
@@ -703,7 +733,10 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                   props.onChange({
                     ...monitorStepKubernetesMonitor,
                     resourceScope: newScope,
-                    resourceFilters: {},
+                    resourceFilters: getStartingResourceFilters({
+                      resourceScope: newScope,
+                      workloadKind: getChosenWorkloadKind(),
+                    }),
                   });
                 }}
                 placeholder="Select resource scope..."
@@ -822,9 +855,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                 resourceScope,
                 resourceFilters: getStartingResourceFilters({
                   resourceScope,
-                  template: selectedTemplateId
-                    ? getKubernetesAlertTemplateById(selectedTemplateId)
-                    : undefined,
+                  workloadKind: getChosenWorkloadKind(),
                 }),
               });
             }}
