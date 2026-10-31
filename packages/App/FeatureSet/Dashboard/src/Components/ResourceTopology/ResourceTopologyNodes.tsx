@@ -579,8 +579,8 @@ const HealthDot: FunctionComponent<{
 /*
  * How what a part holds is doing, as one bar split by health, worst first:
  * a cluster of 40 hosts with one down reads as a sliver of red on green.
- * Its words are its title; the numbers next to it say the same for a
- * screen reader (the button's name).
+ * Its words are its title. A screen reader hears what needs attention
+ * inside from the round button's name instead.
  */
 export const InsideHealthBar: FunctionComponent<{
   node: ResourceTopologyNode;

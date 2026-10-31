@@ -16,6 +16,8 @@ inside boxes). `after-*` is this PR.
   is red or amber where trouble lies; the branch with trouble in it is open, a healthy branch is
   one closed card that says what it holds and how its insides are doing.
 - `after-cloud-1280.png`: a cloud account (no `before`: it drew the same boxes).
+- `after-vmware-quiet-1280.png`, `after-kubernetes-quiet-1280.png`: a calm estate. With room to
+  spare, the vCenter's healthy datacenters open too; the cluster's first level already fills it.
 - `after-*-dark.png`, `after-vmware-1280-de.png`, `after-*-fa.png`: dark mode, German, and Persian,
   where the tree is mirrored.
 - `after-vmware-390.png`, `after-kubernetes-390-dark.png`: the map on a phone (a phone opens on the
