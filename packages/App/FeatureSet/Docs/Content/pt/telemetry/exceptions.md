@@ -62,6 +62,8 @@ Cada linha mostra também quantos usuários a exceção afetou no intervalo esco
 
 Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**. **Atribuídas a mim** mostra só as exceções atribuídas a você, e o menu de ordenação ordena a lista por **Visto pela última vez**, **Visto pela primeira vez** ou **Mais eventos**.
 
+**Visualizações salvas** guarda a lista com um nome, para todos no projeto: a pesquisa, os filtros, o intervalo de tempo, o status, o que conta como problema, **Atribuídas a mim**, a ordenação e o tamanho da página. Uma visualização com **Atribuídas a mim** mostra a cada pessoa as exceções atribuídas a ela, e **Limpar visualização** devolve a lista a como ela abre da primeira vez. O endereço da página nomeia a visualização que você escolheu, então um link que você compartilha a abre. No resto, as visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
+
 ### Abrir uma exceção
 
 Clique em uma linha para abrir a página da exceção.

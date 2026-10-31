@@ -62,6 +62,8 @@ Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet,
 
 Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**. **Tildelt meg** viser bare unntakene som er tildelt deg, og sorteringsmenyen ordner listen etter **Sist sett**, **Først sett** eller **Flest hendelser**.
 
+**Lagrede visninger** tar vare på listen under et navn, for alle i prosjektet: søket, filtrene, tidsintervallet, statusen, hva som teller som et problem, **Tildelt meg**, sorteringen og sidestørrelsen. En visning med **Tildelt meg** viser hver person unntakene som er tildelt dem, og **Fjern visning** setter listen tilbake slik den åpnes først. Sidens adresse navngir visningen du valgte, så en lenke du deler åpner den. Ellers fungerer lagrede visninger som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
+
 ### Åpne et unntak
 
 Klikk på en rad for å åpne siden til unntaket.
