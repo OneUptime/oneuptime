@@ -188,6 +188,10 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import SecurityCaseEvidenceAPI from "Common/Server/API/SecurityCaseEvidenceAPI";
 import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
+import TelemetryExceptionActivity from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
+import TelemetryExceptionActivityService, {
+  Service as TelemetryExceptionActivityServiceType,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
@@ -3610,6 +3614,18 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new TelemetryExceptionAPI().getRouter(),
+    );
+
+    // An exception's activity timeline, read as the exception is.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityServiceType
+      >(
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityService,
+      ).getRouter(),
     );
 
     app.use(

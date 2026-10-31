@@ -101,6 +101,8 @@ Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima
 
 **Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez.
 
+**Atividade**, no fim da **Visão geral** da exceção, diz quem a alterou e quando, as mais recentes primeiro: quem a resolveu, reabriu, arquivou ou atribuiu, mesclou outra exceção a ela ou desfez a mesclagem de uma, e quando ela voltou a ocorrer depois de resolvida. Toda alteração está ali, feita na página da exceção, na lista, em **Ações em massa**, pela API ou pela própria OneUptime, e uma alteração feita com uma chave de API leva o nome da chave.
+
 ## Classes de erro
 
 Cada exceção tem uma classe de erro, que diz de quem é o problema. O OneUptime AI a define quando faz a triagem de um insight sobre a exceção, como uma exceção nova ou que disparou: veja [AI SRE](/docs/ai/ai-sre#insights-detecção-proativa). Uma exceção que ele não triou continua `unknown`.

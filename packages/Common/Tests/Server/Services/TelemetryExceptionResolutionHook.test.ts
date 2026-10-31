@@ -46,6 +46,17 @@ async function hookWrite(
   return result.updateBy.data as unknown as Record<string, unknown>;
 }
 
+/*
+ * A triage or an assignment reads the rows it writes as they are, for the
+ * exception's activity timeline (TelemetryExceptionActivityHook.test.ts):
+ * read from the database, which these tests do not have - none here.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(TelemetryExceptionService, "findRowsAndHoldUpdateToThem")
+    .mockResolvedValue([] as never);
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
