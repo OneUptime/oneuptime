@@ -1,7 +1,11 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import QueryPropertyNames from "../../../../Server/Infrastructure/Postgres/QueryPropertyNames";
-import { fastestRun, FastestRun } from "../../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../../../Helpers/FastestRun";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import {
   DataSource,
@@ -604,22 +608,21 @@ describe("QueryPropertyNames", () => {
       return length;
     };
 
-    const typeOrm: FastestRun<number> = fastestRun({
-      run: (): number => {
+    // Timed in turns (fastestRunsCompared): one stall cannot slow one side alone.
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         return replaceAll((statement: string): string => {
           return typeOrmReplace.call(builder as never, statement);
         });
       },
-      limitInMs: 0,
-    });
-    const patched: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         return replaceAll((statement: string): string => {
           return QueryPropertyNames.replace(builder as never, statement);
         });
       },
-      limitInMs: 0,
     });
+    const typeOrm: FastestRun<number> = runs.first;
+    const patched: FastestRun<number> = runs.second;
 
     expect(patched.result).toBe(typeOrm.result);
     expect(QueryPropertyNames.replace(builder as never, written)).toBe(
