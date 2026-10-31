@@ -799,19 +799,26 @@ describe("the uptime report, as a text-only mail client shows it", () => {
   };
 
   const buildReport: () => StatusPageReport = (): StatusPageReport => {
-    const group: (n: number, name: string, parent?: number) => StatusPageGroup =
-      (n: number, name: string, parent?: number): StatusPageGroup => {
-        const made: StatusPageGroup = new StatusPageGroup();
-        made._id = groupId(n).toString();
-        made.name = name;
-        made.order = n;
+    const group: (
+      n: number,
+      name: string,
+      parent?: number,
+    ) => StatusPageGroup = (
+      n: number,
+      name: string,
+      parent?: number,
+    ): StatusPageGroup => {
+      const made: StatusPageGroup = new StatusPageGroup();
+      made._id = groupId(n).toString();
+      made.name = name;
+      made.order = n;
 
-        if (parent !== undefined) {
-          made.parentStatusPageGroupId = groupId(parent);
-        }
+      if (parent !== undefined) {
+        made.parentStatusPageGroupId = groupId(parent);
+      }
 
-        return made;
-      };
+      return made;
+    };
 
     const entry: (
       name: string,
@@ -842,8 +849,8 @@ describe("the uptime report, as a text-only mail client shows it", () => {
       };
     };
 
-    const structure: StatusPageReportStructure =
-      StatusPageReportTreeUtil.build({
+    const structure: StatusPageReportStructure = StatusPageReportTreeUtil.build(
+      {
         entries: [
           entry("Checkout API", 2, 99.95, 1, "21 minutes"),
           entry("Marketing website", 3, 99.4, 2, "4 hours, 18 minutes"),
@@ -854,7 +861,8 @@ describe("the uptime report, as a text-only mail client shows it", () => {
           group(3, "Web", 1),
         ],
         groupMetricsByGroupId: {},
-      });
+      },
+    );
 
     return {
       reportDates: "Oct 1, 2026 - Oct 31, 2026",
@@ -933,16 +941,15 @@ describe("the uptime report, as a text-only mail client shows it", () => {
     expect(payload.text).toContain(
       "Group / Resource | Uptime | Downtime | Incidents",
     );
-    expect(payload.text).toContain(
-      "Checkout API | 99.95% | 21 minutes | 1",
-    );
+    expect(payload.text).toContain("Checkout API | 99.95% | 21 minutes | 1");
   });
 
   test("the starter a status page is offered for its own report reads the same", async () => {
-    const starter: string | undefined = getDefaultSubscriberNotificationTemplate(
-      StatusPageSubscriberNotificationEventType.SubscriberReport,
-      StatusPageSubscriberNotificationMethod.Email,
-    )?.body;
+    const starter: string | undefined =
+      getDefaultSubscriberNotificationTemplate(
+        StatusPageSubscriberNotificationEventType.SubscriberReport,
+        StatusPageSubscriberNotificationMethod.Email,
+      )?.body;
 
     expect(starter).toBeTruthy();
 

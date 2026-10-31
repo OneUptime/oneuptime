@@ -89,7 +89,14 @@ const READ_ATTRIBUTES: ReadonlyMap<string, ReadonlySet<string>> = new Map<
   ["basefont", new Set<string>(["color", "face", "size"])],
   [
     "body",
-    new Set<string>(["text", "bgcolor", "link", "alink", "vlink", "background"]),
+    new Set<string>([
+      "text",
+      "bgcolor",
+      "link",
+      "alink",
+      "vlink",
+      "background",
+    ]),
   ],
   ["font", new Set<string>(["color", "face", "size"])],
   ["marquee", new Set<string>(["bgcolor", "background"])],
@@ -301,9 +308,7 @@ const toHex: (value: number) => string = (value: number): string => {
 /**
  * A colour as SpamAssassin's name_to_rgb reads it: "#rrggbb", or "invalid".
  */
-export const readColor: (value: string) => string = (
-  value: string,
-): string => {
+export const readColor: (value: string) => string = (value: string): string => {
   let color: string = value.toLowerCase().trim();
 
   const named: string | undefined = COLOR_NAMES.get(color);
@@ -359,7 +364,8 @@ export const readColor: (value: string) => string = (
   }
 
   if (color.length === 3) {
-    color = color[0]! + color[0]! + color[1]! + color[1]! + color[2]! + color[2]!;
+    color =
+      color[0]! + color[0]! + color[1]! + color[1]! + color[2]! + color[2]!;
   }
 
   return `#${color}`;
@@ -367,9 +373,7 @@ export const readColor: (value: string) => string = (
 
 // A style's color value with rgb() in it, as text_style reads one.
 const readRgbValues: (value: string) => string = (value: string): string => {
-  const parts: Array<string> = value
-    .replace(NOT_DIGIT_OR_COMMA, "")
-    .split(",");
+  const parts: Array<string> = value.replace(NOT_DIGIT_OR_COMMA, "").split(",");
 
   return (
     "#" +
@@ -572,10 +576,7 @@ export const colorDistance: (
   );
 };
 
-const attributeValue: (
-  tag: StartTag,
-  name: string,
-) => string | undefined = (
+const attributeValue: (tag: StartTag, name: string) => string | undefined = (
   tag: StartTag,
   name: string,
 ): string | undefined => {
@@ -696,8 +697,7 @@ export const lowContrastText: (html: string) => Array<LowContrastText> = (
       return;
     }
 
-    const closes: ReadonlySet<string> =
-      name === "td" ? TD_CLOSES : TR_CLOSES;
+    const closes: ReadonlySet<string> = name === "td" ? TD_CLOSES : TR_CLOSES;
 
     while (styles.length > 0 && closes.has(current().tag)) {
       pop();

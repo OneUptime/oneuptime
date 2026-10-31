@@ -194,8 +194,9 @@ describe("StatusPageEmailLogo.readLogoAddress", () => {
 
   test("on the host and protocol the senders build it with, whatever case the host is in", () => {
     expect(
-      readOnHost(LOGO_URL.replace("oneuptime.acme.com", "OneUptime.Acme.com"))
-        ?.toString(),
+      readOnHost(
+        LOGO_URL.replace("oneuptime.acme.com", "OneUptime.Acme.com"),
+      )?.toString(),
     ).toBe(STATUS_PAGE_ID.toString());
 
     expect(
@@ -222,7 +223,10 @@ describe("StatusPageEmailLogo.readLogoAddress", () => {
     ["a page that is no id", LOGO_URL.replace(STATUS_PAGE_ID.toString(), "1")],
     ["a path below the page", `${LOGO_URL}/x`],
     ["a path above the logo route", LOGO_URL.replace("/status-page-api", "")],
-    ["a page's domain in place of its id", LOGO_URL.replace(STATUS_PAGE_ID.toString(), "status.acme.com")],
+    [
+      "a page's domain in place of its id",
+      LOGO_URL.replace(STATUS_PAGE_ID.toString(), "status.acme.com"),
+    ],
     ["no address at all", ""],
     ["text that is no address", "logo"],
     ["a data: URL", "data:image/png;base64,iVBORw0KGgo="],

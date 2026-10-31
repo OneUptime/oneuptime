@@ -586,14 +586,16 @@ describe("Video Calls docs - connecting in one click", () => {
       'process.env["MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID"]',
     );
     expect(
-      read("packages/Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthApps.ts"),
+      read(
+        "packages/Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthApps.ts",
+      ),
     ).toContain("tenantId = MicrosoftTeamsMeetingsAppTenantId;");
     // The chart's value the page names, and the variable it sets from it.
     expect(read("HelmChart/Public/oneuptime/values.yaml")).toContain(
       "microsoftTeamsMeetingsApp:\n  clientId:\n  clientSecret:\n  tenantId:\n",
     );
     expect(read("HelmChart/Public/oneuptime/templates/_helpers.tpl")).toContain(
-      "value: {{ default \"\" $.Values.microsoftTeamsMeetingsApp.tenantId | quote }}",
+      'value: {{ default "" $.Values.microsoftTeamsMeetingsApp.tenantId | quote }}',
     );
     // And Docker Compose passes it from config.env.
     expect(read("docker-compose.base.yml")).toContain(

@@ -206,7 +206,9 @@ describe("StatusPageCarriedLogo.read", () => {
   });
 
   test("a read that fails: no logo, said once, and read again after a few seconds", async () => {
-    findOneBy.mockRejectedValueOnce(new Error("connection terminated") as never);
+    findOneBy.mockRejectedValueOnce(
+      new Error("connection terminated") as never,
+    );
 
     expect(await StatusPageCarriedLogo.read(STATUS_PAGE_ID)).toBeNull();
     expect(logger.error).toHaveBeenCalledWith(
