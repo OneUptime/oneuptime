@@ -300,12 +300,14 @@ Memcached にはユーザーがありません。レシーバーはテキスト�
 
 ### エージェントをインストールして起動する
 
+各 OneUptime は、自分のリリースのエージェントのインストールスクリプトとファイルを配布します。以下のコマンドは `https://oneuptime.com` からダウンロードするので、セルフホストの OneUptime ではこのアドレスを自分の URL に置き換えてください。インストールスクリプトはまず `install.sh` として保存されるので、実行する前に内容を読めます。
+
 :::tabs
 @tab install.sh
 インストールスクリプトをダウンロードし、エージェントを置くマシンで実行します:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ bash install.sh
 
 パスワードには、SQL Server の接続文字列で扱えないわずかな文字を除き、どの文字でも使えます ([監視用ユーザーを作成する](#監視用ユーザーを作成する) の SQL Server タブを参照)。Collector は読み取った値の中の `$` をもう一度展開する (`$$` は `$` に、`${NAME}` は別の変数になります) ため、スクリプトは Docker Compose 用に値を引用符で囲むのに加えて、`DATABASE_USERNAME` と `DATABASE_PASSWORD` のすべての `$` を二重にして書き込みます。
 @tab Docker Compose
-[DatabaseAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) から `docker-compose.yml` とエンジン用の設定を 1 つのフォルダーにダウンロードし、設定は `otel-collector-config.yaml` として保存します:
+お使いの OneUptime から `docker-compose.yml` とエンジン用の設定を 1 つのフォルダーにダウンロードし、設定は `otel-collector-config.yaml` として保存します:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 それらの横に `.env` ファイルを作成します (`chmod 600 .env`。パスワードを含むため):
@@ -458,7 +460,7 @@ OneUptime Kubernetes エージェントがあるクラスターで動くデー�
 エンジン用の設定を ConfigMap に、シークレットを Secret に入れます (パスワードの `$` はすべて `$$` と書いてください。Collector が展開します):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ SQL Server の `sqlserver.*.rate` メトリクス (バッチ要求、コンパ�
 ### まず診断スクリプトを実行する
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

@@ -20,6 +20,7 @@ import {
   VMWARE_NATIVE_START_COMMAND,
   VMWARE_NATIVE_STATUS_COMMAND,
   VMWARE_NATIVE_UNINSTALL_COMMAND,
+  getVMwareAgentDownloadCommand,
   getVMwareNativeEnvFile,
   getVMwareNativeInstallCommand,
   getVMwareNativeUpgradeCommand,
@@ -56,6 +57,9 @@ const CONTENT_DIR: string = path.join(
   "packages/App/FeatureSet/Docs/Content",
 );
 const AGENT_DIR: string = path.join(REPO_ROOT, "agents/VMwareAgent");
+
+// The docs show OneUptime Cloud's address; a self-hosted reader puts theirs.
+const DOCS_ONEUPTIME_URL: string = "https://oneuptime.com";
 // Screenshots the pages embed live here, not under Content/<language>.
 const STATIC_DIR: string = path.join(
   REPO_ROOT,
@@ -684,6 +688,20 @@ describe("VMware docs", (): void => {
       expect(quickStart).toContain("docker compose up -d");
     });
 
+    it("downloads the compose files from the reader's OneUptime, as the upgrade dialog does", (): void => {
+      const quickStart: string = tabPanel(
+        readPage(TELEMETRY_PAGE),
+        "Docker Compose",
+      );
+
+      expect(quickStart).toContain(
+        "```bash\nmkdir oneuptime-vmware-agent && cd oneuptime-vmware-agent\n" +
+          getVMwareAgentDownloadCommand(DOCS_ONEUPTIME_URL) +
+          "\n```",
+      );
+      expect(quickStart).not.toContain("github");
+    });
+
     it("names the discovery attribute, the agent paths and the read-only role", (): void => {
       const markdown: string = readPage(TELEMETRY_PAGE);
 
@@ -691,10 +709,10 @@ describe("VMware docs", (): void => {
       expect(markdown).toContain("`/opt/oneuptime-vmware-agent`");
       expect(markdown).toContain("oneuptime-vmware-agent");
       expect(markdown).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh",
+        "curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh",
       );
       expect(markdown).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh",
+        "curl -fsSL https://oneuptime.com/install/vmware-agent/troubleshoot.sh -o troubleshoot.sh",
       );
       expect(markdown).toContain("**Read-Only**");
       expect(markdown).toContain("Propagate to children");
@@ -812,7 +830,7 @@ describe("VMware docs", (): void => {
     it("documents the install without Docker with the setup guide's own commands, in order", (): void => {
       const part: string = installWithoutDocker(readPage(TELEMETRY_PAGE));
       const blocks: Array<string> = [
-        bashBlock(getVMwareNativeInstallCommand()),
+        bashBlock(getVMwareNativeInstallCommand(DOCS_ONEUPTIME_URL)),
         bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
         bashBlock(
           getVMwareNativeEnvFile({
@@ -888,13 +906,13 @@ describe("VMware docs", (): void => {
       const markdown: string = readPage(TELEMETRY_PAGE);
 
       expect(markdown).toContain(
-        `(https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/${VMWARE_AGENT_NATIVE_UNIT_FILE})`,
+        `(https://oneuptime.com/install/vmware-agent/${VMWARE_AGENT_NATIVE_UNIT_FILE})`,
       );
       expect(
         fs.existsSync(path.join(AGENT_DIR, VMWARE_AGENT_NATIVE_UNIT_FILE)),
       ).toBe(true);
       expect(section(markdown, "## Upgrading the agent")).toContain(
-        bashBlock(getVMwareNativeUpgradeCommand()),
+        bashBlock(getVMwareNativeUpgradeCommand(DOCS_ONEUPTIME_URL)),
       );
       expect(section(markdown, "## Uninstalling the agent")).toContain(
         bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
@@ -944,7 +962,7 @@ describe("VMware docs", (): void => {
       );
 
       for (const block of [
-        bashBlock(getVMwareNativeInstallCommand()),
+        bashBlock(getVMwareNativeInstallCommand(DOCS_ONEUPTIME_URL)),
         bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
         bashBlock(
           getVMwareNativeEnvFile({
@@ -954,7 +972,7 @@ describe("VMware docs", (): void => {
           }),
         ),
         bashBlock(VMWARE_NATIVE_START_COMMAND),
-        bashBlock(getVMwareNativeUpgradeCommand()),
+        bashBlock(getVMwareNativeUpgradeCommand(DOCS_ONEUPTIME_URL)),
         bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
       ]) {
         expect({ block, inReadme: readme.includes(block) }).toEqual({

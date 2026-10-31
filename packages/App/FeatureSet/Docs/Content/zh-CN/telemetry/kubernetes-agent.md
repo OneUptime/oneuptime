@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 先运行诊断脚本。它会检查 Pod 的健康状况，解码并验证摄取密钥，检查集群能否访问 OneUptime，并询问 OneUptime 是否接受你的密钥，然后输出一个指明最可能原因的结论：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+每个 OneUptime 都提供其自身发布版本的这个脚本：在自托管的 OneUptime 上，请使用你的 URL 而不是 `https://oneuptime.com`。要在运行前阅读脚本，请在浏览器中打开它的地址。
 
 它只读取集群的状态并运行几个探测，不会更改任何东西。为了获得最准确的出口测试，请先使用 `--set debug.enabled=true` 安装：这会给代理的 Pod 添加一个小型网络工具 sidecar，让脚本测试 Collector 自己的出站路径。
 

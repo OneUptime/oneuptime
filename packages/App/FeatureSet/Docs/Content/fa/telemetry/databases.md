@@ -300,12 +300,14 @@ Memcached کاربر ندارد: گیرنده `stats` را روی پروتکل �
 
 ### عامل را نصب و اجرا کنید
 
+هر OneUptime اسکریپت نصب و فایل‌های عامل را از انتشار خودش ارائه می‌کند: دستورهای زیر آن‌ها را از `https://oneuptime.com` دانلود می‌کنند، پس در یک OneUptime خودمیزبان این نشانی را با نشانی خودتان جایگزین کنید. اسکریپت نصب اول با نام `install.sh` ذخیره می‌شود تا بتوانید پیش از اجرا آن را بخوانید.
+
 :::tabs
 @tab install.sh
 اسکریپت نصب را دانلود کنید و روی ماشینی که میزبان عامل خواهد بود اجرا کنید:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ bash install.sh
 
 هر نویسه‌ای در گذرواژه مجاز است، جز چند نویسه‌ای که رشته اتصال SQL Server نمی‌تواند حملشان کند (زبانه SQL Server در [ساختن کاربر پایش](#ساختن-کاربر-پایش) را ببینید). کالکتور `$` را درون مقدارهایی که می‌خواند یک بار دیگر باز می‌کند (`$$` به `$` و `${NAME}` به متغیری دیگر تبدیل می‌شود)، پس اسکریپت افزون بر نقل‌قول کردن مقدارها برای Docker Compose، هر `$` در `DATABASE_USERNAME` و `DATABASE_PASSWORD` را دوتایی می‌نویسد.
 @tab Docker Compose
-`docker-compose.yml` و پیکربندی موتور خود را از [پوشه DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) در یک پوشه دانلود کنید و پیکربندی را به‌صورت `otel-collector-config.yaml` ذخیره کنید:
+`docker-compose.yml` و پیکربندی موتور خود را از OneUptime خودتان در یک پوشه دانلود کنید و پیکربندی را به‌صورت `otel-collector-config.yaml` ذخیره کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 کنار آن‌ها یک فایل `.env` بسازید (`chmod 600 .env`؛ یک گذرواژه در آن است):
@@ -458,7 +460,7 @@ sudo systemctl enable --now oneuptime-database-agent
 پیکربندی موتور خود را در یک ConfigMap و رازها را در یک Secret بگذارید (هر `$` در گذرواژه را به‌صورت `$$` بنویسید؛ کالکتور آن را باز می‌کند):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ service:
 ### نخست اسکریپت عیب‌یابی را اجرا کنید
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

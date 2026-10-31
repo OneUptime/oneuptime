@@ -28,6 +28,9 @@ import path from "path";
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
+
+// The docs show OneUptime Cloud's address; a self-hosted reader puts theirs.
+const DOCS_ONEUPTIME_URL: string = "https://oneuptime.com";
 const CONTENT_DIR: string = path.join(
   REPO_ROOT,
   "packages/App/FeatureSet/Docs/Content",
@@ -76,7 +79,7 @@ const AGENTS: Array<Agent> = [
     page: "telemetry/proxmox.md",
     dir: "agents/ProxmoxAgent",
     installDir: PROXMOX_AGENT_INSTALL_DIR,
-    upgrade: getProxmoxAgentUpgradeCommand(),
+    upgrade: getProxmoxAgentUpgradeCommand(DOCS_ONEUPTIME_URL),
     languages: [...SUPPORTED_DOCS_LANGUAGE_CODES],
     installSection: (language: string): string => {
       return sectionInLanguage(language, PROXMOX_PAGE, "## Install the agent");
@@ -102,7 +105,7 @@ const AGENTS: Array<Agent> = [
     page: "telemetry/ceph.md",
     dir: "agents/CephAgent",
     installDir: CEPH_AGENT_INSTALL_DIR,
-    upgrade: getCephAgentUpgradeCommand(),
+    upgrade: getCephAgentUpgradeCommand(DOCS_ONEUPTIME_URL),
     languages: [...SUPPORTED_DOCS_LANGUAGE_CODES],
     installSection: (language: string): string => {
       return sectionInLanguage(language, CEPH_PAGE, "## Install the agent");

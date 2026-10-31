@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 차트의 진단 스크립트를 실행하세요. 파드, 수집 키, 클러스터 밖으로 나가는 경로를 확인하고, 키가 받아들여지는지 OneUptime에 물어본 뒤, 판정 하나를 출력합니다. 읽기만 하며 아무것도 바꾸지 않습니다.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+각 OneUptime은 자기 릴리스의 이 스크립트를 제공합니다. 자체 호스팅 OneUptime에서는 `https://oneuptime.com` 대신 사용자의 URL을 사용하세요. 실행하기 전에 스크립트를 읽으려면 그 주소를 브라우저에서 여세요.
 
 흔한 원인은, 특히 다시 설치한 뒤라면, 잘못되었거나 취소된 수집 키입니다. OneUptime이 키를 거부하고, 컬렉터는 파드가 `Running` 인 채로 모든 배치를 버립니다.
 :::

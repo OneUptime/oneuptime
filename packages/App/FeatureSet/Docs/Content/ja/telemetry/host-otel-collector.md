@@ -1193,9 +1193,11 @@ exporters:
 Collector はホストが報告する内容を送信します。**ホスト AI エージェント** を使うと、OneUptime AI がホスト上のインシデントやアラートを調査する際に、ホスト自体に問い合わせられます。読み取り専用のコマンド (`systemctl status nginx --no-pager -n 50`、`journalctl -u nginx -n 200 --no-pager`、`df -h`、`free -m`、`ps aux --sort=-%cpu`、`ss -tulpn`) を実行し、許可した場合にのみ、指定した systemd ユニットの再起動などの修正を適用します。これは独自のインストーラーを持つ Linux コンテナ (イメージ `oneuptime/resource-ai-agent:release`) で、Docker (rootless Docker ではなくシステムのエンジン) と Docker Compose プラグインが必要です:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+各 OneUptime は自分のリリースのこのインストーラーを配布します。セルフホストの OneUptime では、`https://oneuptime.com` ではなく自分の URL からダウンロードしてください。まず `install.sh` として保存されるので、実行する前に内容を読めます。
 
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこのホストのインシデントとアラートをエージェントを使って調査し、ホストの **概要** にエージェントの状態が表示されます。停止するには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定するか (方法は AI エージェントのページの **AI に許可する操作** にある **変更** で確認できます)、エージェントを削除します。
 - エージェントは `HOST_NAME` で登録されます。空のままにするとホスト自身のホスト名が使われ、これは別の名前を設定しない限り、この Collector が `host.name` として報告するものです。エージェントがこの Collector の作成したホストを担当するよう、両者を一致させる必要があります。エージェントは OneUptime のホストの **AI エージェント** ページに表示されます。

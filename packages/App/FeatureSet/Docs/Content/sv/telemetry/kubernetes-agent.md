@@ -998,9 +998,11 @@ Telemetrianvändning räknas per dag, så kontrollera trenden under **Projektins
 Börja med diagnosskriptet. Det kontrollerar poddarnas hälsa, avkodar och validerar intagningsnyckeln, kontrollerar att klustret kan nå OneUptime och frågar OneUptime om den godtar din nyckel, och skriver sedan ut en enda bedömning som anger den mest sannolika orsaken:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Varje OneUptime tillhandahåller det här skriptet från sin egen version: På en egenvärdad OneUptime använder du din URL i stället för `https://oneuptime.com`. Öppna skriptets adress i en webbläsare för att läsa det innan du kör det.
 
 Det läser bara klustrets tillstånd och kör ett par sonder; det ändrar ingenting. För det mest exakta testet av utgående trafik installerar du först med `--set debug.enabled=true`: det lägger till en liten sidecar med nätverksverktyg i agentens poddar, så att skriptet testar collectorns egen väg ut.
 

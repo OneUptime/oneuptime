@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 Kør chartets diagnosescript. Det tjekker podsene, indtagelsesnøglen og vejen ud af clusteret, spørger OneUptime, om nøglen accepteres, og skriver én konklusion. Det læser kun og ændrer intet:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Hver OneUptime leverer dette script fra sin egen udgivelse: På en selvhostet OneUptime bruger du din URL i stedet for `https://oneuptime.com`. Åbn scriptets adresse i en browser for at læse det, før du kører det.
 
 Den sædvanlige årsag, især efter en geninstallation, er en forkert eller tilbagekaldt indtagelsesnøgle: OneUptime afviser den, og collectoren smider hver batch væk, mens dens pods forbliver `Running`.
 :::

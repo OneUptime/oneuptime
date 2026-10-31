@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 チャートの診断スクリプトを実行します。Pod、取り込みキー、クラスターから外への経路を確認し、キーが受け付けられるかを OneUptime に問い合わせて、1 つの判定を表示します。読み取るだけで、何も変更しません。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+各 OneUptime は自分のリリースのこのスクリプトを配布します。セルフホストの OneUptime では、`https://oneuptime.com` の代わりに自分の URL を使ってください。実行する前にスクリプトを読むには、そのアドレスをブラウザーで開きます。
 
 特に再インストールの後によくある原因は、間違った、または失効した取り込みキーです。OneUptime がキーを拒否し、コレクターは Pod が `Running` のまま、すべてのバッチを破棄します。
 :::

@@ -69,18 +69,28 @@ For en selvstændig ESXi-vært (uden vCenter) skal du oprette brugeren under _Ho
 
 ### Installer og start agenten
 
+Hver OneUptime leverer agentens installationsscript og filer fra sin egen udgivelse: Kommandoerne nedenfor henter dem fra `https://oneuptime.com`, så på en selvhostet OneUptime skal du erstatte den adresse med din URL. Installationsscriptet gemmes først som `install.sh`, så du kan læse det, før du kører det.
+
 :::tabs
 @tab install.sh
 Hent installationsscriptet, og kør det på den maskine, der skal være vært for agenten:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh
 bash install.sh
 ```
 
 Scriptet spørger efter din OneUptime-URL, indtagelsesnøglen, et navn til vCenter, vCenter-endpointet og de skrivebeskyttede legitimationsoplysninger (det læser adgangskoden uden ekko), og om AI-agenten må anvende rettelser (i så fald efter en vSphere-bruger til den selv og de VM'er, den aldrig må ændre). Det installerer i `/opt/oneuptime-vmware-agent`, skriver en fil med `0600` ved navn `.env` og starter agenten med Docker Compose. Det sætter hver værdi i anførselstegn til Docker Compose, præcis som du skrev den, så en adgangskode med `$`, `#`, mellemrum eller anførselstegn virker, som du skrev den. Kører du scriptet igen, genbruger det alt i en eksisterende `.env` i stedet for at spørge igen, og det er sådan, du [opgraderer agenten](#opgradering-af-agenten).
 @tab Docker Compose
-Hent `docker-compose.yml` og `otel-collector-config.yaml` fra [VMwareAgent-mappen](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent) ind i en ny mappe, og opret derefter en `.env`-fil ved siden af dem. Den indeholder en adgangskode, så hold den privat med `chmod 600 .env`:
+Hent `docker-compose.yml` og `otel-collector-config.yaml` fra din OneUptime ind i en ny mappe:
+
+```bash
+mkdir oneuptime-vmware-agent && cd oneuptime-vmware-agent
+curl -fsSLO https://oneuptime.com/install/vmware-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
+```
+
+Opret en `.env`-fil ved siden af dem. Den indeholder en adgangskode, så hold den privat med `chmod 600 .env`:
 
 ```bash title=".env"
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -99,7 +109,7 @@ En adgangskode med `$`, `#`, mellemrum eller anførselstegn skal i enkelte anfø
 docker compose up -d
 ```
 @tab systemd
-Agenten behøver ikke Docker: Den er én OpenTelemetry Collector-binær og én konfigurationsfil. På en Linux-maskine (x86_64 eller arm64) med systemd 235 eller nyere (Ubuntu 18.04, Debian 10, RHEL 8 eller nyere) skal du køre den udgivelse af `otelcol-contrib`, som agenten fastlåser, med den samme `otel-collector-config.yaml`, som en systemd-tjeneste. Den enhed, agenten leverer til det, [`oneuptime-vmware-agent-native.service`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service), kører collectoren som en midlertidig, uprivilegeret bruger uden capabilities og uden noget, den kan skrive til.
+Agenten behøver ikke Docker: Den er én OpenTelemetry Collector-binær og én konfigurationsfil. På en Linux-maskine (x86_64 eller arm64) med systemd 235 eller nyere (Ubuntu 18.04, Debian 10, RHEL 8 eller nyere) skal du køre den udgivelse af `otelcol-contrib`, som agenten fastlåser, med den samme `otel-collector-config.yaml`, som en systemd-tjeneste. Den enhed, agenten leverer til det, [`oneuptime-vmware-agent-native.service`](https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service), kører collectoren som en midlertidig, uprivilegeret bruger uden capabilities og uden noget, den kan skrive til.
 
 Hent collectoren, konfigurationen og enheden, og installér dem i `/opt/oneuptime-vmware-agent`:
 
@@ -109,9 +119,9 @@ VERSION=0.161.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 curl -fsSL -o oneuptime-vmware-agent.service \
-  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+  https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service
 
 sudo install -d -m 0755 /opt/oneuptime-vmware-agent
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
@@ -313,7 +323,7 @@ Collectoren læser kun sin konfiguration, når den starter: Kør `docker compose
 Docker-installationen kan også køre under systemd, så den starter med maskinen og genstarter, når den fejler. Dens enhed omslutter Docker Compose og antager, at agenten bor i `/opt/oneuptime-vmware-agent`, hvor installationsscriptet lægger den:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
+sudo curl -fsSL https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```
@@ -331,15 +341,15 @@ Collectoren er fastlåst i `docker-compose.yml` (eller, uden Docker, af den udgi
 Kør `install.sh` igen: Det genbruger hver værdi i din eksisterende `.env` (der spørges ikke om noget igen), fornyer `docker-compose.yml` og `otel-collector-config.yaml` og genopretter agenten, så collectoren læser sin nye konfiguration.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh
 bash install.sh
 ```
 @tab Docker Compose
 Hent begge filer igen i agentens mappe (og foretag igen eventuelle ændringer, du lavede i dem), hent derefter imagene, og genopret agenten:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -352,9 +362,9 @@ VERSION=0.161.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 curl -fsSL -o oneuptime-vmware-agent.service \
-  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+  https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service
 
 sudo install -d -m 0755 /opt/oneuptime-vmware-agent
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
@@ -400,10 +410,10 @@ Hvad den må køre, hvordan rettelser virker, og hvordan du fejlsøger den: [Inf
 ## Fejlfinding
 
 :::details Kør diagnosescriptet først
-Agenten leveres med et script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/troubleshoot.sh), der kontrollerer hele kæden: container-runtimen, om vCenter svarer og accepterer legitimationsoplysningerne, vCenter-navnet stemplet på hver metrik, tokenets form, collectorens egne metrikker, og om OneUptime accepterer indtagelsesnøglen. Den sidste kontrol betyder mest. OneUptime afviser en forkert nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-fejl, som er let at overse, mens containeren forbliver sund. Scriptet spørger `GET <url>/otlp/v1/validate` inde fra agentens netværk efter et direkte `200` (gyldig) eller `401` (ugyldig), falder tilbage til `POST /fluentd/v1/logs` på ældre servere og spørger efter `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` på samme måde, så DNS-, firewall- og TLS-fejl viser sig præcis, som collectoren møder dem.
+Agenten leveres med et script, [`troubleshoot.sh`](https://oneuptime.com/install/vmware-agent/troubleshoot.sh), der kontrollerer hele kæden: container-runtimen, om vCenter svarer og accepterer legitimationsoplysningerne, vCenter-navnet stemplet på hver metrik, tokenets form, collectorens egne metrikker, og om OneUptime accepterer indtagelsesnøglen. Den sidste kontrol betyder mest. OneUptime afviser en forkert nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-fejl, som er let at overse, mens containeren forbliver sund. Scriptet spørger `GET <url>/otlp/v1/validate` inde fra agentens netværk efter et direkte `200` (gyldig) eller `401` (ugyldig), falder tilbage til `POST /fluentd/v1/logs` på ældre servere og spørger efter `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` på samme måde, så DNS-, firewall- og TLS-fejl viser sig præcis, som collectoren møder dem.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 ```
 

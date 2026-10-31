@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 运行 Chart 的诊断脚本。它会检查 Pod、摄取密钥以及离开集群的网络路径，询问 OneUptime 密钥是否被接受，并输出一个结论。它只读取，不做任何更改：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+每个 OneUptime 都提供其自身发布版本的这个脚本：在自托管的 OneUptime 上，请使用你的 URL 而不是 `https://oneuptime.com`。要在运行前阅读脚本，请在浏览器中打开它的地址。
 
 常见原因(尤其是在重新安装之后)是摄取密钥错误或已被吊销：OneUptime 拒绝它，采集器会丢弃每一批数据，而它的 Pod 仍处于 `Running` 状态。
 :::

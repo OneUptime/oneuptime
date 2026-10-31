@@ -998,9 +998,11 @@ Telemetriforbrug tælles pr. dag, så kontrollér udviklingen under **Projektind
 Start med diagnosescriptet. Det kontrollerer pods' helbred, afkoder og validerer indtagelsesnøglen, kontrollerer, at klyngen kan nå OneUptime, og spørger OneUptime, om den accepterer din nøgle, og udskriver derefter én konklusion, der navngiver den mest sandsynlige årsag:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Hver OneUptime leverer dette script fra sin egen udgivelse: På en selvhostet OneUptime bruger du din URL i stedet for `https://oneuptime.com`. Åbn scriptets adresse i en browser for at læse det, før du kører det.
 
 Det læser kun klyngens tilstand og kører et par prober; det ændrer intet. For den mest nøjagtige egress-test skal du først installere med `--set debug.enabled=true`: det tilføjer en lille sidecar med netværksværktøjer til agentens pods, så scriptet tester collectorens egen vej ud.
 

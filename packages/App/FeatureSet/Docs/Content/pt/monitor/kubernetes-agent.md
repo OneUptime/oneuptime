@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 Execute o script de diagnóstico do chart. Ele verifica os pods, a chave de ingestão e a saída do cluster, pergunta ao OneUptime se a chave é aceita e imprime um único veredito. Ele só lê, e não altera nada:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Cada instância do OneUptime fornece este script para a própria versão: em uma instância auto-hospedada, use a sua URL em vez de `https://oneuptime.com`. Para ler o script antes de executá-lo, abra o endereço dele em um navegador.
 
 A causa mais comum, principalmente depois de uma reinstalação, é uma chave de ingestão errada ou revogada: o OneUptime a recusa, e o coletor descarta cada lote enquanto os seus pods continuam `Running`.
 :::

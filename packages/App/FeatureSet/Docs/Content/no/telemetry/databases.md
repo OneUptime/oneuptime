@@ -300,12 +300,14 @@ Memcached har ingen brukere: receiveren kjører `stats` over tekstprotokollen, s
 
 ### Installer og start agenten
 
+Hver OneUptime leverer agentens installasjonsskript og filer fra sin egen utgivelse: Kommandoene nedenfor laster dem ned fra `https://oneuptime.com`, så på en selvdriftet OneUptime erstatter du den adressen med URL-en din. Installasjonsskriptet lagres først som `install.sh`, slik at du kan lese det før du kjører det.
+
 :::tabs
 @tab install.sh
 Last ned installasjonsskriptet og kjør det på maskinen som skal være vert for agenten:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ Hvert spørsmål kan besvares med en eksportert variabel med samme navn, og `INS
 
 Alle tegn er tillatt i passordet, bortsett fra de få som tilkoblingsstrengen til SQL Server ikke kan bære (se fanen SQL Server under [Opprett en overvåkingsbruker](#opprett-en-overvåkingsbruker)). Collectoren utvider `$` i verdiene den leser én gang til (`$$` blir `$`, og `${NAME}` blir en annen variabel), så skriptet skriver hver `$` i `DATABASE_USERNAME` og `DATABASE_PASSWORD` doblet, i tillegg til å sette verdiene i anførselstegn for Docker Compose.
 @tab Docker Compose
-Last ned `docker-compose.yml` og konfigurasjonen for motoren din fra [mappen DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) til én mappe, og lagre konfigurasjonen som `otel-collector-config.yaml`:
+Last ned `docker-compose.yml` og konfigurasjonen for motoren din fra din OneUptime til én mappe, og lagre konfigurasjonen som `otel-collector-config.yaml`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 Opprett en `.env`-fil ved siden av dem (`chmod 600 .env`; den inneholder et passord):
@@ -458,7 +460,7 @@ Fanen **Dokumentasjon** i appen for en oppdaget database gjengir dette manifeste
 Legg konfigurasjonen for motoren din i et ConfigMap og hemmelighetene i en Secret (skriv hver `$` i passordet som `$$`; collectoren utvider den):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ Selvhostede installasjoner kan justere oppdagelsen med disse miljøvariablene p�
 ### Kjør diagnoseskriptet først
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

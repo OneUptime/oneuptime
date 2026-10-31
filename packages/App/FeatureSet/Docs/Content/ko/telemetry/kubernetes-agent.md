@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 진단 스크립트부터 실행하세요. Pod 상태를 확인하고, 수집 키를 디코딩해 검증하고, 클러스터가 OneUptime에 도달할 수 있는지 확인하고, OneUptime이 키를 받아들이는지 물은 다음, 가장 가능성 높은 원인을 알려 주는 판정 하나를 출력합니다:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+각 OneUptime은 자기 릴리스의 이 스크립트를 제공합니다. 자체 호스팅 OneUptime에서는 `https://oneuptime.com` 대신 사용자의 URL을 사용하세요. 실행하기 전에 스크립트를 읽으려면 그 주소를 브라우저에서 여세요.
 
 클러스터 상태를 읽고 몇 가지 프로브를 실행할 뿐 아무것도 변경하지 않습니다. 가장 정확한 이그레스 테스트를 하려면 먼저 `--set debug.enabled=true`로 설치하세요. 에이전트의 Pod에 작은 네트워크 도구 사이드카가 추가되어 스크립트가 Collector 자체의 외부 경로를 테스트합니다.
 

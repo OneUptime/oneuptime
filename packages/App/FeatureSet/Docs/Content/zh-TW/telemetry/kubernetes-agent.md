@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 請先執行診斷指令碼。它會檢查 Pod 的健康狀況、解碼並驗證擷取金鑰、檢查叢集能否連線到 OneUptime，並詢問 OneUptime 是否接受你的金鑰，然後輸出一個指出最可能原因的結論：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+每個 OneUptime 都提供其自身發行版本的這個指令碼：在自行架設的 OneUptime 上，請使用你的 URL 而不是 `https://oneuptime.com`。要在執行前閱讀指令碼，請在瀏覽器中開啟它的位址。
 
 它只會讀取叢集的狀態並執行幾項探查，不會變更任何東西。若要取得最準確的輸出流量測試，請先使用 `--set debug.enabled=true` 安裝：這會在代理程式的 Pod 中加入一個小型網路工具 sidecar，讓指令碼測試 Collector 自己的對外路徑。
 

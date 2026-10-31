@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 डायग्नोस्टिक स्क्रिप्ट से शुरू करें। यह पॉड की सेहत जाँचती है, इंजेशन कुंजी को डिकोड और सत्यापित करती है, जाँचती है कि क्लस्टर OneUptime तक पहुँच सकता है, और OneUptime से पूछती है कि वह आपकी कुंजी स्वीकार करता है या नहीं, फिर सबसे संभावित कारण बताने वाला एक निष्कर्ष छापती है:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+हर OneUptime अपनी रिलीज़ की यह स्क्रिप्ट ख़ुद देता है: सेल्फ़-होस्टेड OneUptime पर `https://oneuptime.com` की जगह अपना URL इस्तेमाल करें। स्क्रिप्ट चलाने से पहले उसे पढ़ने के लिए, उसका पता किसी ब्राउज़र में खोलें।
 
 यह सिर्फ़ क्लस्टर की स्थिति पढ़ती है और कुछ प्रोब चलाती है; यह कुछ नहीं बदलती। इग्रेस की सबसे सटीक जाँच के लिए पहले `--set debug.enabled=true` के साथ इंस्टॉल करें: यह एजेंट के पॉड में नेटवर्क टूल वाला एक छोटा साइडकार जोड़ता है, ताकि स्क्रिप्ट कलेक्टर का अपना बाहरी रास्ता जाँचे।
 

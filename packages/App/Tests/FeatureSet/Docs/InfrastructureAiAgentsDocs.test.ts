@@ -1,6 +1,7 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   COMPOSE_INSTALLED_AI_RESOURCE_TYPES,
+  getHostAiAgentInstallCommand,
   getResourceAiAgentServiceName,
   getResourceAiAgentSettingsEnv,
 } from "../../../FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
@@ -158,6 +159,8 @@ const DOCS_DIR: string = path.join(REPO_ROOT, "packages/App/FeatureSet/Docs");
 const CONTENT_DIR: string = path.join(DOCS_DIR, "Content");
 const LOCALES_DIR: string = path.join(DOCS_DIR, "Locales");
 const AGENTS_DIR: string = path.join(REPO_ROOT, "agents");
+// The docs show OneUptime Cloud's address; a self-hosted reader puts theirs.
+const DOCS_ONEUPTIME_URL: string = "https://oneuptime.com";
 const RESOURCE_AGENT_DIR: string = path.join(AGENTS_DIR, "ResourceAIAgent");
 const COMMON_DIR: string = path.join(REPO_ROOT, "packages/Common");
 
@@ -1385,7 +1388,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       const host: string = section(page, "### Host AI agent");
 
       expect(host).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh",
+        "curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh",
       );
       expect(
         fs.existsSync(path.join(AGENTS_DIR, "HostAIAgent/install.sh")),
@@ -3604,7 +3607,12 @@ describe("Infrastructure AI Agents docs", (): void => {
         expect(aiAgent).toContain(`\`${RESOURCE_AI_ALLOW_WRITES_ENV}=true\``);
 
         if (type === AiResourceType.Host) {
-          expect(aiAgent).toContain("agents/HostAIAgent/install.sh");
+          // The installer the AI agent page shows, from this OneUptime.
+          expect(aiAgent).toContain(
+            "```bash\n" +
+              getHostAiAgentInstallCommand(DOCS_ONEUPTIME_URL) +
+              "\n```",
+          );
         } else {
           expect(aiAgent).toContain(
             `\`${getResourceAiAgentServiceName(type)}\``,

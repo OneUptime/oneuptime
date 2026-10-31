@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 اسکریپت تشخیصی چارت را اجرا کنید. پادها، کلید دریافت داده و راه خروج از خوشه را بررسی می‌کند، از OneUptime می‌پرسد که آیا کلید پذیرفته می‌شود، و یک حکم چاپ می‌کند. فقط می‌خواند و چیزی را تغییر نمی‌دهد:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+هر OneUptime این اسکریپت را از انتشار خودش ارائه می‌کند: در یک OneUptime خودمیزبان، به‌جای `https://oneuptime.com` از نشانی خودتان استفاده کنید. برای خواندن اسکریپت پیش از اجرا، نشانی آن را در یک مرورگر باز کنید.
 
 علت معمول، به‌ویژه پس از نصب دوباره، یک کلید دریافت داده نادرست یا باطل‌شده است: OneUptime آن را رد می‌کند، و گردآورنده هر دسته را کنار می‌گذارد در حالی که پادهایش `Running` می‌مانند.
 :::
