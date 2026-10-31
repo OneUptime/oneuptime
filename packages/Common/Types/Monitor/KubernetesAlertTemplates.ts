@@ -54,8 +54,9 @@ export interface KubernetesAlertTemplate {
    * The kind of workload the template watches, when it watches one: its
    * metrics carry only that kind's name. The form's Workload Kind starts
    * on it, so a Workload Name is read as that kind's - a Job's name for
-   * Job Failures, not a Deployment's. Unset when the template watches no
-   * one kind; the Workload Kind then starts on Deployment.
+   * Job Failures, not a Deployment's; an HPA's for HPA Saturated at Max
+   * Replicas. Unset when the template watches no one kind; the Workload
+   * Kind then starts on Deployment.
    */
   workloadKind?: KubernetesWorkloadKind | undefined;
   getMonitorStep: (args: KubernetesAlertTemplateArgs) => MonitorStep;
@@ -1734,9 +1735,10 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
   category: "Workload",
   severity: "Critical",
   /*
-   * No workloadKind: an HPA is not one of the workload kinds, and its
-   * metrics carry the HPA's own name, not the name of what it scales.
+   * Its metrics carry the HPA's own name, not the name of what it scales
+   * (KUBERNETES_HPA_KIND), so a Workload Name is read as the HPA's.
    */
+  workloadKind: "hpa",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "hpa_replica_saturation";
     const aboveMinAlias: string = "hpa_replicas_above_min";

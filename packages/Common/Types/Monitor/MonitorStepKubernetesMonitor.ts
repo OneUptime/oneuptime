@@ -12,16 +12,17 @@ export enum KubernetesResourceScope {
 
 export interface KubernetesResourceFilters {
   namespace?: string | undefined;
-  workloadType?: string | undefined; // deployment, statefulset, daemonset, replicaset, job, cronjob
+  workloadType?: string | undefined; // deployment, statefulset, daemonset, replicaset, job, cronjob, hpa
   workloadName?: string | undefined;
   nodeName?: string | undefined;
   podName?: string | undefined;
 }
 
 /*
- * The kinds of workload a Workload Name filter can name, by the word the
- * metrics carry them under: a pod of a StatefulSet carries
- * `k8s.statefulset.name`, of a Deployment `k8s.deployment.name`.
+ * The kinds a Workload Name filter can name, by the word the metrics carry
+ * them under: a pod of a StatefulSet carries `k8s.statefulset.name`, of a
+ * Deployment `k8s.deployment.name`, and an HPA's own metrics carry
+ * `k8s.hpa.name`.
  */
 export type KubernetesWorkloadKind =
   | "deployment"
@@ -29,8 +30,14 @@ export type KubernetesWorkloadKind =
   | "daemonset"
   | "replicaset"
   | "job"
-  | "cronjob";
+  | "cronjob"
+  | "hpa";
 
+/*
+ * The kinds of workload a pod belongs to. The agent gives a container's and
+ * a pod's metrics their names, so a Workload scope of one of these kinds
+ * also watches the workload's containers and pods.
+ */
 export const KUBERNETES_WORKLOAD_KINDS: ReadonlyArray<{
   label: string;
   value: KubernetesWorkloadKind;
@@ -42,6 +49,25 @@ export const KUBERNETES_WORKLOAD_KINDS: ReadonlyArray<{
   { label: "Job", value: "job" },
   { label: "CronJob", value: "cronjob" },
 ];
+
+/*
+ * A HorizontalPodAutoscaler, named by its own name. No pod belongs to an
+ * HPA, so only the HPA's own metrics (`k8s.hpa.*`) carry its name: the
+ * k8s_cluster receiver gives them `k8s.hpa.name`, `k8s.hpa.uid` and
+ * `k8s.namespace.name`. They do not name what the HPA scales: the
+ * receiver's `k8s.hpa.scaletargetref.*` attributes are off by default (the
+ * agent leaves them off) and collectors before 0.127.0 have none.
+ */
+export const KUBERNETES_HPA_KIND: {
+  label: string;
+  value: KubernetesWorkloadKind;
+} = { label: "HorizontalPodAutoscaler", value: "hpa" };
+
+// Every kind the Workload scope's Workload Kind offers: the workloads, then HPA.
+export const KUBERNETES_WORKLOAD_SCOPE_KINDS: ReadonlyArray<{
+  label: string;
+  value: KubernetesWorkloadKind;
+}> = [...KUBERNETES_WORKLOAD_KINDS, KUBERNETES_HPA_KIND];
 
 // The kind a Workload Name is read as when the step names none.
 export const DEFAULT_KUBERNETES_WORKLOAD_KIND: string = "deployment";

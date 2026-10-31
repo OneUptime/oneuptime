@@ -1,6 +1,7 @@
 import MonitorStepKubernetesMonitor, {
   DEFAULT_KUBERNETES_WORKLOAD_KIND,
-  KUBERNETES_WORKLOAD_KINDS,
+  KUBERNETES_HPA_KIND,
+  KUBERNETES_WORKLOAD_SCOPE_KINDS,
   KubernetesResourceFilters,
   KubernetesWorkloadKind,
   MonitorStepKubernetesMonitorUtil,
@@ -100,11 +101,12 @@ const resourceScopeOptions: Array<DropdownOption> = [
 ];
 
 /*
- * The kinds of workload a Workload Name can name; Deployment first. A
- * template or metric that watches one kind starts the field on it.
+ * The kinds a Workload Name can name: the workloads, Deployment first, then
+ * HorizontalPodAutoscaler. A template or metric that watches one kind
+ * starts the field on it.
  */
 const workloadKindOptions: Array<DropdownOption> =
-  KUBERNETES_WORKLOAD_KINDS.map(
+  KUBERNETES_WORKLOAD_SCOPE_KINDS.map(
     (kind: { label: string; value: string }): DropdownOption => {
       return { label: kind.label, value: kind.value };
     },
@@ -489,6 +491,12 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     monitorStepKubernetesMonitor.resourceScope ===
     KubernetesResourceScope.Workload;
 
+  // An HPA is named by its own name, so the name field asks for the HPA's.
+  const isHpaNamed: boolean =
+    (
+      monitorStepKubernetesMonitor.resourceFilters?.workloadType || ""
+    ).toLowerCase() === KUBERNETES_HPA_KIND.value;
+
   const showNodeFilter: boolean =
     monitorStepKubernetesMonitor.resourceScope === KubernetesResourceScope.Node;
 
@@ -602,7 +610,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showWorkloadFilter && (
           <div className="mt-3">
-            <FieldLabelElement title="Workload Name" required={false} />
+            {isHpaNamed ? (
+              <FieldLabelElement title="HPA Name" required={false} />
+            ) : (
+              <FieldLabelElement title="Workload Name" required={false} />
+            )}
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.workloadName || ""
@@ -624,7 +636,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                   },
                 });
               }}
-              placeholder="e.g. my-deployment"
+              placeholder={isHpaNamed ? "e.g. my-hpa" : "e.g. my-deployment"}
             />
           </div>
         )}

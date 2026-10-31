@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} از یک والد",
   "Link copied": "پیوند کپی شد",
   "event attributes": "ویژگی‌های رویداد",
-  "link attributes": "ویژگی‌های پیوند"
+  "link attributes": "ویژگی‌های پیوند",
+  "HPA Name": "نام HPA",
+  "e.g. my-hpa": "برای نمونه my-hpa"
 }

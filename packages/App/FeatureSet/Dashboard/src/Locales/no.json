@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} fra ett overordnet spenn",
   "Link copied": "Lenke kopiert",
   "event attributes": "hendelsesattributter",
-  "link attributes": "lenkeattributter"
+  "link attributes": "lenkeattributter",
+  "HPA Name": "HPA-navn",
+  "e.g. my-hpa": "f.eks. my-hpa"
 }

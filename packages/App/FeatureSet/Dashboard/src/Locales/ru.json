@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} из одного родителя",
   "Link copied": "Ссылка скопирована",
   "event attributes": "атрибуты события",
-  "link attributes": "атрибуты связи"
+  "link attributes": "атрибуты связи",
+  "HPA Name": "Имя HPA",
+  "e.g. my-hpa": "напр. my-hpa"
 }

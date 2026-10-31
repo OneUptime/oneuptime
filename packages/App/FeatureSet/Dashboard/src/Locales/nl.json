@@ -39122,5 +39122,7 @@
   "×{{count}} from one parent": "×{{count}} vanuit één bovenliggende span",
   "Link copied": "Link gekopieerd",
   "event attributes": "gebeurtenisattributen",
-  "link attributes": "koppelingsattributen"
+  "link attributes": "koppelingsattributen",
+  "HPA Name": "HPA-naam",
+  "e.g. my-hpa": "bijv. my-hpa"
 }

@@ -24,8 +24,9 @@ export interface KubernetesMetricDefinition {
    * The kind of workload the metric is about, when it is about one: its
    * series carry only that kind's name (`k8s.job.name` on a Job's). The
    * monitor form's Workload Kind starts on it, so a Workload Name is read
-   * as that kind's - a Job's name for Job Failed Pods, not a Deployment's.
-   * Unset for pod, container, node, cluster and HPA metrics.
+   * as that kind's - a Job's name for Job Failed Pods, not a Deployment's;
+   * an HPA's for the HPA metrics. Unset for pod, container, node and
+   * cluster metrics.
    */
   workloadKind?: KubernetesWorkloadKind | undefined;
   unit?: string;
@@ -400,9 +401,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
 
   /*
-   * HPA Metrics. No workloadKind: an HPA is not one of the workload kinds,
-   * and its metrics carry the HPA's own name, not the name of what it
-   * scales.
+   * HPA Metrics. They carry the HPA's own name, not the name of what it
+   * scales (KUBERNETES_HPA_KIND), so a Workload Name is read as the HPA's.
    */
   {
     id: "hpa-current-replicas",
@@ -412,6 +412,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
   {
@@ -422,6 +423,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
   {
@@ -432,6 +434,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
   {
@@ -442,6 +445,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
 
