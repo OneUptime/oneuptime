@@ -39048,5 +39048,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} hat diese Ausnahme mit einer anderen zusammengeführt",
   "{{actor}} unassigned this exception": "{{actor}} hat die Zuweisung dieser Ausnahme aufgehoben",
   "{{actor}} unmerged another exception from this exception": "{{actor}} hat eine andere Ausnahme von dieser Ausnahme getrennt",
-  "{{actor}} unmerged this exception from another one": "{{actor}} hat diese Ausnahme von einer anderen getrennt"
+  "{{actor}} unmerged this exception from another one": "{{actor}} hat diese Ausnahme von einer anderen getrennt",
+  "Exception assigned to me": "Mir zugewiesene Ausnahme",
+  "Is Assignee Notified": "Zugewiesene benachrichtigt",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Benachrichtige mich über Ausnahmen, die mir oder einem meiner Teams zugewiesen werden.",
+  "Someone assigns an exception to you, or to a team you are on.": "Jemand weist Ihnen oder einem Ihrer Teams eine Ausnahme zu."
 }

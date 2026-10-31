@@ -39048,5 +39048,9 @@
   "{{actor}} merged this exception into another one": "{{actor}}: исключение объединено с другим",
   "{{actor}} unassigned this exception": "{{actor}}: назначение исключения снято",
   "{{actor}} unmerged another exception from this exception": "{{actor}}: другое исключение отделено от этого",
-  "{{actor}} unmerged this exception from another one": "{{actor}}: исключение отделено от другого"
+  "{{actor}} unmerged this exception from another one": "{{actor}}: исключение отделено от другого",
+  "Exception assigned to me": "Исключение, назначенное мне",
+  "Is Assignee Notified": "Назначенный уведомлён",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Уведомлять меня об исключениях, назначенных мне или команде, в которой я состою.",
+  "Someone assigns an exception to you, or to a team you are on.": "Кто-то назначает исключение вам или команде, в которой вы состоите."
 }

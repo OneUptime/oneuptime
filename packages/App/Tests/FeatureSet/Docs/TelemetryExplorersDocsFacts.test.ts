@@ -2179,6 +2179,49 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   /*
+   * An assignment is told to whoever it hands the exception to: the person,
+   * or each member of the team, through their own setting of the event the
+   * notification settings page names, and never to whoever assigned it.
+   */
+  it("notifies the person or the team an exception is assigned to, not the one who assigned it", () => {
+    const settingsPage: string = readDashboardSource(
+      "Pages/UserSettings/NotificationSettings.tsx",
+    );
+    const notifications: string = readCommonSource(
+      "Server/Utils/Telemetry/ExceptionAssignmentNotifications.ts",
+    );
+    const job: string = readPackageFile(
+      "App/FeatureSet/Workers/Jobs/TelemetryException/SendAssignedNotification.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    expect(triage).toContain(
+      "The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.",
+    );
+
+    // The row, by the label the settings page draws, for the event sent.
+    expect(settingsPage).toContain(
+      '[NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION]: {\n    label: "Exception assigned to me",',
+    );
+    expect(notifications).toContain(
+      "NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION",
+    );
+
+    // The person, or the team's members; never the one who assigned it.
+    expect(notifications).toContain(
+      "TeamMemberService.getUsersInTeams([data.assigneeTeamId])",
+    );
+    expect(notifications).toContain(
+      "if (sameId(userId, data.assignedByUserId)) {",
+    );
+    // Through their own settings, sent once by the Workers.
+    expect(notifications).toContain(
+      "await UserNotificationSettingService.sendUserNotification({",
+    );
+    expect(job).toContain("schedule: EVERY_MINUTE");
+  });
+
+  /*
    * An exception's activity: the card at the bottom of its Overview, and
    * every change it lists recorded where every change goes through - the
    * service's update hooks (the page, the list, Bulk Actions, the API,

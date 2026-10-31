@@ -93,7 +93,7 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 | Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do host, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max por contêiner, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max por contêiner, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
-| Container Restart Loop | Crítico | Crescimento de `container.restarts` por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
+| Container Restart Loop | Crítico | `container.restarts.increase`, Sum por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
 | Container CPU Throttling | Warning | Crescimento de `container.cpu.throttling_data.throttled_time` em ms por contêiner, últimos 5 minutos | Mais de 1000 ms na janela (Soma) | 900 ms ou menos |
 | High Container Process Count | Warning | `container.pids.count`, Max por contêiner, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
 | Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contêiner, último 1 minuto | Menos de 120 segundos | 132 segundos ou mais |
@@ -110,7 +110,10 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 > `container.memory.percent` divide pelo limite de memória do contêiner quando há um definido e, caso contrário, pela memória total **do host**. Verifique se o contêiner foi iniciado com `--memory` antes de tratar uma violação como um encerramento iminente por falta de memória.
 
 > [!WARNING]
-> `container.restarts` e `container.cpu.throttling_data.throttled_time` só crescem, então esses dois modelos alertam com base em quanto eles cresceram na janela: uma consulta de Máximo e uma de Mínimo por minuto, subtraídas por uma fórmula e somadas. Com a coleta do agente a cada 30 segundos, isso enxerga cerca de metade da atividade real, e os limites já levam isso em conta. Se você aumentar o `collection_interval` do agente para 60 segundos ou mais, cada minuto terá uma única amostra e os dois modelos deixarão de alertar. O agente também só amostra contêineres em execução, então um contêiner que sai no momento em que inicia raramente é amostrado: **Container Restarted (Low Uptime)** dispara a cada reinício que o agente vê.
+> `container.cpu.throttling_data.throttled_time` só cresce, então **Container CPU Throttling** alerta com base em quanto ele cresceu na janela: uma consulta de Máximo e uma de Mínimo por minuto, subtraídas por uma fórmula e somadas. Com a coleta do agente a cada 30 segundos, isso enxerga cerca de metade da limitação real, e o limite já leva isso em conta. Se você aumentar o `collection_interval` do agente para 60 segundos ou mais, cada minuto terá uma única amostra e o modelo deixará de alertar.
+
+> [!NOTE]
+> `container.restarts` também só cresce, até que um reinício manual ou um contêiner recriado o faça recomeçar do 0, então o agente também envia `container.restarts.increase` a cada amostra: os reinícios desde a amostra anterior dele daquele contêiner. **Container Restart Loop** soma esses valores, então conta cada reinício, por mais distantes que estejam as amostras, e um reinício manual não conta. O Docker informa um contêiner que está reiniciando como em execução, então o agente continua amostrando um contêiner em loop de reinícios entre as execuções. Um agente mais antigo não envia `container.restarts.increase`: [atualize-o](/docs/telemetry/docker-host#atualizando-o-agente) primeiro. Um monitor criado a partir do modelo antes disso lê quanto `container.restarts` cresceu dentro de cada minuto, o que deixa passar cerca de metade dos reinícios de um loop: exclua-o e crie o modelo novamente.
 
 > [!CAUTION]
 > `container.uptime` só existe para contêineres em execução. Um contêiner que para e continua parado não envia dados, então **Container Restarted (Low Uptime)** pega reinícios e novas implantações, não um desligamento permanente. Um contêiner feito para rodar menos de dois minutos fica em estado de alerta durante toda a vida. Para um serviço que precisa ficar no ar, monitore também o que ele serve – por exemplo, com um [monitor de API](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ O agente usa o receptor `docker_stats` do OpenTelemetry no socket do Docker, a c
 | --- | --- |
 | `container.uptime` | Segundos desde que o contêiner iniciou. Só contêineres em execução a informam. |
 | `container.restarts` | Quantas vezes o contêiner reiniciou desde que foi criado. Um contador de toda a vida útil. |
+| `container.restarts.increase` | Reinícios desde a amostra anterior do contêiner feita pelo agente, enviados a cada amostra. A soma deles numa janela são os reinícios dessa janela, então alerte com esta e não com o contador de toda a vida útil. |
 | `container.pids.count` | Tarefas no contêiner. O controlador pids do cgroup conta threads além de processos. |
 
 `container.cpu.throttling_data.throttled_periods` não está na lista; consulte-a em **Avançado**.
@@ -288,8 +292,12 @@ O OneUptime identifica um host por `resource.host.name`, que o agente obtém de 
 Agrupe a consulta por `resource.container.name` e agregue com **Máximo**, como faz o modelo **High Container CPU Usage**. Uma média de todos os contêineres de um host ocupado é puxada para baixo pelos ociosos. Lembre-se de que 100% significa um núcleo inteiro, então um contêiner que pode usar vários núcleos precisa de um limite mais alto. Se a CPU de um contêiner for uma linha plana, qualquer que seja a carga, o host executa um agente antigo: [atualize-o](/docs/telemetry/docker-host#atualizando-o-agente).
 :::
 
-:::details O modelo de loop de reinícios ou de limitação parou de alertar
-Os dois medem quanto um contador cresceu entre duas amostras do mesmo minuto. Se o `collection_interval` do agente for de 60 segundos ou mais, cada minuto terá uma única amostra, o crescimento sempre marcará 0 e nenhum dos dois modelos disparará. Mantenha o padrão do agente, de 30 segundos.
+:::details O modelo de limitação parou de alertar
+Ele mede quanto `container.cpu.throttling_data.throttled_time` cresceu entre duas amostras do mesmo minuto. Se o `collection_interval` do agente for de 60 segundos ou mais, cada minuto terá uma única amostra, o crescimento sempre marcará 0 e o modelo nunca disparará. Mantenha o padrão do agente, de 30 segundos.
+:::
+
+:::details O modelo de loop de reinícios nunca dispara ou deixa passar reinícios
+Ele lê `container.restarts.increase`, que um agente mais antigo não envia: [atualize o agente](/docs/telemetry/docker-host#atualizando-o-agente). Um monitor criado a partir do modelo antes disso lê quanto `container.restarts` cresceu entre duas amostras do mesmo minuto, e deixa passar os reinícios entre as amostras de dois minutos diferentes: exclua-o e crie o modelo novamente.
 :::
 
 ## Próximos passos

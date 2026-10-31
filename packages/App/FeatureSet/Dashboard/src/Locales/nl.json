@@ -39048,5 +39048,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} heeft deze uitzondering samengevoegd met een andere",
   "{{actor}} unassigned this exception": "{{actor}} heeft de toewijzing van deze uitzondering opgeheven",
   "{{actor}} unmerged another exception from this exception": "{{actor}} heeft een andere uitzondering gesplitst van deze uitzondering",
-  "{{actor}} unmerged this exception from another one": "{{actor}} heeft deze uitzondering gesplitst van een andere"
+  "{{actor}} unmerged this exception from another one": "{{actor}} heeft deze uitzondering gesplitst van een andere",
+  "Exception assigned to me": "Uitzondering aan mij toegewezen",
+  "Is Assignee Notified": "Toegewezene op de hoogte gebracht",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Stuur mij een melding over uitzonderingen die aan mij of aan een team waar ik in zit zijn toegewezen.",
+  "Someone assigns an exception to you, or to a team you are on.": "Iemand wijst een uitzondering toe aan u of aan een team waar u in zit."
 }

@@ -234,6 +234,8 @@ import { AddDetectionRuleRealTime1808600000000 } from "./1808600000000-AddDetect
 import { AddTelemetryExceptionMerge1808620000000 } from "./1808620000000-AddTelemetryExceptionMerge";
 import { AddTelemetryExceptionMergeIndexesAndKeys1808630000000 } from "./1808630000000-AddTelemetryExceptionMergeIndexesAndKeys";
 import { AddTelemetryExceptionActivity1808660000000 } from "./1808660000000-AddTelemetryExceptionActivity";
+import { AddTelemetryExceptionActivityAssigneeNotified1808670000000 } from "./1808670000000-AddTelemetryExceptionActivityAssigneeNotified";
+import { AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000 } from "./1808680000000-AddTelemetryExceptionActivityAssigneeNotifiedIndex";
 import { AddDashboardDarkThemeLogo1808700000000 } from "./1808700000000-AddDashboardDarkThemeLogo";
 import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDashboardDarkThemeLogoKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1672,6 +1674,8 @@ export default [
   AddTelemetryExceptionMerge1808620000000,
   AddTelemetryExceptionMergeIndexesAndKeys1808630000000,
   AddTelemetryExceptionActivity1808660000000,
+  AddTelemetryExceptionActivityAssigneeNotified1808670000000,
+  AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000,
   AddDashboardDarkThemeLogo1808700000000,
   AddDashboardDarkThemeLogoKey1808710000000,
 ];

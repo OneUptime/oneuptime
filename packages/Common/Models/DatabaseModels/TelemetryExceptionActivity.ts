@@ -110,6 +110,13 @@ const columnAccess: {
 })
 // One exception's timeline, newest first.
 @Index(["telemetryExceptionId", "createdAt"])
+/*
+ * The assignments still to be told, which the Workers read every minute.
+ * Partial, so it holds those few rows only.
+ */
+@Index(["activityType", "createdAt"], {
+  where: '"isAssigneeNotified" = false',
+})
 export default class TelemetryExceptionActivity extends BaseModel {
   @ColumnAccessControl(columnAccess)
   @TableColumn({
@@ -398,6 +405,32 @@ export default class TelemetryExceptionActivity extends BaseModel {
     nullable: true,
   })
   public release?: string = undefined;
+
+  /*
+   * Whether the people an Assigned entry hands the exception to were told
+   * (ExceptionAssignmentNotifications): false on a new Assigned entry until
+   * the Workers' job takes it, which sets it before it sends anything, as
+   * every owner-added job does with isOwnerNotified. True on every other
+   * entry, and on those written before assignments were told: there is no
+   * one to tell.
+   */
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Is Assignee Notified",
+    description:
+      "For Assigned, whether the person, or the members of the team, it was assigned to were notified. True for every other entry.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isAssigneeNotified?: boolean = undefined;
 
   @ColumnAccessControl(columnAccess)
   @TableColumn({

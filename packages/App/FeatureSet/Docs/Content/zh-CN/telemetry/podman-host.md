@@ -284,6 +284,10 @@ curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost
 旧版代理发送的是 `docker_stats` 接收器自己算出的 CPU 值，它需要当前读数之前的那次统计读数，而 Podman 的 Docker 兼容 API 从不发送它：接收器会用容器自启动以来用掉的全部 CPU，除以主机自开机以来用掉的全部 CPU。这条线几乎不动，也不随负载变化，而 `container.cpu.usage.total` 会随负载变化。[升级代理](#升级代理)：从第二次读数起，它会发送每个容器在每个 30 秒间隔内用掉的 CPU。已存储的读数保持不变。
 :::
 
+:::details Container Restart Loop 从不触发，或漏掉重启
+旧版代理不会发送 `container.restarts.increase`，也就是自它上一次对每个容器采样以来的重启次数，模板会把它们相加。[升级代理](#升级代理)：从它对每个容器的第二次采样起，每次重启都会计入。升级之前用该模板创建的监控器读取的则是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
+:::
+
 :::details 指标能到达，但没有容器日志
 你的容器很可能使用的是 Podman 的默认日志驱动 `journald`。检查代理监视的是哪些文件，以及某个容器使用的是哪个驱动：
 

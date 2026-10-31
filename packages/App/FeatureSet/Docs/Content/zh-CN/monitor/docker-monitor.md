@@ -93,7 +93,7 @@ flowchart TB
 | Host Stopped Reporting | 严重 | `container.memory.percent`，对主机上所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`，按容器取 Max，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`，按容器取 Max，最近 5 分钟 | 高于 85% | 不高于 76.5% |
-| Container Restart Loop | 严重 | 每个容器 `container.restarts` 的增长，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
+| Container Restart Loop | 严重 | `container.restarts.increase`，按容器取 Sum，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
 | Container CPU Throttling | Warning | 每个容器 `container.cpu.throttling_data.throttled_time` 的增长（ms），最近 5 分钟 | 窗口内超过 1000 ms（总和） | 900 ms 或更少 |
 | High Container Process Count | Warning | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
 | Container Restarted (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 低于 120 秒 | 不低于 132 秒 |
@@ -110,7 +110,10 @@ flowchart TB
 > `container.memory.percent` 在容器设置了内存限制时除以该限制，否则除以**主机**的总内存。在把超限视为即将发生的内存不足终止之前，请先检查容器是否使用 `--memory` 启动。
 
 > [!WARNING]
-> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只会增长，所以这两个模板根据它们在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实活动，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，两个模板都会停止报警。代理也只对正在运行的容器采样，因此一启动就退出的容器很少被采到：**Container Restarted (Low Uptime)** 会在代理看到的每次重启时触发。
+> `container.cpu.throttling_data.throttled_time` 只会增长，所以 **Container CPU Throttling** 根据它在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实节流，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，该模板就会停止报警。
+
+> [!NOTE]
+> `container.restarts` 同样只会增长，直到手动重启或重新创建的容器让它从 0 重新开始，所以代理还会在每个样本里发送 `container.restarts.increase`：自它上一次对该容器采样以来的重启次数。**Container Restart Loop** 把它们相加，因此无论样本相隔多远，每次重启都会计入，而手动重启不算在内。Docker 会把正在重启的容器报告为正在运行，所以代理在重启循环中的容器两次运行之间也会继续采样。旧版代理不会发送 `container.restarts.increase`：请先[升级它](/docs/telemetry/docker-host#升级代理)。在那之前用该模板创建的监控器读取的是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
 
 > [!CAUTION]
 > `container.uptime` 只存在于正在运行的容器。停止后一直保持停止的容器不发送任何数据，所以 **Container Restarted (Low Uptime)** 模板捕捉的是重启和重新部署，而不是永久关闭。设计为运行不到两分钟的容器，在其整个生命周期内都会处于警报状态。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
@@ -155,6 +158,7 @@ flowchart TB
 | --- | --- |
 | `container.uptime` | 容器启动以来的秒数。只有正在运行的容器会报告它。 |
 | `container.restarts` | 容器自创建以来重启的次数。生命周期计数器。 |
+| `container.restarts.increase` | 自代理上一次对该容器采样以来的重启次数，随每个样本发送。它在一个窗口内的总和就是该窗口内的重启次数，因此请用它而不是生命周期计数器来报警。 |
 | `container.pids.count` | 容器中的任务数。cgroup 的 pids 控制器既统计进程也统计线程。 |
 
 `container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
@@ -288,8 +292,12 @@ OneUptime 通过 `resource.host.name` 识别主机，代理从 `DOCKER_HOST_NAME
 像 **High Container CPU Usage** 模板那样，按 `resource.container.name` 对查询分组，并用 **最大值** 聚合。在繁忙主机上对所有容器取平均值，会被空闲的容器拉低。请记住 100% 表示一个完整的核心，所以允许使用多个核心的容器需要更高的阈值。如果某个容器的 CPU 无论负载如何都是一条平线，说明主机运行的是旧版代理：[请升级它](/docs/telemetry/docker-host#升级代理)。
 :::
 
-:::details 重启循环或节流模板不再报警
-两者都测量计数器在同一分钟内两个样本之间增长了多少。如果代理的 `collection_interval` 为 60 秒或更长，每分钟只有一个样本，增长始终为 0，两个模板都不会触发。请保持代理的默认值 30 秒。
+:::details 节流模板不再报警
+它测量 `container.cpu.throttling_data.throttled_time` 在同一分钟内两个样本之间增长了多少。如果代理的 `collection_interval` 为 60 秒或更长，每分钟只有一个样本，增长始终为 0，该模板永远不会触发。请保持代理的默认值 30 秒。
+:::
+
+:::details 重启循环模板从不触发，或漏掉重启
+它读取 `container.restarts.increase`，而旧版代理不会发送它：[升级代理](/docs/telemetry/docker-host#升级代理)。在那之前用该模板创建的监控器读取的是 `container.restarts` 在同一分钟内两个样本之间增长了多少，会漏掉不同分钟的样本之间发生的重启：请删除它，再用模板重新创建。
 :::
 
 ## 后续步骤

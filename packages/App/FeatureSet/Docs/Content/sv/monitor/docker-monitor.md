@@ -93,7 +93,7 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar på värden, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
-| Container Restart Loop | Kritisk | Ökning av `container.restarts` per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
+| Container Restart Loop | Kritisk | `container.restarts.increase`, Sum per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
 | Container CPU Throttling | Warning | Ökning av `container.cpu.throttling_data.throttled_time` i ms per container, senaste 5 minuterna | Mer än 1000 ms i fönstret (Summa) | 900 ms eller mindre |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Under 120 sekunder | Minst 132 sekunder |
@@ -110,7 +110,10 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 > `container.memory.percent` delar med containerns minnesgräns när en sådan är satt, och annars med **värdens** totala minne. Kontrollera om containern startades med `--memory` innan du behandlar en överskridning som ett nära förestående avslut på grund av minnesbrist.
 
 > [!WARNING]
-> `container.restarts` och `container.cpu.throttling_data.throttled_time` bara växer, så de två mallarna varnar på hur mycket de växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga aktiviteten, och trösklarna tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och båda mallarna slutar varna. Agenten mäter dessutom bara körande containrar, så en container som avslutas i samma stund som den startar mäts sällan: **Container Restarted (Low Uptime)** utlöses vid varje omstart som agenten ser.
+> `container.cpu.throttling_data.throttled_time` bara växer, så **Container CPU Throttling** varnar på hur mycket den växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga strypningen, och tröskeln tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och mallen slutar varna.
+
+> [!NOTE]
+> `container.restarts` bara växer också, tills en manuell omstart eller en återskapad container börjar om den från 0, så agenten skickar också `container.restarts.increase` med varje mätning: omstarterna sedan dess förra mätning av containern. **Container Restart Loop** summerar dem, så den räknar varje omstart hur långt det än är mellan mätningarna, och en manuell omstart räknas inte. Docker rapporterar en container som den håller på att starta om som körande, så agenten fortsätter att mäta en container i en omstartsloop mellan dess körningar. En äldre agent skickar inte `container.restarts.increase`: [uppgradera den](/docs/telemetry/docker-host#uppgradera-agenten) först. En monitor som skapades från mallen innan dess läser hur mycket `container.restarts` växte inom varje minut, och missar därmed ungefär hälften av omstarterna i en loop: ta bort den och skapa mallen igen.
 
 > [!CAUTION]
 > `container.uptime` finns bara för körande containrar. En container som stannar och förblir stoppad skickar inga data, så **Container Restarted (Low Uptime)** fångar omstarter och nya driftsättningar, inte en permanent avstängning. En container som är tänkt att köras i mindre än två minuter förblir i larmläge hela sin livstid. För en tjänst som måste vara igång bör du också övervaka det den levererar – till exempel med en [API-övervakning](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ Agenten använder OpenTelemetry-mottagaren `docker_stats` mot Docker-socketen va
 | --- | --- |
 | `container.uptime` | Sekunder sedan containern startade. Bara körande containrar rapporterar det. |
 | `container.restarts` | Antal gånger containern har startats om sedan den skapades. En räknare över hela livstiden. |
+| `container.restarts.increase` | Omstarter sedan agentens förra mätning av containern, skickade med varje mätning. Summan över ett fönster är omstarterna i det, så varna på denna i stället för på räknaren över hela livstiden. |
 | `container.pids.count` | Uppgifter i containern. Cgroupens pids-kontrollant räknar trådar lika väl som processer. |
 
 `container.cpu.throttling_data.throttled_periods` finns inte i listan; fråga efter det från **Avancerad**.
@@ -288,8 +292,12 @@ OneUptime identifierar en värd med `resource.host.name`, som agenten tar från 
 Gruppera frågan efter `resource.container.name` och aggregera med **Maximum**, som mallen **High Container CPU Usage** gör. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel. Om en containers CPU är en platt linje oavsett belastning kör värden en äldre agent: [uppgradera den](/docs/telemetry/docker-host#uppgradera-agenten).
 :::
 
-:::details Mallen för omstartsloop eller strypning slutade varna
-Båda mäter hur mycket en räknare växte mellan två mätningar under samma minut. Om agentens `collection_interval` är 60 sekunder eller mer innehåller varje minut en mätning, ökningen är alltid 0 och ingen av mallarna utlöses. Behåll agentens standard på 30 sekunder.
+:::details Mallen för strypning slutade varna
+Den mäter hur mycket `container.cpu.throttling_data.throttled_time` växte mellan två mätningar under samma minut. Om agentens `collection_interval` är 60 sekunder eller mer innehåller varje minut en mätning, ökningen är alltid 0 och mallen utlöses aldrig. Behåll agentens standard på 30 sekunder.
+:::
+
+:::details Mallen för omstartsloop utlöses aldrig eller missar omstarter
+Den läser `container.restarts.increase`, som en äldre agent inte skickar: [uppgradera agenten](/docs/telemetry/docker-host#uppgradera-agenten). En monitor som skapades från mallen innan dess läser hur mycket `container.restarts` växte mellan två mätningar under samma minut, och missar omstarterna mellan mätningarna i två olika minuter: ta bort den och skapa mallen igen.
 :::
 
 ## Nästa steg

@@ -99,7 +99,7 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 
-**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
+**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig. Personen det tildeles, eller hvert medlem av teamet, får et varsel slik raden **Unntak tildelt meg** i deres [Varselinnstillinger](/docs/notifications/notification-settings) sier; den som tildelte det, får ikke noe.
 
 **Aktivitet** nederst i unntakets **Oversikt** viser hvem som endret det og når, nyeste først: hvem som løste, gjenåpnet, arkiverte eller tildelte det, slo sammen et annet unntak med det eller delte opp et, og når det kom tilbake etter at det var løst. Hver endring står der, gjort på unntakets side, i listen, under **Massehandlinger**, via API-et eller av OneUptime selv, og en endring gjort med en API-nøkkel bærer nøkkelens navn.
 

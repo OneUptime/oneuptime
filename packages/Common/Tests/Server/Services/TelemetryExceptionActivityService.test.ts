@@ -223,6 +223,34 @@ describe("writing entries", () => {
     ]);
   });
 
+  test("an Assigned entry starts untold, for the Workers to tell; every other entry has no one to tell", async () => {
+    await TelemetryExceptionActivityService.record({
+      entries: Object.values(TelemetryExceptionActivityType).map(
+        (activityType: TelemetryExceptionActivityType) => {
+          return {
+            projectId: PROJECT_ID,
+            telemetryExceptionId: new ObjectID(A),
+            activityType,
+          };
+        },
+      ),
+      actor: { userId: PRIYA },
+    });
+
+    expect(
+      created
+        .filter((entry: TelemetryExceptionActivity): boolean => {
+          return entry.isAssigneeNotified === false;
+        })
+        .map((entry: TelemetryExceptionActivity) => {
+          return entry.activityType;
+        }),
+    ).toEqual([TelemetryExceptionActivityType.Assigned]);
+    expect(created).toHaveLength(
+      Object.values(TelemetryExceptionActivityType).length,
+    );
+  });
+
   test("an id that is no id is left out rather than written", async () => {
     await TelemetryExceptionActivityService.record({
       entries: [

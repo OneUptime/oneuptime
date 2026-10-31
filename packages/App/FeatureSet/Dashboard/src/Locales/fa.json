@@ -39048,5 +39048,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} این استثنا را با استثنایی دیگر ادغام کرد",
   "{{actor}} unassigned this exception": "{{actor}} واگذاری این استثنا را لغو کرد",
   "{{actor}} unmerged another exception from this exception": "{{actor}} استثنایی دیگر را از این استثنا جدا کرد",
-  "{{actor}} unmerged this exception from another one": "{{actor}} این استثنا را از استثنایی دیگر جدا کرد"
+  "{{actor}} unmerged this exception from another one": "{{actor}} این استثنا را از استثنایی دیگر جدا کرد",
+  "Exception assigned to me": "استثنای واگذارشده به من",
+  "Is Assignee Notified": "به واگذارشده اطلاع داده شد",
+  "Notify me about exceptions assigned to me or to a team I am on.": "دربارهٔ استثناهایی که به من یا به تیمی که در آن هستم واگذار می‌شوند به من اطلاع بده.",
+  "Someone assigns an exception to you, or to a team you are on.": "کسی استثنایی را به شما یا به تیمی که در آن هستید واگذار می‌کند."
 }

@@ -39048,5 +39048,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} mesclou esta exceção a outra",
   "{{actor}} unassigned this exception": "{{actor}} removeu a atribuição desta exceção",
   "{{actor}} unmerged another exception from this exception": "{{actor}} desfez a mesclagem de outra exceção com esta exceção",
-  "{{actor}} unmerged this exception from another one": "{{actor}} desfez a mesclagem desta exceção com outra"
+  "{{actor}} unmerged this exception from another one": "{{actor}} desfez a mesclagem desta exceção com outra",
+  "Exception assigned to me": "Exceção atribuída a mim",
+  "Is Assignee Notified": "Responsável notificado",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Avise-me sobre exceções atribuídas a mim ou a uma equipe da qual faço parte.",
+  "Someone assigns an exception to you, or to a team you are on.": "Alguém atribui uma exceção a você ou a uma equipe da qual você faz parte."
 }

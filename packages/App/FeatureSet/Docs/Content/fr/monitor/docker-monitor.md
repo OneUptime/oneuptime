@@ -93,7 +93,7 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 | Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
-| Container Restart Loop | Critique | Croissance de `container.restarts` par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
+| Container Restart Loop | Critique | `container.restarts.increase`, Sum par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
 | Container CPU Throttling | Warning | Croissance de `container.cpu.throttling_data.throttled_time` en ms par conteneur, 5 dernières minutes | Plus de 1000 ms dans la fenêtre (Somme) | 900 ms ou moins |
 | High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Moins de 120 secondes | 132 secondes ou plus |
@@ -110,7 +110,10 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 > `container.memory.percent` divise par la limite de mémoire du conteneur quand elle est définie, et sinon par la mémoire totale **de l'hôte**. Vérifiez si le conteneur a été démarré avec `--memory` avant de traiter un dépassement comme un arrêt imminent pour manque de mémoire.
 
 > [!WARNING]
-> `container.restarts` et `container.cpu.throttling_data.throttled_time` ne font que croître, donc ces deux modèles alertent sur leur croissance dans la fenêtre : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de l'agent toutes les 30 secondes, cela voit environ la moitié de l'activité réelle, et les seuils en tiennent déjà compte. Si vous portez le `collection_interval` de l'agent à 60 secondes ou plus, chaque minute ne contient qu'une mesure et les deux modèles cessent d'alerter. L'agent n'échantillonne en outre que les conteneurs en cours d'exécution : un conteneur qui s'arrête dès son démarrage n'est presque jamais échantillonné, et **Container Restarted (Low Uptime)** se déclenche à chaque redémarrage que l'agent voit.
+> `container.cpu.throttling_data.throttled_time` ne fait que croître, donc **Container CPU Throttling** alerte sur sa croissance dans la fenêtre : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de l'agent toutes les 30 secondes, cela voit environ la moitié du bridage réel, et le seuil en tient déjà compte. Si vous portez le `collection_interval` de l'agent à 60 secondes ou plus, chaque minute ne contient qu'une mesure et le modèle cesse d'alerter.
+
+> [!NOTE]
+> `container.restarts` ne fait lui aussi que croître, jusqu'à ce qu'un redémarrage manuel ou un conteneur recréé le fasse repartir de 0 : l'agent envoie donc aussi `container.restarts.increase` avec chaque mesure, soit les redémarrages depuis sa mesure précédente du conteneur. **Container Restart Loop** les additionne : il compte donc chaque redémarrage, quel que soit l'écart entre les mesures, et un redémarrage manuel n'en est pas un. Docker signale un conteneur qu'il est en train de redémarrer comme en cours d'exécution, donc l'agent continue d'échantillonner un conteneur en boucle de redémarrage entre ses exécutions. Un agent plus ancien n'envoie pas `container.restarts.increase` : [mettez-le à jour](/docs/telemetry/docker-host#mettre-à-jour-lagent) d'abord. Un moniteur créé à partir du modèle avant cela lit de combien `container.restarts` a augmenté au sein de chaque minute, ce qui manque environ la moitié des redémarrages d'une boucle : supprimez-le et recréez le modèle.
 
 > [!CAUTION]
 > `container.uptime` n'existe que pour les conteneurs en cours d'exécution. Un conteneur qui s'arrête et reste arrêté n'envoie aucune donnée, donc **Container Restarted (Low Uptime)** détecte les redémarrages et les redéploiements, pas un arrêt définitif. Un conteneur prévu pour tourner moins de deux minutes reste en état d'alerte pendant toute sa vie. Pour un service qui doit rester disponible, surveillez aussi ce qu'il sert – par exemple avec une [surveillance d'API](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` sur le socket Docker,
 | --- | --- |
 | `container.uptime` | Secondes écoulées depuis le démarrage du conteneur. Seuls les conteneurs en cours d'exécution la remontent. |
 | `container.restarts` | Nombre de redémarrages du conteneur depuis sa création. Un compteur sur toute la durée de vie. |
+| `container.restarts.increase` | Redémarrages depuis la mesure précédente du conteneur par l'agent, envoyés avec chaque mesure. Leur somme sur une fenêtre donne les redémarrages de cette fenêtre : alertez donc sur celle-ci plutôt que sur le compteur sur toute la durée de vie. |
 | `container.pids.count` | Tâches dans le conteneur. Le contrôleur pids du cgroup compte les threads aussi bien que les processus. |
 
 `container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
@@ -288,8 +292,12 @@ OneUptime identifie un hôte par `resource.host.name`, que l'agent tire de `DOCK
 Regroupez la requête par `resource.container.name` et agrégez avec **Maximum**, comme le fait le modèle **High Container CPU Usage**. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/docker-host#mettre-à-jour-lagent).
 :::
 
-:::details Le modèle de boucle de redémarrage ou de bridage a cessé d'alerter
-Les deux mesurent de combien un compteur a augmenté entre deux mesures d'une même minute. Si le `collection_interval` de l'agent est de 60 secondes ou plus, chaque minute ne contient qu'une mesure, la croissance vaut toujours 0 et aucun des deux modèles ne se déclenche. Gardez la valeur par défaut de l'agent, 30 secondes.
+:::details Le modèle de bridage a cessé d'alerter
+Il mesure de combien `container.cpu.throttling_data.throttled_time` a augmenté entre deux mesures d'une même minute. Si le `collection_interval` de l'agent est de 60 secondes ou plus, chaque minute ne contient qu'une mesure, la croissance vaut toujours 0 et le modèle ne se déclenche jamais. Gardez la valeur par défaut de l'agent, 30 secondes.
+:::
+
+:::details Le modèle de boucle de redémarrage ne se déclenche jamais ou manque des redémarrages
+Il lit `container.restarts.increase`, qu'un agent plus ancien n'envoie pas : [mettez l'agent à jour](/docs/telemetry/docker-host#mettre-à-jour-lagent). Un moniteur créé à partir du modèle avant cela lit de combien `container.restarts` a augmenté entre deux mesures d'une même minute, et manque les redémarrages survenus entre les mesures de deux minutes : supprimez-le et recréez le modèle.
 :::
 
 ## Étapes suivantes

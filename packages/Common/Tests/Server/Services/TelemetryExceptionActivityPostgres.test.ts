@@ -9,6 +9,7 @@ import TelemetryExceptionService from "../../../Server/Services/TelemetryExcepti
 import FindBy from "../../../Server/Types/Database/FindBy";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
+import ExceptionAssignmentNotifications from "../../../Server/Utils/Telemetry/ExceptionAssignmentNotifications";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
@@ -342,6 +343,82 @@ describePostgres("exception activity against Postgres", () => {
           key.definition.includes('("telemetryExceptionId")') &&
           key.definition.includes('"TelemetryException"') &&
           key.definition.includes("ON DELETE CASCADE")
+        );
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * An assignment is told by the Workers from its entry: written untold,
+   * taken - marked told - once, whichever worker gets there first.
+   */
+  test("an assignment's entry starts untold, and the Workers' run takes it once", async () => {
+    const a: string = await seed("fp-a");
+    const alex: ObjectID = ObjectID.generate();
+
+    await TelemetryExceptionActivityService.record({
+      entries: [
+        {
+          projectId: PROJECT_ID,
+          telemetryExceptionId: new ObjectID(a),
+          activityType: TelemetryExceptionActivityType.Assigned,
+          assigneeUserId: alex,
+        },
+        {
+          projectId: PROJECT_ID,
+          telemetryExceptionId: new ObjectID(a),
+          activityType: TelemetryExceptionActivityType.Resolved,
+        },
+      ],
+      actor: { userId: PRIYA },
+    });
+
+    const untold: () => Promise<
+      Array<{ activityType: string }>
+    > = async (): Promise<Array<{ activityType: string }>> => {
+      return await database.query(
+        `SELECT "activityType" FROM "${schema}"."TelemetryExceptionActivity" WHERE "isAssigneeNotified" = false`,
+      );
+    };
+
+    expect(await untold()).toEqual([
+      { activityType: TelemetryExceptionActivityType.Assigned },
+    ]);
+
+    const told: Array<string> = [];
+    jest
+      .spyOn(ExceptionAssignmentNotifications, "notifyAssignment")
+      .mockImplementation((async (entry: TelemetryExceptionActivity) => {
+        told.push(entry.assigneeUserId?.toString() || "");
+        return [];
+      }) as never);
+
+    // Two workers at once: each entry is taken by one of them.
+    const taken: Array<number> = await Promise.all([
+      ExceptionAssignmentNotifications.sendPendingNotifications(),
+      ExceptionAssignmentNotifications.sendPendingNotifications(),
+    ]);
+
+    expect(taken[0]! + taken[1]!).toBe(1);
+    expect(told).toEqual([alex.toString()]);
+    expect(await untold()).toEqual([]);
+
+    // And the next run finds nothing to tell.
+    expect(
+      await ExceptionAssignmentNotifications.sendPendingNotifications(),
+    ).toBe(0);
+  });
+
+  test("the untold assignments are found through their partial index", async () => {
+    const indexes: Array<{ indexdef: string }> = await database.query(
+      `SELECT indexdef FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'TelemetryExceptionActivity'`,
+    );
+
+    expect(
+      indexes.some((index: { indexdef: string }): boolean => {
+        return (
+          index.indexdef.includes('("activityType", "createdAt")') &&
+          index.indexdef.includes('WHERE ("isAssigneeNotified" = false)')
         );
       }),
     ).toBe(true);

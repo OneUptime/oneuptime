@@ -32,6 +32,7 @@ export enum RollupCategory {
   Probes = "probes",
   AIAgents = "ai-agents",
   Slos = "slos",
+  Exceptions = "exceptions",
   IncomingCalls = "incoming-calls",
   SecurityCases = "security-cases",
   SecurityHunts = "security-hunts",
@@ -55,6 +56,7 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.Probes]: "Probes",
   [RollupCategory.AIAgents]: "AI Agents",
   [RollupCategory.Slos]: "SLOs",
+  [RollupCategory.Exceptions]: "Exceptions",
   [RollupCategory.IncomingCalls]: "Incoming Calls",
   [RollupCategory.SecurityCases]: "Security Cases",
   [RollupCategory.SecurityHunts]: "Security Hunts",
@@ -184,6 +186,14 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Slos,
 
   /*
+   * Exceptions. A category of their own: twenty exceptions handed to a team
+   * at once from Bulk Actions roll up with each other, never with an
+   * incident's email.
+   */
+  [NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION]:
+    RollupCategory.Exceptions,
+
+  /*
    * Incoming Call Policies. A category of its own so a burst of on-call
    * configuration notices (one admin click can fan out a hundred) is never
    * what pushes a missed customer call over the rollup threshold.
@@ -270,6 +280,7 @@ export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
   RollupCategory.SecurityCases,
   RollupCategory.SecurityHunts,
   RollupCategory.Slos,
+  RollupCategory.Exceptions,
   RollupCategory.Monitors,
   RollupCategory.ScheduledMaintenance,
   RollupCategory.Probes,
