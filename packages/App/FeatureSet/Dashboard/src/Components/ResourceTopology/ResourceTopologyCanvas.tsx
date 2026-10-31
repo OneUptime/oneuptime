@@ -61,7 +61,7 @@ import {
   ResourceTopologyKeyAction,
   ResourceTopologyKeyMove,
   ResourceTopologyVisible,
-  getTopologyKeyAction,
+  getTopologyKeyTarget,
 } from "./ResourceTopologyView";
 import {
   RESOURCE_TOPOLOGY_FIT_PADDING,
@@ -766,10 +766,24 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const action: ResourceTopologyKeyAction | null = getTopologyKeyAction(
+    const buttonFor: (id: string) => HTMLElement | null = (
+      id: string,
+    ): HTMLElement | null => {
+      const found: Element | null | undefined =
+        wrapperRef.current?.querySelector(
+          `[${TOPOLOGY_ITEM_ATTRIBUTE}="${CSS.escape(id)}"]`,
+        );
+
+      return found instanceof HTMLElement ? found : null;
+    };
+    // A lane's heading has no button: the key goes on past it.
+    const action: ResourceTopologyKeyAction | null = getTopologyKeyTarget(
       visibleRef.current,
       itemId,
       move,
+      (id: string): boolean => {
+        return buttonFor(id) !== null;
+      },
     );
 
     // A key that goes nowhere still does not scroll the page.
@@ -784,13 +798,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const next: Element | null | undefined = wrapperRef.current?.querySelector(
-      `[${TOPOLOGY_ITEM_ATTRIBUTE}="${CSS.escape(action.itemId)}"]`,
-    );
-
-    if (next instanceof HTMLElement) {
-      next.focus();
-    }
+    buttonFor(action.itemId)?.focus();
   };
 
   return (

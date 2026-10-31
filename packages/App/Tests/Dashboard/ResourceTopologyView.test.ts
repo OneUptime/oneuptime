@@ -25,6 +25,7 @@ import {
   getAutomaticDepth,
   getPartsOpenedWith,
   getTopologyKeyAction,
+  getTopologyKeyTarget,
   groupKey,
   openTopologyPart,
   opensByItself,
@@ -1197,6 +1198,48 @@ describe("moving through the map from the keyboard", () => {
   test("a part that is not drawn goes nowhere", () => {
     expect(getTopologyKeyAction(visible, "dc-0-cl-1-h-0", "next")).toBeNull();
     expect(getTopologyKeyAction(visible, "gone", "forward")).toBeNull();
+  });
+
+  test("an item the map draws no button for is passed over, on in the same direction", () => {
+    // As if the second cluster and the first datastore were lanes' headings.
+    const noButton: Set<string> = new Set<string>(["dc-0-cl-1", "dc-0-ds-0"]);
+    const hasButton: (id: string) => boolean = (id: string): boolean => {
+      return !noButton.has(id);
+    };
+
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "next", hasButton),
+    ).toEqual({ type: "move", itemId: "dc-0-ds-1" });
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-ds-1", "previous", hasButton),
+    ).toEqual({ type: "move", itemId: "dc-0-cl-0" });
+    // Opening and closing are not moves: nothing to pass over.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "back", hasButton),
+    ).toEqual({ type: "close", nodeId: "dc-0-cl-0" });
+    // With every item drawn, it is the plain move.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "next", (): boolean => {
+        return true;
+      }),
+    ).toEqual(getTopologyKeyAction(visible, "dc-0-cl-0", "next"));
+  });
+
+  test("back out of a part whose holder has no button goes on out", () => {
+    const hasButton: (id: string) => boolean = (id: string): boolean => {
+      return id !== "dc-0";
+    };
+
+    // The datastore's holder, dc-0, has no button: on out to the vCenter.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-ds-3", "back", hasButton),
+    ).toEqual({ type: "move", itemId: "vcenter" });
+    // With nothing drawn at all, a key goes nowhere, and stops.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "next", (): boolean => {
+        return false;
+      }),
+    ).toBeNull();
   });
 });
 

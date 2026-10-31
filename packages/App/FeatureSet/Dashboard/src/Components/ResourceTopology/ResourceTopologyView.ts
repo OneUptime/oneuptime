@@ -1093,7 +1093,58 @@ export function getTopologyKeyAction(
   itemId: string,
   move: ResourceTopologyKeyMove,
 ): ResourceTopologyKeyAction | null {
-  const entry: KeyEntry | undefined = indexForKeys(visible).get(itemId);
+  return keyActionIn(indexForKeys(visible), itemId, move);
+}
+
+/* Items passed over before a key gives up, so it can never loop. */
+const MAX_KEY_STEPS: number = 64;
+
+/*
+ * Where a key lands among the items the map draws a button for. An item
+ * with none - a lane's section, which the map draws as the lane's heading -
+ * is passed over: on in the same direction (down past it from the first,
+ * up past it from the last), or, going back, out to what holds it.
+ */
+export function getTopologyKeyTarget(
+  visible: ResourceTopologyVisible,
+  itemId: string,
+  move: ResourceTopologyKeyMove,
+  hasButton: (itemId: string) => boolean,
+): ResourceTopologyKeyAction | null {
+  const index: Map<string, KeyEntry> = indexForKeys(visible);
+  const onward: ResourceTopologyKeyMove =
+    move === "previous" || move === "last" ? "previous" : "next";
+  let action: ResourceTopologyKeyAction | null = keyActionIn(
+    index,
+    itemId,
+    move,
+  );
+
+  for (let step: number = 0; step < MAX_KEY_STEPS; step++) {
+    if (!action || action.type !== "move" || hasButton(action.itemId)) {
+      return action;
+    }
+
+    if (move === "back") {
+      const parentId: string | null =
+        index.get(action.itemId)?.parentId || null;
+
+      action = parentId ? { type: "move", itemId: parentId } : null;
+      continue;
+    }
+
+    action = keyActionIn(index, action.itemId, onward);
+  }
+
+  return null;
+}
+
+function keyActionIn(
+  index: Map<string, KeyEntry>,
+  itemId: string,
+  move: ResourceTopologyKeyMove,
+): ResourceTopologyKeyAction | null {
+  const entry: KeyEntry | undefined = index.get(itemId);
 
   if (!entry) {
     return null;
