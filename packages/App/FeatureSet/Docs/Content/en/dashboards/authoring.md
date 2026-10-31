@@ -91,6 +91,8 @@ The canvas is a grid twelve columns wide. Widgets snap to it, and the page grows
 
 Each kind of widget has a smallest size, so that what it draws stays readable: a chart is at least six columns wide and three rows high, while a single number fits in one cell.
 
+The grid is as wide as the screen. On a narrower screen its columns get narrower and its rows keep their height. On a phone the widgets are shown one under another, each as wide as the screen, in the order they sit on the grid: row by row from the top, left to right within a row. A chart is drawn taller there, so its plot has room. Editing on a phone shows the grid, which scrolls sideways.
+
 To change a widget later, click it while you edit. Its settings open again, with two more buttons at the bottom:
 
 - **Duplicate Widget** adds a copy, with the same settings, at the first free spot.

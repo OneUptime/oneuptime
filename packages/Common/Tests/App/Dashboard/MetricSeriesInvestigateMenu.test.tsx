@@ -115,7 +115,10 @@ jest.mock(
   },
 );
 
-import MetricCharts from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
+import MetricCharts, {
+  SERIES_CHIP_NAME_CLASS_NAME,
+  SERIES_CHIP_VALUE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -355,5 +358,91 @@ describe("per-series investigate menu", () => {
     expect(screen.getByText("host.name=web-01")).toBeInTheDocument();
     // …but nothing offers navigation.
     expect(screen.queryByLabelText("Investigate host.name=web-01")).toBeNull();
+  });
+});
+
+// A shrink factor under 1, as Tailwind writes one: shrink-[0.01].
+const FRACTIONAL_SHRINK_REGEX: RegExp = /shrink-\[0?\.\d+\]/;
+
+describe("a series chip on a narrow chart", () => {
+  /*
+   * A dashboard's chart can be a third of a tablet's board wide, and its
+   * legend's chip narrower than its series' name and value. The value kept
+   * its whole width (shrink-0) and the name shrank to nothing. The chip now
+   * stays inside its row, the name gives way first (a thousand times
+   * faster) down to its first letters, and the value is cut at its end
+   * after it. jsdom lays nothing out: packages/E2E/DashboardTimeRange
+   * measures the chip on a 600px window.
+   */
+  function classesOf(element: Element): Array<string> {
+    return element.className.split(/\s+/).filter(Boolean);
+  }
+
+  test("the chip, and the button inside it, never grow past their row", () => {
+    render(
+      <MetricCharts
+        metricViewData={buildViewData()}
+        metricResults={buildResults()}
+        metricTypes={[]}
+      />,
+    );
+
+    const frame: HTMLElement = screen.getByLabelText(
+      "Investigate host.name=web-01",
+    ).parentElement as HTMLElement;
+    const toggle: HTMLElement = frame.querySelector(
+      "button[aria-pressed]",
+    ) as HTMLElement;
+
+    expect(classesOf(frame)).toEqual(
+      expect.arrayContaining(["min-w-0", "max-w-full"]),
+    );
+    expect(classesOf(toggle)).toContain("min-w-0");
+  });
+
+  test("the name gives way first, keeping its first letters; then the value, cut at its end", () => {
+    render(
+      <MetricCharts
+        metricViewData={buildViewData()}
+        metricResults={buildResults()}
+        metricTypes={[]}
+      />,
+    );
+
+    const name: HTMLElement = screen.getByText("host.name=web-01");
+    const toggle: HTMLElement = name.closest(
+      "button[aria-pressed]",
+    ) as HTMLElement;
+    const value: HTMLElement = toggle.lastElementChild as HTMLElement;
+
+    expect(value).not.toBe(name);
+    /*
+     * Each reads its own way, so on a Persian page an English name cut
+     * short keeps its start ("host.na...", not "...web-01").
+     */
+    expect([name.tagName, name.getAttribute("dir")]).toEqual(["BDI", "ltr"]);
+    // A number with no letters takes the isolate's own reading.
+    expect([value.tagName, value.getAttribute("dir")]).toEqual(["BDI", null]);
+    expect(classesOf(name)).toEqual(
+      expect.arrayContaining(SERIES_CHIP_NAME_CLASS_NAME.split(" ")),
+    );
+    expect(classesOf(value)).toEqual(
+      expect.arrayContaining(SERIES_CHIP_VALUE_CLASS_NAME.split(" ")),
+    );
+    expect(classesOf(value)).not.toContain("shrink-0");
+
+    expect(SERIES_CHIP_NAME_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-[4ch]", "shrink-[1000]", "truncate"]),
+    );
+    expect(SERIES_CHIP_VALUE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "truncate"]),
+    );
+    /*
+     * Never a shrink factor under 1 on the value: once the name stops at
+     * its first letters, a value that shrank 0.01 as fast would take only
+     * that share of what is still missing, and run under the Investigate
+     * button.
+     */
+    expect(SERIES_CHIP_VALUE_CLASS_NAME).not.toMatch(FRACTIONAL_SHRINK_REGEX);
   });
 });

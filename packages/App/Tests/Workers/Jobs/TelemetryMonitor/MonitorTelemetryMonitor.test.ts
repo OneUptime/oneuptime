@@ -7,7 +7,13 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { JSONObject } from "Common/Types/JSON";
-import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -67,12 +73,18 @@ jest.mock("Common/Server/Services/SpanService", () => {
   return { __esModule: true, default: { countBy: jest.fn() } };
 });
 jest.mock("Common/Server/Services/ExceptionInstanceService", () => {
-  return { __esModule: true, default: { countBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { countBy: jest.fn(), findBy: jest.fn() },
+  };
 });
 jest.mock("Common/Server/Services/TelemetryExceptionService", () => {
   return {
     __esModule: true,
-    default: { getResolvedOrArchivedFingerprints: jest.fn() },
+    default: {
+      getResolvedOrArchivedFingerprints: jest.fn(),
+      countBy: jest.fn(),
+    },
   };
 });
 jest.mock("Common/Server/Services/MetricService", () => {
@@ -104,8 +116,12 @@ const logCountBy: jest.Mock = LogService.countBy as unknown as jest.Mock;
 const spanCountBy: jest.Mock = SpanService.countBy as unknown as jest.Mock;
 const exceptionCountBy: jest.Mock =
   ExceptionInstanceService.countBy as unknown as jest.Mock;
+const exceptionFindBy: jest.Mock =
+  ExceptionInstanceService.findBy as unknown as jest.Mock;
 const resolvedFingerprints: jest.Mock =
   TelemetryExceptionService.getResolvedOrArchivedFingerprints as unknown as jest.Mock;
+const exceptionGroupCountBy: jest.Mock =
+  TelemetryExceptionService.countBy as unknown as jest.Mock;
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
 const metricFindBy: jest.Mock = MetricService.findBy as unknown as jest.Mock;
@@ -119,7 +135,9 @@ beforeEach(() => {
   logCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   spanCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   exceptionCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
+  exceptionFindBy.mockReset().mockResolvedValue([]);
   resolvedFingerprints.mockReset().mockResolvedValue([]);
+  exceptionGroupCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   metricAggregateBy.mockReset().mockResolvedValue({ data: [] });
   metricFindBy.mockReset().mockResolvedValue([]);
   metricTypeFindBy.mockReset().mockResolvedValue([]);
@@ -353,6 +371,196 @@ describe("monitorException", () => {
       .calls[0]![0].query as Record<string, unknown>;
     expect((countQuery["environment"] as Includes).values).toEqual([
       "production",
+    ]);
+  });
+});
+
+/*
+ * New and regressed exceptions, as the worker reads them for an Exceptions
+ * monitor whose criteria check them. The groups are counted in Postgres;
+ * an infrastructure entity is a property of each occurrence, so a monitor
+ * scoped to entities counts them among the groups of the window's
+ * occurrences from those entities, read from ClickHouse first. A monitor
+ * without the filter reads what it always did.
+ */
+describe("monitorException's new and regressed exceptions", () => {
+  // An Exceptions monitor step whose criteria check these.
+  function stepCheckingOn(
+    checkOns: Array<CheckOn>,
+    config: Partial<MonitorStepExceptionMonitor>,
+  ): MonitorStep {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorType: MonitorType.Exceptions,
+      monitorName: "Checkout",
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+    });
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      ...instance.data!,
+      filters: checkOns.map((checkOn: CheckOn) => {
+        return { checkOn, filterType: FilterType.GreaterThan, value: 0 };
+      }),
+    };
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [instance] };
+    step.setMonitorCriteria(criteria);
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      lastXSecondsOfExceptions: 600,
+      ...config,
+    });
+    return step;
+  }
+
+  function fingerprintRows(fingerprints: Array<string>): Array<JSONObject> {
+    return fingerprints.map((fingerprint: string): JSONObject => {
+      return { fingerprint };
+    });
+  }
+
+  function groupQueries(): Array<Record<string, unknown>> {
+    return exceptionGroupCountBy.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { query: Record<string, unknown> }).query;
+      },
+    );
+  }
+
+  test("without an entity filter, the groups are counted as before and no occurrence is read for them", async () => {
+    exceptionGroupCountBy
+      .mockResolvedValueOnce(new PositiveNumber(3))
+      .mockResolvedValueOnce(new PositiveNumber(1));
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: stepCheckingOn(
+        [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+        { entityKeys: [] },
+      ),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.newExceptionCount).toBe(3);
+    expect(response.regressedExceptionCount).toBe(1);
+    expect(exceptionFindBy).not.toHaveBeenCalled();
+    expect(groupQueries()).toHaveLength(2);
+
+    for (const query of groupQueries()) {
+      expect(query["projectId"]).toBe(projectId);
+      expect("fingerprint" in query).toBe(false);
+    }
+  });
+
+  test("with an entity filter, they are counted among the groups of the window's occurrences from those entities", async () => {
+    resolvedFingerprints.mockResolvedValue(["resolved-fingerprint"]);
+    exceptionFindBy.mockResolvedValue(fingerprintRows(["fp-1", "fp-2"]));
+    exceptionGroupCountBy
+      .mockResolvedValueOnce(new PositiveNumber(2))
+      .mockResolvedValueOnce(new PositiveNumber(1));
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: stepCheckingOn(
+        [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+        { entityKeys: ["host:web-1"], environments: ["production"] },
+      ),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.newExceptionCount).toBe(2);
+    expect(response.regressedExceptionCount).toBe(1);
+
+    // One read of the window's occurrences: the very query the count reads.
+    expect(exceptionFindBy).toHaveBeenCalledTimes(1);
+    const read: Record<string, unknown> = exceptionFindBy.mock.calls[0]![0];
+    const readQuery: Record<string, unknown> = read["query"] as Record<
+      string,
+      unknown
+    >;
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+
+    expect(readQuery["projectId"]).toBe(projectId);
+    expect((readQuery["entityKeys"] as Includes).values).toEqual([
+      "host:web-1",
+    ]);
+    expect((readQuery["environment"] as Includes).values).toEqual([
+      "production",
+    ]);
+    expect(readQuery["fingerprint"]).toBeInstanceOf(IncludesNone);
+    expect(readQuery["fingerprint"]).toEqual(countQuery["fingerprint"]);
+    expect(readQuery["time"]).toEqual(countQuery["time"]);
+    expect(read["groupBy"]).toEqual({ fingerprint: true });
+    expect(read["props"]).toEqual({ isRoot: true });
+
+    // Both group counts keep to those fingerprints.
+    expect(groupQueries()).toHaveLength(2);
+
+    for (const query of groupQueries()) {
+      expect((query["fingerprint"] as Includes).values).toEqual([
+        "fp-1",
+        "fp-2",
+      ]);
+    }
+  });
+
+  test("with an entity filter and no occurrence from those entities, none are new or regressed, and no group is read", async () => {
+    exceptionFindBy.mockResolvedValue([]);
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: stepCheckingOn(
+        [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+        { entityKeys: ["host:web-1"] },
+      ),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.newExceptionCount).toBe(0);
+    expect(response.regressedExceptionCount).toBe(0);
+    expect(exceptionGroupCountBy).not.toHaveBeenCalled();
+  });
+
+  test("a monitor that only counts reads no groups and no fingerprints, entity filter or not", async () => {
+    for (const entityKeys of [[], ["host:web-1"]]) {
+      await monitorException({
+        monitorStep: stepCheckingOn([CheckOn.ExceptionCount], { entityKeys }),
+        monitorId,
+        projectId,
+      });
+    }
+
+    expect(exceptionFindBy).not.toHaveBeenCalled();
+    expect(exceptionGroupCountBy).not.toHaveBeenCalled();
+  });
+
+  test("a step saved and reloaded as JSON keeps its entities for them", async () => {
+    exceptionFindBy.mockResolvedValue(fingerprintRows(["fp-1"]));
+
+    const reloaded: MonitorStep = MonitorStep.fromJSON(
+      JSON.parse(
+        JSON.stringify(
+          stepCheckingOn([CheckOn.NewExceptionCount], {
+            entityKeys: ["pod:checkout-7"],
+          }).toJSON(),
+        ),
+      ) as JSONObject,
+    );
+
+    await monitorException({ monitorStep: reloaded, monitorId, projectId });
+
+    expect(
+      (
+        (exceptionFindBy.mock.calls[0]![0].query as Record<string, unknown>)[
+          "entityKeys"
+        ] as Includes
+      ).values,
+    ).toEqual(["pod:checkout-7"]);
+    expect((groupQueries()[0]!["fingerprint"] as Includes).values).toEqual([
+      "fp-1",
     ]);
   });
 });

@@ -173,6 +173,7 @@ const ENGLISH_QUOTES: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [SHARING]: [
     "The logo's file could not be found. Upload the logo again.",
+    "The dark theme logo's file could not be found. Upload the dark theme logo again.",
     "The favicon's file could not be found. Upload the favicon again.",
     "Custom Domains not enabled for this OneUptime installation",
   ],

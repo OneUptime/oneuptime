@@ -129,6 +129,7 @@ import MetricCriteriaContext, {
   MetricBreachingSample,
   MetricComponent,
   MetricComponentValue,
+  MetricWindowAggregate,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
@@ -2261,6 +2262,7 @@ ${incomingRequestGrouping.rootCauseNote}
         mdText`\n\n${MonitorCriteriaEvaluator.formatBreachingSamplesSection({
           samples: breachingSamples,
           totalSamples: ctx.totalSamplesInWindow,
+          windowAggregate: ctx.windowAggregate,
           unit: ctx.unit,
           unitHeuristicMetricName: unitHeuristicMetricName,
           components: ctx.components || [],
@@ -2396,6 +2398,11 @@ ${incomingRequestGrouping.rootCauseNote}
   private static formatBreachingSamplesSection(input: {
     samples: Array<MetricBreachingSample>;
     totalSamples?: number | undefined;
+    /*
+     * What the criteria judged, when it judged the window as one value:
+     * the section then leads with it, since no sample is what breached.
+     */
+    windowAggregate?: MetricWindowAggregate | undefined;
     unit: string | null;
     /**
      * The metric name to reason about, or undefined for a formula.
@@ -2525,10 +2532,17 @@ ${incomingRequestGrouping.rootCauseNote}
 
     const lines: Array<MarkdownText> = [
       mdText`**Breaching Samples**`,
-      mdText`${MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
-        breachingCount: sorted.length,
-        totalSamples: input.totalSamples,
-      })}`,
+      input.windowAggregate
+        ? MonitorCriteriaEvaluator.formatWindowAggregateSummary({
+            windowAggregate: input.windowAggregate,
+            listedCount: sorted.length,
+            unit: input.unit,
+            unitHeuristicMetricName: input.unitHeuristicMetricName,
+          })
+        : mdText`${MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
+            breachingCount: sorted.length,
+            totalSamples: input.totalSamples,
+          })}`,
       FeedMarkdown.empty(),
       RootCauseList.render(items),
     ];
@@ -2545,6 +2559,37 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     return FeedMarkdown.join(lines, "\n");
+  }
+
+  /*
+   * The Breaching Samples summary of a criteria that judged the window as
+   * one value: that value first - the number the criteria compared, in the
+   * samples' own unit and format - then what the list under it is. A Sum's
+   * list is the samples that added to the total; any other aggregate's is
+   * the samples that crossed the threshold by themselves.
+   *
+   *   The sum of the 15 samples in the window was **8**. The samples that
+   *   added to it:
+   */
+  private static formatWindowAggregateSummary(input: {
+    windowAggregate: MetricWindowAggregate;
+    listedCount: number;
+    unit: string | null;
+    unitHeuristicMetricName: string | undefined;
+  }): MarkdownText {
+    const sampleCount: number = input.windowAggregate.sampleCount;
+    const value: string = MetricValueFormatter.format({
+      value: input.windowAggregate.value,
+      unit: input.unit,
+      metricName: input.unitHeuristicMetricName,
+    });
+    const lead: MarkdownText = mdText`The ${input.windowAggregate.aggregation} of the ${String(sampleCount)} sample${sampleCount === 1 ? "" : "s"} in the window was **${value}**.`;
+
+    if (input.windowAggregate.aggregation === "sum") {
+      return mdText`${lead} The samples that added to it:`;
+    }
+
+    return mdText`${lead} ${String(input.listedCount)} of them breached the threshold on their own:`;
   }
 
   private static formatBreachingSamplesSummary(input: {
@@ -3281,11 +3326,14 @@ ${incomingRequestGrouping.rootCauseNote}
    * series that satisfied the matched criteria.
    *
    * This is the list the criteria actually produced. Each row is valued
-   * with its series' worst breaching sample, in the same display unit —
-   * and formatted by the same formatter — as the "Filter Conditions Met"
-   * sentence above it, so the node the sentence says "ranged from 86.26%
-   * to 88.82%" is listed at 88.82%, not at its 257760964608 bytes of
-   * allocatable memory. Series that did not breach are not listed at all.
+   * with what the criteria judged for its series, in the same display
+   * unit — and formatted by the same formatter — as the "Filter Conditions
+   * Met" sentence above it: its worst breaching sample, so the node the
+   * sentence says "ranged from 86.26% to 88.82%" is listed at 88.82%, not
+   * at its 257760964608 bytes of allocatable memory; or, for a criteria
+   * that judged the window as one value, that value, so a container whose
+   * restarts summed to 4 over the window is listed at 4, not at the 1 of
+   * its worst minute. Series that did not breach are not listed at all.
    *
    * The resource is named from the series' group-by labels, the same
    * attribute keys the worker's raw scan reads, then given whatever
@@ -3639,15 +3687,23 @@ ${incomingRequestGrouping.rootCauseNote}
   }
 
   /**
-   * A series' worst value in the display unit: its worst breaching sample,
-   * or — when the criteria compared an aggregate no single sample crossed
-   * (a Sum) — its worst sample in the window. Null for a series that
-   * matched with no samples at all (the no-data policy).
+   * A series' value in the display unit, as the criteria judged it: the
+   * one value it compared when it judged the window at once (the Sum of a
+   * summed template, an Average), else its worst breaching sample, else
+   * its worst sample in the window. Null for a series that matched with no
+   * samples at all (the no-data policy).
    */
   private static getWorstValue(input: {
     context: MetricCriteriaContext | undefined;
     worstIsLowest: boolean;
   }): number | null {
+    const windowAggregate: MetricWindowAggregate | undefined =
+      input.context?.windowAggregate;
+
+    if (windowAggregate && Number.isFinite(windowAggregate.value)) {
+      return windowAggregate.value;
+    }
+
     const breachingValues: Array<number> = (
       input.context?.breachingSamples ||
       (input.context?.breachingSample ? [input.context.breachingSample] : [])

@@ -3,6 +3,7 @@ import TelemetryException from "../../../Models/DatabaseModels/TelemetryExceptio
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Search from "../../../Types/BaseDatabase/Search";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -23,6 +24,7 @@ import TelemetryExceptionService from "../../Services/TelemetryExceptionService"
 import AnalyticsQuery from "../../Types/AnalyticsDatabase/Query";
 import DatabaseQuery from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import logger from "../Logger";
 
 /*
  * WHAT AN EXCEPTIONS MONITOR READS BEYOND ITS COUNT, WHEN ITS CRITERIA ASK.
@@ -30,14 +32,26 @@ import QueryHelper from "../../Types/Database/QueryHelper";
  * New and regressed exceptions are exception groups (TelemetryException, in
  * Postgres): their first seen and their regressed at are kept on the group,
  * filtered by the monitor's services, exception types, environments and
- * message - an infrastructure entity is a property of occurrences, so that
- * filter applies to the counts of occurrences only. The usual count is the
- * monitor's own occurrence count over the day before its window
- * (ExceptionInstance, in ClickHouse), with the same filters and the same
- * resolved and archived exceptions left out, spread over windows of its
- * length. Each is read only when a criteria checks it
- * (getExceptionMonitorNeeds).
+ * message. An infrastructure entity is a property of each occurrence, not of
+ * the group, so a monitor with an entity filter counts the groups of the
+ * occurrences it counts: the fingerprints of the window's matching
+ * occurrences (ExceptionInstance, in ClickHouse) are read first, and only
+ * their groups are counted - a merged exception's fingerprint counting for
+ * the exception it was merged into, as every lookup by fingerprint does
+ * (TelemetryExceptionService.withMergedFingerprintAliases). A monitor
+ * without one reads exactly what it always did. The usual count is the
+ * monitor's own occurrence count over the day before its window, with the
+ * same filters and the same resolved and archived exceptions left out,
+ * spread over windows of its length. Each is read only when a criteria
+ * checks it (getExceptionMonitorNeeds).
  */
+
+/*
+ * The most fingerprints the groups of an entity filter are counted among.
+ * More than that in one window is not a set of new exceptions: past it, the
+ * groups of the first ones are counted, and it is logged.
+ */
+export const ENTITY_FINGERPRINT_LIMIT: number = 5000;
 
 export interface ExceptionMonitorMeasures {
   newExceptionCount?: number | undefined;
@@ -78,23 +92,55 @@ export default class ExceptionMonitorMeasureReader {
 
     const measures: ExceptionMonitorMeasures = {};
 
+    /*
+     * With an entity filter, the groups new and regressed exceptions are
+     * counted among: read once, for both.
+     */
+    const fingerprints: Promise<Array<string> | undefined> =
+      (needs.newExceptions || needs.regressedExceptions) &&
+      MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config)
+        ? ExceptionMonitorMeasureReader.readOccurrenceFingerprints({
+            countQuery: data.countQuery,
+            windowStart,
+            windowEnd,
+          })
+        : Promise.resolve(undefined);
+
+    const countGroupsWhere: (
+      condition: DatabaseQuery<TelemetryException>,
+    ) => Promise<number> = async (
+      condition: DatabaseQuery<TelemetryException>,
+    ): Promise<number> => {
+      const groupFingerprints: Array<string> | undefined = await fingerprints;
+
+      // No matching occurrence in the window: no group to count.
+      if (groupFingerprints && groupFingerprints.length === 0) {
+        return 0;
+      }
+
+      return ExceptionMonitorMeasureReader.countGroups({
+        query: {
+          ...ExceptionMonitorMeasureReader.getGroupQuery({
+            projectId: data.projectId,
+            config: data.config,
+            fingerprints: groupFingerprints,
+          }),
+          ...condition,
+        },
+      });
+    };
+
     const [newCount, regressedCount, previousCount] = await Promise.all([
       needs.newExceptions
-        ? ExceptionMonitorMeasureReader.countGroups({
-            query: {
-              ...ExceptionMonitorMeasureReader.getGroupQuery(data),
-              firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
-            },
+        ? countGroupsWhere({
+            firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
           })
         : Promise.resolve(undefined),
       needs.regressedExceptions
-        ? ExceptionMonitorMeasureReader.countGroups({
-            query: {
-              ...ExceptionMonitorMeasureReader.getGroupQuery(data),
-              regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
-              // Came back and still open: resolved again since, it is fixed.
-              isResolved: false,
-            },
+        ? countGroupsWhere({
+            regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
+            // Came back and still open: resolved again since, it is fixed.
+            isResolved: false,
           })
         : Promise.resolve(undefined),
       needs.baseline
@@ -133,11 +179,13 @@ export default class ExceptionMonitorMeasureReader {
   /*
    * The monitor's filters, as a query of exception groups: its services,
    * exception types, environments and message, and - unless it counts them
-   * - neither resolved nor archived groups.
+   * - neither resolved nor archived groups. With `fingerprints`, only the
+   * groups of those occurrences.
    */
   public static getGroupQuery(data: {
     projectId: ObjectID;
     config: MonitorStepExceptionMonitor;
+    fingerprints?: Array<string> | undefined;
   }): DatabaseQuery<TelemetryException> {
     const query: DatabaseQuery<TelemetryException> = {
       projectId: data.projectId,
@@ -172,7 +220,54 @@ export default class ExceptionMonitorMeasureReader {
       query.isArchived = false;
     }
 
+    if (data.fingerprints) {
+      query.fingerprint = new Includes(data.fingerprints);
+    }
+
     return query;
+  }
+
+  /*
+   * The fingerprints of the occurrences the monitor counts in its window -
+   * the window's own occurrence query, its entity filter with the rest -
+   * each once (grouped by fingerprint), at most ENTITY_FINGERPRINT_LIMIT.
+   */
+  public static async readOccurrenceFingerprints(data: {
+    countQuery: AnalyticsQuery<ExceptionInstance>;
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<Array<string>> {
+    const rows: Array<ExceptionInstance> =
+      await ExceptionInstanceService.findBy({
+        query: {
+          ...data.countQuery,
+          time: new InBetween(data.windowStart, data.windowEnd),
+        },
+        groupBy: { fingerprint: true },
+        select: { fingerprint: true },
+        sort: { fingerprint: SortOrder.Ascending },
+        limit: ENTITY_FINGERPRINT_LIMIT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const fingerprints: Array<string> = [];
+
+    for (const row of rows) {
+      const fingerprint: string = row.fingerprint?.toString() || "";
+
+      if (fingerprint && !fingerprints.includes(fingerprint)) {
+        fingerprints.push(fingerprint);
+      }
+    }
+
+    if (rows.length >= ENTITY_FINGERPRINT_LIMIT) {
+      logger.warn(
+        `An Exceptions monitor's infrastructure entity filter matched at least ${ENTITY_FINGERPRINT_LIMIT} exception fingerprints in its window; its new and regressed exceptions are counted among the first ${ENTITY_FINGERPRINT_LIMIT}.`,
+      );
+    }
+
+    return fingerprints;
   }
 
   private static async countGroups(data: {

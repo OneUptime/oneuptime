@@ -38968,6 +38968,8 @@
   "Number of exceptions that came back": "Number of exceptions that came back",
   "Number of new exceptions": "Number of new exceptions",
   "Rise over the usual (in %)": "Rise over the usual (in %)",
+  "Shown in your public dashboard's header.": "Shown in your public dashboard's header.",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.",
   "This incident is private, so public notes cannot be added to it.": "This incident is private, so public notes cannot be added to it.",
   "This episode is private, so public notes cannot be added to it.": "This episode is private, so public notes cannot be added to it.",

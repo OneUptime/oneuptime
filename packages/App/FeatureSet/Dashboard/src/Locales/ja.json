@@ -38968,6 +38968,8 @@
   "Number of exceptions that came back": "再発した例外の件数",
   "Number of new exceptions": "新しい例外の件数",
   "Rise over the usual (in %)": "通常を上回る増加 (%)",
+  "Shown in your public dashboard's header.": "公開ダッシュボードのヘッダーに表示されます。",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "公開ダッシュボードが暗い場所で、ロゴの代わりに表示されます。ない場合、そこではロゴが明るい背景の上に表示されます。",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "このグラフは発生した例外の件数を示します。新しい例外、再発した例外、通常を上回る増加では表示されません。",
   "This incident is private, so public notes cannot be added to it.": "このインシデントは非公開のため、公開メモを追加できません。",
   "This episode is private, so public notes cannot be added to it.": "このエピソードは非公開のため、公開メモを追加できません。",

@@ -127,7 +127,7 @@ import {
 import FileOwnership from "../Utils/File/FileOwnership";
 
 /*
- * How a public dashboard's logo and favicon are read: their bytes and type,
+ * How a public dashboard's logos and favicon are read: their bytes and type,
  * and the project each was uploaded in - a dashboard shows only files of its
  * own project (FileOwnership.keepProjectFile).
  */
@@ -896,7 +896,7 @@ export default class DashboardAPI extends BaseAPI<
               id: dashboardId,
               select: {
                 _id: true,
-                // Only to hold its logo to its project; never sent.
+                // Only to hold its logos to its project; never sent.
                 projectId: true,
                 name: true,
                 description: true,
@@ -904,6 +904,7 @@ export default class DashboardAPI extends BaseAPI<
                 pageTitle: true,
                 pageDescription: true,
                 logoFile: SERVED_IMAGE_SELECT,
+                darkThemeLogoFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
@@ -927,6 +928,18 @@ export default class DashboardAPI extends BaseAPI<
             logoFile: DashboardAPI.getFileAsBase64JSONObject(
               FileOwnership.keepProjectFile(
                 dashboard.logoFile,
+                dashboard.projectId,
+              ),
+            ),
+            /*
+             * The logo for its dark theme, drawn instead of the logo while
+             * the page is dark - and, like the logo, only when it is a file
+             * of its own project. Only here: the page draws its header
+             * from this answer, and /metadata's logo is read by nobody.
+             */
+            darkThemeLogoFile: DashboardAPI.getFileAsBase64JSONObject(
+              FileOwnership.keepProjectFile(
+                dashboard.darkThemeLogoFile,
                 dashboard.projectId,
               ),
             ),

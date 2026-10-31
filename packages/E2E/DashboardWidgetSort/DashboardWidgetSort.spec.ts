@@ -151,14 +151,14 @@ const shoot: (
 /*
  * A press on a control of the dashboard, as the viewer makes it.
  *
- * A dashboard's board is 1000px wide (DashboardView's page, and the public
- * page's board in its own frame, DashboardViewLayout), so on a phone part
- * of the board sits past the screen's edge and the viewer scrolls to it. Playwright's own click cannot reach a control
- * there - the phone emulation scrolls the visual viewport, and the check
- * of what is under the pointer looks at the wrong place - so on the phone
- * the control is scrolled to, must be visible and enabled, and gets the
- * click a tap ends in (as the dashboard time range suite does); at 1280 it
- * is Playwright's real click.
+ * On a phone a dashboard's board shows its widgets one under another
+ * (Common/Utils/Dashboard/DashboardBoardLayout), so a widget's table can sit
+ * below the fold and the viewer scrolls to it. Playwright's own click cannot
+ * reach a control there - the phone emulation scrolls the visual viewport,
+ * and the check of what is under the pointer looks at the wrong place - so
+ * on the phone the control is scrolled to, must be visible and enabled, and
+ * gets the click a tap ends in (as the dashboard time range suite does); at
+ * 1280 it is Playwright's real click.
  */
 const press: (control: Locator) => Promise<void> = async (
   control: Locator,
@@ -179,6 +179,36 @@ const atDesktopOnly: () => void = (): void => {
     Boolean(test.info().project.use.isMobile),
     "The same at any width: covered at 1280.",
   );
+};
+
+/*
+ * A window as wide as a laptop's, 1440px, for a test of what fits a widget
+ * N units wide. The board fits its column beside the side menu now
+ * (Common/Utils/Dashboard/DashboardBoardLayout, the #5284 follow-up): at
+ * 1280 the column is 824px, so a unit is about 60px and a widget narrower
+ * than the 70px units a list's default width was chosen on, when the board
+ * was at least 1000px wide and the page scrolled sideways. At 1440 the board
+ * is the square grid again, its units 70px or more, as they were at 1280.
+ */
+const atLaptopWidth: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+};
+
+// The board laid out as the square grid: its widgets' area 950px or wider.
+const expectSquareGrid: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  const board: Locator = page.getByTestId("dashboard-board");
+
+  await expect(board).toHaveAttribute("data-arrangement", "grid");
+  // Less the board's 8px padding on each side.
+  expect(
+    await board.evaluate((element: Element): number => {
+      return element.clientWidth - 16;
+    }),
+  ).toBeGreaterThanOrEqual(950);
 };
 
 // A widget's table, by a header only it has.
@@ -485,7 +515,9 @@ test.describe("a list on the dashboard inside OneUptime", () => {
    * a container's image - drew each on one line, whole, and ran past its
    * widget: the rows scrolled sideways, and the default sort's arrow, on
    * the last column (Declared), was out of sight. A title gives way now,
-   * ending in "...", down to 6rem (DashboardResourceListBase).
+   * ending in "...", down to 6rem (DashboardResourceListBase). Units 70px
+   * wide (atLaptopWidth): beside the side menu at 1280 they are 60px, and
+   * the list scrolls its last column inside its widget there.
    */
   test("at 6 units, an incident list with a long title fits its widget: the title ends in ... and the sort's arrow is in sight", async ({
     page,
@@ -493,7 +525,9 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     page: Page;
   }, testInfo: TestInfo) => {
     atDesktopOnly();
+    await atLaptopWidth(page);
     await openApp(page, "?titles=long");
+    await expectSquareGrid(page);
 
     const incidents: Locator = tableWith(page, "declared");
     const title: Locator = incidents
@@ -858,13 +892,16 @@ test.describe("the headers take no more room than plain ones", () => {
     expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
   });
 
+  // Its 6 and 8 units 70px wide or more, as a list's widths were chosen on.
   test("the security events list draws one line per event, at its narrowest too", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     atDesktopOnly();
+    await atLaptopWidth(page);
     await openNarrow(page);
+    await expectSquareGrid(page);
 
     const tables: Locator = page.locator("table").filter({
       has: page.getByTestId("dashboard-widget-sort-severity"),

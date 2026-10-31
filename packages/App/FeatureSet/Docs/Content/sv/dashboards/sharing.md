@@ -155,12 +155,13 @@ På instrumentpanelens sida **Varumärke** kan du konfigurera:
 - **Sidtitel**: det som visas i webbläsarfliken och högst upp på sidan.
 - **Sidbeskrivning**: beskrivningen som sökmotorer och förhandsvisningar i sociala medier använder.
 - **Logotyp**: en bild som visas i den offentliga instrumentpanelens sidhuvud.
+- **Logotyp för mörkt tema**: en logotyp gjord för en mörk bakgrund, som visas i stället för logotypen överallt där den offentliga instrumentpanelen är mörk.
 - **Tema**: ljust, mörkt eller som varje besökares enhet är inställd; se [Tema](#tema).
 - **Favicon**: den lilla ikonen i webbläsarfliken.
 
-Logotypen och faviconen är filer som har laddats upp i instrumentpanelens eget projekt, och det kontrolleras varje gång någon av dem sparas: från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again." eller "The favicon's file could not be found. Upload the favicon again." Den offentliga instrumentpanelen visar bara bilder från sitt eget projekt.
+Logotypen, logotypen för mörkt tema och faviconen är filer som har laddats upp i instrumentpanelens eget projekt, och det kontrolleras varje gång någon av dem sparas: från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." eller "The favicon's file could not be found. Upload the favicon again." Den offentliga instrumentpanelen visar bara bilder från sitt eget projekt.
 
-Sidtiteln och beskrivningen står också överst i instrumentpanelens verktygsfält för ditt team, i stället för dess namn och beskrivning. Logotypen, temat och faviconen gäller bara för den offentliga instrumentpanelen.
+Sidtiteln och beskrivningen står också överst i instrumentpanelens verktygsfält för ditt team, i stället för dess namn och beskrivning. Logotyperna, temat och faviconen gäller bara för den offentliga instrumentpanelen.
 
 Besökare ser varumärket först när de får se instrumentpanelen. Innan lösenordet har angetts visar en instrumentpanel som delas med lösenord bara sin sidtitel, favicon och sitt tema, och sökmotorer och länkförhandsvisningar ser sidtiteln men inte sidbeskrivningen. En instrumentpanel med en IP-tillåtelselista visar sitt varumärke bara för adresserna i listan, och sökmotorer och länkförhandsvisningar ser inget av det.
 
@@ -174,7 +175,7 @@ Kortet **Tema**, direkt under logotypen, bestämmer hur den offentliga instrumen
 | **Mörkt** | Den mörka instrumentpanelen, hur deras enhet än är inställd. |
 | **Som varje besökares enhet** | Ljust eller mörkt, som deras enhet är inställd, och instrumentpanelen växlar med enheten medan den är öppen. |
 
-Vad du än väljer låter en sol- eller månknapp i instrumentpanelens verktygsfält varje besökare växla till den ljusa eller den mörka instrumentpanelen, eller tillbaka till det tema du har angett, och deras webbläsare kommer ihåg valet för varje offentlig instrumentpanel på den adressen. På den mörka instrumentpanelen står logotypen på en ljus bakgrund, så en logotyp som är gjord för en vit sida syns fortfarande tydligt.
+Vad du än väljer låter en sol- eller månknapp i instrumentpanelens verktygsfält varje besökare växla till den ljusa eller den mörka instrumentpanelen, eller tillbaka till det tema du har angett, och deras webbläsare kommer ihåg valet för varje offentlig instrumentpanel på den adressen. På den mörka instrumentpanelen visas logotypen för mörkt tema i stället för logotypen; utan en står logotypen på en ljus bakgrund, så en logotyp som är gjord för en vit sida syns fortfarande tydligt.
 
 En instrumentpanel som skapas från och med nu börjar med **Som varje besökares enhet**. Via API:et och Terraform heter fältet `theme`, med ett av värdena `Light`, `Dark` eller `System` (**Som varje besökares enhet**), skrivet exakt så; alla andra värden avvisas. En Terraform-konfiguration som inte anger något `theme` får `Light`, så en konfiguration som skrevs före inställningen planerar aldrig en ändring på en instrumentpanel den hanterar.
 
