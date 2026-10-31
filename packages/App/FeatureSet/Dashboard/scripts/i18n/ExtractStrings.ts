@@ -199,6 +199,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Telemetry/TraceSpanType.ts",
     kind: "keys",
   },
+  /*
+   * What a dashboard template's chart says while it draws its fallback
+   * query - why, and where the fix is. Stored in the dashboard as written
+   * and looked up where the chart draws it; only the hints the file marks
+   * are read.
+   */
+  {
+    directory: "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
+    kind: "keys",
+  },
 ];
 
 /*
