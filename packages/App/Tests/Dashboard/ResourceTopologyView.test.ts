@@ -936,6 +936,53 @@ describe("focus", () => {
   });
 });
 
+describe("a first view with room to spare opens healthy parts too", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 2,
+    clustersPerDatacenter: 2,
+    hostsPerCluster: 2,
+    vmsPerHost: 2,
+    datastoresPerDatacenter: 1,
+  });
+
+  test("with opensAll, every part within the depth opens, healthy or not", () => {
+    const calm: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { maxAutomaticDepth: 2 },
+    );
+    const all: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { maxAutomaticDepth: 2, opensAll: true },
+    );
+
+    expect(findCard(calm.top, "dc-0")!.isOpen).toBe(false);
+    expect(findCard(all.top, "dc-0")!.isOpen).toBe(true);
+    expect(findCard(all.top, "dc-1")!.isOpen).toBe(true);
+    // Only as deep as asked: the clusters stay closed.
+    expect(findCard(all.top, "dc-0-cl-0")!.isOpen).toBe(false);
+  });
+
+  test("the depth a budget allows counts healthy parts when they open too", () => {
+    expect(getAutomaticDepth(graph, "vcenter")).toBe(1);
+    expect(
+      getAutomaticDepth(graph, "vcenter", VIEW_BUDGET, true),
+    ).toBeGreaterThan(1);
+  });
+
+  test("a part a person closed stays closed, room or not", () => {
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      closeTopologyPart(createResourceTopologyViewState(), "dc-1"),
+      { maxAutomaticDepth: 3, opensAll: true },
+    );
+
+    expect(findCard(visible.top, "dc-1")!.isOpen).toBe(false);
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(true);
+  });
+});
+
 describe("opening a part opens the way to its trouble with it", () => {
   test("its troubled parts open with it; its healthy ones stay closed", () => {
     const graph: ResourceTopologyGraph = vcenterEstate({

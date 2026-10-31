@@ -805,6 +805,31 @@ test.describe("a tree of cards, never a box inside a box", () => {
     });
   }
 
+  test("a calm vCenter with room to spare shows its shape: healthy parts open too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware", "estate=quiet");
+
+    for (const datacenter of ["Amsterdam", "Frankfurt"]) {
+      await expect(
+        byTestId(
+          page,
+          `resource-topology-card-vmware.datacenter:datacenter/${datacenter}`,
+        ),
+      ).toHaveAttribute("data-open", "true");
+    }
+
+    // Every line is calm: nothing needs attention.
+    expect(await lineTone(page, "group:vcenter|vmware.datacenter")).toBe(
+      "calm",
+    );
+    expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
+    expect(stacked(await drawnParts(page))).toEqual([]);
+    await screenshot(page, "vmware-quiet");
+  });
+
   test("the line to a group is red where the trouble is, grey where all is well", async ({
     page,
   }: {

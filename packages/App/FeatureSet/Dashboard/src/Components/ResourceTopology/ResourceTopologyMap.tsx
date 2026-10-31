@@ -396,6 +396,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       maxAutomaticDepth: fit.depth,
       alwaysOpen: laneOptions.alwaysOpen,
       reveal: laneOptions.reveal,
+      opensAll: fit.opensAll,
     });
   }, [graph, viewState, kindLabel, fit, laneOptions]);
 

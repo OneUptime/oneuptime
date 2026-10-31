@@ -204,6 +204,12 @@ export interface ResourceTopologyViewOptions {
    * every call is drawn. A person can still close a part above one.
    */
   reveal?: ReadonlyArray<string> | undefined;
+  /*
+   * Every part within the automatic depth opens, healthy ones too: for a
+   * first view with room to spare (see ResourceTopologyFit). Otherwise only
+   * the way to trouble opens by itself (opensByItself).
+   */
+  opensAll?: boolean | undefined;
 }
 
 /*
@@ -312,6 +318,7 @@ function childrenOf(
 function previewOf(
   graph: ResourceTopologyGraph,
   node: ResourceTopologyNode,
+  opensAll: boolean = false,
 ): { weight: number; openable: Array<ResourceTopologyNode> } {
   let weight: number = 0;
   const openable: Array<ResourceTopologyNode> = [];
@@ -344,7 +351,7 @@ function previewOf(
     weight += cards.length + (group.members.length > cards.length ? 1 : 0);
 
     for (const card of cards) {
-      if (opensByItself(graph, card)) {
+      if (opensAll ? card.childIds.length > 0 : opensByItself(graph, card)) {
         openable.push(card);
       }
     }
@@ -357,11 +364,14 @@ function previewOf(
  * How many levels below `topId` open by themselves: level by level, until
  * opening the next level would put more than `budget` on screen. The top is
  * always open — its groups' previews keep even a huge first level readable.
+ * Below it, only the parts that open by themselves count, or every part
+ * that holds others with `opensAll`.
  */
 export function getAutomaticDepth(
   graph: ResourceTopologyGraph,
   topId: string,
   budget: number = VIEW_BUDGET,
+  opensAll: boolean = false,
 ): number {
   const top: ResourceTopologyNode | undefined = graph.nodes.get(topId);
 
@@ -379,7 +389,7 @@ export function getAutomaticDepth(
 
     for (const node of level) {
       const preview: { weight: number; openable: Array<ResourceTopologyNode> } =
-        previewOf(graph, node);
+        previewOf(graph, node, opensAll);
       added += preview.weight;
       next.push(...preview.openable);
     }
@@ -669,7 +679,12 @@ export function computeResourceTopologyView(
   const automaticDepth: number = narrowing
     ? 0
     : Math.min(
-        getAutomaticDepth(graph, automaticTop.id, budget),
+        getAutomaticDepth(
+          graph,
+          automaticTop.id,
+          budget,
+          Boolean(options.opensAll),
+        ),
         Math.max(1, options.maxAutomaticDepth ?? Number.POSITIVE_INFINITY),
       );
 
@@ -709,7 +724,10 @@ export function computeResourceTopologyView(
     return (
       automatic &&
       node.depth - automaticTop.depth < automaticDepth &&
-      (node.id === automaticTop.id || opensByItself(graph, node))
+      (node.id === automaticTop.id ||
+        (options.opensAll
+          ? node.childIds.length > 0
+          : opensByItself(graph, node)))
     );
   };
 
