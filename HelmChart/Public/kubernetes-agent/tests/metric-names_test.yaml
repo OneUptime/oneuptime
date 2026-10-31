@@ -7,22 +7,26 @@
 # chart and alert built on those names watched a series that never arrived.
 #
 # These assertions keep that premise true: neither collector config runs a
-# processor that changes a metric's NAME, with one exception, pinned below.
+# processor that changes a metric's NAME, with two exceptions, pinned below.
 # The kubeletstats receiver stopped sending k8s.node.cpu.utilization,
 # k8s.pod.cpu.utilization and container.cpu.utilization (collector 0.125.0),
 # and OneUptime reads them, so the node collector's transform/cpu-utilization
 # sends them again from *.cpu.usage: two copies and one rename, back to the
-# names collector 0.96.0 sent. Every other metric statement sets a resource
-# attribute (service.name). If another rename is ever wanted, add it here
-# deliberately and update
+# names collector 0.96.0 sent. And the cluster collector's
+# metrics/restarts-increase pipeline renames ITS OWN COPY of
+# k8s.container.restarts to k8s.container.restarts.increase, the restarts
+# since each sample (tests/restarts-increase_test.yaml); the metrics pipeline
+# still sends k8s.container.restarts as the receiver names it. Every other
+# metric statement sets a resource attribute (service.name). If another
+# rename is ever wanted, add it here deliberately and update
 # packages/Common/Tests/Types/Monitor/Utils/KubernetesAgentEmittedMetrics.ts,
 # which lists the names the Common tests pin to.
-suite: collectors forward receiver metric names, renaming only kubelet CPU
+suite: collectors forward receiver metric names, renaming only kubelet CPU and the restarts copy
 release:
   name: oneuptime-agent
   namespace: oneuptime
 tests:
-  - it: the cluster collector reads workload metrics from k8s_cluster and renames none
+  - it: the cluster collector reads workload metrics from k8s_cluster and renames none but the restarts copy
     templates:
       - templates/configmap-deployment.yaml
     # Every optional receiver and pipeline on, so a rename hidden behind a
@@ -41,14 +45,25 @@ tests:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "metricstransform"
-      # transform/severity is logs-only, and the only metric statements here
-      # (transform/pod-level-*) work on resource attributes.
+      # transform/severity is logs-only, and transform/pod-level-* work on
+      # resource attributes. The one metric-context group is
+      # transform/restarts-increase's, whose one rename is of the copy its
+      # own pipeline gets.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/restarts-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"container\\.id\"\\)\\n      - context: metric\\n        statements:\\n          - set\\(name, \"k8s\\.container\\.restarts\\.increase\"\\) where name == \"k8s\\.container\\.restarts\"\\n"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "context:\\s*(metric|datapoint)\\b"
+          pattern: "context:\\s*(metric|datapoint)\\b[\\s\\S]*context:\\s*(metric|datapoint)\\b"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "copy_metric\\(|set\\(\\s*(metric\\.)?name\\s*,"
+          pattern: "copy_metric\\("
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "set\\(\\s*(metric\\.)?name\\s*,[\\s\\S]*set\\(\\s*(metric\\.)?name\\s*,"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n"
       # A `metrics:` override under k8s_cluster could switch these off.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
