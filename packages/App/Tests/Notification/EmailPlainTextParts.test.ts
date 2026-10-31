@@ -25,6 +25,16 @@ import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import Port from "Common/Types/Port";
 import Timezone from "Common/Types/Timezone";
+import ObjectID from "Common/Types/ObjectID";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import { StatusPageReport } from "Common/Types/StatusPage/StatusPageReport";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageReportTreeUtil, {
+  StatusPageReportResourceEntry,
+  StatusPageReportStructure,
+} from "Common/Utils/StatusPage/Report";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import IncidentSlaBreachNotice, {
   IncidentSlaBreachMessages,
@@ -46,6 +56,7 @@ import MailService, {
 import SMTPOAuthService from "../../FeatureSet/Notification/Services/SMTPOAuthService";
 import { BRAND_VARIABLE_NAMES } from "../../FeatureSet/Notification/Utils/EmailBranding";
 import "../../FeatureSet/Notification/Utils/Handlebars";
+import { getDefaultSubscriberNotificationTemplate } from "../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 import {
   VariableSet,
   variableSetsFor,
@@ -771,6 +782,199 @@ describe("as sent: the HTML, and the same email as text beside it", () => {
         "Powered by OneUptime (https://oneuptime.com) \u{00B7} \u{00A9} 2026 OneUptime",
       ].join("\n"),
     );
+  });
+});
+
+/*
+ * The status page uptime report: its four stat tiles - Average Uptime, then
+ * Downtime, Incidents and Resources - each name what they count before the
+ * number (st-Stat-label), so the text part, like a screen reader, says
+ * "Downtime: 4 hours, 39 minutes" on one line. The three smaller tiles drew
+ * the number first, and the text part read "4 hours, 39 minutes", a blank
+ * line, then "Downtime" (#5294).
+ */
+describe("the uptime report, as a text-only mail client shows it", () => {
+  const groupId: (n: number) => ObjectID = (n: number): ObjectID => {
+    return new ObjectID(`${String(n).repeat(8)}-1111-4111-8111-111111111111`);
+  };
+
+  const buildReport: () => StatusPageReport = (): StatusPageReport => {
+    const group: (n: number, name: string, parent?: number) => StatusPageGroup =
+      (n: number, name: string, parent?: number): StatusPageGroup => {
+        const made: StatusPageGroup = new StatusPageGroup();
+        made._id = groupId(n).toString();
+        made.name = name;
+        made.order = n;
+
+        if (parent !== undefined) {
+          made.parentStatusPageGroupId = groupId(parent);
+        }
+
+        return made;
+      };
+
+    const entry: (
+      name: string,
+      inGroup: number,
+      uptimePercent: number,
+      incidents: number,
+      downtime: string,
+    ) => StatusPageReportResourceEntry = (
+      name: string,
+      inGroup: number,
+      uptimePercent: number,
+      incidents: number,
+      downtime: string,
+    ): StatusPageReportResourceEntry => {
+      const resource: StatusPageResource = new StatusPageResource();
+      resource.displayName = name;
+      resource.statusPageGroupId = groupId(inGroup);
+
+      return {
+        statusPageResource: resource,
+        reportItem: {
+          resourceName: name,
+          totalIncidentCount: incidents,
+          uptimePercent: uptimePercent,
+          uptimePercentAsString: `${uptimePercent}%`,
+          downtimeInHoursAndMinutes: downtime,
+        },
+      };
+    };
+
+    const structure: StatusPageReportStructure =
+      StatusPageReportTreeUtil.build({
+        entries: [
+          entry("Checkout API", 2, 99.95, 1, "21 minutes"),
+          entry("Marketing website", 3, 99.4, 2, "4 hours, 18 minutes"),
+        ],
+        statusPageGroups: [
+          group(1, "Acme"),
+          group(2, "Platform", 1),
+          group(3, "Web", 1),
+        ],
+        groupMetricsByGroupId: {},
+      });
+
+    return {
+      reportDates: "Oct 1, 2026 - Oct 31, 2026",
+      reportPeriodName: "October 2026",
+      reportStartDate: "Oct 1, 2026",
+      reportEndDate: "Oct 31, 2026",
+      reportTimezone: "UTC",
+      totalResources: structure.resources.length,
+      totalIncidents: 3,
+      averageUptimePercent: "99.84%",
+      totalDowntimeInHoursAndMinutes: "4 hours, 39 minutes",
+      resources: structure.resources,
+      groups: structure.groups,
+      ungroupedResources: structure.resourcesWithoutGroup,
+      rows: structure.rows,
+      hasGroups: structure.groups.length > 0,
+    };
+  };
+
+  const reportVariables: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return {
+      statusPageName: "Acme Status",
+      subscriberEmailNotificationFooterText: "",
+      statusPageUrl: "https://status.acme.example.test",
+      detailsUrl: "https://status.acme.example.test",
+      hasResources: "true",
+      report: buildReport(),
+      logoUrl: "",
+      isPublicStatusPage: "true",
+      unsubscribeUrl: `https://${INSTALL_HOST}/status-page-api/unsubscribe/abc`,
+    };
+  };
+
+  // The lines from the first tile through the last, as the text part reads them.
+  const statLines: (text: string) => Array<string> = (
+    text: string,
+  ): Array<string> => {
+    const lines: Array<string> = text.split("\n");
+    const first: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("Average Uptime");
+    });
+    const last: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("Resources");
+    });
+
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(last).toBeGreaterThan(first);
+
+    return lines.slice(first, last + 1);
+  };
+
+  const STAT_LINES: Array<string> = [
+    "Average Uptime: 99.84%",
+    "",
+    "Oct 1, 2026 \u{2013} Oct 31, 2026 (UTC)",
+    "",
+    "Downtime: 4 hours, 39 minutes",
+    "Incidents: 3",
+    "Resources: 2",
+  ];
+
+  test("the built-in report: each stat named before its number, a stat a line", async () => {
+    const payload: CapturedSmtpMail = await deliverOverSmtp({
+      toEmail: new Email("alice@example.test"),
+      subject: "[Report] Acme Status",
+      isSubjectLiteral: true,
+      templateType: EmailTemplateType.StatusPageSubscriberReport,
+      vars: reportVariables() as EmailMessage["vars"],
+    });
+
+    expect(statLines(payload.text!)).toEqual(STAT_LINES);
+    // The rest of the report follows, as before.
+    expect(payload.text).toContain(
+      "Group / Resource | Uptime | Downtime | Incidents",
+    );
+    expect(payload.text).toContain(
+      "Checkout API | 99.95% | 21 minutes | 1",
+    );
+  });
+
+  test("the starter a status page is offered for its own report reads the same", async () => {
+    const starter: string | undefined = getDefaultSubscriberNotificationTemplate(
+      StatusPageSubscriberNotificationEventType.SubscriberReport,
+      StatusPageSubscriberNotificationMethod.Email,
+    )?.body;
+
+    expect(starter).toBeTruthy();
+
+    const payload: CapturedSmtpMail = await deliverOverSmtp({
+      toEmail: new Email("alice@example.test"),
+      subject: "[Report] Acme Status",
+      isSubjectLiteral: true,
+      body: starter!,
+      vars: reportVariables() as EmailMessage["vars"],
+    });
+
+    expect(statLines(payload.text!)).toEqual(STAT_LINES);
+  });
+
+  test("a screen reader says each stat's name before its number too", async () => {
+    const rendered: RenderedEmail = await MailService.render({
+      toEmail: new Email("alice@example.test"),
+      subject: "[Report] Acme Status",
+      isSubjectLiteral: true,
+      templateType: EmailTemplateType.StatusPageSubscriberReport,
+      vars: reportVariables() as EmailMessage["vars"],
+    });
+    const spoken: string = screenReaderText(rendered.body);
+
+    for (const [label, value] of [
+      ["Average Uptime", "99.84%"],
+      ["Downtime", "4 hours, 39 minutes"],
+      ["Incidents", "3"],
+      ["Resources", "2"],
+    ] as Array<[string, string]>) {
+      expect(spoken).toContain(`${label} ${value}`);
+    }
   });
 });
 
