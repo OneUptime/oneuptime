@@ -996,6 +996,40 @@ test.describe("a form's Share page: the Share Link card", () => {
     await screenshot(page, "form-share-no-domain-1280");
   });
 
+  test("the form's Custom Domains page: each domain, where it is on its way to HTTPS, at a laptop's width and a phone's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width: width, height: 900 });
+      await page.goto(
+        `/dashboard/${PROJECT}/forms/${FORM_ID}/custom-domains?domains=live:status.acme.com;dns:status-eu.acme.com;failed:status-apac.acme.com`,
+      );
+      await page.evaluate(async (): Promise<void> => {
+        await document.fonts.ready;
+      });
+
+      await expect(page.getByText("report.acme.com").first()).toBeVisible();
+
+      for (const status of [
+        "Certificate issued, renews automatically.",
+        "Waiting for DNS: add the CNAME record.",
+        "Could not issue a free certificate yet. We keep trying.",
+      ]) {
+        await expect(page.getByText(status).first()).toBeVisible();
+      }
+
+      // The card names the form's own CNAME record and what it does.
+      await expect(page.getByTestId("card").first()).toContainText(
+        "Serve this form on your own domain, at its root.",
+      );
+
+      await expectNothingRunsOff(page, `the Custom Domains page at ${width}`);
+      await screenshot(page, `form-custom-domains-${width}`);
+    }
+  });
+
   test("turned off, the card says so under its addresses", async ({
     page,
   }: {

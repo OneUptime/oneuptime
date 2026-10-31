@@ -13,6 +13,7 @@
  *   /dashboard/<project>/status-pages/<id>                     a status page's Overview
  *   /dashboard/<project>/dashboards/<id>/authentication-settings  a dashboard's Sharing page
  *   /dashboard/<project>/forms/<id>/share                      a form's Share page
+ *   /dashboard/<project>/forms/<id>/custom-domains             a form's Custom Domains page
  *
  * Steered by the query string:
  *   - domains=<state>:<domain>;...  the custom domains, each where it is on
@@ -52,6 +53,7 @@ import { initReactI18next } from "react-i18next";
 import StatusPageOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Index";
 import DashboardSharingPage from "../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing";
 import FormSharePage from "../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
+import FormCustomDomainsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import Form from "Common/Models/DatabaseModels/Form";
@@ -260,6 +262,8 @@ const RECORDS = {
     });
   },
   Form: () => [FORM],
+  // The Custom Domains table's saved views: none saved.
+  TableView: () => [],
   FormDomain: () => {
     return domainSpecs.map((spec) => {
       return domainRow(FormDomain, "formId", FORM_ID, {
@@ -458,6 +462,14 @@ function Fixture() {
         element={
           <Shell>
             <FormSharePage {...PAGE_PROPS} />
+          </Shell>
+        }
+      />
+      <PageRoute
+        path="/dashboard/:projectId/forms/:id/custom-domains"
+        element={
+          <Shell>
+            <FormCustomDomainsPage {...PAGE_PROPS} />
           </Shell>
         }
       />
