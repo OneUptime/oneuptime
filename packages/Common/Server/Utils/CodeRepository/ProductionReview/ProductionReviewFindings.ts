@@ -1,7 +1,9 @@
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentStateService from "../../../Services/IncidentStateService";
-import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
+import TelemetryExceptionService, {
+  ExceptionOfGroup,
+} from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { CodeAgentScopedService } from "../../AI/CodeFix/CodeAgentTelemetryScope";
 import {
@@ -38,6 +40,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
+import { getOccurrenceFingerprintQuery } from "../../../../Types/Telemetry/ExceptionGroupFingerprints";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import {
   PRODUCTION_REVIEW_LIMITS,
@@ -1006,9 +1009,11 @@ export default class ProductionReviewFindings {
 
   /*
    * How often each group was thrown in the window, counted from its
-   * occurrences by fingerprint, as the fix verifier counts them. A count
-   * that cannot be read, or is not read in time, is left out: the group's
-   * total is shown instead, and says so.
+   * occurrences by fingerprint - its own, and those of the exceptions
+   * merged into it, which count on it (TelemetryExceptionService
+   * .getGroupFingerprints) - as the fix verifier counts them. A count that
+   * cannot be read, or is not read in time, is left out: the group's total
+   * is shown instead, and says so.
    */
   private static async countOccurrences(data: {
     projectId: ObjectID;
@@ -1019,38 +1024,43 @@ export default class ProductionReviewFindings {
     const counts: Map<string, number> = new Map<string, number>();
     let timer: ReturnType<typeof setTimeout> | undefined = undefined;
 
-    const reads: Promise<void> = Promise.all(
-      data.groups
-        .filter((group: TelemetryException): boolean => {
-          return Boolean(
-            group._id && group.fingerprint && group.primaryEntityId,
-          );
-        })
-        .map(async (group: TelemetryException): Promise<void> => {
-          try {
-            const count: PositiveNumber =
-              await ExceptionInstanceService.countBy({
-                query: {
-                  projectId: data.projectId,
-                  primaryEntityId: group.primaryEntityId,
-                  fingerprint: group.fingerprint,
-                  time: new InBetween(data.since, data.now),
-                } as never,
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: { isRoot: true, tenantId: data.projectId },
-              });
+    const groups: Array<TelemetryException> = data.groups.filter(
+      (group: TelemetryException): boolean => {
+        return Boolean(group._id && group.fingerprint && group.primaryEntityId);
+      },
+    );
 
-            counts.set(group._id!.toString(), count.toNumber());
-          } catch (error) {
-            logger.debug(
-              `Production review: could not count an exception's occurrences: ${error}`,
-            );
-          }
-        }),
-    ).then((): void => {
-      // Every count settled.
-    });
+    // Never rejects: it may still be under way once the time is up.
+    const reads: Promise<void> = (async (): Promise<void> => {
+      try {
+        // One read of what was merged into them all, within the time allowed.
+        const groupFingerprints: Map<string, Array<string>> =
+          await TelemetryExceptionService.getGroupFingerprints({
+            projectId: data.projectId,
+            exceptions: groups.map(
+              (group: TelemetryException): ExceptionOfGroup => {
+                return {
+                  id: group._id!.toString(),
+                  fingerprint: group.fingerprint!,
+                };
+              },
+            ),
+          });
+
+        await ProductionReviewFindings.countEach({
+          projectId: data.projectId,
+          groups,
+          groupFingerprints,
+          since: data.since,
+          now: data.now,
+          counts,
+        });
+      } catch (error) {
+        logger.debug(
+          `Production review: could not count the exceptions' occurrences: ${error}`,
+        );
+      }
+    })();
 
     try {
       await Promise.race([
@@ -1066,6 +1076,48 @@ export default class ProductionReviewFindings {
     }
 
     return new Map<string, number>(counts);
+  }
+
+  // Each group's count in the window, into `counts` as it is read.
+  private static async countEach(data: {
+    projectId: ObjectID;
+    groups: Array<TelemetryException>;
+    groupFingerprints: Map<string, Array<string>>;
+    since: Date;
+    now: Date;
+    counts: Map<string, number>;
+  }): Promise<void> {
+    const counts: Map<string, number> = data.counts;
+
+    await Promise.all(
+      data.groups.map(async (group: TelemetryException): Promise<void> => {
+        try {
+          const count: PositiveNumber = await ExceptionInstanceService.countBy(
+            {
+              query: {
+                projectId: data.projectId,
+                primaryEntityId: group.primaryEntityId,
+                fingerprint: getOccurrenceFingerprintQuery(
+                  data.groupFingerprints.get(
+                    group._id!.toString().toLowerCase(),
+                  ) || [group.fingerprint!],
+                ),
+                time: new InBetween(data.since, data.now),
+              } as never,
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: { isRoot: true, tenantId: data.projectId },
+            },
+          );
+
+          counts.set(group._id!.toString(), count.toNumber());
+        } catch (error) {
+          logger.debug(
+            `Production review: could not count an exception's occurrences: ${error}`,
+          );
+        }
+      }),
+    );
   }
 
   /*

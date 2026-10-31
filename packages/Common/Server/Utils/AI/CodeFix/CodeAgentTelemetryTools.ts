@@ -4,7 +4,9 @@ import ExceptionInstanceService from "../../../Services/ExceptionInstanceService
 import IncidentService from "../../../Services/IncidentService";
 import MetricTypeService from "../../../Services/MetricTypeService";
 import SpanService from "../../../Services/SpanService";
-import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
+import TelemetryExceptionService, {
+  ExceptionOfGroup,
+} from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import {
   extractCandidatePathsFromStackTrace,
@@ -51,6 +53,7 @@ import AIRunType from "../../../../Types/AI/AIRunType";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
+import { getOccurrenceFingerprintQuery } from "../../../../Types/Telemetry/ExceptionGroupFingerprints";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
@@ -860,7 +863,9 @@ const FindProductionExceptionsTool: CodeAgentTelemetryTool = {
 /*
  * How often each exception group occurred in the window, and the trace of
  * its most recent occurrence: counted from the occurrences themselves
- * (ExceptionInstance), by the group's fingerprint, as the fix verifier
+ * (ExceptionInstance), by the group's fingerprints - its own and those of
+ * the exceptions merged into it, which count on it
+ * (TelemetryExceptionService.getGroupFingerprints) - as the fix verifier
  * counts them. A count that cannot be read is left out, never guessed.
  */
 async function readOccurrences(data: {
@@ -882,6 +887,24 @@ async function readOccurrences(data: {
     return occurrences;
   }
 
+  const groupFingerprints: Map<string, Array<string>> =
+    await TelemetryExceptionService.getGroupFingerprints({
+      projectId: data.scope.projectId,
+      exceptions: groups.map((group: TelemetryException): ExceptionOfGroup => {
+        return { id: group._id!.toString(), fingerprint: group.fingerprint! };
+      }),
+    });
+
+  const fingerprintsOf: (group: TelemetryException) => Array<string> = (
+    group: TelemetryException,
+  ): Array<string> => {
+    return (
+      groupFingerprints.get(group._id!.toString().toLowerCase()) || [
+        group.fingerprint!,
+      ]
+    );
+  };
+
   await Promise.all(
     groups.map(async (group: TelemetryException): Promise<void> => {
       try {
@@ -889,7 +912,7 @@ async function readOccurrences(data: {
           query: {
             projectId: data.scope.projectId,
             primaryEntityId: group.primaryEntityId,
-            fingerprint: group.fingerprint,
+            fingerprint: getOccurrenceFingerprintQuery(fingerprintsOf(group)),
             time: new InBetween(data.since, data.now),
           } as never,
           skip: 0,
@@ -921,9 +944,7 @@ async function readOccurrences(data: {
             ),
           ),
           fingerprint: new Includes(
-            groups.map((group: TelemetryException): string => {
-              return group.fingerprint!;
-            }),
+            Array.from(new Set<string>(groups.flatMap(fingerprintsOf))),
           ),
           time: new InBetween(data.since, data.now),
         } as never,
@@ -935,10 +956,11 @@ async function readOccurrences(data: {
       });
 
     for (const group of groups) {
+      const fingerprints: Array<string> = fingerprintsOf(group);
       const latest: ExceptionInstance | undefined = recent.find(
         (occurrence: ExceptionInstance): boolean => {
           return (
-            occurrence.fingerprint === group.fingerprint &&
+            fingerprints.includes(occurrence.fingerprint?.toString() || "") &&
             Boolean(occurrence.traceId)
           );
         },
