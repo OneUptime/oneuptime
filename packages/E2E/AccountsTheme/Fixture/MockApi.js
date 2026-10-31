@@ -28,7 +28,9 @@
  *   mcp=read|write|loopback|noprojects|error
  *                          what the MCP consent screen is told
  *   market=ready|error     what the marketplace purchase page is told
- *   form=ok|missing        the public form, or a link to none
+ *   form=ok|missing        the public form, or a link to none - on its
+ *                          link, and on its own domain (the server's / with
+ *                          formdomain=1)
  *   brand=name|logo|logos  an installation that goes by a name of its own:
  *                          with no logo, with a logo for light backgrounds
  *                          only, or with logos for light and dark ones
@@ -96,6 +98,8 @@ if (Object.prototype.hasOwnProperty.call(BRANDING, scenario["brand"] || "")) {
 
 const record = {
   requests: [],
+  // Where each request went: the whole address, for a page that must keep its own origin.
+  addresses: [],
   unexpected: [],
 };
 
@@ -329,6 +333,25 @@ const answer = (method, apiPath, data) => {
     return ok(FORM);
   }
 
+  /*
+   * A form on its own domain: read, and submitted, at the domain it was
+   * opened on, naming no key (Accounts Utils/Form.ts).
+   */
+  if (apiPath === "/api/form/custom-domain" && method === "GET") {
+    if (scenario["form"] === "missing") {
+      return refused(
+        404,
+        "This form is not available. It may have been turned off, or the link may be out of date.",
+      );
+    }
+
+    return ok(FORM);
+  }
+
+  if (apiPath === "/api/form/custom-domain/submit" && method === "POST") {
+    return ok({ reference: "INC-7" });
+  }
+
   return null;
 };
 
@@ -337,6 +360,7 @@ API.fetch = async (options) => {
   const apiPath = url.pathname;
 
   record.requests.push(`${options.method} ${apiPath}`);
+  record.addresses.push(url.toString());
 
   const response = answer(options.method, apiPath, options.data);
 

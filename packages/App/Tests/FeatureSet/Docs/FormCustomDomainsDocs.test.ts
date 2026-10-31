@@ -110,7 +110,9 @@ describe("Forms on custom domains (English docs)", () => {
     expect(adding).toContain(
       `placeholder \`${FORM_CUSTOM_DOMAIN_COPY.subdomainPlaceholder}\``,
     );
-    expect(adding).toContain("**Project Settings** > **Advanced** > **Domains**");
+    expect(adding).toContain(
+      "**Project Settings** > **Advanced** > **Domains**",
+    );
     expect(adding).toContain(`**${CustomDomainCopy.domainFieldSideLink}**`);
     expect(adding).toContain("**More fields**");
     expect(adding).toContain("**Upload Custom Certificate**");
@@ -139,13 +141,13 @@ describe("Forms on custom domains (English docs)", () => {
 
   it("tells the status page and dashboard guides which other kinds refuse their names, as the check does", () => {
     // A form's name is refused by every kind, other forms included.
-    expect(CustomDomainConflicts.getKindsToCheck(CustomDomainKind.Form)).toEqual(
-      [
-        CustomDomainKind.StatusPage,
-        CustomDomainKind.Dashboard,
-        CustomDomainKind.Form,
-      ],
-    );
+    expect(
+      CustomDomainConflicts.getKindsToCheck(CustomDomainKind.Form),
+    ).toEqual([
+      CustomDomainKind.StatusPage,
+      CustomDomainKind.Dashboard,
+      CustomDomainKind.Form,
+    ]);
     expect(
       CustomDomainConflicts.getKindsToCheck(CustomDomainKind.Dashboard),
     ).toEqual([CustomDomainKind.StatusPage, CustomDomainKind.Form]);
@@ -254,7 +256,9 @@ describe("Forms on custom domains (English docs)", () => {
       fs.readFileSync(path.join(REPO_DIR, "docker-compose.base.yml"), "utf8"),
     ).toContain("FORM_CNAME_RECORD: ${FORM_CNAME_RECORD:-}");
     expect(
-      readSource("App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds.ts"),
+      readSource(
+        "App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds.ts",
+      ),
     ).toMatch(
       /FORM_CUSTOM_DOMAINS: CustomDomainKind = \{[^}]*getCnameRecord: \(\): string => \{\s*return FormCNameRecord;\s*\},\s*cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD",/,
     );

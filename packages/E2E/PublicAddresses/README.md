@@ -1,9 +1,10 @@
 # Public addresses fixture
 
-An offline harness for the addresses a status page or a public dashboard
-answers at - `Components/CustomDomain/PublicAddresses`, drawn by a status
-page's **Status Page Link** card on its Overview and under a dashboard's
-public choice on its **Sharing** page. It bundles the real pages with
+An offline harness for the addresses a status page, a public dashboard or
+a form answers at - `Components/CustomDomain/PublicAddresses`, drawn by a
+status page's **Status Page Link** card on its Overview, under a dashboard's
+public choice on its **Sharing** page, and by a form's **Share Link** card
+on its **Share** page. It bundles the real pages with
 esbuild, replaces only the `ModelAPI` / `API` data boundary and the synthetic
 user's permissions, and serves them on `127.0.0.1:4381`
 (`PUBLIC_ADDRESSES_FIXTURE_PORT` moves it). No Docker, no database, no
@@ -13,7 +14,8 @@ The pages:
 
 - `/dashboard/<project>/status-pages/<id>` - a status page's Overview;
 - `/dashboard/<project>/dashboards/<id>/authentication-settings` - a
-  dashboard's Sharing page.
+  dashboard's Sharing page;
+- `/dashboard/<project>/forms/<id>/share` - a form's Share page.
 
 The suite (`PublicAddresses.spec.ts`) checks in Chromium what jsdom cannot:
 
@@ -37,7 +39,10 @@ The suite (`PublicAddresses.spec.ts`) checks in Chromium what jsdom cannot:
   placeholder keeps a row's shape;
 - the words and the frame legible in the dark theme (WCAG AA), and in German;
 - a dashboard's custom domains under its public choice, and none read while
-  it is private.
+  it is private;
+- a form's own domains first on its Share Link card, then its link, with
+  Reset Link; the offer to add a domain linking to the form's Custom Domains
+  page; the turned-off notice under the addresses; dark, German and Persian.
 
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every API read on `window.__fixture.apiGets`,
@@ -67,6 +72,6 @@ Then open
 (or the Sharing page above), adding
 `?domains=live:status.acme.com;dns:status-eu.acme.com;issuing:status-apac.acme.com`
 (states: live, dns, issuing, unordered, failed, expired, uploaded, renewal),
-`?access=signin|password`, `?share=private|link|password`,
+`?access=signin|password`, `?share=private|link|password`, `?enabled=0`,
 `?role=viewer|noread`, `?fail=domains|certs`, `?delay=<ms>`, `?cname=0`,
 `?lang=de|ja|fa` or `?theme=dark`.

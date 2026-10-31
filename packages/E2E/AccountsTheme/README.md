@@ -22,7 +22,9 @@ visit, so a move to another page of the app keeps it: `ssorequired=1`,
 `signup=verify|sent` (a sign-up held until its email is verified, or a link sent to
 an address that has an account), `signin=wrong|methods|totp|enrol|codes|nocodes` (what a password sign-in is
 answered, and its second step), `verify=failed`, `mcp=read|write|loopback|noprojects|error`,
-`market=ready|error`, `form=ok|missing` and `brand=name|logo|logos` (an installation
+`market=ready|error`, `form=ok|missing` (on the form's link, and on its own domain:
+the server's `/` with `formdomain=1` is the page a form domain's root renders) and
+`brand=name|logo|logos` (an installation
 with a name of its own, a logo for light backgrounds only, or logos for both). The
 server's `/hold` and `/release` hold Tailwind and the app's bundle back, so a test can
 look at a page as the browser has it before anything but the template has run.
@@ -45,6 +47,14 @@ ring of its own colour and the backup codes' one action is as wide as the card's
 content; and an installation's only logo on a light plate on a
 dark page. Screenshots of every page in both themes are saved under
 `output/playwright/accounts-theme-ui`.
+
+`FormOnCustomDomain.spec.ts` opens a form on its owner's own domain - the page the
+App renders at a form domain's root, which the fixture serves at `/?formdomain=1` -
+and checks that it is the form alone (titled with its name, no OneUptime logo, a
+footer with only the language picker, centred), that it reads the form and sends the
+answers at the address it was opened on (`/api/form/custom-domain`), that it is light
+whatever was picked, that a form that is not available says so, and that nothing is
+wider than the screen at 1280 and 390 pixels in English, German and Persian.
 
 This checks real browser rendering and the pages' theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

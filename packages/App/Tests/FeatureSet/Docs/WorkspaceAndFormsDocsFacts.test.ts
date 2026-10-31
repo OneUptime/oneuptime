@@ -2121,7 +2121,11 @@ describe("Forms, against the builder, the Share page and the public page", () =>
     );
 
     // The list's own words, as the Sharing the link section names them.
-    const sharing: string = section(englishPage(SHARING), 2, "Sharing the link");
+    const sharing: string = section(
+      englishPage(SHARING),
+      2,
+      "Sharing the link",
+    );
 
     for (const label of [
       PublicAddressCopy.copyLink,

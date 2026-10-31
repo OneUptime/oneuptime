@@ -37,12 +37,17 @@ import path from "path";
 const PROJECT: string = "10000000-0000-4000-8000-000000000001";
 const STATUS_PAGE_ID: string = "30000000-0000-4000-8000-000000000001";
 const DASHBOARD_ID: string = "40000000-0000-4000-8000-000000000001";
+const FORM_ID: string = "50000000-0000-4000-8000-000000000001";
+const FORM_SHARE_KEY: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
 const STATUS_PAGE: string = `/dashboard/${PROJECT}/status-pages/${STATUS_PAGE_ID}`;
 const SHARING: string = `/dashboard/${PROJECT}/dashboards/${DASHBOARD_ID}/authentication-settings`;
+const FORM_SHARE: string = `/dashboard/${PROJECT}/forms/${FORM_ID}/share`;
 
 // The address the fixture's HOST gives the status page on OneUptime's domain.
 const ONEUPTIME_ADDRESS: string = `oneuptime.acme-commerce.example/status-page/${STATUS_PAGE_ID}`;
 const PUBLIC_LINK: string = `https://oneuptime.acme-commerce.example/public-dashboard/${DASHBOARD_ID}`;
+// A form's link, as its Share Link card hands it out.
+const FORM_LINK: string = `https://oneuptime.acme-commerce.example/accounts/form/${FORM_SHARE_KEY}`;
 
 const SEVERAL: string =
   "domains=live:status.acme.com;dns:status-eu.acme.com;issuing:status-apac.acme.com;expired:status-legacy.acme.com";
@@ -163,9 +168,13 @@ async function expectNothingRunsOff(page: Page, where: string): Promise<void> {
 }
 
 // Every row inside the list's frame, and the list inside its card.
-async function expectRowsInside(page: Page, where: string): Promise<void> {
+async function expectRowsInside(
+  page: Page,
+  where: string,
+  cardLocator?: Locator | undefined,
+): Promise<void> {
   const list: Box = await box(page.getByTestId("public-addresses"));
-  const card: Box = await box(page.getByTestId("card").first());
+  const card: Box = await box(cardLocator || page.getByTestId("card").first());
 
   expect(list.x, where).toBeGreaterThanOrEqual(card.x);
   expect(list.x + list.width, where).toBeLessThanOrEqual(
@@ -885,5 +894,181 @@ test.describe("a dashboard's Sharing page: under the public choice", () => {
         },
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * A form's Share page: its Share Link card lists every address the form
+ * answers at - its own domains first, then its link on OneUptime - with
+ * Reset Link, which changes only the link.
+ */
+test.describe("a form's Share page: the Share Link card", () => {
+  const formLinkAddress: string = FORM_LINK.replace("https://", "");
+
+  function shareLinkCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByTestId("form-share-link-card"),
+    });
+  }
+
+  test("the form's own domains first, then its link, each live one to open and copy, with Reset Link", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await grantClipboard(context);
+
+    for (const width of [1280, 390]) {
+      await open(
+        page,
+        `${FORM_SHARE}?domains=live:status.acme.com;dns:status-eu.acme.com`,
+        width,
+      );
+
+      const card: Locator = shareLinkCard(page);
+
+      await expect(card).toContainText("Share Link");
+      expect(await listed(page)).toEqual([
+        "live report.acme.com",
+        "not live report-eu.acme.com",
+        `live ${formLinkAddress}`,
+      ]);
+      await expect(
+        card.getByRole("button", { name: "Reset Link", exact: true }),
+      ).toBeVisible();
+
+      await expectRowsInside(page, `the Share page at ${width}`, card);
+      await expectNothingRunsOff(page, `the Share page at ${width}`);
+      await screenshot(page, `form-share-${width}`);
+    }
+
+    const link: Locator = row(page, formLinkAddress).getByRole("link");
+
+    await expect(link).toHaveAttribute("href", FORM_LINK);
+    await expect(link).toHaveAttribute("target", "_blank");
+
+    // A domain not live yet offers the Custom Domains page's own dialog.
+    await expect(
+      row(page, "report-eu.acme.com").getByTestId("public-address-not-live"),
+    ).toHaveText("Not live yet");
+
+    const copy: Locator = row(page, "report.acme.com").getByRole("button", {
+      name: "Copy link to report.acme.com",
+    });
+
+    await copy.click();
+    expect(await clipboardText(page)).toBe("https://report.acme.com");
+
+    // The form's domains are read as the form's, and only for this form.
+    const domainReads: Array<{ tableName: string; query: Array<string> }> = (
+      await fixture(page)
+    ).listRequests.filter((request: { tableName: string }): boolean => {
+      return request.tableName === "FormDomain";
+    });
+
+    expect(domainReads.length).toBeGreaterThan(0);
+    expect(domainReads[0]!.query).toContain("formId");
+  });
+
+  test("with no custom domain, one quiet line offers to add one, on the form's Custom Domains page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, FORM_SHARE, 1280);
+
+    expect(await listed(page)).toEqual([`live ${formLinkAddress}`]);
+
+    const add: Locator = page.getByTestId("public-addresses-add-custom-domain");
+
+    await expect(add).toHaveText(
+      "Use your own domain, such as report.example.com. Add a custom domain",
+    );
+    await expect(
+      add.getByRole("link", { name: "Add a custom domain" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT}/forms/${FORM_ID}/custom-domains`,
+    );
+
+    await screenshot(page, "form-share-no-domain-1280");
+  });
+
+  test("turned off, the card says so under its addresses", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      `${FORM_SHARE}?enabled=0&domains=live:status.acme.com`,
+      1280,
+    );
+
+    const card: Locator = shareLinkCard(page);
+    const turnedOff: Locator = card.getByTestId("form-share-link-turned-off");
+
+    await expect(turnedOff).toBeVisible();
+
+    const list: Box = await box(card.getByTestId("public-addresses"));
+    const alert: Box = await box(turnedOff);
+
+    expect(alert.y).toBeGreaterThanOrEqual(list.y + list.height);
+
+    await screenshot(page, "form-share-turned-off-1280");
+  });
+
+  test("in the dark theme, and in German and Persian at a phone's width, the card's words read and nothing runs off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const domains: string =
+      "domains=live:status.acme.com;failed:status-eu.acme.com";
+
+    await open(page, `${FORM_SHARE}?theme=dark&${domains}`, 1280);
+
+    const live: Locator = row(page, "report.acme.com");
+
+    expect(luminance(parseRgb(await backgroundOf(live)))).toBeLessThan(0.05);
+
+    for (const [name, locator] of [
+      ["the address", live.getByRole("link")],
+      [
+        "why",
+        row(page, "report-eu.acme.com").getByTestId("public-address-reason"),
+      ],
+    ] as Array<[string, Locator]>) {
+      expect(
+        contrast(await colorOf(locator), await backgroundOf(locator)),
+        name,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+
+    await screenshot(page, "form-share-dark-1280");
+
+    for (const language of [
+      { code: "de", title: "Link zum Teilen", reset: "Link zurücksetzen" },
+      {
+        code: "fa",
+        title: "پیوند اشتراک‌گذاری",
+        reset: "بازنشانی پیوند",
+      },
+    ]) {
+      await open(page, `${FORM_SHARE}?lang=${language.code}&${domains}`, 390);
+
+      const card: Locator = shareLinkCard(page);
+
+      await expect(card).toContainText(language.title);
+      await expect(
+        card.getByRole("button", { name: language.reset, exact: true }),
+      ).toBeVisible();
+
+      await expectRowsInside(page, `the Share page in ${language.code}`, card);
+      await expectNothingRunsOff(page, `the Share page in ${language.code}`);
+      await screenshot(page, `form-share-${language.code}-390`);
+    }
   });
 });

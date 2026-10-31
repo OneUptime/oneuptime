@@ -2,10 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * Where visitors find a status page or a public dashboard, in real Chromium,
- * with no backend: PublicAddresses/Fixture/server.js bundles a status page's
- * real Overview (its Status Page Link card) and a dashboard's real Sharing
- * page with the app's esbuild config, Tailwind, theme and font. What jsdom
+ * Where visitors find a status page, a public dashboard or a form, in real
+ * Chromium, with no backend: PublicAddresses/Fixture/server.js bundles a
+ * status page's real Overview (its Status Page Link card), a dashboard's
+ * real Sharing page and a form's real Share page (its Share Link card) with
+ * the app's esbuild config, Tailwind, theme and font. What jsdom
  * cannot show is checked here: the rows as drawn at a laptop's and a phone's
  * width, a long address cut short inside its row with the whole of it on
  * hover, Copy link copying, DNS Setup opening its dialog, nothing running

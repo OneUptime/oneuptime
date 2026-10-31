@@ -1366,7 +1366,9 @@ describe("Forms docs", () => {
       );
 
       for (const [index, [permission, holders]] of domainRows.entries()) {
-        const who: string = (rows[expected.length + index] as Array<string>)[2] as string;
+        const who: string = (
+          rows[expected.length + index] as Array<string>
+        )[2] as string;
 
         if (permission === Permission.ReadFormDomain) {
           // Everyone who can read a form, and the permission itself.
