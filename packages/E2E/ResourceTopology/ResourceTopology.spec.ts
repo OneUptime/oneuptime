@@ -386,7 +386,85 @@ test.describe("a vCenter's Topology page", () => {
     await expect(
       page.getByRole("link", { name: "Topology" }).first(),
     ).toBeVisible();
+    /*
+     * A part with no status of its own says what it is, not a dot alone;
+     * one with a number says that, not its kind again.
+     */
+    await expect(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Frankfurt",
+      ).getByTestId("resource-topology-status-line"),
+    ).toHaveText("Datacenter");
+    await expect(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.cluster:cluster/Amsterdam/ams-prod",
+      ).getByTestId("resource-topology-status-line"),
+    ).not.toContainText("Cluster");
+    /*
+     * An open part's round button is a quiet disc on its card, not a filled
+     * one that outshouts the red and amber the map is read by.
+     */
+    const open: Locator = byTestId(
+      page,
+      "resource-topology-close-vmware.datacenter:datacenter/Amsterdam",
+    );
+    const closed: Locator = byTestId(
+      page,
+      "resource-topology-open-vmware.datacenter:datacenter/Frankfurt",
+    );
+    const look: (locator: Locator) => Promise<{
+      background: string;
+      border: string;
+      color: string;
+    }> = async (
+      locator: Locator,
+    ): Promise<{ background: string; border: string; color: string }> => {
+      return await locator.evaluate(
+        (
+          element: Element,
+        ): { background: string; border: string; color: string } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
 
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopColor,
+            color: style.color,
+          };
+        },
+      );
+    };
+    const openLook: { background: string; border: string; color: string } =
+      await look(open);
+    const closedLook: { background: string; border: string; color: string } =
+      await look(closed);
+
+    // Both on the card's white; open told apart by its accent ring and chevron.
+    expect(openLook.background).toBe("rgb(255, 255, 255)");
+    expect(closedLook.background).toBe("rgb(255, 255, 255)");
+    expect(openLook.color).toBe("rgb(99, 102, 241)");
+    expect(openLook.border).not.toBe(closedLook.border);
+    expect(closedLook.color).not.toBe(openLook.color);
+
+    // Under the pointer, a closed one takes the accent too.
+    await closed.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await look(closed)).color;
+      })
+      .toBe("rgb(99, 102, 241)");
+    // The zoom buttons sit where a line starts: the bottom left.
+    const canvasBox: { x: number } = await boxOf(
+      byTestId(page, "resource-topology-canvas"),
+    );
+    const controlsBox: { x: number } = await boxOf(
+      page.locator(".react-flow__controls"),
+    );
+
+    expect(controlsBox.x - canvasBox.x).toBeLessThan(40);
+
+    await page.mouse.move(0, 0);
     await screenshot(page, "vmware-1280-light");
   });
 
@@ -831,17 +909,6 @@ test.describe("a host's Topology page", () => {
     await expect(byTestId(page, "resource-topology-legend")).toContainText(
       "Calls per minute",
     );
-
-    await screenshot(page, "host-1280-light");
-  });
-
-  test("drawn at a readable zoom: its lanes are chips, as narrow as they can be", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await openTopology(page, "host");
-
     /*
      * Its callers, the tree and what it calls make a wide drawing: with
      * lanes a card wide and a heading's least width pushing the calls out,
@@ -864,6 +931,30 @@ test.describe("a host's Topology page", () => {
     ).toHaveCount(0);
     expect(await cutHeadings(page)).toEqual([]);
     expect(stacked(await drawnParts(page))).toEqual([]);
+    /*
+     * A tree reads from the top: the drawing is framed there, not in the
+     * middle with the host floating halfway down an empty canvas.
+     */
+    await expect
+      .poll(async (): Promise<number> => {
+        return await gapAbove(page, host);
+      })
+      .toBeLessThanOrEqual(32);
+
+    await screenshot(page, "host-1280-light");
+
+    // Zoomed in, Fit frames it from the top again.
+    for (let step: number = 0; step < 3; step++) {
+      await page.getByRole("button", { name: "zoom in" }).click();
+    }
+
+    await page.getByRole("button", { name: "fit view" }).click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return await gapAbove(page, host);
+      })
+      .toBeLessThanOrEqual(32);
+    expect(await isInsideCanvas(page, host)).toBe(true);
   });
 
   test("German words in a lane's heading are never cut, and the map still reads", async ({
@@ -952,118 +1043,6 @@ test.describe("a tree of cards, never a box inside a box", () => {
     expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
     expect(stacked(await drawnParts(page))).toEqual([]);
     await screenshot(page, "vmware-quiet");
-  });
-
-  test("an open part's round button is a quiet disc on its card, not a filled one", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await openTopology(page, "vmware");
-    const open: Locator = byTestId(
-      page,
-      "resource-topology-close-vmware.datacenter:datacenter/Amsterdam",
-    );
-    const closed: Locator = byTestId(
-      page,
-      "resource-topology-open-vmware.datacenter:datacenter/Frankfurt",
-    );
-    const look: (
-      locator: Locator,
-    ) => Promise<{
-      background: string;
-      border: string;
-      color: string;
-    }> = async (
-      locator: Locator,
-    ): Promise<{ background: string; border: string; color: string }> => {
-      return await locator.evaluate(
-        (
-          element: Element,
-        ): { background: string; border: string; color: string } => {
-          const style: CSSStyleDeclaration = getComputedStyle(element);
-
-          return {
-            background: style.backgroundColor,
-            border: style.borderTopColor,
-            color: style.color,
-          };
-        },
-      );
-    };
-    const openLook: { background: string; border: string; color: string } =
-      await look(open);
-    const closedLook: { background: string; border: string; color: string } =
-      await look(closed);
-
-    // Both on the card's white; open told apart by its accent ring and chevron.
-    expect(openLook.background).toBe("rgb(255, 255, 255)");
-    expect(closedLook.background).toBe("rgb(255, 255, 255)");
-    expect(openLook.color).toBe("rgb(99, 102, 241)");
-    expect(openLook.border).not.toBe(closedLook.border);
-    expect(closedLook.color).not.toBe(openLook.color);
-
-    // Under the pointer, a closed one takes the accent too.
-    await closed.hover();
-    await expect
-      .poll(async (): Promise<string> => {
-        return (await look(closed)).color;
-      })
-      .toBe("rgb(99, 102, 241)");
-  });
-
-  test("a part with no status of its own says what it is, not a dot alone", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await openTopology(page, "vmware");
-
-    await expect(
-      byTestId(
-        page,
-        "resource-topology-card-vmware.datacenter:datacenter/Frankfurt",
-      ).getByTestId("resource-topology-status-line"),
-    ).toHaveText("Datacenter");
-    // A cluster says how many of its hosts are effective, not "Cluster".
-    await expect(
-      byTestId(
-        page,
-        "resource-topology-card-vmware.cluster:cluster/Amsterdam/ams-prod",
-      ).getByTestId("resource-topology-status-line"),
-    ).not.toContainText("Cluster");
-  });
-
-  test("the first view sits at the top of the canvas, and Fit puts it back there", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    /*
-     * A host's drawing is wide and short: framed in the middle, its host
-     * floated halfway down an empty canvas. A tree reads from the top.
-     */
-    await openTopology(page, "host");
-    await mapScale(page);
-    const root: Locator = byTestId(page, "resource-topology-card-host");
-
-    await expect
-      .poll(async (): Promise<number> => {
-        return await gapAbove(page, root);
-      })
-      .toBeLessThanOrEqual(32);
-
-    for (let step: number = 0; step < 3; step++) {
-      await page.getByRole("button", { name: "zoom in" }).click();
-    }
-
-    await page.getByRole("button", { name: "fit view" }).click();
-    await expect
-      .poll(async (): Promise<number> => {
-        return await gapAbove(page, root);
-      })
-      .toBeLessThanOrEqual(32);
-    expect(await isInsideCanvas(page, root)).toBe(true);
   });
 
   test("opening a part frames what opened with it, the troubled pods inside it included", async ({
@@ -1280,6 +1259,16 @@ test.describe("a page read from right to left", () => {
     expect(await focusedPart(page)).toBe(
       "vmware.datacenter:datacenter/Amsterdam",
     );
+    // The zoom buttons sit where a line starts: the bottom right.
+    const frame: { x: number; width: number } = await boxOf(canvas);
+    const zoomButtons: { x: number; width: number } = await boxOf(
+      page.locator(".react-flow__controls"),
+    );
+
+    expect(zoomButtons.x).toBeGreaterThan(frame.x + frame.width / 2);
+    expect(
+      frame.x + frame.width - (zoomButtons.x + zoomButtons.width),
+    ).toBeLessThan(40);
     await screenshot(page, "vmware-1280-fa");
   });
 
@@ -1304,38 +1293,6 @@ test.describe("a page read from right to left", () => {
     expect(calls.x + calls.width).toBeLessThan(host.x);
     expect(await cutHeadings(page)).toEqual([]);
     await screenshot(page, "host-1280-fa");
-  });
-
-  test("the zoom buttons sit where a line starts: at the bottom right", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await openTopology(page, "vmware", "lang=fa");
-    await mapScale(page);
-    const canvas: { x: number; width: number } = await boxOf(
-      byTestId(page, "resource-topology-canvas"),
-    );
-    const controls: { x: number; width: number } = await boxOf(
-      page.locator(".react-flow__controls"),
-    );
-
-    expect(controls.x).toBeGreaterThan(canvas.x + canvas.width / 2);
-    expect(
-      canvas.x + canvas.width - (controls.x + controls.width),
-    ).toBeLessThan(40);
-
-    // Left to right, they sit at the bottom left, as they always have.
-    await openTopology(page, "vmware");
-    await mapScale(page);
-    const ltrCanvas: { x: number; width: number } = await boxOf(
-      byTestId(page, "resource-topology-canvas"),
-    );
-    const ltrControls: { x: number } = await boxOf(
-      page.locator(".react-flow__controls"),
-    );
-
-    expect(ltrControls.x - ltrCanvas.x).toBeLessThan(40);
   });
 });
 
