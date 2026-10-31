@@ -9,6 +9,7 @@ import {
 import {
   ResourceTopologyLanes,
   ResourceTopologyLayout,
+  ResourceTopologyLayoutRelation,
   layoutResourceTopology,
 } from "./ResourceTopologyLayout";
 
@@ -74,6 +75,8 @@ export interface ResourceTopologyFitOptions {
   lanes?: ResourceTopologyLanes | undefined;
   /* The shape the map lays the drawing out for; the canvas's by default. */
   aspect?: number | undefined;
+  /* The relations a lane's parts line up with (see the layout). */
+  relations?: ReadonlyArray<ResourceTopologyLayoutRelation> | undefined;
 }
 
 /*
@@ -124,6 +127,7 @@ export function fitResourceTopology(
     const layout: ResourceTopologyLayout = layoutResourceTopology(visible, {
       aspect: aspect,
       lanes: options.lanes,
+      relations: options.relations,
     });
 
     if (getFitZoom(layout, canvas) >= READABLE_ZOOM) {

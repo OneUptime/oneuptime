@@ -2,8 +2,10 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import ReactFlow, {
   Background,
@@ -16,8 +18,10 @@ import ReactFlow, {
   MarkerType,
   Node,
   ReactFlowInstance,
+  ReactFlowState,
   useNodesInitialized,
   useReactFlow,
+  useStore,
   useStoreApi,
 } from "reactflow";
 import "reactflow/dist/style.css";
@@ -35,17 +39,27 @@ import {
 } from "../Topology/FlowViewportGuard";
 import {
   ResourceTopologyGraph,
+  ResourceTopologyNode,
   ResourceTopologyRelation,
+  getTopologyAncestors,
   getTopologyNeighbours,
 } from "./ResourceTopologyModel";
 import {
+  ResourceTopologyBranch,
+  ResourceTopologyDirection,
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
   ResourceTopologySide,
+  getBranchPath,
   getRelationCurve,
   getRelationSides,
 } from "./ResourceTopologyLayout";
-import { ResourceTopologyVisible } from "./ResourceTopologyView";
+import {
+  ResourceTopologyKeyAction,
+  ResourceTopologyKeyMove,
+  ResourceTopologyVisible,
+  getTopologyKeyAction,
+} from "./ResourceTopologyView";
 import {
   RESOURCE_TOPOLOGY_FIT_PADDING,
   holdsResourceTopologyDrawing,
@@ -54,27 +68,44 @@ import {
   RESOURCE_TOPOLOGY_NODE_TYPES,
   ResourceTopologyNodeCallbacks,
   ResourceTopologyNodeData,
+  TOPOLOGY_DETAIL_CLASS,
+  TOPOLOGY_ITEM_ATTRIBUTE,
   tx,
 } from "./ResourceTopologyNodes";
 import {
+  BRANCH_TONE_ORDER,
+  RESOURCE_TOPOLOGY_BRANCH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_RELATION_COLOR,
+  RESOURCE_TOPOLOGY_SELECTED_COLOR,
+  ResourceTopologyBranchTone,
+  getBranchTone,
 } from "./ResourceTopologyLook";
 
 /*
- * The map itself: every box, card and chip the layout placed, and lines for
- * what crosses the tree (a pod runs on a node, a service calls a database) —
- * drawn for the selected part, and for a focused part's related column.
+ * The map itself: every card, chip and heading the layout placed, the
+ * lines from each part to what it holds, and the lines for what crosses the
+ * tree (a pod runs on a node, a service calls a database) - drawn for the
+ * picked part, for a focused part's related column, and all the time on a
+ * map that is about them (a host's calls).
+ *
+ * A line from a part to what it holds is grey when all is well that way,
+ * amber or red when a part that needs attention or a critical one is, and
+ * indigo on the way from the resource to the part someone picked.
  *
  * Every node is handed its exact size, so React Flow never holds one back
  * waiting to measure it (the blank-map race of #4117 cannot happen here).
- * The view is framed when the drawing is new — the first load, a filter, a
- * search, a focus — and when a part is opened it is the part that is
- * framed, so opening a host deep in a large vCenter brings its virtual
- * machines into view instead of zooming the whole vCenter out. Like the
- * other maps in the product, the wheel scrolls the page and Ctrl + scroll or
- * a pinch zooms, and keyboard focus is followed so a card reached with Tab
- * is always on screen.
+ * The view is framed when the drawing is new - the first load, a filter, a
+ * search, a focus - and when a part is opened it is the part that is
+ * framed. Like the other maps in the product, the wheel scrolls the page
+ * and Ctrl + scroll or a pinch zooms. Zoomed far out, a card keeps its name
+ * and colour and drops its smaller lines, so the shape of a large resource
+ * stays readable.
+ *
+ * The keyboard moves through the parts as through a tree: Tab reaches every
+ * button, and from a part the arrows go down and up among the parts beside
+ * it, forward into it (opening it) and back out to what holds it (closing
+ * it). Keyboard focus is followed, so a part reached that way is on screen.
  */
 
 export interface ResourceTopologyFitRequest {
@@ -98,6 +129,55 @@ export interface ComponentProps {
 }
 
 export const RESOURCE_TOPOLOGY_PAN_MARGIN: number = 240;
+
+/* Below this zoom a card drops its smaller lines: they could not be read. */
+export const RESOURCE_TOPOLOGY_DETAIL_ZOOM: number = 0.5;
+
+export type ResourceTopologyDetailLevel = "near" | "far";
+
+export function getResourceTopologyDetailLevel(
+  zoom: number,
+): ResourceTopologyDetailLevel {
+  return zoom < RESOURCE_TOPOLOGY_DETAIL_ZOOM ? "far" : "near";
+}
+
+/* The class the canvas's own rules are scoped to. */
+const CANVAS_CLASS: string = "resource-topology-map";
+
+/*
+ * Rules React Flow's nodes cannot carry inline: a card's smaller lines go
+ * when the map is zoomed far out. Written here, not as utilities, so they
+ * hold the moment a card appears (the Dashboard's utilities are made at run
+ * time, a moment after the class first shows up).
+ */
+const CANVAS_RULES: string = `.${CANVAS_CLASS}[data-detail="far"] .${TOPOLOGY_DETAIL_CLASS}{display:none !important}`;
+
+/*
+ * The map's keys: the arrows that point along the line move forward into a
+ * part and back out of it, so on a page read from right to left left is
+ * forward.
+ */
+export function getTopologyKeyMove(
+  key: string,
+  direction: ResourceTopologyDirection,
+): ResourceTopologyKeyMove | null {
+  switch (key) {
+    case "ArrowDown":
+      return "next";
+    case "ArrowUp":
+      return "previous";
+    case "Home":
+      return "first";
+    case "End":
+      return "last";
+    case "ArrowRight":
+      return direction === "rtl" ? "back" : "forward";
+    case "ArrowLeft":
+      return direction === "rtl" ? "forward" : "back";
+    default:
+      return null;
+  }
+}
 
 /*
  * A relation's line: React Flow's curve, with its label nearer the part it
@@ -145,8 +225,42 @@ const RelationEdge: FunctionComponent<EdgeProps> = (
   );
 };
 
+export interface ResourceTopologyBranchData {
+  path: string;
+  tone: ResourceTopologyBranchTone;
+  isOnPath: boolean;
+}
+
+/*
+ * A line from a part to what it holds, along the path the layout worked
+ * out (out of the part, down the spine, into the group).
+ */
+const BranchEdge: FunctionComponent<EdgeProps<ResourceTopologyBranchData>> = (
+  props: EdgeProps<ResourceTopologyBranchData>,
+): ReactElement => {
+  const data: ResourceTopologyBranchData | undefined = props.data;
+
+  return (
+    <path
+      data-testid={`resource-topology-branch-${props.target}`}
+      data-tone={data?.isOnPath ? "path" : data?.tone || "calm"}
+      d={data?.path || ""}
+      fill="none"
+      stroke={
+        data?.isOnPath
+          ? RESOURCE_TOPOLOGY_SELECTED_COLOR
+          : RESOURCE_TOPOLOGY_BRANCH_COLORS[data?.tone || "calm"]
+      }
+      strokeWidth={data?.isOnPath ? 2.5 : data?.tone === "calm" ? 1.5 : 2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  );
+};
+
 const RESOURCE_TOPOLOGY_EDGE_TYPES: EdgeTypes = {
   resourceTopologyRelation: RelationEdge,
+  resourceTopologyBranch: BranchEdge,
 };
 
 function ignoreNodeClick(): void {
@@ -154,13 +268,112 @@ function ignoreNodeClick(): void {
 }
 
 const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
-  container: "resourceTopologyContainer",
   card: "resourceTopologyCard",
   chip: "resourceTopologyChip",
   more: "resourceTopologyMore",
+  heading: "resourceTopologyHeading",
   related: "resourceTopologyRelated",
   relatedCaption: "resourceTopologyRelatedCaption",
 };
+
+/* The part a placed item stands for, when it stands for one. */
+export function placedNodeId(placed: ResourceTopologyPlaced): string | null {
+  return (
+    placed.card?.nodeId ||
+    placed.chip?.nodeId ||
+    placed.related?.nodeId ||
+    placed.heading?.laneSectionId ||
+    null
+  );
+}
+
+/*
+ * The parts on the way from the resource to `nodeId`, it included: the
+ * lines between them are the path someone picked.
+ */
+export function getTopologyPathIds(
+  graph: ResourceTopologyGraph,
+  nodeId: string | null,
+): Set<string> {
+  const path: Set<string> = new Set<string>();
+
+  if (!nodeId || !graph.nodes.has(nodeId)) {
+    return path;
+  }
+
+  path.add(nodeId);
+
+  for (const ancestor of getTopologyAncestors(graph, nodeId)) {
+    path.add(ancestor.id);
+  }
+
+  return path;
+}
+
+/*
+ * The lines from each part to what it holds, as React Flow edges, worst
+ * last so a red line is drawn over the grey one it shares a leg with, and
+ * the picked part's path over them all.
+ */
+export function buildBranchEdges(
+  graph: ResourceTopologyGraph,
+  branches: ReadonlyArray<ResourceTopologyBranch>,
+  pathIds: ReadonlySet<string>,
+): Array<Edge<ResourceTopologyBranchData>> {
+  const edges: Array<Edge<ResourceTopologyBranchData>> = branches.map(
+    (branch: ResourceTopologyBranch): Edge<ResourceTopologyBranchData> => {
+      const isOnPath: boolean =
+        pathIds.has(branch.fromNodeId) &&
+        branch.nodeIds.some((id: string): boolean => {
+          return pathIds.has(id);
+        });
+
+      return {
+        id: branch.id,
+        source: branch.from,
+        target: branch.to,
+        sourceHandle: "right-source",
+        targetHandle: "left-target",
+        type: "resourceTopologyBranch",
+        focusable: false,
+        data: {
+          path: getBranchPath(branch.points),
+          tone: getBranchTone(graph, branch.nodeIds),
+          isOnPath: isOnPath,
+        },
+      };
+    },
+  );
+
+  const rank: (edge: Edge<ResourceTopologyBranchData>) => number = (
+    edge: Edge<ResourceTopologyBranchData>,
+  ): number => {
+    return edge.data?.isOnPath
+      ? 10
+      : BRANCH_TONE_ORDER[edge.data?.tone || "calm"];
+  };
+
+  return edges
+    .map((edge: Edge<ResourceTopologyBranchData>, index: number) => {
+      return { edge: edge, index: index };
+    })
+    .sort(
+      (
+        a: { edge: Edge<ResourceTopologyBranchData>; index: number },
+        b: { edge: Edge<ResourceTopologyBranchData>; index: number },
+      ): number => {
+        return rank(a.edge) - rank(b.edge) || a.index - b.index;
+      },
+    )
+    .map(
+      (entry: {
+        edge: Edge<ResourceTopologyBranchData>;
+        index: number;
+      }): Edge<ResourceTopologyBranchData> => {
+        return entry.edge;
+      },
+    );
+}
 
 /*
  * Frames what the map asks for, once React Flow has measured every node of
@@ -173,15 +386,27 @@ const ViewportController: FunctionComponent<{
   fitRequest: ResourceTopologyFitRequest;
   /* The ids of the drawing the map handed React Flow. */
   drawingIds: ReadonlyArray<string>;
+  /* The level of detail the zoom asks for, reported as it changes. */
+  onDetailLevel: (level: ResourceTopologyDetailLevel) => void;
 }> = (props: {
   fitRequest: ResourceTopologyFitRequest;
   drawingIds: ReadonlyArray<string>;
+  onDetailLevel: (level: ResourceTopologyDetailLevel) => void;
 }): ReactElement => {
   const instance: ReactFlowInstance = useReactFlow();
   const store: ReturnType<typeof useStoreApi> = useStoreApi();
   const nodesInitialized: boolean = useNodesInitialized();
   const pending: React.MutableRefObject<ResourceTopologyFitRequest | null> =
     useRef<ResourceTopologyFitRequest | null>(props.fitRequest);
+  const detailLevel: ResourceTopologyDetailLevel = useStore(
+    (state: ReactFlowState): ResourceTopologyDetailLevel => {
+      return getResourceTopologyDetailLevel(state.transform[2]);
+    },
+  );
+
+  useEffect(() => {
+    props.onDetailLevel(detailLevel);
+  }, [detailLevel]);
 
   useEffect(() => {
     pending.current = props.fitRequest;
@@ -243,9 +468,10 @@ const ViewportController: FunctionComponent<{
   }, [props.fitRequest.token, nodesInitialized, props.drawingIds]);
 
   /*
-   * Keyboard focus is followed: a card reached with Tab is panned into
-   * view, and a scroll the browser makes to show it is undone first (it
-   * would slide the whole canvas, controls included, out of its box).
+   * Keyboard focus is followed: a card reached with Tab or an arrow is
+   * panned into view, and a scroll the browser makes to show it is undone
+   * first (it would slide the whole canvas, controls included, out of its
+   * box).
    */
   useEffect(() => {
     const domNode: HTMLDivElement | null = store.getState().domNode;
@@ -310,9 +536,12 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const wrapperRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const callbacksRef: React.MutableRefObject<ResourceTopologyNodeCallbacks> =
     useRef<ResourceTopologyNodeCallbacks>(props.callbacks);
   callbacksRef.current = props.callbacks;
+  const direction: ResourceTopologyDirection = props.layout.direction;
 
   /*
    * One stable set of callbacks for every node, reading the latest ones:
@@ -334,16 +563,23 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       };
     }, []);
 
+  const pathIds: Set<string> = useMemo((): Set<string> => {
+    return getTopologyPathIds(props.graph, props.selectedId);
+  }, [props.graph, props.selectedId]);
+
   const nodes: Array<Node<ResourceTopologyNodeData>> = useMemo((): Array<
     Node<ResourceTopologyNodeData>
   > => {
     return props.layout.placed.map(
       (placed: ResourceTopologyPlaced): Node<ResourceTopologyNodeData> => {
-        const nodeId: string | null =
-          placed.card?.nodeId ||
-          placed.chip?.nodeId ||
-          placed.related?.nodeId ||
-          null;
+        const nodeId: string | null = placedNodeId(placed);
+        const node: ResourceTopologyNode | null = nodeId
+          ? props.graph.nodes.get(nodeId) || null
+          : null;
+        const isPart: boolean =
+          placed.kind === "card" ||
+          placed.kind === "chip" ||
+          placed.kind === "related";
 
         return {
           id: placed.id,
@@ -352,22 +588,36 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
           width: placed.width,
           height: placed.height,
           style: { width: placed.width, height: placed.height },
-          // Boxes under what they hold; cards and chips above every box.
-          zIndex: placed.kind === "container" ? placed.depth : 1000,
+          // Lines run under the cards; a card's toggle sits over its own line.
+          zIndex: 1000,
           draggable: false,
           connectable: false,
           selectable: false,
           focusable: false,
           data: {
             placed: placed,
-            node: nodeId ? props.graph.nodes.get(nodeId) || null : null,
-            isSelected: nodeId !== null && nodeId === props.selectedId,
+            node: node,
+            isSelected:
+              isPart && nodeId !== null && nodeId === props.selectedId,
+            isOnPath:
+              isPart &&
+              nodeId !== null &&
+              nodeId !== props.selectedId &&
+              pathIds.has(nodeId),
+            direction: direction,
             callbacks: callbacks,
           },
         };
       },
     );
-  }, [props.layout, props.graph, props.selectedId, callbacks]);
+  }, [
+    props.layout,
+    props.graph,
+    props.selectedId,
+    pathIds,
+    direction,
+    callbacks,
+  ]);
 
   /*
    * Lines for what crosses the tree: from a focused part to each related
@@ -375,7 +625,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
    * map, and — on a map that is about them (a host's calls) — every
    * relation all the time, coloured by how it is doing.
    */
-  const edges: Array<Edge> = useMemo((): Array<Edge> => {
+  const relationEdges: Array<Edge> = useMemo((): Array<Edge> => {
     const result: Array<Edge> = [];
     const seen: Set<string> = new Set<string>();
     const selected: Set<string> = new Set<string>();
@@ -394,18 +644,12 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       label: string,
       relation?: ResourceTopologyRelation | undefined,
       showLabel?: boolean | undefined,
-      forcedSides?:
-        | { source: ResourceTopologySide; target: ResourceTopologySide }
-        | undefined,
     ) => void = (
       from: string,
       to: string,
       label: string,
       relation?: ResourceTopologyRelation | undefined,
       showLabel: boolean = true,
-      forcedSides?:
-        | { source: ResourceTopologySide; target: ResourceTopologySide }
-        | undefined,
     ): void => {
       const id: string = `relation:${from}->${to}`;
 
@@ -427,7 +671,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
             ? RESOURCE_TOPOLOGY_HEALTH_COLORS.warning
             : emphasised || !props.alwaysShowRelations
               ? RESOURCE_TOPOLOGY_RELATION_COLOR
-              : "var(--ou-border-strong, #94a3b8)";
+              : "var(--ou-text-subtle, #94a3b8)";
       const text: string =
         (props.alwaysShowRelations && !emphasised) || !showLabel
           ? relation?.detail || ""
@@ -440,12 +684,10 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       const sides: {
         source: ResourceTopologySide;
         target: ResourceTopologySide;
-      } =
-        forcedSides ||
-        getRelationSides(
-          props.layout.byId.get(from)!,
-          props.layout.byId.get(to)!,
-        );
+      } = getRelationSides(
+        props.layout.byId.get(from)!,
+        props.layout.byId.get(to)!,
+      );
 
       result.push({
         id: id,
@@ -498,28 +740,14 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       );
     };
 
-    /*
-     * The column's heading says what these lines are: no words on each.
-     * They fan out of the focused part's right side into each related
-     * part's left, the column being to its right, so no line runs down
-     * the column across the parts in it.
-     */
+    // The column's heading says what these lines are: no words on each.
     if (props.visible.focusId) {
       for (const related of props.visible.related) {
         const outward: boolean = related.direction === "out";
         const [from, to] = outward
           ? [props.visible.focusId, related.nodeId]
           : [related.nodeId, props.visible.focusId];
-        add(
-          from,
-          to,
-          related.label,
-          relationBetween(from, to),
-          false,
-          outward
-            ? { source: "right", target: "left" }
-            : { source: "left", target: "right" },
-        );
+        add(from, to, related.label, relationBetween(from, to), false);
       }
     }
 
@@ -552,6 +780,13 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
     translator.language,
   ]);
 
+  const edges: Array<Edge> = useMemo((): Array<Edge> => {
+    return [
+      ...buildBranchEdges(props.graph, props.layout.branches, pathIds),
+      ...relationEdges,
+    ];
+  }, [props.graph, props.layout, pathIds, relationEdges]);
+
   const drawingIds: ReadonlyArray<string> = useMemo((): Array<string> => {
     return nodes.map((node: Node<ResourceTopologyNodeData>): string => {
       return node.id;
@@ -573,12 +808,91 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
     return drawingExtent(rects, RESOURCE_TOPOLOGY_PAN_MARGIN);
   }, [props.layout]);
 
+  /*
+   * The level of detail lives on the wrapper, as one attribute: the nodes
+   * are the same objects either way, so React Flow draws none of them again.
+   */
+  const [detailLevel, setDetailLevel] =
+    useState<ResourceTopologyDetailLevel>("near");
+  const keysHintId: string = useId();
+
+  const visibleRef: React.MutableRefObject<ResourceTopologyVisible> =
+    useRef<ResourceTopologyVisible>(props.visible);
+  visibleRef.current = props.visible;
+
+  /*
+   * The arrows, Home and End on a part move through the tree; anything
+   * else is left alone (Tab, Enter and Space do what they do on a button).
+   */
+  const onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+
+    const target: EventTarget | null = event.target;
+    const itemId: string | null =
+      target instanceof Element
+        ? target.getAttribute(TOPOLOGY_ITEM_ATTRIBUTE)
+        : null;
+    const move: ResourceTopologyKeyMove | null = getTopologyKeyMove(
+      event.key,
+      direction,
+    );
+
+    if (!itemId || !move) {
+      return;
+    }
+
+    const action: ResourceTopologyKeyAction | null = getTopologyKeyAction(
+      visibleRef.current,
+      itemId,
+      move,
+    );
+
+    // A key that goes nowhere still does not scroll the page.
+    event.preventDefault();
+
+    if (!action) {
+      return;
+    }
+
+    if (action.type === "open" || action.type === "close") {
+      callbacksRef.current.onToggleOpen(action.nodeId, action.type === "open");
+      return;
+    }
+
+    const next: Element | null | undefined =
+      wrapperRef.current?.querySelector(
+        `[${TOPOLOGY_ITEM_ATTRIBUTE}="${CSS.escape(action.itemId)}"]`,
+      );
+
+    if (next instanceof HTMLElement) {
+      next.focus();
+    }
+  };
+
   return (
     <div
+      ref={wrapperRef}
       data-testid="resource-topology-canvas"
+      data-detail={detailLevel}
+      data-direction={direction}
+      role="group"
+      aria-label={tx("Topology map", translator)}
+      aria-describedby={keysHintId}
       style={{ height: props.height, width: "100%" }}
-      className="relative bg-slate-50 [&_.react-flow__node]:transition-transform [&_.react-flow__node]:duration-200 motion-reduce:[&_.react-flow__node]:transition-none"
+      className={`${CANVAS_CLASS} relative bg-slate-50 [&_.react-flow__node]:transition-transform [&_.react-flow__node]:duration-200 motion-reduce:[&_.react-flow__node]:transition-none`}
+      onKeyDown={onKeyDown}
     >
+      <style>{CANVAS_RULES}</style>
+      <p id={keysHintId} className="sr-only">
+        {tx(
+          "On a part, the arrow keys move through the map: down and up to the parts beside it, forward to open it and go in, back to close it and go out.",
+          translator,
+        )}
+      </p>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -617,6 +931,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         <ViewportController
           fitRequest={props.fitRequest}
           drawingIds={drawingIds}
+          onDetailLevel={setDetailLevel}
         />
       </ReactFlow>
     </div>

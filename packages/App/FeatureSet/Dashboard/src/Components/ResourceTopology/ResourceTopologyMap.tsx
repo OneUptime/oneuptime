@@ -10,6 +10,7 @@ import React, {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getPageReadingDirection } from "Common/UI/Utils/PageLanguage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import StatusChipGroup, { StatusChipOption } from "../Filters/StatusChipGroup";
@@ -34,8 +35,10 @@ import {
   toggleTopologyGroup,
 } from "./ResourceTopologyView";
 import {
+  ResourceTopologyDirection,
   ResourceTopologyLanes,
   ResourceTopologyLayout,
+  ResourceTopologyLayoutRelation,
   layoutResourceTopology,
 } from "./ResourceTopologyLayout";
 import {
@@ -53,6 +56,7 @@ import {
   tx,
 } from "./ResourceTopologyNodes";
 import {
+  RESOURCE_TOPOLOGY_BRANCH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_LABELS,
   RESOURCE_TOPOLOGY_LEGEND,
@@ -63,8 +67,12 @@ import {
  * A resource's topology, ready to read: what is in it and how it is doing
  * at the top, then the map (or the list), and the panel of whatever part is
  * picked. Every product's Topology page is this component over the graph its
- * builder made, so they all work the same way:
+ * builder made, so they all work the same way (README.md in this folder says
+ * how a product adds its own):
  *
+ *   - the map is a tree read outwards from the resource: each part's parts
+ *     in the column after it, joined to it by a line that is red or amber
+ *     when a part that needs attention is that way (ResourceTopologyLayout);
  *   - "Needs attention" narrows the map to what is troubled and the path to
  *     it; a search narrows it to what matches;
  *   - clicking a part opens its panel (its own page one click further),
@@ -322,7 +330,11 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       graph,
       viewState.focusId,
       { width: fitWidth, height: canvasHeight },
-      { lanes: arrangement.lanes, aspect: aspect },
+      {
+        lanes: arrangement.lanes,
+        aspect: aspect,
+        relations: arrangement.lanes ? graph.relations : undefined,
+      },
     );
   }, [
     graph,
@@ -341,12 +353,26 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     });
   }, [graph, viewState, kindLabel, fit]);
 
+  // A page read from right to left gets the tree mirrored.
+  const direction: ResourceTopologyDirection = useMemo(
+    (): ResourceTopologyDirection => {
+      return getPageReadingDirection();
+    },
+    [translator.language],
+  );
+  // A lane's parts line up with what they are related to.
+  const laneRelations:
+    | ReadonlyArray<ResourceTopologyLayoutRelation>
+    | undefined = arrangement.lanes ? graph.relations : undefined;
+
   const layout: ResourceTopologyLayout = useMemo(() => {
     return layoutResourceTopology(visible, {
       aspect: aspect,
       lanes: arrangement.lanes,
+      relations: laneRelations,
+      direction: direction,
     });
-  }, [visible, aspect, arrangement.lanes]);
+  }, [visible, aspect, arrangement.lanes, laneRelations, direction]);
 
   // A new canvas shape lays the drawing out again: frame it again.
   useEffect(() => {
@@ -876,6 +902,26 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
               );
             },
           )}
+          {display === "map" ? (
+            <span className="inline-flex items-center gap-1.5">
+              <svg
+                aria-hidden={true}
+                width="20"
+                height="12"
+                viewBox="0 0 20 12"
+                className="flex-shrink-0"
+              >
+                <path
+                  d="M1 2 H7 Q10 2 10 5 V7 Q10 10 13 10 H19"
+                  fill="none"
+                  stroke={RESOURCE_TOPOLOGY_BRANCH_COLORS.calm}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {tx("What a part holds", translator)}
+            </span>
+          ) : null}
           {display === "map" && arrangement.relationLegend ? (
             <span className="inline-flex items-center gap-1.5">
               <span

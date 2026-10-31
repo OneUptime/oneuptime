@@ -109,6 +109,8 @@ export interface ResourceTopologyCardItem {
   canOpen: boolean;
   isMatch: boolean;
   isFocus: boolean;
+  /* A part with no record of its own, that only groups others ("Hardware"). */
+  isSection: boolean;
   /* When open: its parts, one group per kind. */
   groups: Array<ResourceTopologyGroupItem>;
 }
@@ -149,6 +151,8 @@ export interface ResourceTopologyGroupItem {
   asChips: boolean;
   items: Array<ResourceTopologyCardItem | ResourceTopologyChipItem>;
   more: ResourceTopologyMoreItem | null;
+  /* Every part of the group in this view, drawn or folded away. */
+  memberIds: Array<string>;
 }
 
 export interface ResourceTopologyRelatedItem {
@@ -753,6 +757,7 @@ export function computeResourceTopologyView(
       canOpen: canOpen,
       isMatch: Boolean(narrowing?.matches.has(node.id)),
       isFocus: focus?.id === node.id,
+      isSection: Boolean(node.isSection),
       groups: [],
     };
 
@@ -834,6 +839,9 @@ export function computeResourceTopologyView(
                 canShowAll: !inFull,
               }
             : null,
+        memberIds: group.members.map((member: ResourceTopologyNode): string => {
+          return member.id;
+        }),
       });
     }
 
@@ -936,4 +944,143 @@ export function flattenResourceTopologyView(
   walk(visible.top, 0);
 
   return rows;
+}
+
+/*
+ * Moving through the map from the keyboard, the way a tree is read: down and
+ * up between the parts side by side (in the order they are drawn, one group
+ * after another), forward into a part - opening it first when it is closed -
+ * and back out to the part that holds it, closing an open part first. Home
+ * and End go to the first and the last part beside it. Forward and back are
+ * the arrows that point along the line: right and left on a page read from
+ * left to right, the other way round on one read from right to left.
+ */
+export type ResourceTopologyKeyMove =
+  | "next"
+  | "previous"
+  | "forward"
+  | "back"
+  | "first"
+  | "last";
+
+export type ResourceTopologyKeyAction =
+  // Move the keyboard to this item of the map: a part, or a "+ N more".
+  | { type: "move"; itemId: string }
+  | { type: "open"; nodeId: string }
+  | { type: "close"; nodeId: string };
+
+interface KeyEntry {
+  card: ResourceTopologyCardItem | null;
+  parentId: string | null;
+  /* The items beside it, itself included, in the order they are drawn. */
+  siblings: Array<string>;
+  /* Its own items, when it is an open card. */
+  children: Array<string>;
+}
+
+/* Every item of a view, with what is beside it, above it and in it. */
+function indexForKeys(visible: ResourceTopologyVisible): Map<string, KeyEntry> {
+  const entries: Map<string, KeyEntry> = new Map<string, KeyEntry>();
+
+  const walk: (
+    card: ResourceTopologyCardItem,
+    parentId: string | null,
+    siblings: Array<string>,
+  ) => void = (
+    card: ResourceTopologyCardItem,
+    parentId: string | null,
+    siblings: Array<string>,
+  ): void => {
+    const children: Array<string> = [];
+
+    for (const group of card.groups) {
+      for (const item of group.items) {
+        children.push(item.id);
+      }
+
+      if (group.more) {
+        children.push(group.more.id);
+      }
+    }
+
+    entries.set(card.id, {
+      card: card,
+      parentId: parentId,
+      siblings: siblings,
+      children: card.isOpen ? children : [],
+    });
+
+    for (const group of card.groups) {
+      for (const item of group.items) {
+        if (item.type === "card") {
+          walk(item, card.id, children);
+        } else {
+          entries.set(item.id, {
+            card: null,
+            parentId: card.id,
+            siblings: children,
+            children: [],
+          });
+        }
+      }
+
+      if (group.more) {
+        entries.set(group.more.id, {
+          card: null,
+          parentId: card.id,
+          siblings: children,
+          children: [],
+        });
+      }
+    }
+  };
+
+  walk(visible.top, null, [visible.top.id]);
+
+  return entries;
+}
+
+export function getTopologyKeyAction(
+  visible: ResourceTopologyVisible,
+  itemId: string,
+  move: ResourceTopologyKeyMove,
+): ResourceTopologyKeyAction | null {
+  const entry: KeyEntry | undefined = indexForKeys(visible).get(itemId);
+
+  if (!entry) {
+    return null;
+  }
+
+  const position: number = entry.siblings.indexOf(itemId);
+  const moveTo: (id: string | undefined) => ResourceTopologyKeyAction | null = (
+    id: string | undefined,
+  ): ResourceTopologyKeyAction | null => {
+    return id && id !== itemId ? { type: "move", itemId: id } : null;
+  };
+
+  switch (move) {
+    case "next":
+      return moveTo(entry.siblings[position + 1]);
+    case "previous":
+      return position > 0 ? moveTo(entry.siblings[position - 1]) : null;
+    case "first":
+      return moveTo(entry.siblings[0]);
+    case "last":
+      return moveTo(entry.siblings[entry.siblings.length - 1]);
+    case "forward":
+      if (entry.card && entry.card.canOpen && !entry.card.isOpen) {
+        return { type: "open", nodeId: entry.card.nodeId };
+      }
+
+      return moveTo(entry.children[0]);
+    case "back":
+      // The resource itself is always open: back from it goes nowhere.
+      if (entry.card && entry.card.isOpen && entry.parentId !== null) {
+        return { type: "close", nodeId: entry.card.nodeId };
+      }
+
+      return moveTo(entry.parentId || undefined);
+    default:
+      return null;
+  }
 }

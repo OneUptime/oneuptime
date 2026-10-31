@@ -41,6 +41,11 @@ export type ResourceTopologyHealth =
 export const RESOURCE_TOPOLOGY_HEALTHS: ReadonlyArray<ResourceTopologyHealth> =
   ["critical", "warning", "healthy", "off", "unknown"];
 
+/* No part of any health yet: the counts a part's rollup starts from. */
+export function emptyHealthCounts(): Record<ResourceTopologyHealth, number> {
+  return { critical: 0, warning: 0, healthy: 0, off: 0, unknown: 0 };
+}
+
 export function isAttentionHealth(health: ResourceTopologyHealth): boolean {
   return health === "critical" || health === "warning";
 }
@@ -168,6 +173,11 @@ export interface ResourceTopologyNode extends ResourceTopologyNodeInput {
   criticalBelow: number;
   incidentsBelow: number;
   alertsBelow: number;
+  /*
+   * Everything below it by how it is doing, sections left out: what the
+   * bar of a part that holds others splits into red, amber, green and grey.
+   */
+  healthBelow: Record<ResourceTopologyHealth, number>;
 }
 
 export interface ResourceTopologyGraph {
@@ -317,6 +327,7 @@ export function buildResourceTopologyGraph(
       criticalBelow: 0,
       incidentsBelow: 0,
       alertsBelow: 0,
+      healthBelow: emptyHealthCounts(),
     });
   }
 
@@ -417,6 +428,14 @@ export function buildResourceTopologyGraph(
           child.kind,
           (node.descendantCountsByKind.get(child.kind) || 0) + 1,
         );
+      }
+
+      for (const health of RESOURCE_TOPOLOGY_HEALTHS) {
+        node.healthBelow[health] += child.healthBelow[health];
+      }
+
+      if (!child.isSection) {
+        node.healthBelow[child.effectiveHealth] += 1;
       }
 
       node.attentionBelow +=
