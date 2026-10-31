@@ -38985,7 +38985,7 @@
   "{{number}} users_one": "{{number}} 人のユーザー",
   "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "同じバグとしてこの例外に統合された例外です。その発生はここ、このページと一覧で数えられます。",
   "Merge": "統合",
-  "Merge into this exception?": "この例外に統合しますか?",
+  "Merge into this exception?": "この例外に統合しますか？",
   "Merged By User": "統合したユーザー",
   "Merged By User ID": "統合したユーザーの ID",
   "Merged Into Exception": "統合先の例外",
