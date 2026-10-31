@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import TelemetryExceptionMerge, {
   ExceptionMergeOutcome,
   ExceptionMergeResult,
@@ -534,7 +535,7 @@ describe("unmerging", () => {
  * refused, forgets nothing.
  */
 describe("what a merge or an unmerge tells the reads of occurrences", () => {
-  let forget: jest.SpiedFunction<
+  let forget: SpyInstance<
     typeof TelemetryExceptionService.forgetGroupFingerprints
   >;
 

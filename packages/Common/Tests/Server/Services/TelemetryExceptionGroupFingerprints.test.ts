@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import TelemetryExceptionService, {
   ExceptionOfGroup,
   GROUP_FINGERPRINTS_GENERATION_NAMESPACE,
@@ -514,8 +515,10 @@ describe("an exception's group fingerprints", () => {
   });
 
   test("no exception to ask about reads nothing, not even the generation", async () => {
-    const getString: jest.SpiedFunction<typeof GlobalCache.getString> =
-      jest.spyOn(GlobalCache, "getString");
+    const getString: SpyInstance<typeof GlobalCache.getString> = jest.spyOn(
+      GlobalCache,
+      "getString",
+    );
 
     expect(
       (
@@ -683,8 +686,10 @@ describe("the group fingerprints kept", () => {
   });
 
   test("forgetting no project starts no generation", async () => {
-    const setString: jest.SpiedFunction<typeof GlobalCache.setString> =
-      jest.spyOn(GlobalCache, "setString");
+    const setString: SpyInstance<typeof GlobalCache.setString> = jest.spyOn(
+      GlobalCache,
+      "setString",
+    );
 
     await TelemetryExceptionService.forgetGroupFingerprints([
       null,
