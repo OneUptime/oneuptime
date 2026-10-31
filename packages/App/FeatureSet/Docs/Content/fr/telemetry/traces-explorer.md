@@ -81,12 +81,12 @@ En dessous, choisissez l'une des quatre vues :
 
 | Vue | Ce qu'elle montre |
 | --- | --- |
-| **Waterfall** | Chaque span sur une ligne de temps, imbriqué sous le span qui l'a lancé. Activez **Critical path** pour mettre en évidence la chaîne de spans qui a déterminé la durée de la requête. |
+| **Cascade** | Chaque span sur une ligne de temps, imbriqué sous le span qui l'a lancé. Activez **Chemin critique** pour mettre en évidence la chaîne de spans qui a déterminé la durée de la requête. |
 | **Graphique en flammes** | Le même arbre en barres empilées, où les barres les plus larges ont pris le plus de temps. |
-| **Service map** | Les services que la requête a traversés, et les appels entre eux. |
+| **Carte des services** | Les services que la requête a traversés, et les appels entre eux. |
 | **Opérations** | Une ligne par service et nom de span, avec ses appels, ses erreurs, son temps propre et son temps total. Une opération appelée 10 fois ou plus depuis un même span parent est signalée : souvent une requête N+1 ou une boucle qu'on pourrait regrouper. |
 
-Cliquez sur un span dans n'importe quelle vue pour ouvrir son panneau, avec des onglets pour ses attributs, ses événements, ses journaux, ses exceptions et ses liens, ainsi que son profil ou son appel LLM s'il en a un. Cherchez parmi les spans de la trace par nom, ID ou service avec la zone de recherche à côté des vues (appuyez sur `/`), et activez **Errors only** pour ne garder que les spans en échec.
+Cliquez sur un span dans n'importe quelle vue pour ouvrir son panneau, avec des onglets pour ses attributs, ses événements, ses journaux, ses exceptions et ses liens, ainsi que son profil ou son appel LLM s'il en a un. Cherchez parmi les spans de la trace par nom, ID ou service avec la zone de recherche à côté des vues (appuyez sur `/`), et activez **Erreurs uniquement** pour ne garder que les spans en échec.
 
 Une grande trace charge 500 spans à la fois. Cliquez sur le bouton en bas de la trace pour en charger davantage, ou tous.
 

@@ -317,7 +317,7 @@ Quando uma função do seu próprio código ocupa pelo menos 5% do tempo ou da m
 
 Quando um perfil traz IDs de trace e de span (por exemplo, como rótulos de amostra `trace_id` / `span_id`), você vai direto de um span lento de um trace ao perfil de CPU ou memória correspondente para entender exatamente que código estava rodando, e **Abrir trace vinculado** faz o caminho inverso.
 
-A aba **Perfil** de um span também inclui as amostras vinculadas aos spans aninhados sob ele, porque os profilers costumam atribuir o tempo de CPU de uma requisição a um span filho em vez do próprio span da requisição.
+A aba **Amostras de perfil** de um span também inclui as amostras vinculadas aos spans aninhados sob ele, porque os profilers costumam atribuir o tempo de CPU de uma requisição a um span filho em vez do próprio span da requisição.
 
 A página de um trace também leva ao Profiler no serviço do trace, para os 15 minutos antes e depois dele, quando esse serviço estava sendo perfilado, e a página **Perfis de desempenho** de um serviço ou de um host abre o Profiler nesse serviço ou host.
 

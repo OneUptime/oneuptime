@@ -7,7 +7,12 @@ import {
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
-import { pluralize } from "./TraceDetailPresentation";
+import {
+  PluralTemplate,
+  Translator,
+  createTranslator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { SpanSubtreeIds } from "./TraceWaterfall";
 
 /*
@@ -321,29 +326,78 @@ export const buildTraceFlamegraphRequest: BuildTraceFlamegraphRequestFunction =
 type DescribeSpanProfileScopeFunction = (args: {
   sampleCount: number;
   subtree: SpanSubtreeIds;
+  // The reader's; without one, the line reads in English.
+  translator?: Translator | undefined;
 }) => string;
+
+/*
+ * The line above a span's flame graph, a sentence for each reach of the
+ * profile, worded by the number of samples it was built from.
+ */
+const SPAN_PROFILE_SCOPE: PluralTemplate = {
+  one: "Flame graph built from the {{count}} profile sample linked to this span.",
+  other:
+    "Flame graph built from the {{count}} profile samples linked to this span.",
+};
+
+const SPAN_PROFILE_SCOPE_WITH_ONE_CHILD: PluralTemplate = {
+  one: "Flame graph built from the {{count}} profile sample linked to this span and the {{spans}} span nested under it.",
+  other:
+    "Flame graph built from the {{count}} profile samples linked to this span and the {{spans}} span nested under it.",
+};
+
+const SPAN_PROFILE_SCOPE_WITH_CHILDREN: PluralTemplate = {
+  one: "Flame graph built from the {{count}} profile sample linked to this span and the {{spans}} spans nested under it.",
+  other:
+    "Flame graph built from the {{count}} profile samples linked to this span and the {{spans}} spans nested under it.",
+};
+
+const SPAN_PROFILE_SCOPE_WITH_NEAREST_CHILDREN: PluralTemplate = {
+  one: "Flame graph built from the {{count}} profile sample linked to this span and the nearest {{included}} of the {{spans}} spans nested under it.",
+  other:
+    "Flame graph built from the {{count}} profile samples linked to this span and the nearest {{included}} of the {{spans}} spans nested under it.",
+};
 
 /**
  * The line above a span's flame graph. Profilers often link a request's
  * samples to a span under it rather than to the request span itself (OBI
  * links Node.js CPU time to the "processing" span or to the client call in
- * flight), so the Profile tab covers the span's subtree and says so.
+ * flight), so the Profile tab covers the span's subtree and says so - looked
+ * up whole in the reader's language.
  */
 export const describeSpanProfileScope: DescribeSpanProfileScopeFunction =
-  (args: { sampleCount: number; subtree: SpanSubtreeIds }): string => {
-    const samples: string = pluralize(args.sampleCount, "profile sample");
+  (args: {
+    sampleCount: number;
+    subtree: SpanSubtreeIds;
+    translator?: Translator | undefined;
+  }): string => {
+    const translator: Translator =
+      args.translator || createTranslator(undefined);
     const descendantCount: number = args.subtree.descendantCount;
+    const spans: string = translator.formatNumber(descendantCount);
 
     if (descendantCount === 0) {
-      return `Flame graph built from the ${samples} linked to this span.`;
+      return translator.translatePlural(SPAN_PROFILE_SCOPE, args.sampleCount);
     }
 
     if (args.subtree.isTruncated) {
-      const includedCount: number = args.subtree.spanIds.length - 1;
-      return `Flame graph built from the ${samples} linked to this span and the nearest ${includedCount.toLocaleString()} of the ${descendantCount.toLocaleString()} spans nested under it.`;
+      return translator.translatePlural(
+        SPAN_PROFILE_SCOPE_WITH_NEAREST_CHILDREN,
+        args.sampleCount,
+        {
+          included: translator.formatNumber(args.subtree.spanIds.length - 1),
+          spans,
+        },
+      );
     }
 
-    return `Flame graph built from the ${samples} linked to this span and the ${pluralize(descendantCount, "span")} nested under it.`;
+    return translator.translatePlural(
+      descendantCount === 1
+        ? SPAN_PROFILE_SCOPE_WITH_ONE_CHILD
+        : SPAN_PROFILE_SCOPE_WITH_CHILDREN,
+      args.sampleCount,
+      { spans },
+    );
   };
 
 /*
@@ -602,15 +656,17 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
 
 /*
  * Labels for the serializer-reported dropped scope fields
- * (CrossSignalQueryParams.dropped uses TelemetryCrossSignalScope key names).
+ * (CrossSignalQueryParams.dropped uses TelemetryCrossSignalScope key names),
+ * in English: keys of the locales, so a sentence that lists them can word
+ * each one in its own language (the trace page's metric links do).
  */
 const DROPPED_FIELD_LABELS: Dictionary<string> = {
-  serviceIds: "service filters",
-  traceIds: "trace ids",
-  spanIds: "span ids",
-  severityTexts: "severities",
-  startTime: "time window",
-  endTime: "time window",
+  serviceIds: translationKey("service filters"),
+  traceIds: translationKey("trace ids"),
+  spanIds: translationKey("span ids"),
+  severityTexts: translationKey("severities"),
+  startTime: translationKey("time window"),
+  endTime: translationKey("time window"),
 };
 
 type DescribeDroppedScopeFieldsFunction = (

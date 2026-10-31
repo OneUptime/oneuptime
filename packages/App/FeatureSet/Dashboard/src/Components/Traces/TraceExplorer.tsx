@@ -20,6 +20,7 @@ import {
   collectPodEntityKeys,
 } from "../../Utils/TracePodLogs";
 import {
+  MATCH_COUNT,
   OperationSummary,
   ServiceSummary,
   SpanLoadState,
@@ -29,7 +30,6 @@ import {
   buildServiceInfoMap,
   getServiceInfo,
   getSpanLoadState,
-  pluralize,
   readSpanPage,
   summarizeOperations,
   summarizeServices,
@@ -81,6 +81,8 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import CriticalPathUtil, {
   CriticalPathResult,
   SpanSelfTime,
@@ -179,6 +181,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const traceId: string = props.traceId;
+  const translator: Translator = useTranslator();
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [spans, setSpans] = useState<Array<Span>>([]);
@@ -969,7 +972,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         className="mb-8 space-y-4"
         data-testid="trace-loading"
         aria-busy="true"
-        aria-label="Loading trace"
+        aria-label={translator.translateText("Loading trace")}
       >
         <div className="animate-pulse rounded-xl border border-gray-200 bg-white p-5">
           <div className="h-3 w-40 rounded bg-gray-200" />
@@ -1176,11 +1179,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Search} className="h-5 w-5 text-gray-500" />
           </div>
           <h2 className="mt-3 text-base font-semibold text-gray-900">
-            No spans found for this trace
+            {translator.translateText("No spans found for this trace")}
           </h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-            Spans usually arrive within a minute of the request finishing.
-            Refresh to check again, or look for its logs below.
+            {translator.translateText(
+              "Spans usually arrive within a minute of the request finishing. Refresh to check again, or look for its logs below.",
+            )}
           </p>
           <p className="mt-2 font-mono text-xs text-gray-400">{traceId}</p>
           <div className="mt-4 flex justify-center">
@@ -1233,8 +1237,10 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   ref={searchInputRef}
                   type="text"
                   value={searchText}
-                  placeholder="Search spans by name, ID or service"
-                  aria-label="Search spans"
+                  placeholder={translator.translateText(
+                    "Search spans by name, ID or service",
+                  )}
+                  aria-label={translator.translateText("Search spans")}
                   data-testid="trace-search"
                   className={`w-full rounded-md border border-gray-300 py-1.5 pl-8 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-80 ${searchText.trim().length > 0 ? "pr-36" : "pr-8"}`}
                   onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1260,13 +1266,21 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                         {matchIds.length > 0 &&
                         selectedSpanId &&
                         matchIds.includes(selectedSpanId)
-                          ? `${matchIds.indexOf(selectedSpanId) + 1} of ${matchCount}`
-                          : pluralize(matchCount, "match", "matches")}
+                          ? translator.translateTemplate(
+                              "{{position}} of {{count}}",
+                              {
+                                position: translator.formatNumber(
+                                  matchIds.indexOf(selectedSpanId) + 1,
+                                ),
+                                count: translator.formatNumber(matchCount),
+                              },
+                            )
+                          : translator.translatePlural(MATCH_COUNT, matchCount)}
                       </span>
                       <button
                         type="button"
                         className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
-                        aria-label="Previous match"
+                        aria-label={translator.translateText("Previous match")}
                         disabled={matchCount === 0}
                         onClick={() => {
                           goToMatch(-1);
@@ -1280,7 +1294,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
-                        aria-label="Next match"
+                        aria-label={translator.translateText("Next match")}
                         disabled={matchCount === 0}
                         onClick={() => {
                           goToMatch(1);
@@ -1294,7 +1308,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                        aria-label="Clear search"
+                        aria-label={translator.translateText("Clear search")}
                         onClick={() => {
                           setSearchText("");
                         }}
@@ -1305,7 +1319,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   ) : (
                     <kbd
                       className="rounded border border-gray-200 bg-gray-50 px-1.5 font-sans text-[10px] text-gray-400"
-                      title="Press / to search"
+                      title={translator.translateText("Press / to search")}
                     >
                       /
                     </kbd>
@@ -1317,11 +1331,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 aria-pressed={errorsOnly}
                 data-testid="trace-errors-only"
                 disabled={summary.errorCount === 0 && !errorsOnly}
-                title={
+                title={translator.translateText(
                   summary.errorCount === 0
                     ? "No span in this trace has an error status"
-                    : "Show only spans with an error status"
-                }
+                    : "Show only spans with an error status",
+                )}
                 className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
                   errorsOnly
                     ? "border-red-300 bg-red-50 text-red-700"
@@ -1332,7 +1346,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 }}
               >
                 <Icon icon={IconProp.Error} className="h-4 w-4" />
-                Errors only
+                {translator.translateText("Errors only")}
                 <span
                   className={`rounded-full px-1.5 text-xs tabular-nums ${errorsOnly ? "bg-red-100" : "bg-gray-100 text-gray-600"}`}
                 >
@@ -1344,7 +1358,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   type="button"
                   aria-pressed={showCriticalPath}
                   data-testid="trace-critical-path"
-                  title="Highlight the chain of spans that determined how long the trace took"
+                  title={translator.translateText(
+                    "Highlight the chain of spans that determined how long the trace took",
+                  )}
                   className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-medium ${
                     showCriticalPath
                       ? "border-gray-800 bg-gray-900 text-white"
@@ -1355,7 +1371,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   <Icon icon={IconProp.Bolt} className="h-4 w-4" />
-                  Critical path
+                  {translator.translateText("Critical path")}
                 </button>
               )}
             </div>
@@ -1370,15 +1386,25 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               {hasActiveFilter && (
                 <>
                   <span className="font-medium text-gray-700">
-                    {pluralize(matchCount, "span")} of{" "}
-                    {tree.spanCount.toLocaleString()} match
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} span of {{total}} match",
+                        other: "{{count}} spans of {{total}} match",
+                      },
+                      matchCount,
+                      { total: translator.formatNumber(tree.spanCount) },
+                    )}
                   </span>
                   {searchText.trim() && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-gray-200">
-                      Search: “{searchText.trim()}”
+                      {translator.translateTemplate("Search: “{{search}}”", {
+                        search: searchText.trim(),
+                      })}
                       <button
                         type="button"
-                        aria-label="Remove search filter"
+                        aria-label={translator.translateText(
+                          "Remove search filter",
+                        )}
                         className="text-gray-400 hover:text-gray-700"
                         onClick={() => {
                           setSearchText("");
@@ -1390,10 +1416,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   )}
                   {errorsOnly && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-gray-200">
-                      Errors only
+                      {translator.translateText("Errors only")}
                       <button
                         type="button"
-                        aria-label="Remove errors only filter"
+                        aria-label={translator.translateText(
+                          "Remove errors only filter",
+                        )}
                         className="text-gray-400 hover:text-gray-700"
                         onClick={() => {
                           setErrorsOnly(false);
@@ -1421,7 +1449,10 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                         {service.name}
                         <button
                           type="button"
-                          aria-label={`Remove ${service.name} filter`}
+                          aria-label={translator.translateTemplate(
+                            "Remove {{name}} filter",
+                            { name: service.name },
+                          )}
                           className="text-gray-400 hover:text-gray-700"
                           onClick={() => {
                             toggleService(serviceId);
@@ -1438,7 +1469,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                     data-testid="trace-clear-filters"
                     onClick={clearFilters}
                   >
-                    Clear filters
+                    {translator.translateText("Clear filters")}
                   </button>
                 </>
               )}
@@ -1448,10 +1479,16 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   data-testid="trace-critical-path-summary"
                 >
                   <span className="font-medium text-gray-800">
-                    Critical path:
+                    {translator.translateText("Critical path:")}
                   </span>{" "}
-                  {pluralize(criticalPath.criticalPathSpanIds.length, "span")} ·
-                  outlined in the waterfall; other spans are dimmed
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} span · outlined in the waterfall; other spans are dimmed",
+                      other:
+                        "{{count}} spans · outlined in the waterfall; other spans are dimmed",
+                    },
+                    criticalPath.criticalPathSpanIds.length,
+                  )}
                 </span>
               )}
             </div>
@@ -1468,19 +1505,29 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 </span>
               ) : (
                 <span>
-                  {loadState.totalSpanCount === null ? (
-                    <>
-                      Showing the first{" "}
-                      {loadState.loadedSpanCount.toLocaleString()} spans.
-                    </>
-                  ) : (
-                    <>
-                      Showing {loadState.loadedSpanCount.toLocaleString()} of{" "}
-                      {loadState.totalSpanCount.toLocaleString()} spans.
-                    </>
-                  )}{" "}
-                  Large traces load in batches; totals above cover the loaded
-                  spans.
+                  {loadState.totalSpanCount === null
+                    ? translator.translatePlural(
+                        {
+                          one: "Showing the first {{count}} span.",
+                          other: "Showing the first {{count}} spans.",
+                        },
+                        loadState.loadedSpanCount,
+                      )
+                    : translator.translatePlural(
+                        {
+                          one: "Showing {{loaded}} of {{count}} span.",
+                          other: "Showing {{loaded}} of {{count}} spans.",
+                        },
+                        loadState.totalSpanCount,
+                        {
+                          loaded: translator.formatNumber(
+                            loadState.loadedSpanCount,
+                          ),
+                        },
+                      )}{" "}
+                  {translator.translateText(
+                    "Large traces load in batches; totals above cover the loaded spans.",
+                  )}
                 </span>
               )}
               {loadState.hasMore && (
@@ -1488,7 +1535,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   {isLoadingMoreSpans ? (
                     <span className="inline-flex items-center gap-2 font-medium">
                       <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
-                      Loading spans…
+                      {translator.translateText("Loading spans…")}
                     </span>
                   ) : (
                     <>
@@ -1504,18 +1551,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                          * Until the spans are counted, the next page may
                          * hold fewer than a page's worth: no number.
                          */}
-                        {loadState.totalSpanCount === null ? (
-                          "Load more spans"
-                        ) : (
-                          <>
-                            Load{" "}
-                            {pluralize(
+                        {loadState.totalSpanCount === null
+                          ? translator.translateText("Load more spans")
+                          : translator.translatePlural(
+                              {
+                                one: "Load {{count}} more span",
+                                other: "Load {{count}} more spans",
+                              },
                               loadState.nextBatchSize,
-                              "more span",
-                              "more spans",
                             )}
-                          </>
-                        )}
                       </button>
                       {loadState.remainingSpanCount !== null &&
                         loadState.remainingSpanCount >
@@ -1528,8 +1572,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                               void loadMoreSpans(true);
                             }}
                           >
-                            Load all{" "}
-                            {loadState.remainingSpanCount.toLocaleString()}
+                            {translator.translateTemplate(
+                              "Load all {{count}}",
+                              {
+                                count: translator.formatNumber(
+                                  loadState.remainingSpanCount,
+                                ),
+                              },
+                            )}
                           </button>
                         )}
                     </>

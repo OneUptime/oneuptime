@@ -317,7 +317,7 @@ Wenn eine Funktion Ihres eigenen Codes mindestens 5 % der Zeit oder des Speicher
 
 Wenn ein Profil Trace- und Span-IDs trägt (zum Beispiel als Sample-Labels `trace_id` / `span_id`), springen Sie direkt von einem langsamen Trace-Span zum passenden CPU- oder Speicherprofil, um genau zu verstehen, welcher Code lief, und **Verknüpften Trace öffnen** führt in die andere Richtung.
 
-Der Tab **Profil** eines Spans enthält auch die Samples der darunter verschachtelten Spans, weil Profiler die CPU-Zeit einer Anfrage oft einem Kind-Span statt dem Anfrage-Span selbst zuordnen.
+Der Tab **Profil-Samples** eines Spans enthält auch die Samples der darunter verschachtelten Spans, weil Profiler die CPU-Zeit einer Anfrage oft einem Kind-Span statt dem Anfrage-Span selbst zuordnen.
 
 Die Seite eines Traces verlinkt außerdem auf den Profiler für den Dienst des Traces, für die 15 Minuten davor und danach, wenn dieser Dienst in der Zeit profiliert wurde, und die Seite **Leistungsprofile** eines Dienstes oder Hosts öffnet den Profiler für diesen Dienst oder Host.
 

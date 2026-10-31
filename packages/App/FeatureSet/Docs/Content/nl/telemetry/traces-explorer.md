@@ -81,12 +81,12 @@ Daaronder kiest u een van vier weergaven:
 
 | Weergave | Wat die toont |
 | --- | --- |
-| **Waterfall** | Elke span op een tijdlijn, genest onder de span die hem startte. Zet **Critical path** aan om de keten van spans te markeren die bepaalde hoe lang het verzoek duurde. |
+| **Waterval** | Elke span op een tijdlijn, genest onder de span die hem startte. Zet **Kritiek pad** aan om de keten van spans te markeren die bepaalde hoe lang het verzoek duurde. |
 | **Flame graph** | Dezelfde boom als gestapelde balken, waarbij de breedste balken het langst duurden. |
-| **Service map** | De services waar het verzoek doorheen ging, en de aanroepen ertussen. |
-| **Operations** | Eén rij per service en spannaam, met de aanroepen, fouten, eigen tijd en totale tijd. Een operatie die 10 keer of vaker vanuit één ouder-span wordt aangeroepen, wordt gemarkeerd: vaak een N+1-query of een lus die gebundeld kan worden. |
+| **Servicekaart** | De services waar het verzoek doorheen ging, en de aanroepen ertussen. |
+| **Bewerkingen** | Eén rij per service en spannaam, met de aanroepen, fouten, eigen tijd en totale tijd. Een operatie die 10 keer of vaker vanuit één ouder-span wordt aangeroepen, wordt gemarkeerd: vaak een N+1-query of een lus die gebundeld kan worden. |
 
-Klik in een willekeurige weergave op een span om het paneel ervan te openen, met tabbladen voor attributen, gebeurtenissen, logboeken, uitzonderingen en links, en voor het profiel of de LLM-aanroep als die er is. Doorzoek de spans van de trace op naam, ID of service met het zoekvak naast de weergaven (druk op `/`), en zet **Errors only** aan om alleen de mislukte spans over te houden.
+Klik in een willekeurige weergave op een span om het paneel ervan te openen, met tabbladen voor attributen, gebeurtenissen, logboeken, uitzonderingen en links, en voor het profiel of de LLM-aanroep als die er is. Doorzoek de spans van de trace op naam, ID of service met het zoekvak naast de weergaven (druk op `/`), en zet **Alleen fouten** aan om alleen de mislukte spans over te houden.
 
 Een grote trace laadt 500 spans tegelijk. Klik op de knop onderaan de trace om meer of alle spans te laden.
 
