@@ -101,6 +101,8 @@ For å endre flere samtidig krysser du av radene deres i listen, eller boksen ov
 
 **Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig.
 
+**Aktivitet** nederst i unntakets **Oversikt** viser hvem som endret det og når, nyeste først: hvem som løste, gjenåpnet, arkiverte eller tildelte det, slo sammen et annet unntak med det eller delte opp et, og når det kom tilbake etter at det var løst. Hver endring står der, gjort på unntakets side, i listen, under **Massehandlinger**, via API-et eller av OneUptime selv, og en endring gjort med en API-nøkkel bærer nøkkelens navn.
+
 ## Feilklasser
 
 Hvert unntak har en feilklasse, som sier hvem sitt problem det er. OneUptime AI setter den når den går gjennom en innsikt om unntaket, som et nytt unntak eller et som øker kraftig: se [AI SRE](/docs/ai/ai-sre#innsikt-proaktiv-oppdagelse). Et unntak den ikke har gått gjennom, forblir `unknown`.

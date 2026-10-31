@@ -101,6 +101,8 @@ Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre l
 
 **Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez.
 
+**Actividad**, al final de la **Vista general** de la excepción, dice quién la cambió y cuándo, lo más reciente primero: quién la resolvió, reabrió, archivó o asignó, fusionó otra excepción con ella o separó una, y cuándo volvió a ocurrir después de resolverse. Ahí está cada cambio, hecho en la página de la excepción, en la lista, en **Acciones masivas**, mediante la API o por OneUptime mismo, y un cambio hecho con una clave de API lleva el nombre de la clave.
+
 ## Clases de error
 
 Cada excepción tiene una clase de error, que dice de quién es el problema. OneUptime AI la fija cuando revisa un insight sobre la excepción, como una excepción nueva o que se dispara: consulte [AI SRE](/docs/ai/ai-sre#hallazgos-detección-proactiva). Una excepción que no ha revisado se queda en `unknown`.

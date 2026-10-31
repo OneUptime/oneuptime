@@ -6,6 +6,10 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import Query from "../../Types/Database/Query";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryExceptionService from "../../Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "../../Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "../../../Models/DatabaseModels/TelemetryExceptionActivity";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import { EntityManager } from "typeorm";
@@ -267,140 +271,163 @@ export default class TelemetryExceptionMerge {
     }
 
     const userId: string | null = data.props.userId?.toString() || null;
+    // What the merge did, for each exception's activity, once it commits.
+    const activity: Array<TelemetryExceptionActivityEntry> = [];
 
-    return TelemetryExceptionService.executeTransaction(
-      async (manager: EntityManager): Promise<ExceptionMergeResult> => {
-        const rows: Array<LockedRow> = await TelemetryExceptionMerge.lockRows(
-          manager,
-          `("_id" = ANY($1::uuid[]) OR "mergedIntoTelemetryExceptionId" = ANY($2::uuid[]))`,
-          [[survivorId, ...mergedIds], mergedIds],
-        );
-
-        const survivor: LockedRow | undefined = rows.find(
-          (row: LockedRow): boolean => {
-            return sameId(row.id, survivorId);
-          },
-        );
-
-        if (!survivor) {
-          throw new BadDataException("Exception not found");
-        }
-
-        if (survivor.mergedIntoId) {
-          throw new BadDataException(
-            "This exception was merged into another one. Merge into that one instead.",
+    const mergeResult: ExceptionMergeResult =
+      await TelemetryExceptionService.executeTransaction(
+        async (manager: EntityManager): Promise<ExceptionMergeResult> => {
+          const rows: Array<LockedRow> = await TelemetryExceptionMerge.lockRows(
+            manager,
+            `("_id" = ANY($1::uuid[]) OR "mergedIntoTelemetryExceptionId" = ANY($2::uuid[]))`,
+            [[survivorId, ...mergedIds], mergedIds],
           );
-        }
 
-        const result: ExceptionMergeResult = {
-          telemetryExceptionId: survivor.id,
-          merged: [],
-        };
-
-        let addedCount: number = 0;
-        let firstSeenAt: Date | null = null;
-        let lastSeenAt: Date | null = null;
-        let firstSeenInRelease: string = "";
-        let lastSeenInRelease: string = "";
-        let unhandled: boolean = false;
-
-        for (const mergedId of mergedIds) {
-          const merged: LockedRow | undefined = rows.find(
+          const survivor: LockedRow | undefined = rows.find(
             (row: LockedRow): boolean => {
-              return sameId(row.id, mergedId);
+              return sameId(row.id, survivorId);
             },
           );
 
-          if (!merged) {
+          if (!survivor) {
             throw new BadDataException("Exception not found");
           }
 
-          if (sameId(merged.mergedIntoId, survivor.id)) {
+          if (survivor.mergedIntoId) {
+            throw new BadDataException(
+              "This exception was merged into another one. Merge into that one instead.",
+            );
+          }
+
+          const result: ExceptionMergeResult = {
+            telemetryExceptionId: survivor.id,
+            merged: [],
+          };
+
+          let addedCount: number = 0;
+          let firstSeenAt: Date | null = null;
+          let lastSeenAt: Date | null = null;
+          let firstSeenInRelease: string = "";
+          let lastSeenInRelease: string = "";
+          let unhandled: boolean = false;
+
+          for (const mergedId of mergedIds) {
+            const merged: LockedRow | undefined = rows.find(
+              (row: LockedRow): boolean => {
+                return sameId(row.id, mergedId);
+              },
+            );
+
+            if (!merged) {
+              throw new BadDataException("Exception not found");
+            }
+
+            if (sameId(merged.mergedIntoId, survivor.id)) {
+              result.merged.push({
+                telemetryExceptionId: merged.id,
+                outcome: ExceptionMergeOutcome.AlreadyMerged,
+              });
+              continue;
+            }
+
+            if (merged.mergedIntoId) {
+              throw new BadDataException(
+                "One of these exceptions is already merged into another one. Unmerge it first.",
+              );
+            }
+
+            if (
+              merged.projectId.toLowerCase() !==
+                survivor.projectId.toLowerCase() ||
+              merged.primaryEntityId.toLowerCase() !==
+                survivor.primaryEntityId.toLowerCase()
+            ) {
+              throw new BadDataException(
+                "Only exceptions of the same service can be merged.",
+              );
+            }
+
+            // The ones merged into it move to the survivor, counts and all.
+            const members: Array<LockedRow> = rows.filter(
+              (row: LockedRow): boolean => {
+                return sameId(row.mergedIntoId, merged.id);
+              },
+            );
+            const membersCount: number = members.reduce(
+              (total: number, row: LockedRow): number => {
+                return total + row.occuranceCount;
+              },
+              0,
+            );
+
+            addedCount += merged.occuranceCount;
+            firstSeenAt = earliest(firstSeenAt, merged.firstSeenAt);
+
+            if (
+              merged.firstSeenInRelease &&
+              sameDate(firstSeenAt, merged.firstSeenAt)
+            ) {
+              firstSeenInRelease = merged.firstSeenInRelease;
+            }
+
+            lastSeenAt = latest(lastSeenAt, merged.lastSeenAt);
+
+            if (
+              merged.lastSeenInRelease &&
+              sameDate(lastSeenAt, merged.lastSeenAt)
+            ) {
+              lastSeenInRelease = merged.lastSeenInRelease;
+            }
+
+            unhandled = unhandled || merged.unhandled;
+
+            await manager.query(
+              `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "mergedAt" = now(), "mergedByUserId" = $2, "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $3), "updatedAt" = now() WHERE "_id" = $4`,
+              [survivor.id, userId, membersCount, merged.id],
+            );
+
+            if (members.length > 0) {
+              await manager.query(
+                `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "updatedAt" = now() WHERE "mergedIntoTelemetryExceptionId" = $2`,
+                [survivor.id, merged.id],
+              );
+            }
+
             result.merged.push({
               telemetryExceptionId: merged.id,
-              outcome: ExceptionMergeOutcome.AlreadyMerged,
+              outcome: ExceptionMergeOutcome.Merged,
             });
-            continue;
-          }
 
-          if (merged.mergedIntoId) {
-            throw new BadDataException(
-              "One of these exceptions is already merged into another one. Unmerge it first.",
-            );
+            /*
+             * On the survivor: this one was merged in. On it and on the ones
+             * that came along with it: they are merged into the survivor now.
+             */
+            activity.push({
+              projectId: new ObjectID(survivor.projectId),
+              telemetryExceptionId: new ObjectID(survivor.id),
+              activityType: TelemetryExceptionActivityType.Merged,
+              relatedTelemetryExceptionId: merged.id,
+            });
+
+            for (const moved of [merged, ...members]) {
+              activity.push({
+                projectId: new ObjectID(moved.projectId),
+                telemetryExceptionId: new ObjectID(moved.id),
+                activityType: TelemetryExceptionActivityType.MergedInto,
+                relatedTelemetryExceptionId: survivor.id,
+              });
+            }
           }
 
           if (
-            merged.projectId.toLowerCase() !==
-              survivor.projectId.toLowerCase() ||
-            merged.primaryEntityId.toLowerCase() !==
-              survivor.primaryEntityId.toLowerCase()
+            result.merged.some(
+              (entry: { outcome: ExceptionMergeOutcome }): boolean => {
+                return entry.outcome === ExceptionMergeOutcome.Merged;
+              },
+            )
           ) {
-            throw new BadDataException(
-              "Only exceptions of the same service can be merged.",
-            );
-          }
-
-          // The ones merged into it move to the survivor, counts and all.
-          const members: Array<LockedRow> = rows.filter(
-            (row: LockedRow): boolean => {
-              return sameId(row.mergedIntoId, merged.id);
-            },
-          );
-          const membersCount: number = members.reduce(
-            (total: number, row: LockedRow): number => {
-              return total + row.occuranceCount;
-            },
-            0,
-          );
-
-          addedCount += merged.occuranceCount;
-          firstSeenAt = earliest(firstSeenAt, merged.firstSeenAt);
-
-          if (
-            merged.firstSeenInRelease &&
-            sameDate(firstSeenAt, merged.firstSeenAt)
-          ) {
-            firstSeenInRelease = merged.firstSeenInRelease;
-          }
-
-          lastSeenAt = latest(lastSeenAt, merged.lastSeenAt);
-
-          if (
-            merged.lastSeenInRelease &&
-            sameDate(lastSeenAt, merged.lastSeenAt)
-          ) {
-            lastSeenInRelease = merged.lastSeenInRelease;
-          }
-
-          unhandled = unhandled || merged.unhandled;
-
-          await manager.query(
-            `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "mergedAt" = now(), "mergedByUserId" = $2, "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $3), "updatedAt" = now() WHERE "_id" = $4`,
-            [survivor.id, userId, membersCount, merged.id],
-          );
-
-          if (members.length > 0) {
             await manager.query(
-              `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "updatedAt" = now() WHERE "mergedIntoTelemetryExceptionId" = $2`,
-              [survivor.id, merged.id],
-            );
-          }
-
-          result.merged.push({
-            telemetryExceptionId: merged.id,
-            outcome: ExceptionMergeOutcome.Merged,
-          });
-        }
-
-        if (
-          result.merged.some(
-            (entry: { outcome: ExceptionMergeOutcome }): boolean => {
-              return entry.outcome === ExceptionMergeOutcome.Merged;
-            },
-          )
-        ) {
-          await manager.query(
-            `UPDATE "TelemetryException" SET
+              `UPDATE "TelemetryException" SET
               "occuranceCount" = COALESCE("occuranceCount", 0) + $1,
               "firstSeenInRelease" = CASE
                 WHEN $2::text <> '' AND ("firstSeenAt" IS NULL OR $3::timestamptz < "firstSeenAt") THEN $2::text
@@ -413,21 +440,28 @@ export default class TelemetryExceptionMerge {
               "unhandled" = COALESCE("unhandled", false) OR $6::boolean,
               "updatedAt" = now()
             WHERE "_id" = $7`,
-            [
-              addedCount,
-              firstSeenInRelease,
-              firstSeenAt,
-              lastSeenInRelease,
-              lastSeenAt,
-              unhandled,
-              survivor.id,
-            ],
-          );
-        }
+              [
+                addedCount,
+                firstSeenInRelease,
+                firstSeenAt,
+                lastSeenInRelease,
+                lastSeenAt,
+                unhandled,
+                survivor.id,
+              ],
+            );
+          }
 
-        return result;
-      },
-    );
+          return result;
+        },
+      );
+
+    await TelemetryExceptionActivityService.record({
+      entries: activity,
+      actor: TelemetryExceptionActivityService.getActor(data.props),
+    });
+
+    return mergeResult;
   }
 
   public static async unmerge(data: {
@@ -478,46 +512,84 @@ export default class TelemetryExceptionMerge {
       );
     }
 
-    return TelemetryExceptionService.executeTransaction(
-      async (manager: EntityManager): Promise<ExceptionUnmergeResult> => {
-        const rows: Array<LockedRow> = await TelemetryExceptionMerge.lockRows(
-          manager,
-          `"_id" = ANY($1::uuid[])`,
-          [[mergedId, survivorId.toString()]],
-        );
+    // The project of the exception unmerged, as its locked row holds it.
+    let unmergedProjectId: string | null = null as string | null;
 
-        const lockedMerged: LockedRow | undefined = rows.find(
-          (row: LockedRow): boolean => {
-            return sameId(row.id, mergedId);
-          },
-        );
+    const unmergeResult: ExceptionUnmergeResult =
+      await TelemetryExceptionService.executeTransaction(
+        async (manager: EntityManager): Promise<ExceptionUnmergeResult> => {
+          const rows: Array<LockedRow> = await TelemetryExceptionMerge.lockRows(
+            manager,
+            `"_id" = ANY($1::uuid[])`,
+            [[mergedId, survivorId.toString()]],
+          );
 
-        // Unmerged by someone else meanwhile: nothing left to do.
-        if (!lockedMerged || !lockedMerged.mergedIntoId) {
+          const lockedMerged: LockedRow | undefined = rows.find(
+            (row: LockedRow): boolean => {
+              return sameId(row.id, mergedId);
+            },
+          );
+
+          // Unmerged by someone else meanwhile: nothing left to do.
+          if (!lockedMerged || !lockedMerged.mergedIntoId) {
+            return {
+              telemetryExceptionId: mergedId,
+              unmergedFromTelemetryExceptionId: null,
+              outcome: ExceptionUnmergeOutcome.NotMerged,
+            };
+          }
+
+          await manager.query(
+            `UPDATE "TelemetryException" SET "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $1), "updatedAt" = now() WHERE "_id" = $2`,
+            [lockedMerged.occuranceCount, lockedMerged.mergedIntoId],
+          );
+
+          await manager.query(
+            `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = NULL, "mergedAt" = NULL, "mergedByUserId" = NULL, "updatedAt" = now() WHERE "_id" = $1`,
+            [lockedMerged.id],
+          );
+
+          unmergedProjectId = lockedMerged.projectId;
+
           return {
-            telemetryExceptionId: mergedId,
-            unmergedFromTelemetryExceptionId: null,
-            outcome: ExceptionUnmergeOutcome.NotMerged,
+            telemetryExceptionId: lockedMerged.id,
+            unmergedFromTelemetryExceptionId: lockedMerged.mergedIntoId,
+            outcome: ExceptionUnmergeOutcome.Unmerged,
           };
-        }
+        },
+      );
 
-        await manager.query(
-          `UPDATE "TelemetryException" SET "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $1), "updatedAt" = now() WHERE "_id" = $2`,
-          [lockedMerged.occuranceCount, lockedMerged.mergedIntoId],
-        );
+    // On both: the one taken out, and the one it was taken out of.
+    if (
+      unmergeResult.outcome === ExceptionUnmergeOutcome.Unmerged &&
+      unmergeResult.unmergedFromTelemetryExceptionId &&
+      unmergedProjectId
+    ) {
+      await TelemetryExceptionActivityService.record({
+        entries: [
+          {
+            projectId: new ObjectID(unmergedProjectId),
+            telemetryExceptionId: new ObjectID(
+              unmergeResult.unmergedFromTelemetryExceptionId,
+            ),
+            activityType: TelemetryExceptionActivityType.Unmerged,
+            relatedTelemetryExceptionId: unmergeResult.telemetryExceptionId,
+          },
+          {
+            projectId: new ObjectID(unmergedProjectId),
+            telemetryExceptionId: new ObjectID(
+              unmergeResult.telemetryExceptionId,
+            ),
+            activityType: TelemetryExceptionActivityType.UnmergedFrom,
+            relatedTelemetryExceptionId:
+              unmergeResult.unmergedFromTelemetryExceptionId,
+          },
+        ],
+        actor: TelemetryExceptionActivityService.getActor(data.props),
+      });
+    }
 
-        await manager.query(
-          `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = NULL, "mergedAt" = NULL, "mergedByUserId" = NULL, "updatedAt" = now() WHERE "_id" = $1`,
-          [lockedMerged.id],
-        );
-
-        return {
-          telemetryExceptionId: lockedMerged.id,
-          unmergedFromTelemetryExceptionId: lockedMerged.mergedIntoId,
-          outcome: ExceptionUnmergeOutcome.Unmerged,
-        };
-      },
-    );
+    return unmergeResult;
   }
 }
 

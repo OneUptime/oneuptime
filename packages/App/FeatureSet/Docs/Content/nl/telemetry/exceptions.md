@@ -101,6 +101,8 @@ Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het v
 
 **Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
 
+**Activiteit**, onderaan het **Overzicht** van de uitzondering, toont wie haar wanneer heeft gewijzigd, nieuwste eerst: wie haar heeft opgelost, heropend, gearchiveerd of toegewezen, een andere uitzondering met haar heeft samengevoegd of er een heeft gesplitst, en wanneer ze terugkwam nadat ze was opgelost. Elke wijziging staat er, gedaan op de pagina van de uitzondering, in de lijst, onder **Bulkacties**, via de API of door OneUptime zelf, en een wijziging met een API-sleutel draagt de naam van de sleutel.
+
 ## Foutklassen
 
 Elke uitzondering heeft een foutklasse, die zegt wiens probleem het is. OneUptime AI stelt die in wanneer het een inzicht over de uitzondering beoordeelt, zoals een nieuwe of sterk toenemende uitzondering: zie [AI SRE](/docs/ai/ai-sre#inzichten-proactieve-detectie). Een uitzondering die het niet heeft beoordeeld, blijft `unknown`.

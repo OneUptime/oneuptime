@@ -101,6 +101,8 @@ Om du vill ändra flera på en gång markerar du deras rader i listan, eller rut
 
 **Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång.
 
+**Aktivitet** längst ned i undantagets **Översikt** visar vem som ändrade det och när, nyaste först: vem som löste, öppnade igen, arkiverade eller tilldelade det, slog ihop ett annat undantag med det eller delade upp ett, och när det kom tillbaka efter att det hade lösts. Varje ändring finns där, gjord på undantagets sida, i listan, under **Massåtgärder**, via API:et eller av OneUptime självt, och en ändring gjord med en API-nyckel bär nyckelns namn.
+
 ## Felklasser
 
 Varje undantag har en felklass, som säger vems problem det är. OneUptime AI sätter den när den går igenom en insikt om undantaget, till exempel ett nytt undantag eller ett som ökar kraftigt: se [AI SRE](/docs/ai/ai-sre#insikter-proaktiv-upptäckt). Ett undantag som den inte har gått igenom förblir `unknown`.

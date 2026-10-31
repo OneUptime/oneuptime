@@ -2397,6 +2397,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
 
+      # An exception's activity timeline: a triage written through the
+      # service's updates leaves its rows (and one that changes nothing
+      # leaves none), and a teammate reads only the timelines of the
+      # exceptions they may read, newest first. Clones the migrated
+      # TelemetryException and TelemetryExceptionActivity into an isolated
+      # schema.
+      - name: Test exception activity on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EXCEPTION_ACTIVITY_TESTS: "true"
+          EXCEPTION_ACTIVITY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_ACTIVITY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_ACTIVITY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TelemetryExceptionActivityPostgres.test.ts --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when

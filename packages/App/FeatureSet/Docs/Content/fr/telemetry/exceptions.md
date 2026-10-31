@@ -101,6 +101,8 @@ Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la c
 
 **Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois.
 
+**Activité**, en bas de la **Vue d'ensemble** de l'exception, indique qui l'a modifiée et quand, les plus récentes en premier : qui l'a résolue, rouverte, archivée ou attribuée, a fusionné une autre exception avec elle ou en a défusionné une, et quand elle est revenue après avoir été résolue. Chaque modification y figure, faite sur la page de l'exception, dans la liste, sous **Actions groupées**, par l'API ou par OneUptime lui-même, et une modification faite avec une clé API porte le nom de la clé.
+
 ## Classes d'erreur
 
 Chaque exception a une classe d'erreur, qui dit à qui revient le problème. OneUptime AI la définit quand il trie un insight sur l'exception, comme une exception nouvelle ou en forte hausse : voir [AI SRE](/docs/ai/ai-sre#analyses-détection-proactive). Une exception qu'il n'a pas triée reste `unknown`.
