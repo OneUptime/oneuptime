@@ -596,8 +596,10 @@ describe("a part's parts are grouped under a heading per kind", () => {
 
       const group: ResourceTopologyGroupItem = heading.heading.group;
       const words: number = MEASURED_HEADINGS(heading.heading);
-      // The parts drawn in the heading's own column (an open part's own
-      // parts stand in the next one).
+      /*
+       * The parts drawn in the heading's own column (an open part's own
+       * parts stand in the next one).
+       */
       const right: number = Math.max(
         ...measured.placed
           .filter((item: ResourceTopologyPlaced): boolean => {
