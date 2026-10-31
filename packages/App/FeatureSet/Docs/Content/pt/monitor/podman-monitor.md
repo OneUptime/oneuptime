@@ -93,7 +93,7 @@ Um critério só dispara quando a condição vale em todos os minutos da sua jan
 | Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do host, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg por contêiner, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg por contêiner, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
-| Container Restart Loop | Crítico | Crescimento de `container.restarts` por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
+| Container Restart Loop | Crítico | `container.restarts.increase`, Sum por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
 | High Container Process Count | Warning | `container.pids.count`, Max por contêiner, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
 | Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contêiner, último 1 minuto | Abaixo de 120 segundos | Em 132 segundos ou mais |
 
@@ -107,7 +107,7 @@ Os dois modelos de porcentagem usam **Média**: as métricas deles já são porc
 > `container.cpu.utilization` é o número que o `podman stats` imprime, em média no intervalo de 30 segundos do agente: 100% é um núcleo de CPU inteiro, não toda a cota de CPU do contêiner. Um contêiner com vários núcleos marca bem acima de 100 quando está saudável, então aumente o limite para esses.
 
 > [!NOTE]
-> `container.restarts` é um total acumulado mantido pelo Podman, então **Container Restart Loop** alerta sobre quanto ele cresceu na janela, como no Docker: uma consulta Maximum e uma Minimum por minuto, subtraídas por uma fórmula e somadas. Na coleta de 30 segundos do agente, cerca de metade dos reinícios é vista, e o limite já leva isso em conta. O agente também só amostra contêineres em execução, então um contêiner que sai no momento em que inicia raramente é amostrado: **Container Restarted (Low Uptime)** dispara a cada reinício que o agente vê.
+> `container.restarts` é um total acumulado mantido pelo Podman, até que um reinício manual ou um contêiner recriado o faça recomeçar do 0, então o agente também envia `container.restarts.increase` a cada amostra: os reinícios desde a amostra anterior dele daquele contêiner. **Container Restart Loop** soma esses valores, como no Docker, então conta cada reinício, por mais distantes que estejam as amostras, e um reinício manual não conta. Um agente mais antigo não envia `container.restarts.increase`: [atualize-o](/docs/telemetry/podman-host#atualizando-o-agente) primeiro. Um monitor criado a partir do modelo antes disso lê quanto `container.restarts` cresceu dentro de cada minuto, o que deixa passar cerca de metade dos reinícios de um loop: exclua-o e crie o modelo novamente.
 
 > [!CAUTION]
 > `container.uptime` só existe para contêineres em execução. Um contêiner que para e continua parado não envia dados, então **Container Restarted (Low Uptime)** pega reinícios e novas implantações, não um desligamento permanente. Um contêiner feito para rodar menos de dois minutos fica em estado de alerta durante toda a vida.
@@ -154,6 +154,7 @@ O agente usa o receptor `docker_stats` do OpenTelemetry apontado para o socket c
 | --- | --- |
 | `container.uptime` | Segundos desde que o contêiner iniciou. Só contêineres em execução a informam. |
 | `container.restarts` | Quantas vezes o contêiner reiniciou. Um total acumulado. |
+| `container.restarts.increase` | Reinícios desde a amostra anterior do contêiner feita pelo agente, enviados a cada amostra. A soma deles numa janela são os reinícios dessa janela, então alerte com esta e não com o total acumulado. |
 | `container.pids.count` | Tarefas no contêiner. O controlador pids do cgroup conta threads além de processos. |
 
 `container.cpu.throttling_data.throttled_periods` não está na lista; consulte-a em **Avançado**.
@@ -290,8 +291,8 @@ O OneUptime identifica um host por `resource.host.name`, que o agente obtém de 
 Agrupe a consulta por `resource.container.name`, como faz o modelo **High Container CPU Usage**, para que cada contêiner seja avaliado separadamente. Uma média de todos os contêineres de um host ocupado é puxada para baixo pelos ociosos. Lembre-se de que 100% significa um núcleo inteiro, então um contêiner que pode usar vários núcleos precisa de um limite mais alto. Se a CPU de um contêiner for uma linha plana, qualquer que seja a carga, o host executa um agente antigo: [atualize-o](/docs/telemetry/podman-host#atualizando-o-agente).
 :::
 
-:::details O alerta de contagem de reinícios nunca se resolve
-`container.restarts` é um total acumulado, então não volta sozinho para baixo do limite. Corrija a causa e depois recrie o contêiner para zerar a contagem, ou aumente o limite.
+:::details O alerta de reinícios nunca dispara ou nunca se resolve
+Um monitor que compara o próprio `container.restarts` com um limite, como faz um criado a partir de uma versão inicial do modelo de reinícios, dispara pelo histórico do contêiner e nunca se resolve: o total só cresce. Um criado a partir de **Container Restart Loop** antes de ele ler `container.restarts.increase` mede quanto o total cresceu dentro de cada minuto e deixa passar cerca de metade dos reinícios de um loop. Um agente mais antigo não envia `container.restarts.increase`: [atualize o agente](/docs/telemetry/podman-host#atualizando-o-agente), depois exclua o monitor e crie **Container Restart Loop** novamente.
 :::
 
 ## Próximos passos

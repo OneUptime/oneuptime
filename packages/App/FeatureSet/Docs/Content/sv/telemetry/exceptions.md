@@ -62,6 +62,8 @@ Varje rad visar också hur många användare undantaget drabbade under den valda
 
 Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**. **Tilldelade till mig** visar bara de undantag som är tilldelade dig, och sorteringsmenyn ordnar listan efter **Senast sedd**, **Först sedd** eller **Flest händelser**.
 
+**Sparade vyer** behåller listan under ett namn, för alla i projektet: sökningen, filtren, tidsintervallet, statusen, vad som räknas som ett problem, **Tilldelade till mig**, sorteringen och sidstorleken. En vy med **Tilldelade till mig** visar var och en de undantag som är tilldelade dem, och **Rensa vy** återställer listan som den öppnas från början. Sidans adress namnger vyn du valde, så en länk du delar öppnar den. I övrigt fungerar sparade vyer som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
+
 ### Öppna ett undantag
 
 Klicka på en rad för att öppna undantagets sida.
@@ -99,7 +101,9 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 
 Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
 
-**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång.
+**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång. Personen det tilldelas, eller varje medlem i teamet, får en avisering som raden **Undantag tilldelat mig** i deras [Aviseringsinställningar](/docs/notifications/notification-settings) säger; den som tilldelade det får ingen.
+
+**Aktivitet** längst ned i undantagets **Översikt** visar vem som ändrade det och när, nyaste först: vem som löste, öppnade igen, arkiverade eller tilldelade det, slog ihop ett annat undantag med det eller delade upp ett, och när det kom tillbaka efter att det hade lösts. Varje ändring finns där, gjord på undantagets sida, i listan, under **Massåtgärder**, via API:et eller av OneUptime självt, och en ändring gjord med en API-nyckel bär nyckelns namn.
 
 ## Felklasser
 

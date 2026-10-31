@@ -62,6 +62,8 @@ Elke rij toont ook hoeveel gebruikers de uitzondering in de gekozen periode trof
 
 Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**. **Aan mij toegewezen** toont alleen de uitzonderingen die aan u zijn toegewezen, en het sorteermenu ordent de lijst op **Laatst gezien**, **Voor het eerst gezien** of **Meeste gebeurtenissen**.
 
+**Opgeslagen weergaven** bewaart de lijst onder een naam, voor iedereen in het project: de zoekopdracht, de filters, het tijdsbereik, de status, wat als probleem telt, **Aan mij toegewezen**, de sortering en de paginagrootte. Een weergave met **Aan mij toegewezen** toont iedereen de uitzonderingen die aan hem of haar zijn toegewezen, en **Weergave wissen** zet de lijst terug zoals die eerst opent. Het adres van de pagina noemt de weergave die u koos, zodat een link die u deelt haar opent. Verder werken opgeslagen weergaven zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
+
 ### Een uitzondering openen
 
 Klik op een rij om de pagina van de uitzondering te openen.
@@ -99,7 +101,9 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
 
-**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
+**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe. De persoon aan wie ze is toegewezen, of elk lid van het team, krijgt een melding zoals de rij **Uitzondering aan mij toegewezen** van hun [Meldingsinstellingen](/docs/notifications/notification-settings) aangeeft; wie haar toewees, krijgt er geen.
+
+**Activiteit**, onderaan het **Overzicht** van de uitzondering, toont wie haar wanneer heeft gewijzigd, nieuwste eerst: wie haar heeft opgelost, heropend, gearchiveerd of toegewezen, een andere uitzondering met haar heeft samengevoegd of er een heeft gesplitst, en wanneer ze terugkwam nadat ze was opgelost. Elke wijziging staat er, gedaan op de pagina van de uitzondering, in de lijst, onder **Bulkacties**, via de API of door OneUptime zelf, en een wijziging met een API-sleutel draagt de naam van de sleutel.
 
 ## Foutklassen
 

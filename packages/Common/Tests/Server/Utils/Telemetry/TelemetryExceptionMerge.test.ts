@@ -14,6 +14,11 @@ import TelemetryExceptionMerge, {
   MAX_EXCEPTIONS_MERGED_AT_ONCE,
 } from "../../../../Server/Utils/Telemetry/TelemetryExceptionMerge";
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityActor,
+  TelemetryExceptionActivityEntry,
+} from "../../../../Server/Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "../../../../Models/DatabaseModels/TelemetryExceptionActivity";
 import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -79,6 +84,33 @@ function row(id: string, overrides: Partial<Row> = {}): Row {
 let rows: Array<Row>;
 let editableIds: Array<string> | "throw";
 let statements: Array<{ sql: string; params: Array<unknown> }>;
+// What each merge and unmerge left on the exceptions' activity timelines.
+let activity: Array<{
+  entries: Array<TelemetryExceptionActivityEntry>;
+  actor: TelemetryExceptionActivityActor;
+}>;
+
+function activityLines(): Array<
+  [string, TelemetryExceptionActivityType, string]
+> {
+  return activity.flatMap(
+    (call: {
+      entries: Array<TelemetryExceptionActivityEntry>;
+    }): Array<[string, TelemetryExceptionActivityType, string]> => {
+      return call.entries.map(
+        (
+          entry: TelemetryExceptionActivityEntry,
+        ): [string, TelemetryExceptionActivityType, string] => {
+          return [
+            entry.telemetryExceptionId.toString(),
+            entry.activityType,
+            entry.relatedTelemetryExceptionId?.toString() || "",
+          ];
+        },
+      );
+    },
+  );
+}
 
 function writes(): Array<{ sql: string; params: Array<unknown> }> {
   return statements.filter((statement: { sql: string }): boolean => {
@@ -90,6 +122,17 @@ beforeEach(() => {
   rows = [row(A), row(B)];
   editableIds = [A, B, C, D];
   statements = [];
+  activity = [];
+
+  jest
+    .spyOn(TelemetryExceptionActivityService, "record")
+    .mockImplementation((async (data: {
+      entries: Array<TelemetryExceptionActivityEntry>;
+      actor: TelemetryExceptionActivityActor;
+    }) => {
+      activity.push(data);
+      return data.entries.length;
+    }) as never);
 
   jest.spyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
     _type: unknown,
@@ -466,5 +509,105 @@ describe("unmerging", () => {
     await expect(unmerge(B)).rejects.toThrow(NotAuthorizedException);
 
     expect(statements).toHaveLength(0);
+  });
+});
+
+/*
+ * Each merge and unmerge goes on the activity timeline of every exception it
+ * moved, once it is written - never for a refused one, never for one that
+ * changed nothing - crediting whoever made it.
+ */
+describe("the activity a merge or an unmerge leaves", () => {
+  test("a merge: on the survivor, what was merged in; on the merged one, where it went", async () => {
+    await merge(A, [B]);
+
+    expect(activity).toHaveLength(1);
+    expect(activity[0]!.actor).toEqual({ userId: USER_ID });
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Merged, B],
+      [B, TelemetryExceptionActivityType.MergedInto, A],
+    ]);
+    expect(
+      activity[0]!.entries.every((entry: TelemetryExceptionActivityEntry) => {
+        return entry.projectId.toString() === PROJECT_ID.toString();
+      }),
+    ).toBe(true);
+  });
+
+  test("the ones that came along with a merged one are merged into the survivor now, and say so", async () => {
+    rows = [row(A), row(B), row(C, { mergedIntoId: B })];
+
+    await merge(A, [B]);
+
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Merged, B],
+      [B, TelemetryExceptionActivityType.MergedInto, A],
+      [C, TelemetryExceptionActivityType.MergedInto, A],
+    ]);
+  });
+
+  test("several at once: one Merged on the survivor for each, nothing for the one already there", async () => {
+    rows = [row(A), row(B), row(C), row(D, { mergedIntoId: A })];
+
+    await merge(A, [B, C, D]);
+
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Merged, B],
+      [B, TelemetryExceptionActivityType.MergedInto, A],
+      [A, TelemetryExceptionActivityType.Merged, C],
+      [C, TelemetryExceptionActivityType.MergedInto, A],
+    ]);
+  });
+
+  test("merging again what is merged already records nothing", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+
+    await merge(A, [B]);
+
+    expect(activityLines()).toEqual([]);
+  });
+
+  test("a refused merge records nothing", async () => {
+    rows = [row(A), row(B, { primaryEntityId: OTHER_SERVICE_ID })];
+    await expect(merge(A, [B])).rejects.toThrow(BadDataException);
+
+    editableIds = [A];
+    await expect(merge(A, [B])).rejects.toThrow(NotAuthorizedException);
+
+    expect(activity).toHaveLength(0);
+  });
+
+  test("an unmerge: on the survivor, what was taken out; on the one taken out, where from", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    expect(activity[0]!.actor).toEqual({ userId: USER_ID });
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Unmerged, B],
+      [B, TelemetryExceptionActivityType.UnmergedFrom, A],
+    ]);
+  });
+
+  test("an unmerge that changed nothing records nothing", async () => {
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    expect(activity).toHaveLength(0);
+  });
+
+  test("a merge through an API key is credited to the key", async () => {
+    await merge(A, [B], {
+      tenantId: PROJECT_ID,
+      apiKeyId: ObjectID.generate(),
+      apiKeyName: "Cleanup script",
+    });
+
+    expect(activity[0]!.actor).toEqual({ apiKeyName: "Cleanup script" });
   });
 });

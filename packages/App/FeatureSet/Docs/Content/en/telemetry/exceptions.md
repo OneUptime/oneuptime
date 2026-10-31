@@ -62,6 +62,8 @@ Each row also shows how many users the exception affected in the time range you 
 
 Type a query such as `type:TypeError env:production`, see [Search Syntax](/docs/telemetry/search-syntax#exceptions), or click a value in the **Filters** sidebar: a service, a host or other resource, an **Exception Type**, an **Environment** or an **Error Class**. **Assigned to me** shows only the exceptions assigned to you, and the sort menu orders the list by **Last seen**, **First seen** or **Most events**.
 
+**Saved Views** keeps the list under a name, for everyone in the project: the search, filters, time range, status, what counts as an issue, **Assigned to me**, the sort and the page size. A view with **Assigned to me** shows each person the exceptions assigned to them, and **Clear view** puts the list back as it first opens. The page's address names the view you picked, so a link you share opens it. Saved views otherwise work as they do in the [Logs Explorer](/docs/telemetry/logs-explorer#save-a-view).
+
 ### Open an exception
 
 Click a row to open the exception's page.
@@ -99,7 +101,9 @@ The buttons at the top of the exception's page, its **Settings** page and the �
 
 To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.
 
-**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.
+**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once. The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.
+
+**Activity**, at the bottom of the exception's **Overview**, says who changed it and when, newest first: who resolved, reopened, archived or assigned it, merged another exception into it or unmerged one, and when it came back after it was resolved. Every change is there, made on the exception's page, in the list, under **Bulk Actions**, through the API or by OneUptime itself, and a change made with an API key carries the key's name.
 
 ## Error classes
 

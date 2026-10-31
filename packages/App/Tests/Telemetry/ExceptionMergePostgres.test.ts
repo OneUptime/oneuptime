@@ -5,6 +5,10 @@ import ExceptionUtil, {
 import Entities from "Common/Models/DatabaseModels/Index";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import TelemetryExceptionMerge, {
   ExceptionMergeOutcome,
   ExceptionUnmergeOutcome,
@@ -62,6 +66,7 @@ describePostgres("merging exceptions against Postgres", () => {
   const serviceId: ObjectID = ObjectID.generate();
   const userId: ObjectID = ObjectID.generate();
   let database: DataSource;
+  let activity: Array<[string, TelemetryExceptionActivityType, string]>;
 
   function occurrence(fingerprint: string): TelemetryExceptionPayload {
     return {
@@ -222,6 +227,23 @@ describePostgres("merging exceptions against Postgres", () => {
         );
       }) as never);
 
+    // What the merges, unmerges and ingests left on the activity timelines.
+    activity = [];
+    jest
+      .spyOn(TelemetryExceptionActivityService, "record")
+      .mockImplementation((async (data: {
+        entries: Array<TelemetryExceptionActivityEntry>;
+      }) => {
+        for (const entry of data.entries) {
+          activity.push([
+            entry.telemetryExceptionId.toString(),
+            entry.activityType,
+            entry.relatedTelemetryExceptionId?.toString() || "",
+          ]);
+        }
+        return data.entries.length;
+      }) as never);
+
     await database.query(`DELETE FROM "${schema}"."TelemetryException"`);
   });
 
@@ -239,6 +261,19 @@ describePostgres("merging exceptions against Postgres", () => {
       (await read("a"))._id,
     );
     expect((await read("b")).mergedByUserId).toBe(userId.toString());
+    // Both timelines say so, once the merge is written.
+    expect(activity).toEqual([
+      [
+        (await read("a"))._id,
+        TelemetryExceptionActivityType.Merged,
+        (await read("b"))._id,
+      ],
+      [
+        (await read("b"))._id,
+        TelemetryExceptionActivityType.MergedInto,
+        (await read("a"))._id,
+      ],
+    ]);
 
     // Two of b and one of a, after the merge.
     await ingest(["b", "b", "a"]);
@@ -287,11 +322,16 @@ describePostgres("merging exceptions against Postgres", () => {
       `UPDATE "${schema}"."TelemetryException" SET "isResolved" = true, "markedAsResolvedAt" = now() - interval '1 hour' WHERE "fingerprint" = 'a'`,
     );
 
+    activity.length = 0;
     await ingest(["b"]);
 
     const survivor: GroupRow = await read("a");
     expect(survivor.isResolved).toBe(false);
     expect(survivor.regressedAt).not.toBeNull();
+    // The survivor's timeline says it came back.
+    expect(activity).toEqual([
+      [survivor._id, TelemetryExceptionActivityType.Regressed, ""],
+    ]);
   });
 
   test("merging an exception others were merged into moves them along, and each unmerge takes only its own", async () => {
