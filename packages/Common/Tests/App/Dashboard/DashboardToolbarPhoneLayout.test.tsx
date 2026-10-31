@@ -18,6 +18,7 @@ import DashboardToolbar, {
   DASHBOARD_TOOLBAR_CONTROLS_TEST_ID,
   DASHBOARD_TOOLBAR_END_TEST_ID,
   DASHBOARD_TOOLBAR_ROW_TEST_ID,
+  DASHBOARD_TOOLBAR_TEXT_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardToolbar";
 
 /*
@@ -70,12 +71,16 @@ function toolbar(options: {
   withWidget?: boolean;
   variables?: Array<DashboardVariable>;
   isSaving?: boolean;
+  name?: string;
+  description?: string;
 }): React.ReactElement {
   return (
     <DashboardToolbar
       dashboardMode={options.mode || DashboardMode.View}
-      dashboardName="Production wall screen"
-      dashboardDescription="Requests, latency and errors across the fleet"
+      dashboardName={options.name || "Production wall screen"}
+      dashboardDescription={
+        options.description || "Requests, latency and errors across the fleet"
+      }
       dashboardViewConfig={config(options.withWidget !== false)}
       isSaving={Boolean(options.isSaving)}
       canEditDashboard={true}
@@ -280,5 +285,76 @@ describe("the toolbar's card", () => {
 
     expect(classesOf(outer)).toContain("md:mx-3");
     expect(classesOf(outer)).not.toContain("mx-3");
+  });
+});
+
+describe("the dashboard's name and description", () => {
+  /*
+   * Words someone wrote, in their language whatever the page's. Laid out as
+   * the page reads, an English name on a Persian page was cut at its start
+   * ("...ency and errors across the fleet"); each now reads its own way
+   * (IsolatedText) and is cut short at its own end, and sits on the page's
+   * side beside the icon, as wide as its words (inline-block). The name is
+   * the page's second heading: the page's title above the toolbar is its
+   * one h1.
+   */
+  const PERSIAN_NAME: string = "نمای تولید";
+  const PERSIAN_DESCRIPTION: string = "درخواست‌ها و خطاها";
+
+  function bdiOf(text: string): HTMLElement {
+    const element: HTMLElement = screen.getByText(text);
+
+    expect(element.tagName).toBe("BDI");
+
+    return element;
+  }
+
+  test("the name is a second-level heading, under the page's own title", () => {
+    render(toolbar({}));
+
+    expect(
+      within(row()).getByRole("heading", {
+        level: 2,
+        name: "Production wall screen",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(row()).queryByRole("heading", { level: 1 }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an English name and description read left to right, each cut at its own end, whole under the pointer", () => {
+    render(toolbar({}));
+
+    for (const text of [
+      "Production wall screen",
+      "Requests, latency and errors across the fleet",
+    ]) {
+      const element: HTMLElement = bdiOf(text);
+
+      expect(element).toHaveAttribute("dir", "ltr");
+      expect(element).toHaveAttribute("title", text);
+      expect(classesOf(element)).toEqual(
+        DASHBOARD_TOOLBAR_TEXT_CLASS_NAME.split(" "),
+      );
+    }
+
+    // The heading itself gives way beside the Editing badge.
+    expect(classesOf(screen.getByRole("heading", { level: 2 }))).toContain(
+      "min-w-0",
+    );
+  });
+
+  test("each is on one line, as wide as its words and never wider than its line", () => {
+    expect(DASHBOARD_TOOLBAR_TEXT_CLASS_NAME.split(" ").sort()).toEqual(
+      ["align-top", "inline-block", "max-w-full", "truncate"].sort(),
+    );
+  });
+
+  test("a Persian name and description read right to left on any page", () => {
+    render(toolbar({ name: PERSIAN_NAME, description: PERSIAN_DESCRIPTION }));
+
+    expect(bdiOf(PERSIAN_NAME)).toHaveAttribute("dir", "rtl");
+    expect(bdiOf(PERSIAN_DESCRIPTION)).toHaveAttribute("dir", "rtl");
   });
 });

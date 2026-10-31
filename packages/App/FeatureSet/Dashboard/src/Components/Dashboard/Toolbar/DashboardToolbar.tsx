@@ -26,6 +26,7 @@ import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
@@ -45,6 +46,15 @@ import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
  * The toolbar's main row; the box at its end that holds the controls and
  * the ⋯ menu; and the controls.
  */
+/*
+ * The dashboard's name and its description, each on one line: as wide as
+ * its words, up to its line, and cut short at its own end - an English name
+ * on a Persian page keeps its start in view. The line it sits on puts it on
+ * the page's side, beside the icon.
+ */
+export const DASHBOARD_TOOLBAR_TEXT_CLASS_NAME: string =
+  "inline-block max-w-full truncate align-top";
+
 export const DASHBOARD_TOOLBAR_ROW_TEST_ID: string = "dashboard-toolbar-row";
 export const DASHBOARD_TOOLBAR_END_TEST_ID: string = "dashboard-toolbar-end";
 export const DASHBOARD_TOOLBAR_CONTROLS_TEST_ID: string =
@@ -542,11 +552,24 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 className="w-4 h-4 text-indigo-500"
               />
             </div>
+            {/*
+             * The dashboard's name and description are words someone wrote,
+             * in their language whatever the page's: each reads its own way
+             * (IsolatedText), so an English one on a Persian page is cut
+             * short at its own end and keeps its start in view, and each
+             * lines up with the page, beside the icon. The name is the
+             * page's second heading: the page's own title above the toolbar
+             * is its first.
+             */}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-semibold text-gray-800 truncate">
-                  {props.dashboardName}
-                </h1>
+                <h2 className="min-w-0 text-sm font-semibold text-gray-800">
+                  <IsolatedText
+                    text={props.dashboardName}
+                    title={props.dashboardName}
+                    className={DASHBOARD_TOOLBAR_TEXT_CLASS_NAME}
+                  />
+                </h2>
                 {isEditMode && (
                   <span className="inline-flex items-center px-1.5 py-px rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
                     <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span>
@@ -555,8 +578,12 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               {props.dashboardDescription && !isEditMode && (
-                <p className="text-xs text-gray-400 truncate mt-0.5 max-w-md">
-                  {props.dashboardDescription}
+                <p className="text-xs text-gray-400 mt-0.5 max-w-md">
+                  <IsolatedText
+                    text={props.dashboardDescription}
+                    title={props.dashboardDescription}
+                    className={DASHBOARD_TOOLBAR_TEXT_CLASS_NAME}
+                  />
                 </p>
               )}
             </div>

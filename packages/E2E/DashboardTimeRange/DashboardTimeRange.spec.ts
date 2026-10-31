@@ -1271,10 +1271,10 @@ test.describe("the dashboard inside OneUptime at any width", () => {
     await settledBoard(page);
 
     const [title, more, controls]: Array<FrameBox> = await boxesInOneFrame([
-      // The toolbar's heading, not the page's title above it.
+      // The toolbar's heading, under the page's own title above it.
       page
         .getByTestId("dashboard-toolbar-row")
-        .getByRole("heading", { level: 1, name: "Production wall screen" }),
+        .getByRole("heading", { level: 2, name: "Production wall screen" }),
       page.getByRole("button", { name: "More dashboard options" }),
       page.getByTestId("dashboard-toolbar-controls"),
     ]);

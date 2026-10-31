@@ -19,6 +19,10 @@ import {
 } from "../../../Types/Dashboard/DashboardTemplates";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import {
+  getValueWidgetLayout,
+  ValueWidgetLayout,
+} from "../../../Utils/Dashboard/ValueWidgetLayout";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
@@ -367,6 +371,61 @@ describe("a phone: the widgets one under another", () => {
         { heightInUnits: 4, componentType: DashboardComponentType.Table },
       ]),
     ).toBe(70 + 400 + 310 + 2 * 10);
+  });
+});
+
+describe("a Value widget one row high, the size every template's numbers are", () => {
+  /*
+   * The rows are 70px on every board 500 to 950px wide and on a phone, and a
+   * one-row Value widget gave its title up there by half a pixel, so a
+   * laptop beside the side menu and every phone showed bare numbers. The
+   * value widget's own layout (ValueWidgetLayout) decides; these hold the
+   * two together, the box the board hands the widget to what it draws in it.
+   */
+  function valueOn(box: DashboardBoardBox): ValueWidgetLayout {
+    return getValueWidgetLayout({
+      widthInPx: box.width,
+      heightInPx: box.height,
+      hasTitle: true,
+      hasTrend: true,
+      hasSparklineData: true,
+      valueText: "2.67K",
+      unitText: "",
+    });
+  }
+
+  test("keeps its title on the grid at any width", () => {
+    const tile: GridRect = rect({ id: "v", width: 3, height: 1 });
+
+    for (let width: number = 500; width <= 1600; width = width + 25) {
+      const box: DashboardBoardBox = DashboardBoardLayoutUtil.getGridBox(
+        tile,
+        view(width),
+      );
+
+      expect([width, valueOn(box).showTitle]).toEqual([width, true]);
+    }
+  });
+
+  test("keeps its title and its trend on a phone, as wide as the board", () => {
+    for (let width: number = 280; width < 500; width = width + 10) {
+      const layout: DashboardBoardLayout = view(width);
+      const value: ValueWidgetLayout = valueOn({
+        left: 0,
+        top: 0,
+        width: layout.widthInPx,
+        height: DashboardBoardLayoutUtil.getStackedHeightInPx({
+          heightInUnits: 1,
+          componentType: DashboardComponentType.Value,
+        }),
+      });
+
+      expect([width, value.showTitle, value.showStatusRow]).toEqual([
+        width,
+        true,
+        true,
+      ]);
+    }
   });
 });
 
