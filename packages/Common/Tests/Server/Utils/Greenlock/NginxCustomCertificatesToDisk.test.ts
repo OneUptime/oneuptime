@@ -4,11 +4,12 @@
  *
  * It used to read status page domains only, so "Upload Custom Certificate" on
  * a dashboard domain was stored and never served: nginx had no file for the
- * name and the TLS handshake failed. These pin that both kinds of custom
- * domain are written, and that neither kind can keep the other off disk.
+ * name and the TLS handshake failed. These pin that every kind of custom
+ * domain is written - a status page's, a dashboard's and a form's - and
+ * that no kind can keep another off disk.
  *
  * The job module from packages/Nginx runs for real; the cron, the file system
- * and the two domain tables are replaced.
+ * and the three domain tables are replaced.
  */
 
 import {
@@ -21,6 +22,7 @@ import {
 } from "@jest/globals";
 import StatusPageDomainService from "../../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService from "../../../../Server/Services/DashboardDomainService";
+import FormDomainService from "../../../../Server/Services/FormDomainService";
 import LocalFile from "../../../../Server/Utils/LocalFile";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "../../../../Utils/CronTime";
@@ -62,6 +64,7 @@ type Harness = {
   files: Map<string, string>;
   statusPageQueries: Array<FindAllByCall>;
   dashboardQueries: Array<FindAllByCall>;
+  formQueries: Array<FindAllByCall>;
 };
 
 const NOT_NULL: { notNull: true } = { notNull: true };
@@ -69,12 +72,15 @@ const NOT_NULL: { notNull: true } = { notNull: true };
 function setUp(data: {
   statusPageRows: Array<Row> | Error;
   dashboardRows: Array<Row> | Error;
+  // A form's own domains (FormDomain); none unless a test names some.
+  formRows?: Array<Row> | Error;
   failWritesFor?: Array<string>;
 }): Harness {
   const harness: Harness = {
     files: new Map<string, string>(),
     statusPageQueries: [],
     dashboardQueries: [],
+    formQueries: [],
   };
 
   jest.spyOn(QueryHelper, "notNull").mockReturnValue(NOT_NULL as never);
@@ -107,6 +113,12 @@ function setUp(data: {
     .spyOn(DashboardDomainService, "findAllBy")
     .mockImplementation(
       answer(data.dashboardRows, harness.dashboardQueries) as never,
+    );
+
+  jest
+    .spyOn(FormDomainService, "findAllBy")
+    .mockImplementation(
+      answer(data.formRows || [], harness.formQueries) as never,
     );
 
   jest.spyOn(LocalFile, "makeDirectory").mockResolvedValue(undefined as never);
@@ -186,6 +198,62 @@ describe("nginx WriteCustomCertsToDisk", () => {
     ]);
   });
 
+  test("writes a form domain's uploaded certificate beside the others", async () => {
+    const harness: Harness = setUp({
+      statusPageRows: [uploaded("status.acme.com")],
+      dashboardRows: [uploaded("dash.acme.com")],
+      formRows: [uploaded("report.acme.com")],
+    });
+
+    await runJob();
+
+    expect([...harness.files.keys()].sort()).toEqual([
+      `${CERTS_DIRECTORY}/dash.acme.com.crt`,
+      `${CERTS_DIRECTORY}/dash.acme.com.key`,
+      `${CERTS_DIRECTORY}/report.acme.com.crt`,
+      `${CERTS_DIRECTORY}/report.acme.com.key`,
+      `${CERTS_DIRECTORY}/status.acme.com.crt`,
+      `${CERTS_DIRECTORY}/status.acme.com.key`,
+    ]);
+    expect(harness.files.get(`${CERTS_DIRECTORY}/report.acme.com.crt`)).toBe(
+      uploaded("report.acme.com").customCertificate,
+    );
+    expect(harness.files.get(`${CERTS_DIRECTORY}/report.acme.com.key`)).toBe(
+      uploaded("report.acme.com").customCertificateKey,
+    );
+  });
+
+  test("a failure reading form domains keeps no other certificate off disk, nor one reading the others a form's", async () => {
+    const formFailing: Harness = setUp({
+      statusPageRows: [uploaded("status.acme.com")],
+      dashboardRows: [uploaded("dash.acme.com")],
+      formRows: new Error("form domain table unavailable"),
+    });
+
+    await expect(runJob()).resolves.toBeUndefined();
+
+    expect(
+      formFailing.files.has(`${CERTS_DIRECTORY}/status.acme.com.crt`),
+    ).toBe(true);
+    expect(formFailing.files.has(`${CERTS_DIRECTORY}/dash.acme.com.crt`)).toBe(
+      true,
+    );
+
+    jest.restoreAllMocks();
+
+    const othersFailing: Harness = setUp({
+      statusPageRows: new Error("status page table unavailable"),
+      dashboardRows: new Error("dashboard table unavailable"),
+      formRows: [uploaded("report.acme.com")],
+    });
+
+    await expect(runJob()).resolves.toBeUndefined();
+
+    expect(
+      othersFailing.files.has(`${CERTS_DIRECTORY}/report.acme.com.crt`),
+    ).toBe(true);
+  });
+
   test("asks each table only for domains with an uploaded certificate and key, as root", async () => {
     const harness: Harness = setUp({ statusPageRows: [], dashboardRows: [] });
 
@@ -194,6 +262,7 @@ describe("nginx WriteCustomCertsToDisk", () => {
     for (const queries of [
       harness.statusPageQueries,
       harness.dashboardQueries,
+      harness.formQueries,
     ]) {
       expect(queries).toHaveLength(1);
       expect(queries[0]!.query).toEqual({

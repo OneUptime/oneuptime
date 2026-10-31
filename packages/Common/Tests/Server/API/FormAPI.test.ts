@@ -150,6 +150,12 @@ const setNoCacheHeadersMock: MockedFn =
 
 const READ_URI: string = "/form/public/:shareKey";
 const SUBMIT_URI: string = "/form/public/:shareKey/submit";
+
+// The same two on a form's own domain (FormDomain), and its CNAME check.
+const CUSTOM_DOMAIN_READ_URI: string = "/form/custom-domain";
+const CUSTOM_DOMAIN_SUBMIT_URI: string = "/form/custom-domain/submit";
+const CUSTOM_DOMAIN_CNAME_URI: string =
+  "/form/custom-domain/cname-verification/:token";
 const SHARE_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const TRUSTED_IP: string = "203.0.113.7";
 
@@ -331,7 +337,7 @@ describe("FormAPI", () => {
       };
     };
 
-    it("adds exactly the two public routes to the model's CRUD routes", () => {
+    it("adds exactly the two public routes, their twins on a form's own domain and its CNAME check to the model's CRUD routes", () => {
       const { custom, inherited } = splitRoutes();
 
       expect(
@@ -340,8 +346,26 @@ describe("FormAPI", () => {
             return `${registered.method} ${registered.uri}`;
           })
           .sort(),
-      ).toEqual([`GET ${READ_URI}`, `POST ${SUBMIT_URI}`]);
+      ).toEqual(
+        [
+          `GET ${READ_URI}`,
+          `POST ${SUBMIT_URI}`,
+          `GET ${CUSTOM_DOMAIN_READ_URI}`,
+          `POST ${CUSTOM_DOMAIN_SUBMIT_URI}`,
+          `GET ${CUSTOM_DOMAIN_CNAME_URI}`,
+        ].sort(),
+      );
       expect(inherited.length).toBeGreaterThan(0);
+    });
+
+    /*
+     * The CNAME check is the form domain sweeps' (FormDomainService
+     * .isCnameValid): anonymous, read-only, with no page headers to ask for.
+     */
+    it("runs the CNAME check with nothing in front of its handler", () => {
+      const registered: RegisteredRoute = route("GET", CUSTOM_DOMAIN_CNAME_URI);
+
+      expect(registered.middlewares).toHaveLength(0);
     });
 
     /*
@@ -364,6 +388,27 @@ describe("FormAPI", () => {
         "POST",
         SUBMIT_URI,
         [FormAPI.refuseForeignPageRequests, FormAPI.requireJsonBody],
+      ],
+      /*
+       * On a form's own domain the first check holds the request to that
+       * domain's own pages (refuseForeignPageRequestsOnCustomDomain), and
+       * the rest is the link's, in the link's order.
+       */
+      [
+        "GET",
+        CUSTOM_DOMAIN_READ_URI,
+        [
+          FormAPI.refuseForeignPageRequestsOnCustomDomain,
+          FormAPI.requireFormPageHeader,
+        ],
+      ],
+      [
+        "POST",
+        CUSTOM_DOMAIN_SUBMIT_URI,
+        [
+          FormAPI.refuseForeignPageRequestsOnCustomDomain,
+          FormAPI.requireJsonBody,
+        ],
       ],
     ])(
       "runs %s %s as own-page checks, limiter, anonymous user middleware, handler",

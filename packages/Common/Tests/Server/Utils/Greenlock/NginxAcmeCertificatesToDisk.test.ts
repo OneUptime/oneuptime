@@ -7,8 +7,8 @@
  * certificate still has its old Let's Encrypt row, and if both jobs write
  * that name they overwrite each other every 15 minutes: the domain serves
  * whichever ran last. These pin that the uploaded certificate wins - the
- * Let's Encrypt writer leaves those names alone - for status page and
- * dashboard domains alike.
+ * Let's Encrypt writer leaves those names alone - for status page, dashboard
+ * and form domains alike.
  *
  * The job module from packages/Nginx runs for real; the cron, the file
  * system and the tables are replaced.
@@ -25,6 +25,7 @@ import {
 import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateService";
 import StatusPageDomainService from "../../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService from "../../../../Server/Services/DashboardDomainService";
+import FormDomainService from "../../../../Server/Services/FormDomainService";
 import LocalFile from "../../../../Server/Utils/LocalFile";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import AcmeWriteCertificatesJob from "../../../../../Nginx/Jobs/AcmeWriteCertificates";
@@ -78,6 +79,8 @@ function setUp(data: {
   acmeDomains: Array<string>;
   statusPageUploads: Array<string> | Error;
   dashboardUploads: Array<string> | Error;
+  // A form's own domains (FormDomain); none unless a test names some.
+  formUploads?: Array<string> | Error | undefined;
 }): Harness {
   const harness: Harness = {
     files: new Map<string, string>(),
@@ -119,6 +122,10 @@ function setUp(data: {
   jest
     .spyOn(DashboardDomainService, "findAllBy")
     .mockImplementation(answer(data.dashboardUploads) as never);
+
+  jest
+    .spyOn(FormDomainService, "findAllBy")
+    .mockImplementation(answer(data.formUploads || []) as never);
 
   jest.spyOn(LocalFile, "makeDirectory").mockResolvedValue(undefined as never);
 
@@ -199,7 +206,20 @@ describe("nginx AcmeWriteCertificates", () => {
     ]);
   });
 
-  test("asks both tables only for domains with an uploaded certificate and key, as root", async () => {
+  test("leaves alone a name whose form domain serves an uploaded certificate", async () => {
+    const harness: Harness = setUp({
+      acmeDomains: ["report.acme.com", "uploaded-report.acme.com"],
+      statusPageUploads: [],
+      dashboardUploads: [],
+      formUploads: [" Uploaded-Report.acme.com"],
+    });
+
+    await runJob();
+
+    expect(writtenDomains(harness)).toEqual(["report.acme.com"]);
+  });
+
+  test("asks the three tables only for domains with an uploaded certificate and key, as root", async () => {
     const harness: Harness = setUp({
       acmeDomains: [],
       statusPageUploads: [],
@@ -208,7 +228,7 @@ describe("nginx AcmeWriteCertificates", () => {
 
     await runJob();
 
-    expect(harness.uploadQueries).toHaveLength(2);
+    expect(harness.uploadQueries).toHaveLength(3);
 
     for (const query of harness.uploadQueries) {
       expect(query.query).toEqual({

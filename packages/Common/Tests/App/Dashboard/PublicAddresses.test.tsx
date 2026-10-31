@@ -20,10 +20,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * Every address a status page or a public dashboard answers at
+ * Every address a status page, a public dashboard or a form answers at
  * (Components/CustomDomain/PublicAddresses): the list a status page's
- * Overview draws in its Status Page Link card, and a dashboard's Sharing
- * page under its public choice.
+ * Overview draws in its Status Page Link card, a dashboard's Sharing page
+ * under its public choice, and a form's Share page in its Share Link card.
  *
  * The Overview used to show one underlined monospace address on OneUptime's
  * own domain, whatever custom domains the page had, and nothing said whether
@@ -66,6 +66,7 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "FormCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
     get: (): boolean => {
       return mockIssuesFreeCertificates;
@@ -138,6 +139,7 @@ import {
   CustomDomainKind,
   CustomDomainModel,
   DASHBOARD_CUSTOM_DOMAINS,
+  FORM_CUSTOM_DOMAINS,
   STATUS_PAGE_CUSTOM_DOMAINS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
 import Route from "../../../Types/API/Route";
@@ -191,6 +193,17 @@ const KINDS: Array<KindCase> = [
     example: "dashboard.example.com",
     certificatesPath: `/dashboard-domain/certificates/${PARENT_ID}`,
     verifyPath: "/dashboard-domain/verify-cname/",
+  },
+  {
+    name: "a form",
+    kind: FORM_CUSTOM_DOMAINS,
+    parentColumn: "formId",
+    // A form's link names its share key; any address does for the list.
+    oneUptimeUrl: `https://oneuptime.com/accounts/form/${PARENT_ID}`,
+    customDomainsRoute: `/dashboard/${PROJECT_ID}/forms/${PARENT_ID}/custom-domains`,
+    example: "report.example.com",
+    certificatesPath: `/form-domain/certificates/${PARENT_ID}`,
+    verifyPath: "/form-domain/verify-cname/",
   },
 ];
 

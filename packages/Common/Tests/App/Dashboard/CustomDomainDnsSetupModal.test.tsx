@@ -66,6 +66,7 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "FormCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
     get: (): boolean => {
       return mockIssuesFreeCertificates;
@@ -109,6 +110,7 @@ import {
   CustomDomainKind,
   CustomDomainModel,
   DASHBOARD_CUSTOM_DOMAINS,
+  FORM_CUSTOM_DOMAINS,
   STATUS_PAGE_CUSTOM_DOMAINS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
 import ObjectID from "../../../Types/ObjectID";
@@ -148,6 +150,19 @@ const KINDS: Array<KindCase> = [
     verifyRoute: "/dashboard-domain/verify-cname/",
     variable: "DASHBOARD_CNAME_RECORD",
     helmValue: "dashboard.cnameRecord",
+  },
+  /*
+   * A form's own domains use the status page CNAME record (FormCNameRecord):
+   * the setting that turns them on is the status page one.
+   */
+  {
+    name: "a form's",
+    kind: FORM_CUSTOM_DOMAINS,
+    cnameRecord: "forms.oneuptime.com",
+    pointsTo: "your form",
+    verifyRoute: "/form-domain/verify-cname/",
+    variable: "STATUS_PAGE_CNAME_RECORD",
+    helmValue: "statusPage.cnameRecord",
   },
 ];
 

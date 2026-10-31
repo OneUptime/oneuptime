@@ -141,6 +141,11 @@ const GRANULAR_PERMISSIONS: Array<[Permission, string]> = [
   [Permission.ReadForm, "Read Form"],
   [Permission.DeleteFormSubmission, "Delete Form Submission"],
   [Permission.ReadFormSubmission, "Read Form Submission"],
+  // A form's own domains (FormDomain).
+  [Permission.CreateFormDomain, "Create Form Domain"],
+  [Permission.DeleteFormDomain, "Delete Form Domain"],
+  [Permission.EditFormDomain, "Edit Form Domain"],
+  [Permission.ReadFormDomain, "Read Form Domain"],
 ];
 
 const BASE_COLUMNS: Array<string> = [
@@ -410,7 +415,7 @@ describe("Form and FormSubmission registration", () => {
   );
 });
 
-describe("the six form permissions", () => {
+describe("the ten form permissions", () => {
   test.each(GRANULAR_PERMISSIONS)(
     "%s is a tenant-assignable Form permission titled %j",
     (permission: Permission, title: string) => {

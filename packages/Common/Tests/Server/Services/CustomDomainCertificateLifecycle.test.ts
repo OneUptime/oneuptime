@@ -1,11 +1,12 @@
 /**
- * A custom domain's certificate, end to end - a status page's and a
- * dashboard's alike: Check now, the four sweeps of its worker job
- * (StatusPageCerts, DashboardCerts), and the order itself, run together the
- * way the worker and the API run them. Every scenario runs for both kinds:
- * dashboard custom domains got the status page flow (Check now orders the
- * certificate, the CNAME sweep orders what it verifies) and its guarantees,
- * and this is where the two are held to be the same.
+ * A custom domain's certificate, end to end - a status page's, a dashboard's
+ * and a form's alike: Check now, the four sweeps of its worker job
+ * (StatusPageCerts, DashboardCerts, FormCerts), and the order itself, run
+ * together the way the worker and the API run them. Every scenario runs for
+ * every kind: dashboard custom domains got the status page flow (Check now
+ * orders the certificate, the CNAME sweep orders what it verifies) and its
+ * guarantees, a form's own domains got them too, and this is where the
+ * three are held to be the same.
  *
  * Check now (the verify-cname route) now orders the free certificate the
  * moment it finds the domain's record, while the 15-minute sweeps keep
@@ -37,7 +38,8 @@
  *   - Check now, the sweeps and the renewal run together stay within the
  *     installation's Let's Encrypt budget.
  *
- * Real: StatusPageDomainService and DashboardDomainService (the sweeps,
+ * Real: StatusPageDomainService, DashboardDomainService and
+ * FormDomainService (the sweeps,
  * isCnameValid, orderCert, orderCertIfMissing, orderCertOnceCnameIsVerified,
  * reissueCert, the renewal run), CustomDomainOrders, CertificateOrder,
  * CertificateOrderBudget, CertificateOrderFailures and GreenlockUtil's
@@ -52,6 +54,9 @@ import StatusPageDomainService, {
 import DashboardDomainService, {
   Service as DashboardDomainServiceClass,
 } from "../../../Server/Services/DashboardDomainService";
+import FormDomainService, {
+  Service as FormDomainServiceClass,
+} from "../../../Server/Services/FormDomainService";
 import GreenlockUtil from "../../../Server/Utils/Greenlock/Greenlock";
 import AcmeCertificateService from "../../../Server/Services/AcmeCertificateService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
@@ -82,7 +87,7 @@ import {
 import type { SpyInstance } from "jest-mock";
 
 /*
- * The two kinds of custom domain. Their services have the same methods,
+ * The three kinds of custom domain. Their services have the same methods,
  * each over its own table; the tests call them through the status page
  * service's type, since every row they pass is a plain object.
  */
@@ -111,6 +116,14 @@ const KINDS: Array<Kind> = [
     // The dashboard renewal run renews ORDER_MAX_PER_RUN at most.
     renewalsPerRun: DashboardDomainServiceClass.ORDER_MAX_PER_RUN,
     cnameRecord: "dashboards.example.com",
+  },
+  {
+    name: "a form",
+    service: FormDomainService as unknown as StatusPageDomainServiceClass,
+    orderMaxPerRun: FormDomainServiceClass.ORDER_MAX_PER_RUN,
+    // The form domain renewal run renews ORDER_MAX_PER_RUN at most.
+    renewalsPerRun: FormDomainServiceClass.ORDER_MAX_PER_RUN,
+    cnameRecord: "forms.example.com",
   },
 ];
 
@@ -170,6 +183,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     // The same as KINDS' cnameRecord: the factory runs before that is set.
     StatusPageCNameRecord: "statuspage.example.com",
     DashboardCNameRecord: "dashboards.example.com",
+    FormCNameRecord: "forms.example.com",
   };
 });
 

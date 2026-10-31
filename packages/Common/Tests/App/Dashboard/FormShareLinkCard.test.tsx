@@ -15,6 +15,7 @@ import {
   RenderResult,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -22,14 +23,43 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * A form's Share Link card: the link anyone can open to fill the form in,
- * copying it, opening it, and Reset Link.
+ * A form's Share Link card: every address anyone can open to fill the form
+ * in - its own domains first (report.acme.com), then its link on OneUptime -
+ * each to open and copy, and Reset Link, which replaces the link on
+ * OneUptime and leaves the form's own domains working.
  *
- * Only the network, the permission gate, the clipboard and the translation
- * lookup are stubbed: the card, ResetObjectID behind it and their dialogs are
- * the real ones, so a reset is made the way a person makes it - press Reset
- * Link, read the confirmation, confirm, close the result.
+ * Only the network, the permission gate, the clipboard, the browser's config
+ * and the translation lookup are stubbed: the card, the addresses list
+ * (PublicAddresses), ResetObjectID behind it and their dialogs are the real
+ * ones, so a reset is made the way a person makes it - press Reset Link,
+ * read the confirmation, confirm, close the result.
  */
+
+/*
+ * Forms on custom domains: on, through the status page CNAME record, unless
+ * a test turns them off. Getters on the copy (a literal's getter is copied
+ * once, as a value).
+ */
+let mockCnameRecord: string = "forms.oneuptime.com";
+
+jest.mock("../../../UI/Config", () => {
+  const mocked: Record<string, unknown> = {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+  };
+
+  Object.defineProperty(mocked, "FormCNameRecord", {
+    get: (): string => {
+      return mockCnameRecord;
+    },
+  });
+  Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
+    get: (): boolean => {
+      return true;
+    },
+  });
+
+  return mocked;
+});
 
 let mockTranslate: (value: string) => string = (value: string): string => {
   return value;
@@ -62,6 +92,8 @@ jest.mock("../../../UI/Utils/Translation", () => {
  */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
+const apiGetMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -73,6 +105,28 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       updateById: (...args: Array<unknown>): unknown => {
         return updateByIdMock(...args);
       },
+      // The form's own domains, which the addresses list reads.
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
+      },
+      getCommonHeaders: (): Record<string, string> => {
+        return { tenantid: "the-project" };
+      },
+    },
+  };
+});
+
+// The certificates route the list reads for a verified domain.
+jest.mock("../../../UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      get: (...args: Array<unknown>): unknown => {
+        return apiGetMock(...args);
+      },
+      getFriendlyMessage: (err: unknown): string => {
+        return (err as { message?: string })?.message || "Server Error";
+      },
     },
   };
 });
@@ -83,7 +137,15 @@ import {
   getFormShareLink,
   FORM_PUBLIC_ROUTE_SEGMENT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormShareLink";
+import { FORM_EXAMPLE_DOMAIN } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormShareLink";
+import PublicAddressCopy, {
+  PUBLIC_ADDRESS_TEST_IDS,
+  PublicAddressKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import Form from "../../../Models/DatabaseModels/Form";
+import FormDomain from "../../../Models/DatabaseModels/FormDomain";
+import CustomDomainCertificates from "../../../Types/CustomDomain/CustomDomainCertificates";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { ACCOUNTS_URL } from "../../../UI/Config";
 import Clipboard from "../../../UI/Utils/Clipboard";
@@ -91,17 +153,52 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
 
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 const FORM_ID: string = "f0f0f0f0-0000-4000-8000-0000000000ff";
 const SHARE_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const NEW_SHARE_KEY: string = "0b1d3c5e-7f90-4a1b-8c2d-3e4f5a6b7c8d";
+const PROJECT_ID: string = "a1a1a1a1-0000-4000-8000-0000000000a1";
+const DOMAIN_ID: string = "d1d1d1d1-0000-4000-8000-0000000000d1";
+const PENDING_DOMAIN_ID: string = "d2d2d2d2-0000-4000-8000-0000000000d2";
 
 // The link the card must show for a key: Accounts, then the form's route.
 function expectedLink(shareKey: string): string {
   return `${ACCOUNTS_URL.toString()}/form/${shareKey}`;
 }
+
+/*
+ * The form's own domains, as the list reads them: one live (its record
+ * verified, its free certificate issued and served), one still waiting for
+ * its CNAME record.
+ */
+function liveDomain(): FormDomain {
+  const domain: FormDomain = new FormDomain();
+  domain._id = DOMAIN_ID;
+  domain.fullDomain = "report.acme.com";
+  domain.subdomain = "report";
+  domain.isCnameVerified = true;
+  domain.isSslOrdered = true;
+  domain.isSslProvisioned = true;
+  domain.isCustomCertificate = false;
+  return domain;
+}
+
+function pendingDomain(): FormDomain {
+  const domain: FormDomain = new FormDomain();
+  domain._id = PENDING_DOMAIN_ID;
+  domain.fullDomain = "feedback.acme.com";
+  domain.subdomain = "feedback";
+  domain.isCnameVerified = false;
+  domain.isSslOrdered = false;
+  domain.isSslProvisioned = false;
+  domain.isCustomCertificate = false;
+  return domain;
+}
+
+let storedDomains: Array<FormDomain> = [];
 
 interface StoredForm {
   shareKey?: string | undefined;
@@ -117,8 +214,48 @@ beforeEach(() => {
   mockTranslate = (value: string): string => {
     return value;
   };
+  mockCnameRecord = "forms.oneuptime.com";
   storedForm = { shareKey: SHARE_KEY, isEnabled: true };
+  storedDomains = [];
   gate = { isAllowed: true };
+
+  getListMock.mockReset();
+  getListMock.mockImplementation(async (): Promise<unknown> => {
+    return {
+      data: storedDomains,
+      count: storedDomains.length,
+      skip: 0,
+      limit: storedDomains.length,
+    };
+  });
+
+  apiGetMock.mockReset();
+  apiGetMock.mockImplementation(async (): Promise<unknown> => {
+    return {
+      isFailure: (): boolean => {
+        return false;
+      },
+      data: CustomDomainCertificates.toJSON([
+        {
+          domainId: DOMAIN_ID,
+          expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        },
+      ]) as JSONObject,
+    };
+  });
+
+  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockImplementation(
+    (): ObjectID => {
+      return new ObjectID(PROJECT_ID);
+    },
+  );
+
+  // A snapshot is in: a refusal of the gate is the viewer's own.
+  getJestSpyOn(PermissionGate, "hasPermissionSnapshot").mockImplementation(
+    (): boolean => {
+      return true;
+    },
+  );
 
   getItemMock.mockReset();
   getItemMock.mockImplementation(async (): Promise<unknown> => {
@@ -187,18 +324,57 @@ async function renderCard(refresher: boolean = false): Promise<RenderResult> {
   return result!;
 }
 
+// The row of the form's link on OneUptime, once the list has drawn it.
+function oneUptimeRow(): HTMLElement {
+  const row: HTMLElement | undefined = screen
+    .queryAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)
+    .find((candidate: HTMLElement): boolean => {
+      return candidate.getAttribute("data-kind") === PublicAddressKind.OneUptime;
+    });
+
+  expect(row).toBeDefined();
+  return row!;
+}
+
+function queryOneUptimeRow(): HTMLElement | null {
+  return (
+    screen
+      .queryAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)
+      .find((candidate: HTMLElement): boolean => {
+        return (
+          candidate.getAttribute("data-kind") === PublicAddressKind.OneUptime
+        );
+      }) || null
+  );
+}
+
 async function renderLoadedCard(): Promise<RenderResult> {
   const result: RenderResult = await renderCard();
 
   await waitFor(() => {
-    expect(screen.getByTestId("form-share-link")).toBeInTheDocument();
+    expect(queryOneUptimeRow()).not.toBeNull();
   });
 
   return result;
 }
 
+// The address the link on OneUptime opens.
 function shownLink(): string {
-  return screen.getByTestId("form-share-link").textContent || "";
+  return (
+    within(oneUptimeRow())
+      .getByTestId(PUBLIC_ADDRESS_TEST_IDS.link)
+      .getAttribute("href") || ""
+  );
+}
+
+// The address as the row writes it: host and path, without the scheme.
+function shownLinkText(): string {
+  return oneUptimeRow().getAttribute("data-address") || "";
+}
+
+// Copy link on the row of the link on OneUptime.
+function copyLinkButton(): HTMLElement {
+  return within(oneUptimeRow()).getByRole("button");
 }
 
 function cardButtons(): Array<HTMLElement> {
@@ -216,8 +392,11 @@ function resetLinkButton(): HTMLElement {
   return button!;
 }
 
+// The link on OneUptime itself: the row's address, opened in a new tab.
 function openFormLink(): HTMLAnchorElement {
-  return screen.getByText("Open Form").closest("a") as HTMLAnchorElement;
+  return within(oneUptimeRow()).getByTestId(
+    PUBLIC_ADDRESS_TEST_IDS.link,
+  ) as HTMLAnchorElement;
 }
 
 describe("the link", () => {
@@ -255,6 +434,16 @@ describe("the link", () => {
     await renderLoadedCard();
 
     expect(shownLink()).not.toContain(FORM_ID);
+    expect(shownLinkText()).not.toContain(FORM_ID);
+  });
+
+  test("is written without its scheme, and said to be the OneUptime address", async () => {
+    await renderLoadedCard();
+
+    expect(shownLinkText()).toBe(
+      expectedLink(SHARE_KEY).split("://")[1] as string,
+    );
+    expect(oneUptimeRow()).toHaveTextContent(PublicAddressCopy.oneUptimeAddress);
   });
 
   test("building a link leaves the shared Accounts URL alone", () => {
@@ -269,14 +458,12 @@ describe("the link", () => {
     );
   });
 
-  test("Copy Link copies the whole link and says so", async () => {
+  test("Copy link copies the whole link and says so", async () => {
     await renderLoadedCard();
 
-    const copyButton: HTMLElement = screen.getByRole("button", {
-      name: "Copy Link",
-    });
+    const copyButton: HTMLElement = copyLinkButton();
 
-    expect(copyButton).toHaveTextContent("Copy Link");
+    expect(copyButton).toHaveTextContent(PublicAddressCopy.copyLink);
 
     await act(async (): Promise<void> => {
       fireEvent.click(copyButton);
@@ -289,13 +476,14 @@ describe("the link", () => {
     });
   });
 
-  test("Open Form opens the link in a new tab", async () => {
+  test("the link opens in a new tab", async () => {
     await renderLoadedCard();
 
     const link: HTMLAnchorElement = openFormLink();
 
     expect(link.getAttribute("href")).toBe(expectedLink(SHARE_KEY));
     expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
   });
 
   test("the card is titled Share Link and explains who can use the link", async () => {
@@ -307,6 +495,158 @@ describe("the link", () => {
     expect(screen.getByTestId("card-description")).toHaveTextContent(
       FormsCopy.shareLinkDescription,
     );
+  });
+});
+
+describe("the form's own domains", () => {
+  test("are read for this form only, in its project", async () => {
+    await renderLoadedCard();
+
+    expect(getListMock).toHaveBeenCalledTimes(1);
+
+    const request: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+    } = getListMock.mock.calls[0]![0] as {
+      modelType: unknown;
+      query: Record<string, unknown>;
+    };
+
+    expect(request.modelType).toBe(FormDomain);
+    expect(String(request.query["formId"])).toBe(FORM_ID);
+    expect(String(request.query["projectId"])).toBe(PROJECT_ID);
+  });
+
+  test("a live domain comes first, as a link to its root over HTTPS, with Copy link", async () => {
+    storedDomains = [liveDomain()];
+
+    await renderLoadedCard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)).toHaveLength(
+        2,
+      );
+    });
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.row,
+    );
+
+    expect(rows[0]!.getAttribute("data-kind")).toBe(
+      PublicAddressKind.CustomDomain,
+    );
+    expect(rows[0]!.getAttribute("data-live")).toBe("true");
+    expect(
+      within(rows[0]!)
+        .getByTestId(PUBLIC_ADDRESS_TEST_IDS.link)
+        .getAttribute("href"),
+    ).toBe("https://report.acme.com");
+    expect(rows[0]!).toHaveTextContent(PublicAddressCopy.customDomain);
+
+    // The link on OneUptime follows, and still works.
+    expect(rows[1]!.getAttribute("data-kind")).toBe(PublicAddressKind.OneUptime);
+    expect(shownLink()).toBe(expectedLink(SHARE_KEY));
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(rows[0]!).getByRole("button"));
+    });
+
+    expect(copyToClipboardSpy).toHaveBeenCalledWith("https://report.acme.com");
+  });
+
+  test("a domain still waiting for its record says so, with DNS Setup, and is no link", async () => {
+    storedDomains = [pendingDomain()];
+
+    await renderLoadedCard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)).toHaveLength(
+        2,
+      );
+    });
+
+    const pending: HTMLElement = screen.getAllByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.row,
+    )[0]!;
+
+    expect(pending.getAttribute("data-live")).toBe("false");
+    expect(
+      within(pending).queryByTestId(PUBLIC_ADDRESS_TEST_IDS.link),
+    ).not.toBeInTheDocument();
+    expect(
+      within(pending).getByTestId(PUBLIC_ADDRESS_TEST_IDS.notLive),
+    ).toHaveTextContent(PublicAddressCopy.notLiveYet);
+    expect(
+      within(pending).getByTestId(PUBLIC_ADDRESS_TEST_IDS.dnsSetup),
+    ).toBeInTheDocument();
+  });
+
+  test("with none, one quiet line offers to add one on the form's Custom Domains page", async () => {
+    await renderLoadedCard();
+
+    const line: HTMLElement = await screen.findByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.addCustomDomain,
+    );
+
+    expect(line).toHaveTextContent(FORM_EXAMPLE_DOMAIN);
+    expect(FORM_EXAMPLE_DOMAIN).toBe("report.example.com");
+
+    const link: HTMLAnchorElement = within(line).getByText(
+      PublicAddressCopy.addCustomDomainLink,
+    ).closest("a") as HTMLAnchorElement;
+
+    expect(link.getAttribute("href")).toContain(
+      `/forms/${FORM_ID}/custom-domains`,
+    );
+  });
+
+  test("no line where this installation serves no custom domains", async () => {
+    mockCnameRecord = "";
+
+    await renderLoadedCard();
+
+    expect(
+      screen.queryByTestId(PUBLIC_ADDRESS_TEST_IDS.addCustomDomain),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Reset Link leaves the form's own domains as they were", async () => {
+    storedDomains = [liveDomain()];
+
+    await renderLoadedCard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)).toHaveLength(
+        2,
+      );
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(resetLinkButton());
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("modal-title")).toHaveTextContent("New Link");
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.row,
+    );
+
+    expect(
+      within(rows[0]!)
+        .getByTestId(PUBLIC_ADDRESS_TEST_IDS.link)
+        .getAttribute("href"),
+    ).toBe("https://report.acme.com");
+    expect(shownLink()).toBe(expectedLink(NEW_SHARE_KEY));
   });
 });
 
@@ -448,6 +788,9 @@ describe("reading the form again", () => {
 
     await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
 
+    await waitFor(() => {
+      expect(queryOneUptimeRow()).not.toBeNull();
+    });
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
 
     await rerenderWith(result, FORM_ID, true);
@@ -495,7 +838,7 @@ describe("reading the form again", () => {
     await rerenderWith(result, FORM_ID, true);
     await answer(1, null);
 
-    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
+    expect(queryOneUptimeRow()).toBeNull();
     expect(screen.getByText(FormsCopy.shareLinkNotFound)).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
   });
@@ -511,7 +854,7 @@ describe("reading the form again", () => {
     await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
     await rerenderWith(result, OTHER_FORM_ID, false);
 
-    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
+    expect(queryOneUptimeRow()).toBeNull();
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
 
@@ -523,6 +866,9 @@ describe("reading the form again", () => {
 
     await answer(1, { shareKey: OTHER_SHARE_KEY, isEnabled: true });
 
+    await waitFor(() => {
+      expect(queryOneUptimeRow()).not.toBeNull();
+    });
     expect(shownLink()).toBe(expectedLink(OTHER_SHARE_KEY));
   });
 });
@@ -618,9 +964,9 @@ describe("Reset Link", () => {
       expectedLink(NEW_SHARE_KEY),
     );
 
-    // The new link, not the old one, is what Copy Link copies now.
+    // The new link, not the old one, is what Copy link copies now.
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: "Copy Link" }));
+      fireEvent.click(copyLinkButton());
     });
 
     expect(copyToClipboardSpy).toHaveBeenLastCalledWith(
@@ -704,9 +1050,7 @@ describe("Reset Link", () => {
 
     // Reading a form is enough to share it.
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
-    expect(
-      screen.getByRole("button", { name: "Copy Link" }),
-    ).not.toBeDisabled();
+    expect(copyLinkButton()).not.toBeDisabled();
     expect(openFormLink().getAttribute("href")).toBe(expectedLink(SHARE_KEY));
   });
 
@@ -734,7 +1078,7 @@ describe("before there is a link", () => {
     await renderCard();
 
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
-    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
+    expect(queryOneUptimeRow()).toBeNull();
     expect(cardButtons()).toHaveLength(0);
     expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
       "Share Link",
@@ -757,7 +1101,7 @@ describe("before there is a link", () => {
     });
 
     expect(cardButtons()).toHaveLength(0);
-    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
+    expect(queryOneUptimeRow()).toBeNull();
   });
 
   test("a form that cannot be found says so, with no button", async () => {
@@ -801,10 +1145,12 @@ describe("translation", () => {
     expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
       "[de] Share Link",
     );
-    expect(
-      screen.getByRole("button", { name: "[de] Copy Link" }),
-    ).toHaveTextContent("[de] Copy Link");
-    expect(screen.getByText("[de] Open Form")).toBeInTheDocument();
+    expect(copyLinkButton()).toHaveTextContent(
+      `[de] ${PublicAddressCopy.copyLink}`,
+    );
+    expect(oneUptimeRow()).toHaveTextContent(
+      `[de] ${PublicAddressCopy.oneUptimeAddress}`,
+    );
     expect(screen.getByTestId("form-share-link-turned-off")).toHaveTextContent(
       `[de] ${FormsCopy.formTurnedOff}`,
     );
@@ -814,13 +1160,13 @@ describe("translation", () => {
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
 
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: "[de] Copy Link" }));
+      fireEvent.click(copyLinkButton());
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "[de] Copy Link" }),
-      ).toHaveTextContent("[de] Copied!");
+      expect(copyLinkButton()).toHaveTextContent(
+        `[de] ${PublicAddressCopy.copied}`,
+      );
     });
   });
 });

@@ -20,6 +20,7 @@ import CertificateOwners, {
 import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateService";
 import StatusPageDomainService from "../../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService from "../../../../Server/Services/DashboardDomainService";
+import FormDomainService from "../../../../Server/Services/FormDomainService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import AcmeCertificate from "../../../../Models/DatabaseModels/AcmeCertificate";
 import ObjectID from "../../../../Types/ObjectID";
@@ -396,17 +397,39 @@ describe("CertificateOwners", () => {
     jest.restoreAllMocks();
   });
 
-  test("names every kind of certificate owner: status pages, dashboards and the primary host", () => {
+  test("names every kind of certificate owner: status pages, dashboards, forms and the primary host", () => {
     expect(
       CertificateOwners.getAll().map((each: CertificateOwner) => {
         return each.name;
       }),
-    ).toEqual(["status page domains", "dashboard domains", "primary host"]);
+    ).toEqual([
+      "status page domains",
+      "dashboard domains",
+      CertificateOwners.FORM_DOMAINS_OWNER_NAME,
+      "primary host",
+    ]);
+    expect(CertificateOwners.FORM_DOMAINS_OWNER_NAME).toBe("form domains");
   });
 
-  test("the status page and dashboard owners are those services' own lookups", async () => {
+  // The owner of this name, wherever it sits in the list.
+  const ownerNamed: (name: string) => CertificateOwner = (
+    name: string,
+  ): CertificateOwner => {
+    const owner: CertificateOwner | undefined = CertificateOwners.getAll().find(
+      (each: CertificateOwner) => {
+        return each.name === name;
+      },
+    );
+
+    expect(owner).toBeDefined();
+
+    return owner!;
+  };
+
+  test("the status page, dashboard and form owners are those services' own lookups", async () => {
     const statusPageQueries: Array<Array<string>> = [];
     const dashboardQueries: Array<Array<string>> = [];
+    const formQueries: Array<Array<string>> = [];
 
     jest
       .spyOn(StatusPageDomainService, "getOwnedDomains")
@@ -420,18 +443,31 @@ describe("CertificateOwners", () => {
         dashboardQueries.push(domains);
         return ["dash.acme.com"];
       }) as never);
+    jest
+      .spyOn(FormDomainService, "getOwnedDomains")
+      .mockImplementation((async (domains: Array<string>) => {
+        formQueries.push(domains);
+        return ["report.acme.com"];
+      }) as never);
 
-    const owners: Array<CertificateOwner> = CertificateOwners.getAll();
-    const domains: Array<string> = ["status.acme.com", "dash.acme.com"];
-
-    await expect(owners[0]!.getOwnedDomains(domains)).resolves.toEqual([
+    const domains: Array<string> = [
       "status.acme.com",
-    ]);
-    await expect(owners[1]!.getOwnedDomains(domains)).resolves.toEqual([
       "dash.acme.com",
-    ]);
+      "report.acme.com",
+    ];
+
+    await expect(
+      ownerNamed("status page domains").getOwnedDomains(domains),
+    ).resolves.toEqual(["status.acme.com"]);
+    await expect(
+      ownerNamed("dashboard domains").getOwnedDomains(domains),
+    ).resolves.toEqual(["dash.acme.com"]);
+    await expect(
+      ownerNamed("form domains").getOwnedDomains(domains),
+    ).resolves.toEqual(["report.acme.com"]);
     expect(statusPageQueries).toEqual([domains]);
     expect(dashboardQueries).toEqual([domains]);
+    expect(formQueries).toEqual([domains]);
   });
 
   test("the primary host owner claims the installation's own host and nothing else", async () => {
@@ -439,7 +475,7 @@ describe("CertificateOwners", () => {
       .spyOn(CertificateOwners, "getPrimaryHostname")
       .mockReturnValue("oneuptime.example.com");
 
-    const primaryHost: CertificateOwner = CertificateOwners.getAll()[2]!;
+    const primaryHost: CertificateOwner = ownerNamed("primary host");
 
     await expect(
       primaryHost.getOwnedDomains(["status.acme.com", "oneuptime.example.com"]),
@@ -450,7 +486,7 @@ describe("CertificateOwners", () => {
     jest.spyOn(CertificateOwners, "getPrimaryHostname").mockReturnValue("");
 
     await expect(
-      CertificateOwners.getAll()[2]!.getOwnedDomains([""]),
+      ownerNamed("primary host").getOwnedDomains([""]),
     ).resolves.toEqual([]);
   });
 
@@ -464,12 +500,13 @@ describe("CertificateOwners", () => {
 
   /*
    * End to end with the real owner list: certificates whose domains still
-   * belong to a status page, a dashboard or the primary host stay, however
-   * long ago they expired; only the abandoned one goes.
+   * belong to a status page, a dashboard, a form or the primary host stay,
+   * however long ago they expired; only the abandoned one goes.
    */
   test("with the real owners, only the certificate nobody owns is deleted", async () => {
     const statusPage: Row = expiredDaysAgo("status.acme.com", GRACE + 10);
     const dashboard: Row = expiredDaysAgo("dash.acme.com", GRACE + 10);
+    const form: Row = expiredDaysAgo("report.acme.com", GRACE + 10);
     const primaryHost: Row = expiredDaysAgo(
       "oneuptime.example.com",
       GRACE + 10,
@@ -479,6 +516,7 @@ describe("CertificateOwners", () => {
     const table: Table = setUpTable([
       statusPage,
       dashboard,
+      form,
       primaryHost,
       abandoned,
     ]);
@@ -513,6 +551,9 @@ describe("CertificateOwners", () => {
     jest
       .spyOn(DashboardDomainService, "findBy")
       .mockImplementation(answerFrom(["dash.acme.com"]) as never);
+    jest
+      .spyOn(FormDomainService, "findBy")
+      .mockImplementation(answerFrom(["report.acme.com"]) as never);
 
     await GreenlockUtil.removeExpiredCertificatesNobodyOwns({
       owners: CertificateOwners.getAll(),
@@ -520,7 +561,7 @@ describe("CertificateOwners", () => {
 
     expect(table.deletedIds).toEqual([abandoned.id.toString()]);
     expect(idsOf(table.rows)).toEqual(
-      idsOf([statusPage, dashboard, primaryHost]),
+      idsOf([statusPage, dashboard, form, primaryHost]),
     );
   });
 });

@@ -50,6 +50,7 @@ const KNOWN_CALLERS: Record<string, string> = {
     "status page domains",
   "packages/Common/Server/Services/DashboardDomainService.ts":
     "dashboard domains",
+  "packages/Common/Server/Services/FormDomainService.ts": "form domains",
   "packages/App/FeatureSet/Workers/Jobs/CoreSsl/ProvisionPrimaryDomain.ts":
     "primary host",
 };

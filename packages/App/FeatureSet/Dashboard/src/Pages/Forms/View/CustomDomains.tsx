@@ -2,8 +2,8 @@ import PageComponentProps from "../../PageComponentProps";
 import { FORM_CUSTOM_DOMAINS } from "../../../Components/CustomDomain/CustomDomainKinds";
 import CustomDomainsTable from "../../../Components/CustomDomain/CustomDomainsTable";
 import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
-import { useParams } from "react-router-dom";
 
 /*
  * Forms -> a form -> Custom Domains: the form on your own domain, such as
@@ -17,8 +17,8 @@ import { useParams } from "react-router-dom";
 const FormCustomDomains: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const { id } = useParams();
-  const modelId: ObjectID = new ObjectID(id || "");
+  // /forms/:id/custom-domains: the form is the last parameter but one.
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <CustomDomainsTable
