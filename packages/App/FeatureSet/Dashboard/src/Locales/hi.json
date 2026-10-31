@@ -39046,5 +39046,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} ने इस अपवाद को किसी दूसरे अपवाद में मिलाया",
   "{{actor}} unassigned this exception": "{{actor}} ने इस अपवाद का असाइनमेंट हटाया",
   "{{actor}} unmerged another exception from this exception": "{{actor}} ने किसी दूसरे अपवाद को इस अपवाद से अलग किया",
-  "{{actor}} unmerged this exception from another one": "{{actor}} ने इस अपवाद को किसी दूसरे अपवाद से अलग किया"
+  "{{actor}} unmerged this exception from another one": "{{actor}} ने इस अपवाद को किसी दूसरे अपवाद से अलग किया",
+  "Exception assigned to me": "मुझे असाइन किया गया अपवाद",
+  "Is Assignee Notified": "असाइन किए गए को सूचित किया गया",
+  "Notify me about exceptions assigned to me or to a team I am on.": "मुझे या मेरी किसी टीम को असाइन किए गए अपवादों के बारे में मुझे सूचित करें।",
+  "Someone assigns an exception to you, or to a team you are on.": "कोई आपको या आपकी किसी टीम को कोई अपवाद असाइन करता है।"
 }

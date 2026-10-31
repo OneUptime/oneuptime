@@ -99,7 +99,7 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
 
-**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
+**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang. Den person, den tildeles, eller hvert medlem af teamet får en notifikation, som rækken **Undtagelse tildelt mig** i deres [Notifikationsindstillinger](/docs/notifications/notification-settings) siger; den, der tildelte den, får ingen.
 
 **Aktivitet** nederst i undtagelsens **Oversigt** viser, hvem der ændrede den og hvornår, nyeste først: hvem der løste, genåbnede, arkiverede eller tildelte den, flettede en anden undtagelse ind i den eller fjernede fletningen af en, og hvornår den kom igen, efter at den var løst. Hver ændring står der, foretaget på undtagelsens side, i listen, under **Massehandlinger**, via API'et eller af OneUptime selv, og en ændring foretaget med en API-nøgle bærer nøglens navn.
 

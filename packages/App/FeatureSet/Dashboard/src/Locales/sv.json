@@ -39046,5 +39046,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} slog ihop det här undantaget med ett annat",
   "{{actor}} unassigned this exception": "{{actor}} tog bort tilldelningen av det här undantaget",
   "{{actor}} unmerged another exception from this exception": "{{actor}} delade upp ett annat undantag från det här undantaget",
-  "{{actor}} unmerged this exception from another one": "{{actor}} delade upp det här undantaget från ett annat"
+  "{{actor}} unmerged this exception from another one": "{{actor}} delade upp det här undantaget från ett annat",
+  "Exception assigned to me": "Undantag tilldelat mig",
+  "Is Assignee Notified": "Tilldelade meddelade",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Meddela mig om undantag som tilldelas mig eller ett team jag ingår i.",
+  "Someone assigns an exception to you, or to a team you are on.": "Någon tilldelar ett undantag till dig eller till ett team du ingår i."
 }

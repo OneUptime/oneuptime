@@ -99,7 +99,7 @@ Los botones de la parte superior de la página de la excepción, su página **Aj
 
 Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre las filas para todas las excepciones de la página, y use las mismas acciones en **Acciones masivas**. El resultado indica qué excepciones cambió, cuáles dejó como estaban y por qué.
 
-**Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez.
+**Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez. La persona a la que se asigna, o cada miembro del equipo, recibe una notificación según indique la fila **Excepción asignada a mí** de sus [Ajustes de notificaciones](/docs/notifications/notification-settings); quien la asignó no la recibe.
 
 **Actividad**, al final de la **Vista general** de la excepción, dice quién la cambió y cuándo, lo más reciente primero: quién la resolvió, reabrió, archivó o asignó, fusionó otra excepción con ella o separó una, y cuándo volvió a ocurrir después de resolverse. Ahí está cada cambio, hecho en la página de la excepción, en la lista, en **Acciones masivas**, mediante la API o por OneUptime mismo, y un cambio hecho con una clave de API lleva el nombre de la clave.
 

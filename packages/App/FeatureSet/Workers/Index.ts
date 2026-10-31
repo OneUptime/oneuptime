@@ -24,6 +24,9 @@ import "./Jobs/IncidentSla/SendNoteReminders";
 import "./Jobs/Slo/EvaluateSlos";
 import "./Jobs/SloOwners/SendOwnerAddedNotification";
 
+// Exceptions assigned to a person or a team: told to them.
+import "./Jobs/TelemetryException/SendAssignedNotification";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 

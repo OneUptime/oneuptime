@@ -105,6 +105,12 @@ export class Service extends ProjectReferencesService<Model> {
         item.projectId = entry.projectId;
         item.telemetryExceptionId = entry.telemetryExceptionId;
         item.activityType = entry.activityType;
+        /*
+         * An assignment is told to whoever it hands the exception to, by the
+         * Workers (ExceptionAssignmentNotifications); nothing else is.
+         */
+        item.isAssigneeNotified =
+          entry.activityType !== TelemetryExceptionActivityType.Assigned;
 
         if (data.actor.userId) {
           item.userId = data.actor.userId;
