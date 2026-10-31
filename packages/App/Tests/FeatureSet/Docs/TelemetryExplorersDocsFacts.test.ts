@@ -66,6 +66,11 @@ import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator"
 import { DEFAULT_SAVED_VIEW_TIME_RANGE } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
+import {
+  ExceptionGroupingBasis,
+  ExceptionGroupingKey,
+  getExceptionGroupingKey,
+} from "Common/Server/Utils/Telemetry/ExceptionGrouping";
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
@@ -2229,6 +2234,87 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   /*
+   * Grouping v2: a new exception is its type and its own code's functions
+   * and files; an exception recorded before keeps its first fingerprint.
+   */
+  it("groups a new exception by its own code's functions and files, and leaves earlier ones as they were", () => {
+    const tracesIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
+    );
+    const logsIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+    );
+    const trace: (
+      line: number,
+      library: string,
+      message: string,
+    ) => ExceptionGroupingKey = (
+      line: number,
+      library: string,
+      message: string,
+    ): ExceptionGroupingKey => {
+      return getExceptionGroupingKey({
+        exceptionType: "TypeError",
+        message,
+        stackTrace: [
+          `TypeError: ${message}`,
+          `    at reserve (/app/src/stock.ts:${line}:3)`,
+          `    at handle (/app/node_modules/${library}/layer.js:${line + 9}:5)`,
+          `    at checkout (/app/src/cart.ts:${line * 3}:7)`,
+        ].join("\n"),
+      });
+    };
+
+    expect(page).toContain(
+      "A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above. Exceptions recorded before this grouping keep theirs.",
+    );
+
+    // Line numbers, library frames and the message are left out.
+    expect(trace(10, "express", "Order 1001 failed")).toEqual(
+      trace(77, "koa", "Order 2002 failed"),
+    );
+    expect(trace(10, "express", "x").basis).toBe(
+      ExceptionGroupingBasis.InAppFrames,
+    );
+    expect(trace(10, "express", "x").parts).toEqual([
+      "app/src/stock.ts|reserve",
+      "app/src/cart.ts|checkout",
+    ]);
+    // Without a stack trace, the message, its varying values taken out.
+    expect(
+      getExceptionGroupingKey({
+        exceptionType: "Error",
+        message: "Order id=1042 not found",
+      }),
+    ).toEqual(
+      getExceptionGroupingKey({
+        exceptionType: "Error",
+        message: "Order id=2077 not found",
+      }),
+    );
+
+    // Both ingest paths store each occurrence under its exception's choice.
+    for (const ingest of [tracesIngest, logsIngest]) {
+      expect(ingest).toContain("ExceptionUtil.getFingerprintV2({");
+      expect(ingest).toContain(
+        "await ExceptionUtil.assignRowGroupFingerprints(batch);",
+      );
+    }
+    expect(exceptionUtil).toContain(
+      "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
+    );
+    // An exception recorded before keeps its first fingerprint.
+    expect(exceptionUtil).toContain(
+      "chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);",
+    );
+
+    const troubleshooting: string = section(page, "## Troubleshooting");
+    expect(troubleshooting).toContain(
+      "New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
+    );
+  });
+
+  /*
    * Merging a likely duplicate into the exception, and undoing it: offered
    * on the Similar exceptions card for the AI's "Likely the same bug" in the
    * same service, listed on the Overview, undone from either page, and only
@@ -2274,9 +2360,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(merge).toContain("ModelPermission.getUpdatableQuery(");
 
     // Every new occurrence counts there: the alias is read at ingest.
-    expect(ingest).toContain(
-      "await ExceptionUtil.withMergedSurvivors(exceptions)",
-    );
+    expect(ingest).toContain("await ExceptionUtil.withMergedSurvivors(");
 
     // Below, on the Overview, and on the merged one's own page.
     expect(panel).toContain('title="Merged into this exception"');

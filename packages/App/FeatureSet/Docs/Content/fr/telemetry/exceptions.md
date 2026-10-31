@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Oui"| count["Comptée de nouveau ;<br/>rouverte si résolue"]
 ```
 
-- **Une exception par service et par erreur.** L'empreinte est calculée à partir du service, du type d'exception, du message et de la stack trace. Les valeurs qui changent d'un appel à l'autre en sont d'abord retirées : UUID et autres identifiants, horodatages, adresses IP et e-mail, et nombres de sept chiffres ou plus. Ainsi `Order id=1042 not found` et `Order id=2077 not found` forment une seule exception.
+- **Une exception par service et par erreur.** L'empreinte est calculée à partir du service, du type d'exception, du message et de la stack trace. Les valeurs qui changent d'un appel à l'autre en sont d'abord retirées : UUID et autres identifiants, horodatages, adresses IP et e-mail, et nombres de sept chiffres ou plus. Ainsi `Order id=1042 not found` et `Order id=2077 not found` forment une seule exception. Une nouvelle exception est plutôt regroupée par son type et par les fonctions et fichiers de votre propre code dans sa stack trace : les numéros de ligne, les frames des bibliothèques et le message sont ignorés, si bien que les variantes levées par le même code sont une seule exception. Sans stack trace, c'est son message qui la regroupe, comme ci-dessus. Les exceptions enregistrées avant ce regroupement gardent le leur.
 - **Une nouvelle occurrence rouvre une exception résolue.** Si elle se reproduit après que vous l'avez résolue, le correctif n'a pas tenu, et l'exception est marquée **Régression**. Une occurrence antérieure à la résolution qui n'arrive dans OneUptime que plus tard ne la rouvre pas.
 - **Une exception archivée reste archivée.** Ses nouvelles occurrences sont toujours comptées, mais elles ne déclenchent plus de notification.
 
@@ -198,7 +198,7 @@ Vérifiez d'abord la vue : **Problèmes** masque les erreurs d'utilisateur et le
 :::
 
 :::details Une erreur apparaît comme plusieurs exceptions
-L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemple quand un message contient un petit nombre ou un nom qui change à chaque appel, chaque variante est sa propre exception.
+L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemple quand un message contient un petit nombre ou un nom qui change à chaque appel, chaque variante est sa propre exception. Les nouvelles exceptions sont plutôt regroupées par les fonctions de votre propre code, cela concerne donc surtout les exceptions enregistrées avant ; fusionnez-en deux qui sont le même bug depuis **Exceptions similaires**.
 :::
 
 :::details Une exception résolue revient sans cesse
