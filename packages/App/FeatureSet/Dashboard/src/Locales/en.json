@@ -39046,5 +39046,9 @@
   "{{actor}} merged this exception into another one": "{{actor}} merged this exception into another one",
   "{{actor}} unassigned this exception": "{{actor}} unassigned this exception",
   "{{actor}} unmerged another exception from this exception": "{{actor}} unmerged another exception from this exception",
-  "{{actor}} unmerged this exception from another one": "{{actor}} unmerged this exception from another one"
+  "{{actor}} unmerged this exception from another one": "{{actor}} unmerged this exception from another one",
+  "Exception assigned to me": "Exception assigned to me",
+  "Is Assignee Notified": "Is Assignee Notified",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Notify me about exceptions assigned to me or to a team I am on.",
+  "Someone assigns an exception to you, or to a team you are on.": "Someone assigns an exception to you, or to a team you are on."
 }
