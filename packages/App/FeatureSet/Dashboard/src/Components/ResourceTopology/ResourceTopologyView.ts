@@ -17,10 +17,13 @@ import { getResourceTopologyKind } from "./ResourceTopologyKinds";
  * virtual machines, a cluster with 6,000 pods — and a drawing of all of it
  * is unreadable long before it is slow. So the view follows four rules:
  *
- *   1. Open only as deep as fits. The resource opens level by level until
- *      the next level would put more on screen than a person can read
- *      (VIEW_BUDGET). Anything below stays closed and says what it holds:
- *      "14 virtual machines · 2 need attention".
+ *   1. Open the way to what needs attention, only as deep as fits. The
+ *      resource opens level by level until the next level would put more on
+ *      screen than a person can read (VIEW_BUDGET), and below it only the
+ *      parts with something that needs attention inside open by themselves
+ *      (and a part that is the only one where it sits): a healthy branch
+ *      stays one closed card that says what it holds, "14 virtual machines",
+ *      and a troubled one opens down to the trouble.
  *   2. Show a few of each kind, troubled ones first. An open part shows its
  *      parts grouped by kind, and each group shows the first few
  *      (CARD_PREVIEW cards, or CHIP_PREVIEW small chips for parts that hold
@@ -190,6 +193,42 @@ export interface ResourceTopologyViewOptions {
    * readably (see ResourceTopologyFit).
    */
   maxAutomaticDepth?: number | undefined;
+  /*
+   * Parts that are always open: what a lane holds (a host's callers and
+   * what it calls) is the lane, never one closed card.
+   */
+  alwaysOpen?: ReadonlySet<string> | undefined;
+  /*
+   * Parts always shown, with every part above them open, as if someone had
+   * gone to each: the services a host's lanes call or are called by, so
+   * every call is drawn. A person can still close a part above one.
+   */
+  reveal?: ReadonlyArray<string> | undefined;
+}
+
+/*
+ * Whether a part opens by itself, within the depth that fits: when
+ * something inside it needs attention, or when it is the only part where it
+ * sits (one datacenter, one Compose project), which would otherwise leave
+ * the map a single closed card.
+ */
+export function opensByItself(
+  graph: ResourceTopologyGraph,
+  node: ResourceTopologyNode,
+): boolean {
+  if (node.childIds.length === 0) {
+    return false;
+  }
+
+  if (node.attentionBelow > 0) {
+    return true;
+  }
+
+  const parent: ResourceTopologyNode | undefined = node.parentId
+    ? graph.nodes.get(node.parentId)
+    : undefined;
+
+  return Boolean(parent && parent.childIds.length === 1);
 }
 
 interface KindGroup {
@@ -268,7 +307,7 @@ function childrenOf(
 /*
  * What opening `node` puts on screen with nothing narrowed: how much (in
  * cards, a chip counting half and a group's heading half) and which of the
- * cards it shows hold parts of their own.
+ * cards it shows open by themselves after it (opensByItself).
  */
 function previewOf(
   graph: ResourceTopologyGraph,
@@ -305,7 +344,7 @@ function previewOf(
     weight += cards.length + (group.members.length > cards.length ? 1 : 0);
 
     for (const card of cards) {
-      if (card.childIds.length > 0) {
+      if (opensByItself(graph, card)) {
         openable.push(card);
       }
     }
@@ -601,10 +640,17 @@ export function computeResourceTopologyView(
 
   const narrowing: Narrowing | null = narrow(graph, state, scope, options);
 
-  // Every part above a pinned part is open.
+  /*
+   * Every part above a pinned part is open, and above a part the map
+   * reveals by itself.
+   */
+  const pins: Set<string> = new Set<string>([
+    ...state.pinned,
+    ...(options.reveal || []),
+  ]);
   const pinnedOpen: Set<string> = new Set<string>();
 
-  for (const id of state.pinned) {
+  for (const id of pins) {
     if (!graph.nodes.has(id) || (scope && !scope.has(id))) {
       continue;
     }
@@ -644,7 +690,7 @@ export function computeResourceTopologyView(
     node: ResourceTopologyNode,
     automatic: boolean,
   ): boolean => {
-    if (lineageNext.has(node.id)) {
+    if (lineageNext.has(node.id) || options.alwaysOpen?.has(node.id)) {
       return true;
     }
 
@@ -660,7 +706,11 @@ export function computeResourceTopologyView(
       return narrowing.forcedOpen.has(node.id);
     }
 
-    return automatic && node.depth - automaticTop.depth < automaticDepth;
+    return (
+      automatic &&
+      node.depth - automaticTop.depth < automaticDepth &&
+      (node.id === automaticTop.id || opensByItself(graph, node))
+    );
   };
 
   const cardPreview: number = narrowing ? CARD_PREVIEW_NARROWED : CARD_PREVIEW;
@@ -710,7 +760,7 @@ export function computeResourceTopologyView(
       (member: ResourceTopologyNode, index: number): boolean => {
         return (
           index < limit ||
-          state.pinned.has(member.id) ||
+          pins.has(member.id) ||
           pinnedOpen.has(member.id)
         );
       },

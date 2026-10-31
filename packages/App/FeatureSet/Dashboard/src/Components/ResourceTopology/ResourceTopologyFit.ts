@@ -29,7 +29,7 @@ import {
 /* What React Flow leaves around a framed drawing, as a share of it. */
 export const RESOURCE_TOPOLOGY_FIT_PADDING: number = 0.08;
 /* The smallest zoom the first view is drawn at, when it can be helped. */
-export const READABLE_ZOOM: number = 0.7;
+export const READABLE_ZOOM: number = 0.62;
 /* The canvas VIEW_BUDGET is for: a laptop's. */
 export const REFERENCE_CANVAS_AREA: number = 900 * 640;
 export const MIN_VIEW_BUDGET: number = 12;
@@ -44,6 +44,11 @@ export interface ResourceTopologyFit {
   budget: number;
   /* Levels the first view opens below its top (1: only the top). */
   depth: number;
+  /*
+   * The most parts a row holds, as the first view was laid out: kept while
+   * a person opens and closes parts, so the rest of the drawing stays put.
+   */
+  rowLength: number;
 }
 
 export function getViewBudgetFor(canvas: ResourceTopologyCanvasSize): number {
@@ -77,6 +82,9 @@ export interface ResourceTopologyFitOptions {
   aspect?: number | undefined;
   /* The relations a lane's parts line up with (see the layout). */
   relations?: ReadonlyArray<ResourceTopologyLayoutRelation> | undefined;
+  /* Parts always open and parts always shown (see the view's options). */
+  alwaysOpen?: ReadonlySet<string> | undefined;
+  reveal?: ReadonlyArray<string> | undefined;
 }
 
 /*
@@ -118,22 +126,40 @@ export function fitResourceTopology(
     options.aspect ??
     (canvas.height > 0 ? Math.max(0.5, canvas.width / canvas.height) : 1.8);
 
-  for (let depth: number = deepest; depth > 1; depth--) {
+  const layoutAt: (depth: number) => ResourceTopologyLayout = (
+    depth: number,
+  ): ResourceTopologyLayout => {
     const visible: ResourceTopologyVisible = computeResourceTopologyView(
       graph,
       state,
-      { budget: budget, maxAutomaticDepth: depth },
+      {
+        budget: budget,
+        maxAutomaticDepth: depth,
+        alwaysOpen: options.alwaysOpen,
+        reveal: options.reveal,
+      },
     );
-    const layout: ResourceTopologyLayout = layoutResourceTopology(visible, {
+
+    return layoutResourceTopology(visible, {
       aspect: aspect,
       lanes: options.lanes,
       relations: options.relations,
     });
+  };
+
+  for (let depth: number = deepest; depth > 1; depth--) {
+    const layout: ResourceTopologyLayout = layoutAt(depth);
 
     if (getFitZoom(layout, canvas) >= READABLE_ZOOM) {
-      return { budget: budget, depth: depth };
+      return { budget: budget, depth: depth, rowLength: layout.rowLength };
     }
   }
 
-  return { budget: budget, depth: Math.min(deepest, 1) };
+  const depth: number = Math.min(deepest, 1);
+
+  return {
+    budget: budget,
+    depth: depth,
+    rowLength: layoutAt(depth).rowLength,
+  };
 }

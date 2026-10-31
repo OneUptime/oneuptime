@@ -52,9 +52,13 @@ export const RESOURCE_TOPOLOGY_SIZES: {
   headingMinWidth: number;
   headingGap: number;
   itemGap: number;
+  toggleGap: number;
   groupGap: number;
   columnGap: number;
   spineOffset: number;
+  rootIndent: number;
+  rootSpineX: number;
+  rootGap: number;
   drop: number;
   laneGap: number;
   relatedGap: number;
@@ -79,15 +83,23 @@ export const RESOURCE_TOPOLOGY_SIZES: {
   headingMinWidth: 360,
   headingGap: 4,
   itemGap: 10,
+  // Side by side, after a part that opens: room for its round toggle.
+  toggleGap: 26,
   groupGap: 22,
   // Between a column of parts and the next: the lines run here.
-  columnGap: 76,
+  columnGap: 60,
   // Where a part's line turns down to its groups, from the part's edge.
-  spineOffset: 30,
+  spineOffset: 24,
+  // The resource's parts start under it, this far in from its edge ...
+  rootIndent: 40,
+  // ... joined to it by a line this far in, that leaves from its bottom.
+  rootSpineX: 18,
+  // Between the resource and the first of its parts.
+  rootGap: 18,
   // A part's parts start this far below its middle.
   drop: 10,
   // Between a lane and the tree: room for a call's rate on its line.
-  laneGap: 120,
+  laneGap: 96,
   relatedGap: 120,
   relatedWidth: 232,
   relatedHeight: 52,
@@ -170,6 +182,8 @@ export interface ResourceTopologyLayout {
   height: number;
   /* The page's reading direction the tree was laid out for. */
   direction: ResourceTopologyDirection;
+  /* The most parts a row of closed parts holds in this drawing. */
+  rowLength: number;
 }
 
 export type ResourceTopologyDirection = "ltr" | "rtl";
@@ -392,6 +406,12 @@ export interface ResourceTopologyLayoutOptions {
   relations?: ReadonlyArray<ResourceTopologyLayoutRelation> | undefined;
   /* Which way the page reads: a right-to-left page gets the tree mirrored. */
   direction?: ResourceTopologyDirection | undefined;
+  /*
+   * The most parts a row holds. Left out, the layout tries
+   * ROW_LENGTHS_TRIED and keeps the one that fits the canvas best; the map
+   * passes the first view's, so opening a part never re-flows the rest.
+   */
+  rowLength?: number | undefined;
 }
 
 /* The widest rows tried, in parts: the drawing keeps what fits best. */
@@ -529,8 +549,22 @@ function nodeIdsOfCell(cell: Cell): Array<string> {
 }
 
 /*
+ * Where a column starts: the resource's own parts just in from its edge,
+ * under it, and every further level a card and a gap to the side.
+ */
+export function getTopologyColumnX(depth: number): number {
+  if (depth <= 0) {
+    return 0;
+  }
+
+  return (
+    SIZES.rootIndent + (depth - 1) * (SIZES.cardWidth + SIZES.columnGap)
+  );
+}
+
+/*
  * Lays the tree out once, for rows of at most `rowLength` parts, from the
- * resource at the left. Returns what it placed and the lines between.
+ * resource at the top. Returns what it placed and the lines between.
  */
 function layoutTree(
   top: ResourceTopologyCardItem,
@@ -538,13 +572,7 @@ function layoutTree(
 ): Draft {
   const placed: Array<ResourceTopologyPlaced> = [];
   const branches: Array<ResourceTopologyBranch> = [];
-  const columnStep: number = SIZES.cardWidth + SIZES.columnGap;
-  // The resource's column is a little wider than the others.
-  const columnX: (depth: number) => number = (depth: number): number => {
-    return depth === 0
-      ? 0
-      : SIZES.rootWidth + SIZES.columnGap + (depth - 1) * columnStep;
-  };
+  const columnX: (depth: number) => number = getTopologyColumnX;
 
   const placeCell: (
     cell: Cell,
@@ -636,11 +664,40 @@ function layoutTree(
       return y + size.height;
     }
 
+    /*
+     * A line from the part to each of its groups: out of its edge at its
+     * middle, along to the spine, down it and into the group. The resource
+     * is the exception: its parts are under it, and its line drops from its
+     * bottom.
+     */
+    const isTop: boolean = depth === 0;
     const middle: number = y + size.height / 2;
     const edge: number = x + size.width;
-    const spineX: number = edge + SIZES.spineOffset;
+    const spineX: number = isTop
+      ? x + SIZES.rootSpineX
+      : edge + SIZES.spineOffset;
     const childX: number = columnX(depth + 1);
-    let cursor: number = middle + SIZES.drop;
+    let cursor: number = isTop
+      ? y + size.height + SIZES.rootGap
+      : middle + SIZES.drop;
+    const lineTo: (targetY: number) => Array<[number, number]> = (
+      targetY: number,
+    ): Array<[number, number]> => {
+      if (isTop) {
+        return [
+          [spineX, y + size.height],
+          [spineX, targetY],
+          [childX, targetY],
+        ];
+      }
+
+      return [
+        [edge, middle],
+        [spineX, middle],
+        [spineX, targetY],
+        [childX, targetY],
+      ];
+    };
 
     card.groups.forEach((group: ResourceTopologyGroupItem, index: number) => {
       if (index > 0) {
@@ -682,12 +739,7 @@ function layoutTree(
             to: target,
             fromNodeId: card.nodeId,
             nodeIds: nodeIdsOfCell(cell),
-            points: [
-              [edge, middle],
-              [spineX, middle],
-              [spineX, cellTop + size.height / 2],
-              [childX, cellTop + size.height / 2],
-            ],
+            points: lineTo(cellTop + size.height / 2),
           });
           cursor = bottom;
         });
@@ -724,15 +776,21 @@ function layoutTree(
 
         let rowHeight: number = 0;
         let cellX: number = childX;
+        // A part that opens has its toggle on its edge: keep the next clear of it.
+        const gap: number = row.some((cell: Cell): boolean => {
+          return cell.type === "card" && cell.card.canOpen;
+        })
+          ? SIZES.toggleGap
+          : SIZES.itemGap;
 
         for (const cell of row) {
           const size: Size = cellSize(cell);
           placeCell(cell, cellX, cursor, depth + 1, card.nodeId);
-          cellX += size.width + SIZES.itemGap;
+          cellX += size.width + gap;
           rowHeight = Math.max(rowHeight, size.height);
         }
 
-        blockWidth = Math.max(blockWidth, cellX - SIZES.itemGap - childX);
+        blockWidth = Math.max(blockWidth, cellX - gap - childX);
         cursor += rowHeight + SIZES.itemGap;
         row = [];
       };
@@ -784,12 +842,7 @@ function layoutTree(
         to: group.id,
         fromNodeId: card.nodeId,
         nodeIds: [...group.memberIds],
-        points: [
-          [edge, middle],
-          [spineX, middle],
-          [spineX, headingTop + SIZES.headingHeight / 2],
-          [childX, headingTop + SIZES.headingHeight / 2],
-        ],
+        points: lineTo(headingTop + SIZES.headingHeight / 2),
       });
     });
 
@@ -799,6 +852,33 @@ function layoutTree(
   placeCard(top, 0, 0, null);
 
   return { placed: placed, branches: branches };
+}
+
+/*
+ * What to frame when a part opens: the part and everything placed straight
+ * under it - its groups' headings, its parts and its "+ N more" - so the
+ * parts that just appeared are on screen with it, not cut off at the edge.
+ */
+export function getTopologyFrameIds(
+  layout: Pick<ResourceTopologyLayout, "placed">,
+  nodeIds: ReadonlyArray<string>,
+): Array<string> {
+  const wanted: Set<string> = new Set<string>(nodeIds);
+  const ids: Array<string> = [];
+
+  for (const item of layout.placed) {
+    const nodeId: string | null =
+      item.card?.nodeId || item.chip?.nodeId || null;
+
+    if (
+      (nodeId !== null && wanted.has(nodeId) && item.kind !== "related") ||
+      (item.parentId !== null && wanted.has(item.parentId) && !item.lane)
+    ) {
+      ids.push(item.id);
+    }
+  }
+
+  return ids;
 }
 
 /* The right edge of what is placed, and the bottom. */
@@ -1118,9 +1198,14 @@ export function layoutResourceTopology(
 
   // The row length whose drawing fits the canvas at the largest zoom.
   let best: Draft | null = null;
+  let bestRowLength: number = 1;
   let bestScore: number = Number.NEGATIVE_INFINITY;
+  const tried: ReadonlyArray<number> =
+    options.rowLength !== undefined && options.rowLength >= 1
+      ? [Math.floor(options.rowLength)]
+      : ROW_LENGTHS_TRIED;
 
-  for (const rowLength of ROW_LENGTHS_TRIED) {
+  for (const rowLength of tried) {
     const draft: Draft = build(rowLength);
     const extent: { minX: number; minY: number; maxX: number; maxY: number } =
       extentOf(draft.placed);
@@ -1132,11 +1217,12 @@ export function layoutResourceTopology(
 
     if (score > bestScore + 1e-9) {
       best = draft;
+      bestRowLength = rowLength;
       bestScore = score;
     }
   }
 
-  const draft: Draft = best || build(1);
+  const draft: Draft = best || build(bestRowLength);
   const extent: { minX: number; minY: number; maxX: number; maxY: number } =
     extentOf(draft.placed);
   const width: number = extent.maxX - extent.minX;
@@ -1189,5 +1275,6 @@ export function layoutResourceTopology(
     width: width,
     height: height,
     direction: direction,
+    rowLength: bestRowLength,
   };
 }

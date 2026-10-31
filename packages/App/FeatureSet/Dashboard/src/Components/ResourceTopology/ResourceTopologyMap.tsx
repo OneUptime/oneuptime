@@ -156,6 +156,35 @@ function sumTruncations(
   );
 }
 
+/*
+ * What a map with lanes asks of the view: the lanes' sections always open,
+ * and every part at either end of a relation shown, so a host's map draws
+ * each call from the first view. Nothing for a map without lanes.
+ */
+export function getLaneViewOptions(
+  graph: ResourceTopologyGraph,
+  lanes: ResourceTopologyLanes | undefined,
+): {
+  alwaysOpen: ReadonlySet<string> | undefined;
+  reveal: ReadonlyArray<string> | undefined;
+} {
+  if (!lanes || lanes.left.length + lanes.right.length === 0) {
+    return { alwaysOpen: undefined, reveal: undefined };
+  }
+
+  const reveal: Set<string> = new Set<string>();
+
+  for (const relation of graph.relations) {
+    reveal.add(relation.from);
+    reveal.add(relation.to);
+  }
+
+  return {
+    alwaysOpen: new Set<string>([...lanes.left, ...lanes.right]),
+    reveal: Array.from(reveal),
+  };
+}
+
 export function getResourceTopologyPartCount(
   graph: ResourceTopologyGraph,
 ): number {
@@ -325,6 +354,17 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     frameWidth > 0
       ? Math.floor(frameWidth / FIT_WIDTH_STEP) * FIT_WIDTH_STEP
       : Math.round(DEFAULT_ASPECT * canvasHeight);
+  /*
+   * A map about calls (a host's) draws every call: its lanes are always
+   * open, and every part at either end of a call is shown.
+   */
+  const laneOptions: {
+    alwaysOpen: ReadonlySet<string> | undefined;
+    reveal: ReadonlyArray<string> | undefined;
+  } = useMemo(() => {
+    return getLaneViewOptions(graph, arrangement.lanes);
+  }, [graph, arrangement.lanes]);
+
   const fit: ResourceTopologyFit = useMemo(() => {
     return fitResourceTopology(
       graph,
@@ -334,6 +374,8 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
         lanes: arrangement.lanes,
         aspect: aspect,
         relations: arrangement.lanes ? graph.relations : undefined,
+        alwaysOpen: laneOptions.alwaysOpen,
+        reveal: laneOptions.reveal,
       },
     );
   }, [
@@ -343,6 +385,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     canvasHeight,
     aspect,
     arrangement.lanes,
+    laneOptions,
   ]);
 
   const visible: ResourceTopologyVisible = useMemo(() => {
@@ -350,8 +393,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       kindLabel: kindLabel,
       budget: fit.budget,
       maxAutomaticDepth: fit.depth,
+      alwaysOpen: laneOptions.alwaysOpen,
+      reveal: laneOptions.reveal,
     });
-  }, [graph, viewState, kindLabel, fit]);
+  }, [graph, viewState, kindLabel, fit, laneOptions]);
 
   // A page read from right to left gets the tree mirrored.
   const direction: ResourceTopologyDirection = useMemo(
@@ -371,8 +416,16 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       lanes: arrangement.lanes,
       relations: laneRelations,
       direction: direction,
+      rowLength: fit.rowLength,
     });
-  }, [visible, aspect, arrangement.lanes, laneRelations, direction]);
+  }, [
+    visible,
+    aspect,
+    arrangement.lanes,
+    laneRelations,
+    direction,
+    fit.rowLength,
+  ]);
 
   // A new canvas shape lays the drawing out again: frame it again.
   useEffect(() => {

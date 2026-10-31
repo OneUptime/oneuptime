@@ -14,7 +14,8 @@
  *              or alerts)
  *   ?fail=     topology (every inventory read fails once, so the page shows
  *              its error and retries)
- *   ?lang=     de reads the German locale file
+ *   ?lang=     de reads the German locale file, fa the Persian one (a page
+ *              read from right to left)
  *   ?theme=    dark (handled by server.js)
  *
  * Every read is recorded on window.__resourceTopologyFixture: listRequests,
@@ -35,6 +36,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import VMwareLayout from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Layout";
@@ -70,6 +72,7 @@ import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
@@ -94,7 +97,9 @@ const ISSUES = ["off", "denied"].includes(params.get("issues"))
   ? params.get("issues")
   : "on";
 const FAIL = params.get("fail") || "";
-const LANGUAGE = params.get("lang") === "de" ? "de" : "en";
+const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 const LOADED_AT = Date.now();
 const MINUTE = 60 * 1000;
 
@@ -731,9 +736,12 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
+    fa: { translation: fa },
   },
   interpolation: { escapeValue: false },
 });
+// <html lang> and <html dir> follow the language, as the Dashboard's do.
+followLanguageForPage(i18next);
 
 /*
  * ---------------------------------------------------------------------------

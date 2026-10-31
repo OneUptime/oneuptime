@@ -726,47 +726,86 @@ const BUTTON_RESET: React.CSSProperties = {
   cursor: "pointer",
 };
 
-/* "CPU 22% · Memory 41%": a part's first two numbers, after its status. */
-const FactsText: FunctionComponent<{
+/*
+ * How a part is doing, on one line: a dot, its status ("Ready", "Powered
+ * off") and then its first two numbers ("CPU 22%", "Memory 41%"). The line
+ * wraps out of sight rather than cutting a number: the status always shows
+ * (cut with an ellipsis only when it is longer than the line), and a number
+ * that does not fit after it is left off whole - never "R" for "Ready" or
+ * "Memory 2…". The panel has every number.
+ */
+export const StatusLine: FunctionComponent<{
+  health: ResourceTopologyHealth;
+  status: string;
   facts: Array<ResourceTopologyFact>;
-}> = (props: { facts: Array<ResourceTopologyFact> }): ReactElement | null => {
+}> = (props: {
+  health: ResourceTopologyHealth;
+  status: string;
+  facts: Array<ResourceTopologyFact>;
+}): ReactElement => {
   const translator: Translator = useTranslator();
 
-  if (props.facts.length === 0) {
-    return null;
-  }
-
   return (
-    <span style={{ display: "inline-flex", gap: 8, flexShrink: 0 }}>
-      {props.facts
-        .slice(0, 2)
-        .map((fact: ResourceTopologyFact): ReactElement => {
-          return (
-            <span key={fact.label}>
-              <span
-                style={{
-                  color: "var(--ou-text-muted, #6b7280)",
-                  marginInlineEnd: 3,
-                }}
-              >
-                {tx(fact.label, translator)}
-              </span>
-              <span
-                style={{
-                  fontWeight: 600,
-                  color:
-                    fact.tone === "critical"
-                      ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
-                      : fact.tone === "warning"
-                        ? RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR
-                        : "var(--ou-text-primary, #111827)",
-                }}
-              >
-                {fact.value}
-              </span>
+    <span
+      data-testid="resource-topology-status-line"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 8,
+        height: 16,
+        overflow: "hidden",
+        minWidth: 0,
+        fontSize: 11,
+        lineHeight: "16px",
+        color: "var(--ou-text-secondary, #4b5563)",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minWidth: 0,
+          maxWidth: "100%",
+          flex: "0 1 auto",
+        }}
+      >
+        <HealthDot health={props.health} />
+        {props.status ? (
+          <span style={{ ...LINE, minWidth: 0 }}>{props.status}</span>
+        ) : null}
+      </span>
+      {props.facts.slice(0, 2).map((fact: ResourceTopologyFact): ReactElement => {
+        return (
+          <span
+            key={fact.label}
+            style={{ flex: "0 0 auto", whiteSpace: "nowrap" }}
+          >
+            <span
+              style={{
+                color: "var(--ou-text-muted, #6b7280)",
+                marginInlineEnd: 3,
+              }}
+            >
+              {tx(fact.label, translator)}
             </span>
-          );
-        })}
+            <span
+              style={{
+                fontWeight: 600,
+                color:
+                  fact.tone === "critical"
+                    ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
+                    : fact.tone === "warning"
+                      ? RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR
+                      : "var(--ou-text-primary, #111827)",
+              }}
+            >
+              {fact.value}
+            </span>
+          </span>
+        );
+      })}
     </span>
   );
 };
@@ -1026,25 +1065,12 @@ export const ResourceTopologyCardNode: FunctionComponent<
                 <IssueBadges node={node} />
               </span>
               {isSection ? null : (
-                <span
-                  className={TOPOLOGY_DETAIL_CLASS}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    minWidth: 0,
-                    fontSize: 11,
-                    lineHeight: "16px",
-                    color: "var(--ou-text-secondary, #4b5563)",
-                  }}
-                >
-                  <HealthDot health={node.effectiveHealth} />
-                  {statusLine ? (
-                    <span style={{ ...LINE, flex: "0 1 auto" }}>
-                      {statusLine}
-                    </span>
-                  ) : null}
-                  {facts.length > 0 ? <FactsText facts={facts} /> : null}
+                <span className={TOPOLOGY_DETAIL_CLASS} style={{ display: "block" }}>
+                  <StatusLine
+                    health={node.effectiveHealth}
+                    status={statusLine}
+                    facts={facts}
+                  />
                 </span>
               )}
             </span>
@@ -1319,6 +1345,8 @@ export const ResourceTopologyHeadingNode: FunctionComponent<
         display: "flex",
         alignItems: "center",
         gap: 8,
+        // Clear of the line that runs into it.
+        paddingInlineStart: 6,
         fontSize: 11,
         color: "var(--ou-text-muted, #6b7280)",
         whiteSpace: "nowrap",

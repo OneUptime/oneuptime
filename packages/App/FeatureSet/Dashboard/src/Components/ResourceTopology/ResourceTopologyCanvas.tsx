@@ -53,6 +53,7 @@ import {
   getBranchPath,
   getRelationCurve,
   getRelationSides,
+  getTopologyFrameIds,
 } from "./ResourceTopologyLayout";
 import {
   ResourceTopologyKeyAction,
@@ -276,6 +277,27 @@ const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
   relatedCaption: "resourceTopologyRelatedCaption",
 };
 
+/*
+ * The sides a line between a focused part and a part of its related column
+ * leaves and enters by: the column is after the drawing (at its right, or
+ * at its left on a page read from right to left), so the line leaves the
+ * focused part by the side facing it and enters the related part by its
+ * near side, whichever way the relation points.
+ */
+export function getRelatedColumnSides(
+  outward: boolean,
+  direction: ResourceTopologyDirection,
+): { source: ResourceTopologySide; target: ResourceTopologySide } {
+  const towardsColumn: ResourceTopologySide =
+    direction === "rtl" ? "left" : "right";
+  const awayFromColumn: ResourceTopologySide =
+    direction === "rtl" ? "right" : "left";
+
+  return outward
+    ? { source: towardsColumn, target: awayFromColumn }
+    : { source: awayFromColumn, target: towardsColumn };
+}
+
 /* The part a placed item stands for, when it stands for one. */
 export function placedNodeId(placed: ResourceTopologyPlaced): string | null {
   return (
@@ -386,11 +408,14 @@ const ViewportController: FunctionComponent<{
   fitRequest: ResourceTopologyFitRequest;
   /* The ids of the drawing the map handed React Flow. */
   drawingIds: ReadonlyArray<string>;
+  /* The drawing, to frame a part with what it holds. */
+  layout: ResourceTopologyLayout;
   /* The level of detail the zoom asks for, reported as it changes. */
   onDetailLevel: (level: ResourceTopologyDetailLevel) => void;
 }> = (props: {
   fitRequest: ResourceTopologyFitRequest;
   drawingIds: ReadonlyArray<string>;
+  layout: ResourceTopologyLayout;
   onDetailLevel: (level: ResourceTopologyDetailLevel) => void;
 }): ReactElement => {
   const instance: ReactFlowInstance = useReactFlow();
@@ -432,15 +457,19 @@ const ViewportController: FunctionComponent<{
         internals,
         props.drawingIds,
       );
+      // A part is framed with what it holds, which has just appeared.
+      const frameIds: Array<string> | null = request.nodeIds
+        ? getTopologyFrameIds(props.layout, request.nodeIds)
+        : null;
       const fitted: boolean =
         holdsDrawing &&
         instance.fitView({
           padding: RESOURCE_TOPOLOGY_FIT_PADDING,
           maxZoom: 1,
           duration: request.animate ? 280 : 0,
-          ...(request.nodeIds
+          ...(frameIds && frameIds.length > 0
             ? {
-                nodes: request.nodeIds.map((id: string): { id: string } => {
+                nodes: frameIds.map((id: string): { id: string } => {
                   return { id: id };
                 }),
               }
@@ -644,12 +673,18 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       label: string,
       relation?: ResourceTopologyRelation | undefined,
       showLabel?: boolean | undefined,
+      forcedSides?:
+        | { source: ResourceTopologySide; target: ResourceTopologySide }
+        | undefined,
     ) => void = (
       from: string,
       to: string,
       label: string,
       relation?: ResourceTopologyRelation | undefined,
       showLabel: boolean = true,
+      forcedSides?:
+        | { source: ResourceTopologySide; target: ResourceTopologySide }
+        | undefined,
     ): void => {
       const id: string = `relation:${from}->${to}`;
 
@@ -684,10 +719,12 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       const sides: {
         source: ResourceTopologySide;
         target: ResourceTopologySide;
-      } = getRelationSides(
-        props.layout.byId.get(from)!,
-        props.layout.byId.get(to)!,
-      );
+      } =
+        forcedSides ||
+        getRelationSides(
+          props.layout.byId.get(from)!,
+          props.layout.byId.get(to)!,
+        );
 
       result.push({
         id: id,
@@ -740,14 +777,26 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       );
     };
 
-    // The column's heading says what these lines are: no words on each.
+    /*
+     * The column's heading says what these lines are: no words on each.
+     * They fan out of the focused part's side that faces the column into
+     * each related part's near side, so no line runs down the column across
+     * the parts in it.
+     */
     if (props.visible.focusId) {
       for (const related of props.visible.related) {
         const outward: boolean = related.direction === "out";
         const [from, to] = outward
           ? [props.visible.focusId, related.nodeId]
           : [related.nodeId, props.visible.focusId];
-        add(from, to, related.label, relationBetween(from, to), false);
+        add(
+          from,
+          to,
+          related.label,
+          relationBetween(from, to),
+          false,
+          getRelatedColumnSides(outward, direction),
+        );
       }
     }
 
@@ -931,6 +980,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         <ViewportController
           fitRequest={props.fitRequest}
           drawingIds={drawingIds}
+          layout={props.layout}
           onDetailLevel={setDetailLevel}
         />
       </ReactFlow>
