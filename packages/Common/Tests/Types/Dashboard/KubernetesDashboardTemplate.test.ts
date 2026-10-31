@@ -209,8 +209,12 @@ describe("Kubernetes dashboard template", () => {
       return charts[0]!;
     }
 
-    function mainQuery(component: DashboardBaseComponent): MetricQueryConfigData {
-      return getArguments(component)["metricQueryConfig"] as MetricQueryConfigData;
+    function mainQuery(
+      component: DashboardBaseComponent,
+    ): MetricQueryConfigData {
+      return getArguments(component)[
+        "metricQueryConfig"
+      ] as MetricQueryConfigData;
     }
 
     test("charts the restarts per interval: the Sum of k8s.container.restarts.increase, as bars", (): void => {
@@ -290,7 +294,9 @@ describe("Kubernetes dashboard template", () => {
         String(query.metricQueryData.filterData.metricName),
       );
       expect(K8S_CLUSTER_RECEIVER_METRICS).toContain(
-        String(query.fallback?.queryConfig.metricQueryData.filterData.metricName),
+        String(
+          query.fallback?.queryConfig.metricQueryData.filterData.metricName,
+        ),
       );
     });
 
@@ -317,7 +323,10 @@ describe("Kubernetes dashboard template", () => {
 
       // An older agent: asked again for the count, which is drawn.
       const again: Array<MetricQueryConfigData> | null =
-        MetricQueryFallbackUtil.getFallbackQueryConfigs([stored], [{ data: [] }]);
+        MetricQueryFallbackUtil.getFallbackQueryConfigs(
+          [stored],
+          [{ data: [] }],
+        );
       expect(again?.[0]?.metricQueryData.filterData.metricName).toBe(
         "k8s.container.restarts",
       );

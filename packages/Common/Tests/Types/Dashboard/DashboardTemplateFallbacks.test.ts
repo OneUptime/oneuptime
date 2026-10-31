@@ -156,9 +156,9 @@ describe("the dashboard templates' fallbacks and running counts", () => {
         `${entry.widget}: ${RUNNING_COUNTS[fallbackMetric]}`,
       );
       // The increase is summed per interval: that is what happened in it.
-      expect(`${entry.widget}: ${entry.query.metricQueryData.filterData.aggegationType}`).toBe(
-        `${entry.widget}: Sum`,
-      );
+      expect(
+        `${entry.widget}: ${entry.query.metricQueryData.filterData.aggegationType}`,
+      ).toBe(`${entry.widget}: Sum`);
     }
   });
 
@@ -171,8 +171,7 @@ describe("the dashboard templates' fallbacks and running counts", () => {
 
   test("every fallback reads another metric, in its query's slot, under a legend of its own", () => {
     for (const entry of WITH_FALLBACK) {
-      const fallback: MetricQueryConfigData = entry.query.fallback!
-        .queryConfig;
+      const fallback: MetricQueryConfigData = entry.query.fallback!.queryConfig;
 
       expect(metricNameOf(fallback)).not.toBe("");
       expect(metricNameOf(fallback)).not.toBe(metricNameOf(entry.query));

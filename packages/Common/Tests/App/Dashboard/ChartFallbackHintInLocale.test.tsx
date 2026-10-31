@@ -171,54 +171,57 @@ describe("a chart's fallback words in English", () => {
   });
 });
 
-describe.each(LANGUAGES)("a chart's fallback words in %s", (language: string) => {
-  const locale: Record<string, string> = LOCALES[language]!;
+describe.each(LANGUAGES)(
+  "a chart's fallback words in %s",
+  (language: string) => {
+    const locale: Record<string, string> = LOCALES[language]!;
 
-  test("every word is the language's own, not the English", () => {
-    const english: Array<string> = FALLBACK_WORDS.filter(
-      (word: string): boolean => {
-        return !locale[word] || locale[word] === word;
-      },
-    );
+    test("every word is the language's own, not the English", () => {
+      const english: Array<string> = FALLBACK_WORDS.filter(
+        (word: string): boolean => {
+          return !locale[word] || locale[word] === word;
+        },
+      );
 
-    expect(english).toEqual([]);
-  });
+      expect(english).toEqual([]);
+    });
 
-  test("every hint a template ships reads in the language", () => {
-    for (const hint of DASHBOARD_TEMPLATE_FALLBACK_HINTS) {
-      expect(locale[hint.text]).toBeTruthy();
-      expect(locale[hint.text]).not.toBe(hint.text);
-      expect(locale[hint.linkText!]).toBeTruthy();
-      expect(locale[hint.linkText!]).not.toBe(hint.linkText);
-    }
-  });
+    test("every hint a template ships reads in the language", () => {
+      for (const hint of DASHBOARD_TEMPLATE_FALLBACK_HINTS) {
+        expect(locale[hint.text]).toBeTruthy();
+        expect(locale[hint.text]).not.toBe(hint.text);
+        expect(locale[hint.linkText!]).toBeTruthy();
+        expect(locale[hint.linkText!]).not.toBe(hint.linkText);
+      }
+    });
 
-  test("the hint names Kubernetes as written, and ends as a sentence does", () => {
-    const hint: string = locale[HINT_TEXT]!;
+    test("the hint names Kubernetes as written, and ends as a sentence does", () => {
+      const hint: string = locale[HINT_TEXT]!;
 
-    expect(hint).toContain("Kubernetes");
-    expect(hint).toMatch(/[.。।]$/u);
-  });
+      expect(hint).toContain("Kubernetes");
+      expect(hint).toMatch(/[.。।]$/u);
+    });
 
-  test("the link says upgrade as the language's other agent upgrade links do", () => {
-    const verb: string = locale[UPGRADE_AN_AGENT]!.replace(
-      "{{agentName}}",
-      "",
-    ).trim();
+    test("the link says upgrade as the language's other agent upgrade links do", () => {
+      const verb: string = locale[UPGRADE_AN_AGENT]!.replace(
+        "{{agentName}}",
+        "",
+      ).trim();
 
-    expect(verb.length).toBeGreaterThan(0);
-    expect(locale[HINT_LINK_TEXT]!.toLocaleLowerCase()).toContain(
-      verb.toLocaleLowerCase(),
-    );
-  });
+      expect(verb.length).toBeGreaterThan(0);
+      expect(locale[HINT_LINK_TEXT]!.toLocaleLowerCase()).toContain(
+        verb.toLocaleLowerCase(),
+      );
+    });
 
-  test("the query settings' line keeps the metric's place exactly once", () => {
-    const note: string = locale[QUERY_NOTE]!;
+    test("the query settings' line keeps the metric's place exactly once", () => {
+      const note: string = locale[QUERY_NOTE]!;
 
-    expect(note.split("{{metricName}}")).toHaveLength(2);
-    expect(note).not.toContain("{{metricName}}}");
-  });
-});
+      expect(note.split("{{metricName}}")).toHaveLength(2);
+      expect(note).not.toContain("{{metricName}}}");
+    });
+  },
+);
 
 /*
  * Drawn: the restarts chart of a dashboard made from the Kubernetes
@@ -372,7 +375,7 @@ describe.each(["de", "ja", "fa"])(
       );
       expect(screen.queryByText(hint.text)).toBeNull();
       expect(
-        screen.getByRole("link", { name: locale[hint.linkText!] }),
+        screen.getByRole("link", { name: locale[hint.linkText!]! }),
       ).toHaveAttribute("href", hint.linkUrl);
     });
   },

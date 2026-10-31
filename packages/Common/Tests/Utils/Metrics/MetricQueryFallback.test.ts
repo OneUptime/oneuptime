@@ -148,9 +148,9 @@ describe("MetricQueryFallbackUtil.hasData", () => {
   });
 
   test("one drawable point among undrawable ones is data", () => {
-    expect(
-      MetricQueryFallbackUtil.hasData(result(Number.NaN, null, 2)),
-    ).toBe(true);
+    expect(MetricQueryFallbackUtil.hasData(result(Number.NaN, null, 2))).toBe(
+      true,
+    );
     expect(MetricQueryFallbackUtil.hasData(result("3"))).toBe(true);
     expect(MetricQueryFallbackUtil.hasData(result(-1.5))).toBe(true);
   });
@@ -311,9 +311,9 @@ describe("MetricQueryFallbackUtil.getFallbackCandidates and withFallbacks", () =
       ]),
     ).toEqual([2]);
     // A slot no result came back for is a slot without data.
-    expect(MetricQueryFallbackUtil.getFallbackCandidates(queries, [])).toEqual(
-      [0, 2],
-    );
+    expect(MetricQueryFallbackUtil.getFallbackCandidates(queries, [])).toEqual([
+      0, 2,
+    ]);
   });
 
   test("hands back the very same array when no slot changes", () => {
@@ -357,10 +357,7 @@ describe("MetricQueryFallbackUtil.getFallbackCandidates and withFallbacks", () =
     ).toBeNull();
 
     const again: Array<MetricQueryConfigData> | null =
-      MetricQueryFallbackUtil.getFallbackQueryConfigs(queries, [
-        EMPTY,
-        EMPTY,
-      ]);
+      MetricQueryFallbackUtil.getFallbackQueryConfigs(queries, [EMPTY, EMPTY]);
 
     expect(again?.map(metricNameOf)).toEqual([
       FALLBACK_METRIC,
@@ -487,9 +484,7 @@ describe("MetricQueryFallbackUtil.getHints", () => {
       HINT,
       otherHint,
     ]);
-    expect(MetricQueryFallbackUtil.getHints(queries, [1])).toEqual([
-      otherHint,
-    ]);
+    expect(MetricQueryFallbackUtil.getHints(queries, [1])).toEqual([otherHint]);
   });
 
   test("a fallback without a hint, or with an empty one, says nothing", () => {
@@ -614,7 +609,9 @@ describe("MetricQueryFallbackUtil seeded sweep", () => {
     );
   }
 
-  function hasDrawablePoint(chartResult: AggregatedResult | undefined): boolean {
+  function hasDrawablePoint(
+    chartResult: AggregatedResult | undefined,
+  ): boolean {
     return Boolean(
       chartResult?.data.some((point: AggregatedModel): boolean => {
         return isDrawable(point.value);

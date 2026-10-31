@@ -431,8 +431,8 @@ describe("the Kubernetes restarts chart, which falls back to the running count",
     expect(askedMetrics()).toEqual([[RESTARTS_PER_INTERVAL], [RESTART_COUNT]]);
 
     // The second request is the fallback in the main query's slot and variable.
-    const second: MetricQueryConfigData = fetchArgs()[1]!.metricViewData
-      .queryConfigs[0]!;
+    const second: MetricQueryConfigData =
+      fetchArgs()[1]!.metricViewData.queryConfigs[0]!;
     expect(second.metricAliasData?.metricVariable).toBe("a");
     expect(second.metricQueryData.filterData.aggegationType).toBe(
       MetricsAggregationType.Max,
@@ -799,24 +799,21 @@ describe("a fallback's hint", () => {
     "javascript:alert(document.cookie)",
     "//evil.example.com/docs",
     "data:text/html,<script>alert(1)</script>",
-  ])(
-    "keeps its words but draws no link to %s",
-    async (linkUrl: string) => {
-      renderChart(chartWithHintLink(linkUrl), {
-        dashboardStartAndEndDate: OLDER_AGENT_WINDOW,
-      });
+  ])("keeps its words but draws no link to %s", async (linkUrl: string) => {
+    renderChart(chartWithHintLink(linkUrl), {
+      dashboardStartAndEndDate: OLDER_AGENT_WINDOW,
+    });
 
-      await waitFor(() => {
-        expect(screen.getByTestId("chart-fallback-hint")).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByTestId("chart-fallback-hint")).toBeInTheDocument();
+    });
 
-      expect(screen.getByTestId("chart-fallback-hint")).toHaveTextContent(
-        HINT_TEXT,
-      );
-      expect(screen.queryByRole("link")).toBeNull();
-      expect(screen.queryByText(HINT_LINK_TEXT)).toBeNull();
-    },
-  );
+    expect(screen.getByTestId("chart-fallback-hint")).toHaveTextContent(
+      HINT_TEXT,
+    );
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText(HINT_LINK_TEXT)).toBeNull();
+  });
 
   test("a click on its link does not also select the widget", async () => {
     const onClick: MockFunction = getJestMockFunction();
