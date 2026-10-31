@@ -23,10 +23,17 @@ import MonitorStepKubernetesMonitor, {
 } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import {
   KubernetesAlertTemplate,
+  buildKubernetesMonitorConfig,
   getAllKubernetesAlertTemplates,
   getKubernetesAlertTemplateById,
 } from "../../../Types/Monitor/KubernetesAlertTemplates";
+import {
+  KubernetesMetricDefinition,
+  getAllKubernetesMetrics,
+  getKubernetesMetricById,
+} from "../../../Types/Monitor/KubernetesMetricCatalog";
 import ObjectID from "../../../Types/ObjectID";
+import RollingTime from "../../../Types/RollingTime/RollingTime";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -442,4 +449,234 @@ describe("Kubernetes monitor form - Workload Kind follows the chosen template", 
     expect(shownWorkloadKind()).toBe("Deployment");
     expect(onChange).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * The Custom Metric tab. A workload metric such as Job Failed Pods carries
+ * only its Job's name, but Workload Kind started on Deployment for every
+ * metric: Job Failed Pods scoped to one Job filtered on
+ * `resource.k8s.deployment.name` and read nothing. The field now starts on
+ * the kind the metric is about.
+ */
+
+async function openCustomMetricTab(): Promise<void> {
+  fireEvent.click(screen.getByRole("tab", { name: "Custom Metric" }));
+  await settle();
+}
+
+// The Custom Metric tab's lists: the metric first, then its Resource Scope.
+function customMetricList(index: number): HTMLElement {
+  return within(screen.getByRole("tabpanel")).getAllByRole("combobox")[index]!;
+}
+
+async function pickMetric(id: string): Promise<void> {
+  const metric: KubernetesMetricDefinition = getKubernetesMetricById(id)!;
+
+  await pickFromList(
+    customMetricList(0),
+    `${metric.friendlyName}${metric.unit ? ` (${metric.unit})` : ""}`,
+  );
+}
+
+function typeWorkloadName(name: string): void {
+  fireEvent.change(screen.getByPlaceholderText("e.g. my-deployment"), {
+    target: { value: name },
+  });
+}
+
+describe("Kubernetes monitor form - Workload Kind follows the chosen metric", () => {
+  test.each(getAllKubernetesMetrics())(
+    "$friendlyName starts Workload Kind on the kind it is about",
+    async (metric: KubernetesMetricDefinition) => {
+      const onChange: MockFunction = getJestMockFunction();
+
+      await renderNewMonitor(onChange);
+      await openCustomMetricTab();
+      await pickMetric(metric.id);
+
+      const monitor: MonitorStepKubernetesMonitor = lastChange(onChange);
+
+      expect(
+        monitor.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+          .metricName,
+      ).toBe(metric.metricName);
+      // A metric about no one kind sets none, as before.
+      expect(monitor.resourceFilters).toEqual(
+        metric.workloadKind ? { workloadType: metric.workloadKind } : {},
+      );
+
+      if (monitor.resourceScope === KubernetesResourceScope.Workload) {
+        expect(shownWorkloadKind()).toBe(kindLabel(metric.workloadKind));
+      } else {
+        expect(
+          screen.queryByRole("combobox", { name: "Workload Kind" }),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  test("Job Failed Pods: a Workload Name is saved as a Job's name", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("job-failed-pods");
+
+    expect(shownWorkloadKind()).toBe("Job");
+
+    typeWorkloadName("nightly-export");
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "nightly-export",
+      workloadType: "job",
+    });
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+        lastChange(onChange).resourceFilters,
+      ),
+    ).toBe("resource.k8s.job.name");
+  });
+
+  test("switching metrics: the kind follows the new metric", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+
+    await pickMetric("job-failed-pods-increase");
+    expect(shownWorkloadKind()).toBe("Job");
+
+    await pickMetric("daemonset-ready-nodes");
+    expect(shownWorkloadKind()).toBe("DaemonSet");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "daemonset",
+    });
+
+    await pickMetric("statefulset-ready-replicas");
+    expect(shownWorkloadKind()).toBe("StatefulSet");
+
+    // No kind of its own: Deployment, as before.
+    await pickMetric("hpa-current-replicas");
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+
+    // Watched at another scope: no kind, and no Workload Kind field.
+    await pickMetric("pod-cpu-utilization");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(
+      screen.queryByRole("combobox", { name: "Workload Kind" }),
+    ).not.toBeInTheDocument();
+
+    await pickMetric("job-successful-pods");
+    expect(shownWorkloadKind()).toBe("Job");
+
+    await pickMetric("deployment-available-replicas");
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "deployment",
+    });
+  });
+
+  test("a kind the person picked survives a metric switch", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("job-failed-pods");
+
+    await pickFromList(workloadKindList(), "CronJob");
+    expect(shownWorkloadKind()).toBe("CronJob");
+
+    await pickMetric("deployment-desired-replicas");
+    expect(shownWorkloadKind()).toBe("CronJob");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "cronjob",
+    });
+
+    await pickMetric("hpa-current-replicas");
+    expect(shownWorkloadKind()).toBe("CronJob");
+
+    typeWorkloadName("nightly");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "nightly",
+      workloadType: "cronjob",
+    });
+  });
+
+  test("leaving the Workload scope and coming back starts on the metric's kind again", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("job-failed-pods");
+
+    await pickFromList(customMetricList(1), "Namespace");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(
+      screen.queryByRole("combobox", { name: "Workload Kind" }),
+    ).not.toBeInTheDocument();
+
+    await pickFromList(customMetricList(1), "Workload");
+    expect(shownWorkloadKind()).toBe("Job");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "job",
+    });
+  });
+
+  test("a metric about no one kind leaves Workload Kind on Deployment, as before", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("hpa-current-replicas");
+
+    expect(lastChange(onChange).resourceScope).toBe(
+      KubernetesResourceScope.Workload,
+    );
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(shownWorkloadKind()).toBe("Deployment");
+
+    typeWorkloadName("web");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "web",
+      workloadType: "deployment",
+    });
+  });
+
+  test.each([
+    { saved: "deployment", shown: "Deployment" },
+    { saved: "job", shown: "Job" },
+  ])(
+    "an existing Job Failed Pods monitor saved as a $shown's opens with that kind, unchanged",
+    async (input: { saved: string; shown: string }) => {
+      const onChange: MockFunction = getJestMockFunction();
+      const metric: KubernetesMetricDefinition =
+        getKubernetesMetricById("job-failed-pods")!;
+
+      render(
+        <StatefulForm
+          initial={{
+            ...buildKubernetesMonitorConfig({
+              clusterIdentifier: "prod",
+              metricName: metric.metricName,
+              metricAlias: "job_failed_pods",
+              resourceScope: metric.defaultResourceScope,
+              rollingTime: RollingTime.Past5Minutes,
+              aggregationType: metric.defaultAggregation,
+            }),
+            resourceFilters: {
+              workloadType: input.saved,
+              workloadName: "nightly-export",
+            },
+          }}
+          onChange={onChange}
+        />,
+      );
+      await settle();
+      await openAdvancedTab();
+
+      expect(shownWorkloadKind()).toBe(input.shown);
+      expect(onChange).not.toHaveBeenCalled();
+    },
+  );
 });

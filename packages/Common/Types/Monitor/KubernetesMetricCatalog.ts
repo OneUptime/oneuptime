@@ -1,4 +1,7 @@
-import { KubernetesResourceScope } from "./MonitorStepKubernetesMonitor";
+import {
+  KubernetesResourceScope,
+  KubernetesWorkloadKind,
+} from "./MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type KubernetesMetricCategory =
@@ -17,6 +20,14 @@ export interface KubernetesMetricDefinition {
   category: KubernetesMetricCategory;
   defaultAggregation: MetricsAggregationType;
   defaultResourceScope: KubernetesResourceScope;
+  /*
+   * The kind of workload the metric is about, when it is about one: its
+   * series carry only that kind's name (`k8s.job.name` on a Job's). The
+   * monitor form's Workload Kind starts on it, so a Workload Name is read
+   * as that kind's - a Job's name for Job Failed Pods, not a Deployment's.
+   * Unset for pod, container, node, cluster and HPA metrics.
+   */
+  workloadKind?: KubernetesWorkloadKind | undefined;
   unit?: string;
 }
 
@@ -293,6 +304,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "deployment",
     unit: "count",
   },
   {
@@ -303,6 +315,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "deployment",
     unit: "count",
   },
   {
@@ -314,6 +327,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "daemonset",
     unit: "count",
   },
   {
@@ -324,6 +338,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "daemonset",
     unit: "count",
   },
   {
@@ -334,6 +349,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "statefulset",
     unit: "count",
   },
   {
@@ -344,6 +360,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "job",
     unit: "count",
   },
   /*
@@ -367,6 +384,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Sum,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "job",
     unit: "count",
   },
   {
@@ -377,10 +395,15 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "job",
     unit: "count",
   },
 
-  // HPA Metrics
+  /*
+   * HPA Metrics. No workloadKind: an HPA is not one of the workload kinds,
+   * and its metrics carry the HPA's own name, not the name of what it
+   * scales.
+   */
   {
     id: "hpa-current-replicas",
     friendlyName: "HPA Current Replicas",
