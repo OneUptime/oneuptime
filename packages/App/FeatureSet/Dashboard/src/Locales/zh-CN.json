@@ -39056,8 +39056,11 @@
   "Exception Saved View": "已保存的异常视图",
   "Exception Saved Views": "已保存的异常视图",
   "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "保存并重用异常列表的视图，包括当前的搜索、过滤条件、时间范围、状态、排序和每页条数。",
+  "Older Kubernetes agents send only the running restart count.": "较旧的 Kubernetes 代理只发送累计重启次数。",
   "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "在某个部分上，用上下方向键在旁边的部分之间移动，用左方向键将其展开并进入，用右方向键将其收起并返回。",
   "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "在某个部分上，用上下方向键在旁边的部分之间移动，用右方向键将其展开并进入，用左方向键将其收起并返回。",
   "Topology map": "拓扑图",
-  "What is inside": "其中包含的内容"
+  "Upgrade the agent": "升级代理",
+  "What is inside": "其中包含的内容",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "当此查询在该时间范围内没有数据时，图表将改为显示 {{metricName}}。"
 }
