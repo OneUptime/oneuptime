@@ -1214,7 +1214,9 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
       "Operations",
     ]);
     // Drawn in the reader's language, as every translation names them.
-    expect(traceExplorer).toContain('translator.translateText("Critical path")');
+    expect(traceExplorer).toContain(
+      'translator.translateText("Critical path")',
+    );
     expect(traceExplorer).toContain('translator.translateText("Errors only")');
     expect(page).toContain(
       "Turn on **Critical path** to highlight the chain of spans that decided how long the request took.",
