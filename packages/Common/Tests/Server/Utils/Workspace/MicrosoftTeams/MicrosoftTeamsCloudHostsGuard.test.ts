@@ -17,8 +17,8 @@ import ts from "typescript";
  * them, and MicrosoftTeamsHosts the one way the server builds an address.
  *
  * So no string the Teams code holds - a literal, a part of a template, a
- * JSX text - names a sign-in, Graph, Teams, Bot Framework or Teams-service
- * host, outside the table and MicrosoftTeamsServiceUrl's allowlist of
+ * JSX text - names a sign-in, Graph, Teams, Bot Framework, Teams-service or
+ * Azure portal host, outside the table and MicrosoftTeamsServiceUrl's allowlist of
  * where a stored service URL may point (a check, not an address built).
  * Comments may name them.
  */
@@ -32,6 +32,8 @@ const MICROSOFT_CLOUD_HOSTS: ReadonlyArray<string> = [
   "teams.microsoft.us",
   "botframework.",
   "smba.",
+  // Where the setup guide sends an admin to make the app registration.
+  "portal.azure.",
 ];
 
 // Where the Microsoft Teams code is: the bot, the sign-ins, the meetings app, the links.

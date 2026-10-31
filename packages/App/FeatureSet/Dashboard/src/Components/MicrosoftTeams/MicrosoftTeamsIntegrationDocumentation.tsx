@@ -3,6 +3,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import Card from "Common/UI/Components/Card/Card";
 import { MicrosoftTeamsCloudSetting } from "Common/UI/Config";
 import MicrosoftTeamsCloudUtil, {
+  MicrosoftTeamsCloud,
   MicrosoftTeamsCloudHosts,
 } from "Common/Types/Workspace/MicrosoftTeamsCloud";
 
@@ -26,6 +27,11 @@ const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
    */
   const cloud: MicrosoftTeamsCloudHosts =
     MicrosoftTeamsCloudUtil.getHostsOrCommercial(MicrosoftTeamsCloudSetting);
+
+  // Where a GCC High or DoD tenant's app registration and Azure Bot are made.
+  const governmentPortal: string = MicrosoftTeamsCloudUtil.getHosts(
+    MicrosoftTeamsCloud.GccHigh,
+  ).azurePortalOrigin;
 
   const markdownText: string = `
 
@@ -148,7 +154,7 @@ microsoftTeamsApp:
 - \`MICROSOFT_TEAMS_APP_CLIENT_ID\` (\`clientId\`): the app registration's **Application (client) ID**. It is also the bot id of the Teams app package.
 - \`MICROSOFT_TEAMS_APP_CLIENT_SECRET\` (\`clientSecret\`): the client secret's **Value** from Step 4.
 - \`MICROSOFT_TEAMS_APP_TENANT_ID\` (\`tenantId\`): the **Directory (tenant) ID**. The bot authenticates in this tenant, and people sign in to it to connect their Microsoft Teams account.
-- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for Microsoft 365 in a US Government cloud - \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud. For GCC High and DoD, make the app registration and the Azure Bot in Azure Government (portal.azure.us). This server's cloud: **${cloud.title}**.
+- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for Microsoft 365 in a US Government cloud - \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud. For GCC High and DoD, make the app registration and the Azure Bot in [Azure Government's portal](${governmentPortal}). This server's cloud: **${cloud.title}**.
 
 
 Restart your OneUptime server after adding these environment variables so they take effect.
