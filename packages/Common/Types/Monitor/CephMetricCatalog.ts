@@ -3,6 +3,54 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type CephMetricCategory = "Cluster Health" | "OSD" | "Pool" | "PG";
 
+/*
+ * The label a metric's own object is told apart by: a per-pool series by
+ * `pool_id`, a per-daemon one (an OSD, a monitor) by `ceph_daemon`. A Custom
+ * Metric groups by it, so it judges each pool or daemon on its own and opens
+ * one incident each, as the templates do; a cluster-wide metric is not
+ * grouped.
+ */
+export function getCephGroupByKeyForScope(
+  scope: CephResourceScope | undefined,
+): string | undefined {
+  switch (scope) {
+    case CephResourceScope.Pool:
+      return "pool_id";
+    case CephResourceScope.Osd:
+    case CephResourceScope.Mon:
+      return "ceph_daemon";
+    default:
+      return undefined;
+  }
+}
+
+/*
+ * The aggregations a Ceph Custom Metric offers. Not Sum or Count: every
+ * Ceph metric is a per-daemon or per-pool gauge the agent scrapes every 30
+ * seconds, so either adds up the scrapes in a minute - a Sum of OSD Up read
+ * 24 for 12 OSDs - and counts nothing. A monitor saved with one still offers
+ * it, and Advanced offers every aggregation.
+ */
+const CEPH_CUSTOM_METRIC_AGGREGATIONS: ReadonlyArray<MetricsAggregationType> = [
+  MetricsAggregationType.Avg,
+  MetricsAggregationType.Max,
+  MetricsAggregationType.Min,
+];
+
+export function getCephCustomMetricAggregations(
+  current: MetricsAggregationType | undefined,
+): Array<MetricsAggregationType> {
+  const offered: Array<MetricsAggregationType> = [
+    ...CEPH_CUSTOM_METRIC_AGGREGATIONS,
+  ];
+
+  if (current && !offered.includes(current)) {
+    offered.push(current);
+  }
+
+  return offered;
+}
+
 export interface CephMetricDefinition {
   id: string;
   friendlyName: string;
@@ -37,7 +85,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-health-detail",
     friendlyName: "Health Check Detail",
     description:
-      "One series per active health check (e.g. OSD_DOWN, PG_DEGRADED) with name and severity labels. Exposed by the mgr prometheus module on Quincy and later — absent on older releases.",
+      "One series per health check (e.g. OSD_DOWN, PG_DEGRADED) with name and severity labels: 1 while the check is active, 0 after it clears, and no series for a check that has never fired. Exposed by the mgr prometheus module on Quincy and later — absent on older releases.",
     metricName: "ceph_health_detail",
     category: "Cluster Health",
     defaultAggregation: MetricsAggregationType.Max,
@@ -303,7 +351,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pg-total",
     friendlyName: "Total PGs",
     description:
-      "Number of placement groups per pool (pool_id label). Group by pool_id to compare Active or Clean PGs with it pool by pool, as the PG templates do: a Sum adds every scrape in the minute as well as every pool.",
+      "Number of placement groups per pool (pool_id label). A Custom Metric judges each pool on its own. To compare Active or Clean PGs with it, as the PG templates do, use Advanced and group both by pool_id: a Sum adds every scrape in the minute as well as every pool.",
     metricName: "ceph_pg_total",
     category: "PG",
     defaultAggregation: MetricsAggregationType.Max,
@@ -314,7 +362,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pg-active",
     friendlyName: "Active PGs",
     description:
-      "Number of placement groups in the active state (able to serve I/O) per pool (pool_id label). In a healthy pool it equals Total PGs; group both by pool_id to compare them.",
+      "Number of placement groups in the active state (able to serve I/O) per pool (pool_id label). In a healthy pool it equals Total PGs; to compare the two, use Advanced and group both by pool_id.",
     metricName: "ceph_pg_active",
     category: "PG",
     defaultAggregation: MetricsAggregationType.Max,
@@ -325,7 +373,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     id: "ceph-pg-clean",
     friendlyName: "Clean PGs",
     description:
-      "Number of placement groups in the clean state (fully replicated, no recovery pending) per pool (pool_id label). In a healthy pool it equals Total PGs; group both by pool_id to compare them.",
+      "Number of placement groups in the clean state (fully replicated, no recovery pending) per pool (pool_id label). In a healthy pool it equals Total PGs; to compare the two, use Advanced and group both by pool_id.",
     metricName: "ceph_pg_clean",
     category: "PG",
     defaultAggregation: MetricsAggregationType.Max,

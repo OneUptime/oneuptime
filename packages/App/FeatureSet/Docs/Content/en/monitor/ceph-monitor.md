@@ -64,7 +64,7 @@ Under **Ceph Monitor Configuration**, pick the cluster from **Ceph Cluster**. Ev
 A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on**. To watch something else:
 
 - **Change** — pick another [template](#pre-built-alert-templates). It sets the metrics, filters, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** (under **More fields**) — pick one metric from **Ceph Metric**, then set **Aggregation** and **Time Range**. **OSD** and **Pool ID** narrow it to one daemon or pool.
+- **Custom Metric** (under **More fields**) — pick one metric from **Ceph Metric**, then set **Aggregation** and **Time Range**. **OSD** and **Pool ID** narrow it to one daemon or pool. A metric kept per pool or per daemon is judged pool by pool or daemon by daemon, with one incident each.
 - **Advanced** (under **More fields**) — build queries and formulas yourself under **Select Metrics**, for example a used-capacity ratio from `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Group by** `ceph_daemon` or `pool_id` to judge each daemon or pool on its own.
 
 ### Check the criteria
@@ -87,7 +87,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 | **OSD** | Custom Metric, Advanced | Optional. Exact match on the `ceph_daemon` label, for example `osd.3`. |
 | **Pool ID** | Custom Metric, Advanced | Optional. Exact match on the `pool_id` label, for example `2`. |
 | **Ceph Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |
-| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
+| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum** or **Minimum**. Starts at the metric's usual aggregation. A Sum or a Count would add up every scrape in a minute, so they are left to **Advanced**. |
 | **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 1 Minute**; templates set their own. |
 | **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
 
@@ -95,7 +95,7 @@ Pool data series carry only the `pool_id` label: the pool's name exists solely o
 
 ### Health-check series
 
-`ceph_health_detail` exports **one series per active health check**, labeled `name` (for example `OSD_NEARFULL` or `RECENT_CRASH`) and `severity`. A series exists only while its check fires, so no series means healthy. To alert on any Ceph health check, filter on its `name`, fire on **Maximum** above `0`, and recover at `0` with **If No Data** set to **Treat As Zero** — exactly how the health-check templates are built. `ceph_daemon_health_metrics` works the same way per daemon, keyed by a `type` label (for example `SLOW_OPS`) and `ceph_daemon`.
+`ceph_health_detail` exports **one series per health check**, labeled `name` (for example `OSD_NEARFULL` or `RECENT_CRASH`) and `severity`. A check's series reads `1` while the check is active and `0` after it clears, and a check that has never fired has no series. To alert on any Ceph health check, filter on its `name`, fire on **Maximum** above `0`, and recover at `0` with **If No Data** set to **Treat As Zero** — exactly how the health-check templates are built. `ceph_daemon_health_metrics` works the same way per daemon, keyed by a `type` label (for example `SLOW_OPS`) and `ceph_daemon`.
 
 ## Pre-built alert templates
 
@@ -270,7 +270,7 @@ The templates that watch `ceph_health_detail` — Daemon Crash, Monitor Clock Sk
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Health-check series, `ceph_daemon_health_metrics` included, exist only while a check fires, so finding none while the cluster is healthy is expected.
+A health check that has never fired has no series, `ceph_daemon_health_metrics` included, and one that has cleared reads `0`, so finding none, or only zeros, while the cluster is healthy is expected.
 :::
 
 :::details Counters like ceph_pool_wr_bytes only ever grow

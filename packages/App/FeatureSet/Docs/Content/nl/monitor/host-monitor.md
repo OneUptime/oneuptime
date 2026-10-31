@@ -115,7 +115,7 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 - **Geheugen** sluit buffers en paginacache uit, zodat een host die grotendeels cache bevat het sjabloon niet laat afgaan.
 - **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol: de collectorconfiguraties van OneUptime laten ze met `exclude_fs_types` buiten de scraper `filesystem`, en een eigen configuratie heeft hetzelfde nodig.
 - **Belastingsgemiddelde** is een ruwe lengte van de uitvoerwachtrij, niet gedeeld door het aantal kernen: 4 is verzadiging op een host met 2 kernen en routine op een host met 32; verhoog de drempel daarom op grote hosts.
-- **Aantal processen** vergelijkt de grootste afzonderlijke procestoestand (`running`, `sleeping`, …), niet het totaal van de host, en komt dus niet overeen met een proceslijst. De processcraper rapporteert alleen op Linux.
+- **Aantal processen** vergelijkt de grootste afzonderlijke procestoestand (`running`, `sleeping`, …), niet het totaal van de host, en komt dus niet overeen met een proceslijst. De scraper voor processen rapporteert op Linux, macOS en BSD, niet op Windows.
 
 ## Verzamelde metrieken
 
