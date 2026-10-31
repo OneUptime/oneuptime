@@ -11,11 +11,13 @@ import path from "path";
  * receiver stopped sending as k8s.node.cpu.utilization,
  * k8s.pod.cpu.utilization and container.cpu.utilization in collector
  * 0.125.0. The node collector's transform/cpu-utilization sends them again
- * from the receiver's *.cpu.usage, and sends no container.cpu.usage. Apart
- * from that, what reaches ingest is exactly what the upstream receivers
- * emit. These lists are those receivers' default-enabled metrics — plus the
- * ones the chart's own receiver config adds — copied from each receiver's
- * metadata.yaml at the collector version the chart pins:
+ * from the receiver's *.cpu.usage, and sends no container.cpu.usage. And the
+ * cluster collector makes one metric of its own (CHART_DERIVED_METRICS).
+ * Apart from that, what
+ * reaches ingest is exactly what the upstream receivers emit. These lists
+ * are those receivers' default-enabled metrics — plus the ones the chart's
+ * own receiver config adds — copied from each receiver's metadata.yaml at
+ * the collector version the chart pins:
  *
  *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/k8sclusterreceiver/metadata.yaml
  *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/kubeletstatsreceiver/metadata.yaml
@@ -204,9 +206,21 @@ export const ALLOWLISTED_SCRAPE_METRICS: ReadonlyArray<string> = [
   ...(agentChartValues["cost"]["metrics"]["metricsAllowlist"] as Array<string>),
 ];
 
+/*
+ * Not a receiver metric: the cluster collector makes it from k8s_cluster's
+ * k8s.container.restarts in its metrics/restarts-increase pipeline
+ * (templates/configmap-deployment.yaml, tests/restarts-increase_test.yaml):
+ * the restarts since its previous sample of the container, which
+ * CrashLoopBackOff Detection sums.
+ */
+export const CHART_DERIVED_METRICS: ReadonlyArray<string> = [
+  "k8s.container.restarts.increase",
+];
+
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
   ...K8S_CLUSTER_RECEIVER_METRICS,
   ...KUBELETSTATS_RECEIVER_METRICS,
   ...CONTROL_PLANE_SCRAPE_METRICS,
   ...ALLOWLISTED_SCRAPE_METRICS,
+  ...CHART_DERIVED_METRICS,
 ]);

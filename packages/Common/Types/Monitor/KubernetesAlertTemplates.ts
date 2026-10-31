@@ -383,6 +383,11 @@ export interface KubernetesQuerySpec {
   alias: string;
   metricName: string;
   aggregationType: MetricsAggregationType;
+  /*
+   * What the query is called in an alert's root cause and on its chart
+   * ("The sum of Container Restarts ..."). The alias when unset.
+   */
+  title?: string | undefined;
 }
 
 export interface KubernetesFormulaSpec {
@@ -396,9 +401,10 @@ export interface KubernetesFormulaSpec {
 
 /**
  * Several queries over the SAME object, and the formulas over them that the
- * criteria compare: a counter's growth next to the gauge that qualifies it
- * (CrashLoopBackOff), or two derived values that must both hold (an HPA at
- * its ceiling AND above its floor).
+ * criteria compare: a counter's growth (Job Failures), a count next to the
+ * gauge that qualifies it (CrashLoopBackOff: the restarts the agent sends
+ * with each sample, and readiness), or two derived values that must both
+ * hold (an HPA at its ceiling AND above its floor).
  *
  * Every query carries the same group-by key set, which is what lines the
  * series up (see buildKubernetesRatioMonitorConfig: a key only one query
@@ -430,12 +436,14 @@ export function buildKubernetesMultiQueryMonitorConfig(args: {
     resourceFilters: {},
     metricViewConfig: {
       queryConfigs: args.queries.map((query: KubernetesQuerySpec) => {
+        const title: string = query.title || query.alias;
+
         return {
           metricAliasData: {
             metricVariable: query.alias,
-            title: query.alias,
-            description: query.alias,
-            legend: query.alias,
+            title: title,
+            description: title,
+            legend: title,
             // Unset, so MetricResultUnitConverter passes the raw value through.
             legendUnit: undefined,
           },
@@ -519,6 +527,37 @@ const clusterStoppedReportingTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * The id stays "k8s-crashloopbackoff": it is the stable key the
+ * recommendation catalog and the already-created-monitor diff match on.
+ *
+ * It used to read the growth of k8s.container.restarts (the container
+ * status' restartCount) between two samples of the same minute: a Max and
+ * a Min query per minute and a formula subtracting them. At the agent's
+ * 30-second interval a restart between the last sample of one minute and
+ * the first of the next was never counted - about half of a crash loop,
+ * so a loop restarting every few minutes could go unseen for a whole
+ * window, and a single restart had even odds - and a pod recreated under
+ * the same name (a StatefulSet's) read its old count against the new
+ * one's 0 as that many restarts in one minute. The alerting path cannot
+ * difference values across minutes (no rate or delta in AggregationType or
+ * EvaluateOverTimeType, and formulas are evaluated point by point), so the
+ * agent does it: its metrics/restarts-increase pipeline sends
+ * k8s.container.restarts.increase with every sample, the restarts since
+ * its previous sample of the same pod and container, however far back
+ * that was (HelmChart/Public/kubernetes-agent/templates/
+ * configmap-deployment.yaml, transform/restarts-increase). Summed per
+ * minute and over the window, that is every restart in the window. The
+ * k8s_cluster receiver reports every container of every pod at each
+ * interval, a container waiting in its back-off included, so a crash loop
+ * is sampled between its runs too.
+ *
+ * A cluster whose agent predates k8s.container.restarts.increase sends
+ * nothing the restart query reads, so the template never fires there, and
+ * the docs tell it to upgrade the agent. That is also why monitors made
+ * from the old query are left as they are rather than rewritten to this
+ * one: against an older agent the rewrite would stop alerting.
+ */
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
   id: "k8s-crashloopbackoff",
   name: "CrashLoopBackOff Detection",
@@ -530,7 +569,7 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
    * <p>, not markdown), so a code span would show up as literal backticks.
    */
   description:
-    "Alert when a container restarts within fifteen minutes and was ready for less than half of them: the kubelet keeps restarting a container that keeps crashing, with a growing back-off, and it is not ready in between. Reads the growth of k8s.container.restarts (the container's restart count) and the average of k8s.container.ready. The restart count is only seen growing between two samples of the same minute, so a single restart can go unseen; a crash loop restarts again and again and is caught. One incident per container.",
+    "Alert when a container restarts within fifteen minutes and was ready for less than half of them: the kubelet keeps restarting a container that keeps crashing, with a growing back-off, and it is not ready in between. Reads k8s.container.restarts.increase, the restarts since the agent's previous sample of the container, so every restart counts however far apart the samples are, and the average of k8s.container.ready. A recreated pod starts a new count and is not a restart. An older Kubernetes agent does not send the increase: upgrade the agent first. One incident per container.",
   category: "Workload",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -552,27 +591,28 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
        * collects neither by default (kubeStateMetrics.enabled is false,
        * and the k8s_cluster receiver runs with its default metrics).
        *
-       * So the template reads what the agent always sends: the restart
-       * count's GROWTH in the window (the house delta, see
-       * buildKubernetesMultiQueryMonitorConfig) - a container restarting
-       * now - qualified by k8s.container.ready, so a one-off restart (an
-       * OOM kill, a node drain's replacement) of a container that came
-       * straight back and stayed ready does not page as a crash loop. A
-       * crash-looping container sits in its back-off, not ready, between
-       * restarts.
+       * So the template reads what the agent always sends: the restarts it
+       * sends with each sample, summed over the window - a container
+       * restarting now - qualified by k8s.container.ready, so a one-off
+       * restart (an OOM kill, a node drain's replacement) of a container
+       * that came straight back and stayed ready does not page as a crash
+       * loop. A crash-looping container sits in its back-off, not ready,
+       * between restarts.
        */
       kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
         queries: [
           {
-            alias: "container_restarts_max",
-            metricName: "k8s.container.restarts",
-            aggregationType: MetricsAggregationType.Max,
-          },
-          {
-            alias: "container_restarts_min",
-            metricName: "k8s.container.restarts",
-            aggregationType: MetricsAggregationType.Min,
+            alias: metricAlias,
+            title: "Container Restarts",
+            metricName: "k8s.container.restarts.increase",
+            /*
+             * Sum WITHIN each container's series: the restarts in each
+             * minute. A minute with no sample of the container has no row,
+             * not a zero, and the increase a later sample sends still
+             * counts its restarts.
+             */
+            aggregationType: MetricsAggregationType.Sum,
           },
           {
             alias: readyAlias,
@@ -581,19 +621,13 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
             aggregationType: MetricsAggregationType.Avg,
           },
         ],
-        formulas: [
-          {
-            alias: metricAlias,
-            legend: "Container Restarts (in window)",
-            formula: "container_restarts_max - container_restarts_min",
-            legendUnit: "",
-          },
-        ],
+        formulas: [],
         /*
          * Per container: a crash-looping container must page on its own
          * rather than dedupe behind whichever one in the cluster crashed
          * first. Both metrics come from the k8s_cluster receiver, which
-         * stamps all three keys itself, so the queries line up.
+         * stamps all three keys itself (the restarts pipeline takes only
+         * container.id off), so the queries line up.
          */
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",
@@ -604,10 +638,10 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         /*
          * Fifteen minutes: a crash loop's back-off doubles from 10 seconds
          * to its 5-minute cap, so even a loop at the cap restarts three
-         * times in the window, and each restart is seen with about even
-         * odds. A longer window would see more of them, but every query
-         * reads at most 10,000 rows (LIMIT_PER_PROJECT): 15 minutes of
-         * 30-second samples covers about 330 containers.
+         * times in the window, and every one of them is counted. A longer
+         * window would hold more of them, but every query reads at most
+         * 10,000 rows (LIMIT_PER_PROJECT): 15 minutes of 30-second samples
+         * covers about 330 containers.
          */
         rollingTime: RollingTime.Past15Minutes,
       }),
@@ -621,8 +655,9 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         value: 0,
         /*
          * Sum, not the sustained AllValues default: each sample is ONE
-         * MINUTE'S growth and most minutes of a crash loop are 0, so "every
-         * minute breached" is unreachable. The window total is the count.
+         * MINUTE'S restarts and most minutes of a crash loop have none, so
+         * "every minute breached" is unreachable. The window total is the
+         * count.
          */
         metricAggregationType: EvaluateOverTimeType.Sum,
         filterCondition: FilterCondition.All,
@@ -657,14 +692,14 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         incidentDescription: `A container restarted within the last fifteen minutes and was ready for less than half of them — the signature of a CrashLoopBackOff: the kubelet keeps restarting a container that keeps crashing, waiting longer each time. The alert clears once the container stops restarting for fifteen minutes or stays ready. Common causes: a crash on startup, a missing config map or secret, an OOMKill against the container's memory limit, or a failing liveness probe. The affected namespace, pod and container are named under "Affected resource" below, with the kubectl commands to inspect them — including the previous instance's logs — under "Start here".`,
         criteriaName: "CrashLoopBackOff - Restarts in 15 min > 0, Ready < 50%",
         criteriaDescription:
-          "Triggers when a container's restart count grows within the monitoring window and the container was ready for less than half of it. The growth is counted between two samples of the same minute, so it is a lower bound: a single restart can go unseen, a crash loop's repeated restarts are caught.",
+          "Triggers when a container restarts within the monitoring window, counted from the restarts the agent sends with each sample, and the container was ready for less than half of it.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
         value: 0,
-        // Must match the unhealthy side: a sum of per-minute growth.
+        // Must match the unhealthy side: a sum of per-minute restarts.
         metricAggregationType: EvaluateOverTimeType.Sum,
         /*
          * Either clears it: no restart in the window, or a container ready
