@@ -306,6 +306,43 @@ function expectLabelsFirstAndLinedUp(
   });
 }
 
+interface NumberSize {
+  fontSize: string | undefined;
+  lineHeight: string | undefined;
+}
+
+// How big a stat tile draws its number: the value <div>'s own style.
+function readNumberSize(tile: string): NumberSize {
+  const valueAt: number = tile.indexOf("<div ");
+
+  expect(valueAt).toBeGreaterThan(-1);
+
+  const value: string = tile.slice(valueAt, tile.indexOf(">", valueAt));
+  const styleAt: number = value.indexOf('style="');
+
+  expect(styleAt).toBeGreaterThan(-1);
+
+  const declarations: Map<string, string> = new Map();
+
+  for (const declaration of value
+    .slice(styleAt + 'style="'.length, value.lastIndexOf('"'))
+    .split(";")) {
+    const colonAt: number = declaration.indexOf(":");
+
+    if (colonAt > -1) {
+      declarations.set(
+        declaration.slice(0, colonAt).trim().toLowerCase(),
+        declaration.slice(colonAt + 1).trim(),
+      );
+    }
+  }
+
+  return {
+    fontSize: declarations.get("font-size"),
+    lineHeight: declarations.get("line-height"),
+  };
+}
+
 describe("StatusPageSubscriberReport.hbs", () => {
   test("each supporting stat names what it counts first, at the top of its tile", () => {
     const report: StatusPageReport = buildReport({
@@ -534,6 +571,39 @@ describe("the default report template offered to customers", () => {
       ["Incidents", "3"],
       ["Resources", String(report.totalResources)],
     ]);
+  });
+
+  /*
+   * A phone's tile is about 90 pixels wide. At 24px a bold "minutes" was
+   * wider than that, and the template's overflow-wrap broke it in two
+   * ("minute" over "s"); at the built-in report's 22px it fits whole.
+   */
+  test("draws each stat's number at the built-in report's size, so a word such as 'minutes' fits a phone's tile whole", () => {
+    const report: StatusPageReport = buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+
+    const builtIn: Array<NumberSize> = statTiles(
+      renderReportTemplate({
+        statusPageName: "WBHQ Status Page",
+        hasResources: "true",
+        statusPageUrl: "https://status.example.com",
+        detailsUrl: "https://status.example.com",
+        report: report,
+      }),
+    ).map(readNumberSize);
+    const starter: Array<NumberSize> = statTiles(renderDefaultBody(report)).map(
+      readNumberSize,
+    );
+
+    expect(builtIn).toEqual([
+      { fontSize: "22px", lineHeight: "28px" },
+      { fontSize: "22px", lineHeight: "28px" },
+      { fontSize: "22px", lineHeight: "28px" },
+    ]);
+    expect(starter).toEqual(builtIn);
   });
 
   test("renders the same nested hierarchy", () => {

@@ -11,7 +11,12 @@ from the internet shows them - and shot at 2x.
   counts first, as the Average Uptime tile does, and the three sit at the top
   of their strip so their labels line up when a value wraps.
 - `report-starter-390-*.png`: the same for the starter a status page is
-  offered for its own report template.
+  offered for its own report template. Its numbers were 24px, wider than a
+  phone's tile, so "minutes" broke in two ("minute" over "s"); they are now
+  the built-in report's 22px, and the word fits whole.
+
+The sample page has three groups with their rolled-up numbers, as the server
+computes them, and four resources.
 - `status-page-logo-*.png`: a status page email whose page has an uploaded
   logo. Before, the logo was an address on the installation, which a mail
   client that cannot reach it (or blocks remote images) shows as a broken
