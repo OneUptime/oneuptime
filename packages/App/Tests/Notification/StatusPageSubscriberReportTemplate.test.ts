@@ -665,3 +665,205 @@ describe("the default report template offered to customers", () => {
     expect(renderedRows(html)).toEqual([{ name: "Router", indent: 0 }]);
   });
 });
+
+const PHONE_MEDIA_QUERY: string = "@media only screen and (max-width: 600px)";
+
+/*
+ * The rules of an email's phone block (PHONE_MEDIA_QUERY), each selector
+ * with its declarations, read with indexOf - never a pattern over markup.
+ */
+function phoneRules(html: string): Map<string, Map<string, string>> {
+  const mediaAt: number = html.indexOf(PHONE_MEDIA_QUERY);
+
+  expect(mediaAt).toBeGreaterThan(-1);
+
+  const blockStart: number = html.indexOf("{", mediaAt) + 1;
+  let depth: number = 1;
+  let blockEnd: number = blockStart;
+
+  while (depth > 0 && blockEnd < html.length) {
+    if (html[blockEnd] === "{") {
+      depth++;
+    } else if (html[blockEnd] === "}") {
+      depth--;
+    }
+
+    blockEnd++;
+  }
+
+  const rules: Map<string, Map<string, string>> = new Map();
+
+  for (const rule of html.slice(blockStart, blockEnd - 1).split("}")) {
+    const openAt: number = rule.indexOf("{");
+
+    if (openAt === -1) {
+      continue;
+    }
+
+    const declarations: Map<string, string> = new Map();
+
+    for (const declaration of rule.slice(openAt + 1).split(";")) {
+      const colonAt: number = declaration.indexOf(":");
+
+      if (colonAt > -1) {
+        declarations.set(
+          declaration.slice(0, colonAt).trim(),
+          declaration.slice(colonAt + 1).trim(),
+        );
+      }
+    }
+
+    rules.set(rule.slice(0, openAt).trim(), declarations);
+  }
+
+  return rules;
+}
+
+/*
+ * What makes the stat strip three rows on a phone, by the selector after
+ * each template's own prefix: the cells stack, full width, with a line
+ * between two rows, each label on the left and its value - a little
+ * smaller - on the right.
+ */
+const PHONE_STAT_RULES: Array<[string, Record<string, string>]> = [
+  [
+    "td.st-Stat",
+    {
+      display: "block !important",
+      width: "auto !important",
+      "border-right": "0 !important",
+      "text-align": "right !important",
+    },
+  ],
+  ["td.st-Stat--next", { "border-top": "1px solid #e2e8f0 !important" }],
+  [
+    ".st-Stat .st-Stat-label",
+    { float: "left !important", margin: "0 16px 0 0 !important" },
+  ],
+  [
+    ".st-Stat .st-Stat-value",
+    { "font-size": "18px !important", "line-height": "26px !important" },
+  ],
+];
+
+// The starter a status page is offered for its own report template, rendered.
+function renderStarter(report: StatusPageReport): string {
+  const body: string =
+    getDefaultSubscriberNotificationTemplate(
+      StatusPageSubscriberNotificationEventType.SubscriberReport,
+      StatusPageSubscriberNotificationMethod.Email,
+    )?.body || "";
+
+  expect(body).not.toBe("");
+
+  return Handlebars.compile(body)({
+    statusPageName: "WBHQ Status Page",
+    detailsUrl: "https://status.example.com",
+    report: report,
+  });
+}
+
+/*
+ * ON A PHONE, THE UPTIME REPORT'S THREE STATS ARE ROWS.
+ *
+ * Side by side, each stat has a third of the strip: about 90 pixels on a
+ * phone, where "4 hours, 39 minutes" took three lines and a wider font
+ * broke "minutes" in two. Under 600 pixels both the built-in report and
+ * the starter make the strip three rows - DOWNTIME on the left, "4 hours,
+ * 39 minutes" on the right - the way the text part reads it. A mail client
+ * without media queries keeps the three tiles.
+ */
+describe("on a phone, the uptime report's three stats are rows", () => {
+  const report: () => StatusPageReport = (): StatusPageReport => {
+    return buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+  };
+
+  const renderBuiltIn: () => string = (): string => {
+    return renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "true",
+      statusPageUrl: "https://status.example.com",
+      detailsUrl: "https://status.example.com",
+      report: report(),
+    });
+  };
+
+  const renderOffered: () => string = (): string => {
+    return renderStarter(report());
+  };
+
+  test.each([
+    { name: "the built-in report", prefix: "body[override] " },
+    { name: "the starter", prefix: ".st-StandaloneReport " },
+  ])(
+    "$name stacks its stat cells into rows, label left and value right",
+    (template: { name: string; prefix: string }) => {
+      const rules: Map<string, Map<string, string>> = phoneRules(
+        template.name === "the starter" ? renderOffered() : renderBuiltIn(),
+      );
+
+      for (const [selector, declarations] of PHONE_STAT_RULES) {
+        const rule: Map<string, string> | undefined = rules.get(
+          template.prefix + selector,
+        );
+
+        expect(rule).toBeDefined();
+
+        for (const [property, value] of Object.entries(declarations)) {
+          expect(`${selector} ${property}: ${rule?.get(property)}`).toBe(
+            `${selector} ${property}: ${value}`,
+          );
+        }
+      }
+    },
+  );
+
+  test.each([
+    { name: "the built-in report", render: renderBuiltIn },
+    { name: "the starter", render: renderOffered },
+  ])(
+    "$name marks each stat for those rules, and only the stats",
+    (template: { name: string; render: () => string }) => {
+      const html: string = template.render();
+      const tiles: Array<string> = statTiles(html);
+
+      expect(tiles).toHaveLength(3);
+
+      // Each cell is a stat; the second and third draw the line above them.
+      expect(tiles[0]!.slice(0, tiles[0]!.indexOf(">"))).toContain(
+        'class="st-Stat"',
+      );
+
+      for (const tile of tiles.slice(1)) {
+        expect(tile.slice(0, tile.indexOf(">"))).toContain(
+          'class="st-Stat st-Stat--next"',
+        );
+      }
+
+      for (const tile of tiles) {
+        expect(tile).toContain('<div class="st-Stat-value" ');
+      }
+
+      /*
+       * The hero's "Average Uptime" is a stat label too - the text part
+       * reads it - but in no stat cell: on a phone it stays centered above
+       * its number.
+       */
+      const heroAt: number = html.indexOf(">Average Uptime</p>");
+      const heroBoxAt: number = Math.max(
+        html.lastIndexOf("<td ", heroAt),
+        html.lastIndexOf("<div ", heroAt),
+      );
+
+      expect(heroAt).toBeGreaterThan(-1);
+      expect(heroAt).toBeLessThan(html.indexOf('class="st-Stat"'));
+      expect(html.slice(heroBoxAt, html.indexOf(">", heroBoxAt))).not.toContain(
+        "st-Stat",
+      );
+    },
+  );
+});
