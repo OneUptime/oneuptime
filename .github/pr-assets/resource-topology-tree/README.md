@@ -9,7 +9,10 @@ fixture replaces only the API, over a synthetic estate (`?estate=large` for the 
 `?theme=dark`, `?lang=de|fa`).
 
 `before-*` is master at 30ce30a228 (the map drew each open part as a box holding its parts, boxes
-inside boxes). `after-*` is this PR.
+inside boxes). `after-*` is this PR as merged, the UI review's polish included: a quiet round
+toggle, a part with no status saying what it is, a dot between a heading's count and what needs
+attention, the drawing framed from the top of the canvas, and a host's map drawn readably (its
+lanes of chips, every heading laid out around its words).
 
 - `before-<product>-1280.png` / `after-<product>-1280.png`: each resource's first view. The
   resource sits at the top, each part's parts stand in the column after it, joined by a line that
@@ -18,11 +21,14 @@ inside boxes). `after-*` is this PR.
 - `after-cloud-1280.png`: a cloud account (no `before`: it drew the same boxes).
 - `after-vmware-quiet-1280.png`, `after-kubernetes-quiet-1280.png`: a calm estate. With room to
   spare, the vCenter's healthy datacenters open too; the cluster's first level already fills it.
-- `after-*-dark.png`, `after-vmware-1280-de.png`, `after-*-fa.png`: dark mode, German, and Persian,
-  where the tree is mirrored.
+- `after-*-dark.png`, `after-vmware-1280-de.png`, `after-host-1280-de.png`, `after-*-fa.png`: dark
+  mode, German, and Persian, where the tree is mirrored and the zoom buttons sit at the bottom
+  right. The German and Persian lane headings are whole.
 - `after-vmware-390.png`, `after-kubernetes-390-dark.png`: the map on a phone (a phone opens on the
   list; these are its Map).
 - `after-*-large-1280.png`: a vCenter of thousands of virtual machines and a cluster of 1,642 parts.
 - `after-vmware-needs-attention.png`, `after-vmware-picked-path.png`,
-  `after-vmware-keyboard.png`, `after-kubernetes-node-focus.png`: Needs attention, the way to a
-  picked part lit, the arrow keys opening Frankfurt, and a node focused with the pods it runs.
+  `after-vmware-keyboard.png`, `after-kubernetes-node-focus.png`,
+  `after-kubernetes-namespace-opened.png`: Needs attention, the way to a picked part lit, the arrow
+  keys opening Frankfurt, a node focused with the pods it runs (joined by one spine), and a
+  namespace opened, framed with the failing workload's pods that opened with it.
