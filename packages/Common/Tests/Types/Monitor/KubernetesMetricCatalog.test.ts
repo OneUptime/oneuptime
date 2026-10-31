@@ -655,4 +655,85 @@ describe("KubernetesMetricCatalog", () => {
       );
     });
   });
+
+  /*
+   * The same for Jobs: a Custom Metric monitor on the Job's running
+   * failed-pod count, with the list's Maximum, fires on a Job's history and
+   * stays open until the Job is deleted. The failed pods the agent sends
+   * with each sample, summed over the window, are the failures in it - what
+   * Job Failures reads.
+   */
+  describe("the Job failures since each sample, beside the running count", () => {
+    test("offers them summed, beside the running count it keeps at its maximum", () => {
+      expect(
+        getKubernetesMetricByMetricName("k8s.job.failed_pods.increase"),
+      ).toEqual(
+        expect.objectContaining({
+          id: "job-failed-pods-increase",
+          friendlyName: "Job Failed Pods (Increase)",
+          category: "Workload",
+          defaultAggregation: AggregationType.Sum,
+          defaultResourceScope: KubernetesResourceScope.Workload,
+          unit: "count",
+        }),
+      );
+      expect(getKubernetesMetricByMetricName("k8s.job.failed_pods")).toEqual(
+        expect.objectContaining({
+          friendlyName: "Job Failed Pods",
+          category: "Workload",
+          defaultAggregation: AggregationType.Max,
+        }),
+      );
+      expect(getKubernetesMetricById("job-failed-pods-increase")).toBe(
+        getKubernetesMetricByMetricName("k8s.job.failed_pods.increase"),
+      );
+    });
+
+    test("lists it right after the running count in the picker", () => {
+      const names: Array<string> = getKubernetesMetricsByCategory(
+        "Workload",
+      ).map((metric: KubernetesMetricDefinition): string => {
+        return metric.metricName;
+      });
+
+      expect(names.indexOf("k8s.job.failed_pods.increase")).toBe(
+        names.indexOf("k8s.job.failed_pods") + 1,
+      );
+    });
+
+    test("says what a sample's value is, and what its sum is", () => {
+      const description: string = getKubernetesMetricByMetricName(
+        "k8s.job.failed_pods.increase",
+      )!.description;
+
+      expect(description).toBe(
+        "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it.",
+      );
+      // Read as a count, with no unit to print.
+      expect(
+        MetricValueFormatter.format({
+          value: 2,
+          unit: "count",
+          metricName: "k8s.job.failed_pods.increase",
+        }),
+      ).toBe("2");
+    });
+
+    test("is what the shipped chart's cluster collector makes of k8s.job.failed_pods", () => {
+      const config: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+        ),
+        "utf8",
+      );
+
+      expect(config).toContain(
+        '- copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+      );
+      expect(config).toContain(
+        "            - k8s.job.failed_pods.increase\n          match_type: strict\n        initial_value: drop\n",
+      );
+    });
+  });
 });
