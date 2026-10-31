@@ -217,6 +217,125 @@ describe("MicrosoftTeamsMeetingsOAuthApp", () => {
   });
 });
 
+/*
+ * An app registered for one organization only - which an organization
+ * that allows no multitenant apps registers - is refused at
+ * "organizations" with AADSTS50194, as the Teams bot's user sign-in was in
+ * issue #5202. MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID names its tenant, and
+ * every sign-in goes there.
+ */
+describe("MicrosoftTeamsMeetingsOAuthApp - an app registered for one organization", () => {
+  const APP_TENANT_ID: string = "4a1f9e60-1b2c-4d3e-8f40-a1b2c3d4e5f6";
+
+  const singleTenantApp: (
+    fetcher: ScriptedFetch,
+    tenantId: string | undefined,
+  ) => MicrosoftTeamsMeetingsOAuthApp = (
+    fetcher: ScriptedFetch,
+    tenantId: string | undefined,
+  ): MicrosoftTeamsMeetingsOAuthApp => {
+    return new MicrosoftTeamsMeetingsOAuthApp(
+      tenantId === undefined
+        ? { clientId: CLIENT_ID, clientSecret: "ms-secret" }
+        : { clientId: CLIENT_ID, clientSecret: "ms-secret", tenantId },
+      new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+    );
+  };
+
+  test("signs in at the app's tenant, never at organizations", () => {
+    const url: URL = new URL(
+      singleTenantApp(scriptedFetch([]), APP_TENANT_ID).getAuthorizationUrl({
+        state: "s",
+        redirectUri: REDIRECT_URI,
+      }),
+    );
+
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `https://login.microsoftonline.com/${APP_TENANT_ID}/oauth2/v2.0/authorize`,
+    );
+    expect(url.searchParams.get("client_id")).toBe(CLIENT_ID);
+    expect(url.pathname).not.toContain("organizations");
+  });
+
+  test("exchanges the code at the authority that issued it, and reads who signed in", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: tokenResponse(undefined, { tid: APP_TENANT_ID }) },
+    ]);
+
+    const grant: VideoCallOAuthGrant = await singleTenantApp(
+      fetcher,
+      APP_TENANT_ID,
+    ).exchangeCode({ code: "code", redirectUri: REDIRECT_URI });
+
+    expect(fetcher.requests).toHaveLength(1);
+    expect(fetcher.requests[0]!.url).toBe(
+      `https://login.microsoftonline.com/${APP_TENANT_ID}/oauth2/v2.0/token`,
+    );
+    expect(grant.account.externalAccountId).toBe(APP_TENANT_ID);
+  });
+
+  test("refreshes a sign-in stored with its tenant at that tenant, and one stored without at the app's", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: tokenResponse() },
+      { status: 200, body: tokenResponse() },
+    ]);
+    const app: MicrosoftTeamsMeetingsOAuthApp = singleTenantApp(
+      fetcher,
+      APP_TENANT_ID,
+    );
+
+    await app.refresh({
+      secrets: { refreshToken: "r", externalAccountId: TENANT_ID },
+      accountLabel: "incidents@acme.onmicrosoft.com",
+    });
+    await app.refresh({
+      secrets: { refreshToken: "r" },
+      accountLabel: "incidents@acme.onmicrosoft.com",
+    });
+
+    expect(
+      fetcher.requests.map((request: { url: string }): string => {
+        return request.url;
+      }),
+    ).toEqual([
+      `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+      `https://login.microsoftonline.com/${APP_TENANT_ID}/oauth2/v2.0/token`,
+    ]);
+  });
+
+  test("a tenant named by one of its domains signs in there too, in lower case", () => {
+    expect(
+      singleTenantApp(
+        scriptedFetch([]),
+        "  Contoso.OnMicrosoft.com ",
+      ).getSignInAuthority(),
+    ).toBe("https://login.microsoftonline.com/contoso.onmicrosoft.com");
+  });
+
+  test.each([
+    ["no tenant", undefined],
+    ["an empty tenant", ""],
+    ["common, which a single-tenant app is refused at", "common"],
+    ["organizations", "organizations"],
+    ["consumers", "consumers"],
+    ["text that is no tenant", "my tenant"],
+    ["a path", "../common"],
+  ])(
+    "%s: a multitenant app's sign-in, at organizations",
+    (_label: string, tenantId: string | undefined) => {
+      const app: MicrosoftTeamsMeetingsOAuthApp = singleTenantApp(
+        scriptedFetch([]),
+        tenantId,
+      );
+
+      expect(app.getSignInAuthority()).toBe(MICROSOFT_ORGANIZATIONS_AUTHORITY);
+      expect(
+        app.getAuthorizationUrl({ state: "s", redirectUri: REDIRECT_URI }),
+      ).toContain(`${MICROSOFT_ORGANIZATIONS_AUTHORITY}/oauth2/v2.0/authorize?`);
+    },
+  );
+});
+
 describe("MicrosoftTeamsMeetingsOAuthApp - a project that records and transcribes its calls", () => {
   const CALENDAR_SCOPE: string =
     "https://graph.microsoft.com/Calendars.ReadWrite";

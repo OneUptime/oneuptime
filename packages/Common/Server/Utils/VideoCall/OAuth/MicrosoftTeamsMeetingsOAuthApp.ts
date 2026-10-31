@@ -9,6 +9,7 @@ import {
 import MicrosoftTeamsMeetingClient, {
   MICROSOFT_LOGIN_HOST,
 } from "../Providers/MicrosoftTeamsMeetingClient";
+import MicrosoftTeamsSignInAuthorityUtil from "../../Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
 import VideoCallHttpClient, {
   VideoCallHttpResponse,
 } from "../VideoCallHttpClient";
@@ -27,6 +28,13 @@ import VideoCallOAuthUtil, {
  * Microsoft Entra app, signed in to by the work or school account that
  * organizes the meetings, with the delegated OnlineMeetings.ReadWrite
  * permission. https://learn.microsoft.com/graph/api/application-post-onlinemeetings
+ *
+ * A multitenant app signs in at "organizations", any work or school
+ * account's endpoint. An app registered for one organization only - which
+ * an organization that allows no multitenant apps registers - is refused
+ * there (AADSTS50194), so its sign-in goes to the tenant it is registered
+ * in, MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID (getSignInAuthority): its
+ * members and guests sign in, and Microsoft stops anybody else.
  *
  * A delegated permission needs no application access policy: the meeting
  * is the signed-in account's own (/me/onlineMeetings). Personal Microsoft
@@ -170,7 +178,24 @@ export default class MicrosoftTeamsMeetingsOAuthApp
       state: data.state,
     });
 
-    return `${MICROSOFT_ORGANIZATIONS_AUTHORITY}/oauth2/v2.0/authorize?${params.toString()}`;
+    return `${this.getSignInAuthority()}/oauth2/v2.0/authorize?${params.toString()}`;
+  }
+
+  /*
+   * Where a sign-in goes, and its code is exchanged: the tenant a
+   * single-tenant app is registered in (its tenantId), or "organizations"
+   * for a multitenant app. A tenant id or one of the tenant's domain names;
+   * any other value - "common", "organizations", text that is no tenant -
+   * is not a tenant, and the app signs in as a multitenant app does.
+   */
+  public getSignInAuthority(): string {
+    const tenant: string | null = MicrosoftTeamsSignInAuthorityUtil.readTenant(
+      this.credentials.tenantId,
+    );
+
+    return tenant
+      ? `${MICROSOFT_LOGIN_HOST}/${encodeURIComponent(tenant)}`
+      : MICROSOFT_ORGANIZATIONS_AUTHORITY;
   }
 
   public async exchangeCode(data: {
@@ -179,7 +204,7 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     recordAndTranscribe?: boolean | undefined;
   }): Promise<VideoCallOAuthGrant> {
     const response: VideoCallHttpResponse = await this.http.request({
-      url: `${MICROSOFT_ORGANIZATIONS_AUTHORITY}/oauth2/v2.0/token`,
+      url: `${this.getSignInAuthority()}/oauth2/v2.0/token`,
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -266,12 +291,15 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     secrets: VideoCallOAuthSecrets;
     accountLabel: string;
   }): Promise<VideoCallOAuthTokens> {
-    // The account's own tenant; "organizations" for a sign-in stored without one.
+    /*
+     * The account's own tenant; for a sign-in stored without one, where a
+     * sign-in goes (the app's tenant, or "organizations").
+     */
     const authority: string =
       data.secrets.externalAccountId &&
       MicrosoftTeamsMeetingClient.isGuid(data.secrets.externalAccountId)
         ? `${MICROSOFT_LOGIN_HOST}/${data.secrets.externalAccountId}`
-        : MICROSOFT_ORGANIZATIONS_AUTHORITY;
+        : this.getSignInAuthority();
 
     const response: VideoCallHttpResponse = await this.http.request({
       url: `${authority}/oauth2/v2.0/token`,

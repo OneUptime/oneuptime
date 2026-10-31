@@ -1703,6 +1703,13 @@ export const MicrosoftTeamsMeetingsAppClientId: string | null =
   process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID"] || null;
 export const MicrosoftTeamsMeetingsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET"] || null;
+/*
+ * The tenant a single-tenant Teams meetings app is registered in: its
+ * sign-in goes there rather than to "organizations", which Microsoft
+ * refuses for such an app (AADSTS50194). Unset for a multitenant app.
+ */
+export const MicrosoftTeamsMeetingsAppTenantId: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID"] || null;
 
 // GitHub App Configuration
 export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;

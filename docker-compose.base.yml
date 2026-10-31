@@ -244,6 +244,7 @@ x-common-runtime-variables: &common-runtime-variables
   ZOOM_APP_WEBHOOK_SECRET_TOKEN: ${ZOOM_APP_WEBHOOK_SECRET_TOKEN:-}
   GOOGLE_MEET_APP_CLIENT_SECRET: ${GOOGLE_MEET_APP_CLIENT_SECRET:-}
   MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET:-}
+  MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID: ${MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID:-}
 
   # Cloud > Connect: the AWS identity that signs in to customers' read-only
   # IAM roles (see config.example.env). Unset, AWS connects with an access key.

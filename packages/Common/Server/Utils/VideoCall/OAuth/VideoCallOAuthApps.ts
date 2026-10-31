@@ -4,6 +4,7 @@ import {
   GoogleMeetAppClientSecret,
   MicrosoftTeamsMeetingsAppClientId,
   MicrosoftTeamsMeetingsAppClientSecret,
+  MicrosoftTeamsMeetingsAppTenantId,
   ZoomAppClientId,
   ZoomAppClientSecret,
 } from "../../../EnvironmentConfig";
@@ -41,6 +42,7 @@ export default class VideoCallOAuthApps {
   ): VideoCallOAuthAppCredentials | null {
     let clientId: string | null = null;
     let clientSecret: string | null = null;
+    let tenantId: string | null = null;
 
     switch (provider) {
       case VideoCallProvider.Zoom:
@@ -54,6 +56,8 @@ export default class VideoCallOAuthApps {
       case VideoCallProvider.MicrosoftTeams:
         clientId = MicrosoftTeamsMeetingsAppClientId;
         clientSecret = MicrosoftTeamsMeetingsAppClientSecret;
+        // A single-tenant app's sign-in goes to its tenant.
+        tenantId = MicrosoftTeamsMeetingsAppTenantId;
         break;
       default:
         return null;
@@ -63,7 +67,9 @@ export default class VideoCallOAuthApps {
       return null;
     }
 
-    return { clientId: clientId.trim(), clientSecret };
+    return tenantId?.trim()
+      ? { clientId: clientId.trim(), clientSecret, tenantId: tenantId.trim() }
+      : { clientId: clientId.trim(), clientSecret };
   }
 
   public static isConfigured(

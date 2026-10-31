@@ -1,6 +1,7 @@
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import { makeUnsignedJwt } from "./WorkspaceOAuthTestHelpers";
 
 /*
  * A fake Microsoft identity platform (login.microsoftonline.com) and the part
@@ -30,6 +31,11 @@ import { JSONObject } from "../../../Types/JSON";
  *    only at the authority that issued it, which is where OneUptime
  *    exchanges it.
  *  - The access token reads /me as the account the code was issued for.
+ *  - A token answer carries a refresh token and an ID token naming the
+ *    account (aud, tid, oid, preferred_username), as a sign-in that asks
+ *    for openid and offline_access gets; tokenFromFetch answers a form
+ *    posted with fetch, as the Teams meetings app posts its code
+ *    (VideoCallHttpClient).
  *
  * Codes and tokens are counters, not random: nothing here is a secret.
  */
@@ -319,7 +325,45 @@ export default class FakeMicrosoftIdentityPlatform {
       scope: String(form["scope"] || ""),
       expires_in: 3599,
       access_token: accessToken,
+      refresh_token: `fake-refresh-token-${this.next()}`,
+      id_token: makeUnsignedJwt({
+        aud: clientId,
+        tid: issued.account.tenantId,
+        oid: issued.account.objectId,
+        preferred_username: issued.account.userPrincipalName,
+      }),
     });
+  }
+
+  /*
+   * Microsoft's token endpoint, as a form posted with fetch reaches it
+   * (application/x-www-form-urlencoded): the same answers as token().
+   */
+  public tokenFromFetch(
+    url: string,
+    body: string | undefined,
+  ): { ok: boolean; status: number; text: () => Promise<string> } {
+    const form: JSONObject = {};
+
+    new URLSearchParams(body || "").forEach(
+      (value: string, key: string): void => {
+        form[key] = value;
+      },
+    );
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse = this.token(
+      url,
+      form,
+    );
+    const text: string = JSON.stringify(response.data);
+
+    return {
+      ok: response.statusCode === 200,
+      status: response.statusCode,
+      text: async (): Promise<string> => {
+        return text;
+      },
+    };
   }
 
   // Microsoft Graph's /me, as OneUptime's API.get calls it.

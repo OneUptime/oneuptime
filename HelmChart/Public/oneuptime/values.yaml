@@ -2724,16 +2724,22 @@ googleMeetApp:
   #   clientIdKey: clientId
   #   clientSecretKey: clientSecret
 
-# A multi-tenant Microsoft Entra app registration with the delegated
+# A Microsoft Entra app registration with the delegated
 # OnlineMeetings.ReadWrite permission. Not the Teams bot (microsoftTeamsApp):
 # it signs people in for meetings, which the bot's registration does not.
+# A multi-tenant app needs no tenantId. For an app registered for your own
+# organization only (single tenant), set tenantId to its Directory (tenant)
+# ID: its sign-in then goes to that tenant.
 microsoftTeamsMeetingsApp:
   clientId:
   clientSecret:
+  tenantId:
   # existingSecret:
   #   name: "microsoft-teams-meetings-app-secret"
   #   clientIdKey: clientId
   #   clientSecretKey: clientSecret
+  #   # Optional: the tenant ID from the same secret, in place of tenantId.
+  #   tenantIdKey: tenantId
 
 # Cloud > Connect: this OneUptime's own AWS identity, which signs in to the
 # read-only IAM roles customers create for it - an IAM user's access key,

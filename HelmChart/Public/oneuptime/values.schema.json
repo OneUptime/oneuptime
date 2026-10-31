@@ -4458,6 +4458,12 @@
                         "null"
                     ]
                 },
+                "tenantId": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "existingSecret": {
                     "type": "object",
                     "properties": {
@@ -4468,6 +4474,9 @@
                             "type": "string"
                         },
                         "clientSecretKey": {
+                            "type": "string"
+                        },
+                        "tenantIdKey": {
                             "type": "string"
                         }
                     },

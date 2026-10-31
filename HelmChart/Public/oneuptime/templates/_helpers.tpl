@@ -786,6 +786,23 @@ to `default`, and would render as unset - a relay again where billing is on.
   {{- end }}
 
 {{- /*
+The tenant a single-tenant Teams meetings app is registered in, where its
+sign-in goes; empty for a multi-tenant app. From the existing secret only when
+it names a tenantIdKey: a secret made for the id and the secret alone keeps
+working.
+*/}}
+{{- $teamsMeetingsSecret := $.Values.microsoftTeamsMeetingsApp.existingSecret | default dict }}
+- name: MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID
+  {{- if $teamsMeetingsSecret.tenantIdKey }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $teamsMeetingsSecret.name | quote }}
+      key: {{ $teamsMeetingsSecret.tenantIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.microsoftTeamsMeetingsApp.tenantId | quote }}
+  {{- end }}
+
+{{- /*
 Cloud > Connect: the AWS identity that signs in to customers' read-only IAM
 roles. The app reads it for a test and for the role setup the form shows, and
 the worker for every read, so it is part of the runtime env. Unset, both are

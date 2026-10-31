@@ -554,10 +554,54 @@ describe("Video Calls docs - connecting in one click", () => {
       "GOOGLE_MEET_APP_CLIENT_SECRET",
       "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
       "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET",
+      "MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID",
     ]) {
       expect(section).toContain(variable);
       expect(environment).toContain(`process.env["${variable}"]`);
     }
+  });
+
+  test("a single-tenant Teams meetings app: its tenant setting, as the server, the chart and Compose read it", () => {
+    const section: string = sectionOf(
+      readPage(),
+      "one-click-connect-on-a-self-hosted-server",
+    );
+    const sentence: string | undefined = section
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.includes("MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID");
+      });
+
+    expect(sentence).toContain(
+      "If your organization allows no multitenant apps, register it for **Accounts in this organizational directory only** and set `MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID` (Helm `microsoftTeamsMeetingsApp.tenantId`) to its **Directory (tenant) ID**: sign-ins then go to your tenant, where only your organization's members and guests can sign in.",
+    );
+
+    const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+    const read: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(repositoryRoot, relative), "utf8");
+    };
+
+    // The server reads it, and hands it to the Teams meetings app.
+    expect(read("packages/Common/Server/EnvironmentConfig.ts")).toContain(
+      'process.env["MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID"]',
+    );
+    expect(
+      read("packages/Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthApps.ts"),
+    ).toContain("tenantId = MicrosoftTeamsMeetingsAppTenantId;");
+    // The chart's value the page names, and the variable it sets from it.
+    expect(read("HelmChart/Public/oneuptime/values.yaml")).toContain(
+      "microsoftTeamsMeetingsApp:\n  clientId:\n  clientSecret:\n  tenantId:\n",
+    );
+    expect(read("HelmChart/Public/oneuptime/templates/_helpers.tpl")).toContain(
+      "value: {{ default \"\" $.Values.microsoftTeamsMeetingsApp.tenantId | quote }}",
+    );
+    // And Docker Compose passes it from config.env.
+    expect(read("docker-compose.base.yml")).toContain(
+      "MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID: ${MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID:-}",
+    );
+    expect(read("config.example.env")).toContain(
+      "\nMICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID=\n",
+    );
   });
 });
 
