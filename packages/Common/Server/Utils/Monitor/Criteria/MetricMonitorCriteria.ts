@@ -10,6 +10,8 @@ import MetricCriteriaContext, {
   MetricAnomalyBaseline,
   MetricComponent,
   MetricComponentValue,
+  MetricWindowAggregate,
+  MetricWindowAggregation,
   MetricWindowShortfall,
 } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
@@ -709,6 +711,23 @@ export default class MetricMonitorCriteria {
       };
     }
 
+    /*
+     * A criteria that judges the window as ONE value - its Average, Sum,
+     * Maximum or Minimum - compares that value with the threshold, never a
+     * sample. Keep it, taken exactly as the comparison below takes it, so
+     * what a reader is shown for this series is what was judged: the
+     * restarts summed over 15 minutes, not the worst minute of them.
+     */
+    const windowAggregate: MetricWindowAggregate | undefined =
+      MetricMonitorCriteria.getWindowAggregate({
+        values: numbersInDisplayUnit,
+        criteriaFilter: input.criteriaFilter,
+      });
+
+    if (windowAggregate) {
+      metricContext.windowAggregate = windowAggregate;
+    }
+
     const comparisonMessage: string | null =
       CompareCriteria.compareCriteriaNumbers({
         value: numbersInDisplayUnit.length > 0 ? numbersInDisplayUnit : 0,
@@ -837,11 +856,20 @@ export default class MetricMonitorCriteria {
 
     for (const sample of samples) {
       const convertedValue: number = convertToDisplayUnit(sample.value);
-      const breaches: boolean = MetricMonitorCriteria.sampleBreaches(
-        convertedValue,
-        threshold,
-        input.criteriaFilter.filterType,
-      );
+      /*
+       * A Sum criteria compares the window's total, so no sample breaches
+       * its threshold on its own - a crash loop's five restarts in five
+       * minutes have no sample above 1. Its samples are the ones that
+       * added to the total: every one that is not 0.
+       */
+      const breaches: boolean =
+        windowAggregate?.aggregation === "sum"
+          ? Number.isFinite(convertedValue) && convertedValue !== 0
+          : MetricMonitorCriteria.sampleBreaches(
+              convertedValue,
+              threshold,
+              input.criteriaFilter.filterType,
+            );
       if (breaches) {
         const entry: {
           value: number;
@@ -962,6 +990,61 @@ export default class MetricMonitorCriteria {
   private static toIsoTimestamp(value: Date | string): string {
     const date: Date = value instanceof Date ? value : new Date(value);
     return isNaN(date.getTime()) ? String(value) : date.toISOString();
+  }
+
+  /*
+   * The words a sentence names each window aggregate by. Any Value and All
+   * Values judge every sample, so they have none.
+   */
+  private static readonly WINDOW_AGGREGATIONS: Partial<
+    Record<EvaluateOverTimeType, MetricWindowAggregation>
+  > = {
+    [EvaluateOverTimeType.Average]: "average",
+    [EvaluateOverTimeType.Sum]: "sum",
+    [EvaluateOverTimeType.MaximumValue]: "maximum",
+    [EvaluateOverTimeType.MunimumValue]: "minimum",
+  };
+
+  /*
+   * The one value a criteria compares with its threshold when it judges
+   * the window at once, or undefined when it judges each sample (Any
+   * Value, All Values). The same evaluation type, with the same
+   * precedence, and the same reduction as
+   * CompareCriteria.compareCriteriaNumbers, over the same display-unit
+   * values; an empty window is compared as 0 (the Treat as Zero no-data
+   * policy). Undefined too when that value is not a number, which no
+   * comparison passes.
+   */
+  public static getWindowAggregate(input: {
+    values: Array<number>;
+    criteriaFilter: CriteriaFilter;
+  }): MetricWindowAggregate | undefined {
+    const evaluationType: EvaluateOverTimeType | undefined =
+      input.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
+      input.criteriaFilter.metricMonitorOptions?.metricAggregationType;
+    const aggregation: MetricWindowAggregation | undefined = evaluationType
+      ? MetricMonitorCriteria.WINDOW_AGGREGATIONS[evaluationType]
+      : undefined;
+
+    if (!aggregation) {
+      return undefined;
+    }
+
+    const reduced: Array<number> = CompareCriteria.reduceWindow({
+      values: input.values.length > 0 ? input.values : [0],
+      evaluationType: evaluationType,
+    });
+    const value: number | undefined = reduced[0];
+
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return undefined;
+    }
+
+    return {
+      aggregation: aggregation,
+      value: value,
+      sampleCount: input.values.length,
+    };
   }
 
   private static sampleBreaches(

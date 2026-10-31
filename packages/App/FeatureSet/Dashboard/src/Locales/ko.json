@@ -39055,5 +39055,9 @@
   "Someone assigns an exception to you, or to a team you are on.": "누군가 나 또는 내가 속한 팀에 예외를 할당합니다.",
   "Exception Saved View": "저장된 예외 보기",
   "Exception Saved Views": "저장된 예외 보기",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "현재 검색, 필터, 시간 범위, 상태, 정렬, 페이지 크기를 포함한 예외 목록 보기를 저장하고 다시 사용합니다."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "현재 검색, 필터, 시간 범위, 상태, 정렬, 페이지 크기를 포함한 예외 목록 보기를 저장하고 다시 사용합니다.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "부분에서 위쪽과 아래쪽 화살표로 옆의 부분 사이를 이동하고, 왼쪽 화살표로 열고 안으로 들어가며, 오른쪽 화살표로 닫고 다시 밖으로 나옵니다.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "부분에서 위쪽과 아래쪽 화살표로 옆의 부분 사이를 이동하고, 오른쪽 화살표로 열고 안으로 들어가며, 왼쪽 화살표로 닫고 다시 밖으로 나옵니다.",
+  "Topology map": "토폴로지 맵",
+  "What is inside": "안에 있는 것"
 }

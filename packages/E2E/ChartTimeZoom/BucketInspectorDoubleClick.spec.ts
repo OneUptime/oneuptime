@@ -28,7 +28,7 @@ import {
  * under that spot.
  */
 
-const PORT: string = "4233";
+const PORT: string = process.env["CHART_TIME_ZOOM_FIXTURE_PORT"] || "4233";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CLUSTER_ID: string = "60000000-0000-4000-8000-000000000001";
 const INSIGHTS_PATH: string = `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/insights`;

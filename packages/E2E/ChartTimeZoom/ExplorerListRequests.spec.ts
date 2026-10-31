@@ -24,7 +24,7 @@ import {
  * page's does, so a rebuilt relative window is a later window.
  */
 
-const PORT: string = "4233";
+const PORT: string = process.env["CHART_TIME_ZOOM_FIXTURE_PORT"] || "4233";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
 const DAY: number = 24 * 60 * 60 * 1000;

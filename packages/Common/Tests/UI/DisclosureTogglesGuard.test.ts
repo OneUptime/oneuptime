@@ -48,14 +48,12 @@ interface FixedOnPurpose {
   reason: string;
 }
 
-const FIXED_ON_PURPOSE: Record<string, FixedOnPurpose> = {
-  "packages/App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyNodes.tsx":
-    {
-      count: 2,
-      reason:
-        "Two node types, each drawn only in its own state: a closed part's card carries Open (aria-expanded false), and the frame of a part that is open carries Close (aria-expanded true). Opening or closing swaps the node for the other type.",
-    },
-};
+/*
+ * Empty since the resource topology's open and closed parts became one card
+ * whose round button writes aria-expanded from the part's state (it was
+ * two node types, each with a fixed value).
+ */
+const FIXED_ON_PURPOSE: Record<string, FixedOnPurpose> = {};
 
 interface FileFinding extends DisclosureFinding {
   file: string;

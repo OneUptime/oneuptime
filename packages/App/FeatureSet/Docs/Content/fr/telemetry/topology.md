@@ -86,6 +86,7 @@ Cliquez sur une flèche pour voir son débit de requêtes, son taux d'erreur et 
 
 Un vCenter, un cluster Kubernetes, un hôte, un hôte Docker ou Podman, un cluster Docker Swarm, Proxmox ou Ceph et une baie de stockage ont chacun leur propre page **Topologie**. Elle dessine cette ressource en détail, à partir de son propre inventaire : ce qui se trouve dans quoi, chaque élément coloré selon son état, et chaque incident et alerte ouverts sur l'élément qu'ils concernent.
 
+- **Lisez-la comme un arbre.** La ressource est en haut, et les éléments de chaque élément sont dessinés à sa droite, reliés à lui par une ligne qui devient rouge ou orange là où quelque chose demande votre attention. Les éléments qui contiennent un problème s'ouvrent d'eux-mêmes, le bouton rond d'un élément l'ouvre ou le ferme, et les touches fléchées parcourent la carte.
 - **Trouvez ce qui demande votre attention.** **Attention requise** ne garde que les éléments en difficulté et le chemin vers chacun, et la recherche trouve un élément n'importe où dans la ressource.
 - **Regardez de plus près.** Cliquez sur un élément pour voir ce qu'il est et un lien vers sa propre page, et sur **Se concentrer sur cet élément** pour ne dessiner que cet élément, ce qu'il contient et ce à quoi il est lié.
 - **Allez dans les deux sens.** **Ouvrir dans Topologie** ouvre la ressource dans **Infrastructure**, et son bouton **Ouvrir la topologie du vCenter**, **Ouvrir la topologie du cluster**, **Ouvrir la topologie de l'hôte** ou **Ouvrir la topologie de la baie de stockage** ramène à sa carte.

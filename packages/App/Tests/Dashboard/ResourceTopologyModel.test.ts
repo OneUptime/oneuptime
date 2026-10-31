@@ -4,11 +4,15 @@ import {
   ResourceTopologyIssue,
   ResourceTopologyNode,
   ResourceTopologyNodeInput,
+  RESOURCE_TOPOLOGY_HEALTHS,
+  ResourceTopologyHealth,
   buildResourceTopologyGraph,
   compareTopologyNames,
+  emptyHealthCounts,
   getOwnTopologySearchMatches,
   getTopologyAncestors,
   getTopologyDescendantIds,
+  getTopologyPathIds,
   getTopologyNeighbours,
   getTopologySearchTerms,
   groupTopologyNeighbours,
@@ -148,6 +152,68 @@ describe("what a part says about what is inside it", () => {
     expect(graph.countsByKind.get("vmware.vcenter")).toBeUndefined();
     expect(graph.countsByKind.get("vmware.datacenter")).toBe(1);
     expect(graph.countsByKind.get("vmware.datastore")).toBe(2);
+  });
+
+  test("counts everything below it by how it is doing: the bar a closed part draws", () => {
+    const graph: ResourceTopologyGraph = sampleGraph();
+
+    // esx-1 holds vm-1 (healthy), vm-2 (critical) and vm-3 (off).
+    expect(node(graph, "esx-1").healthBelow).toEqual({
+      critical: 1,
+      warning: 0,
+      healthy: 1,
+      off: 1,
+      unknown: 0,
+    });
+    // The cluster adds esx-1 (healthy), esx-2 (warning) and vm-4 (healthy).
+    expect(node(graph, "cluster-a").healthBelow).toEqual({
+      critical: 1,
+      warning: 1,
+      healthy: 3,
+      off: 1,
+      unknown: 0,
+    });
+    // A part that holds nothing has nothing to split.
+    expect(node(graph, "vm-1").healthBelow).toEqual(emptyHealthCounts());
+
+    // Every part below is counted once: the counts add up to it.
+    for (const id of ["vcenter", "dc-1", "cluster-a", "esx-1", "esx-2"]) {
+      const counted: number = RESOURCE_TOPOLOGY_HEALTHS.reduce(
+        (sum: number, health: ResourceTopologyHealth): number => {
+          return sum + node(graph, id).healthBelow[health];
+        },
+        0,
+      );
+
+      expect({ id: id, counted: counted }).toEqual({
+        id: id,
+        counted: node(graph, id).descendantCount,
+      });
+    }
+  });
+
+  test("an open incident counts its part as critical in the bar above it", () => {
+    const graph: ResourceTopologyGraph = sampleGraph(
+      new Map<string, Array<ResourceTopologyIssue>>([
+        ["vm-1", [issue("incident", "7")]],
+      ]),
+    );
+
+    expect(node(graph, "esx-1").healthBelow.critical).toBe(2);
+    expect(node(graph, "esx-1").healthBelow.healthy).toBe(0);
+  });
+
+  test("the counts start empty, one fresh object each time", () => {
+    const first: ReturnType<typeof emptyHealthCounts> = emptyHealthCounts();
+
+    first.critical = 4;
+    expect(emptyHealthCounts()).toEqual({
+      critical: 0,
+      warning: 0,
+      healthy: 0,
+      off: 0,
+      unknown: 0,
+    });
   });
 
   test("a section that only groups others is never counted as a part", () => {
@@ -419,6 +485,19 @@ describe("walking the graph", () => {
       ),
     ).toEqual(["vcenter", "dc-1", "cluster-a", "esx-1"]);
     expect(getTopologyAncestors(graph, "vcenter")).toEqual([]);
+  });
+
+  test("the path to a part runs from the resource down to it, both included", () => {
+    const graph: ResourceTopologyGraph = sampleGraph();
+
+    expect(getTopologyPathIds(graph, "vm-2")).toEqual(
+      new Set<string>(["vcenter", "dc-1", "cluster-a", "esx-1", "vm-2"]),
+    );
+    expect(getTopologyPathIds(graph, "vcenter")).toEqual(
+      new Set<string>(["vcenter"]),
+    );
+    expect(getTopologyPathIds(graph, null).size).toBe(0);
+    expect(getTopologyPathIds(graph, "gone").size).toBe(0);
   });
 
   test("a relation reads from each end with its own words", () => {

@@ -39055,5 +39055,9 @@
   "Someone assigns an exception to you, or to a team you are on.": "有人將例外指派給你或你所在的團隊。",
   "Exception Saved View": "已儲存的例外檢視",
   "Exception Saved Views": "已儲存的例外檢視",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "儲存並重複使用例外清單的檢視，包括目前的搜尋、篩選條件、時間範圍、狀態、排序和每頁筆數。"
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "儲存並重複使用例外清單的檢視，包括目前的搜尋、篩選條件、時間範圍、狀態、排序和每頁筆數。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "在某個部分上，用上下方向鍵在旁邊的部分之間移動，用左方向鍵將其展開並進入，用右方向鍵將其收合並返回。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "在某個部分上，用上下方向鍵在旁邊的部分之間移動，用右方向鍵將其展開並進入，用左方向鍵將其收合並返回。",
+  "Topology map": "拓撲圖",
+  "What is inside": "其中包含的內容"
 }

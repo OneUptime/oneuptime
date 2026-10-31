@@ -86,6 +86,7 @@ Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di e
 
 Un vCenter, un cluster Kubernetes, un host, un host Docker o Podman, un cluster Docker Swarm, Proxmox o Ceph e uno storage array hanno ciascuno una propria pagina **Topologia**. Disegna quella risorsa nel dettaglio, dal suo inventario: cosa sta dentro cosa, ogni parte colorata in base al suo stato, e ogni incidente e avviso aperto sulla parte che riguarda.
 
+- **Leggetela come un albero.** La risorsa è in alto, e le parti di ogni parte sono disegnate alla sua destra, collegate a essa da una linea che diventa rossa o ambra dove qualcosa richiede attenzione. Le parti con problemi al loro interno si aprono da sole, il pulsante rotondo di una parte la apre o la chiude, e i tasti freccia si muovono nella mappa.
 - **Trovate ciò che richiede attenzione.** **Richiede attenzione** tiene solo le parti con problemi e il percorso fino a ciascuna, e la ricerca trova una parte ovunque nella risorsa.
 - **Guardate più da vicino.** Fate clic su una parte per vedere cos'è e un link alla sua pagina, e su **Concentrati su questo** per disegnare solo quella parte, ciò che contiene e ciò a cui è collegata.
 - **In entrambe le direzioni.** **Apri in Topologia** apre la risorsa in **Infrastruttura**, e il suo pulsante **Apri la topologia del vCenter**, **Apri la topologia del cluster**, **Apri la topologia dell'host** o **Apri la topologia dello storage array** riporta indietro.
