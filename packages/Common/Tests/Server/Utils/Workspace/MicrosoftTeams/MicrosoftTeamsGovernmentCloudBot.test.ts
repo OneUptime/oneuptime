@@ -152,9 +152,10 @@ const settingsOf: (
 // ---- A Bot Framework of this test's own, signing as each cloud's does ----
 
 const KEY_ID: string = "oneuptime-test-key";
-const keys: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync("rsa", {
-  modulusLength: 2048,
-});
+const keys: { publicKey: crypto.KeyObject; privateKey: crypto.KeyObject } =
+  crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+  });
 
 const base64url: (value: Buffer | string) => string = (
   value: Buffer | string,

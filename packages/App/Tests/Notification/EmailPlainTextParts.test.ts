@@ -966,7 +966,6 @@ describe("the uptime report, as a text-only mail client shows it", () => {
 
   test("a screen reader says each stat's name before its number too", async () => {
     const rendered: RenderedEmail = await MailService.render({
-      toEmail: new Email("alice@example.test"),
       subject: "[Report] Acme Status",
       isSubjectLiteral: true,
       templateType: EmailTemplateType.StatusPageSubscriberReport,

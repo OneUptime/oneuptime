@@ -332,7 +332,6 @@ describe("every email starter a status page is offered", () => {
 
       for (const set of variableSetsFor(body!)) {
         const rendered: RenderedEmail = await MailService.render({
-          toEmail: new Email("alice@example.test"),
           subject: "A notification",
           isSubjectLiteral: true,
           body: body!,
