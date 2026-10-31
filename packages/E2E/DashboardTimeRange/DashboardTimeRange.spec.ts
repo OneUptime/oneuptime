@@ -1388,6 +1388,93 @@ test.describe("the dashboard inside OneUptime at any width", () => {
     // The template puts its first value in the second row (row 1): now row 2.
     expect(saved!["topInDashboardUnits"]).toBe(2);
   });
+
+  /*
+   * Rows are 70px on every board 500 to 950px wide and on a phone, and a
+   * number one row high gave its name up there by half a pixel
+   * (ValueWidgetLayout's title gate): the template's four numbers were
+   * bare at 1280 beside the side menu and on every phone.
+   */
+  test("a number one row high keeps its name over it, and on a phone its trend beside the name", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    await openApp(page, "wall", "Past 1 Day");
+    await settledBoard(page);
+
+    for (const name of [
+      "Request Rate",
+      "Avg Latency",
+      "Error Rate",
+      "Active Requests",
+    ]) {
+      const value: Locator = page
+        .getByTestId("value-widget")
+        .filter({ hasText: name });
+
+      await expect(value).toBeVisible();
+
+      if (test.info().project.use.isMobile) {
+        await expect(value.getByTestId("value-widget-trend")).toBeVisible();
+      }
+    }
+
+    await shoot(page, testInfo, "app-board-named-numbers");
+  });
+
+  /*
+   * A chart half of a 600px window's board is about 250px wide, and its
+   * legend's chip has less room than its series' name and value need. The
+   * value kept its whole width and the name shrank to nothing; now the
+   * name gives way first but keeps its first letters, and then the value
+   * is cut, inside the chip, never under its Investigate button.
+   */
+  test("on a narrow chart the legend's chip keeps its series' name and stays inside its frame", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atDesktopProjectOnly();
+
+    await page.setViewportSize({ width: 600, height: 900 });
+    await openApp(page, "wall", "Past 1 Day");
+    await settledBoard(page);
+
+    const chip: {
+      row: number;
+      chip: number;
+      name: number;
+      valueRight: number;
+      investigateLeft: number;
+      valueCut: boolean;
+    } = await page.evaluate(() => {
+      const button: HTMLElement = document.querySelector(
+        '[id^="dashboard-component-"] button[aria-pressed]',
+      ) as HTMLElement;
+      const frame: HTMLElement = button.parentElement as HTMLElement;
+      const spans: NodeListOf<HTMLElement> =
+        button.querySelectorAll<HTMLElement>(":scope > span");
+      const name: HTMLElement = spans[1] as HTMLElement;
+      const value: HTMLElement = spans[2] as HTMLElement;
+      const investigate: HTMLElement = frame.children[1] as HTMLElement;
+
+      return {
+        row: (frame.parentElement as HTMLElement).getBoundingClientRect().right,
+        chip: frame.getBoundingClientRect().right,
+        name: name.getBoundingClientRect().width,
+        valueRight: value.getBoundingClientRect().right,
+        investigateLeft: investigate.getBoundingClientRect().left,
+        valueCut: value.scrollWidth > value.clientWidth,
+      };
+    });
+
+    // The first letters of "Requests", not nothing.
+    expect(chip.name).toBeGreaterThanOrEqual(24);
+    // The value, cut, ends before the chip's Investigate button.
+    expect(chip.valueCut).toBe(true);
+    expect(chip.valueRight).toBeLessThanOrEqual(chip.investigateLeft + 0.5);
+    // And the chip inside its row.
+    expect(chip.chip).toBeLessThanOrEqual(chip.row + 0.5);
+
+    await shoot(page, testInfo, "app-board-600-legend");
+  });
 });
 
 test.describe("the public dashboard", () => {
