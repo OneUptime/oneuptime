@@ -1,6 +1,14 @@
-import { describe, expect, test } from "@jest/globals";
-import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
+import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
+import SecurityCaseEvidence, {
   EVIDENCE_WINDOW_PADDING_IN_HOURS,
   MAX_EVIDENCE_WINDOW_IN_DAYS,
   SESSION_LOOKBACK_IN_HOURS,
@@ -13,6 +21,8 @@ import {
   getEvidenceWindow,
   readRequestEvidenceRow,
 } from "../../../../Server/Utils/SecurityPlaybook/SecurityCaseEvidence";
+import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
+import FindBy from "../../../../Server/Types/Database/FindBy";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import URL from "../../../../Types/API/URL";
 import ObjectID from "../../../../Types/ObjectID";
@@ -22,8 +32,8 @@ import ObjectID from "../../../../Types/ObjectID";
  * the code with AI steps read it: the requests behind the events that name
  * what the case names (or that are behind its detections) over the time it
  * was detected in, only those that carry a trace or a session, one row a
- * request, the latest first; the session replays of those sessions; and
- * where each opens in the Dashboard.
+ * request, the latest first; the session replays of those sessions; the
+ * exceptions they threw; and where each opens in the Dashboard.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -238,6 +248,138 @@ describe("the session replays of a case's sessions", () => {
     );
 
     expect(starts.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * The exceptions the case's requests threw. A request names its exception
+ * by its occurrence's fingerprint, which a merged exception's occurrences
+ * keep: the lookup leaves the merged row out and reads the rows of the
+ * survivor's fingerprint, and what was merged into what says which of
+ * those the request's exception went into. Postgres is mocked.
+ */
+describe("the exceptions a case's requests threw", () => {
+  const SURVIVOR_ID: string = "5a5a5a5a-0000-4000-8000-00000000000a";
+  const OTHER_ID: string = "5a5a5a5a-0000-4000-8000-00000000000c";
+  // Another service's exception that only shares the survivor's fingerprint.
+  const LOOKALIKE_ID: string = "5a5a5a5a-0000-4000-8000-0000000000ff";
+
+  let lookups: Array<FindBy<TelemetryException>>;
+  let mergedReads: Array<FindBy<TelemetryException>>;
+
+  function exceptionRow(id: string, fingerprint: string): TelemetryException {
+    const row: TelemetryException = new TelemetryException();
+    row._id = id;
+    row.fingerprint = fingerprint;
+    row.exceptionType = "TypeError";
+    row.message = `thrown at ${fingerprint}`;
+    row.isResolved = false;
+    row.isArchived = false;
+    return row;
+  }
+
+  function idsOf(exceptions: Array<TelemetryException>): Array<string> {
+    return exceptions.map((exception: TelemetryException): string => {
+      return exception.id!.toString();
+    });
+  }
+
+  beforeEach(() => {
+    lookups = [];
+    mergedReads = [];
+
+    jest.spyOn(TelemetryExceptionService, "findBy").mockImplementation((async (
+      findBy: FindBy<TelemetryException>,
+    ) => {
+      const query: Record<string, unknown> = findBy.query as Record<
+        string,
+        unknown
+      >;
+
+      if ("mergedIntoTelemetryExceptionId" in query) {
+        mergedReads.push(findBy);
+
+        // fp-b's exception was merged into fp-a's.
+        const merged: TelemetryException = new TelemetryException();
+        merged.fingerprint = "fp-b";
+        merged.mergedIntoTelemetryExceptionId = new ObjectID(SURVIVOR_ID);
+        merged.mergedIntoTelemetryException = new TelemetryException();
+        merged.mergedIntoTelemetryException.fingerprint = "fp-a";
+        return [merged];
+      }
+
+      lookups.push(findBy);
+
+      // As the lookup reads them: the merged row left out, fp-a's rows in.
+      return [
+        exceptionRow(LOOKALIKE_ID, "fp-a"),
+        exceptionRow(SURVIVOR_ID, "fp-a"),
+        exceptionRow(OTHER_ID, "fp-c"),
+      ];
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a merged exception's request finds the exception it was merged into, and not another that only shares its fingerprint", async () => {
+    const exceptions: Array<TelemetryException> =
+      await SecurityCaseEvidence.findExceptions({
+        projectId: PROJECT_ID,
+        fingerprints: ["fp-b", "fp-c"],
+      });
+
+    expect(idsOf(exceptions)).toEqual([SURVIVOR_ID, OTHER_ID]);
+  });
+
+  test("each exception once, in the order of the fingerprints: the latest request's first", async () => {
+    const exceptions: Array<TelemetryException> =
+      await SecurityCaseEvidence.findExceptions({
+        projectId: PROJECT_ID,
+        // fp-a and fp-b are one exception now; fp-d is no exception.
+        fingerprints: ["fp-c", "fp-b", "fp-d", "fp-a"],
+      });
+
+    expect(idsOf(exceptions)).toEqual([OTHER_ID, SURVIVOR_ID, LOOKALIKE_ID]);
+  });
+
+  test("reads the project's own, as OneUptime, with what the steps say of each", async () => {
+    await SecurityCaseEvidence.findExceptions({
+      projectId: PROJECT_ID,
+      fingerprints: ["fp-b", "fp-c"],
+    });
+
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.props).toEqual({ isRoot: true });
+    expect(lookups[0]!.limit).toBe(10);
+    expect((lookups[0]!.query as Record<string, unknown>)["projectId"]).toBe(
+      PROJECT_ID,
+    );
+    expect(lookups[0]!.select).toEqual({
+      _id: true,
+      fingerprint: true,
+      exceptionType: true,
+      message: true,
+      isResolved: true,
+      isArchived: true,
+    });
+
+    expect(mergedReads).toHaveLength(1);
+    expect(
+      (mergedReads[0]!.query as Record<string, unknown>)["projectId"],
+    ).toBe(PROJECT_ID);
+  });
+
+  test("no fingerprint: nothing is read", async () => {
+    expect(
+      await SecurityCaseEvidence.findExceptions({
+        projectId: PROJECT_ID,
+        fingerprints: [],
+      }),
+    ).toEqual([]);
+    expect(lookups).toHaveLength(0);
+    expect(mergedReads).toHaveLength(0);
   });
 });
 
