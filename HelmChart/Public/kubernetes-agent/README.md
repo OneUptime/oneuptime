@@ -748,9 +748,11 @@ This is usually one problem, not two: telemetry isn't being accepted, so the clu
 The bundled script checks pod health, decodes/validates the key, tests cluster egress, and asks OneUptime whether the token is actually accepted — then prints a single root-cause verdict:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Every OneUptime serves the script for its own release at `<your OneUptime URL>/install/kubernetes-agent/troubleshoot.sh`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com`. Open that address in a browser to read the script before you run it.
 
 It only reads cluster state and runs a couple of probes — it changes nothing. For the most accurate egress test, install with `--set debug.enabled=true` first (see below), then re-run.
 

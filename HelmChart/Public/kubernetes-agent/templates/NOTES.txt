@@ -215,8 +215,9 @@ chart index and upgrade:
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
 ingestion key: OneUptime refuses it with 401/422, and the collector only logs
 "Exporting failed. Dropping data.", which is easy to miss), run the diagnostic
-script for a one-shot root-cause verdict:
-  curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
+script for a one-shot root-cause verdict (your OneUptime serves it for its
+own release; open the address in a browser to read it first):
+  curl -fsSL {{ .Values.oneuptime.url | trimSuffix "/" }}/install/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
 
 Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):
   curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" {{ .Values.oneuptime.url }}/otlp/v1/validate
