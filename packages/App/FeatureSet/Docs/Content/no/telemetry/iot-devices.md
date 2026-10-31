@@ -24,7 +24,7 @@ flowchart TB
 
 ## Slik modellerer OneUptime IoT
 
-- **Flåte**: en gruppe enheter, for eksempel `building-a-sensors` eller `field-gateways`. Den kommer fra ressursattributtet `iot.fleet.name`, og vises i OneUptime som telemetritjenesten `iot/<fleet>`. Sett også `service.name=iot/<fleet>`, slik at logger og metrikker havner under den samme tjenesten.
+- **Flåte**: en gruppe enheter, for eksempel `building-a-sensors` eller `field-gateways`. Den kommer fra ressursattributtet `iot.fleet.name`, og vises i OneUptime som telemetritjenesten `iot/<fleet>`. Sett også `service.name=iot/<fleet>`, slik at logger og metrikker havner under den samme tjenesten. Navnet på en flåte gjenkjennes uansett store og små bokstaver: en måling sendt for `warehouse` havner i flåten `Warehouse` og lagres under det navnet.
 - **Enhet**: én enhet i en flåte, navngitt av attributtet `device.id` på hvert datapunkt. Flåtens inventar er nøklet på `device.id`.
 
 | Attributt | Settes på | Påkrevd | Beskrivelse |

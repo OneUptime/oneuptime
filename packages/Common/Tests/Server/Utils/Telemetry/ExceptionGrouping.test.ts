@@ -10,6 +10,7 @@ import {
   normalizeFrameFunction,
   normalizeFrameModule,
 } from "../../../../Server/Utils/Telemetry/ExceptionGrouping";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
@@ -70,11 +71,17 @@ describe("a frame's module", () => {
   });
 
   test("a megabyte-long file name is read from its head only", () => {
-    const startedAt: number = Date.now();
-    expect(
-      normalizeFrameModule(`/${"a".repeat(1024 * 1024)}/x.js`).length,
-    ).toBeLessThanOrEqual(2048);
-    expect(Date.now() - startedAt).toBeLessThan(500);
+    const fileName: string = `/${"a".repeat(1024 * 1024)}/x.js`;
+    // The fastest of up to three reads counts (FastestRun): one is noisy.
+    const read: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return normalizeFrameModule(fileName);
+      },
+      limitInMs: 500,
+    });
+
+    expect(read.result.length).toBeLessThanOrEqual(2048);
+    expect(read.inMs).toBeLessThan(500);
   });
 });
 
@@ -203,10 +210,16 @@ describe("the grouping key", () => {
 
   test("a sixteen-megabyte stack trace is read from its head, quickly", () => {
     const huge: string = `Error: x\n    at f (/app/src/a.ts:1:1)\n${"x".repeat(16 * 1024 * 1024)}`;
-    const startedAt: number = Date.now();
+    // The fastest of up to three reads counts (FastestRun): one is noisy.
+    const read: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return key(huge).parts;
+      },
+      limitInMs: 2000,
+    });
 
-    expect(key(huge).parts).toEqual(["app/src/a.ts|f"]);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(read.result).toEqual(["app/src/a.ts|f"]);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 

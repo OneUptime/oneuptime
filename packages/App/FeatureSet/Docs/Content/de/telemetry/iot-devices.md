@@ -24,7 +24,7 @@ flowchart TB
 
 ## Wie OneUptime IoT abbildet
 
-- **Flotte**: eine Gruppe von Geräten, etwa `building-a-sensors` oder `field-gateways`. Sie kommt aus dem Ressourcenattribut `iot.fleet.name` und erscheint in OneUptime als der Telemetriedienst `iot/<fleet>`. Setzen Sie auch `service.name=iot/<fleet>`, damit Logs und Metriken unter demselben Dienst zusammenkommen.
+- **Flotte**: eine Gruppe von Geräten, etwa `building-a-sensors` oder `field-gateways`. Sie kommt aus dem Ressourcenattribut `iot.fleet.name` und erscheint in OneUptime als der Telemetriedienst `iot/<fleet>`. Setzen Sie auch `service.name=iot/<fleet>`, damit Logs und Metriken unter demselben Dienst zusammenkommen. Der Name einer Flotte wird ohne Rücksicht auf Groß- und Kleinschreibung zugeordnet: Ein Messwert für `warehouse` landet in der Flotte `Warehouse` und wird unter diesem Namen gespeichert.
 - **Gerät**: ein Gerät in einer Flotte, benannt durch das Attribut `device.id` an jedem Datenpunkt. Das Inventar der Flotte ist nach `device.id` geschlüsselt.
 
 | Attribut | Gesetzt an | Erforderlich | Beschreibung |
