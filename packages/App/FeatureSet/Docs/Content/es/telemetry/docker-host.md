@@ -285,6 +285,10 @@ El agente debe ejecutarse como root para leer `/var/run/docker.sock`. Comprueba 
 Un agente antiguo envía la cifra de CPU que calcula el propio receptor `docker_stats`. Desde el colector 0.150.0, el receptor la calcula a partir de una sola lectura de estadísticas: toda la CPU que un contenedor ha usado desde que se inició, dividida entre toda la CPU que el host ha usado desde que arrancó. La línea apenas se mueve y no sigue la carga, mientras que `container.cpu.usage.total` sí lo hace. [Actualiza el agente](#actualizar-el-agente): a partir de su segunda lectura, envía la CPU que usó cada contenedor en cada intervalo de 30 segundos. Las lecturas ya guardadas se quedan como estaban.
 :::
 
+:::details Container Restart Loop nunca se dispara o pasa por alto reinicios
+Un agente antiguo no envía `container.restarts.increase`, los reinicios desde su muestra anterior de cada contenedor, que la plantilla suma. [Actualiza el agente](#actualizar-el-agente): a partir de su segunda muestra de cada contenedor, cuenta cada reinicio. Un monitor creado a partir de la plantilla antes de la actualización lee en cambio cuánto creció `container.restarts` dentro de cada minuto, y pasa por alto aproximadamente la mitad de los reinicios de un bucle: elimínalo y vuelve a crearlo a partir de la plantilla.
+:::
+
 :::details Llegan métricas, pero no logs de contenedores
 Lo más probable es que tus contenedores usen otro controlador de logs distinto de `json-file`. Comprueba qué archivos vigila el agente y qué controlador usa un contenedor:
 

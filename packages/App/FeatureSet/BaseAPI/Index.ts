@@ -189,6 +189,10 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import SecurityCaseEvidenceAPI from "Common/Server/API/SecurityCaseEvidenceAPI";
 import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
+import TelemetryExceptionActivity from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
+import TelemetryExceptionActivityService, {
+  Service as TelemetryExceptionActivityServiceType,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
@@ -583,6 +587,9 @@ import MetricSavedViewService, {
 import TraceSavedViewService, {
   Service as TraceSavedViewServiceType,
 } from "Common/Server/Services/TraceSavedViewService";
+import ExceptionSavedViewService, {
+  Service as ExceptionSavedViewServiceType,
+} from "Common/Server/Services/ExceptionSavedViewService";
 import LogPipelineService, {
   Service as LogPipelineServiceType,
 } from "Common/Server/Services/LogPipelineService";
@@ -1717,6 +1724,7 @@ import TableView from "Common/Models/DatabaseModels/TableView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
+import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
@@ -3613,6 +3621,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new TelemetryExceptionAPI().getRouter(),
     );
 
+    // An exception's activity timeline, read as the exception is.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityServiceType
+      >(
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new KubernetesResourceAPI().getRouter(),
@@ -4064,6 +4084,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TraceSavedView, TraceSavedViewServiceType>(
         TraceSavedView,
         TraceSavedViewService,
+      ).getRouter(),
+    );
+
+    // The exceptions list's saved views, as the traces explorer keeps its own.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ExceptionSavedView, ExceptionSavedViewServiceType>(
+        ExceptionSavedView,
+        ExceptionSavedViewService,
       ).getRouter(),
     );
 

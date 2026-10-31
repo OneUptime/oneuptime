@@ -57,6 +57,7 @@ import ExceptionAIAssistance from "./ExceptionAIAssistance";
 import ExceptionAIExplanation from "./ExceptionAIExplanation";
 import ExceptionSimilar from "./ExceptionSimilar";
 import ExceptionMergedPanel from "./ExceptionMergedPanel";
+import ExceptionActivity from "./ExceptionActivity";
 import { MERGED_EXCEPTION_SELECT } from "../../Utils/ExceptionMerge";
 import { getMergedFingerprints } from "../../Utils/ExceptionGroupFingerprints";
 import ExceptionAssignee from "./ExceptionAssignee";
@@ -165,6 +166,13 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [mergedInto, setMergedInto] = useState<TelemetryException | null>(null);
   // Bumped after a merge or an unmerge: the page reads itself again.
   const [reloadKey, setReloadKey] = useState<number>(0);
+  // Bumped after a triage or an assignment: the activity reads itself again.
+  const [activityKey, setActivityKey] = useState<number>(0);
+  const bumpActivity: () => void = (): void => {
+    setActivityKey((key: number): number => {
+      return key + 1;
+    });
+  };
 
   /*
    * Ask the server to resolve the instance's parsed frames against the
@@ -504,6 +512,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             }),
           });
 
+          bumpActivity();
           await loadException();
         } catch (err) {
           setActionError(API.getFriendlyMessage(err));
@@ -538,6 +547,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           },
         });
 
+        bumpActivity();
         await loadException();
       } catch (err) {
         setActionError(API.getFriendlyMessage(err));
@@ -776,6 +786,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             exception={telemetryException}
             members={mergedMembers}
             onChanged={reload}
+          />
+          {/* Who changed it and when: the newest few, the rest folded. */}
+          <ExceptionActivity
+            exception={telemetryException}
+            telemetryExceptionId={props.telemetryExceptionId}
+            refreshKey={`${reloadKey}-${activityKey}`}
           />
         </>
       )}

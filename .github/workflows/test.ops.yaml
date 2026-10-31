@@ -144,6 +144,17 @@ jobs:
       # container.cpu.utilization once each, the names OneUptime reads, and
       # the node and pod *.cpu.usage beside them.
       - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
+      # And for container restarts (CrashLoopBackOff Detection): the cluster
+      # collector's metrics/restarts-increase pipeline as the chart renders
+      # it, on the collector the chart pins and on 0.96.0, fed seven samples
+      # of what k8s_cluster sends for four containers - an int gauge on a
+      # resource keyed by container.id, which changes with every restart.
+      # The pipeline must send k8s.container.restarts.increase alone, the
+      # restarts since each pod's previous sample of the container (a crash
+      # loop's 0 / 1 / 0 / 1 / 2 / 1, across five minutes and an hour too),
+      # nothing for a pod recreated under its name or a count that went down,
+      # 0 for a quiet container, as a delta sum without container.id.
+      - run: bash Tests/Ops/agent-restarts-increase-behaviour.sh
       # And for container CPU: the Docker, Podman and Docker Swarm agents
       # build container.cpu.utilization from container.cpu.usage.total
       # (copy, cumulative_to_delta, delta_to_rate, scale to percent of one
@@ -158,6 +169,20 @@ jobs:
       - name: Warm the image the container CPU behaviour test loads a core with
         run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
       - run: bash Tests/Ops/container-agent-cpu-utilization-behaviour.sh
+      # And for container restarts: the Docker and Podman agents copy
+      # container.restarts to container.restarts.increase and turn the copy
+      # into the restarts since each container's previous sample
+      # (cumulative_to_delta), which Container Restart Loop sums. Fed seven
+      # samples of two containers, 30 seconds, five minutes and an hour
+      # apart, with a manual restart among them, the processors must send
+      # 0 / 2 / 4 / nothing / 1 / 3 and leave container.restarts as it was;
+      # then each agent's whole metrics pipeline runs against this runner's
+      # Docker daemon and a busybox container (warmed above) that exits a
+      # second after it starts, under --restart=always: the increases must
+      # add up to its count's growth, and some of its samples must have been
+      # taken while Docker was restarting it, which is what lets the agent
+      # see a container that is hardly ever running.
+      - run: bash Tests/Ops/container-agent-restarts-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a

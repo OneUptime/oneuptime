@@ -62,6 +62,8 @@ Cada linha mostra também quantos usuários a exceção afetou no intervalo esco
 
 Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**. **Atribuídas a mim** mostra só as exceções atribuídas a você, e o menu de ordenação ordena a lista por **Visto pela última vez**, **Visto pela primeira vez** ou **Mais eventos**.
 
+**Visualizações salvas** guarda a lista com um nome, para todos no projeto: a pesquisa, os filtros, o intervalo de tempo, o status, o que conta como problema, **Atribuídas a mim**, a ordenação e o tamanho da página. Uma visualização com **Atribuídas a mim** mostra a cada pessoa as exceções atribuídas a ela, e **Limpar visualização** devolve a lista a como ela abre da primeira vez. O endereço da página nomeia a visualização que você escolheu, então um link que você compartilha a abre. No resto, as visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
+
 ### Abrir uma exceção
 
 Clique em uma linha para abrir a página da exceção.
@@ -99,7 +101,9 @@ Os botões no topo da página da exceção, a página **Configurações** dela e
 
 Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
 
-**Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez.
+**Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez. A pessoa a quem ela é atribuída, ou cada membro da equipe, recebe uma notificação conforme a linha **Exceção atribuída a mim** das suas [Configurações de notificação](/docs/notifications/notification-settings); quem a atribuiu não recebe.
+
+**Atividade**, no fim da **Visão geral** da exceção, diz quem a alterou e quando, as mais recentes primeiro: quem a resolveu, reabriu, arquivou ou atribuiu, mesclou outra exceção a ela ou desfez a mesclagem de uma, e quando ela voltou a ocorrer depois de resolvida. Toda alteração está ali, feita na página da exceção, na lista, em **Ações em massa**, pela API ou pela própria OneUptime, e uma alteração feita com uma chave de API leva o nome da chave.
 
 ## Classes de erro
 

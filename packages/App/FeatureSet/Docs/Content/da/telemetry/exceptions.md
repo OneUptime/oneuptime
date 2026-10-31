@@ -62,6 +62,8 @@ Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsr
 
 Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
 
+**Gemte visninger** gemmer listen under et navn til alle i projektet: søgningen, filtrene, tidsintervallet, status, hvad der tæller som et problem, **Tildelt til mig**, sorteringen og sidestørrelsen. En visning med **Tildelt til mig** viser hver person de undtagelser, der er tildelt dem, og **Ryd visning** sætter listen tilbage, som den åbner første gang. Sidens adresse angiver den visning, du valgte, så et link, du deler, åbner den. Ellers fungerer gemte visninger som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
+
 ### Åbn en undtagelse
 
 Klik på en række for at åbne undtagelsens side.
@@ -99,7 +101,9 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
 
-**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
+**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang. Den person, den tildeles, eller hvert medlem af teamet får en notifikation, som rækken **Undtagelse tildelt mig** i deres [Notifikationsindstillinger](/docs/notifications/notification-settings) siger; den, der tildelte den, får ingen.
+
+**Aktivitet** nederst i undtagelsens **Oversigt** viser, hvem der ændrede den og hvornår, nyeste først: hvem der løste, genåbnede, arkiverede eller tildelte den, flettede en anden undtagelse ind i den eller fjernede fletningen af en, og hvornår den kom igen, efter at den var løst. Hver ændring står der, foretaget på undtagelsens side, i listen, under **Massehandlinger**, via API'et eller af OneUptime selv, og en ændring foretaget med en API-nøgle bærer nøglens navn.
 
 ## Fejlklasser
 

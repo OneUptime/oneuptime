@@ -93,7 +93,7 @@ flowchart TB
 | Host Stopped Reporting | 심각 | `container.memory.percent`, 호스트의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, 컨테이너별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Container Memory Usage | Warning | `container.memory.percent`, 컨테이너별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
-| Container Restart Loop | 심각 | 컨테이너별 `container.restarts` 증가량, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
+| Container Restart Loop | 심각 | `container.restarts.increase`, 컨테이너별 Sum, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
 | High Container Process Count | Warning | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 | Container Restarted (Low Uptime) | 심각 | `container.uptime`, 컨테이너별 Min, 최근 1분 | 120초 미만 | 132초 이상 |
 
@@ -107,7 +107,7 @@ flowchart TB
 > `container.cpu.utilization`은 `podman stats`가 출력하는 수치를 에이전트의 30초 간격으로 평균한 값입니다. 100%는 컨테이너의 전체 CPU 할당이 아니라 CPU 코어 하나입니다. 여러 코어를 받은 컨테이너는 정상일 때도 100을 훨씬 넘으므로, 그런 컨테이너는 임계값을 올리세요.
 
 > [!NOTE]
-> `container.restarts`는 Podman이 유지하는 누계이므로 **Container Restart Loop**는 Docker와 마찬가지로 창 안에서 얼마나 늘었는지로 알림을 보냅니다. 분마다 Maximum과 Minimum 쿼리를 하나씩 두고 수식으로 빼서 합산합니다. 에이전트의 30초 수집에서는 재시작의 약 절반이 보이며, 임계값은 이미 이를 감안합니다. 또한 에이전트는 실행 중인 컨테이너만 샘플링하므로 시작하자마자 종료되는 컨테이너는 거의 샘플링되지 않습니다. **Container Restarted (Low Uptime)** 템플릿은 에이전트가 보는 모든 재시작에서 발생합니다.
+> `container.restarts`는 Podman이 유지하는 누계이지만, 수동 재시작이나 다시 만든 컨테이너가 이를 0부터 다시 시작하게 합니다. 그래서 에이전트는 샘플마다 `container.restarts.increase`도 보냅니다. 이는 해당 컨테이너의 이전 샘플 이후의 재시작 횟수입니다. **Container Restart Loop**는 Docker와 마찬가지로 이를 합산하므로, 샘플 간격이 얼마나 벌어져도 모든 재시작을 세며 수동 재시작은 세지 않습니다. 오래된 에이전트는 `container.restarts.increase`를 보내지 않습니다. 먼저 [에이전트를 업그레이드하세요](/docs/telemetry/podman-host#에이전트-업그레이드). 그 전에 이 템플릿으로 만든 모니터는 1분 안에 `container.restarts`가 얼마나 늘었는지를 읽으므로 루프 재시작의 절반 정도를 놓칩니다. 그 모니터를 삭제하고 템플릿으로 다시 만드세요.
 
 > [!CAUTION]
 > `container.uptime`은 실행 중인 컨테이너에만 있습니다. 멈춘 채로 있는 컨테이너는 데이터를 보내지 않으므로, **Container Restarted (Low Uptime)** 템플릿은 재시작과 재배포를 잡을 뿐 영구적인 종료는 잡지 못합니다. 2분보다 짧게 실행되도록 만든 컨테이너는 수명 내내 알림 상태로 남습니다.
@@ -154,6 +154,7 @@ CPU 스로틀링 템플릿은 없습니다. 에이전트가 수집하는 스로�
 | --- | --- |
 | `container.uptime` | 컨테이너가 시작된 이후의 초. 실행 중인 컨테이너만 보고합니다. |
 | `container.restarts` | 컨테이너가 다시 시작된 횟수. 누적 합계. |
+| `container.restarts.increase` | 에이전트가 해당 컨테이너를 이전에 샘플링한 이후의 재시작 횟수로, 샘플마다 보냅니다. 기간 동안의 합계가 그 기간의 재시작 횟수이므로, 누계 대신 이 메트릭으로 알림을 설정하세요. |
 | `container.pids.count` | 컨테이너 안의 작업 수. cgroup의 pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. |
 
 `container.cpu.throttling_data.throttled_periods`는 목록에 없으므로 **고급** 에서 조회하세요.
@@ -290,8 +291,8 @@ OneUptime은 `resource.host.name`으로 호스트를 식별하며, 에이전트�
 **High Container CPU Usage** 템플릿처럼 쿼리를 `resource.container.name`으로 그룹화해 컨테이너를 하나씩 판단하세요. 바쁜 호스트에서 모든 컨테이너를 평균하면 유휴 컨테이너 때문에 값이 낮아집니다. 100%는 코어 하나를 뜻하므로, 여러 코어를 쓸 수 있는 컨테이너에는 더 높은 임계값이 필요합니다. 부하와 관계없이 컨테이너 CPU가 평평한 선이라면 호스트에서 오래된 에이전트가 실행 중입니다. [에이전트를 업그레이드하세요](/docs/telemetry/podman-host#에이전트-업그레이드).
 :::
 
-:::details 재시작 횟수 알림이 해제되지 않음
-`container.restarts`는 누적 합계이므로 저절로 임계값 아래로 내려가지 않습니다. 원인을 고친 뒤 컨테이너를 다시 만들어 횟수를 초기화하거나, 임계값을 올리세요.
+:::details 재시작 알림이 작동하지 않거나 해제되지 않음
+재시작 템플릿의 초기 버전으로 만든 모니터처럼 `container.restarts` 자체를 임계값과 비교하는 모니터는 컨테이너의 이력 때문에 작동하고 해제되지 않습니다. 누계는 늘기만 하기 때문입니다. **Container Restart Loop** 템플릿이 `container.restarts.increase`를 읽기 전에 만든 모니터는 1분 안에 누계가 얼마나 늘었는지를 측정하므로 루프 재시작의 절반 정도를 놓칩니다. 오래된 에이전트는 `container.restarts.increase`를 보내지 않습니다. [에이전트를 업그레이드한](/docs/telemetry/podman-host#에이전트-업그레이드) 뒤 모니터를 삭제하고 **Container Restart Loop** 템플릿으로 다시 만드세요.
 :::
 
 ## 다음 단계

@@ -157,6 +157,7 @@ import Label from "./Label";
 import LogSavedView from "./LogSavedView";
 import MetricSavedView from "./MetricSavedView";
 import TraceSavedView from "./TraceSavedView";
+import ExceptionSavedView from "./ExceptionSavedView";
 import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
@@ -430,6 +431,7 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
 import TelemetrySourceMap from "./TelemetrySourceMap";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
@@ -616,6 +618,7 @@ const AllModelTypes: Array<{
   LogSavedView,
   MetricSavedView,
   TraceSavedView,
+  ExceptionSavedView,
   LogPipeline,
   LogPipelineProcessor,
   LogDropFilter,
@@ -1037,6 +1040,7 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+  TelemetryExceptionActivity,
   TelemetrySourceMap,
   InventoryItem,
   InventoryItemCustomField,

@@ -20,6 +20,8 @@ import CompareCriteria from "../../../Server/Utils/Monitor/Criteria/CompareCrite
 import ObjectID from "../../../Types/ObjectID";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import { evaluateTemplateCriteria } from "./Utils/TemplateCriteriaEvaluation";
+import * as fs from "fs";
+import * as path from "path";
 
 /*
  * These tests lock in the container-alert templates' easy-to-regress
@@ -46,10 +48,14 @@ import { evaluateTemplateCriteria } from "./Utils/TemplateCriteriaEvaluation";
  *      counters. Both used to be compared to a static threshold, which fires
  *      on ancient history and can never recover — the counter cannot come
  *      back down, so the complementary healthy comparison is unreachable by
- *      construction. They now threshold the counter's per-minute GROWTH
- *      (`max - min`, summed over the window) via a two-query + formula
- *      config, and the tests below pin every part of that shape whose
- *      breakage would be SILENT.
+ *      construction. The throttling template thresholds the counter's
+ *      per-minute GROWTH (`max - min`, summed over the window) via a
+ *      two-query + formula config. The restart loop sums
+ *      `container.restarts.increase`, the restarts since the agent's
+ *      previous sample of the container, which the agent sends with every
+ *      sample: the per-minute growth missed every restart between two
+ *      minutes' samples. The tests below pin every part of both shapes
+ *      whose breakage would be SILENT.
  */
 
 interface DockerTemplateCase {
@@ -118,18 +124,16 @@ const DOCKER_TEMPLATES: Array<DockerTemplateCase> = [
     id: "docker-restart-loop",
     category: "Container",
     severity: "Critical",
-    // queryConfigs[0] is the Max half of the per-minute delta pair.
-    metricName: "container.restarts",
-    // The criteria threshold the FORMULA, not either query.
-    metricAlias: "container_restarts",
-    aggregation: MetricsAggregationType.Max,
     /*
-     * A lifetime counter, so the template alerts on its growth over a window
-     * wide enough for the 30s-scrape delta to see a real loop.
+     * The restarts since the agent's previous sample of the container, sent
+     * with every sample - not the lifetime count, and not its growth inside
+     * one minute.
      */
+    metricName: "container.restarts.increase",
+    metricAlias: "container_restarts",
+    // The restarts in each minute.
+    aggregation: MetricsAggregationType.Sum,
     rollingTime: RollingTime.Past15Minutes,
-    queryCount: 2,
-    formulaCount: 1,
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
     threshold: 3,
@@ -441,18 +445,33 @@ describe("DockerAlertTemplates", () => {
       // ms of throttling per minute: 1200 ms across five minutes, > 1000.
       busyWindow: [0, 400, 0, 500, 300],
     },
-    {
-      id: "docker-restart-loop",
-      metricName: "container.restarts",
-      maxAlias: "container_restarts_max",
-      minAlias: "container_restarts_min",
-      resultAlias: "container_restarts",
-      formula: "container_restarts_max - container_restarts_min",
-      legendUnit: undefined,
-      // Restarts per minute: 4 across the window, > 3, none in one minute.
-      busyWindow: [0, 1, 2, 0, 1],
-    },
   ];
+
+  test("the per-minute delta is the throttling template's alone", () => {
+    /*
+     * Every template built on two queries and a formula is in
+     * DELTA_TEMPLATES, so each is held to the delta's shape below - and
+     * the restart loop is not among them any more.
+     */
+    const formulaTemplates: Array<string> = getAllDockerAlertTemplates()
+      .filter((template: DockerAlertTemplate): boolean => {
+        return (
+          (
+            getDockerMonitor(template.getMonitorStep(buildArgs()))
+              .metricViewConfig.formulaConfigs || []
+          ).length > 0
+        );
+      })
+      .map((template: DockerAlertTemplate): string => {
+        return template.id;
+      });
+
+    expect(formulaTemplates).toEqual(
+      DELTA_TEMPLATES.map((dc: DeltaTemplateCase): string => {
+        return dc.id;
+      }),
+    );
+  });
 
   test("no criteria compares a cumulative lifetime counter directly", () => {
     /*
@@ -855,50 +874,137 @@ describe("DockerAlertTemplates - Container Restarted (Low Uptime)", () => {
   });
 });
 
-describe("DockerAlertTemplates - Container Restart Loop (what it can see)", () => {
-  test("counts restarts seen within a minute, summed over the window", async () => {
-    const step: MonitorStep = getDockerAlertTemplateById(
-      "docker-restart-loop",
-    )!.getMonitorStep(buildArgs());
+describe("DockerAlertTemplates - Container Restart Loop", () => {
+  /*
+   * Regression: the template summed container.restarts' growth between
+   * two samples of the SAME minute (a Max and a Min query, subtracted). At
+   * the agent's 30-second scrape a restart between the last sample of one
+   * minute and the first of the next was never counted - about half of a
+   * crash loop, all of it for a container sampled less than twice a
+   * minute - and a manual restart, which starts Docker's count again at 0,
+   * read as the whole count in one minute. The agent now sends, with every
+   * sample, the restarts since its previous sample of the container
+   * (container.restarts.increase), and the template sums them.
+   */
+  function restartLoopStep(): MonitorStep {
+    return getDockerAlertTemplateById("docker-restart-loop")!.getMonitorStep(
+      buildArgs(),
+    );
+  }
+
+  // One value a minute: the restarts the agent sent in that minute.
+  function evaluateRestarts(
+    restartsPerMinute: Array<number>,
+  ): Promise<{ breached: boolean; healthy: boolean }> {
+    const step: MonitorStep = restartLoopStep();
+
+    return evaluateTemplateCriteria({
+      step,
+      viewConfig: getDockerMonitor(step).metricViewConfig,
+      samplesByAlias: { container_restarts: restartsPerMinute },
+      windowMinutes: 15,
+    });
+  }
+
+  test("sums the restarts the agent sends with each sample, per container, in one query", () => {
     const viewConfig: MetricsViewConfig =
-      getDockerMonitor(step).metricViewConfig;
+      getDockerMonitor(restartLoopStep()).metricViewConfig;
+    const query: any = (viewConfig.queryConfigs as Array<any>)[0];
 
-    // Four restarts seen across the window, none of them in the same minute.
-    expect(
-      await evaluateTemplateCriteria({
-        step,
-        viewConfig,
-        samplesByAlias: {
-          container_restarts_max: [0, 1, 1, 2, 3, 3, 4],
-          container_restarts_min: [0, 0, 1, 1, 2, 3, 3],
-        },
-        windowMinutes: 15,
-      }),
-    ).toEqual({ breached: true, healthy: false });
-
-    /*
-     * A container sampled once a minute: every bucket's max equals its min,
-     * so its growth between minutes is not seen. The template says so.
-     */
-    expect(
-      await evaluateTemplateCriteria({
-        step,
-        viewConfig,
-        samplesByAlias: {
-          container_restarts_max: [10, 12, 14, 16, 18],
-          container_restarts_min: [10, 12, 14, 16, 18],
-        },
-        windowMinutes: 15,
-      }),
-    ).toEqual({ breached: false, healthy: true });
+    expect(viewConfig.queryConfigs).toHaveLength(1);
+    expect(viewConfig.formulaConfigs).toEqual([]);
+    expect(query.metricQueryData.filterData.metricName).toBe(
+      "container.restarts.increase",
+    );
+    expect(query.metricQueryData.filterData.aggegationType).toBe(
+      MetricsAggregationType.Sum,
+    );
+    expect(query.metricQueryData.groupByAttributeKeys).toEqual([
+      "resource.container.name",
+    ]);
+    // The alias the criteria compare, and what the root cause calls it.
+    expect(query.metricAliasData.metricVariable).toBe("container_restarts");
+    expect(query.metricAliasData.title).toBe("Container Restarts");
+    // A count: no unit to convert from or to.
+    expect(query.metricAliasData.legendUnit).toBeUndefined();
   });
 
-  test("says that a container that exits at once is rarely seen, and points at the uptime template", () => {
-    const description: string = getDockerAlertTemplateById(
-      "docker-restart-loop",
-    )!.description;
+  test("never reads the lifetime count, which only ever grows", () => {
+    for (const template of getAllDockerAlertTemplates()) {
+      for (const query of getDockerMonitor(template.getMonitorStep(buildArgs()))
+        .metricViewConfig.queryConfigs as Array<any>) {
+        expect({
+          template: template.id,
+          metric: query.metricQueryData.filterData.metricName,
+        }).not.toEqual({
+          template: template.id,
+          metric: "container.restarts",
+        });
+      }
+    }
+  });
 
-    expect(description).toContain("same minute");
-    expect(description).toContain("Container Restarted (Low Uptime)");
+  test("fires on four restarts in the window, however they spread over the minutes", async () => {
+    // No minute holds more than one or two: it is the window's total.
+    expect(await evaluateRestarts([0, 1, 0, 0, 2, 0, 1, 0])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+    // A container the agent sampled three times, minutes apart.
+    expect(await evaluateRestarts([2, 2, 3])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+  });
+
+  test("three restarts are no loop yet, and recovery waits for 2.7 or fewer", async () => {
+    expect(await evaluateRestarts([1, 0, 1, 0, 1])).toEqual({
+      breached: false,
+      healthy: false,
+    });
+    expect(await evaluateRestarts([1, 0, 0, 1, 0])).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("a quiet container recovers whatever its history: the increases are 0", async () => {
+    expect(await evaluateRestarts(Array(15).fill(0))).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("reads the metric the Docker agent makes, from the count it keeps sending", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../agents/DockerAgent/otel-collector-config.yaml",
+      ),
+      "utf8",
+    );
+
+    expect(config).toContain(
+      'copy_metric(name="container.restarts.increase", description="Times the container restarted since the agent\'s previous sample of it.") where metric.name == "container.restarts"',
+    );
+    expect(config).toContain("cumulative_to_delta/restarts-increase:");
+    expect(config).toContain("container.restarts:\n        enabled: true");
+  });
+
+  test("says what it reads, that every restart counts, and that an older agent sends none of it", () => {
+    const template: DockerAlertTemplate = getDockerAlertTemplateById(
+      "docker-restart-loop",
+    )!;
+
+    expect(template.description).toContain("container.restarts.increase");
+    expect(template.description).toContain("every restart counts");
+    expect(template.description).toContain(
+      "An older Docker agent does not send it: update the agent first.",
+    );
+    // The limits of the per-minute delta it no longer has.
+    expect(template.description).not.toContain("same minute");
+    expect(template.summary).toBe(
+      "A container restarts more than 3 times in 15 minutes.",
+    );
   });
 });

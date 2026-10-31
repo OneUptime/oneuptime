@@ -10,16 +10,26 @@ import TelemetryExceptionMerge, {
   ExceptionMergeOutcome,
   ExceptionMergeResult,
   ExceptionUnmergeOutcome,
+  ExceptionSeen,
   ExceptionUnmergeResult,
   MAX_EXCEPTIONS_MERGED_AT_ONCE,
+  getSurvivorSeenAfterUnmerge,
 } from "../../../../Server/Utils/Telemetry/TelemetryExceptionMerge";
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityActor,
+  TelemetryExceptionActivityEntry,
+} from "../../../../Server/Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "../../../../Models/DatabaseModels/TelemetryExceptionActivity";
 import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
+import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
+import logger from "../../../../Server/Utils/Logger";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * Merging exceptions that are the same bug, and undoing it, with Postgres
@@ -79,6 +89,35 @@ function row(id: string, overrides: Partial<Row> = {}): Row {
 let rows: Array<Row>;
 let editableIds: Array<string> | "throw";
 let statements: Array<{ sql: string; params: Array<unknown> }>;
+// When ClickHouse says the survivor's own occurrences were seen.
+let ownSeen: ExceptionSeen | null;
+// What each merge and unmerge left on the exceptions' activity timelines.
+let activity: Array<{
+  entries: Array<TelemetryExceptionActivityEntry>;
+  actor: TelemetryExceptionActivityActor;
+}>;
+
+function activityLines(): Array<
+  [string, TelemetryExceptionActivityType, string]
+> {
+  return activity.flatMap(
+    (call: {
+      entries: Array<TelemetryExceptionActivityEntry>;
+    }): Array<[string, TelemetryExceptionActivityType, string]> => {
+      return call.entries.map(
+        (
+          entry: TelemetryExceptionActivityEntry,
+        ): [string, TelemetryExceptionActivityType, string] => {
+          return [
+            entry.telemetryExceptionId.toString(),
+            entry.activityType,
+            entry.relatedTelemetryExceptionId?.toString() || "",
+          ];
+        },
+      );
+    },
+  );
+}
 
 function writes(): Array<{ sql: string; params: Array<unknown> }> {
   return statements.filter((statement: { sql: string }): boolean => {
@@ -90,6 +129,24 @@ beforeEach(() => {
   rows = [row(A), row(B)];
   editableIds = [A, B, C, D];
   statements = [];
+  activity = [];
+  ownSeen = null;
+
+  jest
+    .spyOn(TelemetryExceptionMerge, "readOwnSeen")
+    .mockImplementation((async () => {
+      return ownSeen;
+    }) as never);
+
+  jest
+    .spyOn(TelemetryExceptionActivityService, "record")
+    .mockImplementation((async (data: {
+      entries: Array<TelemetryExceptionActivityEntry>;
+      actor: TelemetryExceptionActivityActor;
+    }) => {
+      activity.push(data);
+      return data.entries.length;
+    }) as never);
 
   jest.spyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
     _type: unknown,
@@ -415,7 +472,7 @@ describe("unmerging", () => {
     expect(subtract!.sql).toContain(
       '"occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $1)',
     );
-    expect(subtract!.params).toEqual([7, A]);
+    expect(subtract!.params.slice(0, 2)).toEqual([7, A]);
     expect(release!.sql).toContain(
       '"mergedIntoTelemetryExceptionId" = NULL, "mergedAt" = NULL, "mergedByUserId" = NULL',
     );
@@ -466,5 +523,404 @@ describe("unmerging", () => {
     await expect(unmerge(B)).rejects.toThrow(NotAuthorizedException);
 
     expect(statements).toHaveLength(0);
+  });
+});
+
+/*
+ * Each merge and unmerge goes on the activity timeline of every exception it
+ * moved, once it is written - never for a refused one, never for one that
+ * changed nothing - crediting whoever made it.
+ */
+describe("the activity a merge or an unmerge leaves", () => {
+  test("a merge: on the survivor, what was merged in; on the merged one, where it went", async () => {
+    await merge(A, [B]);
+
+    expect(activity).toHaveLength(1);
+    expect(activity[0]!.actor).toEqual({ userId: USER_ID });
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Merged, B],
+      [B, TelemetryExceptionActivityType.MergedInto, A],
+    ]);
+    expect(
+      activity[0]!.entries.every((entry: TelemetryExceptionActivityEntry) => {
+        return entry.projectId.toString() === PROJECT_ID.toString();
+      }),
+    ).toBe(true);
+  });
+
+  test("the ones that came along with a merged one are merged into the survivor now, and say so", async () => {
+    rows = [row(A), row(B), row(C, { mergedIntoId: B })];
+
+    await merge(A, [B]);
+
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Merged, B],
+      [B, TelemetryExceptionActivityType.MergedInto, A],
+      [C, TelemetryExceptionActivityType.MergedInto, A],
+    ]);
+  });
+
+  test("several at once: one Merged on the survivor for each, nothing for the one already there", async () => {
+    rows = [row(A), row(B), row(C), row(D, { mergedIntoId: A })];
+
+    await merge(A, [B, C, D]);
+
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Merged, B],
+      [B, TelemetryExceptionActivityType.MergedInto, A],
+      [A, TelemetryExceptionActivityType.Merged, C],
+      [C, TelemetryExceptionActivityType.MergedInto, A],
+    ]);
+  });
+
+  test("merging again what is merged already records nothing", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+
+    await merge(A, [B]);
+
+    expect(activityLines()).toEqual([]);
+  });
+
+  test("a refused merge records nothing", async () => {
+    rows = [row(A), row(B, { primaryEntityId: OTHER_SERVICE_ID })];
+    await expect(merge(A, [B])).rejects.toThrow(BadDataException);
+
+    editableIds = [A];
+    await expect(merge(A, [B])).rejects.toThrow(NotAuthorizedException);
+
+    expect(activity).toHaveLength(0);
+  });
+
+  test("an unmerge: on the survivor, what was taken out; on the one taken out, where from", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    expect(activity[0]!.actor).toEqual({ userId: USER_ID });
+    expect(activityLines()).toEqual([
+      [A, TelemetryExceptionActivityType.Unmerged, B],
+      [B, TelemetryExceptionActivityType.UnmergedFrom, A],
+    ]);
+  });
+
+  test("an unmerge that changed nothing records nothing", async () => {
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    expect(activity).toHaveLength(0);
+  });
+
+  test("a merge through an API key is credited to the key", async () => {
+    await merge(A, [B], {
+      tenantId: PROJECT_ID,
+      apiKeyId: ObjectID.generate(),
+      apiKeyName: "Cleanup script",
+    });
+
+    expect(activity[0]!.actor).toEqual({ apiKeyName: "Cleanup script" });
+  });
+});
+
+/*
+ * An unmerge gives the survivor back its own first and last seen, where the
+ * one taken out had set them: from the survivor's own occurrences, as
+ * ClickHouse holds them by its fingerprint, and from the exceptions still
+ * merged into it, which keep their own seen times.
+ */
+describe("the survivor's first and last seen after an unmerge", () => {
+  const DAY: number = 24 * 60 * 60 * 1000;
+  const BASE: number = new Date("2026-10-01T00:00:00.000Z").getTime();
+
+  function day(n: number): Date {
+    return new Date(BASE + n * DAY);
+  }
+
+  function seen(
+    first: number | null,
+    last: number | null,
+    firstRelease: string | null = null,
+    lastRelease: string | null = null,
+  ): ExceptionSeen {
+    return {
+      firstSeenAt: first === null ? null : day(first),
+      lastSeenAt: last === null ? null : day(last),
+      firstSeenInRelease: firstRelease,
+      lastSeenInRelease: lastRelease,
+    };
+  }
+
+  // The survivor's write: its count, then its seen times and releases.
+  async function unmergeB(): Promise<Array<unknown>> {
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    return writes()[0]!.params;
+  }
+
+  test("set by the one taken out, they go back to the survivor's own", async () => {
+    // A was first seen on day 5 and last on day 20; B on days 1 and 25.
+    rows = [
+      row(A, {
+        occuranceCount: 17,
+        firstSeenAt: day(1),
+        lastSeenAt: day(25),
+        firstSeenInRelease: "b-1",
+        lastSeenInRelease: "b-9",
+      }),
+      row(B, {
+        occuranceCount: 7,
+        mergedIntoId: A,
+        firstSeenAt: day(1),
+        lastSeenAt: day(25),
+        firstSeenInRelease: "b-1",
+        lastSeenInRelease: "b-9",
+      }),
+    ];
+    ownSeen = seen(5, 20, "a-1", "a-4");
+
+    expect(await unmergeB()).toEqual([7, A, day(5), day(20), "a-1", "a-4"]);
+    expect(TelemetryExceptionMerge.readOwnSeen).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      primaryEntityId: new ObjectID(SERVICE_ID),
+      fingerprint: "fp-a",
+    });
+  });
+
+  test("one the one taken out did not set stays", async () => {
+    // B set the first seen only: A's own last occurrence is the latest.
+    rows = [
+      row(A, { firstSeenAt: day(1), lastSeenAt: day(30) }),
+      row(B, { mergedIntoId: A, firstSeenAt: day(1), lastSeenAt: day(12) }),
+    ];
+    ownSeen = seen(4, 30, "a-1", "a-7");
+
+    expect((await unmergeB()).slice(2)).toEqual([
+      day(4),
+      day(30),
+      "a-1",
+      "1.2.0",
+    ]);
+  });
+
+  test("another exception still merged into it counts as its own", async () => {
+    rows = [
+      row(A, { firstSeenAt: day(1), lastSeenAt: day(25) }),
+      row(B, { mergedIntoId: A, firstSeenAt: day(1), lastSeenAt: day(25) }),
+      row(C, {
+        mergedIntoId: A,
+        firstSeenAt: day(2),
+        lastSeenAt: day(24),
+        firstSeenInRelease: "c-1",
+        lastSeenInRelease: "c-3",
+      }),
+    ];
+    ownSeen = seen(6, 18, "a-1", "a-2");
+
+    expect((await unmergeB()).slice(2)).toEqual([
+      day(2),
+      day(24),
+      "c-1",
+      "c-3",
+    ]);
+  });
+
+  test("with nothing left to say otherwise, they stay as they were", async () => {
+    // ClickHouse holds none of A's own occurrences, and nothing else is merged in.
+    rows = [
+      row(A, { firstSeenAt: day(1), lastSeenAt: day(25) }),
+      row(B, { mergedIntoId: A, firstSeenAt: day(1), lastSeenAt: day(25) }),
+    ];
+    ownSeen = null;
+
+    expect((await unmergeB()).slice(2)).toEqual([
+      day(1),
+      day(25),
+      "1.0.0",
+      "1.2.0",
+    ]);
+  });
+
+  test("a seeded sweep: each seen time goes back to what is left where the one taken out set it, and stays otherwise", () => {
+    const random: SeededRandom = seededRandom(5445);
+
+    function maybeSeen(): ExceptionSeen | null {
+      if (random(5) === 0) {
+        return null;
+      }
+      const first: number = random(40);
+      return seen(first, first + random(40), `r-${first}`, `r-${random(9)}`);
+    }
+
+    function firstsOf(entries: Array<ExceptionSeen>): Array<number> {
+      return entries
+        .filter((entry: ExceptionSeen): boolean => {
+          return entry.firstSeenAt !== null;
+        })
+        .map((entry: ExceptionSeen): number => {
+          return entry.firstSeenAt!.getTime();
+        });
+    }
+
+    function lastsOf(entries: Array<ExceptionSeen>): Array<number> {
+      return entries
+        .filter((entry: ExceptionSeen): boolean => {
+          return entry.lastSeenAt !== null;
+        })
+        .map((entry: ExceptionSeen): number => {
+          return entry.lastSeenAt!.getTime();
+        });
+    }
+
+    for (let round: number = 0; round < 2000; round++) {
+      const own: ExceptionSeen | null = maybeSeen();
+      const members: Array<ExceptionSeen> = [];
+      for (let index: number = random(4); index > 0; index--) {
+        members.push(maybeSeen() || seen(null, null));
+      }
+      const merged: ExceptionSeen = maybeSeen() || seen(null, null);
+      const left: Array<ExceptionSeen> = [...(own ? [own] : []), ...members];
+
+      // The survivor's seen times take in everyone's, as a merge leaves them.
+      const allFirsts: Array<number> = firstsOf([...left, merged]);
+      const allLasts: Array<number> = lastsOf([...left, merged]);
+      const survivor: ExceptionSeen = {
+        firstSeenAt: allFirsts.length ? new Date(Math.min(...allFirsts)) : null,
+        lastSeenAt: allLasts.length ? new Date(Math.max(...allLasts)) : null,
+        firstSeenInRelease: "survivor-first",
+        lastSeenInRelease: "survivor-last",
+      };
+
+      const after: ExceptionSeen = getSurvivorSeenAfterUnmerge({
+        survivor,
+        merged,
+        members,
+        own,
+      });
+
+      const mergedSetFirst: boolean =
+        survivor.firstSeenAt !== null &&
+        merged.firstSeenAt !== null &&
+        merged.firstSeenAt.getTime() <= survivor.firstSeenAt.getTime();
+      const mergedSetLast: boolean =
+        survivor.lastSeenAt !== null &&
+        merged.lastSeenAt !== null &&
+        merged.lastSeenAt.getTime() >= survivor.lastSeenAt.getTime();
+      const leftFirsts: Array<number> = firstsOf(left);
+      const leftLasts: Array<number> = lastsOf(left);
+
+      expect(after.firstSeenAt ? after.firstSeenAt.getTime() : null).toBe(
+        mergedSetFirst && leftFirsts.length
+          ? Math.min(...leftFirsts)
+          : survivor.firstSeenAt
+            ? survivor.firstSeenAt.getTime()
+            : null,
+      );
+      expect(after.lastSeenAt ? after.lastSeenAt.getTime() : null).toBe(
+        mergedSetLast && leftLasts.length
+          ? Math.max(...leftLasts)
+          : survivor.lastSeenAt
+            ? survivor.lastSeenAt.getTime()
+            : null,
+      );
+
+      // Taking one out only ever narrows the window.
+      if (after.firstSeenAt && survivor.firstSeenAt) {
+        expect(after.firstSeenAt.getTime()).toBeGreaterThanOrEqual(
+          survivor.firstSeenAt.getTime(),
+        );
+      }
+      if (after.lastSeenAt && survivor.lastSeenAt) {
+        expect(after.lastSeenAt.getTime()).toBeLessThanOrEqual(
+          survivor.lastSeenAt.getTime(),
+        );
+      }
+    }
+  });
+});
+
+describe("reading when an exception's own occurrences were seen", () => {
+  function answer(data: Array<Record<string, unknown>>): void {
+    jest
+      .spyOn(ExceptionInstanceService, "executeQuery")
+      .mockImplementation((async () => {
+        return {
+          json: async () => {
+            return { data };
+          },
+        };
+      }) as never);
+  }
+
+  async function read(): Promise<ExceptionSeen | null> {
+    // The real read, not the suite's stand-in for it.
+    (
+      TelemetryExceptionMerge.readOwnSeen as unknown as {
+        mockRestore: () => void;
+      }
+    ).mockRestore();
+
+    return TelemetryExceptionMerge.readOwnSeen({
+      projectId: PROJECT_ID,
+      primaryEntityId: new ObjectID(SERVICE_ID),
+      fingerprint: "fp-a",
+    });
+  }
+
+  test("by its fingerprint and service, within retention", async () => {
+    answer([
+      {
+        occurrences: "3",
+        firstSeenAt: String(Date.parse("2026-10-05T10:00:00.000Z")),
+        lastSeenAt: String(Date.parse("2026-10-20T08:30:00.000Z")),
+        firstSeenInRelease: "a-1",
+        lastSeenInRelease: "",
+      },
+    ]);
+
+    expect(await read()).toEqual({
+      firstSeenAt: new Date("2026-10-05T10:00:00.000Z"),
+      lastSeenAt: new Date("2026-10-20T08:30:00.000Z"),
+      firstSeenInRelease: "a-1",
+      lastSeenInRelease: null,
+    });
+
+    const statement: { query: string } = (
+      ExceptionInstanceService.executeQuery as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
+    ).mock.calls[0]![0] as { query: string };
+    expect(statement.query).toContain("AND fingerprint = {p");
+    expect(statement.query).toContain("AND primaryEntityId = {p");
+    expect(statement.query).toContain("AND retentionDate >= now()");
+  });
+
+  test("none held, or a read that fails: nothing to say", async () => {
+    answer([{ occurrences: "0", firstSeenAt: "0", lastSeenAt: "0" }]);
+    expect(await read()).toBeNull();
+
+    jest
+      .spyOn(ExceptionInstanceService, "executeQuery")
+      .mockImplementation((async () => {
+        throw new Error("ClickHouse is away");
+      }) as never);
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
+
+    expect(
+      await TelemetryExceptionMerge.readOwnSeen({
+        projectId: PROJECT_ID,
+        primaryEntityId: new ObjectID(SERVICE_ID),
+        fingerprint: "fp-a",
+      }),
+    ).toBeNull();
+    expect(logger.error).toHaveBeenCalled();
   });
 });

@@ -85,13 +85,13 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Knoten | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Steuerungsebene | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist. **Node Ready Condition** ist 1 bei Ready, 0 bei NotReady und -1 bei Unknown, was ein ausgefallener Knoten meldet: Warnen Sie bei weniger als 1.
+> **Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist. **Node Ready Condition** ist 1 bei Ready, 0 bei NotReady und -1 bei Unknown, was ein ausgefallener Knoten meldet: Warnen Sie bei weniger als 1. **Container Restarts** ist der laufende Neustartzähler des Containers; **Container Restarts (Increase)** sendet der Agent mit jeder Messung: die Neustarts seit seiner vorigen Messung des Containers, sodass ihre Summe über ein Zeitfenster die Neustarts darin ergibt.
 
 ## Überwachungskriterien
 
@@ -158,7 +158,10 @@ Vorlagen auf objektbezogenen Metriken werten jeden Knoten, Pod, jedes Deployment
 **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Agent des Clusters eintrifft: Der Agent wurde deinstalliert oder stürzt immer wieder ab, sein API-Schlüssel wurde widerrufen, er hat die Verbindung zu OneUptime verloren, oder der API-Server des Clusters antwortet ihm nicht mehr. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** und **Job Failures** zählen, wie stark ein Neustart- oder Fehlschlag-Zähler im Zeitfenster gewachsen ist, nicht den Zähler selbst, und lösen sich daher von selbst, sobald die Neustarts oder Fehlschläge aufhören. Das Wachstum wird nur zwischen zwei Messungen derselben Minute gesehen: Beim 30-Sekunden-Intervall des Agenten ist das etwa die Hälfte. Eine Crash-Schleife startet immer wieder neu und wird erkannt; ein einzelner Neustart kann unbemerkt bleiben.
+> **CrashLoopBackOff Detection** addiert `k8s.container.restarts.increase`, das der Agent mit jeder Messung sendet: die Neustarts seit seiner vorigen Messung des Containers. So zählt die Vorlage jeden Neustart, egal wie weit die Messungen auseinanderliegen, sie löst sich von selbst, sobald die Neustarts aufhören, und ein neu erstellter Pod beginnt eine neue Zählung, statt als Neustarts gelesen zu werden. Ein älterer Agent sendet `k8s.container.restarts.increase` nicht: [Aktualisieren Sie ihn](/docs/monitor/kubernetes-agent#upgrade) zuerst. Ein Monitor, der vorher aus der Vorlage erstellt wurde, liest, wie stark `k8s.container.restarts` innerhalb jeder Minute gewachsen ist, und übersieht damit etwa die Hälfte der Neustarts einer Crash-Schleife: Löschen Sie ihn und erstellen Sie die Vorlage neu.
+
+> [!NOTE]
+> **Job Failures** zählt, wie stark der Zähler fehlgeschlagener Pods eines Jobs im Zeitfenster gewachsen ist, nicht den Zähler selbst, und löst sich daher von selbst, sobald die Fehlschläge aufhören. Das Wachstum wird nur zwischen zwei Messungen derselben Minute gesehen: Beim 30-Sekunden-Intervall des Agenten ist das etwa die Hälfte. Ein Job, der seine Wiederholungen aufbraucht, wird erkannt; ein einzelner Fehlschlag kann unbemerkt bleiben.
 
 ### Ursachen erkennen, nicht nur Symptome
 
@@ -187,7 +190,7 @@ Cluster registrieren sich selbst aus den Daten des Agents, unter dem `clusterNam
 :::
 
 :::details CrashLoopBackOff Detection hat bei einem Neustart nicht ausgelöst
-Die Vorlage löst aus, wenn die Neustartzahl eines Containers innerhalb von 15 Minuten wächst, während der Container weniger als die Hälfte davon bereit war; ein Container, der einmal neu gestartet hat und sofort wieder da war, löst also keine Benachrichtigung aus. Das Wachstum wird nur zwischen zwei Messungen derselben Minute gesehen, daher kann ein einzelner Neustart unbemerkt bleiben; eine Crash-Schleife startet alle paar Minuten neu und wird erkannt.
+Die Vorlage löst aus, wenn ein Container innerhalb von 15 Minuten neu startet, während er weniger als die Hälfte davon bereit war; ein Container, der einmal neu gestartet hat und sofort wieder da war, löst also keine Benachrichtigung aus. Sie liest `k8s.container.restarts.increase`, das ein älterer Agent nicht sendet: [Aktualisieren Sie den Agenten](/docs/monitor/kubernetes-agent#upgrade). Ein Monitor, der vorher aus der Vorlage erstellt wurde, liest, wie stark `k8s.container.restarts` zwischen zwei Messungen derselben Minute gewachsen ist, und übersieht die Neustarts zwischen den Messungen zweier Minuten: Löschen Sie ihn und erstellen Sie die Vorlage neu. Wenn `filters.metrics.include` die Metriken aufzählt, die der Agent sendet, nehmen Sie `k8s.container.restarts.increase` mit auf.
 :::
 
 ## Nächste Schritte

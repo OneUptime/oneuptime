@@ -607,11 +607,15 @@ on the resource, so ingest stores them `resource.`-prefixed), and stamps
 empty, on the node's metrics and container logs but not on the cluster's
 inventory; the keys the worker's Service Name and Node Name filters read are
 those keys, `resource.`-prefixed; and it never stamps `host.name` or runs
-`resourcedetection`. Every agent's receivers are all in a pipeline. The Docker
-and Podman agents tail no inventory snapshot: their images, the upstream
-collector with the config copied in, have no shell, so the `entrypoint.sh` and
-inventory poller that sat beside the config never ran, and every script left in
-those folders has to be `install.sh` or one the image copies in.
+`resourcedetection`. Every agent's receivers are all in a pipeline, and so are
+its processors: one defined but in no pipeline never runs, and the metric it
+makes (`container.cpu.utilization`, `container.restarts.increase`) is never
+sent. The Docker and Podman agents send restarts both ways (see
+`ContainerAgentRestarts.test.js`). They tail no inventory snapshot: their
+images, the upstream collector with the config copied in, have no shell, so
+the `entrypoint.sh` and inventory poller that sat beside the config never ran,
+and every script left in those folders has to be `install.sh` or one the image
+copies in.
 
 ### `AgentTroubleshootTokenCheck.test.js`
 
@@ -759,6 +763,54 @@ Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
 `agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
 configs and payloads and checks what comes out.
 
+### `ContainerAgentRestarts.test.js`
+
+The Docker and Podman agents' `container.restarts.increase`. The `docker_stats`
+receiver's `container.restarts` is the engine's RestartCount for a container: a
+lifetime total that only its restart policy raises, and that a manual restart
+or a recreated container starts again at 0. A monitor can only take the
+difference of samples inside one minute, so Container Restart Loop used to
+miss every restart between two minutes' samples - about half of a crash loop
+at the 30-second interval - and read a manual restart as the whole count in
+one minute. So the agents copy `container.restarts` as
+`container.restarts.increase` and turn the copy, with `cumulative_to_delta`,
+into the restarts since the previous sample of the same container, whatever
+the gap; the template sums it, and `container.restarts` goes on unchanged for
+the charts.
+
+The suite holds both configs to that: the receiver's count on, the two
+processors exactly as written and identical in both agents, run in the metrics
+pipeline only, right after the CPU processors and before `resource`; only the
+copy turned into increases; `initial_value: drop`, because "auto" would send a
+container's lifetime count as its first increase after every agent restart; a
+staleness of 2 hours, far past the template's 15 minutes. And the arithmetic:
+increases across 30 seconds, five minutes and an hour; nothing for a manual
+restart's sample; restarts between two minutes' samples counted in full where
+the old per-minute growth saw none. It also holds the checks of the behaviour
+script below to the same arithmetic, so that script fails only on what the
+collector does.
+
+### `container-agent-restarts-behaviour.sh`
+
+What those processors DO, in the collector the agents are built FROM. For each
+agent it lifts them out of the config as shipped and posts seven samples of two
+containers to them, in order - 30 seconds, five minutes and an hour apart, with
+a manual restart among them - and checks that every sample but the first sends
+the restarts since the one before (as a delta covering the time between them),
+that the restart's sample sends none, and that `container.restarts` comes out
+as it went in. Then it runs the agent's whole metrics pipeline against the
+machine's Docker daemon and a container that exits a second after it starts,
+under `--restart=always`: its count must grow, the increases must add up to
+exactly that growth, and some of its samples must have been taken while Docker
+was restarting it (Docker reports such a container as running and answers a
+stats request for it with empty stats, a memory limit of 0) - which is what
+lets the agent count the restarts of a container that is hardly ever running.
+The Podman agent's receiver is pointed at the Docker socket, so that run checks
+its pipeline, not Podman's API. It needs docker; the "Ops Config Test" workflow
+runs it after `container-agent-cpu-utilization-behaviour.sh`.
+`Utils/ContainerAgentRestartsBehaviour.js` builds its configs and payloads and
+checks what comes out; the real-daemon config is the CPU helper's.
+
 ### `agent-event-severity-behaviour.sh`
 
 What the Kubernetes agent does to the Kubernetes Events it watches, in the
@@ -775,6 +827,40 @@ body wraps the Event under `object`; the rule used to read the watch's own
 `type` (ADDED, MODIFIED) and marked every warning INFO. It needs docker and
 helm; the "Ops Config Test" workflow runs it after
 `agent-metric-filter-behaviour.sh`.
+
+### `agent-restarts-increase-behaviour.sh`
+
+What the Kubernetes agent sends for container restarts, in the collector the
+chart ships (and in 0.96.0, which an upgrade with `--reuse-values` keeps, where
+the gauge is made a sum in datapoint context). It renders the chart, lifts the
+cluster collector's `metrics/restarts-increase` processors out of its ConfigMap
+as rendered (all but `memory_limiter` and `batch`), and posts them, in order,
+seven samples of what the `k8s_cluster` receiver sends for four containers - 30
+seconds, five minutes and an hour apart: `k8s.container.restarts` as an int
+gauge on the container's own resource, keyed by `container.id`, which changes
+with every restart because the kubelet runs each one as a new container, with
+`k8s.container.ready` beside it and a pod's `k8s.pod.phase`. Only
+`k8s.container.restarts.increase` may come out, as a monotonic delta sum
+without `container.id`, stamped with the cluster's name: a crash loop's
+restarts since each sample before, nothing for a pod recreated under the same
+name (a new UID) at its first sample, nothing for a count that went down in the
+same pod, and 0 for a quiet container. Kept by `container.id`, the same
+processors would count no restart at all. It needs docker and helm; the "Ops
+Config Test" workflow runs it after `agent-cpu-names-behaviour.sh`.
+`Utils/KubernetesAgentRestartsIncreaseBehaviour.js` builds its config and
+payloads and checks what comes out.
+
+### `KubernetesAgentRestartsIncrease.test.js`
+
+Holds `agent-restarts-increase-behaviour.sh` to the arithmetic and to the
+chart: the increases it expects are what `cumulative_to_delta` makes of its
+samples keyed by the pod (and none, keyed by `container.id`); its samples are
+what the kubelet reports (a new container ID with every count, a recreated pod
+under a new UID from 0) and its payloads what `k8s_cluster` sends; the
+processors it lifts are the ones the template's pipeline lists, in order; its
+check passes the export the arithmetic predicts and fails one that kept
+`container.id`, lost a restart, sent another metric, or is not a delta sum
+from the previous sample. It also holds the workflow to running the script.
 
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 

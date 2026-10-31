@@ -225,6 +225,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Node CPU Usage",
     "Pod Phase (Code)",
     "Node Ready Condition",
+    "Container Restarts",
+    "Container Restarts (Increase)",
     // What every rule checks.
     "Metric Value",
     ...ANOMALY_CONDITIONS,
@@ -233,6 +235,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DOCKER]: [
     ...FORM_NAMES,
     "Host Stopped Reporting",
+    "Container Restart Loop",
+    "Container CPU Throttling",
     "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,

@@ -62,6 +62,8 @@ Jede Zeile zeigt außerdem, wie viele Benutzer die Ausnahme im gewählten Zeitra
 
 Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**. **Mir zugewiesen** zeigt nur die Ihnen zugewiesenen Ausnahmen, und das Sortiermenü ordnet die Liste nach **Zuletzt gesehen**, **Zuerst gesehen** oder **Meiste Ereignisse**.
 
+**Gespeicherte Ansichten** behält die Liste unter einem Namen, für alle im Projekt: die Suche, die Filter, den Zeitraum, den Status, was als Problem zählt, **Mir zugewiesen**, die Sortierung und die Seitengröße. Eine Ansicht mit **Mir zugewiesen** zeigt jeder Person die Ausnahmen, die ihr zugewiesen sind, und **Ansicht zurücksetzen** stellt die Liste so wieder her, wie sie sich zuerst öffnet. Die Adresse der Seite nennt die gewählte Ansicht, sodass ein geteilter Link sie öffnet. Ansonsten funktionieren gespeicherte Ansichten wie im [Protokoll-Explorer](/docs/telemetry/logs-explorer#eine-ansicht-speichern).
+
 ### Eine Ausnahme öffnen
 
 Klicken Sie auf eine Zeile, um die Seite der Ausnahme zu öffnen.
@@ -99,7 +101,9 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
-**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu.
+**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu. Die Person, der sie zugewiesen wird, oder jedes Mitglied des Teams wird benachrichtigt, wie es die Zeile **Mir zugewiesene Ausnahme** in ihren [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorgibt; wer sie zugewiesen hat, wird es nicht.
+
+**Aktivität** unten in der **Übersicht** der Ausnahme zeigt, wer sie wann geändert hat, das Neueste zuerst: wer sie gelöst, wieder geöffnet, archiviert oder zugewiesen, eine andere Ausnahme mit ihr zusammengeführt oder eine getrennt hat, und wann sie nach der Lösung erneut auftrat. Jede Änderung steht dort, ob auf der Seite der Ausnahme, in der Liste, unter **Massenaktionen**, über die API oder von OneUptime selbst gemacht, und eine Änderung mit einem API-Schlüssel trägt den Namen des Schlüssels.
 
 ## Fehlerklassen
 

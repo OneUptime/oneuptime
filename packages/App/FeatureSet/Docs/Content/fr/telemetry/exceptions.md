@@ -62,6 +62,8 @@ Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la 
 
 Tapez une requête comme `type:TypeError env:production`, voir [Syntaxe de recherche](/docs/telemetry/search-syntax#exceptions), ou cliquez sur une valeur de la barre latérale **Filtres** : un service, un hôte ou une autre ressource, un **Type d'exception**, un **Environnement** ou une **Classe d'erreur**. **Attribuées à moi** n'affiche que les exceptions qui vous sont attribuées, et le menu de tri classe la liste par **Vu pour la dernière fois**, **Vu pour la première fois** ou **Le plus d'événements**.
 
+**Vues enregistrées** garde la liste sous un nom, pour tout le projet : la recherche, les filtres, la plage de temps, le statut, ce qui compte comme un problème, **Attribuées à moi**, le tri et la taille de page. Une vue avec **Attribuées à moi** montre à chacun les exceptions qui lui sont attribuées, et **Effacer la vue** remet la liste comme elle s'ouvre au départ. L'adresse de la page nomme la vue choisie, donc un lien que vous partagez l'ouvre. Pour le reste, les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
+
 ### Ouvrir une exception
 
 Cliquez sur une ligne pour ouvrir la page de l'exception.
@@ -99,7 +101,9 @@ Les boutons en haut de la page de l'exception, sa page **Paramètres** et le men
 
 Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
 
-**Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois.
+**Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois. La personne à qui elle est attribuée, ou chaque membre de l'équipe, reçoit une notification selon la ligne **Exception qui m'est attribuée** de ses [Paramètres de notification](/docs/notifications/notification-settings) ; la personne qui l'a attribuée n'en reçoit pas.
+
+**Activité**, en bas de la **Vue d'ensemble** de l'exception, indique qui l'a modifiée et quand, les plus récentes en premier : qui l'a résolue, rouverte, archivée ou attribuée, a fusionné une autre exception avec elle ou en a défusionné une, et quand elle est revenue après avoir été résolue. Chaque modification y figure, faite sur la page de l'exception, dans la liste, sous **Actions groupées**, par l'API ou par OneUptime lui-même, et une modification faite avec une clé API porte le nom de la clé.
 
 ## Classes d'erreur
 

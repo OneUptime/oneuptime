@@ -85,13 +85,13 @@ Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Arbeidsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** og **Node CPU Usage** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmetrikker kommer bare når agentens innsamling fra kontrollplanet er slått på. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1.
+> **Pod CPU Usage** og **Node CPU Usage** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmetrikker kommer bare når agentens innsamling fra kontrollplanet er slått på. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1. **Container Restarts** er containerens løpende omstartteller; **Container Restarts (Increase)** er det agenten sender med hver måling: omstartene siden dens forrige måling av containeren, så summen over et vindu er omstartene i det.
 
 ## Overvåkingskriterier
 
@@ -158,7 +158,10 @@ Maler på metrikker per objekt evaluerer hver node, pod, deployment, job, Daemon
 **Cluster Stopped Reporting** utløses når ingenting kommer fra klyngens agent på ti minutter: agenten ble avinstallert eller krasjer gang på gang, API-nøkkelen dens ble tilbakekalt, den mistet ruten sin til OneUptime, eller klyngens API-server sluttet å svare den. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** og **Job Failures** teller hvor mye en teller for omstarter eller mislykkede poder vokste i vinduet, ikke selve telleren, så de løser seg selv når omstartene eller feilene stopper. Veksten ses bare mellom to målinger i samme minutt: ved agentens intervall på 30 sekunder er det omtrent halvparten. En krasjløkke starter på nytt igjen og igjen og blir fanget; en enkelt omstart kan gå ubemerket hen.
+> **CrashLoopBackOff Detection** legger sammen `k8s.container.restarts.increase`, som agenten sender med hver måling: omstartene siden dens forrige måling av containeren. Slik teller den hver omstart uansett hvor langt det er mellom målingene, den løser seg selv når omstartene stopper, og en pod som opprettes på nytt, starter en ny telling i stedet for å bli lest som omstarter. En eldre agent sender ikke `k8s.container.restarts.increase`: [oppgrader den](/docs/monitor/kubernetes-agent#oppgradering) først. En monitor som ble opprettet fra malen før det, leser hvor mye `k8s.container.restarts` vokste innenfor hvert minutt, og går dermed glipp av omtrent halvparten av en krasjløkkes omstarter: slett den og opprett malen på nytt.
+
+> [!NOTE]
+> **Job Failures** teller hvor mye en Jobs teller for mislykkede poder vokste i vinduet, ikke selve telleren, så den løser seg selv når feilene stopper. Veksten ses bare mellom to målinger i samme minutt: ved agentens intervall på 30 sekunder er det omtrent halvparten. En Job som bruker opp forsøkene sine, blir fanget; en enkelt feil kan gå ubemerket hen.
 
 ### Fang årsaker, ikke bare symptomer
 
@@ -187,7 +190,7 @@ Klynger registrerer seg selv fra agentens data, under det `clusterName` agenten 
 :::
 
 :::details CrashLoopBackOff Detection ble ikke utløst ved en omstart
-Malen utløses når en containers omstartteller vokser innen 15 minutter mens containeren var klar mindre enn halvparten av dem, så en container som startet på nytt én gang og kom straks tilbake, varsler ikke. Veksten ses bare mellom to målinger i samme minutt, så en enkelt omstart kan gå ubemerket hen; en krasjløkke starter på nytt med noen minutters mellomrom og blir fanget.
+Malen utløses når en container starter på nytt innen 15 minutter mens den var klar mindre enn halvparten av dem, så en container som startet på nytt én gang og kom straks tilbake, varsler ikke. Den leser `k8s.container.restarts.increase`, som en eldre agent ikke sender: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering). En monitor som ble opprettet fra malen før det, leser hvor mye `k8s.container.restarts` vokste mellom to målinger i samme minutt, og går glipp av omstartene mellom målingene i to minutter: slett den og opprett malen på nytt. Hvis `filters.metrics.include` lister opp metrikkene agenten sender, legg til `k8s.container.restarts.increase`.
 :::
 
 ## Neste trinn

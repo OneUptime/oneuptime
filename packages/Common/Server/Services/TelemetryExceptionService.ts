@@ -64,6 +64,16 @@ import {
   applyAssignmentChange,
   applyManualResolutionChange,
 } from "../../Utils/Exceptions/ExceptionIssueState";
+import {
+  ExceptionActivityChange,
+  ExceptionActivityState,
+  getExceptionActivityChanges,
+  isExceptionActivityWrite,
+  readId,
+} from "../../Utils/Exceptions/ExceptionActivity";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "./TelemetryExceptionActivityService";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -124,6 +134,16 @@ export interface DashboardServiceSummary {
   totalOccurrences: number;
 }
 
+/*
+ * A row an update that is activity is about to write, as it was before
+ * (ExceptionActivityState): what onUpdateSuccess tells the update's
+ * activity by.
+ */
+interface ExceptionRowBeforeUpdate {
+  projectId: ObjectID;
+  state: ExceptionActivityState;
+}
+
 export interface DashboardSummaryResult {
   unresolvedCount: number;
   resolvedCount: number;
@@ -158,7 +178,9 @@ export class Service extends ProjectReferencesService<Model> {
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     findBy.query = await this.addExceptionScope(
-      Service.hideMergedExceptions(findBy.query),
+      Service.hideMergedExceptions(
+        await this.withMergedFingerprintAliases(findBy.query),
+      ),
       findBy.props,
       DatabaseRequestType.Read,
     );
@@ -171,12 +193,136 @@ export class Service extends ProjectReferencesService<Model> {
     countBy: CountBy<Model>,
   ): Promise<PositiveNumber> {
     countBy.query = await this.addExceptionScope(
-      Service.hideMergedExceptions(countBy.query),
+      Service.hideMergedExceptions(
+        await this.withMergedFingerprintAliases(countBy.query),
+      ),
       countBy.props,
       DatabaseRequestType.Read,
     );
 
     return super.countBy(countBy);
+  }
+
+  /*
+   * A MERGED EXCEPTION'S FINGERPRINT FINDS THE ONE IT WAS MERGED INTO.
+   *
+   * The occurrences of a merged exception keep its fingerprint
+   * (TelemetryExceptionMerge), so a read that looks exceptions up by the
+   * fingerprints of occurrences - the list narrowed by an attribute or
+   * resource filter, a link from a span or a log, the API - would match
+   * only the merged row, which every read leaves out (hideMergedExceptions),
+   * and the exception those occurrences count on would be missing. Such a
+   * read finds the survivor too: each merged fingerprint it names brings in
+   * the fingerprint of the exception it was merged into. One read of the
+   * partial index on merged rows, as root - this is what the data means; who
+   * may see what is applied after, as for every read - and none for a query
+   * that names rows by id or by the merge column, which hideMergedExceptions
+   * leaves as asked.
+   */
+  public async withMergedFingerprintAliases<TQuery>(
+    query: TQuery,
+  ): Promise<TQuery> {
+    const record: Record<string, unknown> = (query || {}) as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      "_id" in record ||
+      "id" in record ||
+      "mergedIntoTelemetryExceptionId" in record
+    ) {
+      return query;
+    }
+
+    const fingerprints: Array<string> = Service.readQueriedFingerprints(
+      record["fingerprint"],
+    );
+
+    if (fingerprints.length === 0) {
+      return query;
+    }
+
+    let merged: Array<Model> = [];
+
+    try {
+      merged = await this.findBy({
+        query: {
+          ...(record["projectId"] !== undefined
+            ? { projectId: record["projectId"] }
+            : {}),
+          fingerprint: new Includes(fingerprints),
+          mergedIntoTelemetryExceptionId: QueryHelper.notNull(),
+        } as Query<Model>,
+        select: {
+          mergedIntoTelemetryException: {
+            fingerprint: true,
+          },
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      // The read as asked: the merged ones' survivors are missing, nothing else.
+      logger.error(
+        `Could not read the merged exceptions of a fingerprint lookup; it is read without them: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return query;
+    }
+
+    return Service.withFingerprintAliases(
+      query,
+      merged.map((row: Model): string => {
+        return row.mergedIntoTelemetryException?.fingerprint || "";
+      }),
+    );
+  }
+
+  // The fingerprints a query names: one, or an Includes of them.
+  public static readQueriedFingerprints(value: unknown): Array<string> {
+    const values: Array<unknown> =
+      typeof value === "string"
+        ? [value]
+        : value instanceof Includes
+          ? [...(value.values as Array<unknown>)]
+          : [];
+
+    return values.filter((entry: unknown): entry is string => {
+      return typeof entry === "string" && entry.length > 0;
+    });
+  }
+
+  // The query, its fingerprints and the survivors' fingerprints with them.
+  public static withFingerprintAliases<TQuery>(
+    query: TQuery,
+    aliases: Array<string>,
+  ): TQuery {
+    const record: Record<string, unknown> = (query || {}) as Record<
+      string,
+      unknown
+    >;
+    const fingerprints: Array<string> = Service.readQueriedFingerprints(
+      record["fingerprint"],
+    );
+    const added: Array<string> = Array.from(
+      new Set(
+        aliases.filter((alias: string): boolean => {
+          return alias.length > 0 && !fingerprints.includes(alias);
+        }),
+      ),
+    );
+
+    if (fingerprints.length === 0 || added.length === 0) {
+      return query;
+    }
+
+    return {
+      ...record,
+      fingerprint: new Includes([...fingerprints, ...added]),
+    } as TQuery;
   }
 
   /*
@@ -235,7 +381,111 @@ export class Service extends ProjectReferencesService<Model> {
       DatabaseRequestType.Update,
     );
 
-    return { updateBy, carryForward: null };
+    /*
+     * A triage or an assignment is activity: the rows it writes, as they are
+     * before it, so onUpdateSuccess can tell what it changed - from every
+     * caller, the exception's page, Bulk Actions and the API alike.
+     */
+    if (
+      !isExceptionActivityWrite(
+        updateBy.data as unknown as Record<string, unknown>,
+      )
+    ) {
+      return { updateBy, carryForward: null };
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        isResolved: true,
+        isArchived: true,
+        resolvedInReleaseAfter: true,
+        assignToUserId: true,
+        assignToTeamId: true,
+      },
+    );
+
+    const before: Map<string, ExceptionRowBeforeUpdate> = new Map();
+
+    for (const row of rows) {
+      if (!row.id || !row.projectId) {
+        continue;
+      }
+
+      before.set(row.id.toString().toLowerCase(), {
+        projectId: row.projectId,
+        state: {
+          isResolved: Boolean(row.isResolved),
+          isArchived: Boolean(row.isArchived),
+          resolvedInReleaseAfter: row.resolvedInReleaseAfter?.trim() || null,
+          assignToUserId: readId(row.assignToUserId) || null,
+          assignToTeamId: readId(row.assignToTeamId) || null,
+        },
+      });
+    }
+
+    return { updateBy, carryForward: before };
+  }
+
+  /*
+   * What a triage or an assignment changed, on each exception's activity
+   * timeline: resolved, reopened, came back, archived, assigned and the
+   * rest (getExceptionActivityChanges), crediting whoever made the change.
+   * Recorded once the write landed, never failing it (record logs and
+   * drops what it could not write).
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const before: Map<string, ExceptionRowBeforeUpdate> | null =
+      onUpdate.carryForward instanceof Map ? onUpdate.carryForward : null;
+
+    if (!before || before.size === 0) {
+      return onUpdate;
+    }
+
+    const write: Record<string, unknown> = (onUpdate.updateBy.data ||
+      {}) as unknown as Record<string, unknown>;
+    const entries: Array<TelemetryExceptionActivityEntry> = [];
+
+    for (const updatedId of updatedItemIds) {
+      const row: ExceptionRowBeforeUpdate | undefined = before.get(
+        updatedId.toString().toLowerCase(),
+      );
+
+      if (!row) {
+        continue;
+      }
+
+      const changes: Array<ExceptionActivityChange> =
+        getExceptionActivityChanges({ before: row.state, write });
+
+      for (const change of changes) {
+        entries.push({
+          projectId: row.projectId,
+          telemetryExceptionId: updatedId,
+          activityType: change.activityType,
+          assigneeUserId: change.assigneeUserId,
+          assigneeTeamId: change.assigneeTeamId,
+          release: change.release,
+        });
+      }
+    }
+
+    if (entries.length > 0) {
+      await TelemetryExceptionActivityService.record({
+        entries,
+        actor: TelemetryExceptionActivityService.getActor(
+          onUpdate.updateBy.props,
+        ),
+      });
+    }
+
+    return onUpdate;
   }
 
   @CaptureSpan()

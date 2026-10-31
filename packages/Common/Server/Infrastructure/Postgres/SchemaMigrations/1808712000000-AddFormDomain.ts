@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The table is new and empty, so its indexes and foreign keys are built
  * here. Nothing is added to an existing table.
  */
-export class AddFormDomain1808655000000 implements MigrationInterface {
-  public name: string = "AddFormDomain1808655000000";
+export class AddFormDomain1808712000000 implements MigrationInterface {
+  public name: string = "AddFormDomain1808712000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
