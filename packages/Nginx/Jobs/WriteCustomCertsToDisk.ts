@@ -1,6 +1,7 @@
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
+import FormDomainService from "Common/Server/Services/FormDomainService";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -8,8 +9,8 @@ import logger from "Common/Server/Utils/Logger";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 /*
- * nginx serves every custom domain - status page or dashboard - from this
- * one directory, choosing the files by the TLS server name (see
+ * nginx serves every custom domain - a status page's, a dashboard's or a
+ * form's - from this one directory, choosing the files by the TLS server name (see
  * ssl_certificate in default.conf.template). AcmeWriteCertificates writes
  * the Let's Encrypt certificates here; this job writes the ones customers
  * uploaded themselves.
@@ -67,6 +68,28 @@ export default class Jobs {
           kind: "dashboard",
           fetchCertificates: async (): Promise<Array<UploadedCertificate>> => {
             return await DashboardDomainService.findAllBy({
+              query: {
+                isCustomCertificate: true,
+                customCertificate: QueryHelper.notNull(),
+                customCertificateKey: QueryHelper.notNull(),
+              },
+              select: {
+                fullDomain: true,
+                customCertificate: true,
+                customCertificateKey: true,
+              },
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+          },
+        });
+
+        await Jobs.writeUploadedCertificates({
+          kind: "form",
+          fetchCertificates: async (): Promise<Array<UploadedCertificate>> => {
+            return await FormDomainService.findAllBy({
               query: {
                 isCustomCertificate: true,
                 customCertificate: QueryHelper.notNull(),

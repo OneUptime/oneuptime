@@ -2,6 +2,7 @@ import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
+import FormDomainService from "Common/Server/Services/FormDomainService";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import BasicCron from "Common/Server/Utils/BasicCron";
@@ -63,8 +64,23 @@ export default class Jobs {
           },
         });
 
+      const formDomains: Array<DomainRow> = await FormDomainService.findAllBy({
+        query: {
+          isCustomCertificate: true,
+          customCertificate: QueryHelper.notNull(),
+          customCertificateKey: QueryHelper.notNull(),
+        },
+        select: {
+          fullDomain: true,
+        },
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
       return new Set<string>(
-        [...statusPageDomains, ...dashboardDomains]
+        [...statusPageDomains, ...dashboardDomains, ...formDomains]
           .map((row: DomainRow) => {
             return row.fullDomain?.toString().trim().toLocaleLowerCase() || "";
           })

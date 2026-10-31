@@ -160,6 +160,11 @@ import "./Jobs/StatusPageCerts/StatusPageCerts";
  * workers.
  */
 import "./Jobs/DashboardCerts/DashboardCerts";
+/*
+ * Certificates of a form's own domains, the same way: without it form
+ * domains are never verified, ordered or renewed by the workers.
+ */
+import "./Jobs/FormCerts/FormCerts";
 import "./Jobs/CoreSsl/ProvisionPrimaryDomain";
 /*
  * Removes certificates that expired long ago and that nobody owns, which the
