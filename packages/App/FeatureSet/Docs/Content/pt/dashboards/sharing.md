@@ -155,12 +155,13 @@ Na página **Marca** do painel, você pode configurar:
 - **Título da página**: o que aparece na aba do navegador e no topo da página.
 - **Descrição da página**: a descrição usada pelos mecanismos de busca e pelas prévias em redes sociais.
 - **Logotipo**: uma imagem mostrada no cabeçalho do painel público.
+- **Logotipo do tema escuro**: um logotipo feito para um fundo escuro, mostrado no lugar do logotipo sempre que o painel público estiver escuro.
 - **Tema**: claro, escuro ou conforme o dispositivo de cada visitante está configurado; veja [Tema](#tema).
 - **Favicon**: o pequeno ícone na aba do navegador.
 
-O logotipo e o favicon são arquivos carregados no próprio projeto do painel, e isso é verificado sempre que um deles é salvo, seja pelo painel, pela API, pelo Terraform ou por um workflow. Um arquivo carregado em outro projeto é recusado com as mesmas palavras que recebe um arquivo que não existe mais: "The logo's file could not be found. Upload the logo again." ou "The favicon's file could not be found. Upload the favicon again." O painel público só mostra imagens do próprio projeto.
+O logotipo, o logotipo do tema escuro e o favicon são arquivos carregados no próprio projeto do painel, e isso é verificado sempre que um deles é salvo, seja pelo painel, pela API, pelo Terraform ou por um workflow. Um arquivo carregado em outro projeto é recusado com as mesmas palavras que recebe um arquivo que não existe mais: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." ou "The favicon's file could not be found. Upload the favicon again." O painel público só mostra imagens do próprio projeto.
 
-O título e a descrição da página também ficam no alto da barra de ferramentas do painel para a sua equipe, no lugar do nome e da descrição dele. O logotipo, o tema e o favicon valem só para o painel público.
+O título e a descrição da página também ficam no alto da barra de ferramentas do painel para a sua equipe, no lugar do nome e da descrição dele. Os logotipos, o tema e o favicon valem só para o painel público.
 
 Os visitantes só veem a marca depois que podem ver o painel. Antes de a senha ser digitada, um painel compartilhado com senha mostra só o título da página, o favicon e o tema, e os mecanismos de busca e as prévias de links veem o título da página, mas não a descrição da página. Um painel com uma lista de IPs permitidos só mostra a marca para os endereços da lista, e os mecanismos de busca e as prévias de links não veem nada dela.
 
@@ -174,7 +175,7 @@ O cartão **Tema**, logo abaixo do logotipo, define como o painel público apare
 | **Escuro** | O painel escuro, seja qual for a configuração do dispositivo deles. |
 | **Conforme o dispositivo de cada visitante** | Claro ou escuro, conforme o dispositivo deles está configurado, e muda junto com ele enquanto o painel está aberto. |
 
-Seja qual for a sua escolha, um botão de sol ou de lua na barra de ferramentas do painel permite que cada visitante passe para o painel claro ou para o escuro, ou volte ao tema que você definiu, e o navegador dele lembra a escolha para todos os painéis públicos desse endereço. No painel escuro, o logotipo fica sobre um fundo claro, então um logotipo feito para uma página branca continua bem visível.
+Seja qual for a sua escolha, um botão de sol ou de lua na barra de ferramentas do painel permite que cada visitante passe para o painel claro ou para o escuro, ou volte ao tema que você definiu, e o navegador dele lembra a escolha para todos os painéis públicos desse endereço. No painel escuro, o logotipo do tema escuro aparece no lugar do logotipo; sem ele, o logotipo fica sobre um fundo claro, então um logotipo feito para uma página branca continua bem visível.
 
 Um painel criado de agora em diante começa com **Conforme o dispositivo de cada visitante**. Pela API e pelo Terraform, o campo é `theme`, com um dos valores `Light`, `Dark` ou `System` (**Conforme o dispositivo de cada visitante**), escritos exatamente assim; qualquer outro valor é recusado. Uma configuração do Terraform que não define nenhum `theme` recebe `Light`, então uma configuração escrita antes dessa opção nunca planeja uma mudança em um painel que gerencia.
 

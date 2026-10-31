@@ -1,10 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import {
-  PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX,
-  PUBLIC_DASHBOARD_FRAME_CLASS_NAME,
-} from "../../FeatureSet/PublicDashboard/src/Pages/DashboardView/DashboardViewLayout";
+import * as PublicDashboardLayout from "../../FeatureSet/PublicDashboard/src/Pages/DashboardView/DashboardViewLayout";
 import {
   MASTER_PASSWORD_COPY,
   MASTER_PASSWORD_PROMPT_TEST_ID,
@@ -12,16 +9,17 @@ import {
 } from "../../FeatureSet/PublicDashboard/src/Pages/MasterPassword/MasterPasswordCopy";
 
 /*
- * A public dashboard on a phone (the #5106 / #5116 follow-up).
+ * A public dashboard on a phone (the #5106 / #5116 follow-up, and #5284's).
  *
  * The page was 1000px wide as a whole (a minWidth on its outer box), so on a
  * phone the toolbar - auto-refresh, theme, full screen - sat past the right
- * edge until the visitor scrolled, and the header and footer scrolled away
- * with the board. The board's twelve columns still need their 1000px, so
- * only the board keeps them, in a frame of its own that scrolls sideways
- * below 1080px; the page around it is the screen's width. The browser suite
- * (packages/E2E/PublicDashboardTheme, "the page at a phone's width")
- * measures it; this holds the source to it.
+ * edge until the visitor scrolled. #5284 kept the board's 1000px in a frame
+ * of its own that scrolled sideways below 1080px, so a phone showed half of
+ * each row of widgets. Now nothing keeps a width of its own: the board lays
+ * its widgets out in the screen's width - the shared canvas and
+ * Common/Utils/Dashboard/DashboardBoardLayout, on a phone one under
+ * another. The browser suite (packages/E2E/PublicDashboardTheme, "the page
+ * at a phone's width") measures it; this holds the source to it.
  */
 
 const VIEW_PAGE: string = path.join(
@@ -87,23 +85,26 @@ const readSource: (file: string) => string = (file: string): string => {
 describe("a public dashboard's page on a phone", () => {
   const source: string = readSource(VIEW_PAGE);
 
-  test("the board keeps the width its grid is laid out for; nothing else does", () => {
-    expect(PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX).toBe(1000);
-    // The page's old minWidth, gone.
-    expect(source).not.toContain('minWidth: "1000px"');
-    expect(source.match(/minWidth:/g) || []).toHaveLength(1);
+  test("nothing on the page keeps a width of its own: the board lays its widgets out in the screen's", () => {
+    // The page's old minWidth, and the board's own after it, gone.
+    expect(source).not.toContain("minWidth");
+    expect(source).not.toContain("min-w-[");
     expect(source).toContain(
-      "style={{ minWidth: `${PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX}px` }}",
+      "<div ref={boardRef} data-testid={PUBLIC_DASHBOARD_BOARD_TEST_ID}>",
     );
+    // So is the width it kept, for anyone who still reads it.
+    expect(Object.keys(PublicDashboardLayout).sort()).toEqual([
+      "PUBLIC_DASHBOARD_BOARD_TEST_ID",
+      "PUBLIC_DASHBOARD_FRAME_TEST_ID",
+      "PUBLIC_DASHBOARD_HEADER_TEST_ID",
+      "PUBLIC_DASHBOARD_PAGE_TEST_ID",
+      "PUBLIC_DASHBOARD_TOOLBAR_TEST_ID",
+    ]);
   });
 
-  test("the board's frame scrolls sideways only below the board's width and a scroll bar", () => {
-    expect(PUBLIC_DASHBOARD_FRAME_CLASS_NAME).toBe(
-      "max-[1079px]:overflow-x-auto",
-    );
-    expect(source).toContain(
-      "className={`mt-3 ${PUBLIC_DASHBOARD_FRAME_CLASS_NAME}`}",
-    );
+  test("the board's frame never scrolls sideways: it is only the box Full Screen shows", () => {
+    expect(source).toContain('className="mt-3"');
+    expect(source).not.toContain("overflow-x");
   });
 
   test("Full Screen shows the frame, the widgets are laid out in the board's own width", () => {

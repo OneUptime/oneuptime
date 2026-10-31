@@ -155,12 +155,13 @@ Auf der Seite **Branding** des Dashboards können Sie festlegen:
 - **Seitentitel** — was im Browser-Tab und oben auf der Seite steht.
 - **Seitenbeschreibung** — die Beschreibung, die Suchmaschinen und Link-Vorschauen verwenden.
 - **Logo** — ein Bild im Kopf des öffentlichen Dashboards.
+- **Logo für dunkles Design** — ein Logo für einen dunklen Hintergrund, das überall dort statt des Logos angezeigt wird, wo das öffentliche Dashboard dunkel ist.
 - **Design** — hell, dunkel oder so, wie das Gerät jedes Besuchers eingestellt ist; siehe [Design](#design).
 - **Favicon** — das kleine Symbol im Browser-Tab.
 
-Das Logo und das Favicon sind Dateien, die im eigenen Projekt des Dashboards hochgeladen wurden, und das wird bei jedem Speichern geprüft — aus dem Dashboard, über die API, Terraform oder einen Workflow. Eine in einem anderen Projekt hochgeladene Datei wird mit den Worten abgelehnt, die eine nicht mehr vorhandene Datei bekommt: "The logo's file could not be found. Upload the logo again." oder "The favicon's file could not be found. Upload the favicon again." Das öffentliche Dashboard zeigt nur Bilder seines eigenen Projekts.
+Das Logo, das Logo für dunkles Design und das Favicon sind Dateien, die im eigenen Projekt des Dashboards hochgeladen wurden, und das wird bei jedem Speichern geprüft — aus dem Dashboard, über die API, Terraform oder einen Workflow. Eine in einem anderen Projekt hochgeladene Datei wird mit den Worten abgelehnt, die eine nicht mehr vorhandene Datei bekommt: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." oder "The favicon's file could not be found. Upload the favicon again." Das öffentliche Dashboard zeigt nur Bilder seines eigenen Projekts.
 
-Der Seitentitel und die Beschreibung stehen für Ihr Team auch über der Werkzeugleiste des Dashboards, anstelle seines Namens und seiner Beschreibung. Das Logo, das Design und das Favicon gelten nur für das öffentliche Dashboard.
+Der Seitentitel und die Beschreibung stehen für Ihr Team auch über der Werkzeugleiste des Dashboards, anstelle seines Namens und seiner Beschreibung. Die Logos, das Design und das Favicon gelten nur für das öffentliche Dashboard.
 
 Besucher sehen das Branding erst, sobald sie das Dashboard sehen dürfen. Vor der Eingabe des Passworts zeigt ein mit Passwort geteiltes Dashboard nur seinen Seitentitel, sein Favicon und sein Design, und Suchmaschinen und Link-Vorschauen sehen seinen Seitentitel, aber nicht seine Seitenbeschreibung. Ein Dashboard mit IP-Zulassungsliste zeigt sein Branding nur den Adressen auf der Liste, und Suchmaschinen und Link-Vorschauen sehen nichts davon.
 
@@ -174,7 +175,7 @@ Die Karte **Design**, direkt unter dem Logo, legt fest, wie das öffentliche Das
 | **Dunkel** | Das dunkle Dashboard, egal wie ihr Gerät eingestellt ist. |
 | **Wie das Gerät des Besuchers** | Hell oder dunkel, wie ihr Gerät eingestellt ist, und das Dashboard wechselt mit dem Gerät, solange es offen ist. |
 
-Was Sie auch wählen: Eine Schaltfläche mit Sonne oder Mond in der Werkzeugleiste des Dashboards lässt jeden Besucher zum hellen oder zum dunklen Dashboard wechseln oder zurück zu dem Design, das Sie festgelegt haben, und sein Browser merkt sich die Wahl für jedes öffentliche Dashboard unter dieser Adresse. Auf dem dunklen Dashboard steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt.
+Was Sie auch wählen: Eine Schaltfläche mit Sonne oder Mond in der Werkzeugleiste des Dashboards lässt jeden Besucher zum hellen oder zum dunklen Dashboard wechseln oder zurück zu dem Design, das Sie festgelegt haben, und sein Browser merkt sich die Wahl für jedes öffentliche Dashboard unter dieser Adresse. Auf dem dunklen Dashboard wird statt des Logos das Logo für dunkles Design angezeigt; ohne eines steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt.
 
 Ein Dashboard, das ab jetzt angelegt wird, beginnt mit **Wie das Gerät des Besuchers**. Über die API und Terraform heißt das Feld `theme`, mit einem der Werte `Light`, `Dark` oder `System` (**Wie das Gerät des Besuchers**), genau so geschrieben; jeder andere Wert wird abgelehnt. Eine Terraform-Konfiguration, die kein `theme` setzt, bekommt `Light`, sodass eine Konfiguration von vor dieser Einstellung nie eine Änderung an einem Dashboard plant, das sie verwaltet.
 

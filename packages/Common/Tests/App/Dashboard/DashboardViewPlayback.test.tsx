@@ -344,7 +344,7 @@ describe("a dashboard played in a playlist", () => {
     expect(getTelemetryAttributesMock).not.toHaveBeenCalled();
   });
 
-  test("fills the player's stage below its bar, as wide as a dashboard is", async () => {
+  test("fills the player's stage below its bar, as wide as the screen it plays on", async () => {
     seed({});
 
     await renderBoard(true);
@@ -353,7 +353,12 @@ describe("a dashboard played in a playlist", () => {
 
     expect(root.className).toBe("pt-3");
     expect(root.className).not.toContain("min-h-screen");
-    expect(root.style.minWidth).toBe("1000px");
+    /*
+     * No width of its own: the board lays its widgets out in the screen's
+     * width (DashboardBoardLayout), one under another on a phone. It used
+     * to be at least 1000px wide, wider than a phone or a narrow window.
+     */
+    expect(root.style.minWidth).toBe("");
   });
 });
 

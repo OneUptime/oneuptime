@@ -339,6 +339,24 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Workload,
     unit: "count",
   },
+  /*
+   * What to alert on for Job failures: the agent sends, with each sample,
+   * the Job's pods that failed since its previous sample of the Job (the
+   * chart's transform/job-failures-increase), so their Sum over a window is
+   * the failures in it - what Job Failures reads. k8s.job.failed_pods above
+   * is the Job's running count, for the charts.
+   */
+  {
+    id: "job-failed-pods-increase",
+    friendlyName: "Job Failed Pods (Increase)",
+    description:
+      "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it.",
+    metricName: "k8s.job.failed_pods.increase",
+    category: "Workload",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Workload,
+    unit: "count",
+  },
   {
     id: "job-successful-pods",
     friendlyName: "Job Successful Pods",

@@ -155,12 +155,13 @@ Op de pagina **Huisstijl** van het dashboard kun je instellen:
 - **Paginatitel**: wat er in het browsertabblad en bovenaan de pagina staat.
 - **Paginabeschrijving**: de beschrijving die zoekmachines en previews op sociale media gebruiken.
 - **Logo**: een afbeelding in de kop van het openbare dashboard.
+- **Logo voor donker thema**: een logo voor een donkere achtergrond, dat in plaats van het logo staat overal waar het openbare dashboard donker is.
 - **Thema**: licht, donker of zoals het apparaat van elke bezoeker is ingesteld; zie [Thema](#thema).
 - **Favicon**: het kleine pictogram in het browsertabblad.
 
-Het logo en het favicon zijn bestanden die in het eigen project van het dashboard zijn geüpload, en dat wordt gecontroleerd telkens als er een wordt opgeslagen: vanuit het dashboard, de API, Terraform of een workflow. Een bestand dat in een ander project is geüpload, wordt geweigerd met de woorden die een bestand krijgt dat niet meer bestaat: "The logo's file could not be found. Upload the logo again." of "The favicon's file could not be found. Upload the favicon again." Het openbare dashboard toont alleen afbeeldingen uit zijn eigen project.
+Het logo, het logo voor donker thema en het favicon zijn bestanden die in het eigen project van het dashboard zijn geüpload, en dat wordt gecontroleerd telkens als er een wordt opgeslagen: vanuit het dashboard, de API, Terraform of een workflow. Een bestand dat in een ander project is geüpload, wordt geweigerd met de woorden die een bestand krijgt dat niet meer bestaat: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." of "The favicon's file could not be found. Upload the favicon again." Het openbare dashboard toont alleen afbeeldingen uit zijn eigen project.
 
-De paginatitel en de beschrijving staan ook bovenaan de werkbalk van het dashboard voor je team, in plaats van de naam en de beschrijving ervan. Het logo, het thema en het favicon gelden alleen voor het openbare dashboard.
+De paginatitel en de beschrijving staan ook bovenaan de werkbalk van het dashboard voor je team, in plaats van de naam en de beschrijving ervan. De logo's, het thema en het favicon gelden alleen voor het openbare dashboard.
 
 Bezoekers zien de huisstijl pas als ze het dashboard mogen bekijken. Voordat het wachtwoord is ingevoerd, toont een dashboard dat met een wachtwoord is gedeeld alleen zijn paginatitel, favicon en thema, en zien zoekmachines en linkpreviews de paginatitel maar niet de paginabeschrijving. Een dashboard met een IP-toelatingslijst toont zijn huisstijl alleen aan de adressen op de lijst, en zoekmachines en linkpreviews zien er niets van.
 
@@ -174,7 +175,7 @@ De kaart **Thema**, direct onder het logo, bepaalt hoe het openbare dashboard er
 | **Donker** | Het donkere dashboard, hoe hun apparaat ook is ingesteld. |
 | **Zoals het apparaat van elke bezoeker** | Licht of donker, zoals hun apparaat is ingesteld, en het dashboard wisselt mee met het apparaat zolang het open is. |
 
-Wat je ook kiest, met een knop met een zon of een maan in de werkbalk van het dashboard kan elke bezoeker wisselen naar het lichte of het donkere dashboard, of terug naar het thema dat jij hebt ingesteld, en hun browser onthoudt de keuze voor elk openbaar dashboard op dat adres. Op het donkere dashboard staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft.
+Wat je ook kiest, met een knop met een zon of een maan in de werkbalk van het dashboard kan elke bezoeker wisselen naar het lichte of het donkere dashboard, of terug naar het thema dat jij hebt ingesteld, en hun browser onthoudt de keuze voor elk openbaar dashboard op dat adres. Op het donkere dashboard staat het logo voor donker thema in plaats van het logo; zonder staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft.
 
 Een dashboard dat vanaf nu wordt gemaakt, begint met **Zoals het apparaat van elke bezoeker**. Via de API en Terraform heet het veld `theme`, met een van de waarden `Light`, `Dark` of `System` (**Zoals het apparaat van elke bezoeker**), precies zo geschreven; elke andere waarde wordt geweigerd. Een Terraform-configuratie die geen `theme` instelt, krijgt `Light`, zodat een configuratie die vóór de instelling is geschreven nooit een wijziging plant op een dashboard dat ze beheert.
 

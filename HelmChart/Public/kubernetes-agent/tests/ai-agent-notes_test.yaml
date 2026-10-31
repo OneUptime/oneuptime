@@ -327,10 +327,10 @@ tests:
           pattern: "Runner"
       - notMatchRegexRaw:
           pattern: "--set aiAccess"
-      # Chart 0.7.1 is never published: released charts carry the OneUptime
+      # Chart 0.7.2 is never published: released charts carry the OneUptime
       # version, so a version number here would only mislead.
       - notMatchRegexRaw:
-          pattern: "0\\.7\\.1"
+          pattern: "0\\.7\\.2"
 
   - it: never points at the Runner, its pod or the aiAccess flags on a read-only install either
     set:

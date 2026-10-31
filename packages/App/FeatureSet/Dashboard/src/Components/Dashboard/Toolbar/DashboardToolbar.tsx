@@ -26,6 +26,7 @@ import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
@@ -40,6 +41,24 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import { DASHBOARD_TIME_RANGE_FALLBACK } from "Common/Types/Dashboard/DashboardTimeRange";
 import { DASHBOARD_AUTO_REFRESH_FALLBACK } from "Common/Types/Dashboard/DashboardAutoRefresh";
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
+
+/*
+ * The dashboard's name and its description, each on one line: as wide as
+ * its words, up to its line, and cut short at its own end - an English name
+ * on a Persian page keeps its start in view. The line it sits on puts it on
+ * the page's side, beside the icon.
+ */
+export const DASHBOARD_TOOLBAR_TEXT_CLASS_NAME: string =
+  "inline-block max-w-full truncate align-top";
+
+/*
+ * The toolbar's main row; the box at its end that holds the controls and
+ * the ⋯ menu; and the controls.
+ */
+export const DASHBOARD_TOOLBAR_ROW_TEST_ID: string = "dashboard-toolbar-row";
+export const DASHBOARD_TOOLBAR_END_TEST_ID: string = "dashboard-toolbar-end";
+export const DASHBOARD_TOOLBAR_CONTROLS_TEST_ID: string =
+  "dashboard-toolbar-controls";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -484,8 +503,24 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
     props.autoRefreshInterval,
   );
 
+  /*
+   * What the controls hold: the time range, the auto-refresh and the
+   * variables while viewing a dashboard with widgets, the editing actions
+   * while editing, or the saving notice. An empty dashboard being viewed
+   * has none of them, only the ⋯ menu.
+   */
+  const hasControls: boolean =
+    (hasComponents && !isEditMode) ||
+    (!isSaving && isEditMode && props.canEditDashboard) ||
+    isSaving;
+
+  /*
+   * Inset from the board's sides beside the side menu; below md, where the
+   * page's own menu is a card above the dashboard, the toolbar and the
+   * board line up with it.
+   */
   return (
-    <div className="mx-3 mt-3 mb-3">
+    <div className="md:mx-3 mt-3 mb-3">
       <div
         className="rounded-2xl bg-white border border-gray-200/60"
         style={{
@@ -493,21 +528,48 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             "var(--ou-card-shadow, 0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04))",
         }}
       >
-        {/* Main toolbar row */}
-        <div className="flex items-center justify-between px-4 py-2.5">
+        {/*
+         * Main toolbar row: the dashboard's name, then its controls and its
+         * ⋯ menu together. They sit beside the name while the name keeps
+         * room to be read (15rem), and move under it, at the end of the
+         * row, where they do not fit - the ⋯ menu always last. On a phone
+         * the name and the ⋯ menu share the first line and the controls
+         * have a line of their own, from its start: there the controls and
+         * the ⋯ menu's box is display: contents, so each is a part of the
+         * row. The row used to be one line that never wrapped, on a page at
+         * least 1000px wide, so on a phone the controls sat past the right
+         * edge of the screen.
+         */}
+        <div
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5"
+          data-testid={DASHBOARD_TOOLBAR_ROW_TEST_ID}
+        >
           {/* Left: Icon + Title + Description */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex min-w-0 flex-1 basis-0 items-center gap-3 sm:basis-60">
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
               <Icon
                 icon={IconProp.Layout}
                 className="w-4 h-4 text-indigo-500"
               />
             </div>
+            {/*
+             * The dashboard's name and description are words someone wrote,
+             * in their language whatever the page's: each reads its own way
+             * (IsolatedText), so an English one on a Persian page is cut
+             * short at its own end and keeps its start in view, and each
+             * lines up with the page, beside the icon. The name is the
+             * page's second heading: the page's own title above the toolbar
+             * is its first.
+             */}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-semibold text-gray-800 truncate">
-                  {props.dashboardName}
-                </h1>
+                <h2 className="min-w-0 text-sm font-semibold text-gray-800">
+                  <IsolatedText
+                    text={props.dashboardName}
+                    title={props.dashboardName}
+                    className={DASHBOARD_TOOLBAR_TEXT_CLASS_NAME}
+                  />
+                </h2>
                 {isEditMode && (
                   <span className="inline-flex items-center px-1.5 py-px rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
                     <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span>
@@ -516,200 +578,231 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               {props.dashboardDescription && !isEditMode && (
-                <p className="text-xs text-gray-400 truncate mt-0.5 max-w-md">
-                  {props.dashboardDescription}
+                <p className="text-xs text-gray-400 mt-0.5 max-w-md">
+                  <IsolatedText
+                    text={props.dashboardDescription}
+                    title={props.dashboardDescription}
+                    className={DASHBOARD_TOOLBAR_TEXT_CLASS_NAME}
+                  />
                 </p>
               )}
             </div>
           </div>
 
-          {/* Right: Time range + Auto-refresh + Variables + Actions */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Time range + variables (view mode only) */}
-            {hasComponents && !isEditMode && (
-              <>
-                {/* Template variables */}
-                {props.variables &&
-                  props.variables.length > 0 &&
-                  props.onVariableValueChange && (
-                    <>
-                      <DashboardVariableSelector
-                        variables={props.variables}
-                        onVariableValueChange={props.onVariableValueChange}
-                      />
-                      <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
-                    </>
-                  )}
-
-                <RangeStartAndEndDateView
-                  dashboardStartAndEndDate={props.startAndEndDate}
-                  onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
-                    props.onStartAndEndDateChange(startAndEndDate);
-                  }}
-                  defaultRange={props.defaultTimeRange}
-                  isOnDefaultRange={props.isOnDefaultTimeRange}
-                  onDefaultRangeSelect={props.onDefaultTimeRangeSelect}
-                />
-
-                {props.isTimeRangeZoomed && props.onResetTimeRangeZoom && (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                    title={translator.translateText(
-                      "Reset the dashboard to the time range it had before the zoom",
-                    )}
-                    aria-label={translator.translateText("Reset zoom")}
-                    onClick={() => {
-                      props.onResetTimeRangeZoom?.();
-                    }}
-                  >
-                    <Icon
-                      icon={IconProp.MagnifyingGlassMinus}
-                      className="h-3.5 w-3.5"
-                    />
-                    {translator.translateText("Reset zoom")}
-                  </button>
-                )}
-
-                {/* Auto-refresh section */}
-                <AutoRefreshDropdown
-                  autoRefreshInterval={props.autoRefreshInterval}
-                  autoRefreshMs={autoRefreshMs}
-                  isAutoRefreshActive={isAutoRefreshActive}
-                  isRefreshing={props.isRefreshing || false}
-                  onAutoRefreshIntervalChange={
-                    props.onAutoRefreshIntervalChange
-                  }
-                  defaultInterval={props.defaultAutoRefreshInterval}
-                  isOnDefault={props.isOnDefaultAutoRefresh}
-                  onDefaultSelect={props.onDefaultAutoRefreshSelect}
-                />
-              </>
-            )}
-
-            {/* More menu: Edit, Share and Full Screen (always visible in view mode) */}
-            {!isEditMode && (
-              <MoreMenu
-                menuIcon={IconProp.EllipsisHorizontal}
-                elementToBeShownInsteadOfButton={
-                  <button
-                    type="button"
-                    className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title={translator.translateText("More dashboard options")}
-                    aria-label={translator.translateText(
-                      "More dashboard options",
-                    )}
-                  >
-                    <Icon
-                      icon={IconProp.EllipsisHorizontal}
-                      className="w-4 h-4 text-gray-500"
-                    />
-                  </button>
-                }
+          {/* Right: the controls, then the ⋯ menu */}
+          <div
+            className="max-sm:contents sm:ms-auto sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-1.5"
+            data-testid={DASHBOARD_TOOLBAR_END_TEST_ID}
+          >
+            {/* Time range + Auto-refresh + Variables + Actions */}
+            {hasControls ? (
+              <div
+                className="flex flex-wrap items-center gap-1.5 max-sm:order-last max-sm:w-full sm:justify-end"
+                data-testid={DASHBOARD_TOOLBAR_CONTROLS_TEST_ID}
               >
-                {props.canEditDashboard || props.editDashboardDisabledReason ? (
-                  <MoreMenuItem
-                    text={"Edit Dashboard"}
-                    icon={IconProp.Pencil}
-                    key={"edit"}
-                    isDisabled={!props.canEditDashboard}
-                    tooltip={
-                      props.canEditDashboard
-                        ? undefined
-                        : props.editDashboardDisabledReason
-                    }
-                    onClick={props.onEditClick}
-                  />
-                ) : (
-                  <></>
+                {/* Time range + variables (view mode only) */}
+                {hasComponents && !isEditMode && (
+                  <>
+                    {/* Template variables */}
+                    {props.variables &&
+                      props.variables.length > 0 &&
+                      props.onVariableValueChange && (
+                        <>
+                          <DashboardVariableSelector
+                            variables={props.variables}
+                            onVariableValueChange={props.onVariableValueChange}
+                          />
+                          {/*
+                           * Between the variables and the time range on one
+                           * line; on a phone they wrap, and a rule would hang
+                           * at the end of a line.
+                           */}
+                          <div className="w-px h-5 bg-gray-200 mx-0.5 max-sm:hidden"></div>
+                        </>
+                      )}
+
+                    <RangeStartAndEndDateView
+                      dashboardStartAndEndDate={props.startAndEndDate}
+                      onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                        props.onStartAndEndDateChange(startAndEndDate);
+                      }}
+                      defaultRange={props.defaultTimeRange}
+                      isOnDefaultRange={props.isOnDefaultTimeRange}
+                      onDefaultRangeSelect={props.onDefaultTimeRangeSelect}
+                    />
+
+                    {props.isTimeRangeZoomed && props.onResetTimeRangeZoom && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                        title={translator.translateText(
+                          "Reset the dashboard to the time range it had before the zoom",
+                        )}
+                        aria-label={translator.translateText("Reset zoom")}
+                        onClick={() => {
+                          props.onResetTimeRangeZoom?.();
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.MagnifyingGlassMinus}
+                          className="h-3.5 w-3.5"
+                        />
+                        {translator.translateText("Reset zoom")}
+                      </button>
+                    )}
+
+                    {/* Auto-refresh section */}
+                    <AutoRefreshDropdown
+                      autoRefreshInterval={props.autoRefreshInterval}
+                      autoRefreshMs={autoRefreshMs}
+                      isAutoRefreshActive={isAutoRefreshActive}
+                      isRefreshing={props.isRefreshing || false}
+                      onAutoRefreshIntervalChange={
+                        props.onAutoRefreshIntervalChange
+                      }
+                      defaultInterval={props.defaultAutoRefreshInterval}
+                      isOnDefault={props.isOnDefaultAutoRefresh}
+                      onDefaultSelect={props.onDefaultAutoRefreshSelect}
+                    />
+                  </>
                 )}
-                {props.onShareClick ? (
-                  <MoreMenuItem
-                    text={"Share"}
-                    icon={IconProp.Share}
-                    key={"share"}
-                    onClick={props.onShareClick}
-                  />
-                ) : (
-                  <></>
+
+                {/* Edit mode actions */}
+                {!isSaving && isEditMode && props.canEditDashboard && (
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    {/* Construction tools — segmented pill */}
+                    <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200/60 p-0.5">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
+                        onClick={() => {
+                          setShowAddWidgetModal(true);
+                        }}
+                        title={translator.translateText("Add Widget")}
+                      >
+                        <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
+                        <span>{translator.translateText("Add Widget")}</span>
+                      </button>
+
+                      {props.onVariablesDefinitionChange && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
+                          onClick={() => {
+                            setShowVariablesModal(true);
+                          }}
+                          title={translator.translateText("Variables")}
+                        >
+                          <Icon
+                            icon={IconProp.Variable}
+                            className="w-3.5 h-3.5"
+                          />
+                          <span>{translator.translateText("Variables")}</span>
+                          {props.variables && props.variables.length > 0 && (
+                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
+                              {props.variables.length}
+                            </span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Commit actions */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setShowCancelModal(true);
+                        }}
+                        title={translator.translateText("Cancel")}
+                      >
+                        {translator.translateText("Cancel")}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
+                        onClick={props.onSaveClick}
+                        title={translator.translateText("Save Changes")}
+                      >
+                        <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
+                        <span>{translator.translateText("Save Changes")}</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
-                <MoreMenuItem
-                  text={"Full Screen"}
-                  icon={IconProp.Expand}
-                  key={"fullscreen"}
-                  onClick={props.onFullScreenClick}
-                />
-              </MoreMenu>
+
+                {isSaving && (
+                  <div className="flex items-center gap-2">
+                    <Loader />
+                    <span className="text-xs text-gray-500">
+                      {translator.translateText("Saving...")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <></>
             )}
 
-            {/* Edit mode actions */}
-            {!isSaving && isEditMode && props.canEditDashboard && (
-              <div className="flex items-center gap-2">
-                {/* Construction tools — segmented pill */}
-                <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200/60 p-0.5">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
-                    onClick={() => {
-                      setShowAddWidgetModal(true);
-                    }}
-                    title={translator.translateText("Add Widget")}
-                  >
-                    <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
-                    <span>{translator.translateText("Add Widget")}</span>
-                  </button>
-
-                  {props.onVariablesDefinitionChange && (
+            {/*
+             * More menu: Edit, Share and Full Screen (always visible in view
+             * mode). Last of the row; on a phone, beside the name.
+             */}
+            {!isEditMode && (
+              <div className="shrink-0">
+                <MoreMenu
+                  menuIcon={IconProp.EllipsisHorizontal}
+                  elementToBeShownInsteadOfButton={
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
-                      onClick={() => {
-                        setShowVariablesModal(true);
-                      }}
-                      title={translator.translateText("Variables")}
-                    >
-                      <Icon icon={IconProp.Variable} className="w-3.5 h-3.5" />
-                      <span>{translator.translateText("Variables")}</span>
-                      {props.variables && props.variables.length > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
-                          {props.variables.length}
-                        </span>
+                      className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
+                      title={translator.translateText("More dashboard options")}
+                      aria-label={translator.translateText(
+                        "More dashboard options",
                       )}
+                    >
+                      <Icon
+                        icon={IconProp.EllipsisHorizontal}
+                        className="w-4 h-4 text-gray-500"
+                      />
                     </button>
+                  }
+                >
+                  {props.canEditDashboard ||
+                  props.editDashboardDisabledReason ? (
+                    <MoreMenuItem
+                      text={"Edit Dashboard"}
+                      icon={IconProp.Pencil}
+                      key={"edit"}
+                      isDisabled={!props.canEditDashboard}
+                      tooltip={
+                        props.canEditDashboard
+                          ? undefined
+                          : props.editDashboardDisabledReason
+                      }
+                      onClick={props.onEditClick}
+                    />
+                  ) : (
+                    <></>
                   )}
-                </div>
-
-                {/* Commit actions */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setShowCancelModal(true);
-                    }}
-                    title={translator.translateText("Cancel")}
-                  >
-                    {translator.translateText("Cancel")}
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
-                    onClick={props.onSaveClick}
-                    title={translator.translateText("Save Changes")}
-                  >
-                    <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
-                    <span>{translator.translateText("Save Changes")}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {isSaving && (
-              <div className="flex items-center gap-2">
-                <Loader />
-                <span className="text-xs text-gray-500">
-                  {translator.translateText("Saving...")}
-                </span>
+                  {props.onShareClick ? (
+                    <MoreMenuItem
+                      text={"Share"}
+                      icon={IconProp.Share}
+                      key={"share"}
+                      onClick={props.onShareClick}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  <MoreMenuItem
+                    text={"Full Screen"}
+                    icon={IconProp.Expand}
+                    key={"fullscreen"}
+                    onClick={props.onFullScreenClick}
+                  />
+                </MoreMenu>
               </div>
             )}
           </div>

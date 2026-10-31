@@ -76,6 +76,8 @@ import DashboardSecurityEventsFlowComponentUtil from "Common/Utils/Dashboard/Com
 import { PASSWORD, TITLE, getScenario } from "./Scenarios";
 // A data: URL (Common/UI/esbuild-config's file loader).
 import LOGO_DATA_URL from "./logo.svg";
+// The logo for the dark theme: light lettering, for a dark background.
+import DARK_LOGO_DATA_URL from "./logo-dark.svg";
 
 const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
@@ -284,6 +286,11 @@ const LOGO = {
   fileType: "image/svg+xml",
 };
 
+export const DARK_LOGO = {
+  file: DARK_LOGO_DATA_URL.slice(DARK_LOGO_DATA_URL.indexOf(",") + 1),
+  fileType: "image/svg+xml",
+};
+
 export const metadataAnswer = (dashboardId, isUnlocked) => {
   const scenario = getScenario(dashboardId);
 
@@ -321,7 +328,17 @@ export const metadataAnswer = (dashboardId, isUnlocked) => {
   return { status: 200, body };
 };
 
-export const viewConfigAnswer = (dashboardId, boardName, withVariables) => {
+/*
+ * The board, as /view-config answers it: with the logo for the dark theme
+ * when the page asks for one (`darkLogo=1`), and null for it otherwise, as
+ * the API answers a dashboard without one.
+ */
+export const viewConfigAnswer = (
+  dashboardId,
+  boardName,
+  withVariables,
+  withDarkLogo,
+) => {
   return {
     status: 200,
     body: {
@@ -331,6 +348,7 @@ export const viewConfigAnswer = (dashboardId, boardName, withVariables) => {
       pageTitle: TITLE,
       pageDescription: "Live health of Acme's production",
       logoFile: LOGO,
+      darkThemeLogoFile: withDarkLogo ? DARK_LOGO : null,
       dashboardViewConfig: JSONFunctions.serialize(
         buildBoard(boardName, withVariables),
       ),

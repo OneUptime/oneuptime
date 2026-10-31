@@ -155,12 +155,13 @@ On the dashboard's **Branding** page, you can configure:
 - **Page Title** — what shows in the browser tab and at the top of the page.
 - **Page Description** — the description used by search engines and social previews.
 - **Logo** — an image shown in the public dashboard's header.
+- **Dark Theme Logo** — a logo made for a dark background, shown instead of the logo wherever the public dashboard is dark.
 - **Theme** — light, dark, or as each visitor's device is set; see [Theme](#theme).
 - **Favicon** — the small icon in the browser tab.
 
-The logo and the favicon are files uploaded in the dashboard's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again." or "The favicon's file could not be found. Upload the favicon again." The public dashboard shows only images of its own project.
+The logo, the dark theme logo and the favicon are files uploaded in the dashboard's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." or "The favicon's file could not be found. Upload the favicon again." The public dashboard shows only images of its own project.
 
-The page title and description also head the dashboard's toolbar for your team, in place of its name and description. The logo, the theme and the favicon apply only to the public dashboard.
+The page title and description also head the dashboard's toolbar for your team, in place of its name and description. The logos, the theme and the favicon apply only to the public dashboard.
 
 Visitors see the branding only once they may view the dashboard. Before the password is entered, a dashboard shared with a password shows only its page title, favicon and theme, and search engines and link previews see its page title but not its page description. A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.
 
@@ -174,7 +175,7 @@ The **Theme** card, right under the logo, sets how the public dashboard looks to
 | **Dark** | The dark dashboard, whatever their device is set to. |
 | **Match each visitor's device** | Light or dark, as their device is set, changing with it while the dashboard is open. |
 
-Whichever you pick, a sun or moon button in the dashboard's toolbar lets each visitor switch to the light or the dark dashboard, or back to the theme you set, and their browser remembers the pick for every public dashboard at that address. On the dark dashboard the logo sits on a light backdrop, so a logo made for a white page still reads.
+Whichever you pick, a sun or moon button in the dashboard's toolbar lets each visitor switch to the light or the dark dashboard, or back to the theme you set, and their browser remembers the pick for every public dashboard at that address. On the dark dashboard the dark theme logo is shown instead of the logo; without one, the logo sits on a light backdrop, so a logo made for a white page still reads.
 
 A dashboard made from now on starts with **Match each visitor's device**. Through the API and Terraform the field is `theme`, one of `Light`, `Dark` or `System` (**Match each visitor's device**), written exactly so; any other value is refused. A Terraform configuration that sets no `theme` gets `Light`, so a configuration written before the setting never plans a change on a dashboard it manages.
 

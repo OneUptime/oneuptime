@@ -155,12 +155,13 @@ Sur la page **Image de marque** du tableau de bord, vous pouvez configurer :
 - **Titre de la page** — ce qui s'affiche dans l'onglet du navigateur et en haut de la page.
 - **Description de la page** — la description utilisée par les moteurs de recherche et les aperçus de liens.
 - **Logo** — une image affichée dans l'en-tête du tableau de bord public.
+- **Logo du thème sombre** — un logo conçu pour un fond sombre, affiché à la place du logo partout où le tableau de bord public est sombre.
 - **Thème** — clair, sombre, ou selon le réglage de l'appareil de chaque visiteur ; voir [Thème](#thème).
 - **Favicon** — la petite icône dans l'onglet du navigateur.
 
-Le logo et le favicon sont des fichiers téléversés dans le projet du tableau de bord, et c'est vérifié à chaque enregistrement — depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mots que reçoit un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again." ou "The favicon's file could not be found. Upload the favicon again." Le tableau de bord public n'affiche que des images de son propre projet.
+Le logo, le logo du thème sombre et le favicon sont des fichiers téléversés dans le projet du tableau de bord, et c'est vérifié à chaque enregistrement — depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mots que reçoit un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." ou "The favicon's file could not be found. Upload the favicon again." Le tableau de bord public n'affiche que des images de son propre projet.
 
-Le titre et la description de la page figurent aussi en tête de la barre d'outils du tableau de bord pour votre équipe, à la place de son nom et de sa description. Le logo, le thème et le favicon ne s'appliquent qu'au tableau de bord public.
+Le titre et la description de la page figurent aussi en tête de la barre d'outils du tableau de bord pour votre équipe, à la place de son nom et de sa description. Les logos, le thème et le favicon ne s'appliquent qu'au tableau de bord public.
 
 Les visiteurs ne voient l'image de marque qu'une fois autorisés à voir le tableau de bord. Avant la saisie du mot de passe, un tableau de bord partagé avec un mot de passe n'affiche que son titre de page, son favicon et son thème, et les moteurs de recherche et aperçus de liens voient son titre de page mais pas sa description. Un tableau de bord avec une liste d'autorisation IP n'affiche son image de marque qu'aux adresses de la liste, et les moteurs de recherche et aperçus de liens n'en voient rien.
 
@@ -174,7 +175,7 @@ La carte **Thème**, juste sous le logo, définit l'apparence du tableau de bord
 | **Sombre** | Le tableau de bord sombre, quel que soit le réglage de leur appareil. |
 | **Selon l'appareil de chaque visiteur** | Clair ou sombre, selon le réglage de leur appareil, et il change avec lui tant que le tableau de bord est ouvert. |
 
-Quel que soit votre choix, un bouton soleil ou lune dans la barre d'outils du tableau de bord permet à chaque visiteur de passer au tableau de bord clair ou sombre, ou de revenir au thème que vous avez défini, et son navigateur retient ce choix pour chaque tableau de bord public de cette adresse. Sur le tableau de bord sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible.
+Quel que soit votre choix, un bouton soleil ou lune dans la barre d'outils du tableau de bord permet à chaque visiteur de passer au tableau de bord clair ou sombre, ou de revenir au thème que vous avez défini, et son navigateur retient ce choix pour chaque tableau de bord public de cette adresse. Sur le tableau de bord sombre, le logo du thème sombre s'affiche à la place du logo ; sans lui, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible.
 
 Un tableau de bord créé à partir de maintenant commence avec **Selon l'appareil de chaque visiteur**. Dans l'API et dans Terraform, le champ est `theme`, avec l'une des valeurs `Light`, `Dark` ou `System` (**Selon l'appareil de chaque visiteur**), écrites exactement ainsi ; toute autre valeur est refusée. Une configuration Terraform qui ne définit aucun `theme` reçoit `Light`, si bien qu'une configuration écrite avant ce réglage ne planifie jamais de changement sur un tableau de bord qu'elle gère.
 
