@@ -38,13 +38,16 @@ import MonitorStepExceptionMonitor, {
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * What an Exceptions monitor reads beyond its count, with the databases
  * mocked: nothing more for a plain count; new and regressed exceptions as
- * exception groups with the monitor's filters and the window; the usual
- * count as the window's own occurrence query moved to the day before; and
- * the criteria and the status timeline reading each.
+ * exception groups with the monitor's filters and the window - for a
+ * monitor scoped to infrastructure entities, among the groups of the
+ * window's occurrences from them; the usual count as the window's own
+ * occurrence query moved to the day before; and the criteria and the
+ * status timeline reading each.
  */
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -456,7 +459,7 @@ describe("the infrastructure entity filter on new and regressed exceptions", () 
         return `fp-${index}`;
       },
     );
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
+    const warn: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation(() => {
         return undefined as never;
@@ -471,7 +474,7 @@ describe("the infrastructure entity filter on new and regressed exceptions", () 
   });
 
   test("below the limit it says nothing", async () => {
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
+    const warn: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation(() => {
         return undefined as never;

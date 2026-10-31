@@ -3,8 +3,13 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -79,12 +84,16 @@ jest.mock("Common/Server/Utils/VM/VMRunner", () => {
 /*
  * Resolved/archived state lives on the Postgres exception group. The
  * ClickHouse side is what this suite is about, so the group lookup is
- * stubbed and each test says which fingerprints it has resolved.
+ * stubbed and each test says which fingerprints it has resolved - and the
+ * count of new and regressed groups says what it was asked about.
  */
 jest.mock("Common/Server/Services/TelemetryExceptionService", () => {
   return {
     __esModule: true,
-    default: { getResolvedOrArchivedFingerprints: jest.fn() },
+    default: {
+      getResolvedOrArchivedFingerprints: jest.fn(),
+      countBy: jest.fn(),
+    },
   };
 });
 
@@ -118,6 +127,8 @@ const database: string = `exception_env_monitor_test_${process.pid}_${Date.now()
 
 const resolvedFingerprints: jest.Mock =
   TelemetryExceptionService.getResolvedOrArchivedFingerprints as unknown as jest.Mock;
+const groupCount: jest.Mock =
+  TelemetryExceptionService.countBy as unknown as jest.Mock;
 
 const projectId: ObjectID = new ObjectID("7700000000000000000000a1");
 const otherProjectId: ObjectID = new ObjectID("7700000000000000000000a2");
@@ -682,6 +693,135 @@ integration("Exceptions monitor environment filter against ClickHouse", () => {
         "checkout-type-error@production",
       ]),
     );
+  });
+
+  /*
+   * New and regressed exceptions of an entity-scoped monitor are counted
+   * among the groups of the window's occurrences from its entities: their
+   * fingerprints are read here, from the count query grouped by fingerprint
+   * (ExceptionMonitorMeasureReader). The groups themselves live in Postgres,
+   * which is stubbed: each test says what the count was asked about.
+   */
+  describe("the fingerprints an entity-scoped monitor counts new and regressed exceptions among", () => {
+    function stepCheckingNew(
+      config: Partial<MonitorStepExceptionMonitor>,
+    ): MonitorStep {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorType: MonitorType.Exceptions,
+        monitorName: "Checkout",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+      });
+      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+      instance.data = {
+        ...instance.data!,
+        filters: [
+          CheckOn.NewExceptionCount,
+          CheckOn.RegressedExceptionCount,
+        ].map((checkOn: CheckOn) => {
+          return { checkOn, filterType: FilterType.GreaterThan, value: 0 };
+        }),
+      };
+      const criteria: MonitorCriteria = new MonitorCriteria();
+      criteria.data = { monitorCriteriaInstanceArray: [instance] };
+      step.setMonitorCriteria(criteria);
+      step.setExceptionMonitor({
+        ...MonitorStepExceptionMonitorUtil.getDefault(),
+        lastXSecondsOfExceptions: 600,
+        ...config,
+      });
+      return step;
+    }
+
+    // The fingerprints each group count was asked about.
+    async function countedAmong(
+      config: Partial<MonitorStepExceptionMonitor>,
+    ): Promise<Array<Array<string> | null>> {
+      groupCount.mockReset().mockResolvedValue(new PositiveNumber(1));
+
+      await monitorException({
+        monitorStep: stepCheckingNew(config),
+        monitorId: ObjectID.generate(),
+        projectId: projectId,
+      });
+
+      return groupCount.mock.calls.map(
+        (call: Array<unknown>): Array<string> | null => {
+          const fingerprint: unknown = (
+            call[0] as { query: Record<string, unknown> }
+          ).query["fingerprint"];
+
+          return fingerprint
+            ? [...((fingerprint as Includes).values as Array<string>)].sort()
+            : null;
+        },
+      );
+    }
+
+    test("the groups of the occurrences from the chosen entities, in the window", async () => {
+      expect(
+        await countedAmong({ entityKeys: ["host:checkout-staging"] }),
+      ).toEqual([
+        ["checkout-timeout", "checkout-type-error"],
+        ["checkout-timeout", "checkout-type-error"],
+      ]);
+      expect(await countedAmong({ entityKeys: ["host:checkout-1"] })).toEqual([
+        ["checkout-timeout"],
+        ["checkout-timeout"],
+      ]);
+      expect(
+        await countedAmong({
+          entityKeys: ["host:checkout-1", "host:checkout-2"],
+        }),
+      ).toEqual([
+        ["checkout-timeout", "checkout-type-error"],
+        ["checkout-timeout", "checkout-type-error"],
+      ]);
+    });
+
+    test("with the monitor's other filters on the same occurrences", async () => {
+      // The staging host's occurrences are all staging.
+      expect(
+        await countedAmong({
+          entityKeys: ["host:checkout-staging"],
+          environments: ["production"],
+        }),
+      ).toEqual([]);
+      expect(
+        await countedAmong({
+          entityKeys: ["host:checkout-staging"],
+          exceptionTypes: ["TypeError"],
+        }),
+      ).toEqual([["checkout-type-error"], ["checkout-type-error"]]);
+
+      // Resolved exceptions' occurrences are left out, as from the count.
+      resolvedFingerprints.mockResolvedValue(["checkout-type-error"]);
+      expect(
+        await countedAmong({ entityKeys: ["host:checkout-staging"] }),
+      ).toEqual([["checkout-timeout"], ["checkout-timeout"]]);
+    });
+
+    test("no occurrence from the entities in the window: none new or regressed, and no group is asked about", async () => {
+      groupCount.mockReset();
+
+      const response: ExceptionMonitorResponse = await monitorException({
+        monitorStep: stepCheckingNew({ entityKeys: ["host:nowhere"] }),
+        monitorId: ObjectID.generate(),
+        projectId: projectId,
+      });
+
+      expect(response.newExceptionCount).toBe(0);
+      expect(response.regressedExceptionCount).toBe(0);
+      expect(groupCount).not.toHaveBeenCalled();
+    });
+
+    test("without an entity filter, the groups are asked about as before", async () => {
+      expect(
+        await countedAmong({ telemetryServiceIds: [checkoutServiceId] }),
+      ).toEqual([null, null]);
+    });
   });
 });
 

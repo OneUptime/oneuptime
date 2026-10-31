@@ -14,9 +14,24 @@ import TelemetryExceptionMerge, {
   ExceptionUnmergeOutcome,
 } from "Common/Server/Utils/Telemetry/TelemetryExceptionMerge";
 import logger from "Common/Server/Utils/Logger";
+import ExceptionMonitorMeasureReader, {
+  ExceptionMonitorMeasures,
+} from "Common/Server/Utils/Monitor/ExceptionMonitorMeasures";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { DataSource, EntityManager } from "Common/node_modules/typeorm";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
@@ -31,7 +46,9 @@ import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
  * and those of every exception merged into it, a merged one counts its own,
  * and unmerging gives each back exactly what it would have counted had it
  * never been merged. A seeded sweep of merges, unmerges and ingests holds
- * those to a model of every occurrence ingested.
+ * those to a model of every occurrence ingested; another holds the new and
+ * regressed exceptions of entity-scoped Exceptions monitors to the groups
+ * here and the occurrences ingested.
  *
  * Opt in with RUN_POSTGRES_EXCEPTION_MERGE_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
@@ -664,5 +681,367 @@ describePostgres("merging exceptions against Postgres", () => {
       day(1).toISOString(),
       day(25).toISOString(),
     ]);
+  });
+
+  /*
+   * AN ENTITY-SCOPED EXCEPTIONS MONITOR OVER MERGED EXCEPTIONS: A SEEDED
+   * SWEEP.
+   *
+   * An infrastructure entity is a property of each occurrence, so a monitor
+   * scoped to entities counts its new and regressed exceptions among the
+   * groups of the window's occurrences from them
+   * (ExceptionMonitorMeasureReader); an occurrence of a merged exception
+   * keeps its own fingerprint and counts for the exception it was merged
+   * into. Each round ingests random occurrences on random hosts - up to an
+   * hour old, and in the window - and resolves, archives and merges
+   * exceptions in between, so the window's occurrences bring back resolved
+   * ones (Regressed) and make new ones. Then random monitors, scoped and not,
+   * read their counts through this Postgres; each is held to the groups it
+   * holds and every occurrence ingested. ClickHouse is played by those
+   * occurrences.
+   */
+  test("a seeded sweep of entity-scoped monitors over merged exceptions: new and regressed count what their occurrences say", async () => {
+    jest
+      .spyOn(TelemetryExceptionService, "getRepository")
+      .mockReturnValue(database.getRepository(TelemetryException) as never);
+
+    interface Seen {
+      fingerprint: string;
+      host: string;
+      time: Date;
+    }
+
+    interface Group {
+      _id: string;
+      fingerprint: string;
+      firstSeenAt: Date | null;
+      regressedAt: Date | null;
+      isResolved: boolean;
+      isArchived: boolean;
+      mergedIntoTelemetryExceptionId: string | null;
+    }
+
+    function stepCheckingOn(checkOns: Array<CheckOn>): MonitorStep {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorType: MonitorType.Exceptions,
+        monitorName: "Checkout",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+      });
+      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+      instance.data = {
+        ...instance.data!,
+        filters: checkOns.map((checkOn: CheckOn) => {
+          return { checkOn, filterType: FilterType.GreaterThan, value: 0 };
+        }),
+      };
+      const criteria: MonitorCriteria = new MonitorCriteria();
+      criteria.data = { monitorCriteriaInstanceArray: [instance] };
+      step.setMonitorCriteria(criteria);
+      return step;
+    }
+
+    const fingerprints: Array<string> = ["e0", "e1", "e2", "e3", "e4", "e5"];
+    const hosts: Array<string> = ["host:a", "host:b", "host:c"];
+    const minute: number = 60 * 1000;
+    const random: SeededRandom = seededRandom(5461);
+
+    // What the sweep met, so it cannot pass on nothing.
+    let scopedReads: number = 0;
+    let narrowedReads: number = 0;
+    let regressedReads: number = 0;
+    let reachedThroughMerged: number = 0;
+
+    for (let round: number = 0; round < 20; round++) {
+      await database.query(`DELETE FROM "${schema}"."TelemetryException"`);
+
+      const seen: Array<Seen> = [];
+      const now: number = Date.now();
+
+      const ingestSeen: (batch: Array<Seen>) => Promise<void> = async (
+        batch: Array<Seen>,
+      ): Promise<void> => {
+        await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+          batch.map((entry: Seen): TelemetryExceptionPayload => {
+            return { ...occurrence(entry.fingerprint), occurredAt: entry.time };
+          }),
+        );
+        seen.push(...batch);
+      };
+
+      // From an hour to twenty minutes ago: every exception but the late ones.
+      const late: Array<string> = fingerprints.filter((): boolean => {
+        return random(4) === 0;
+      });
+      const early: Array<Seen> = [];
+
+      for (const fingerprint of fingerprints) {
+        if (late.includes(fingerprint)) {
+          continue;
+        }
+
+        const count: number = 1 + random(2);
+
+        for (let draw: number = 0; draw < count; draw++) {
+          early.push({
+            fingerprint,
+            host: hosts[random(hosts.length)]!,
+            time: new Date(now - (20 + random(40)) * minute - 17000),
+          });
+        }
+      }
+
+      await ingestSeen(early);
+
+      // Resolved a quarter of an hour ago, or archived; and some merged.
+      for (const fingerprint of fingerprints) {
+        if (late.includes(fingerprint)) {
+          continue;
+        }
+
+        const draw: number = random(6);
+
+        if (draw < 2) {
+          await database.query(
+            `UPDATE "${schema}"."TelemetryException" SET "isResolved" = true, "markedAsResolvedAt" = now() - interval '15 minutes' WHERE "fingerprint" = $1`,
+            [fingerprint],
+          );
+        } else if (draw === 2) {
+          await database.query(
+            `UPDATE "${schema}"."TelemetryException" SET "isArchived" = true WHERE "fingerprint" = $1`,
+            [fingerprint],
+          );
+        }
+      }
+
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        const survivor: string = fingerprints[random(fingerprints.length)]!;
+        const merged: string = fingerprints[random(fingerprints.length)]!;
+        const current: Map<string, GroupRow> = await rows();
+
+        if (
+          survivor === merged ||
+          !current.has(survivor) ||
+          !current.has(merged) ||
+          current.get(survivor)!.mergedIntoTelemetryExceptionId ||
+          current.get(merged)!.mergedIntoTelemetryExceptionId
+        ) {
+          continue;
+        }
+
+        await merge(survivor, [merged]);
+      }
+
+      // The window: the last eight minutes, on random hosts.
+      const recent: Array<Seen> = [];
+      const recentCount: number = 2 + random(6);
+
+      for (let draw: number = 0; draw < recentCount; draw++) {
+        recent.push({
+          fingerprint: fingerprints[random(fingerprints.length)]!,
+          host: hosts[random(hosts.length)]!,
+          time: new Date(now - random(8) * minute - 23000),
+        });
+      }
+
+      await ingestSeen(recent);
+
+      /*
+       * The monitor evaluates a moment after the last occurrence was taken
+       * in: Postgres stamps a regression to the microsecond, and a window
+       * that ended in the same millisecond would cut it by less than a
+       * millisecond can say.
+       */
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 5);
+      });
+
+      const groups: Array<Group> = await database.query(
+        `SELECT "_id"::text AS "_id", "fingerprint", "firstSeenAt", "regressedAt", "isResolved", "isArchived",
+                "mergedIntoTelemetryExceptionId"::text AS "mergedIntoTelemetryExceptionId"
+         FROM "${schema}"."TelemetryException"`,
+      );
+
+      for (let read: number = 0; read < 5; read++) {
+        const config: MonitorStepExceptionMonitor = {
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          entityKeys:
+            random(4) === 0
+              ? []
+              : hosts.filter((): boolean => {
+                  return random(2) === 0;
+                }),
+          includeResolved: random(3) === 0,
+          includeArchived: random(3) === 0,
+          lastXSecondsOfExceptions: random(2) === 0 ? 600 : 1800,
+        };
+        const until: Date = new Date();
+
+        // The count query, as the worker builds it.
+        const excluded: Array<string> =
+          await TelemetryExceptionService.getResolvedOrArchivedFingerprints({
+            projectId,
+            resolved: !config.includeResolved,
+            archived: !config.includeArchived,
+          });
+        const countQuery: Record<string, unknown> = {
+          ...MonitorStepExceptionMonitorUtil.toAnalyticsQuery(config, until),
+          projectId,
+          ...(excluded.length > 0
+            ? { fingerprint: new IncludesNone(excluded) }
+            : {}),
+        };
+
+        // ClickHouse, played by the occurrences ingested.
+        jest
+          .spyOn(ExceptionInstanceService, "findBy")
+          .mockImplementation((async (findBy: {
+            query: Record<string, unknown>;
+          }) => {
+            const time: InBetween<Date> = findBy.query[
+              "time"
+            ] as InBetween<Date>;
+            const entityKeys: Array<string> | null = findBy.query["entityKeys"]
+              ? ((findBy.query["entityKeys"] as Includes)
+                  .values as Array<string>)
+              : null;
+            const leftOut: Array<string> = findBy.query["fingerprint"]
+              ? ((findBy.query["fingerprint"] as IncludesNone)
+                  .values as Array<string>)
+              : [];
+            const found: Set<string> = new Set();
+
+            for (const entry of seen) {
+              if (
+                entry.time.getTime() >= new Date(time.startValue).getTime() &&
+                entry.time.getTime() <= new Date(time.endValue).getTime() &&
+                (!entityKeys || entityKeys.includes(entry.host)) &&
+                !leftOut.includes(entry.fingerprint)
+              ) {
+                found.add(entry.fingerprint);
+              }
+            }
+
+            return Array.from(found).map(
+              (fingerprint: string): ExceptionInstance => {
+                const row: ExceptionInstance = new ExceptionInstance();
+                row.fingerprint = fingerprint;
+                return row;
+              },
+            );
+          }) as never);
+
+        const measures: ExceptionMonitorMeasures =
+          await ExceptionMonitorMeasureReader.read({
+            projectId,
+            monitorStep: stepCheckingOn([
+              CheckOn.NewExceptionCount,
+              CheckOn.RegressedExceptionCount,
+            ]),
+            config,
+            countQuery,
+            exceptionCount: 0,
+            evaluateUntil: until,
+          });
+
+        // The model: each exception not merged into another, with those merged into it.
+        const windowStart: number =
+          until.getTime() - config.lastXSecondsOfExceptions * 1000;
+        const inWindow: (value: Date | null) => boolean = (
+          value: Date | null,
+        ): boolean => {
+          return (
+            value !== null &&
+            new Date(value).getTime() >= windowStart &&
+            new Date(value).getTime() <= until.getTime()
+          );
+        };
+        const scoped: boolean = (config.entityKeys || []).length > 0;
+        let newCount: number = 0;
+        let regressedCount: number = 0;
+        let unscopedTotal: number = 0;
+
+        for (const group of groups) {
+          if (group.mergedIntoTelemetryExceptionId) {
+            continue;
+          }
+
+          const members: Array<string> = groups
+            .filter((member: Group): boolean => {
+              return member.mergedIntoTelemetryExceptionId === group._id;
+            })
+            .map((member: Group): string => {
+              return member.fingerprint;
+            });
+          const reachedBy: (allowed: Array<string>) => boolean = (
+            allowed: Array<string>,
+          ): boolean => {
+            return seen.some((entry: Seen): boolean => {
+              return (
+                allowed.includes(entry.fingerprint) &&
+                inWindow(entry.time) &&
+                (config.entityKeys || []).includes(entry.host) &&
+                !excluded.includes(entry.fingerprint)
+              );
+            });
+          };
+          const reached: boolean = reachedBy([group.fingerprint, ...members]);
+
+          if (!config.includeArchived && group.isArchived) {
+            continue;
+          }
+
+          const isNew: boolean =
+            inWindow(group.firstSeenAt) &&
+            (config.includeResolved || !group.isResolved);
+          const isRegressed: boolean =
+            inWindow(group.regressedAt) && !group.isResolved;
+
+          unscopedTotal += (isNew ? 1 : 0) + (isRegressed ? 1 : 0);
+
+          if (scoped && !reached) {
+            continue;
+          }
+
+          if (
+            scoped &&
+            (isNew || isRegressed) &&
+            !reachedBy([group.fingerprint])
+          ) {
+            reachedThroughMerged++;
+          }
+
+          newCount += isNew ? 1 : 0;
+          regressedCount += isRegressed ? 1 : 0;
+        }
+
+        expect({
+          round,
+          read,
+          entityKeys: config.entityKeys,
+          measures,
+        }).toEqual({
+          round,
+          read,
+          entityKeys: config.entityKeys,
+          measures: {
+            newExceptionCount: newCount,
+            regressedExceptionCount: regressedCount,
+          },
+        });
+
+        scopedReads += scoped ? 1 : 0;
+        narrowedReads +=
+          scoped && newCount + regressedCount < unscopedTotal ? 1 : 0;
+        regressedReads += regressedCount > 0 ? 1 : 0;
+      }
+    }
+
+    expect(scopedReads).toBeGreaterThan(40);
+    expect(narrowedReads).toBeGreaterThan(5);
+    expect(regressedReads).toBeGreaterThan(5);
+    expect(reachedThroughMerged).toBeGreaterThan(0);
   });
 });
