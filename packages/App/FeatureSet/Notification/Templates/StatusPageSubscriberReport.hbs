@@ -47,7 +47,8 @@
   reader, and the email's text part (Common/Server/Utils/Mail/
   EmailPlainText.ts reads st-Stat-label), say "Downtime: 21m", never "21m"
   and then what it was. The value is a div, so the text part keeps the
-  three tiles on three lines.
+  three tiles on three lines. The tiles sit at the top of the strip, so
+  their labels line up however long a value wraps.
 --}}
 <table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
   <tbody>
@@ -57,15 +58,15 @@
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f8fafc" style="width:100%;table-layout:fixed;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
           <tbody>
             <tr>
-              <td width="33%" align="center" valign="middle" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
+              <td width="33%" align="center" valign="top" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
                 <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Downtime</p>
                 <div style="margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalDowntimeInHoursAndMinutes}}</div>
               </td>
-              <td width="33%" align="center" valign="middle" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
+              <td width="33%" align="center" valign="top" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
                 <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Incidents</p>
                 <div style="margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalIncidents}}</div>
               </td>
-              <td width="34%" align="center" valign="middle" style="padding:18px 8px;">
+              <td width="34%" align="center" valign="top" style="padding:18px 8px;">
                 <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Resources</p>
                 <div style="margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalResources}}</div>
               </td>

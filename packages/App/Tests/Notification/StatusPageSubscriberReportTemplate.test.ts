@@ -265,7 +265,73 @@ beforeAll(() => {
   });
 });
 
+/*
+ * The supporting stat strip under the hero (Downtime, Incidents,
+ * Resources): its three tiles, each from its <td> on, as rendered.
+ */
+function statTiles(html: string): Array<string> {
+  return html
+    .split("<td ")
+    .filter((part: string): boolean => {
+      return part.startsWith('width="33%"') || part.startsWith('width="34%"');
+    })
+    .map((part: string): string => {
+      return part.slice(0, part.indexOf("</td>"));
+    });
+}
+
+/*
+ * Each tile names what it counts before its number - a screen reader and
+ * the text part read "Downtime: 21m" (st-Stat-label) - and sits at the top
+ * of the strip, so the three labels line up however long a value wraps.
+ */
+function expectLabelsFirstAndLinedUp(
+  html: string,
+  values: Array<[string, string]>,
+): void {
+  const tiles: Array<string> = statTiles(html);
+
+  expect(tiles).toHaveLength(3);
+
+  tiles.forEach((tile: string, index: number): void => {
+    const [label, value] = values[index]!;
+    const labelAt: number = tile.indexOf(
+      `class="st-Stat-label"`,
+    );
+
+    expect(tile).toContain('valign="top"');
+    expect(labelAt).toBeGreaterThan(-1);
+    expect(tile.indexOf(`>${label}</p>`)).toBeGreaterThan(labelAt);
+    expect(tile.indexOf(`>${value}</div>`)).toBeGreaterThan(
+      tile.indexOf(`>${label}</p>`),
+    );
+  });
+}
+
 describe("StatusPageSubscriberReport.hbs", () => {
+  test("each supporting stat names what it counts first, at the top of its tile", () => {
+    const report: StatusPageReport = buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+
+    expectLabelsFirstAndLinedUp(
+      renderReportTemplate({
+        statusPageName: "WBHQ Status Page",
+        hasResources: "true",
+        statusPageUrl: "https://status.example.com",
+        detailsUrl: "https://status.example.com",
+        report: report,
+      }),
+      [
+        ["Downtime", "2 days, 0 minutes"],
+        ["Incidents", "3"],
+        ["Resources", String(report.totalResources)],
+      ],
+    );
+  });
+
   describe("a status page with nested groups", () => {
     let html: string = "";
 
@@ -457,6 +523,20 @@ describe("the default report template offered to customers", () => {
       report: report,
     });
   }
+
+  test("names each supporting stat first, at the top of its tile, as the built-in report does", () => {
+    const report: StatusPageReport = buildReport({
+      entries: nestedEntries(),
+      statusPageGroups: nestedGroups(),
+      groupMetricsByGroupId: nestedMetrics(),
+    });
+
+    expectLabelsFirstAndLinedUp(renderDefaultBody(report), [
+      ["Downtime", "2 days, 0 minutes"],
+      ["Incidents", "3"],
+      ["Resources", String(report.totalResources)],
+    ]);
+  });
 
   test("renders the same nested hierarchy", () => {
     const html: string = renderDefaultBody(

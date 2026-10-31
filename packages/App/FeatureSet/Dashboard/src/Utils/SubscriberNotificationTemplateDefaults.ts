@@ -1014,7 +1014,8 @@ const episodeNoteUpdatedDefaults: EventDefaults = {
  * available to power users who add {{> Start this}} etc.). Each stat tile
  * names what it counts before the number (st-Stat-label), as the built-in
  * report does, so a screen reader and the email's text part read
- * "Downtime: 21m", never the number first.
+ * "Downtime: 21m", never the number first; the tiles sit at the top of
+ * their row, so the labels line up however long a value wraps.
  * SMS / Slack / Microsoft Teams / Webhook reports have no worker send path
  * today, so their defaults are best-effort summaries (like Webhook is for the
  * other events) and exist only so the form is usable.
@@ -1040,15 +1041,15 @@ const reportDefaults: EventDefaults = {
   </div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 24px 0;">
     <tr>
-      <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
+      <td width="33%" align="center" valign="top" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
         <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Downtime</p>
         <div style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalDowntimeInHoursAndMinutes}}</div>
       </td>
-      <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
+      <td width="33%" align="center" valign="top" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
         <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Incidents</p>
         <div style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalIncidents}}</div>
       </td>
-      <td width="34%" align="center" style="padding: 18px 8px;">
+      <td width="34%" align="center" valign="top" style="padding: 18px 8px;">
         <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Resources</p>
         <div style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalResources}}</div>
       </td>
