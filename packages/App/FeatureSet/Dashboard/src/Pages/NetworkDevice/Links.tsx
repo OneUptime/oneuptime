@@ -181,7 +181,7 @@ const NetworkDeviceLinks: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitor (optional)",
+            placeholder: "Select Monitor",
           },
         ]}
         columns={[

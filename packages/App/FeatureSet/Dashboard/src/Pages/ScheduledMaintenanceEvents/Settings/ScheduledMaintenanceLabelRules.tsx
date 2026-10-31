@@ -132,7 +132,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitors (optional)",
+            placeholder: "Select Monitors",
           },
           {
             field: { scheduledMaintenanceLabels: true },
@@ -145,7 +145,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Event Labels (optional)",
+            placeholder: "Select Event Labels",
           },
           {
             field: { monitorLabels: true },
@@ -158,7 +158,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitor Labels (optional)",
+            placeholder: "Select Monitor Labels",
           },
           {
             field: { titlePattern: true },

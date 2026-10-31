@@ -216,15 +216,26 @@ describe("the binding is explained by the shared sentence, not a local one", () 
   );
 
   /*
-   * The copy is the only thing that tells an operator they may leave the
-   * field empty; a placeholder that just says "Select Monitor" reads as a
-   * demand.
+   * The label says the field may be left empty: a field that is not
+   * required draws "(Optional)" after its title (FieldLabel), and the
+   * description says to leave it empty to bind a monitor later. The
+   * placeholder used to say "(optional)" as well, so the field read
+   * "Monitor (Optional)" over "Select Monitor (optional)".
    */
-  test("the placeholder says the field is optional", () => {
-    expect(MONITOR_BINDING_FIELD_PLACEHOLDER.toLowerCase()).toContain(
-      "optional",
-    );
-  });
+  test.each(NETWORK_DEVICE_FORMS)(
+    "%s marks the field optional once, on its label",
+    (page: string) => {
+      const field: string = monitorField(page);
+
+      expect(field).toContain("required: false");
+      expect(field).not.toContain("hideOptionalLabel");
+      expect(MONITOR_BINDING_FIELD_PLACEHOLDER).toBe("Select Monitor");
+      expect(MONITOR_BINDING_FIELD_PLACEHOLDER.toLowerCase()).not.toContain(
+        "optional",
+      );
+      expect(MONITOR_BINDING_FIELD_DESCRIPTION).toContain("Leave it empty");
+    },
+  );
 
   test("the description says the device can be recorded now and bound later", () => {
     expect(MONITOR_BINDING_FIELD_DESCRIPTION).toContain("Leave it empty");

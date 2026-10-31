@@ -189,7 +189,7 @@ const AlertReminderRulesPage: FunctionComponent<
               },
             },
             required: false,
-            placeholder: "Select Severities (optional)",
+            placeholder: "Select Severities",
             description:
               "Only apply this rule to alerts with these severities. Leave empty to match alerts of any severity.",
           },
@@ -206,7 +206,7 @@ const AlertReminderRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Labels (optional)",
+            placeholder: "Select Labels",
             description:
               "Only apply this rule to alerts with these labels. Leave empty to match alerts with any labels.",
           },

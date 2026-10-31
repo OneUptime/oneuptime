@@ -118,7 +118,7 @@ const StorageArrayOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Storage Array Labels (optional)",
+          placeholder: "Select Storage Array Labels",
         },
         {
           field: { storageArrayNamePattern: true },

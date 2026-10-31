@@ -383,7 +383,7 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
           },
           required: false,
           hideColumnDescription: true,
-          placeholder: "Select Services (optional)",
+          placeholder: "Select Services",
         },
         {
           field: { serviceLabels: true },
@@ -397,7 +397,7 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
           },
           required: false,
           hideColumnDescription: true,
-          placeholder: "Select Service Labels (optional)",
+          placeholder: "Select Service Labels",
         },
         {
           field: { serviceNamePattern: true },

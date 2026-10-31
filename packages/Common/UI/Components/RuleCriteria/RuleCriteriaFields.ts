@@ -264,9 +264,6 @@ const NUMBER_FIELD_TYPES: ReadonlyArray<FormFieldSchemaType> = [
   FormFieldSchemaType.Port,
 ];
 
-// "(optional)" at the end of a placeholder written for the old, optional field.
-const OPTIONAL_PLACEHOLDER_SUFFIX: RegExp = /\(optional\)\s*$/i;
-
 // A column name's trailing "Pattern" / "Regex Pattern", never part of a title.
 const PATTERN_TITLE_SUFFIX: RegExp = /(?:\s+regex)?\s+pattern$/i;
 
@@ -608,25 +605,26 @@ export function getEmptyRuleCriteriaValue<TEntity>(
 }
 
 /*
- * The placeholder in a condition's value box. The rule pages wrote theirs for
- * the old, optional fields ("Select Monitors (optional)"); in a condition the
- * value is what the condition is about, so those give way to a plain prompt.
- * A pattern keeps the page's example (prod-.*, 10.42.7.0/24), which shows the
- * syntax better than any sentence could - but only for a pattern operator: an
- * example regex in a "Contains" box reads as something to type literally.
+ * The placeholder in a condition's value box. A list asks for one or more,
+ * whatever the page's own prompt says: the row already names what is picked
+ * ("Monitors · Has any of"), so "Select Monitors" would only say it again,
+ * and the plain prompt says that several can be picked. The rule pages wrote
+ * those prompts for the fields their forms drew before the conditions
+ * builder, which still draw them where a form has no builder. A choice
+ * keeps the page's prompt (Select Monitor Type). A pattern keeps the page's
+ * example (prod-.*, 10.42.7.0/24), which shows the syntax better than any
+ * sentence could - but only for a pattern operator: an example regex in a
+ * "Contains" box reads as something to type literally.
  */
 export function getRuleCriteriaValuePlaceholder<TEntity>(
   field: Field<TEntity>,
   operator: RuleCriteriaOperator,
 ): string {
   const ownPlaceholder: string = (field.placeholder || "").trim();
-  const usableOwnPlaceholder: string | null =
-    ownPlaceholder && !OPTIONAL_PLACEHOLDER_SUFFIX.test(ownPlaceholder)
-      ? ownPlaceholder
-      : null;
+  const usableOwnPlaceholder: string | null = ownPlaceholder || null;
 
   if (isRuleCriteriaArrayOperator(operator)) {
-    return usableOwnPlaceholder || RuleCriteriaCopy.selectOneOrMore;
+    return RuleCriteriaCopy.selectOneOrMore;
   }
 
   if (isChoiceField(field)) {

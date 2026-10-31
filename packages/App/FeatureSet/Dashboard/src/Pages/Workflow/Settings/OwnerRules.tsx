@@ -117,7 +117,7 @@ const WorkflowOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Workflow Labels (optional)",
+          placeholder: "Select Workflow Labels",
         },
         {
           field: { workflowNamePattern: true },

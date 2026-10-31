@@ -116,7 +116,7 @@ const DashboardLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Dashboard Labels (optional)",
+          placeholder: "Select Dashboard Labels",
         },
         {
           field: { dashboardNamePattern: true },

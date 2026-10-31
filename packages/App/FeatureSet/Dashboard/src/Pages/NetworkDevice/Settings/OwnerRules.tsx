@@ -118,7 +118,7 @@ const NetworkDeviceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Network Device Labels (optional)",
+          placeholder: "Select Network Device Labels",
         },
         {
           field: { networkDeviceNamePattern: true },

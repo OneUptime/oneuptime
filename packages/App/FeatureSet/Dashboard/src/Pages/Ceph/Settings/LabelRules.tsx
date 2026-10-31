@@ -117,7 +117,7 @@ const CephClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Ceph Cluster Labels (optional)",
+          placeholder: "Select Ceph Cluster Labels",
         },
         {
           field: { cephClusterNamePattern: true },

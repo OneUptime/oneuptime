@@ -116,7 +116,7 @@ const IoTFleetLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select IoT Fleet Labels (optional)",
+          placeholder: "Select IoT Fleet Labels",
         },
         {
           field: { iotFleetNamePattern: true },

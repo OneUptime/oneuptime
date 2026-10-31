@@ -58,7 +58,7 @@ const MONITORS: Field<Entity> = {
   title: "Monitors",
   fieldType: FormFieldSchemaType.MultiSelectDropdown,
   dropdownModal: { type: Monitor, labelField: "name", valueField: "_id" },
-  placeholder: "Select Monitors (optional)",
+  placeholder: "Select Monitors",
 };
 
 const INCIDENT_LABELS: Field<Entity> = {
@@ -66,7 +66,7 @@ const INCIDENT_LABELS: Field<Entity> = {
   title: "Incident Labels",
   fieldType: FormFieldSchemaType.MultiSelectDropdown,
   dropdownModal: { type: Label, labelField: "name", valueField: "_id" },
-  placeholder: "Select Incident Labels (optional)",
+  placeholder: "Select Incident Labels",
 };
 
 const MONITOR_LABELS: Field<Entity> = {
@@ -74,7 +74,7 @@ const MONITOR_LABELS: Field<Entity> = {
   title: "Monitor Labels",
   fieldType: FormFieldSchemaType.MultiSelectDropdown,
   dropdownModal: { type: Label, labelField: "name", valueField: "_id" },
-  placeholder: "Select Monitor Labels (optional)",
+  placeholder: "Select Monitor Labels",
 };
 
 const INCIDENT_TITLE: Field<Entity> = {
@@ -492,13 +492,46 @@ describe("the fields a condition can be about", () => {
 });
 
 describe("value placeholders", () => {
-  test("the old (optional) prompts give way to plain ones", () => {
-    expect(
-      getRuleCriteriaValuePlaceholder(MONITORS, RuleCriteriaOperator.HasAnyOf),
-    ).toBe(RuleCriteriaCopy.selectOneOrMore);
+  /*
+   * The row already says what is picked ("Monitors · Has any of"): the
+   * page's "Select Monitors" would say it again, and "Select one or more"
+   * says several can be picked.
+   */
+  test("a list asks for one or more, whatever the page's own prompt", () => {
+    expect(MONITORS.placeholder).toBe("Select Monitors");
+
+    for (const operator of [
+      RuleCriteriaOperator.HasAnyOf,
+      RuleCriteriaOperator.HasAllOf,
+      RuleCriteriaOperator.HasNoneOf,
+    ]) {
+      expect(getRuleCriteriaValuePlaceholder(MONITORS, operator)).toBe(
+        RuleCriteriaCopy.selectOneOrMore,
+      );
+      expect(getRuleCriteriaValuePlaceholder(INCIDENT_LABELS, operator)).toBe(
+        RuleCriteriaCopy.selectOneOrMore,
+      );
+    }
+
+    // A list with no prompt of its own asks the same.
     expect(
       getRuleCriteriaValuePlaceholder(
-        { ...MONITOR_TYPE, placeholder: "Select Monitor Type (optional)" },
+        { ...MONITOR_LABELS, placeholder: undefined },
+        RuleCriteriaOperator.HasAnyOf,
+      ),
+    ).toBe(RuleCriteriaCopy.selectOneOrMore);
+  });
+
+  test("a choice with no prompt of its own asks for a value", () => {
+    expect(
+      getRuleCriteriaValuePlaceholder(
+        { ...MONITOR_TYPE, placeholder: undefined },
+        RuleCriteriaOperator.Equals,
+      ),
+    ).toBe(RuleCriteriaCopy.selectAValue);
+    expect(
+      getRuleCriteriaValuePlaceholder(
+        { ...MONITOR_TYPE, placeholder: "   " },
         RuleCriteriaOperator.Equals,
       ),
     ).toBe(RuleCriteriaCopy.selectAValue);

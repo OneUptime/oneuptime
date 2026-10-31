@@ -120,7 +120,7 @@ const MessageQueueLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Queue Labels (optional)",
+          placeholder: "Select Queue Labels",
         },
         {
           field: { messageQueueNamePattern: true },

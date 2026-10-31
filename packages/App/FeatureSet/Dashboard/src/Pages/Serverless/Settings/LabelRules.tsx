@@ -95,7 +95,7 @@ const ServerlessFunctionLabelRulesPage: FunctionComponent<
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { nameRegexPattern: true },

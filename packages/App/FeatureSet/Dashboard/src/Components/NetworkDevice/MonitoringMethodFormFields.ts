@@ -47,9 +47,8 @@ export const MONITOR_BINDING_FIELD_DESCRIPTION: string = translationKey(
   'Its status becomes the device\'s status. Leave it empty to bind a monitor later: until then the device reads Pending, tagged "No monitor".',
 );
 
-export const MONITOR_BINDING_FIELD_PLACEHOLDER: string = translationKey(
-  "Select Monitor (optional)",
-);
+export const MONITOR_BINDING_FIELD_PLACEHOLDER: string =
+  translationKey("Select Monitor");
 
 /*
  * The monitoring-method picker's own explanation, worded once so the create

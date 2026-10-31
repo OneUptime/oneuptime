@@ -116,7 +116,7 @@ const RunbookLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Runbook Labels (optional)",
+          placeholder: "Select Runbook Labels",
         },
         {
           field: { runbookNamePattern: true },

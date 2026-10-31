@@ -120,7 +120,7 @@ const SloOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select SLO Labels (optional)",
+          placeholder: "Select SLO Labels",
         },
         {
           field: { serviceLevelObjectiveNamePattern: true },

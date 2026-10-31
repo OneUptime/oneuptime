@@ -118,7 +118,7 @@ const PodmanHostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Podman Host Labels (optional)",
+          placeholder: "Select Podman Host Labels",
         },
         {
           field: { podmanHostNamePattern: true },

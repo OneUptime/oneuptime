@@ -253,7 +253,7 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitors (optional)",
+          placeholder: "Select Monitors",
         },
         {
           field: { incidentSeverities: true },
@@ -269,7 +269,7 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
             },
           },
           required: false,
-          placeholder: "Select Severities (optional)",
+          placeholder: "Select Severities",
         },
         {
           field: { labels: true },
@@ -282,7 +282,7 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { monitorLabels: true },
@@ -297,7 +297,7 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitor Labels (optional)",
+          placeholder: "Select Monitor Labels",
         },
         {
           field: { titlePattern: true },

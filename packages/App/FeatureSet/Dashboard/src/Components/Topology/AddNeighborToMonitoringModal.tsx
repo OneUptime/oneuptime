@@ -421,7 +421,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
           valueField: "_id",
         },
         required: false,
-        placeholder: "Select Site (optional)",
+        placeholder: "Select Site",
       },
       ...snmpFields,
     ] as Fields<NetworkDevice>;

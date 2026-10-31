@@ -513,7 +513,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             required: false,
             description:
               "Labels to automatically attach to episodes created by this rule.",
-            placeholder: "Select Labels (optional)",
+            placeholder: "Select Labels",
           },
           // Group By - a custom mix of the five switches
           {
@@ -588,7 +588,7 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitors (optional)",
+            placeholder: "Select Monitors",
           },
           {
             field: {
@@ -606,7 +606,7 @@ const AlertGroupingRulesPage: FunctionComponent<
               },
             },
             required: false,
-            placeholder: "Select Severities (optional)",
+            placeholder: "Select Severities",
           },
           {
             field: {
@@ -621,7 +621,7 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Alert Labels (optional)",
+            placeholder: "Select Alert Labels",
           },
           {
             field: {
@@ -636,7 +636,7 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitor Labels (optional)",
+            placeholder: "Select Monitor Labels",
           },
           {
             field: {

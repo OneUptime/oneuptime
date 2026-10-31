@@ -409,7 +409,7 @@ const NetworkDeviceSettings: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Site (optional)",
+            placeholder: "Select Site",
           },
           getLabelsFormField<NetworkDevice>({
             stepId: "device-details",

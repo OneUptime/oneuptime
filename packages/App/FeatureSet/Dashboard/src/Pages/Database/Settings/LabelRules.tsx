@@ -123,7 +123,7 @@ const DatabaseServerLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Database Labels (optional)",
+          placeholder: "Select Database Labels",
         },
         {
           field: { databaseServerNamePattern: true },

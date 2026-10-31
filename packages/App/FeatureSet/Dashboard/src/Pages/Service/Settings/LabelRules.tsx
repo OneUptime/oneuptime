@@ -116,7 +116,7 @@ const ServiceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Service Labels (optional)",
+          placeholder: "Select Service Labels",
         },
         {
           field: { serviceNamePattern: true },
