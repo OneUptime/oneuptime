@@ -34,6 +34,12 @@ export function getFormsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Form",
       "Share",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_CUSTOM_DOMAINS, [
+      "Project",
+      "Forms",
+      "View Form",
+      "Custom Domains",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_SUBMISSIONS, [
       "Project",
       "Forms",

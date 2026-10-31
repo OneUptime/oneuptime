@@ -1,5 +1,6 @@
 import { FORM_PUBLIC_API_URL } from "./ApiPaths";
 import FormAPI from "./FormAPI";
+import { getFormDomainPageOrigin } from "./FormDomainPage";
 import FormMessage, { isKnownFormMessage } from "./FormMessage";
 import { getRetryAfterSecondsFromError } from "./VerificationEmailResend";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -13,6 +14,10 @@ import {
   readPublicFormImage,
 } from "Common/Types/Form/FormBranding";
 import { isFormFieldId } from "Common/Types/Form/FormField";
+import {
+  getFormCustomDomainApiUrl,
+  getFormCustomDomainSubmitUrl,
+} from "Common/Types/Form/FormCustomDomain";
 import {
   findPublicFormTemplate,
   getPublicFormForTemplate,
@@ -97,6 +102,28 @@ export const getFormSubmitUrl: GetFormUrlFunction = (shareKey: string): URL => {
     `/${encodeURIComponent(shareKey)}/submit`,
   );
 };
+
+export type GetFormOnCustomDomainUrlFunction = (origin?: string) => URL;
+
+/*
+ * The same two requests on a form's own domain (Utils/FormDomainPage): sent
+ * to the domain the page was opened on - never to OneUptime's own host - and
+ * naming no key. The server finds the form by the domain the request came to.
+ */
+export const getFormOnCustomDomainUrl: GetFormOnCustomDomainUrlFunction = (
+  origin?: string,
+): URL => {
+  return URL.fromString(
+    getFormCustomDomainApiUrl(origin ?? getFormDomainPageOrigin()),
+  );
+};
+
+export const getFormOnCustomDomainSubmitUrl: GetFormOnCustomDomainUrlFunction =
+  (origin?: string): URL => {
+    return URL.fromString(
+      getFormCustomDomainSubmitUrl(origin ?? getFormDomainPageOrigin()),
+    );
+  };
 
 type IsPlainObjectFunction = (
   value: unknown,
@@ -457,6 +484,24 @@ export const readFormSubmissionResult: ReadFormSubmissionResultFunction = (
   return result;
 };
 
+type ReadFormAtFunction = (url: URL) => Promise<PublicForm>;
+
+// Read the form a URL answers with; refusals as for loadPublicForm.
+const readFormAt: ReadFormAtFunction = async (
+  url: URL,
+): Promise<PublicForm> => {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await FormAPI.get<JSONObject>({
+      url: url,
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return readPublicForm(response.data);
+};
+
 export type LoadPublicFormFunction = (shareKey: string) => Promise<PublicForm>;
 
 /**
@@ -467,34 +512,32 @@ export type LoadPublicFormFunction = (shareKey: string) => Promise<PublicForm>;
 export const loadPublicForm: LoadPublicFormFunction = async (
   shareKey: string,
 ): Promise<PublicForm> => {
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await FormAPI.get<JSONObject>({
-      url: getFormUrl(shareKey),
-    });
-
-  if (response instanceof HTTPErrorResponse) {
-    throw response;
-  }
-
-  return readPublicForm(response.data);
+  return await readFormAt(getFormUrl(shareKey));
 };
 
-export type SubmitPublicFormFunction = (
-  shareKey: string,
+export type LoadPublicFormOnCustomDomainFunction = () => Promise<PublicForm>;
+
+// The form on its own domain, read on that domain; refusals as above.
+export const loadPublicFormOnCustomDomain: LoadPublicFormOnCustomDomainFunction =
+  async (): Promise<PublicForm> => {
+    return await readFormAt(getFormOnCustomDomainUrl());
+  };
+
+type SendSubmissionToFunction = (
+  url: URL,
   request: PublicFormSubmissionRequest,
-  // How much of the request has been sent, 0 to 100: files make it long.
   onProgress?: ((percent: number) => void) | undefined,
 ) => Promise<PublicFormSubmissionResult>;
 
-// Send the answers. Refusals are thrown as for loadPublicForm.
-export const submitPublicForm: SubmitPublicFormFunction = async (
-  shareKey: string,
+// Send the answers to a URL; refusals as for loadPublicForm.
+const sendSubmissionTo: SendSubmissionToFunction = async (
+  url: URL,
   request: PublicFormSubmissionRequest,
   onProgress?: ((percent: number) => void) | undefined,
 ): Promise<PublicFormSubmissionResult> => {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await FormAPI.post<JSONObject>({
-      url: getFormSubmitUrl(shareKey),
+      url: url,
       data: request as unknown as JSONObject,
       ...(onProgress
         ? {
@@ -523,6 +566,44 @@ export const submitPublicForm: SubmitPublicFormFunction = async (
 
   return readFormSubmissionResult(response.data);
 };
+
+export type SubmitPublicFormFunction = (
+  shareKey: string,
+  request: PublicFormSubmissionRequest,
+  // How much of the request has been sent, 0 to 100: files make it long.
+  onProgress?: ((percent: number) => void) | undefined,
+) => Promise<PublicFormSubmissionResult>;
+
+// Send the answers. Refusals are thrown as for loadPublicForm.
+export const submitPublicForm: SubmitPublicFormFunction = async (
+  shareKey: string,
+  request: PublicFormSubmissionRequest,
+  onProgress?: ((percent: number) => void) | undefined,
+): Promise<PublicFormSubmissionResult> => {
+  return await sendSubmissionTo(
+    getFormSubmitUrl(shareKey),
+    request,
+    onProgress,
+  );
+};
+
+export type SubmitPublicFormOnCustomDomainFunction = (
+  request: PublicFormSubmissionRequest,
+  onProgress?: ((percent: number) => void) | undefined,
+) => Promise<PublicFormSubmissionResult>;
+
+// The answers to the form on its own domain, sent on that domain.
+export const submitPublicFormOnCustomDomain: SubmitPublicFormOnCustomDomainFunction =
+  async (
+    request: PublicFormSubmissionRequest,
+    onProgress?: ((percent: number) => void) | undefined,
+  ): Promise<PublicFormSubmissionResult> => {
+    return await sendSubmissionTo(
+      getFormOnCustomDomainSubmitUrl(),
+      request,
+      onProgress,
+    );
+  };
 
 export type BuildFormSubmissionRequestFunction = (data: {
   form: PublicForm;

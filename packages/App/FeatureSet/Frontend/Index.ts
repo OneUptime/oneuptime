@@ -47,6 +47,17 @@ import {
 import { getDashboardThemeHead } from "Common/Types/Dashboard/DashboardTheme";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
+import FormDomainService from "Common/Server/Services/FormDomainService";
+import FormService from "Common/Server/Services/FormService";
+import { resolveClientIp } from "Common/Server/Utils/ClientIp";
+import { getRequestHost } from "Common/Server/Utils/RequestHost";
+import {
+  FORM_DOMAIN_PAGE_HEADERS,
+  FormDomainPageAnswer,
+  getFormDomainPageAnswer,
+  getFormDomainPageLocation,
+  getFormDomainPageVariables,
+} from "./FormDomainPage";
 import {
   getFrontendStaticFileRoutes,
   shouldSkipDashboardFallbackRoute,
@@ -90,6 +101,14 @@ interface FrontendConfig {
   publicPath: string;
   indexViewPath: string;
   primaryHostOnly?: boolean;
+  /*
+   * With primaryHostOnly: the frontend's built files and its env.js are
+   * still served on every host - its pages are not. The sign-in app's form
+   * page is served on a form's own domain (FormDomainPage), and fetches its
+   * bundle from there; the sign-in pages themselves stay on the primary
+   * host.
+   */
+  staticFilesOnEveryHost?: boolean;
   getVariablesToRenderIndexPage?: (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -408,10 +427,25 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
     frontendConfig.publicPath,
   ) as RequestHandler;
 
+  /*
+   * Whether this request may be answered with the frontend's built files
+   * (and its env.js): on the primary host, and on every host for a frontend
+   * that serves its files everywhere.
+   */
+  const servesFilesTo: (req: ExpressRequest) => boolean = (
+    req: ExpressRequest,
+  ): boolean => {
+    return (
+      !frontendConfig.primaryHostOnly ||
+      Boolean(frontendConfig.staticFilesOnEveryHost) ||
+      isPrimaryHostRequest(req)
+    );
+  };
+
   app.use(
     frontendConfig.routePrefix,
     (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-      if (frontendConfig.primaryHostOnly && !isPrimaryHostRequest(req)) {
+      if (!servesFilesTo(req)) {
         return next();
       }
 
@@ -422,7 +456,7 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
   app.get(
     `${frontendConfig.routePrefix}/env.js`,
     (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-      if (frontendConfig.primaryHostOnly && !isPrimaryHostRequest(req)) {
+      if (!servesFilesTo(req)) {
         return next();
       }
 
@@ -439,7 +473,7 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
   app.get(
     getFrontendStaticFileRoutes(frontendConfig.routePrefix),
     (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-      if (frontendConfig.primaryHostOnly && !isPrimaryHostRequest(req)) {
+      if (!servesFilesTo(req)) {
         return next();
       }
 
@@ -492,6 +526,76 @@ const isDashboardDomain: (hostname: string) => Promise<boolean> = async (
   }
 };
 
+/*
+ * A visit to a form's own domain (FormDomainPage): the form's page at the
+ * root, every other page address sent there, and an unknown API address
+ * left to the App's "not found".
+ *
+ * The page is the sign-in app's index.ejs, rendered here rather than
+ * through renderFrontendIndexPage: that one renders a page whose variables
+ * failed to load without them, and without its mark this page would be the
+ * sign-in app's - on the customer's domain. Nothing here throws on the way
+ * to the render: the form's name is null whenever it cannot be read
+ * (FormService.getFormNameOnCustomDomain), and the page then reads the form
+ * itself, and says when it is not available.
+ */
+const serveFormDomainPage: (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  next: NextFunction;
+  hostname: string;
+}) => Promise<void> = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  next: NextFunction;
+  hostname: string;
+}): Promise<void> => {
+  const { req, res, next } = data;
+
+  try {
+    const answer: FormDomainPageAnswer = getFormDomainPageAnswer(req.path);
+
+    if (answer === FormDomainPageAnswer.NotAPage) {
+      return next();
+    }
+
+    if (answer === FormDomainPageAnswer.RedirectToPage) {
+      return res.redirect(
+        302,
+        getFormDomainPageLocation(req.originalUrl || req.url || ""),
+      );
+    }
+
+    const formName: string | null = await FormService.getFormNameOnCustomDomain(
+      {
+        hostname: data.hostname,
+        clientIp: resolveClientIp(req),
+      },
+    );
+
+    if (res.headersSent) {
+      return;
+    }
+
+    for (const header of Object.keys(FORM_DOMAIN_PAGE_HEADERS)) {
+      res.setHeader(header, FORM_DOMAIN_PAGE_HEADERS[header]!);
+    }
+
+    res.render(AccountsViewPath, {
+      // The installation's name and tab icon.
+      ...getProductBrandingViewVariables(),
+      // Not OneUptime's to measure: the page is its owner's.
+      enableGoogleTagManager: false,
+      ...getFormDomainPageVariables({
+        hostname: data.hostname,
+        formName: formName,
+      }),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const registerCustomDomainFallback: () => void = (): void => {
   app.get(
     "*",
@@ -516,6 +620,25 @@ const registerCustomDomainFallback: () => void = (): void => {
           res,
           next,
           frontendConfig: PublicDashboardFrontendConfig,
+        });
+      }
+
+      /*
+       * A form's own domain: its form (serveFormDomainPage). By the name the
+       * browser connected to, the raw Host - as the form API finds the form
+       * by it - never X-Forwarded-Host, which a caller writes.
+       */
+      const formDomainHostname: string | null = getRequestHost(req);
+
+      if (
+        formDomainHostname &&
+        (await FormDomainService.isFormDomain(formDomainHostname))
+      ) {
+        return serveFormDomainPage({
+          req,
+          res,
+          next,
+          hostname: formDomainHostname,
         });
       }
 
@@ -676,6 +799,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     publicPath: AccountsPublicPath,
     indexViewPath: AccountsViewPath,
     primaryHostOnly: true,
+    /*
+     * A form's page on its own domain is this app's (serveFormDomainPage),
+     * and loads its bundle from that domain.
+     */
+    staticFilesOnEveryHost: true,
     /*
      * A self-hosted server with no account yet: its sign-in page sends the
      * browser on to register (Identity/Utils/FirstAccount.ts).

@@ -13,6 +13,7 @@ import FormBuild from "../Pages/Forms/View/Build";
 import FormTemplates from "../Pages/Forms/View/Templates";
 import FormOnSubmit from "../Pages/Forms/View/OnSubmit";
 import FormShare from "../Pages/Forms/View/Share";
+import FormCustomDomains from "../Pages/Forms/View/CustomDomains";
 import FormViewSubmissions from "../Pages/Forms/View/Submissions";
 import FormDuplicate from "../Pages/Forms/View/Duplicate";
 import FormDelete from "../Pages/Forms/View/Delete";
@@ -92,6 +93,15 @@ const FormsRoutes: FunctionComponent<ComponentProps> = (
             <FormShare
               {...props}
               pageRoute={RouteMap[PageMap.FORM_VIEW_SHARE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_CUSTOM_DOMAINS)}
+          element={
+            <FormCustomDomains
+              {...props}
+              pageRoute={RouteMap[PageMap.FORM_VIEW_CUSTOM_DOMAINS] as Route}
             />
           }
         />

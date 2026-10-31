@@ -258,8 +258,10 @@ export class Service extends ProjectReferencesService<FormDomain> {
     deleteBy: DeleteBy<FormDomain>,
   ): Promise<OnDelete<FormDomain>> {
     // The domains the delete removes, and the delete held to them.
-    const domains: Array<FormDomain> =
-      await this.findRowsAndHoldDeleteToThem(deleteBy, { fullDomain: true });
+    const domains: Array<FormDomain> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { fullDomain: true },
+    );
 
     return { deleteBy, carryForward: domains };
   }
@@ -296,7 +298,9 @@ export class Service extends ProjectReferencesService<FormDomain> {
    * left behind is cleaned up once it has long expired; one taken from a
    * live domain is an outage.
    */
-  private async isNameClaimedByAnotherOwner(fullDomain: string): Promise<boolean> {
+  private async isNameClaimedByAnotherOwner(
+    fullDomain: string,
+  ): Promise<boolean> {
     const owners: Array<CertificateOwner> = CertificateOwners.getAll().filter(
       (owner: CertificateOwner): boolean => {
         return owner.name !== CertificateOwners.FORM_DOMAINS_OWNER_NAME;
@@ -360,9 +364,49 @@ export class Service extends ProjectReferencesService<FormDomain> {
   }
 
   /*
+   * Whether a visit to this name is a visit to a form's own domain: some
+   * form domain has exactly this name - lower case, without a port or a
+   * trailing dot, as the request's own Host header says it
+   * (RequestHost.getRequestHost). What the App answers the visit with turns
+   * on it (FeatureSet/Frontend): the form's page, which then reads the form
+   * through the form API and says when it is not available, rather than a
+   * status page that does not exist. False for any other name, and when the
+   * lookup fails: a status page's domain, the commoner kind, keeps working.
+   */
+  @CaptureSpan()
+  public async isFormDomain(
+    hostname: string | null | undefined,
+  ): Promise<boolean> {
+    const name: string = (hostname || "").trim().toLowerCase();
+
+    if (!name || !Domain.isValidDomain(name)) {
+      return false;
+    }
+
+    try {
+      const formDomain: FormDomain | null = await this.findOneBy({
+        query: {
+          fullDomain: name,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return Boolean(formDomain);
+    } catch (err) {
+      logger.error(err, { fullDomain: name } as LogAttributes);
+      return false;
+    }
+  }
+
+  /*
    * The share key of the form a visit to this name opens: the form domain of
    * exactly this name - lower case, without a port or a trailing dot, as
-   * the request's own Host header says it (normalizeStatusPageRequestHost) -
+   * the request's own Host header says it (RequestHost.getRequestHost) -
    * whose project still has the parent domain verified. Null for any other
    * name: one no form has, a status page's or a dashboard's, a form domain
    * whose domain is no longer verified, or a lookup that failed.
@@ -417,38 +461,31 @@ export class Service extends ProjectReferencesService<FormDomain> {
    * The domain with its full name and whether it serves an uploaded
    * certificate, read once when the caller did not have them both.
    */
-  private async getDomainToOrder(
-    formDomain: FormDomain,
-  ): Promise<FormDomain> {
+  private async getDomainToOrder(formDomain: FormDomain): Promise<FormDomain> {
     if (!formDomain.id) {
       throw new BadDataException(
         "Domain ID is required to order a certificate",
       );
     }
 
-    if (
-      formDomain.fullDomain &&
-      formDomain.isCustomCertificate !== undefined
-    ) {
+    if (formDomain.fullDomain && formDomain.isCustomCertificate !== undefined) {
       return formDomain;
     }
 
-    const fetchedFormDomain: FormDomain | null = await this.findOneBy(
-      {
-        query: {
-          _id: formDomain.id.toString(),
-        },
-        select: {
-          _id: true,
-          fullDomain: true,
-          isCustomCertificate: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
+    const fetchedFormDomain: FormDomain | null = await this.findOneBy({
+      query: {
+        _id: formDomain.id.toString(),
       },
-    );
+      select: {
+        _id: true,
+        fullDomain: true,
+        isCustomCertificate: true,
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!fetchedFormDomain) {
       throw new BadDataException("DomainModel not found");
@@ -610,8 +647,7 @@ export class Service extends ProjectReferencesService<FormDomain> {
       renewIfExpired?: boolean | undefined;
     },
   ): Promise<CertificateOrderOutcome> {
-    const domainToOrder: FormDomain =
-      await this.getDomainToOrder(formDomain);
+    const domainToOrder: FormDomain = await this.getDomainToOrder(formDomain);
 
     if (domainToOrder.isCustomCertificate) {
       throw new BadDataException(
@@ -1106,9 +1142,7 @@ export class Service extends ProjectReferencesService<FormDomain> {
    * it changes: this sweep visits every ordered domain every 15 minutes.
    */
   @CaptureSpan()
-  public async updateSslProvisioningStatus(
-    domain: FormDomain,
-  ): Promise<void> {
+  public async updateSslProvisioningStatus(domain: FormDomain): Promise<void> {
     if (!domain.id) {
       throw new BadDataException("DomainModel ID is required");
     }
@@ -1176,23 +1210,21 @@ export class Service extends ProjectReferencesService<FormDomain> {
       cnameVerifiedJustNow?: boolean | undefined;
     },
   ): Promise<void> {
-    await CustomDomainOrders.orderForVerifiedDomainsWithoutOne<FormDomain>(
-      {
-        domains: domains,
-        maxPerRun: Service.ORDER_MAX_PER_RUN,
-        recordAsOrdered: async (domainIds: Array<ObjectID>): Promise<void> => {
-          await this.recordCertificatesAsOrdered(domainIds);
-        },
-        orderIfMissing: async (
-          domain: FormDomain,
-        ): Promise<CertificateOrderOutcome> => {
-          return await this.orderCertIfMissing(domain, {
-            fromSweep: true,
-            cnameVerifiedJustNow: options?.cnameVerifiedJustNow,
-          });
-        },
+    await CustomDomainOrders.orderForVerifiedDomainsWithoutOne<FormDomain>({
+      domains: domains,
+      maxPerRun: Service.ORDER_MAX_PER_RUN,
+      recordAsOrdered: async (domainIds: Array<ObjectID>): Promise<void> => {
+        await this.recordCertificatesAsOrdered(domainIds);
       },
-    );
+      orderIfMissing: async (
+        domain: FormDomain,
+      ): Promise<CertificateOrderOutcome> => {
+        return await this.orderCertIfMissing(domain, {
+          fromSweep: true,
+          cnameVerifiedJustNow: options?.cnameVerifiedJustNow,
+        });
+      },
+    });
   }
 
   /*

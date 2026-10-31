@@ -12,6 +12,12 @@ import { ACCOUNTS_URL } from "Common/UI/Config";
  */
 export const FORM_PUBLIC_ROUTE_SEGMENT: string = "form";
 
+/*
+ * A domain of the kind people put a form on, for "Use your own domain, such
+ * as report.example.com." on the Share page. Not translated: it is a name.
+ */
+export const FORM_EXAMPLE_DOMAIN: string = "report.example.com";
+
 export type GetFormShareLinkFunction = (shareKey: ObjectID | string) => URL;
 
 export const getFormShareLink: GetFormShareLinkFunction = (

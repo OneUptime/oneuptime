@@ -562,7 +562,7 @@ export class Service extends DatabaseService<Model> {
    * form has gets the one answer every unavailable form gets.
    *
    * hostname is the request's own Host, normalized
-   * (normalizeStatusPageRequestHost): never X-Forwarded-Host, which a caller
+   * (RequestHost.getRequestHost): never X-Forwarded-Host, which a caller
    * writes.
    */
   @CaptureSpan()
@@ -596,6 +596,34 @@ export class Service extends DatabaseService<Model> {
       clientIp: data.clientIp,
       captchaRemoteIp: data.captchaRemoteIp,
     });
+  }
+
+  /**
+   * The name of the form a visit to its own domain opens, for the title of
+   * the page the App serves there (FeatureSet/Frontend) - the name the page
+   * shows once it has read the form - or null when the visitor would not be
+   * shown the form: no form has the domain, the form is off or below its
+   * plan, or the visitor's network is outside its IP allowlist. Read with
+   * every check the form's own read makes, so the title never names a form
+   * the page then refuses. Never throws.
+   */
+  @CaptureSpan()
+  public async getFormNameOnCustomDomain(data: {
+    hostname: string | null;
+    clientIp: string | undefined;
+  }): Promise<string | null> {
+    try {
+      const form: Model = await this.getFormForPublicRequest({
+        shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
+        clientIp: data.clientIp,
+      });
+
+      const name: string = (form.name || "").trim();
+
+      return name || null;
+    } catch {
+      return null;
+    }
   }
 
   // The key of the form a name answers with, or the not-available answer.

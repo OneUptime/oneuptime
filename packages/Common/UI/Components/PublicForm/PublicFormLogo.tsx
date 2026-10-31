@@ -42,6 +42,12 @@ export interface ComponentProps {
    */
   altText?: string | undefined;
   className?: string | undefined;
+  /*
+   * False on a form's own domain (Accounts Utils/FormDomainPage): the page is
+   * its owner's, so a form without a logo of its own shows none, rather than
+   * OneUptime's, and its name leads the page.
+   */
+  showProductLogo?: boolean | undefined;
 }
 
 const PublicFormLogo: FunctionComponent<ComponentProps> = (
@@ -60,6 +66,10 @@ const PublicFormLogo: FunctionComponent<ComponentProps> = (
     }`.trim();
 
   if (!source || failedSource === source) {
+    if (props.showProductLogo === false) {
+      return <></>;
+    }
+
     const productLogoSource: string | null = getProductLogoSource(Theme.Light);
 
     if (!productLogoSource) {

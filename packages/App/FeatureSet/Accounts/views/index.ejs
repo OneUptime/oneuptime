@@ -9,6 +9,16 @@
   var brandName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
   var brandFaviconUrl = (typeof productFaviconUrl !== 'undefined' && productFaviconUrl) ? productFaviconUrl : '';
   var isBranded = brandName !== 'OneUptime' || Boolean(brandFaviconUrl);
+
+  /*
+   * A form on its owner's own domain (App/FeatureSet/Frontend/FormDomainPage.ts):
+   * this page is that form and nothing else. The app reads the mark below to
+   * draw the form alone; the page is the customer's, so it is titled with the
+   * form's name (or the domain), always light, and carries nothing of
+   * OneUptime's own - no analytics, no app manifest, no Slack app id.
+   */
+  var isOnFormDomain = typeof isFormDomainPage !== 'undefined' && isFormDomainPage === true;
+  var formDomainTitle = (typeof formDomainPageTitle !== 'undefined' && formDomainPageTitle) ? formDomainPageTitle : '';
 %>
 
 <head>
@@ -22,17 +32,23 @@
     the same addresses).
   -%>
   <%- include('../../../../Common/Server/Views/Partials/Theme', {
-    alwaysLightPathPrefixes: ['/accounts/form/', '/accounts/incident-form/']
+    alwaysLightPathPrefixes: ['/accounts/form/', '/accounts/incident-form/'],
+    alwaysLight: isOnFormDomain
   }) -%>
+  <% if (isOnFormDomain) { %>
+  <meta name="oneuptime-form-domain" content="true">
+  <% } %>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta charSet='utf-8' />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <% if (!isOnFormDomain) { %>
   <meta name="slack-app-id" content="ACVBMTPJQ">
   <% if (brandName !== 'OneUptime') { %>
   <meta name="description" content="<%= brandName %>">
   <% } else { %>
   <meta name="description" content="OneUptime - the complete open-source observability platform.">
+  <% } %>
   <% } %>
 
   <%#
@@ -40,12 +56,14 @@
     or visitor identification tool runs on sign-up. The partial loads it once
     consent allows, and not while a sign-in token is still in the address bar.
   -%>
+  <% if (!isOnFormDomain) { %>
   <%- include('../../../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
     googleTagMode: 'analytics-only'
   }) -%>
 
   <link rel="manifest" href="/accounts/assets/img/favicons/ma">
+  <% } %>
   
   <% if (brandFaviconUrl) { %>
   <link rel="icon" href="<%= brandFaviconUrl %>">
@@ -111,7 +129,7 @@
     <%# Left and right follow the reading direction (Common/UI/Styles/TailwindReadingDirection.js) -%>
     <script src="/accounts/assets/js/tailwind-reading-direction.js"></script>
 
-  <title><%= brandName %> Accounts</title>
+  <title><%= isOnFormDomain ? formDomainTitle : brandName + ' Accounts' %></title>
 
 
   <!--
@@ -127,7 +145,9 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
+  <% if (!isOnFormDomain) { %>
   <title><%= brandName %> | Account</title>
+  <% } %>
 </head>
 
 <body class="h-full bg-gray-50">

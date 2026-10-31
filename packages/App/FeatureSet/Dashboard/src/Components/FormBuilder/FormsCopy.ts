@@ -212,7 +212,6 @@ export const FormsCopy: {
   shareLinkTitle: string;
   shareLinkDescription: string;
   copyLink: string;
-  openForm: string;
   resetLink: string;
   resetLinkConfirmation: string;
   newLinkTitle: string;
@@ -511,7 +510,6 @@ export const FormsCopy: {
   shareLinkDescription:
     "Anyone with this link can open the form and submit it, without a OneUptime account. Share it where the people who should use it will find it.",
   copyLink: "Copy Link",
-  openForm: "Open Form",
   resetLink: "Reset Link",
   resetLinkConfirmation:
     "The form gets a new link, and the current one stops working at once. Everybody you shared it with sees a 'not available' message until you send them the new one.",

@@ -4,8 +4,32 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 
-const AccountsFooter: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  /*
+   * A form on its owner's own domain (Utils/FormDomainPage): the language
+   * picker alone - no OneUptime copyright, contact or legal links on a page
+   * that is the customer's.
+   */
+  isOnFormDomain?: boolean | undefined;
+}
+
+const AccountsFooter: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const { t } = useTranslation();
+
+  if (props.isOnFormDomain) {
+    return (
+      <Footer
+        className="border-t border-gray-100 px-8"
+        links={[
+          {
+            content: <LanguageSwitcher />,
+          },
+        ]}
+      />
+    );
+  }
 
   return (
     <Footer

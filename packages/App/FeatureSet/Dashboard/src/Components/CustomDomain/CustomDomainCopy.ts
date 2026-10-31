@@ -5,10 +5,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Custom Domains pages - a status page's (Status Pages -> a page ->
- * Branding -> Custom Domains) and a dashboard's (Dashboards -> a dashboard ->
- * Branding -> Custom Domains) - and the DNS Setup dialog they open. Both are
- * one table (CustomDomainsTable), so the same job reads and works the same
- * on both.
+ * Branding -> Custom Domains), a dashboard's (Dashboards -> a dashboard ->
+ * Branding -> Custom Domains) and a form's (Forms -> a form -> Custom
+ * Domains) - and the DNS Setup dialog they open. All three are one table
+ * (CustomDomainsTable), so the same job reads and works the same on each.
  *
  * Putting a status page on your own domain used to take four actions in two
  * places: verify the domain in Project Settings, add the custom domain in two
@@ -443,6 +443,36 @@ export const DASHBOARD_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
   reissueTitle: translationKey("Reissue SSL Certificate for this Dashboard"),
   reissueDescription: translationKey(
     "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your dashboard stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.",
+  ),
+};
+
+/*
+ * A form's own domain shows the form at its root: report.acme.com, and
+ * nothing else on that domain. Forms use the status page CNAME record unless
+ * the installation names one of their own (FORM_CNAME_RECORD): one ingress
+ * serves every custom domain, so the record that turns custom domains on for
+ * status pages turns them on for forms.
+ */
+export const FORM_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
+  cardDescription: translationKey(
+    "Serve this form on your own domain, at its root. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
+  ),
+  cardDescriptionWithoutFreeCertificates: translationKey(
+    "Serve this form on your own domain, at its root. Point each domain's CNAME record to {{cnameRecord}}.",
+  ),
+  dnsSetupIntro: translationKey(
+    "Add this record at your DNS provider to point {{domain}} to your form.",
+  ),
+  dnsSetupNotEnabled: translationKey(
+    "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set statusPage.cnameRecord in the values.yaml file: forms use the status page CNAME record.",
+  ),
+  subdomainPlaceholder: translationKey("report (leave blank for root)"),
+  subdomainDescription: translationKey(
+    "Enter the subdomain label only (for example, report). Leave blank or enter @ to use the root/apex domain.",
+  ),
+  reissueTitle: translationKey("Reissue SSL Certificate for this Form"),
+  reissueDescription: translationKey(
+    "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.",
   ),
 };
 

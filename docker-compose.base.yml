@@ -10,6 +10,9 @@ x-common-variables: &common-variables
 
   STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
   DASHBOARD_CNAME_RECORD: ${DASHBOARD_CNAME_RECORD}
+  # Forms on custom domains use STATUS_PAGE_CNAME_RECORD unless this names
+  # another target (config.example.env). Empty when unset, without a warning.
+  FORM_CNAME_RECORD: ${FORM_CNAME_RECORD:-}
 
   LOG_LEVEL: ${LOG_LEVEL}
 

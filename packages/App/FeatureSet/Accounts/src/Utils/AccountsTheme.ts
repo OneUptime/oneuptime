@@ -1,4 +1,5 @@
 import ThemeUtil from "Common/UI/Utils/Theme";
+import { isFormDomainPage } from "./FormDomainPage";
 
 /*
  * The sign-in pages' theme: the person's own (Common/Types/Theme/
@@ -33,12 +34,17 @@ export const isAlwaysLightPath: (pathname: string) => boolean = (
   });
 };
 
+/*
+ * A form on its owner's own domain (Utils/FormDomainPage) is that form's
+ * page whatever its address, and as light: index.ejs draws it light before
+ * the first paint (the Theme partial's alwaysLight).
+ */
 const isOnAlwaysLightPage: () => boolean = (): boolean => {
   if (typeof window === "undefined") {
     return false;
   }
 
-  return isAlwaysLightPath(window.location.pathname);
+  return isFormDomainPage() || isAlwaysLightPath(window.location.pathname);
 };
 
 export default class AccountsTheme {

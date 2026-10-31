@@ -22,6 +22,10 @@
                                with one of them is light. A public form is
                                its owner's page, not the person's
                                (Accounts' index.ejs).
+      alwaysLight              true on a page drawn light wherever it is
+                               opened: a form on its owner's own domain, which
+                               is shown at that domain's root (Accounts'
+                               index.ejs).
       followChanges            true on a page with no app of its own to keep
                                it in step (the server's own pages): the
                                script then also redraws it when the device
@@ -41,6 +45,11 @@
     themeAlwaysLightPathPrefixes = alwaysLightPathPrefixes.filter(function (prefix) {
       return typeof prefix === 'string' && /^\/[a-z0-9\/-]+$/.test(prefix);
     });
+  }
+
+  // Every address starts with "/": the whole page is light, whatever its address.
+  if (typeof alwaysLight !== 'undefined' && alwaysLight === true) {
+    themeAlwaysLightPathPrefixes = ['/'];
   }
 
   var themeFollowsChanges = typeof followChanges !== 'undefined' && followChanges === true;
