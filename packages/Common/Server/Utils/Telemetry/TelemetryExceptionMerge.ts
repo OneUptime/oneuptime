@@ -512,6 +512,9 @@ export default class TelemetryExceptionMerge {
       );
     }
 
+    // The project of the exception unmerged, as its locked row holds it.
+    let unmergedProjectId: string | null = null as string | null;
+
     const unmergeResult: ExceptionUnmergeResult =
       await TelemetryExceptionService.executeTransaction(
         async (manager: EntityManager): Promise<ExceptionUnmergeResult> => {
@@ -546,6 +549,8 @@ export default class TelemetryExceptionMerge {
             [lockedMerged.id],
           );
 
+          unmergedProjectId = lockedMerged.projectId;
+
           return {
             telemetryExceptionId: lockedMerged.id,
             unmergedFromTelemetryExceptionId: lockedMerged.mergedIntoId,
@@ -558,12 +563,12 @@ export default class TelemetryExceptionMerge {
     if (
       unmergeResult.outcome === ExceptionUnmergeOutcome.Unmerged &&
       unmergeResult.unmergedFromTelemetryExceptionId &&
-      merged.projectId
+      unmergedProjectId
     ) {
       await TelemetryExceptionActivityService.record({
         entries: [
           {
-            projectId: merged.projectId,
+            projectId: new ObjectID(unmergedProjectId),
             telemetryExceptionId: new ObjectID(
               unmergeResult.unmergedFromTelemetryExceptionId,
             ),
@@ -571,7 +576,7 @@ export default class TelemetryExceptionMerge {
             relatedTelemetryExceptionId: unmergeResult.telemetryExceptionId,
           },
           {
-            projectId: merged.projectId,
+            projectId: new ObjectID(unmergedProjectId),
             telemetryExceptionId: new ObjectID(
               unmergeResult.telemetryExceptionId,
             ),
