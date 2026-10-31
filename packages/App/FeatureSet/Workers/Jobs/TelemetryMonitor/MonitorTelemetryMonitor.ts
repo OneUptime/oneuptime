@@ -4111,7 +4111,17 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
       queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
       results: finalResult,
-      nativeUnitByMetricName: nativeUnitsByMetricName,
+      /*
+       * The values are in the catalog's units, which the catalog knows per
+       * label filter (Pure puts several quantities on one metric name) and
+       * an exporter declares per name at best. A query's display unit
+       * defaults to the same catalog unit (buildStorageArrayMonitorConfig),
+       * so its values are never rescaled; one in another unit of the same
+       * family - a latency shown in ms - is converted from the right one.
+       */
+      nativeUnitByMetricName: new Map<string, string>(
+        Object.entries(unitsByMetricName),
+      ),
     });
 
   const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({

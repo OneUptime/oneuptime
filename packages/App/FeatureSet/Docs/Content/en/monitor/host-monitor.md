@@ -115,7 +115,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
 - **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full: OneUptime's collector configs leave them out of the `filesystem` scraper with `exclude_fs_types`, and a config of your own needs the same.
 - **Load average** is a raw run-queue length, not divided by the number of cores: 4 is saturation on a 2-core host and routine on a 32-core one, so raise it on large hosts.
-- **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux only.
+- **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux, macOS and BSD, not on Windows.
 
 ## Collected Metrics
 
