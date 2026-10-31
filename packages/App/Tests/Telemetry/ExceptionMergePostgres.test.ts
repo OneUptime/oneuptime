@@ -546,6 +546,74 @@ describePostgres("merging exceptions against Postgres", () => {
     expect(await lookUp(["b"])).toEqual(["b"]);
   });
 
+  /*
+   * A caller that matches the rows back to the fingerprints it asked about
+   * (the security case's story and evidence, the session replay's
+   * exception links) is told which exception each fingerprint counts on
+   * (TelemetryExceptionService.findByOccurrenceFingerprints): b's is a's
+   * while b is merged into it, though a's row carries a's fingerprint, and
+   * b's own again once it is unmerged.
+   */
+  test("matching rows back to the fingerprints asked about: a merged one to the exception it was merged into", async () => {
+    jest
+      .spyOn(TelemetryExceptionService, "getRepository")
+      .mockReturnValue(database.getRepository(TelemetryException) as never);
+
+    await ingest(["a", "b", "c", "d"]);
+    await merge("a", ["b", "c"]);
+
+    async function counted(
+      fingerprints: Array<string>,
+    ): Promise<Record<string, Array<string>>> {
+      const answer: Map<
+        string,
+        Array<TelemetryException>
+      > = await TelemetryExceptionService.findByOccurrenceFingerprints({
+        projectId,
+        fingerprints,
+        select: { message: true },
+        limit: 10,
+        props: { isRoot: true },
+      });
+
+      const byFingerprint: Record<string, Array<string>> = {};
+
+      for (const [fingerprint, exceptions] of answer) {
+        byFingerprint[fingerprint] = exceptions.map(
+          (row: TelemetryException): string => {
+            return row.fingerprint || "";
+          },
+        );
+      }
+
+      return byFingerprint;
+    }
+
+    expect(await counted(["b", "c", "d", "e"])).toEqual({
+      b: ["a"],
+      c: ["a"],
+      d: ["d"],
+    });
+    expect(await counted(["a", "b"])).toEqual({ a: ["a"], b: ["a"] });
+
+    // The ids are the survivor's own.
+    const answer: Map<
+      string,
+      Array<TelemetryException>
+    > = await TelemetryExceptionService.findByOccurrenceFingerprints({
+      projectId,
+      fingerprints: ["b"],
+      select: {},
+      limit: 10,
+      props: { isRoot: true },
+    });
+    expect(answer.get("b")![0]!.id!.toString()).toBe((await read("a"))._id);
+
+    // Unmerged, b counts on its own exception again; c is still a's.
+    await unmerge("b");
+    expect(await counted(["b", "c"])).toEqual({ b: ["b"], c: ["a"] });
+  });
+
   test("an unmerge gives the survivor back its own first and last seen", async () => {
     const day: (n: number) => Date = (n: number): Date => {
       return new Date(Date.UTC(2026, 9, 1 + n));

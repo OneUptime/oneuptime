@@ -341,6 +341,33 @@ if (!collector.service.pipelines["metrics/restarts-increase"] || contexts.join("
 }
 ' "${WORK_DIR}/k8s-validate-kubernetes-agent-deployment.yaml"
 
+# And the metrics pipeline's transform/job-failures-increase (the Job
+# failures Job Failures sums): a copy of k8s.job.failed_pods, its gauge made a
+# sum in metric context, then cumulative_to_delta/job-failures-increase, both
+# run by the metrics pipeline - so validating this config validates them.
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [config] = process.argv.slice(1);
+const collector = yaml.load(fs.readFileSync(config, "utf8"));
+const transform = collector.processors["transform/job-failures-increase"] || { metric_statements: [] };
+const contexts = transform.metric_statements.map((group) => {
+  return `${group.context}:${group.statements.map((statement) => {
+    return statement.substring(0, statement.indexOf("("));
+  }).join("+")}`;
+});
+const processors = collector.service.pipelines.metrics.processors;
+const at = processors.indexOf("transform/job-failures-increase");
+if (
+  contexts.join(",") !== "metric:copy_metric,metric:convert_gauge_to_sum" ||
+  at < 0 ||
+  processors[at + 1] !== "cumulative_to_delta/job-failures-increase"
+) {
+  throw new Error(`${config}: the metrics pipeline does not copy k8s.job.failed_pods and convert the copy in metric context (${contexts.join(", ")}; ${processors.join(", ")})`);
+}
+' "${WORK_DIR}/k8s-validate-kubernetes-agent-deployment.yaml"
+
 while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
@@ -422,6 +449,17 @@ for (const role of ["deployment", "daemonset"]) {
       })
     ) {
       throw new Error(`${rendered}: no metrics/restarts-increase pipeline converting its gauge in datapoint context`);
+    }
+    // And the Job failures copy, its gauge made a sum there too.
+    const jobFailures = config.processors["transform/job-failures-increase"];
+    if (
+      !jobFailures ||
+      !config.service.pipelines.metrics.processors.includes("transform/job-failures-increase") ||
+      jobFailures.metric_statements.map((group) => {
+        return group.context;
+      }).join(",") !== "metric,datapoint"
+    ) {
+      throw new Error(`${rendered}: the metrics pipeline does not copy k8s.job.failed_pods and convert the copy in datapoint context`);
     }
     if (!config.receivers.k8sobjects) {
       throw new Error(`${rendered}: the Deployment config has no k8sobjects receiver to set aside`);

@@ -1342,28 +1342,87 @@ describe(`${KUBERNETES}: the template table`, () => {
     expect(englishPage(KUBERNETES)).toContain(
       "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it.",
     );
-    // The limits of the per-minute delta are Job Failures' alone now.
+    // No template has the limits of the per-minute delta any more.
     expect(englishPage(KUBERNETES)).not.toContain(
       "count how much a restart or failed-pod count grew",
     );
   });
 
-  it("Job Failures counts how much the failed-pod count grew in the window, not the lifetime count", () => {
+  it("Job Failures sums the failed pods the agent sends with each sample", () => {
     const jobFailures: BuiltTemplate = named("Job Failures");
 
-    expect(jobFailures.formulas).toEqual(["failed_pods_max - failed_pods_min"]);
+    expect(jobFailures.queries.map(metricNameOf)).toEqual([
+      "k8s.job.failed_pods.increase",
+    ]);
+    expect(jobFailures.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+    ]);
+    expect(groupByOf(jobFailures)).toEqual([
+      "resource.k8s.namespace.name",
+      "resource.k8s.job.name",
+    ]);
+    expect(jobFailures.formulas).toEqual([]);
+    expect(comparisonOf(primary(jobFailures.first))).toEqual({
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
     expect(windowAggregationOf(primary(jobFailures.first))).toBe(
       EvaluateOverTimeType.Sum,
     );
 
+    // The chart's cluster collector makes it, from a copy of the count.
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    expect(chart).toContain(
+      'copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+    );
+    expect(chart).toContain(
+      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n",
+    );
+
     expect(englishPage(KUBERNETES)).toContain(
-      "**Job Failures** counts how much a Job's failed-pod count grew in the window, not the count itself, so it clears on its own once the failures stop. The growth is only seen between two samples of the same minute",
+      "**Job Failures** adds up `k8s.job.failed_pods.increase`, which the agent sends with every sample: the Job's pods that failed since its previous sample of the Job. So it counts every failure however far apart the samples are, it clears on its own once the failures stop, and a Job recreated under the same name starts a new count rather than reading as failures.",
+    );
+    // What it cannot see: a Job's failures before its first sample.
+    expect(englishPage(KUBERNETES)).toContain(
+      "The failures before the agent's first sample of a Job are where its count starts, so a Job that fails within its first half-minute and never retries can go unseen.",
+    );
+    // What an older agent and a monitor made from the old query need.
+    expect(englishPage(KUBERNETES)).toContain(
+      "An older agent does not send `k8s.job.failed_pods.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "reads how much `k8s.job.failed_pods` grew within each minute, which misses about half of the failures: delete it and create the template again.",
+    );
+    // And the troubleshooting entry, with the allowlist that silences it.
+    expect(englishPage(KUBERNETES)).toContain(
+      ":::details Job Failures did not fire for a failed Job\nThe template fires when a pod of a Job fails within 15 minutes, and clears fifteen minutes after the last failure.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.job.failed_pods.increase` to it.",
+    );
+    // The limits of the per-minute delta it no longer has.
+    expect(englishPage(KUBERNETES)).not.toContain(
+      "The growth is only seen between two samples of the same minute",
+    );
+    expect(englishPage(KUBERNETES)).not.toContain(
+      "a single failure can go unseen",
     );
   });
 
   it("names the restarts the agent sends with each sample beside the running count in the metric catalog note", () => {
     expect(englishPage(KUBERNETES)).toContain(
       "**Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it.",
+    );
+  });
+
+  it("names the Job failures the agent sends with each sample beside the running count in the metric catalog note and its table", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "**Job Failed Pods** is a Job's running count of failed pods; **Job Failed Pods (Increase)** is what the agent sends with every sample, the Job's pods that failed since its previous sample of the Job, so its sum over a window is the failures in it.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |",
     );
   });
 

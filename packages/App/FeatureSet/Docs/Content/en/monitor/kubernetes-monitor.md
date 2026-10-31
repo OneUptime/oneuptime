@@ -86,12 +86,12 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. **Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it. Control-plane metrics only arrive when the agent's control-plane scrape is on.
+> **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. **Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it. **Job Failed Pods** is a Job's running count of failed pods; **Job Failed Pods (Increase)** is what the agent sends with every sample, the Job's pods that failed since its previous sample of the Job, so its sum over a window is the failures in it. Control-plane metrics only arrive when the agent's control-plane scrape is on.
 
 ## Monitoring criteria
 
@@ -161,7 +161,7 @@ Templates on per-object metrics evaluate each node, pod, deployment, job, Daemon
 > **CrashLoopBackOff Detection** adds up `k8s.container.restarts.increase`, which the agent sends with every sample: the restarts since its previous sample of the container. So it counts every restart however far apart the samples are, it clears on its own once the restarts stop, and a pod that is recreated starts a new count rather than reading as restarts. An older agent does not send `k8s.container.restarts.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first. A monitor made from the template before then reads how much `k8s.container.restarts` grew within each minute, which misses about half of a loop's restarts: delete it and create the template again.
 
 > [!NOTE]
-> **Job Failures** counts how much a Job's failed-pod count grew in the window, not the count itself, so it clears on its own once the failures stop. The growth is only seen between two samples of the same minute: at the agent's 30-second interval that is about half of it. A Job that exhausts its retries is caught; a single failure can go unseen.
+> **Job Failures** adds up `k8s.job.failed_pods.increase`, which the agent sends with every sample: the Job's pods that failed since its previous sample of the Job. So it counts every failure however far apart the samples are, it clears on its own once the failures stop, and a Job recreated under the same name starts a new count rather than reading as failures. The failures before the agent's first sample of a Job are where its count starts, so a Job that fails within its first half-minute and never retries can go unseen. An older agent does not send `k8s.job.failed_pods.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first. A monitor made from the template before then reads how much `k8s.job.failed_pods` grew within each minute, which misses about half of the failures: delete it and create the template again.
 
 ### Catching causes, not just symptoms
 
@@ -191,6 +191,10 @@ Clusters register themselves from the agent's data, under the `clusterName` the 
 
 :::details CrashLoopBackOff Detection did not fire for a restart
 The template fires when a container restarts within 15 minutes while it was ready for less than half of them, so a container that restarted once and came straight back does not page. It reads `k8s.container.restarts.increase`, which an older agent does not send: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading). A monitor made from the template before then reads how much `k8s.container.restarts` grew between two samples in the same minute, and misses the restarts between two minutes' samples: delete it and create the template again. If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it.
+:::
+
+:::details Job Failures did not fire for a failed Job
+The template fires when a pod of a Job fails within 15 minutes, and clears fifteen minutes after the last failure. It reads `k8s.job.failed_pods.increase`, which an older agent does not send: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading). A monitor made from the template before then reads how much `k8s.job.failed_pods` grew between two samples in the same minute, and misses the failures between two minutes' samples: delete it and create the template again. The failures before the agent's first sample of a Job are where its count starts, so a Job whose only pod fails within its first half-minute goes unseen. If `filters.metrics.include` lists the metrics the agent sends, add `k8s.job.failed_pods.increase` to it.
 :::
 
 ## Next steps

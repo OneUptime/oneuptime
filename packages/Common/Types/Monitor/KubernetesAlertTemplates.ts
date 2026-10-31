@@ -401,10 +401,11 @@ export interface KubernetesFormulaSpec {
 
 /**
  * Several queries over the SAME object, and the formulas over them that the
- * criteria compare: a counter's growth (Job Failures), a count next to the
- * gauge that qualifies it (CrashLoopBackOff: the restarts the agent sends
- * with each sample, and readiness), or two derived values that must both
- * hold (an HPA at its ceiling AND above its floor).
+ * criteria compare: a count next to the gauge that qualifies it
+ * (CrashLoopBackOff: the restarts the agent sends with each sample, and
+ * readiness), a titled count of its own (Job Failures: the failed pods the
+ * agent sends with each sample), or two derived values that must both hold
+ * (an HPA at its ceiling AND above its floor).
  *
  * Every query carries the same group-by key set, which is what lines the
  * series up (see buildKubernetesRatioMonitorConfig: a key only one query
@@ -412,15 +413,14 @@ export interface KubernetesFormulaSpec {
  * against an empty operand), so pass only keys every metric's receiver
  * stamps itself.
  *
- * A counter's growth is the house pattern of buildDockerDeltaMonitorConfig:
- * a Max and a Min query over the same lifetime counter and a formula
- * subtracting them give its growth WITHIN each one-minute bucket, and a
- * criteria with `EvaluateOverTimeType.Sum` totals those across the window.
- * The monitor path has no cross-bucket rate, so this sees only growth
+ * A counter's growth is NOT taken here. The monitor path has no cross-bucket
+ * rate, so a Max and a Min query over a lifetime counter and a formula
+ * subtracting them (buildDockerDeltaMonitorConfig) see only its growth
  * between two samples of the SAME minute: at the agent's 30-second
- * collection interval, about half of the real increments - a lower bound,
- * which cannot manufacture a breach. At 60 seconds or slower every bucket
- * holds one sample and the growth reads 0.
+ * collection interval, about half of the real increments. The Kubernetes
+ * templates that count restarts or failures read the increase the agent
+ * sends with every sample instead (the chart's restarts-increase and
+ * job-failures-increase processors), summed over the window.
  */
 export function buildKubernetesMultiQueryMonitorConfig(args: {
   clusterIdentifier: string;
@@ -1110,12 +1110,46 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * The id stays "k8s-job-failures": it is the stable key the recommendation
+ * catalog and the already-created-monitor diff match on.
+ *
+ * It used to read the growth of k8s.job.failed_pods (the Job's
+ * status.failed) between two samples of the same minute: a Max and a Min
+ * query per minute and a formula subtracting them, summed over the window.
+ * At the agent's 30-second interval a failure between the last sample of
+ * one minute and the first of the next was never counted - about half of
+ * them, so a Job that failed once had even odds of going unseen - and a Job
+ * recreated under the same name (a Helm hook's, a migration Job a deploy
+ * replaces) read the old Job's count against the new one's 0 as that many
+ * failures in one minute. The alerting path cannot difference values across
+ * minutes, so the agent does it: the cluster collector's
+ * transform/job-failures-increase sends k8s.job.failed_pods.increase with
+ * every sample, the failures since its previous sample of the same Job (by
+ * UID), however far back that was (HelmChart/Public/kubernetes-agent/
+ * templates/configmap-deployment.yaml). Summed per minute and over the
+ * window, that is every failure in it. The k8s_cluster receiver reports
+ * every Job at each interval until the Job is deleted, so a failing Job is
+ * sampled between its retries.
+ *
+ * What it cannot see: the failures before the agent's first sample of a Job
+ * are that Job's starting point, not an increase - the agent cannot tell a
+ * new Job's first failures from an old Job's history - so a Job that fails
+ * within its first half-minute and never retries goes unseen.
+ *
+ * A cluster whose agent predates k8s.job.failed_pods.increase sends nothing
+ * this query reads, so the template never fires there, and the docs tell it
+ * to upgrade the agent. That is also why monitors made from the old query
+ * are left as they are rather than rewritten to this one: against an older
+ * agent the rewrite would stop alerting.
+ */
 const jobFailuresTemplate: KubernetesAlertTemplate = {
   id: "k8s-job-failures",
   name: "Job Failures",
   summary: "A pod of a job fails within 15 minutes.",
+  // See crashLoopBackOffTemplate for why no backticks.
   description:
-    "Alert when a pod of a Kubernetes Job fails, and clear fifteen minutes after the last failure: a Job that retried and succeeded stops alerting on its own. Reads the growth of k8s.job.failed_pods, the Job's running count of failed pods, which is only seen growing between two samples of the same minute: a Job that fails once can go unseen, one that exhausts its retries (six by default) is caught. One incident per Job.",
+    "Alert when a pod of a Kubernetes Job fails, and clear fifteen minutes after the last failure: a Job that retried and succeeded stops alerting on its own. Reads k8s.job.failed_pods.increase, the Job's failed pods since the agent's previous sample of it, so every failure counts however far apart the samples are. A Job recreated under the same name starts a new count. Failures before the agent's first sample of a Job, in its first half-minute, are not counted. An older Kubernetes agent does not send the increase: upgrade the agent first. One incident per Job.",
   category: "Workload",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -1127,38 +1161,34 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
        * status.failed, which only grows for the life of the Job object: a
        * Job that failed once and succeeded on its retry kept "> 0" - and
        * the alert open - until the Job was deleted, and a CronJob keeps
-       * its last failed Job (failedJobsHistoryLimit) indefinitely. Its
-       * GROWTH in the window is "a pod failed recently", which clears on
-       * its own; see buildKubernetesMultiQueryMonitorConfig for the house
-       * delta and what it can and cannot see.
+       * its last failed Job (failedJobsHistoryLimit) indefinitely. The
+       * failures the agent sends with each sample, summed over the window,
+       * are "a pod failed recently", which clears on its own.
        */
       kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
         queries: [
           {
-            alias: "failed_pods_max",
-            metricName: "k8s.job.failed_pods",
-            aggregationType: MetricsAggregationType.Max,
-          },
-          {
-            alias: "failed_pods_min",
-            metricName: "k8s.job.failed_pods",
-            aggregationType: MetricsAggregationType.Min,
-          },
-        ],
-        formulas: [
-          {
             alias: metricAlias,
-            legend: "Failed Job Pods (in window)",
-            formula: "failed_pods_max - failed_pods_min",
-            legendUnit: "",
+            title: "Failed Job Pods",
+            metricName: "k8s.job.failed_pods.increase",
+            /*
+             * Sum WITHIN each Job's series: the failures in each minute.
+             * A minute with no sample of the Job has no row, not a zero,
+             * and the increase a later sample sends still counts its
+             * failures.
+             */
+            aggregationType: MetricsAggregationType.Sum,
           },
         ],
+        formulas: [],
         /*
          * Per Job object — one failing Job must not hide the next one.
          * Jobs are short-lived: when a Job is cleaned up its series stops
          * arriving and the per-series pass auto-resolves that Job's alert
-         * by absence, which is the behaviour we want here.
+         * by absence, which is the behaviour we want here. A Job recreated
+         * under the same name is the same series: its first sample sends
+         * nothing, its failures after that count.
          */
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",
@@ -1181,22 +1211,22 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         /*
-         * Sum: each sample is one minute's growth, and the window total is
-         * the number of pod failures seen.
+         * Sum: each sample is one minute's failures, and the window total
+         * is the number of pod failures in it.
          */
         metricAggregationType: EvaluateOverTimeType.Sum,
         incidentTitle: `[K8s] Job Failure Detected - ${args.monitorName}`,
         incidentDescription: `A pod of a Kubernetes Job failed within the last fifteen minutes, so the Job's workload is failing. If the Job retries and succeeds, or nothing fails for fifteen minutes, the alert clears on its own. The affected namespace and job are named under "Affected resource" below, with the describe command under "Start here"; the failed pod's logs say why it exited.`,
         criteriaName: "Job Failures - Failed Pods in 15 min > 0",
         criteriaDescription:
-          "Triggers when a Job's failed-pod count grows within the monitoring window. The growth is counted between two samples of the same minute, so it is a lower bound: a single failure can go unseen, a Job failing its retries is caught.",
+          "Triggers when a pod of a Job fails within the monitoring window, counted from the failed pods the agent sends with each sample.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
         value: 0,
-        // Must match the unhealthy side: a sum of per-minute growth.
+        // Must match the unhealthy side: a sum of per-minute failures.
         metricAggregationType: EvaluateOverTimeType.Sum,
       }),
     });
