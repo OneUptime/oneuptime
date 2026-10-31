@@ -38,9 +38,7 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
 });
 
 import VideoCallOAuthApps from "../../../../../Server/Utils/VideoCall/OAuth/VideoCallOAuthApps";
-import MicrosoftTeamsMeetingsOAuthApp, {
-  MICROSOFT_ORGANIZATIONS_AUTHORITY,
-} from "../../../../../Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
+import MicrosoftTeamsMeetingsOAuthApp from "../../../../../Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
 import VideoCallProvider from "../../../../../Types/VideoCall/VideoCallProvider";
 
 const TENANT_ID: string = "4a1f9e60-1b2c-4d3e-8f40-a1b2c3d4e5f6";
@@ -61,7 +59,7 @@ describe("VideoCallOAuthApps - the Teams meetings app's tenant", () => {
           VideoCallProvider.MicrosoftTeams,
         ) as MicrosoftTeamsMeetingsOAuthApp
       ).getSignInAuthority(),
-    ).toBe(MICROSOFT_ORGANIZATIONS_AUTHORITY);
+    ).toBe("https://login.microsoftonline.com/organizations");
   });
 
   test("a single-tenant app: its tenant, trimmed, and every sign-in there", () => {

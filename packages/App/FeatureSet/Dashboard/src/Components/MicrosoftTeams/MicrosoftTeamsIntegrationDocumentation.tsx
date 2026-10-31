@@ -1,6 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Card from "Common/UI/Components/Card/Card";
+import { MicrosoftTeamsCloudSetting } from "Common/UI/Config";
+import MicrosoftTeamsCloudUtil, {
+  MicrosoftTeamsCloudHosts,
+} from "Common/Types/Workspace/MicrosoftTeamsCloud";
 
 export interface ComponentProps {
   /*
@@ -15,6 +19,14 @@ export interface ComponentProps {
 const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  /*
+   * The Microsoft cloud this server's Teams runs in (MICROSOFT_TEAMS_CLOUD):
+   * the app registration and the Azure Bot are made in its Azure portal -
+   * Azure Government's for GCC High and DoD.
+   */
+  const cloud: MicrosoftTeamsCloudHosts =
+    MicrosoftTeamsCloudUtil.getHostsOrCommercial(MicrosoftTeamsCloudSetting);
+
   const markdownText: string = `
 
 ##### Step 1: Prerequisites
@@ -24,7 +36,7 @@ Azure Account - You can create one by going to https://azure.com.
 
 ##### Step 2: Create Azure App Registration
 
-1. Go to the [Azure Portal](https://portal.azure.com)
+1. Go to the [Azure Portal](${cloud.azurePortalOrigin})
 2. Navigate to "App registrations" and click "New registration"
 3. Fill out the registration form:
    - **Name:** oneuptime
@@ -136,6 +148,7 @@ microsoftTeamsApp:
 - \`MICROSOFT_TEAMS_APP_CLIENT_ID\` (\`clientId\`): the app registration's **Application (client) ID**. It is also the bot id of the Teams app package.
 - \`MICROSOFT_TEAMS_APP_CLIENT_SECRET\` (\`clientSecret\`): the client secret's **Value** from Step 4.
 - \`MICROSOFT_TEAMS_APP_TENANT_ID\` (\`tenantId\`): the **Directory (tenant) ID**. The bot authenticates in this tenant, and people sign in to it to connect their Microsoft Teams account.
+- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for Microsoft 365 in a US Government cloud - \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud. For GCC High and DoD, make the app registration and the Azure Bot in Azure Government (portal.azure.us). This server's cloud: **${cloud.title}**.
 
 
 Restart your OneUptime server after adding these environment variables so they take effect.

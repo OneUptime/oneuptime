@@ -1,8 +1,5 @@
 import MicrosoftTeamsMeetingsOAuthApp, {
   MICROSOFT_CONSUMER_TENANT_ID,
-  MICROSOFT_ORGANIZATIONS_AUTHORITY,
-  MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES,
-  MICROSOFT_TEAMS_MEETINGS_SCOPE,
 } from "../../../../../Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
 import {
   VideoCallOAuthGrant,
@@ -20,6 +17,16 @@ import {
 } from "../VideoCallTestFetch";
 import { unsignedIdToken } from "./VideoCallOAuthTestHelpers";
 import { describe, expect, test } from "@jest/globals";
+
+// The commercial cloud's sign-in and Graph scopes, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_ORGANIZATIONS_AUTHORITY: string =
+  "https://login.microsoftonline.com/organizations";
+const MICROSOFT_TEAMS_MEETINGS_SCOPE: string =
+  "https://graph.microsoft.com/OnlineMeetings.ReadWrite";
+const MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES: Array<string> = [
+  "https://graph.microsoft.com/Calendars.ReadWrite",
+  "https://graph.microsoft.com/OnlineMeetingTranscript.Read.All",
+];
 
 /*
  * Microsoft Teams' one-click Connect: a work or school account signs in
@@ -331,7 +338,9 @@ describe("MicrosoftTeamsMeetingsOAuthApp - an app registered for one organizatio
       expect(app.getSignInAuthority()).toBe(MICROSOFT_ORGANIZATIONS_AUTHORITY);
       expect(
         app.getAuthorizationUrl({ state: "s", redirectUri: REDIRECT_URI }),
-      ).toContain(`${MICROSOFT_ORGANIZATIONS_AUTHORITY}/oauth2/v2.0/authorize?`);
+      ).toContain(
+        `${MICROSOFT_ORGANIZATIONS_AUTHORITY}/oauth2/v2.0/authorize?`,
+      );
     },
   );
 });
@@ -364,6 +373,11 @@ describe("MicrosoftTeamsMeetingsOAuthApp - a project that records and transcribe
       CALENDAR_SCOPE,
       TRANSCRIPT_SCOPE,
     ]);
+    expect(
+      MicrosoftTeamsMeetingsOAuthApp.getSignInScopes(true).slice(
+        BASE_SIGN_IN_SCOPES.length,
+      ),
+    ).toEqual(MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES);
     expect(MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES).toEqual([
       CALENDAR_SCOPE,
       TRANSCRIPT_SCOPE,

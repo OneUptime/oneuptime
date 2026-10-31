@@ -1,3 +1,5 @@
+import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
+
 /*
  * WHERE MICROSOFT SIGNS PEOPLE IN FOR MICROSOFT TEAMS.
  *
@@ -42,12 +44,15 @@
  * the authority that issued it, and never chooses again.
  *
  * Admin consent has its own authorities (MicrosoftTeamsAPI): consent at the
- * project's tenant or `organizations`, then a sign-in at the tenant consent
- * named, which its ID token must prove.
+ * project's tenant or `organizations` (getAdminConsentUrl), then a sign-in
+ * at the tenant consent named, which its ID token must prove.
+ *
+ * Every one of these is on the sign-in host of the Microsoft cloud this
+ * server's Teams runs in (MicrosoftTeamsHosts, MICROSOFT_TEAMS_CLOUD):
+ * login.microsoftonline.com for the commercial cloud and GCC,
+ * login.microsoftonline.us for GCC High and DoD - which also issues the ID
+ * tokens consent is proved with.
  */
-
-export const MICROSOFT_LOGIN_ORIGIN: string =
-  "https://login.microsoftonline.com";
 
 // Microsoft's endpoint for a work or school account of any organization.
 export const MICROSOFT_ANY_ORGANIZATION: string = "organizations";
@@ -184,7 +189,15 @@ export default class MicrosoftTeamsSignInAuthorityUtil {
 
   // Who signs an ID token issued by `tenantId` (Microsoft identity platform v2.0).
   public static getIssuer(tenantId: string): string {
-    return `${MICROSOFT_LOGIN_ORIGIN}/${tenantId}/v2.0`;
+    return `${MicrosoftTeamsHosts.getSignInOrigin()}/${tenantId}/v2.0`;
+  }
+
+  /*
+   * Microsoft's admin consent endpoint: at the tenant a project is already
+   * connected to, or at Microsoft's endpoint for any organization.
+   */
+  public static getAdminConsentUrl(tenantId: string | undefined): string {
+    return `${MicrosoftTeamsSignInAuthorityUtil.getAuthorityUrl(tenantId)}/v2.0/adminconsent`;
   }
 
   /*
@@ -212,7 +225,7 @@ export default class MicrosoftTeamsSignInAuthorityUtil {
   }
 
   private static getAuthorityUrl(tenantId: string | undefined): string {
-    return `${MICROSOFT_LOGIN_ORIGIN}/${encodeURIComponent(
+    return `${MicrosoftTeamsHosts.getSignInOrigin()}/${encodeURIComponent(
       MicrosoftTeamsSignInAuthorityUtil.getAuthority(tenantId),
     )}`;
   }

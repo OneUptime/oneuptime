@@ -4330,6 +4330,20 @@
                         "null"
                     ]
                 },
+                "cloud": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "commercial",
+                        "gcc",
+                        "gcc-high",
+                        "dod"
+                    ]
+                },
                 "existingSecret": {
                     "type": "object",
                     "properties": {

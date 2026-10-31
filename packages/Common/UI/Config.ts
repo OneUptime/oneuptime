@@ -252,6 +252,14 @@ export const MicrosoftTeamsAppClientId: string | null =
   env("MICROSOFT_TEAMS_APP_CLIENT_ID") || null;
 
 /*
+ * The Microsoft cloud this server's Microsoft Teams runs in
+ * (MICROSOFT_TEAMS_CLOUD; Common/Types/Workspace/MicrosoftTeamsCloud.ts):
+ * unset for the commercial cloud. Links to Teams go to that cloud's Teams.
+ */
+export const MicrosoftTeamsCloudSetting: string | null =
+  env("MICROSOFT_TEAMS_CLOUD") || null;
+
+/*
  * The apps behind the one-click Connect of a video call provider. A
  * provider whose app this server has is connected by signing in; without
  * one, a project connects its own app with the connection form.

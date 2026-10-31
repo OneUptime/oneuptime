@@ -363,6 +363,13 @@ here would override the image's own marker.
   {{- else }}
   value: {{ $.Values.microsoftTeamsApp.tenantId }}
   {{- end }}
+{{- /*
+The Microsoft cloud the server's Microsoft Teams runs in, for the Teams bot and
+the Teams meetings app alike: empty for the commercial cloud, or gcc, gcc-high
+or dod. Not a secret: the Dashboard reads it too, for its links to Teams.
+*/}}
+- name: MICROSOFT_TEAMS_CLOUD
+  value: {{ default "" $.Values.microsoftTeamsApp.cloud | quote }}
 
 {{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT

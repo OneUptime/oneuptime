@@ -69,6 +69,7 @@ x-common-variables: &common-variables
 
   MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
   MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
+  MICROSOFT_TEAMS_CLOUD: ${MICROSOFT_TEAMS_CLOUD:-}
 
   # Video calls: the public client ids of the apps behind the one-click
   # Connect of Zoom, Google Meet and Microsoft Teams (see config.example.env).

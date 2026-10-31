@@ -1,11 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
 import MicrosoftTeamsSignInAuthorityUtil, {
   MICROSOFT_ANY_ORGANIZATION,
-  MICROSOFT_LOGIN_ORIGIN,
   MicrosoftTeamsSignInAuthority,
   MicrosoftTeamsSignInAuthoritySource,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
 import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
+
+// Microsoft Entra ID's sign-in of the commercial cloud, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_LOGIN_ORIGIN: string = "https://login.microsoftonline.com";
 
 /*
  * Issue #5202: with the app registered for one organization, as the

@@ -15,6 +15,8 @@ import VideoCallHttpClient, {
   VideoCallHttpResponse,
 } from "../VideoCallHttpClient";
 import { VideoCallMeetingRequest } from "../VideoCallMeetingRequest";
+import MicrosoftTeamsHosts from "../../Workspace/MicrosoftTeams/MicrosoftTeamsHosts";
+import MicrosoftTeamsCloudUtil from "../../../../Types/Workspace/MicrosoftTeamsCloud";
 
 /*
  * Creates incident meetings as Microsoft Teams online meetings through
@@ -88,9 +90,16 @@ export interface MicrosoftTeamsMeetingCreation {
   request: VideoCallMeetingRequest;
 }
 
-export const MICROSOFT_GRAPH_BASE_URL: string =
-  "https://graph.microsoft.com/v1.0";
-export const MICROSOFT_LOGIN_HOST: string = "https://login.microsoftonline.com";
+/*
+ * Microsoft Graph, at the version every request names, and Microsoft Entra
+ * ID's sign-in: on the hosts of the Microsoft cloud this server's Teams
+ * runs in (MicrosoftTeamsHosts, MICROSOFT_TEAMS_CLOUD) - graph.microsoft.us
+ * and login.microsoftonline.us for GCC High, dod-graph.microsoft.us for
+ * DoD, the commercial cloud's otherwise.
+ */
+export const getMicrosoftGraphBaseUrl: () => string = (): string => {
+  return MicrosoftTeamsHosts.getGraphUrl("");
+};
 
 /*
  * How many times the online meeting of a new calendar event is looked for,
@@ -154,7 +163,7 @@ export default class MicrosoftTeamsMeetingClient {
   }
 
   public static getTokenUrl(tenantId: string): string {
-    return `${MICROSOFT_LOGIN_HOST}/${encodeURIComponent(tenantId.trim())}/oauth2/v2.0/token`;
+    return `${MicrosoftTeamsHosts.getSignInOrigin()}/${encodeURIComponent(tenantId.trim())}/oauth2/v2.0/token`;
   }
 
   // The organizer an app registration creates meetings for.
@@ -231,7 +240,7 @@ export default class MicrosoftTeamsMeetingClient {
     };
 
     const response: VideoCallHttpResponse = await data.http.request({
-      url: `${MICROSOFT_GRAPH_BASE_URL}${data.organizer.path}/onlineMeetings`,
+      url: `${getMicrosoftGraphBaseUrl()}${data.organizer.path}/onlineMeetings`,
       method: "POST",
       headers: MicrosoftTeamsMeetingClient.getJsonHeaders(data.accessToken),
       body: JSON.stringify(body),
@@ -299,7 +308,7 @@ export default class MicrosoftTeamsMeetingClient {
     }
 
     const response: VideoCallHttpResponse = await data.http.request({
-      url: `${MICROSOFT_GRAPH_BASE_URL}${data.organizer.path}/events`,
+      url: `${getMicrosoftGraphBaseUrl()}${data.organizer.path}/events`,
       method: "POST",
       headers: MicrosoftTeamsMeetingClient.getJsonHeaders(data.accessToken),
       body: JSON.stringify(event),
@@ -374,7 +383,7 @@ export default class MicrosoftTeamsMeetingClient {
       }
 
       const response: VideoCallHttpResponse = await data.http.request({
-        url: `${MICROSOFT_GRAPH_BASE_URL}${data.organizer.path}/onlineMeetings?$filter=${encodeURIComponent(filter)}`,
+        url: `${getMicrosoftGraphBaseUrl()}${data.organizer.path}/onlineMeetings?$filter=${encodeURIComponent(filter)}`,
         method: "GET",
         headers: {
           Authorization: `Bearer ${data.accessToken}`,
@@ -430,7 +439,7 @@ export default class MicrosoftTeamsMeetingClient {
     };
 
     const response: VideoCallHttpResponse = await data.http.request({
-      url: `${MICROSOFT_GRAPH_BASE_URL}${data.organizer.path}/onlineMeetings/${encodeURIComponent(data.meetingId)}`,
+      url: `${getMicrosoftGraphBaseUrl()}${data.organizer.path}/onlineMeetings/${encodeURIComponent(data.meetingId)}`,
       method: "PATCH",
       headers: MicrosoftTeamsMeetingClient.getJsonHeaders(data.accessToken),
       body: JSON.stringify(options),
@@ -455,7 +464,7 @@ export default class MicrosoftTeamsMeetingClient {
   ): Promise<void> {
     try {
       await data.http.request({
-        url: `${MICROSOFT_GRAPH_BASE_URL}${data.organizer.path}/events/${encodeURIComponent(data.eventId)}`,
+        url: `${getMicrosoftGraphBaseUrl()}${data.organizer.path}/events/${encodeURIComponent(data.eventId)}`,
         method: "DELETE",
         headers: { Authorization: `Bearer ${data.accessToken}` },
         stepLabel: "Microsoft Teams calendar event removal",
@@ -584,7 +593,7 @@ export default class MicrosoftTeamsMeetingClient {
       body: new URLSearchParams({
         client_id: this.settings.clientId.trim(),
         client_secret: this.settings.clientSecret,
-        scope: "https://graph.microsoft.com/.default",
+        scope: MicrosoftTeamsHosts.getGraphDefaultScope(),
         grant_type: "client_credentials",
       }).toString(),
       stepLabel: "Microsoft Entra token request",
@@ -614,13 +623,10 @@ export default class MicrosoftTeamsMeetingClient {
 
     const hostname: string = parsed.hostname.toLowerCase();
 
+    // Teams' meeting hosts, in every Microsoft cloud.
     return (
       parsed.protocol === "https:" &&
-      (hostname === "teams.microsoft.com" ||
-        hostname === "teams.microsoft.us" ||
-        hostname === "teams.live.com" ||
-        hostname === "teams.cloud.microsoft" ||
-        hostname.endsWith(".teams.microsoft.com"))
+      MicrosoftTeamsCloudUtil.isTeamsMeetingHost(hostname)
     );
   }
 

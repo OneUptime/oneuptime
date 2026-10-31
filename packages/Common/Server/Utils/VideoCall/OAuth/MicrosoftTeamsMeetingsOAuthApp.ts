@@ -6,10 +6,9 @@ import {
   MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
   MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
 } from "../../../../Types/VideoCall/VideoCallProviderCatalog";
-import MicrosoftTeamsMeetingClient, {
-  MICROSOFT_LOGIN_HOST,
-} from "../Providers/MicrosoftTeamsMeetingClient";
+import MicrosoftTeamsMeetingClient from "../Providers/MicrosoftTeamsMeetingClient";
 import MicrosoftTeamsSignInAuthorityUtil from "../../Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
+import MicrosoftTeamsHosts from "../../Workspace/MicrosoftTeams/MicrosoftTeamsHosts";
 import VideoCallHttpClient, {
   VideoCallHttpResponse,
 } from "../VideoCallHttpClient";
@@ -36,6 +35,12 @@ import VideoCallOAuthUtil, {
  * in, MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID (getSignInAuthority): its
  * members and guests sign in, and Microsoft stops anybody else.
  *
+ * Every sign-in, token and Graph scope is on the hosts of the Microsoft
+ * cloud this server's Teams runs in (MicrosoftTeamsHosts,
+ * MICROSOFT_TEAMS_CLOUD): login.microsoftonline.us and graph.microsoft.us
+ * for GCC High, dod-graph.microsoft.us for DoD, the commercial cloud's
+ * otherwise.
+ *
  * A delegated permission needs no application access policy: the meeting
  * is the signed-in account's own (/me/onlineMeetings). Personal Microsoft
  * accounts cannot create Teams meetings through Graph, so only work and
@@ -55,28 +60,19 @@ import VideoCallOAuthUtil, {
  * A refresh asks again for whichever of them the sign-in was granted.
  */
 
-export const MICROSOFT_ORGANIZATIONS_AUTHORITY: string = `${MICROSOFT_LOGIN_HOST}/organizations`;
+// Microsoft's endpoint for a work or school account of any organization.
+export const MICROSOFT_ORGANIZATIONS: string = "organizations";
 
 // The tenant every personal Microsoft account signs in to.
 export const MICROSOFT_CONSUMER_TENANT_ID: string =
   "9188040d-6c67-4c5b-b112-36a304b66dad";
 
-const MICROSOFT_GRAPH_SCOPE_PREFIX: string = "https://graph.microsoft.com/";
-
-export const MICROSOFT_TEAMS_MEETINGS_SCOPE: string = `${MICROSOFT_GRAPH_SCOPE_PREFIX}${MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION}`;
-
-// Asked for when signing in; a refresh asks for what it needs to keep.
-export const MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES: Array<string> = [
+// The OpenID scopes a sign-in asks for beside the Graph ones.
+export const MICROSOFT_TEAMS_MEETINGS_OPENID_SCOPES: Array<string> = [
   "openid",
   "profile",
   "email",
   "offline_access",
-  MICROSOFT_TEAMS_MEETINGS_SCOPE,
-];
-
-export const MICROSOFT_TEAMS_MEETINGS_REFRESH_SCOPES: Array<string> = [
-  "offline_access",
-  MICROSOFT_TEAMS_MEETINGS_SCOPE,
 ];
 
 // Asked for too by a project that records and transcribes its incident calls.
@@ -84,13 +80,6 @@ export const MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS: Array<string> = [
   MICROSOFT_TEAMS_CALENDAR_PERMISSION,
   MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
 ];
-
-export const MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES: Array<string> =
-  MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS.map(
-    (permission: string): string => {
-      return `${MICROSOFT_GRAPH_SCOPE_PREFIX}${permission}`;
-    },
-  );
 
 export default class MicrosoftTeamsMeetingsOAuthApp
   implements VideoCallOAuthApp
@@ -109,14 +98,38 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     this.http = http || new VideoCallHttpClient();
   }
 
+  /*
+   * Microsoft's endpoint for a work or school account of any organization,
+   * on this server's Microsoft cloud: where a multitenant app signs in.
+   */
+  public static getOrganizationsAuthority(): string {
+    return `${MicrosoftTeamsHosts.getSignInOrigin()}/${MICROSOFT_ORGANIZATIONS}`;
+  }
+
+  // The meetings permission, as the Graph scope a sign-in and a refresh ask for.
+  public static getMeetingsScope(): string {
+    return MicrosoftTeamsHosts.getGraphScope(
+      MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+    );
+  }
+
   // What a sign-in asks for: the recording permissions too, for a project that records its calls.
   public static getSignInScopes(recordAndTranscribe?: boolean): Array<string> {
+    const scopes: Array<string> = [
+      ...MICROSOFT_TEAMS_MEETINGS_OPENID_SCOPES,
+      MicrosoftTeamsMeetingsOAuthApp.getMeetingsScope(),
+    ];
+
     return recordAndTranscribe
       ? [
-          ...MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES,
-          ...MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES,
+          ...scopes,
+          ...MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS.map(
+            (permission: string): string => {
+              return MicrosoftTeamsHosts.getGraphScope(permission);
+            },
+          ),
         ]
-      : MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES;
+      : scopes;
   }
 
   /*
@@ -127,7 +140,8 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     grantedScope: string | undefined,
   ): Array<string> {
     return [
-      ...MICROSOFT_TEAMS_MEETINGS_REFRESH_SCOPES,
+      "offline_access",
+      MicrosoftTeamsMeetingsOAuthApp.getMeetingsScope(),
       ...MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS.filter(
         (permission: string): boolean => {
           return MicrosoftTeamsMeetingsOAuthApp.grants(
@@ -136,7 +150,7 @@ export default class MicrosoftTeamsMeetingsOAuthApp
           );
         },
       ).map((permission: string): string => {
-        return `${MICROSOFT_GRAPH_SCOPE_PREFIX}${permission}`;
+        return MicrosoftTeamsHosts.getGraphScope(permission);
       }),
     ];
   }
@@ -194,8 +208,8 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     );
 
     return tenant
-      ? `${MICROSOFT_LOGIN_HOST}/${encodeURIComponent(tenant)}`
-      : MICROSOFT_ORGANIZATIONS_AUTHORITY;
+      ? `${MicrosoftTeamsHosts.getSignInOrigin()}/${encodeURIComponent(tenant)}`
+      : MicrosoftTeamsMeetingsOAuthApp.getOrganizationsAuthority();
   }
 
   public async exchangeCode(data: {
@@ -298,7 +312,7 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     const authority: string =
       data.secrets.externalAccountId &&
       MicrosoftTeamsMeetingClient.isGuid(data.secrets.externalAccountId)
-        ? `${MICROSOFT_LOGIN_HOST}/${data.secrets.externalAccountId}`
+        ? `${MicrosoftTeamsHosts.getSignInOrigin()}/${data.secrets.externalAccountId}`
         : this.getSignInAuthority();
 
     const response: VideoCallHttpResponse = await this.http.request({

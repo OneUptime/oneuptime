@@ -2679,6 +2679,12 @@ microsoftTeamsApp:
   clientId:
   clientSecret:
   tenantId:
+  # The Microsoft cloud your Microsoft 365 tenant is in. Leave it empty for
+  # the commercial cloud. For a US Government cloud set gcc, gcc-high or dod:
+  # the bot, the Microsoft Teams sign-ins and the Teams meetings app
+  # (microsoftTeamsMeetingsApp) then use that cloud's hosts. For gcc-high and
+  # dod, register the app and create the Azure Bot in Azure Government.
+  cloud:
   # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
   # existingSecret:
   #   name: "app-secret"
