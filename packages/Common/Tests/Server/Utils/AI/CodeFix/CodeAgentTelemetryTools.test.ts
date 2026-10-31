@@ -20,6 +20,7 @@ import MetricTypeService from "../../../../../Server/Services/MetricTypeService"
 import SpanService from "../../../../../Server/Services/SpanService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import ChangeEvent from "../../../../../Models/AnalyticsModels/ChangeEvent";
+import ExceptionInstance from "../../../../../Models/AnalyticsModels/ExceptionInstance";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Service from "../../../../../Models/DatabaseModels/Service";
@@ -455,6 +456,79 @@ describe("find_production_exceptions", () => {
     expect(countQuery["primaryEntityId"]!.toString()).toBe(
       CART_API.toLowerCase(),
     );
+  });
+
+  /*
+   * The occurrences of the exceptions merged into a group count on it
+   * (TelemetryExceptionMerge): its window's count and its recent trace are
+   * read by its own fingerprint and theirs (TelemetryExceptionService
+   * .getGroupFingerprints).
+   */
+  test("a group's window count and recent trace take in the exceptions merged into it", async () => {
+    TelemetryExceptionService.clearGroupFingerprints();
+    const thrownInTotal: TelemetryException = exceptionGroup({
+      serviceId: CART_API,
+      stackTrace: IN_TOTAL,
+      occurrences: 1240,
+    });
+    const reads: {
+      counts: jest.SpyInstance;
+      occurrences: jest.SpyInstance;
+    } = mockReads([thrownInTotal]);
+    const memberReads: Array<Array<unknown>> = [];
+
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, params: Array<unknown>) => {
+          memberReads.push(params);
+          return sql.includes("ROW_NUMBER()")
+            ? [
+                {
+                  survivorId: thrownInTotal._id!.toString(),
+                  fingerprint: "fp-merged-duplicate",
+                },
+              ]
+            : [];
+        },
+      },
+    } as never);
+    // 3 of its own in the window, and 40 with the merged one's.
+    reads.counts.mockImplementation(async (data: { query: JSONObject }) => {
+      return new PositiveNumber(
+        data.query["fingerprint"] instanceof Includes ? 40 : 3,
+      );
+    });
+    // The latest occurrence in the window is the merged one's.
+    const recent: ExceptionInstance = new ExceptionInstance();
+    recent.fingerprint = "fp-merged-duplicate";
+    recent.traceId = "trace-of-the-merged-one";
+    reads.occurrences.mockResolvedValue([recent]);
+
+    const output: CodeAgentTelemetryToolOutput = await run(
+      "find_production_exceptions",
+      {},
+    );
+
+    expect(output.text).toContain("occurrencesInLast7Days=40");
+    expect(output.text).toContain("recentTraceId=trace-of-the-merged-one");
+
+    // One read of what was merged, for every group listed, in the run's project.
+    expect(memberReads).toEqual([
+      [PROJECT_ID.toString(), [thrownInTotal._id!.toLowerCase()], 100, 10000],
+    ]);
+
+    const countQuery: JSONObject = firstQuery(reads.counts);
+    expect(countQuery["fingerprint"]).toBeInstanceOf(Includes);
+    expect((countQuery["fingerprint"] as unknown as Includes).values).toEqual([
+      thrownInTotal.fingerprint,
+      "fp-merged-duplicate",
+    ]);
+
+    const recentQuery: JSONObject = firstQuery(reads.occurrences);
+    expect((recentQuery["fingerprint"] as unknown as Includes).values).toEqual(
+      [thrownInTotal.fingerprint, "fp-merged-duplicate"],
+    );
+    TelemetryExceptionService.clearGroupFingerprints();
   });
 
   test("a message telemetry sent reaches the model quoted, on one line", async () => {

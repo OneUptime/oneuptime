@@ -1,4 +1,10 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 import ExceptionSpikeDetector, {
   EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
   EXCEPTION_SPIKE_CANDIDATE_LIMIT,
@@ -16,6 +22,7 @@ import Service from "../../../../../Models/DatabaseModels/Service";
 import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import ObjectID from "../../../../../Types/ObjectID";
 
@@ -272,6 +279,123 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
 
     expect(candidates).toEqual([]);
     expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The occurrences of the exceptions merged into one count on it
+   * (TelemetryExceptionMerge): a candidate's rate is its group's - its own
+   * fingerprint and those merged into it (TelemetryExceptionService
+   * .getGroupFingerprints) - read once for every candidate.
+   */
+  describe("a candidate others were merged into", () => {
+    const otherId: ObjectID = ObjectID.generate();
+    let memberReads: Array<Array<unknown>>;
+
+    beforeEach(() => {
+      memberReads = [];
+      TelemetryExceptionService.clearGroupFingerprints();
+
+      jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+        manager: {
+          query: async (sql: string, params: Array<unknown>) => {
+            if (!sql.includes("ROW_NUMBER()")) {
+              return [];
+            }
+
+            memberReads.push(params);
+
+            return [
+              { survivorId: exceptionId.toString(), fingerprint: "fp-merged" },
+            ];
+          },
+        },
+      } as never);
+    });
+
+    afterEach(() => {
+      TelemetryExceptionService.clearGroupFingerprints();
+    });
+
+    test("spikes on the occurrences of the exceptions merged into it too", async () => {
+      jest
+        .spyOn(TelemetryExceptionService, "findBy")
+        .mockResolvedValue([
+          fakeCandidate(),
+        ] as unknown as Array<TelemetryException>);
+      /*
+       * Its own fingerprint is quiet; the duplicate merged into it took 45
+       * of the last hour's 50 occurrences.
+       */
+      const countBySpy: jest.SpyInstance = jest
+        .spyOn(ExceptionInstanceService, "countBy")
+        .mockImplementation((async (data: {
+          query: Record<string, unknown>;
+        }) => {
+          const window: InBetween<Date> = data.query["time"] as InBetween<Date>;
+          const isRecent: boolean = window.endValue.getTime() === now.getTime();
+          const isGroup: boolean = data.query["fingerprint"] instanceof Includes;
+
+          return new PositiveNumber(
+            isRecent ? (isGroup ? 50 : 5) : isGroup ? 24 : 20,
+          );
+        }) as never);
+      jest
+        .spyOn(ServiceService, "findOneById")
+        .mockResolvedValue({ name: "payments" } as unknown as Service);
+
+      const candidates: Array<InsightCandidate> =
+        await new ExceptionSpikeDetector().detect({ projectId, now });
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]!.evidence.exception).toEqual(
+        expect.objectContaining({
+          recentOccurrenceCount: 50,
+          baselineHourlyAverage: 1,
+          spikeMultiplier: 50,
+        }),
+      );
+
+      for (const call of countBySpy.mock.calls) {
+        const fingerprint: unknown = (
+          call[0] as { query: Record<string, unknown> }
+        ).query["fingerprint"];
+        expect(fingerprint).toBeInstanceOf(Includes);
+        expect((fingerprint as Includes).values).toEqual(["fp-1", "fp-merged"]);
+      }
+    });
+
+    test("what was merged into the candidates is read once for them all, in the project", async () => {
+      jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([
+        fakeCandidate(),
+        { ...fakeCandidate(), id: otherId, fingerprint: "fp-other" },
+        { id: ObjectID.generate(), fingerprint: undefined },
+      ] as unknown as Array<TelemetryException>);
+      const countBySpy: jest.SpyInstance = jest
+        .spyOn(ExceptionInstanceService, "countBy")
+        .mockResolvedValue(new PositiveNumber(1));
+
+      await new ExceptionSpikeDetector().detect({ projectId, now });
+
+      expect(memberReads).toEqual([
+        [
+          projectId.toString(),
+          [exceptionId.toString(), otherId.toString()],
+          100,
+          10000,
+        ],
+      ]);
+
+      // Nothing merged into the other: its own fingerprint, as before any merge.
+      const fingerprints: Array<unknown> = countBySpy.mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return (call[0] as { query: Record<string, unknown> }).query[
+            "fingerprint"
+          ];
+        },
+      );
+      expect(fingerprints).toHaveLength(4);
+      expect(fingerprints.slice(2)).toEqual(["fp-other", "fp-other"]);
+    });
   });
 
   test("detect propagates ClickHouse errors — the scanner isolates detectors", async () => {
