@@ -16,14 +16,20 @@ import URL from "Common/Types/API/URL";
  * working however the script moves in the repository. The test checks the
  * body is that script rather than an HTML page or a 404.
  *
- * /infrastructure-agent/install.sh still redirects to raw GitHub. That redirect
- * is inspected with `fetch(..., { redirect: "manual" })` (Node's fetch surfaces
- * the real 3xx status and Location header rather than following it) so the test
- * stays hermetic and never leaves the deployment.
+ * /infrastructure-agent/install.sh redirects, on the same host, to the copy
+ * of the infrastructure agent's installer every OneUptime serves with its docs
+ * (/docs/static/scripts/infrastructure-agent/install.sh), never to GitHub. The
+ * redirect is inspected with `fetch(..., { redirect: "manual" })` (Node's
+ * fetch surfaces the real 3xx status and Location header rather than
+ * following it), and its target is then fetched from the same deployment.
  *
  * These run only where the Home marketing site is deployed, which the suite
  * gates on IS_BILLING_ENABLED like the other Home specs.
  */
+
+// The infrastructure agent's installer: a POSIX shell script that says what it installs.
+const INFRASTRUCTURE_AGENT_INSTALLER_HEAD: RegExp =
+  /^#!\/bin\/sh\n# Installs the OneUptime infrastructure agent/;
 
 function endpointFor(path: string): string {
   return URL.fromString(BASE_URL.toString()).addRoute(path).toString();
@@ -59,7 +65,7 @@ test.describe("Home: install script shortcuts", () => {
     expect(body).toContain("Installs OneUptime with Docker Compose");
   });
 
-  test("/infrastructure-agent/install.sh redirects to the release Linux agent installer", async ({
+  test("/infrastructure-agent/install.sh redirects to the installer this OneUptime serves with its docs", async ({
     page,
   }: {
     page: Page;
@@ -79,7 +85,16 @@ test.describe("Home: install script shortcuts", () => {
     expect(response.status).toBeLessThan(400);
 
     expect(response.headers.get("location")).toBe(
-      "https://raw.githubusercontent.com/OneUptime/oneuptime/release/agents/InfrastructureAgent/Scripts/Install/Linux.sh",
+      "/docs/static/scripts/infrastructure-agent/install.sh",
     );
+
+    // The target is the POSIX shell script itself, from this same deployment.
+    const script: Response = await fetch(
+      endpointFor("/docs/static/scripts/infrastructure-agent/install.sh"),
+      { redirect: "manual" },
+    );
+
+    expect(script.status).toBe(200);
+    expect(await script.text()).toMatch(INFRASTRUCTURE_AGENT_INSTALLER_HEAD);
   });
 });

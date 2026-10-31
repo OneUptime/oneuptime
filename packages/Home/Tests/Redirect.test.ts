@@ -6,6 +6,7 @@ import {
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { DEMO_PAGE_PATH, DEMO_SHORT_PATHS } from "../Utils/DemoPage";
+import { InfrastructureAgentInstallScriptPath } from "../Utils/Config";
 import fs from "fs";
 import path from "path";
 
@@ -321,20 +322,38 @@ describe("route table wiring", () => {
     expect(permanentCalls).toBe(calls);
   });
 
-  test("the infrastructure agent installer stays a temporary redirect", () => {
+  test("the infrastructure agent installer stays a temporary redirect, to the copy OneUptime serves with its docs", () => {
     /*
-     * Deliberately not a 301. It points at a file on a branch of the
-     * repository, which is where the script happens to live today; a 301 is
-     * cached by browsers and proxies for good, so a client that once saw one
-     * would keep fetching that address after the script moved or came to be
-     * served from this image, as /install.sh now is. It is not a page, so no
-     * search ranking rides on it either.
+     * Deliberately not a 301. It points at where the script happens to be
+     * served today; a 301 is cached by browsers and proxies for good, so a
+     * client that once saw one would keep fetching that address after the
+     * script moved, as it did from GitHub to the docs. It is not a page, so
+     * no search ranking rides on it either.
      */
     expect(routesSource).toMatch(
-      /app\.get\(\s*"\/infrastructure-agent\/install\.sh",[\s\S]{0,400}?res\.redirect\(\s*"https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/release\//,
+      /app\.get\(\s*"\/infrastructure-agent\/install\.sh",[\s\S]{0,400}?res\.redirect\(InfrastructureAgentInstallScriptPath\);/,
     );
+    expect(routesSource).not.toContain("githubusercontent");
+
+    // Every OneUptime serves the docs' static files at /docs/static.
+    expect(InfrastructureAgentInstallScriptPath).toBe(
+      "/docs/static/scripts/infrastructure-agent/install.sh",
+    );
+    const script: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../App/FeatureSet/Docs/Static",
+        InfrastructureAgentInstallScriptPath.replace("/docs/static/", ""),
+      ),
+      "utf-8",
+    );
+    expect(script).toMatch(INFRASTRUCTURE_AGENT_INSTALLER_HEAD);
   });
 });
+
+// The docs' copy of the infrastructure agent installer: a POSIX shell script that says what it installs.
+const INFRASTRUCTURE_AGENT_INSTALLER_HEAD: RegExp =
+  /^#!\/bin\/sh\n# Installs the OneUptime infrastructure agent/;
 
 describe("blog route wiring", () => {
   const blogApiSource: string = fs.readFileSync(
