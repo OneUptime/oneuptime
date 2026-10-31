@@ -964,6 +964,8 @@ describe("Kubernetes Job Failures: what the alert says", () => {
 
     expect(affected).toMatch(/^1\. .*`nightly-export`.* — \*\*3\*\*$/m);
     expect(affected).not.toContain("**1**");
-    expect(rootCause).toContain("Job `nightly-export` has **3** failed pod(s).");
+    expect(rootCause).toContain(
+      "Job `nightly-export` has **3** failed pod(s).",
+    );
   });
 });

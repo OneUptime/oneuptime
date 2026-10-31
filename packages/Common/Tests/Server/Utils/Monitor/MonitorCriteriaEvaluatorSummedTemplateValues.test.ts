@@ -325,8 +325,9 @@ async function firing(input: {
   monitorType: MonitorType;
 }): Promise<Firing> {
   const response: ProbeApiIngestResponse = await evaluate(input);
-  const firingId: string | undefined = firingCriteriaOf(input.step)
-    .data?.id?.toString();
+  const firingId: string | undefined = firingCriteriaOf(
+    input.step,
+  ).data?.id?.toString();
   const matched: MatchedCriteriaResult | undefined = (
     response.matchedCriteria || []
   ).find((result: MatchedCriteriaResult): boolean => {
@@ -359,17 +360,18 @@ function affectedResourcesSection(rootCause: string): string {
 
   const end: number = rootCause.indexOf("**Root Cause Analysis**", start);
 
-  return end < 0
-    ? rootCause.substring(start)
-    : rootCause.substring(start, end);
+  return end < 0 ? rootCause.substring(start) : rootCause.substring(start, end);
 }
+
+const LIST_ENTRY: RegExp = /^\d+\. /;
+const SAMPLE_ENTRY: RegExp = /^\d+\. `/;
 
 // The bold value of each numbered entry of the Affected Resources list.
 function listedValues(rootCause: string): Array<string> {
   return affectedResourcesSection(rootCause)
     .split("\n")
     .filter((line: string): boolean => {
-      return /^\d+\. /.test(line);
+      return LIST_ENTRY.test(line);
     })
     .map((line: string): string => {
       const match: RegExpMatchArray | null = line.match(/ — \*\*([^*]+)\*\*/);
@@ -391,9 +393,7 @@ function breachingSamplesSection(rootCause: string): string {
 
   const end: number = rootCause.indexOf("[Open metric in dashboard]", start);
 
-  return end < 0
-    ? rootCause.substring(start)
-    : rootCause.substring(start, end);
+  return end < 0 ? rootCause.substring(start) : rootCause.substring(start, end);
 }
 
 // The bold value of each numbered sample of the Breaching Samples list.
@@ -401,7 +401,7 @@ function sampleValues(rootCause: string): Array<string> {
   return breachingSamplesSection(rootCause)
     .split("\n")
     .filter((line: string): boolean => {
-      return /^\d+\. `/.test(line);
+      return SAMPLE_ENTRY.test(line);
     })
     .map((line: string): string => {
       const match: RegExpMatchArray | null = line.match(/ — \*\*([^*]+)\*\*$/);
@@ -410,9 +410,12 @@ function sampleValues(rootCause: string): Array<string> {
 }
 
 function perMinute(entries: Record<number, number>): Array<number> {
-  return Array.from({ length: MINUTES_IN_WINDOW }, (_: unknown, minute: number) => {
-    return entries[minute] || 0;
-  });
+  return Array.from(
+    { length: MINUTES_IN_WINDOW },
+    (_: unknown, minute: number) => {
+      return entries[minute] || 0;
+    },
+  );
 }
 
 const NEVER_READY: Array<number> = perMinute({});
@@ -483,12 +486,8 @@ describe("Kubernetes summed templates show the total they judged", () => {
       /The sum of Container Restarts was [45], above the 0 threshold\./,
     );
     // Never the worst single minute.
-    expect(affectedResourcesSection(result.rootCause)).not.toContain(
-      "**3**",
-    );
-    expect(affectedResourcesSection(result.rootCause)).not.toContain(
-      "**1**",
-    );
+    expect(affectedResourcesSection(result.rootCause)).not.toContain("**3**");
+    expect(affectedResourcesSection(result.rootCause)).not.toContain("**1**");
   });
 
   test("Job Failures lists each Job at its failures in the window, not its worst minute", async () => {
@@ -511,7 +510,10 @@ describe("Kubernetes summed templates show the total they judged", () => {
       monitorType: MonitorType.Kubernetes,
     });
 
-    expect(result.matched).toEqual(["batch/db-migrate", "batch/nightly-export"]);
+    expect(result.matched).toEqual([
+      "batch/db-migrate",
+      "batch/nightly-export",
+    ]);
     expect(listedValues(result.rootCause)).toEqual(["4", "3"]);
     expect(analysisOf(result.rootCause)).toContain(
       "Job `db-migrate` has **4** failed pod(s).",
@@ -527,9 +529,12 @@ describe("Kubernetes summed templates show the total they judged", () => {
       restarts: perMinute({ 3: 2 }),
       ready: perMinute(
         Object.fromEntries(
-          Array.from({ length: MINUTES_IN_WINDOW }, (_: unknown, minute: number) => {
-            return [minute, minute === 3 ? 0 : 1];
-          }),
+          Array.from(
+            { length: MINUTES_IN_WINDOW },
+            (_: unknown, minute: number) => {
+              return [minute, minute === 3 ? 0 : 1];
+            },
+          ),
         ),
       ),
     });
@@ -557,7 +562,10 @@ describe("Kubernetes summed templates show the total they judged", () => {
  * ---------------------------------------------------------------------------
  */
 
-function dockerContainer(name: string, values: Array<Array<number>>): SeriesSpec {
+function dockerContainer(
+  name: string,
+  values: Array<Array<number>>,
+): SeriesSpec {
   return {
     labels: { [DOCKER_CONTAINER_KEY]: name },
     datapointAttributes: { "resource.host.name": "docker-01" },
@@ -699,7 +707,8 @@ describe("a grouped criteria judged on the window's average shows its average", 
         incidentTitle: "Busy node",
         incidentDescription: "A node is busy.",
         criteriaName: "Busy node - CPU average > 2",
-        criteriaDescription: "Triggers when a node's average CPU exceeds 2 cores.",
+        criteriaDescription:
+          "Triggers when a node's average CPU exceeds 2 cores.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: ObjectID.generate(),
@@ -866,7 +875,9 @@ describe("summed templates, swept over seeded windows", () => {
         const name: string = `w${trial}-${index}`;
 
         if (crashLoop) {
-          series.push(container({ pod: `${name}-pod`, name: name, restarts: values }));
+          series.push(
+            container({ pod: `${name}-pod`, name: name, restarts: values }),
+          );
           totals.set(`payments/${name}-pod/${name}`, sum(values));
         } else {
           series.push(job({ name: name, failures: values }));
