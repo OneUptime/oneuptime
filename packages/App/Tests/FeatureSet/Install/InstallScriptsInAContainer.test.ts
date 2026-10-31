@@ -94,7 +94,7 @@ function hasDocker(): boolean {
   return docker(["version", "--format", "{{.Server.Version}}"]).status === 0;
 }
 
-const describeInContainers: typeof describe =
+const describeInContainers: typeof describe.skip =
   RUN && hasDocker() ? describe : describe.skip;
 
 /*

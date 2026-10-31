@@ -123,7 +123,7 @@ describe("the docs download the agents' files from OneUptime", () => {
     );
 
     for (const address of addresses) {
-      const entry: InstallScriptEntry | undefined = getInstallScriptEntry(
+      const entry: InstallScriptEntry | null = getInstallScriptEntry(
         address.name,
       );
       const file: string | null = entry
