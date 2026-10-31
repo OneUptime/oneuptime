@@ -310,6 +310,18 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
                 <SetupGuideMarkdown text={translate(step.note)} />
               </div>
             )}
+            {/*
+             * The rest of a step whose note is about its command: the note
+             * stays right under the command it is about.
+             */}
+            {step.details && (
+              <div data-testid="setup-guide-step-details">
+                <SetupGuideMarkdown
+                  text={step.details}
+                  wrapLongLines={wrapLongLines}
+                />
+              </div>
+            )}
           </div>
         ),
       };

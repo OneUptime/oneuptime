@@ -331,6 +331,23 @@ describe("getSetupGuideMarkdown", () => {
     }
   });
 
+  test("a step's note and then its details follow its code, as on screen", () => {
+    const withDetails: string = getSetupGuideMarkdown({
+      steps: [
+        {
+          title: "Install the agent",
+          markdown: codeBlock("bash", "bash install.sh"),
+          note: "Read it before you run it.",
+          details: "The script asks for the rest.",
+        },
+      ],
+    });
+
+    expect(withDetails).toContain(
+      "```bash\nbash install.sh\n```\n\nRead it before you run it.\n\nThe script asks for the rest.",
+    );
+  });
+
   test("getSetupGuideCodeBlocks returns every fenced block, in order", () => {
     expect(getSetupGuideCodeBlocks(content)).toEqual([
       "bash install.sh\n",

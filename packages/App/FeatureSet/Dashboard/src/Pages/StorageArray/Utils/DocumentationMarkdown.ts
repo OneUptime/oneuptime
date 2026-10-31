@@ -1127,6 +1127,8 @@ function getInstallScriptVariant(context: GuideContext): string {
     }),
   )}
 
+The first line downloads the script as \`install.sh\`, so you can read it before you run it.
+
 ${intro}
 
 ${asks
@@ -1135,7 +1137,7 @@ ${asks
   })
   .join("\n")}${knownName}
 
-The first line downloads the script as \`install.sh\`, so you can read it before you run it. It installs to \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\`, writes a \`.env\` file only you can read (it holds the API token) and starts the agent with Docker Compose.`;
+It installs to \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\`, writes a \`.env\` file only you can read (it holds the API token) and starts the agent with Docker Compose.`;
 }
 
 function getDockerComposeVariant(context: GuideContext): string {

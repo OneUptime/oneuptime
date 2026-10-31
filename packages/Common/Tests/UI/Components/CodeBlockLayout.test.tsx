@@ -76,6 +76,31 @@ describe("the code's own font, for every token", () => {
   });
 });
 
+/*
+ * Code reads left to right on every page, and so does its block: on a
+ * right-to-left (Persian) page the copy button's right-2 meant the start of
+ * the line, where it covered the code's first characters.
+ */
+describe("on a right-to-left page", () => {
+  test("the block reads left to right, with its copy button inside it", () => {
+    const result: RenderResult = render(
+      <div dir="rtl">
+        <CodeBlock language="bash" code="curl -fsSL https://x/install.sh" />
+      </div>,
+    );
+    const block: HTMLElement = result.container.querySelector(
+      "div[dir='rtl'] > div",
+    ) as HTMLElement;
+
+    expect(block).not.toBeNull();
+    expect(block).toHaveAttribute("dir", "ltr");
+    expect(
+      block.querySelector("button[aria-label='Copy to clipboard']"),
+    ).not.toBeNull();
+    expect(block.querySelector("pre code")).not.toBeNull();
+  });
+});
+
 describe("a long line", () => {
   test("scrolls as written by default: a program keeps its lines", () => {
     const result: RenderResult = render(

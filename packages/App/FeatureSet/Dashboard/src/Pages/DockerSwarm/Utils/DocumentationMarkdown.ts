@@ -302,12 +302,15 @@ function getInstallSteps(data: GuideData): Array<SetupGuideStep> {
         title: "Run the install script on a manager node",
         description:
           "It asks for your OneUptime URL, the ingestion key and a cluster name, then starts the agent.",
-        markdown: `${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand(data.oneuptimeUrl))}
-
-${clusterNote}
+        // The command, then right under it that the script can be read first.
+        markdown: codeBlock(
+          "bash",
+          getDockerSwarmAgentInstallScriptCommand(data.oneuptimeUrl),
+        ),
+        note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+        details: `${clusterNote}
 
 The script puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` and starts it with Docker Compose.`,
-        note: INSTALL_SCRIPT_READ_FIRST_NOTE,
       },
     ];
   }

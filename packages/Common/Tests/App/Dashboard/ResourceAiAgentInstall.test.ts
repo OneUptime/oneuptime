@@ -17,6 +17,7 @@ import {
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentDirectory,
   getHostAiAgentInstallCommand,
+  getHostAiAgentInstallerAsksText,
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
@@ -876,6 +877,81 @@ describe("the agent's own installer", () => {
       ]) {
         expect(text).not.toContain("githubusercontent");
       }
+    },
+  );
+});
+
+/*
+ * Under the Host AI agent's installer, the page says what it asks for, with
+ * the answers the page knows - this OneUptime's URL and the name the host
+ * reports, which the agent must register with - and what it needs. The
+ * snippet's own prerequisite (the .env) stays with the snippet.
+ */
+describe("what the installer asks for, and needs", () => {
+  const PRIVILEGED: string =
+    "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.";
+
+  test("the Host AI agent's names this OneUptime's URL and the host's name", () => {
+    expect(
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.Host,
+        resourceId: RESOURCE_ID,
+        identity: "web-prod-01",
+        oneuptimeUrl: "https://oneuptime.acme.internal:8443",
+      }).installerNotes,
+    ).toEqual([
+      "It asks for your OneUptime URL (https://oneuptime.acme.internal:8443), your project's telemetry ingestion key and this host's name (web-prod-01).",
+      PRIVILEGED,
+    ]);
+  });
+
+  test("without the host's name, it names the installer's own default, the hostname", () => {
+    expect(
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.Host,
+        resourceId: RESOURCE_ID,
+        oneuptimeUrl: "https://oneuptime.com",
+      }).installerNotes[0],
+    ).toBe(
+      "It asks for your OneUptime URL (https://oneuptime.com), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.",
+    );
+    expect(
+      getHostAiAgentInstallerAsksText({
+        oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+        hostName: null,
+      }),
+    ).toContain(`(${SETUP_GUIDE_URL_PLACEHOLDER})`);
+  });
+
+  test("the snippet keeps its own prerequisite, and the installer's note is not repeated there", () => {
+    const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+      resourceType: AiResourceType.Host,
+      resourceId: RESOURCE_ID,
+    });
+
+    expect(install.prerequisites).toEqual([
+      "Put ONEUPTIME_URL and ONEUPTIME_TELEMETRY_INGESTION_KEY (your project's telemetry ingestion key) in a .env next to the file.",
+    ]);
+    expect(install.prerequisites).not.toContain(PRIVILEGED);
+  });
+
+  test.each(
+    COMPOSE_INSTALLED_AI_RESOURCE_TYPES.filter(
+      (type: ComposeInstalledAiResourceType): boolean => {
+        return type !== AiResourceType.Host;
+      },
+    ),
+  )(
+    "%s: no installer, so nothing under one",
+    (type: ComposeInstalledAiResourceType) => {
+      expect(
+        getResourceAiAgentInstall({
+          resourceType: type,
+          resourceId: RESOURCE_ID,
+          identity: "x",
+          oneuptimeUrl: "https://oneuptime.com",
+        }).installerNotes,
+      ).toEqual([]);
     },
   );
 });

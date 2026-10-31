@@ -756,20 +756,21 @@ function getInstallScriptStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the install script and run it on the machine that will host the agent.",
-    markdown: `${codeBlock(
+    // The command, then right under it that the script can be read first.
+    markdown: codeBlock(
       "bash",
       getVMwareInstallScriptCommand({
         oneuptimeUrl: context.oneuptimeUrl,
         apiKey: context.apiKey,
         hasApiKey: context.hasApiKey,
       }),
-    )}
-
-${
-  prefilled
-    ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
-    : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
-}
+    ),
+    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+    details: `${
+      prefilled
+        ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
+        : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
+    }
 
 - ${namePrompt}
 - **vCenter endpoint** — scheme and host, without \`/sdk\`, e.g. \`https://vcsa.example.com\`.
@@ -778,7 +779,6 @@ ${
 - **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only.
 
 It installs to \`${VMWARE_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, so a password containing \`$\`, \`#\`, spaces or quotes works exactly as typed, and re-running the script reuses everything in an existing \`.env\` instead of prompting again.`,
-    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
   };
 }
 

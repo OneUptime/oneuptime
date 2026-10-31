@@ -344,6 +344,31 @@ describe("what the router refuses", () => {
       );
     }
   });
+
+  // Read in a terminal or a browser: a table, every agent's name in one column.
+  test("the not-found text is a table: every agent's name starts in the same column", () => {
+    const lines: Array<string> = getNotFoundText().split("\n");
+    const columns: Set<number> = new Set();
+    let rows: number = 0;
+
+    for (const entry of INSTALL_SCRIPTS) {
+      if (!entry.script) {
+        continue;
+      }
+
+      const row: string | undefined = lines.find((line: string): boolean => {
+        return line.startsWith(`  ${INSTALL_SCRIPTS_ROUTE}/${entry.name} `);
+      });
+
+      expect(row).toBeDefined();
+      expect(row!.endsWith(`   ${entry.title}`)).toBe(true);
+      columns.add(row!.length - entry.title.length);
+      rows++;
+    }
+
+    expect(rows).toBeGreaterThan(5);
+    expect(columns.size).toBe(1);
+  });
 });
 
 describe("a folder that holds more than the list", () => {

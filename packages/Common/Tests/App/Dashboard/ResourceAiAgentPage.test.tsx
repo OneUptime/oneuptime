@@ -3329,9 +3329,12 @@ describe("every resource type", () => {
 
   /*
    * A host has no collector container for the agent to sit beside, so its
-   * agent has an installer of its own: the page shows it to copy, from this
-   * OneUptime (which serves it for its release), with how to read it first.
-   * Every other agent is started by its collector's own installer.
+   * agent has an installer of its own: the one obvious way, first - its two
+   * lines from this OneUptime (which serves it for its release), how to
+   * read it before it runs, what it asks for with the answers the page
+   * knows - and the compose snippet folded away under "Install it yourself
+   * with Docker Compose". Every other agent is started by its collector's
+   * own installer, so its snippet is the instructions, unfolded.
    */
   test.each(COMPOSE_INSTALLED_TYPES)(
     "%s: the agent's own installer, where it has one, from this OneUptime",
@@ -3350,6 +3353,9 @@ describe("every resource type", () => {
         expect(
           screen.queryByTestId("ai-agent-install-installer"),
         ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("ai-agent-install-by-hand"),
+        ).not.toBeInTheDocument();
         return;
       }
 
@@ -3357,28 +3363,101 @@ describe("every resource type", () => {
         "ai-agent-install-installer",
       );
 
-      expect(installer).toHaveTextContent(
-        "Or let the installer write both files and start it:",
-      );
+      expect(installer).toHaveTextContent("Run the installer on the host:");
       expect(codeIn(installer)).toBe(
         getHostAiAgentInstallCommand(getConfiguredOneUptimeUrl()),
       );
       // The address may be quoted: the placeholder is, a host is not.
       expect(codeIn(installer)).toMatch(HOST_AI_AGENT_DOWNLOAD);
       expect(codeIn(installer)).not.toContain("githubusercontent");
-      expect(installer).toHaveTextContent(
-        "The first line downloads the script as install.sh, so you can read it before you run it.",
+      // Two lines to read whole before they run: wrapped, never cut off.
+      expect(installer.querySelector("code")!.className).toContain(
+        "whitespace-pre-wrap",
       );
-      // It comes after the start command, and no bullet repeats it.
-      const order: number = screen
-        .getByTestId("ai-agent-install-start")
-        .compareDocumentPosition(installer);
-      expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+      /*
+       * Under it: that it can be read first, what it asks - with the name
+       * the host reports, once the page has read it - and what it needs.
+       */
+      await waitFor(
+        () => {
+          const notes: Array<string> = within(
+            screen.getByTestId("ai-agent-install-installer-notes"),
+          )
+            .getAllByRole("listitem")
+            .map((item: HTMLElement): string => {
+              return item.textContent || "";
+            });
+          expect(notes).toEqual([
+            "The first line downloads the script as install.sh, so you can read it before you run it.",
+            `It asks for your OneUptime URL (${getConfiguredOneUptimeUrl()}), your project's telemetry ingestion key and this host's name (prod-docker-01).`,
+            "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.",
+          ]);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      // The snippet is the way to do it by hand: folded, after the installer.
+      const byHand: HTMLElement = screen.getByTestId(
+        "ai-agent-install-by-hand",
+      );
+      expect(byHand).toHaveAttribute("data-collapsed", "true");
       expect(
-        screen.getByTestId("ai-agent-install-prerequisites"),
-      ).not.toHaveTextContent("install.sh");
+        within(byHand).getByRole("button", {
+          name: "Install it yourself with Docker Compose",
+        }),
+      ).toHaveAttribute("aria-expanded", "false");
+      expect(
+        installer.compareDocumentPosition(byHand) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      for (const part of [
+        "ai-agent-install-where",
+        "ai-agent-install-command",
+        "ai-agent-install-start",
+        "ai-agent-install-prerequisites",
+        "ai-agent-install-variables",
+      ]) {
+        expect(within(byHand).getByTestId(part)).toBeInTheDocument();
+      }
+      // Its own .env line, and nothing the installer block already says.
+      const prerequisites: HTMLElement = within(byHand).getByTestId(
+        "ai-agent-install-prerequisites",
+      );
+      expect(prerequisites).toHaveTextContent("in a .env next to the file");
+      expect(prerequisites).not.toHaveTextContent("install.sh");
+      expect(prerequisites).not.toHaveTextContent("runs privileged");
+
+      // Opened, the snippet is there to copy.
+      fireEvent.click(
+        within(byHand).getByRole("button", {
+          name: "Install it yourself with Docker Compose",
+        }),
+      );
+      expect(byHand).toHaveAttribute("data-collapsed", "false");
+      expect(
+        codeIn(within(byHand).getByTestId("ai-agent-install-command")),
+      ).toContain("oneuptime-host-ai-agent:");
     },
   );
+
+  test("Host: when the host's name cannot be read, the installer's own default is named", async () => {
+    const descriptor: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+      AiResourceType.Host,
+    );
+    serve({ ...notInstalledStatus(), resourceType: AiResourceType.Host });
+    getItemSpy.mockImplementation(async (): Promise<never> => {
+      throw new Error("no access");
+    });
+    openAgentPage(descriptor);
+
+    const notes: HTMLElement = await findTestId(
+      "ai-agent-install-installer-notes",
+    );
+    expect(notes).toHaveTextContent(
+      `It asks for your OneUptime URL (${getConfiguredOneUptimeUrl()}), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.`,
+    );
+  });
 
   test.each(CLOUD_AI_RESOURCE_TYPES)(
     "%s: with no agent yet the page asks about its own type and offers Let AI fix problems, which opens the setup",

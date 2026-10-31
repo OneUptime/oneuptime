@@ -100,9 +100,17 @@ export interface ResourceAiAgentInstall {
   /*
    * The agent's own installer, where it has one (the Host AI agent): the
    * script from the reader's OneUptime, which writes both files and starts
-   * the agent. Null for an agent its collector's installer starts.
+   * the agent. Null for an agent its collector's installer starts. Where
+   * there is one, the page offers it first, and the snippet below folded
+   * away as the way to do it by hand.
    */
   installerCommand: string | null;
+  /*
+   * Under the installer, whole sentences in the reader's language: what it
+   * asks for, with the answers this page knows (this OneUptime's URL, the
+   * resource's name), and what it needs. Empty without an installer.
+   */
+  installerNotes: Array<string>;
   // The variables the agent reads, the resource's own first.
   variables: Array<ResourceAiAgentInstallVariable>;
   // What the resource needs besides the snippet (a keyring, a token role).
@@ -152,6 +160,11 @@ interface InstallSpec {
   prerequisites: Array<string>;
   // The agent's own installer, served by every OneUptime; null when it has none.
   installScript: InstallScriptName | null;
+  /*
+   * What the installer needs besides what it asks for, under its command:
+   * translation keys. Only for a type with an installer.
+   */
+  installerNotes?: Array<string> | undefined;
   // What ONEUPTIME_AI_WRITE_TARGETS names for this type, and an example.
   writeTargetNoun: string | null;
   writeTargetsExample: string | null;
@@ -642,10 +655,14 @@ const INSTALL_SPECS: Readonly<
           "With pid: host, tini is not pid 1: this registers it as a subreaper, so it still reaps what the agent's commands leave behind.",
       },
     ],
+    // The snippet's own: the installer writes the .env itself.
     prerequisites: [
       translationKey(
         "Put ONEUPTIME_URL and ONEUPTIME_TELEMETRY_INGESTION_KEY (your project's telemetry ingestion key) in a .env next to the file.",
       ),
+    ],
+    // Either way the agent runs so; the snippet shows it in its own lines.
+    installerNotes: [
       translationKey(
         "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.",
       ),
@@ -861,6 +878,28 @@ export function getHostAiAgentInstallCommand(oneuptimeUrl: string): string {
 sudo bash install.sh`;
 }
 
+/*
+ * What the Host AI agent's installer asks for (agents/HostAIAgent/
+ * install.sh: the URL, the key and the host's name), with the answers the
+ * page knows: this OneUptime's URL, and the name the host reports, which
+ * the agent must register with - or, when the page could not read it, the
+ * installer's own default, the hostname.
+ */
+export function getHostAiAgentInstallerAsksText(data: {
+  oneuptimeUrl: string;
+  hostName: string | null;
+}): string {
+  return data.hostName
+    ? translateTemplate(
+        "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name ({{name}}).",
+        { url: data.oneuptimeUrl, name: data.hostName },
+      )
+    : translateTemplate(
+        "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.",
+        { url: data.oneuptimeUrl },
+      );
+}
+
 export function getResourceAiAgentInstall(data: {
   resourceType: AiResourceType;
   resourceId: string;
@@ -871,6 +910,8 @@ export function getResourceAiAgentInstall(data: {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
   const spec: InstallSpec = getInstallSpec(data.resourceType);
   const identity: string | null = data.identity || null;
+  // Where the installer comes from, and the URL it is answered with.
+  const oneuptimeUrl: string = data.oneuptimeUrl || SETUP_GUIDE_URL_PLACEHOLDER;
   const service: string = getResourceAiAgentServiceName(data.resourceType);
   const noun: string =
     data.resourceType === AiResourceType.DatabaseServer ||
@@ -971,10 +1012,20 @@ export function getResourceAiAgentInstall(data: {
     startCommand: composeCommand(data.resourceType, `up -d ${service}`),
     installerCommand:
       spec.installScript === InstallScriptName.HostAiAgent
-        ? getHostAiAgentInstallCommand(
-            data.oneuptimeUrl || SETUP_GUIDE_URL_PLACEHOLDER,
-          )
+        ? getHostAiAgentInstallCommand(oneuptimeUrl)
         : null,
+    installerNotes:
+      spec.installScript === InstallScriptName.HostAiAgent
+        ? [
+            getHostAiAgentInstallerAsksText({
+              oneuptimeUrl: oneuptimeUrl,
+              hostName: identity,
+            }),
+            ...(spec.installerNotes || []).map((note: string): string => {
+              return translateTemplate(note);
+            }),
+          ]
+        : [],
     variables: [
       {
         name: RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,

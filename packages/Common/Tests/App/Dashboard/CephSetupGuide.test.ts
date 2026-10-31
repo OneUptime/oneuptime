@@ -167,13 +167,14 @@ const topicTitles: (
   });
 };
 
-// Everything a step shows: its markdown and every tab.
+// Everything a step shows: its markdown, every tab and its details.
 const stepText: (step: SetupGuideStep) => string = (
   step: SetupGuideStep,
 ): string => {
   return [
     step.description || "",
     step.markdown || "",
+    step.details || "",
     ...(step.variants || []).map(
       (variant: { label: string; markdown: string }): string => {
         return variant.markdown;
@@ -188,10 +189,12 @@ const stepsText: (guide: SetupGuideContent) => string = (
   return guide.steps.map(stepText).join("\n");
 };
 
+// The install step's text: its command, then what follows the note under it.
 const installStep: (guide: SetupGuideContent) => string = (
   guide: SetupGuideContent,
 ): string => {
-  return stepTitled(guide, "Install the agent").markdown || "";
+  const step: SetupGuideStep = stepTitled(guide, "Install the agent");
+  return [step.markdown || "", step.details || ""].join("\n\n");
 };
 
 // The .env block of the Docker Compose install.
@@ -765,14 +768,48 @@ describe("the install script", () => {
     expect(CEPH_AGENT_INSTALL_NAME).toBe(InstallScriptName.CephAgent);
   });
 
-  test("says the script can be read before it runs", () => {
-    const step: SetupGuideStep | undefined = guideFor(
-      "install-script",
-    ).steps.find((candidate: SetupGuideStep): boolean => {
-      return candidate.title === "Install the agent";
-    });
+  /*
+   * The note is about the command's first line, so it sits right under the
+   * command - the step's markdown is the command alone - and what the
+   * script asks for comes after it, as the step's details.
+   */
+  test("the read-first note sits right under the command, before what the script asks for", () => {
+    for (const hasKey of [true, false]) {
+      const guide: SetupGuideContent = hasKey
+        ? guideFor("install-script")
+        : noKeyGuideFor("install-script");
+      const step: SetupGuideStep = stepTitled(guide, "Install the agent");
 
-    expect(step?.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+      expect(step.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+      expect(step.markdown).toBe(
+        codeBlock(
+          "bash",
+          getCephInstallScriptCommand({
+            oneuptimeUrl: URL,
+            apiKey: hasKey ? KEY : SETUP_GUIDE_API_KEY_PLACEHOLDER,
+            hasApiKey: hasKey,
+          }),
+        ),
+      );
+      expect(step.details).toBeTruthy();
+      expect(step.details).not.toContain("```");
+      expect(getSetupGuideMarkdown(guide)).toContain(
+        `${step.markdown}\n\n${INSTALL_SCRIPT_READ_FIRST_NOTE}\n\n${step.details!.trim()}`,
+      );
+      // What the script asks for comes first under the note.
+      expect(step.details).toMatch(
+        hasKey
+          ? /^The command already carries your OneUptime URL/
+          : /^The script asks for your OneUptime URL and ingestion key/,
+      );
+    }
+    expect(
+      guideFor("docker-compose").steps.some(
+        (candidate: SetupGuideStep): boolean => {
+          return candidate.note === INSTALL_SCRIPT_READ_FIRST_NOTE;
+        },
+      ),
+    ).toBe(false);
   });
 
   test("shows none of the Docker Compose instructions", () => {

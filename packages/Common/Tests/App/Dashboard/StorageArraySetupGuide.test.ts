@@ -622,6 +622,28 @@ describe("the install script", () => {
     expect(variant).not.toContain("**OneUptime URL** and **ingestion key**");
   });
 
+  /*
+   * That the first line only downloads the script is about the command, so
+   * it is the sentence right under it, before what the script asks for.
+   */
+  test("says right under the command that the script can be read before it runs", () => {
+    for (const guide of [
+      guideFor("flasharray"),
+      noKeyGuideFor("flasharray"),
+      guideFor("flashblade"),
+    ]) {
+      const variant: string = variantOf(guide, "Install script").markdown;
+
+      expect(variant).toContain(
+        "```\n\nThe first line downloads the script as `install.sh`, so you can read it before you run it.\n\n",
+      );
+      expect(
+        variant.split("The first line downloads the script")[0]!.split("```")
+          .length,
+      ).toBe(3);
+    }
+  });
+
   test("says what the script asks for, where it installs, and how it runs", () => {
     const variant: string = variantOf(
       guideFor("flasharray"),

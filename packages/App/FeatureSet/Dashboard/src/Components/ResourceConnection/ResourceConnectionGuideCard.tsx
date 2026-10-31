@@ -20,6 +20,7 @@ import {
   getResourceConnectionState,
   getResourceLastSeenDate,
 } from "./ResourceConnectionState";
+import { splitCommandAtAddressSlashes } from "../SetupGuide/CommandDisplay";
 
 /*
  * The short "how do I connect this?" card on a resource's overview.
@@ -241,9 +242,20 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
                        * status" / "oneuptime-collector"), and inside a word
                        * only one too long for the column: break-all split
                        * every command mid-word ("oneuptim" / "e-collector").
+                       * An address too long for the column breaks after a
+                       * slash of its path (CommandDisplay), not mid-word.
                        */}
                       <code className="min-w-0 flex-1 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]">
-                        {step.code}
+                        {splitCommandAtAddressSlashes(step.code).map(
+                          (piece: string, index: number): ReactElement => {
+                            return (
+                              <React.Fragment key={index}>
+                                {index > 0 ? <wbr /> : <></>}
+                                {piece}
+                              </React.Fragment>
+                            );
+                          },
+                        )}
                       </code>
                       <CopyTextButton
                         textToBeCopied={step.code}

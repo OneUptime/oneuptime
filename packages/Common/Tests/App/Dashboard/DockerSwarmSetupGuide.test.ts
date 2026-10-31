@@ -31,6 +31,7 @@ import {
   SetupGuideOption,
   SetupGuideStep,
   SetupGuideTopic,
+  codeBlock,
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
@@ -626,8 +627,19 @@ describe("the install script", () => {
     );
   });
 
-  test("says the script can be read before it runs", () => {
+  /*
+   * The note is about the command's first line, so it sits right under the
+   * command - the step's markdown is the command alone - and what to answer
+   * comes after it, as the step's details.
+   */
+  test("says the script can be read before it runs, right under the command", () => {
     expect(install.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+    expect(install.markdown).toBe(codeBlock("bash", INSTALL_COMMAND));
+    expect(install.details).toBeTruthy();
+    expect(install.details).not.toContain("```");
+    expect(getSetupGuideMarkdown(guideFor("install-script"))).toContain(
+      `${install.markdown}\n\n${INSTALL_SCRIPT_READ_FIRST_NOTE}\n\n${install.details!.trim()}`,
+    );
     expect(
       guideFor("docker-compose").steps.map(
         (step: SetupGuideStep): string | undefined => {
@@ -641,10 +653,10 @@ describe("the install script", () => {
     expect(install.description).toContain(
       "It asks for your OneUptime URL, the ingestion key and a cluster name",
     );
-    expect(install.markdown).toContain(
+    expect(install.details).toContain(
       "When it asks, enter the OneUptime URL and the ingestion key shown in step 1",
     );
-    expect(install.markdown).toContain(
+    expect(install.details).toContain(
       `puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\``,
     );
   });
@@ -652,11 +664,11 @@ describe("the install script", () => {
   test("names the cluster a known cluster's tab installs for", () => {
     const known: string =
       guideFor("install-script", { clusterName: "prod-swarm-eu" }).steps[0]!
-        .markdown || "";
+        .details || "";
     expect(known).toContain(
       "and **`prod-swarm-eu`** as the cluster name — exactly",
     );
-    expect(install.markdown).toContain(
+    expect(install.details).toContain(
       "a name for the cluster, such as `prod-swarm`",
     );
   });

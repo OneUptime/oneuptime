@@ -57,6 +57,10 @@ function setServerVersion(version: string): void {
 import AgentVersion from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentVersion";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 import {
+  AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES,
+  isAgentUpgradeCommandWrapped,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentUpgradeModal";
+import {
   AgentKind,
   DOCKER_SWARM_AGENT_VERSION,
   PROXMOX_AGENT_VERSION,
@@ -614,6 +618,26 @@ describe("the upgrade dialog", () => {
   });
 });
 
+describe("which upgrade commands wrap", () => {
+  test("a command of up to five lines does; a longer script does not", () => {
+    expect(AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES).toBe(5);
+    expect(isAgentUpgradeCommandWrapped("bash install.sh")).toBe(true);
+    expect(isAgentUpgradeCommandWrapped("a\nb\nc\nd\ne")).toBe(true);
+    expect(isAgentUpgradeCommandWrapped("a\nb\nc\nd\ne\nf")).toBe(false);
+    for (const command of [
+      getProxmoxAgentUpgradeCommand(READER_URL),
+      getProxmoxAgentDownloadCommand(READER_URL),
+      getStorageArrayAgentDownloadCommand(READER_URL),
+      getDatabaseAgentUpgradeCommand(READER_URL),
+    ]) {
+      expect(isAgentUpgradeCommandWrapped(command)).toBe(true);
+    }
+    expect(
+      isAgentUpgradeCommandWrapped(getVMwareNativeUpgradeCommand(READER_URL)),
+    ).toBe(false);
+  });
+});
+
 describe("the hero chip", () => {
   const OLD_CHIP_CLASS: string =
     "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700";
@@ -901,6 +925,56 @@ describe("the agents that report the collector they pin", () => {
     // Nothing in it needs the setup guide: no key, no folder.
     expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
     expect(findNestedControls(document.body)).toEqual([]);
+  });
+
+  /*
+   * A command of a few lines is read whole before it runs - the address it
+   * downloads from included - so it wraps in the dialog instead of
+   * scrolling sideways under the copy button, on a phone too. The longer
+   * script without Docker keeps its lines as written.
+   */
+  test("VMware: a command of a few lines wraps; the longer script without Docker keeps its lines", async () => {
+    render(
+      <AgentVersion
+        kind={AgentKind.VMwareAgent}
+        version="0.154.0"
+        variant="chip"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: OUTDATED_COLLECTOR }));
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    const codeClasses: () => Array<string> = (): Array<string> => {
+      return Array.from(dialog.querySelectorAll("pre code")).map(
+        (code: Element): string => {
+          return code.getAttribute("class") || "";
+        },
+      );
+    };
+
+    expect(codeClasses()).toHaveLength(1);
+    for (const className of codeClasses()) {
+      expect(className).toContain("whitespace-pre-wrap");
+    }
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Docker Compose" }),
+    );
+    expect(codeClasses()).toHaveLength(2);
+    for (const className of codeClasses()) {
+      expect(className).toContain("whitespace-pre-wrap");
+    }
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Without Docker" }),
+    );
+    expect(
+      getVMwareNativeUpgradeCommand(READER_URL).split("\n").length,
+    ).toBeGreaterThan(AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES);
+    expect(codeClasses()).toHaveLength(1);
+    for (const className of codeClasses()) {
+      expect(className).not.toContain("whitespace-pre-wrap");
+    }
   });
 
   test("Storage Array: the install script again with a note for another array's folder, or every file again", async () => {

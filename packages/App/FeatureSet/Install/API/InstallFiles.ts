@@ -82,13 +82,30 @@ function setCommonHeaders(
  * this OneUptime serves. Nothing from the request is in it.
  */
 export function getNotFoundText(): string {
-  const lines: Array<string> = INSTALL_SCRIPTS.filter(
+  const scripts: Array<InstallScriptEntry> = INSTALL_SCRIPTS.filter(
     (entry: InstallScriptEntry): boolean => {
       return Boolean(entry.script);
     },
-  ).map((entry: InstallScriptEntry): string => {
-    return `  ${INSTALL_SCRIPTS_ROUTE}/${entry.name}    the ${entry.title}`;
-  });
+  );
+
+  const addressOf: (entry: InstallScriptEntry) => string = (
+    entry: InstallScriptEntry,
+  ): string => {
+    return `${INSTALL_SCRIPTS_ROUTE}/${entry.name}`;
+  };
+
+  // A table in a terminal: every agent's name starts in the same column.
+  const width: number = Math.max(
+    ...scripts.map((entry: InstallScriptEntry): number => {
+      return addressOf(entry).length;
+    }),
+  );
+
+  const lines: Array<string> = scripts.map(
+    (entry: InstallScriptEntry): string => {
+      return `  ${addressOf(entry).padEnd(width)}   ${entry.title}`;
+    },
+  );
 
   return [
     "Not found. This OneUptime serves these install scripts:",

@@ -35,6 +35,20 @@ import {
  * Loaded lazily by AgentVersion; reusable anywhere an agent version is drawn.
  */
 
+/*
+ * A command of a few lines - an install script and how to run it, the
+ * files to download again - wraps a line too long for the dialog instead
+ * of scrolling it sideways: it is read whole before it runs, the address it
+ * downloads from included, on a phone too, and the copy button never covers
+ * it. A longer script (the VMware agent's install without Docker) keeps its
+ * lines as written, where a wrapped line would read as two commands.
+ */
+export const AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES: number = 5;
+
+export function isAgentUpgradeCommandWrapped(code: string): boolean {
+  return code.split("\n").length <= AGENT_UPGRADE_WRAPPED_COMMAND_MAX_LINES;
+}
+
 export interface ComponentProps {
   kind: AgentKind;
   currentVersion: string;
@@ -81,7 +95,11 @@ const AgentUpgradeModal: FunctionComponent<ComponentProps> = (
       content: (
         <div className="space-y-3">
           {step.code ? (
-            <CodeBlock language={step.language || "bash"} code={step.code} />
+            <CodeBlock
+              language={step.language || "bash"}
+              code={step.code}
+              wrapLongLines={isAgentUpgradeCommandWrapped(step.code)}
+            />
           ) : (
             <></>
           )}

@@ -348,27 +348,27 @@ function getInstallScriptStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the install script and run it on the machine that will host the agent.",
-    markdown: `${codeBlock(
+    // The command, then right under it that the script can be read first.
+    markdown: codeBlock(
       "bash",
       getCephInstallScriptCommand({
         oneuptimeUrl: context.oneuptimeUrl,
         apiKey: context.apiKey,
         hasApiKey: context.hasApiKey,
       }),
-    )}
-
-${
-  prefilled
-    ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
-    : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
-}
+    ),
+    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+    details: `${
+      prefilled
+        ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
+        : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
+    }
 
 - ${clusterNamePrompt}
 - **Mgr endpoints** — every mgr from the previous step as comma-separated \`host:port\`, e.g. \`ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283\`. The script adds the square brackets.
 - **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only. Where \`ceph\` works with admin rights, the script also offers to create the AI agent's own Ceph client.
 
 It installs to \`${CEPH_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts the agent with Docker Compose. Running the script again reuses everything in that \`.env\` instead of asking again, so it is also how you upgrade.`,
-    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
   };
 }
 
