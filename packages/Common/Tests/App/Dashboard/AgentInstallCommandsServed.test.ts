@@ -503,8 +503,17 @@ describe("the served list covers every agent the Dashboard installs with a scrip
 
     expect([...named].sort()).toEqual(
       INSTALL_SCRIPTS.filter((entry: InstallScriptEntry): boolean => {
-        // The Kubernetes agent's script is in the docs and its chart's notes.
-        return entry.name !== InstallScriptName.KubernetesAgent;
+        /*
+         * The Kubernetes agent's script is in the docs and its chart's
+         * notes. The Docker and Podman agents' guides start the agent's
+         * image (docker run, podman run or a Compose file they show); their
+         * scripts are in the docs and the agents' READMEs.
+         */
+        return ![
+          InstallScriptName.KubernetesAgent,
+          InstallScriptName.DockerAgent,
+          InstallScriptName.PodmanAgent,
+        ].includes(entry.name);
       })
         .map((entry: InstallScriptEntry): string => {
           return entry.name;

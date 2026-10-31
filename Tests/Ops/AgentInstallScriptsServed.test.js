@@ -44,7 +44,7 @@ const AGENTS_DIR = path.join(REPO_ROOT, "agents");
 const { INSTALL_SCRIPTS } = loadInstallScriptsCatalog();
 
 // The served entries that are agents of agents/, with their folder's name.
-const SERVED = INSTALL_SCRIPTS.filter((entry) => {
+const SERVED_AGENTS = INSTALL_SCRIPTS.filter((entry) => {
   return entry.script && entry.sourceDirectory.startsWith("agents/");
 }).map((entry) => {
   return {
@@ -54,16 +54,21 @@ const SERVED = INSTALL_SCRIPTS.filter((entry) => {
 });
 
 /*
- * Agents with an install.sh that OneUptime does not serve, and why. Their
- * scripts download nothing: a new agent whose script downloads files must
- * be served instead (an entry in Common/Types/InstallScripts).
+ * Served agents whose install.sh downloads nothing, and why: it needs no
+ * "Where the agent's files come from" block. A script that downloads files
+ * must carry the block instead.
  */
-const NOT_SERVED = {
+const DOWNLOADS_NOTHING = {
   DockerAgent:
-    "starts its container from oneuptime/docker-agent, which carries its config: it downloads nothing, and the Dashboard installs it with docker run or Compose",
+    "starts its container from oneuptime/docker-agent, which carries its config",
   PodmanAgent:
-    "starts its container from oneuptime/podman-agent, which carries its config: it downloads nothing, and the Dashboard installs it with podman run or Compose",
+    "starts its container from oneuptime/podman-agent, which carries its config",
 };
+
+// The served agents whose script downloads the agent's files.
+const SERVED = SERVED_AGENTS.filter((entry) => {
+  return !Object.keys(DOWNLOADS_NOTHING).includes(entry.directory);
+});
 
 const BLOCK_START =
   "# ----------------------------------------------------------------------------\n# Where the agent's files come from\n";
@@ -150,28 +155,38 @@ function fetchedFiles(entry) {
 }
 
 describe("which agents' install scripts OneUptime serves", () => {
-  test("every agent with an install.sh is served, or is listed as one that downloads nothing", () => {
+  test("every agent with an install.sh is served", () => {
     const withScript = fs
       .readdirSync(AGENTS_DIR)
       .filter((directory) => {
         return fs.existsSync(path.join(AGENTS_DIR, directory, "install.sh"));
       })
       .sort();
-    const accounted = [
-      ...SERVED.map((entry) => {
-        return entry.directory;
-      }),
-      ...Object.keys(NOT_SERVED),
-    ].sort();
 
-    expect(withScript).toEqual(accounted);
+    expect(withScript).toEqual(
+      SERVED_AGENTS.map((entry) => {
+        return entry.directory;
+      }).sort(),
+    );
   });
 
-  test.each(Object.keys(NOT_SERVED))(
+  test("the ones that download nothing are served agents too", () => {
+    for (const directory of Object.keys(DOWNLOADS_NOTHING)) {
+      expect({ directory, served: true }).toEqual({
+        directory,
+        served: SERVED_AGENTS.some((entry) => {
+          return entry.directory === directory;
+        }),
+      });
+    }
+  });
+
+  test.each(Object.keys(DOWNLOADS_NOTHING))(
     "%s's install.sh downloads nothing and names no GitHub file",
     (directory) => {
       const script = readScript(directory);
 
+      // (wget appears only in the AI agent container's own health check.)
       expect(script).not.toMatch(/\bcurl\b/);
       expect(script).not.toContain("raw.githubusercontent.com");
       expect(script).not.toContain(BLOCK_START);

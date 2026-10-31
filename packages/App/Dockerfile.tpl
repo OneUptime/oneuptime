@@ -213,8 +213,10 @@ COPY ./LICENSE ./NOTICE /usr/src/
 # After the build, so editing an agent does not redo it.
 COPY ./agents/CephAgent /usr/src/agents/CephAgent
 COPY ./agents/DatabaseAgent /usr/src/agents/DatabaseAgent
+COPY ./agents/DockerAgent /usr/src/agents/DockerAgent
 COPY ./agents/DockerSwarmAgent /usr/src/agents/DockerSwarmAgent
 COPY ./agents/HostAIAgent /usr/src/agents/HostAIAgent
+COPY ./agents/PodmanAgent /usr/src/agents/PodmanAgent
 COPY ./agents/ProxmoxAgent /usr/src/agents/ProxmoxAgent
 COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
 COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent

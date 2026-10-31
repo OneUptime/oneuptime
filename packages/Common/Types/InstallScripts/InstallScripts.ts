@@ -30,9 +30,11 @@ export const INSTALL_SCRIPTS_ROUTE: string = "/install";
 export enum InstallScriptName {
   CephAgent = "ceph-agent",
   DatabaseAgent = "database-agent",
+  DockerAgent = "docker-agent",
   DockerSwarmAgent = "docker-swarm-agent",
   HostAiAgent = "host-ai-agent",
   KubernetesAgent = "kubernetes-agent",
+  PodmanAgent = "podman-agent",
   ProxmoxAgent = "proxmox-agent",
   StorageArrayAgent = "storage-array-agent",
   VMwareAgent = "vmware-agent",
@@ -98,6 +100,22 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       TROUBLESHOOT_SCRIPT_FILE,
     ],
   },
+  /*
+   * The Docker and Podman agents' scripts download nothing: they start the
+   * agent's image, which carries its collector config. Served so the script
+   * and the Compose file come from OneUptime too, never GitHub.
+   */
+  {
+    name: InstallScriptName.DockerAgent,
+    title: "Docker agent",
+    sourceDirectory: "agents/DockerAgent",
+    script: INSTALL_SCRIPT_FILE,
+    files: [
+      INSTALL_SCRIPT_FILE,
+      "docker-compose.yml",
+      "systemd/oneuptime-docker-agent.service",
+    ],
+  },
   {
     name: InstallScriptName.DockerSwarmAgent,
     title: "Docker Swarm agent",
@@ -129,6 +147,17 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
     sourceDirectory: "HelmChart/Public/kubernetes-agent",
     script: null,
     files: [TROUBLESHOOT_SCRIPT_FILE],
+  },
+  {
+    name: InstallScriptName.PodmanAgent,
+    title: "Podman agent",
+    sourceDirectory: "agents/PodmanAgent",
+    script: INSTALL_SCRIPT_FILE,
+    files: [
+      INSTALL_SCRIPT_FILE,
+      "docker-compose.yml",
+      "systemd/oneuptime-podman-agent.service",
+    ],
   },
   {
     name: InstallScriptName.ProxmoxAgent,
