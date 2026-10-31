@@ -93,6 +93,13 @@ const OTLP_LOCATIONS = [
 
 const OTLP_HTTP_SPECS = [OTLP_HTTP_LOCATION, TELEMETRY_LOCATION];
 
+/*
+ * The one other location the status-page servers raise: a form's submission
+ * on its own domain, with its files (FormCustomDomainBodySize.test.js holds
+ * it to its own limit).
+ */
+const FORM_CUSTOM_DOMAIN_SUBMIT_LOCATION = "/api/form/custom-domain/submit";
+
 const INGRESS_PORT = "7849";
 const TLS_INGRESS_PORT = "7850";
 
@@ -1222,7 +1229,8 @@ test("the status-page servers raise only their two OTLP prefixes", () => {
    * They exist to serve status pages to anonymous visitors on custom
    * domains. The raise is scoped to /otlp and /telemetry rather than put on
    * the server or its `location /`, so everything else there keeps nginx's
-   * 1M default.
+   * 1M default - but for a form's submission on its own domain, which
+   * carries its files and has a test of its own.
    */
   for (const serverBlock of statusPageServers()) {
     assert.deepEqual(
@@ -1232,7 +1240,10 @@ test("the status-page servers raise only their two OTLP prefixes", () => {
     );
 
     for (const location of getLocationBlocks(serverBlock.body)) {
-      if (OTLP_HTTP_SPECS.includes(location.spec)) {
+      if (
+        OTLP_HTTP_SPECS.includes(location.spec) ||
+        location.spec === FORM_CUSTOM_DOMAIN_SUBMIT_LOCATION
+      ) {
         continue;
       }
 

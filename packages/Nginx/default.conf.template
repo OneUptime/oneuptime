@@ -392,6 +392,54 @@ ${NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    # A form on its owner's own domain (FormDomain, Common/Types/Form/
+    # FormCustomDomain.ts): the page is served at the domain's root by
+    # `location /`, and calls /api/form/custom-domain on the domain.
+    #
+    # The check that a form's domain reaches this installation: the form
+    # domain sweeps fetch http://<domain>/api/form/custom-domain/
+    # cname-verification/<token> before the domain has a certificate, so it is
+    # answered over plain HTTP even where `location /` sends every visit on to
+    # HTTPS (BILLING_ENABLED), as /status-page-api/ is for a status page's
+    # domain. It answers a token and nothing else.
+    location /api/form/custom-domain/cname-verification/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    # A submission to a form on its own domain carries the files its submitter
+    # chose: up to 10 files and 20 MB together (FormFileAllowance), about 27 MB
+    # of JSON once they are base64. So it takes the 50M the primary ingress's
+    # /api takes, where the form's link sends its submissions; without this
+    # location it would be nginx's 1M, and every submission with a file of
+    # more than about 700 KB would get a bare 413 on the form's domain. Every
+    # other path of a custom domain keeps the 1M. The rest mirrors
+    # `location /` above, billing redirect included.
+    location /api/form/custom-domain/submit {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+
+        client_max_body_size 50M;
+    }
+
     # Acme Verification.
     location /.well-known {
         resolver ${NGINX_RESOLVER} valid=30s;
@@ -679,6 +727,26 @@ ${NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE}
         proxy_set_header Connection $connection_upgrade;
 
         proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    # A submission to a form on its own domain, with its files: 50M, as on
+    # the plain-HTTP server above, which says why.
+    location /api/form/custom-domain/submit {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+
+        client_max_body_size 50M;
     }
 }
 
