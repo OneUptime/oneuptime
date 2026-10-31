@@ -24,7 +24,7 @@ flowchart TB
 
 ## How OneUptime models IoT
 
-- **Fleet**: a group of devices, such as `building-a-sensors` or `field-gateways`. It comes from the `iot.fleet.name` resource attribute, and appears in OneUptime as the telemetry service `iot/<fleet>`. Set `service.name=iot/<fleet>` too, so logs and metrics line up under the same service.
+- **Fleet**: a group of devices, such as `building-a-sensors` or `field-gateways`. It comes from the `iot.fleet.name` resource attribute, and appears in OneUptime as the telemetry service `iot/<fleet>`. Set `service.name=iot/<fleet>` too, so logs and metrics line up under the same service. A fleet's name is matched whatever its case: a reading sent for `warehouse` lands in the fleet `Warehouse`, and is stored under that name.
 - **Device**: one device in a fleet, named by the `device.id` attribute on each datapoint. The fleet's inventory is keyed on `device.id`.
 
 | Attribute | Set on | Required | Description |
