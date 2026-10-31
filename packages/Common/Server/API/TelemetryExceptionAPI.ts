@@ -46,6 +46,11 @@ import SimilarExceptionsReader from "../Utils/Telemetry/SimilarExceptionsReader"
 import { SimilarException } from "../../Types/Telemetry/SimilarExceptions";
 import ExceptionListStatsReader from "../Utils/Telemetry/ExceptionListStatsReader";
 import { ExceptionListStats } from "../../Types/Telemetry/ExceptionListStats";
+import {
+  ExceptionOfFingerprint,
+  MAX_EXCEPTION_FINGERPRINT_LENGTH,
+  MAX_EXCEPTION_FINGERPRINT_LOOKUP,
+} from "../../Types/Telemetry/ExceptionFingerprintLookup";
 import TelemetryExceptionMerge, {
   ExceptionMergeResult,
   ExceptionUnmergeResult,
@@ -248,6 +253,24 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     );
 
     /*
+     * The exception each of a batch of fingerprints of occurrences counts
+     * on - its own, or the one it was merged into - as a session replay
+     * links the exceptions it names (findByOccurrenceFingerprints). Read as
+     * the caller: only the exceptions they may read are answered.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/by-fingerprints`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.findByFingerprints(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Merge other exceptions into this one as the same bug, and undo it
      * (TelemetryExceptionMerge). Both take permission to edit the
      * exceptions involved.
@@ -400,6 +423,97 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       telemetryExceptionId: result.telemetryExceptionId,
       unmergedFromTelemetryExceptionId: result.unmergedFromTelemetryExceptionId,
       outcome: result.outcome,
+    });
+  }
+
+  // The fingerprints a request asks about: each once, at most the most one request takes.
+  public static readFingerprints(raw: unknown): Array<string> {
+    if (!Array.isArray(raw)) {
+      throw new BadDataException("fingerprints must be a list");
+    }
+
+    if (raw.length > MAX_EXCEPTION_FINGERPRINT_LOOKUP) {
+      throw new BadDataException(
+        `Ask about at most ${MAX_EXCEPTION_FINGERPRINT_LOOKUP} fingerprints at once`,
+      );
+    }
+
+    const fingerprints: Array<string> = [];
+
+    for (const value of raw) {
+      if (
+        typeof value !== "string" ||
+        !value.trim() ||
+        value.length > MAX_EXCEPTION_FINGERPRINT_LENGTH
+      ) {
+        throw new BadDataException("Invalid fingerprint");
+      }
+
+      const fingerprint: string = value.trim();
+
+      if (!fingerprints.includes(fingerprint)) {
+        fingerprints.push(fingerprint);
+      }
+    }
+
+    return fingerprints;
+  }
+
+  private async findByFingerprints(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+
+    // Refused before anything is read.
+    const fingerprints: Array<string> = TelemetryExceptionAPI.readFingerprints(
+      body["fingerprints"],
+    );
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!props.tenantId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    const exceptionsByFingerprint: Map<
+      string,
+      Array<TelemetryException>
+    > = fingerprints.length > 0
+      ? await this.service.findByOccurrenceFingerprints({
+          projectId: props.tenantId,
+          fingerprints,
+          select: {
+            _id: true,
+            fingerprint: true,
+            exceptionType: true,
+            message: true,
+          },
+          limit: fingerprints.length * 2,
+          props,
+        })
+      : new Map();
+
+    const exceptions: Array<ExceptionOfFingerprint> = [];
+
+    for (const fingerprint of fingerprints) {
+      for (const exception of exceptionsByFingerprint.get(fingerprint) || []) {
+        if (!exception.id) {
+          continue;
+        }
+
+        exceptions.push({
+          fingerprint,
+          telemetryExceptionId: exception.id.toString(),
+          exceptionType: exception.exceptionType || null,
+          message: exception.message || null,
+        });
+      }
+    }
+
+    return Response.sendJsonObjectResponse(req, res, {
+      exceptions: exceptions as unknown as JSONArray,
     });
   }
 
