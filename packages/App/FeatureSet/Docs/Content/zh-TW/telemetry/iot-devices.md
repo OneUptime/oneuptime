@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime 如何為 IoT 建立模型
 
-- **機群**：一組裝置，例如 `building-a-sensors` 或 `field-gateways`。它來自 `iot.fleet.name` 資源屬性，在 OneUptime 中會顯示為遙測服務 `iot/<fleet>`。也請設定 `service.name=iot/<fleet>`，讓日誌和指標歸入同一個服務。
+- **機群**：一組裝置，例如 `building-a-sensors` 或 `field-gateways`。它來自 `iot.fleet.name` 資源屬性，在 OneUptime 中會顯示為遙測服務 `iot/<fleet>`。也請設定 `service.name=iot/<fleet>`，讓日誌和指標歸入同一個服務。機群名稱比對時不區分大小寫：為 `warehouse` 傳送的讀數會進入機群 `Warehouse`，並以該名稱儲存。
 - **裝置**：機群中的一台裝置，由每個資料點上的 `device.id` 屬性命名。機群的清單以 `device.id` 為鍵。
 
 | 屬性 | 設定位置 | 必要 | 說明 |

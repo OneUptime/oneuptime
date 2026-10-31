@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime での IoT のモデル
 
-- **フリート**: `building-a-sensors` や `field-gateways` のような、デバイスのグループです。`iot.fleet.name` リソース属性から決まり、OneUptime ではテレメトリサービス `iot/<fleet>` として表示されます。ログとメトリクスが同じサービスの下にそろうように、`service.name=iot/<fleet>` も設定してください。
+- **フリート**: `building-a-sensors` や `field-gateways` のような、デバイスのグループです。`iot.fleet.name` リソース属性から決まり、OneUptime ではテレメトリサービス `iot/<fleet>` として表示されます。ログとメトリクスが同じサービスの下にそろうように、`service.name=iot/<fleet>` も設定してください。フリート名は大文字と小文字を区別せずに照合されます。`warehouse` 宛てに送られた測定値はフリート `Warehouse` に入り、その名前で保存されます。
 - **デバイス**: フリート内の 1 台のデバイスで、各データポイントの `device.id` 属性で名前が付きます。フリートのインベントリは `device.id` をキーにしています。
 
 | 属性 | 設定する場所 | 必須 | 説明 |

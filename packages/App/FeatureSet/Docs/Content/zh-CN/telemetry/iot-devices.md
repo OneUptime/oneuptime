@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime 如何对 IoT 建模
 
-- **机群**：一组设备，例如 `building-a-sensors` 或 `field-gateways`。它来自 `iot.fleet.name` 资源属性，在 OneUptime 中显示为遥测服务 `iot/<fleet>`。同时设置 `service.name=iot/<fleet>`，让日志和指标归入同一个服务。
+- **机群**：一组设备，例如 `building-a-sensors` 或 `field-gateways`。它来自 `iot.fleet.name` 资源属性，在 OneUptime 中显示为遥测服务 `iot/<fleet>`。同时设置 `service.name=iot/<fleet>`，让日志和指标归入同一个服务。机群名称匹配时不区分大小写：为 `warehouse` 发送的读数会进入机群 `Warehouse`，并以该名称存储。
 - **设备**：机群中的一台设备，由每个数据点上的 `device.id` 属性命名。机群的清单以 `device.id` 为键。
 
 | 属性 | 设置位置 | 必需 | 说明 |

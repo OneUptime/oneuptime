@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime의 IoT 모델
 
-- **플릿**: `building-a-sensors`나 `field-gateways` 같은 디바이스 그룹입니다. `iot.fleet.name` 리소스 속성에서 정해지며, OneUptime에서는 텔레메트리 서비스 `iot/<fleet>`로 나타납니다. 로그와 메트릭이 같은 서비스 아래에 정렬되도록 `service.name=iot/<fleet>`도 설정하세요.
+- **플릿**: `building-a-sensors`나 `field-gateways` 같은 디바이스 그룹입니다. `iot.fleet.name` 리소스 속성에서 정해지며, OneUptime에서는 텔레메트리 서비스 `iot/<fleet>`로 나타납니다. 로그와 메트릭이 같은 서비스 아래에 정렬되도록 `service.name=iot/<fleet>`도 설정하세요. 플릿 이름은 대소문자를 구분하지 않고 맞춰집니다. `warehouse` 로 보낸 측정값은 `Warehouse` 플릿에 들어가며 그 이름으로 저장됩니다.
 - **디바이스**: 플릿 안의 디바이스 하나로, 각 데이터 포인트의 `device.id` 속성으로 이름이 정해집니다. 플릿의 인벤토리는 `device.id`를 키로 합니다.
 
 | 속성 | 설정 위치 | 필수 | 설명 |
