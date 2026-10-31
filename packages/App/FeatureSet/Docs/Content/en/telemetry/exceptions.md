@@ -99,7 +99,9 @@ The buttons at the top of the exception's page, its **Settings** page and the �
 
 To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.
 
-**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.
+**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once. The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.
+
+**Activity**, at the bottom of the exception's **Overview**, says who changed it and when, newest first: who resolved, reopened, archived or assigned it, merged another exception into it or unmerged one, and when it came back after it was resolved. Every change is there, made on the exception's page, in the list, under **Bulk Actions**, through the API or by OneUptime itself, and a change made with an API key carries the key's name.
 
 ## Error classes
 

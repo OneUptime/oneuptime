@@ -2179,6 +2179,124 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   /*
+   * An assignment is told to whoever it hands the exception to: the person,
+   * or each member of the team, through their own setting of the event the
+   * notification settings page names, and never to whoever assigned it.
+   */
+  it("notifies the person or the team an exception is assigned to, not the one who assigned it", () => {
+    const settingsPage: string = readDashboardSource(
+      "Pages/UserSettings/NotificationSettings.tsx",
+    );
+    const notifications: string = readCommonSource(
+      "Server/Utils/Telemetry/ExceptionAssignmentNotifications.ts",
+    );
+    const job: string = readPackageFile(
+      "App/FeatureSet/Workers/Jobs/TelemetryException/SendAssignedNotification.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    expect(triage).toContain(
+      "The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.",
+    );
+
+    // The row, by the label the settings page draws, for the event sent.
+    expect(settingsPage).toContain(
+      '[NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION]: {\n    label: "Exception assigned to me",',
+    );
+    expect(notifications).toContain(
+      "NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION",
+    );
+
+    // The person, or the team's members; never the one who assigned it.
+    expect(notifications).toContain(
+      "TeamMemberService.getUsersInTeams([data.assigneeTeamId])",
+    );
+    expect(notifications).toContain(
+      "if (sameId(userId, data.assignedByUserId)) {",
+    );
+    // Through their own settings, sent once by the Workers.
+    expect(notifications).toContain(
+      "await UserNotificationSettingService.sendUserNotification({",
+    );
+    expect(job).toContain("schedule: EVERY_MINUTE");
+  });
+
+  /*
+   * An exception's activity: the card at the bottom of its Overview, and
+   * every change it lists recorded where every change goes through - the
+   * service's update hooks (the page, the list, Bulk Actions, the API,
+   * OneUptime's own writes), the merge and the ingest upsert - with an API
+   * key's change carrying the key's name.
+   */
+  it("shows who changed an exception and when, from every change", () => {
+    const card: string = readDashboardSource(
+      "Components/Exceptions/ExceptionActivity.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const presentation: string = readDashboardSource(
+      "Utils/ExceptionActivityPresentation.ts",
+    );
+    const service: string = readCommonSource(
+      "Server/Services/TelemetryExceptionService.ts",
+    );
+    const activityService: string = readCommonSource(
+      "Server/Services/TelemetryExceptionActivityService.ts",
+    );
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Utils/Exception.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    expect(triage).toContain(
+      "**Activity**, at the bottom of the exception's **Overview**, says who changed it and when, newest first: who resolved, reopened, archived or assigned it, merged another exception into it or unmerged one, and when it came back after it was resolved.",
+    );
+    expect(triage).toContain(
+      "Every change is there, made on the exception's page, in the list, under **Bulk Actions**, through the API or by OneUptime itself, and a change made with an API key carries the key's name.",
+    );
+
+    // The card, titled as the page names it, last on the Overview.
+    expect(card).toContain('title="Activity"');
+    expect(explorer).toContain("<ExceptionActivity");
+    const overview: string = explorer.slice(
+      explorer.indexOf("props.section === ExceptionDetailSection.Overview"),
+      explorer.indexOf("props.section === ExceptionDetailSection.StackTrace"),
+    );
+    expect(overview).toContain("<ExceptionActivity");
+    expect(overview.lastIndexOf("<ExceptionActivity")).toBeGreaterThan(
+      overview.lastIndexOf("<ExceptionMergedPanel"),
+    );
+    // Newest first.
+    expect(card).toContain("sort: { createdAt: SortOrder.Descending }");
+
+    // Each kind the paragraph names has its sentence.
+    for (const sentence of [
+      '"{{actor}} resolved this exception"',
+      '"{{actor}} reopened this exception"',
+      '"{{actor}} archived this exception"',
+      '"{{actor}} assigned this exception to {{assignee}}"',
+      '"{{actor}} merged {{exception}} into this exception"',
+      '"{{actor}} unmerged {{exception}} from this exception"',
+      '"It came back after it was resolved"',
+      '"{{name}} (API key)"',
+    ]) {
+      expect(presentation).toContain(sentence);
+    }
+
+    // Recorded wherever a change is made, an API key's by its name.
+    expect(service).toContain("protected override async onUpdateSuccess(");
+    expect(service).toContain("TelemetryExceptionActivityService.record({");
+    expect(merge).toContain("TelemetryExceptionActivityType.Merged");
+    expect(merge).toContain("TelemetryExceptionActivityType.UnmergedFrom");
+    expect(ingest).toContain("TelemetryExceptionActivityType.Regressed");
+    expect(activityService).toContain("FeedApiKeyActorUtil.fromProps(props)");
+  });
+
+  /*
    * Each row's affected users and trend chart: counted over the list's own
    * range, from the user attributes ingest reads, in the order it reads
    * them, and shown only when an occurrence named a user.

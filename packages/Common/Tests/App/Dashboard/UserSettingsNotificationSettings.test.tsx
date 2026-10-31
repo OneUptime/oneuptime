@@ -308,6 +308,53 @@ describe("user settings > notification settings", () => {
     });
 
     /*
+     * An exception assigned to the member, or to a team they are on, is told
+     * through this row: on the Monitoring tab, under its own Exceptions
+     * card, toggling its own setting alone.
+     */
+    test("the Monitoring tab has the exception assignment row, which toggles alone", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      await findEventRow("Assigned to an incident");
+      fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+
+      expect(await screen.findByText("Exceptions")).toBeVisible();
+      expect(
+        screen.getByText(
+          "Notify me about exceptions assigned to me or to a team I am on.",
+        ),
+      ).toBeVisible();
+
+      const row: HTMLElement = await findEventRow("Exception assigned to me");
+      expect(
+        within(row).getByText(
+          "Someone assigns an exception to you, or to a team you are on.",
+        ),
+      ).toBeVisible();
+
+      fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      const exceptionRow: UserNotificationSetting | undefined = rows.find(
+        (setting: UserNotificationSetting): boolean => {
+          return (
+            setting.eventType ===
+            NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION
+          );
+        },
+      );
+      expect(updateById.mock.calls[0][0].id).toEqual(exceptionRow!.id);
+      expect(Object.keys(updateById.mock.calls[0][0].data)).toEqual([
+        "alertByEmail",
+      ]);
+    });
+
+    /*
      * An SLA breach was sent under "Incident created" until it had an event
      * of its own, so switching that off silenced breaches too. Its row sits
      * on the Incidents card, right after the reminder, and turns breaches on

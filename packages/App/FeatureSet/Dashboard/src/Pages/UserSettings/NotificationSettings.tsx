@@ -358,6 +358,11 @@ const EVENT_LIBRARY: Record<
     label: "Added as SLO owner",
     description: "You are added as an owner of a service level objective.",
   },
+  [NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION]: {
+    label: "Exception assigned to me",
+    description:
+      "Someone assigns an exception to you, or to a team you are on.",
+  },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
       label: "Probe status changed for your monitor",
@@ -1101,6 +1106,14 @@ const monitoring: Array<SectionDef> = [
     NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
     NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
   ]),
+  // Keys of their own, so the card says them in the reader's language.
+  buildSection(
+    translationKey("Exceptions"),
+    translationKey(
+      "Notify me about exceptions assigned to me or to a team I am on.",
+    ),
+    [NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION],
+  ),
   buildSection("Probes", "Notify me about custom probes I own.", [
     NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,

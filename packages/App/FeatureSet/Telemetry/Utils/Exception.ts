@@ -1,4 +1,8 @@
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import Crypto from "Common/Utils/Crypto";
@@ -65,6 +69,13 @@ const existingV1Cache: Map<string, { exists: boolean; at: number }> = new Map();
 
 export function clearExistingV1FingerprintCache(): void {
   existingV1Cache.clear();
+}
+
+// An exception the upsert reopened, as its statement hands it back.
+export interface RegressedExceptionRow {
+  id: string;
+  projectId: string;
+  lastSeenInRelease: string | null;
 }
 
 // One occurrence's two fingerprints, wherever they are carried.
@@ -536,7 +547,14 @@ export default class ExceptionUtil {
         );
       }
 
+      /*
+       * The rows this statement reopened come back, and nothing else: their
+       * regressedAt is this statement's now() (one value for the whole
+       * statement, which a row reopened by an earlier one never holds). They
+       * go on each exception's activity timeline (recordRegressions).
+       */
       const sql: string = `
+        WITH "upserted" AS (
         INSERT INTO "TelemetryException" (
           "projectId", "primaryEntityId", "fingerprint",
           "message", "stackTrace", "exceptionType",
@@ -622,13 +640,22 @@ export default class ExceptionUtil {
           END,
           "isResolved" = ${STAYS_RESOLVED_SQL},
           "updatedAt" = now()
+        RETURNING "_id", "projectId", "regressedAt", "lastSeenInRelease"
+        )
+        SELECT "_id"::text AS "id", "projectId"::text AS "projectId",
+          "lastSeenInRelease"
+        FROM "upserted"
+        WHERE "regressedAt" = now()
       `;
 
+      let regressed: Array<RegressedExceptionRow> = [];
+
       try {
-        await TelemetryExceptionService.getRepository().manager.query(
-          sql,
-          params,
-        );
+        regressed =
+          (await TelemetryExceptionService.getRepository().manager.query(
+            sql,
+            params,
+          )) || [];
       } catch (err) {
         /*
          * Fail loud — the caller wraps this in a try/catch and
@@ -641,6 +668,55 @@ export default class ExceptionUtil {
         );
         throw err;
       }
+
+      await ExceptionUtil.recordRegressions(regressed);
+    }
+  }
+
+  /*
+   * Each exception the batch reopened came back after it was resolved: a
+   * Regressed entry on its activity timeline, by OneUptime, naming the
+   * release of the occurrence that brought it back when it names one. Never
+   * fails the batch: the occurrences are counted already, and an entry that
+   * cannot be written is logged and dropped (TelemetryExceptionActivityService).
+   */
+  public static async recordRegressions(
+    rows: Array<RegressedExceptionRow> | null | undefined,
+  ): Promise<void> {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return;
+    }
+
+    try {
+      const entries: Array<TelemetryExceptionActivityEntry> = [];
+
+      for (const row of rows) {
+        if (
+          !row ||
+          !ObjectID.isValidUUID(row.id || "") ||
+          !ObjectID.isValidUUID(row.projectId || "")
+        ) {
+          continue;
+        }
+
+        entries.push({
+          projectId: new ObjectID(row.projectId),
+          telemetryExceptionId: new ObjectID(row.id),
+          activityType: TelemetryExceptionActivityType.Regressed,
+          release: row.lastSeenInRelease || null,
+        });
+      }
+
+      await TelemetryExceptionActivityService.record({
+        entries,
+        actor: {},
+      });
+    } catch (err) {
+      logger.warn(
+        `Could not record the exceptions the batch reopened: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

@@ -64,6 +64,16 @@ import {
   applyAssignmentChange,
   applyManualResolutionChange,
 } from "../../Utils/Exceptions/ExceptionIssueState";
+import {
+  ExceptionActivityChange,
+  ExceptionActivityState,
+  getExceptionActivityChanges,
+  isExceptionActivityWrite,
+  readId,
+} from "../../Utils/Exceptions/ExceptionActivity";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "./TelemetryExceptionActivityService";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -122,6 +132,16 @@ export interface DashboardServiceSummary {
   primaryEntityType: ServiceType | null;
   unresolvedCount: number;
   totalOccurrences: number;
+}
+
+/*
+ * A row an update that is activity is about to write, as it was before
+ * (ExceptionActivityState): what onUpdateSuccess tells the update's
+ * activity by.
+ */
+interface ExceptionRowBeforeUpdate {
+  projectId: ObjectID;
+  state: ExceptionActivityState;
 }
 
 export interface DashboardSummaryResult {
@@ -235,7 +255,111 @@ export class Service extends ProjectReferencesService<Model> {
       DatabaseRequestType.Update,
     );
 
-    return { updateBy, carryForward: null };
+    /*
+     * A triage or an assignment is activity: the rows it writes, as they are
+     * before it, so onUpdateSuccess can tell what it changed - from every
+     * caller, the exception's page, Bulk Actions and the API alike.
+     */
+    if (
+      !isExceptionActivityWrite(
+        updateBy.data as unknown as Record<string, unknown>,
+      )
+    ) {
+      return { updateBy, carryForward: null };
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        isResolved: true,
+        isArchived: true,
+        resolvedInReleaseAfter: true,
+        assignToUserId: true,
+        assignToTeamId: true,
+      },
+    );
+
+    const before: Map<string, ExceptionRowBeforeUpdate> = new Map();
+
+    for (const row of rows) {
+      if (!row.id || !row.projectId) {
+        continue;
+      }
+
+      before.set(row.id.toString().toLowerCase(), {
+        projectId: row.projectId,
+        state: {
+          isResolved: Boolean(row.isResolved),
+          isArchived: Boolean(row.isArchived),
+          resolvedInReleaseAfter: row.resolvedInReleaseAfter?.trim() || null,
+          assignToUserId: readId(row.assignToUserId) || null,
+          assignToTeamId: readId(row.assignToTeamId) || null,
+        },
+      });
+    }
+
+    return { updateBy, carryForward: before };
+  }
+
+  /*
+   * What a triage or an assignment changed, on each exception's activity
+   * timeline: resolved, reopened, came back, archived, assigned and the
+   * rest (getExceptionActivityChanges), crediting whoever made the change.
+   * Recorded once the write landed, never failing it (record logs and
+   * drops what it could not write).
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const before: Map<string, ExceptionRowBeforeUpdate> | null =
+      onUpdate.carryForward instanceof Map ? onUpdate.carryForward : null;
+
+    if (!before || before.size === 0) {
+      return onUpdate;
+    }
+
+    const write: Record<string, unknown> = (onUpdate.updateBy.data ||
+      {}) as unknown as Record<string, unknown>;
+    const entries: Array<TelemetryExceptionActivityEntry> = [];
+
+    for (const updatedId of updatedItemIds) {
+      const row: ExceptionRowBeforeUpdate | undefined = before.get(
+        updatedId.toString().toLowerCase(),
+      );
+
+      if (!row) {
+        continue;
+      }
+
+      const changes: Array<ExceptionActivityChange> =
+        getExceptionActivityChanges({ before: row.state, write });
+
+      for (const change of changes) {
+        entries.push({
+          projectId: row.projectId,
+          telemetryExceptionId: updatedId,
+          activityType: change.activityType,
+          assigneeUserId: change.assigneeUserId,
+          assigneeTeamId: change.assigneeTeamId,
+          release: change.release,
+        });
+      }
+    }
+
+    if (entries.length > 0) {
+      await TelemetryExceptionActivityService.record({
+        entries,
+        actor: TelemetryExceptionActivityService.getActor(
+          onUpdate.updateBy.props,
+        ),
+      });
+    }
+
+    return onUpdate;
   }
 
   @CaptureSpan()
