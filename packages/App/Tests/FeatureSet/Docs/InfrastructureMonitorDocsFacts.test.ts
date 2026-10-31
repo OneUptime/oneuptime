@@ -1451,7 +1451,7 @@ describe(`${KUBERNETES}: the template table`, () => {
     expect(chart).toContain(
       "          receivers:\n            - k8s_cluster\n            # The restarts since each container's previous sample, made in\n",
     );
-    // ...whose k8sattributes extracts every workload a Workload Kind names...
+    // ...whose k8sattributes extracts every workload kind a pod belongs to...
     for (const kind of KUBERNETES_WORKLOAD_KINDS) {
       expect(chart).toContain(`            - k8s.${kind.value}.name\n`);
     }

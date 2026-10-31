@@ -65,7 +65,7 @@ function getKindsTheQueriesName(
   for (const queryConfig of getKubernetesMonitor(template).metricViewConfig
     .queryConfigs as Array<MetricQueryConfigData>) {
     const metricName: string =
-      queryConfig.metricQueryData.filterData.metricName || "";
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
     const keys: Array<string> = [
       ...Object.keys(queryConfig.metricQueryData.filterData.attributes || {}),
       ...(queryConfig.metricQueryData.groupByAttributeKeys || []),
