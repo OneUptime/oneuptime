@@ -17,6 +17,47 @@ export interface ComponentProps {
   isFolded?: boolean | undefined;
 }
 
+// The most of a MICROSOFT_TEAMS_CLOUD value the guide quotes back.
+const MAX_QUOTED_SETTING_LENGTH: number = 64;
+
+/*
+ * What the setup guide says of this server's own MICROSOFT_TEAMS_CLOUD,
+ * after the line that explains the setting: nothing while it is unset (the
+ * commercial cloud), the cloud a value names, or - for a value that names
+ * none, which stops every Microsoft Teams request on the server
+ * (MicrosoftTeamsHosts) - that value, so a typo or a stray quote shows,
+ * and that Microsoft Teams is off until it is changed.
+ */
+export const getServerCloudSentence: (
+  setting: string | null | undefined,
+) => string = (setting: string | null | undefined): string => {
+  const value: string = (setting || "").trim();
+
+  if (!value) {
+    return "";
+  }
+
+  const cloud: MicrosoftTeamsCloud | null = MicrosoftTeamsCloudUtil.read(value);
+
+  if (cloud) {
+    return ` This server is set to **${MicrosoftTeamsCloudUtil.getHosts(cloud).title}**.`;
+  }
+
+  /*
+   * Quoted in a code span as it is, or not at all: a value too long to
+   * read, or with a backtick or a line break that would end the span.
+   */
+  const isQuotable: boolean =
+    value.length <= MAX_QUOTED_SETTING_LENGTH &&
+    !value.includes("`") &&
+    !value.includes("\n") &&
+    !value.includes("\r");
+
+  return isQuotable
+    ? ` This server's value, \`${value}\`, names no Microsoft cloud, so Microsoft Teams is off until you change it.`
+    : " This server's value names no Microsoft cloud, so Microsoft Teams is off until you change it.";
+};
+
 const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
@@ -34,15 +75,16 @@ const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
   ).azurePortalOrigin;
 
   /*
-   * What the guide says of this server's cloud. A value that names no cloud
-   * stops every Microsoft Teams request on the server (MicrosoftTeamsHosts),
-   * so the guide says so, rather than name the commercial cloud its links
-   * fall back to.
+   * Step 2's first line. A GCC High or DoD tenant's app registration and
+   * Azure Bot are made in Azure Government's portal: a server set to one of
+   * those clouds sends the admin there, and any other names it beside the
+   * Azure portal - so an admin of such a tenant reads it before making the
+   * app in the wrong cloud, not at Step 7.
    */
-  const serverCloud: string =
-    MicrosoftTeamsCloudUtil.read(MicrosoftTeamsCloudSetting) === null
-      ? "This server's value names no Microsoft cloud, so Microsoft Teams is off until it does."
-      : `This server's cloud: **${cloud.title}**.`;
+  const portalStep: string =
+    cloud.azurePortalOrigin === governmentPortal
+      ? `Go to the [Azure Government portal](${governmentPortal})`
+      : `Go to the [Azure Portal](${cloud.azurePortalOrigin}) (the [Azure Government portal](${governmentPortal}) for a GCC High or DoD tenant)`;
 
   const markdownText: string = `
 
@@ -53,7 +95,7 @@ Azure Account - You can create one by going to https://azure.com.
 
 ##### Step 2: Create Azure App Registration
 
-1. Go to the [Azure Portal](${cloud.azurePortalOrigin})
+1. ${portalStep}
 2. Navigate to "App registrations" and click "New registration"
 3. Fill out the registration form:
    - **Name:** oneuptime
@@ -165,7 +207,7 @@ microsoftTeamsApp:
 - \`MICROSOFT_TEAMS_APP_CLIENT_ID\` (\`clientId\`): the app registration's **Application (client) ID**. It is also the bot id of the Teams app package.
 - \`MICROSOFT_TEAMS_APP_CLIENT_SECRET\` (\`clientSecret\`): the client secret's **Value** from Step 4.
 - \`MICROSOFT_TEAMS_APP_TENANT_ID\` (\`tenantId\`): the **Directory (tenant) ID**. The bot authenticates in this tenant, and people sign in to it to connect their Microsoft Teams account.
-- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for Microsoft 365 in a US Government cloud - \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud. For GCC High and DoD, make the app registration and the Azure Bot in [Azure Government's portal](${governmentPortal}). ${serverCloud}
+- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for a Microsoft 365 tenant in a US Government cloud: \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud.${getServerCloudSentence(MicrosoftTeamsCloudSetting)}
 
 
 Restart your OneUptime server after adding these environment variables so they take effect.

@@ -128,7 +128,7 @@ describe("a MICROSOFT_TEAMS_CLOUD that names no cloud", () => {
     const problem: string | null = MicrosoftTeamsHosts.getSettingProblem();
 
     expect(problem).toBe(
-      `${MICROSOFT_TEAMS_CLOUD_SETTING_NAME} is "gcc high please", which names no Microsoft cloud. Set it to commercial, gcc, gcc-high, dod, or leave it unset for the commercial cloud.`,
+      `${MICROSOFT_TEAMS_CLOUD_SETTING_NAME} is "gcc high please", which names no Microsoft cloud. Set it to gcc, gcc-high or dod, or leave it unset for the commercial cloud.`,
     );
 
     for (const address of [

@@ -42,11 +42,24 @@ export default class MicrosoftTeamsHosts {
       return null;
     }
 
+    /*
+     * The values to set, as the docs and the setup guide list them: the US
+     * Government clouds ("gcc, gcc-high or dod"), and unset for the
+     * commercial cloud.
+     */
+    const governmentValues: Array<string> =
+      MicrosoftTeamsCloudUtil.SETTING_VALUES.filter((value: string) => {
+        return value !== MicrosoftTeamsCloud.Commercial;
+      });
+    const lastValue: string = governmentValues[governmentValues.length - 1]!;
+    const valuesList: string =
+      governmentValues.length > 1
+        ? `${governmentValues.slice(0, -1).join(", ")} or ${lastValue}`
+        : lastValue;
+
     return `${MICROSOFT_TEAMS_CLOUD_SETTING_NAME} is "${String(
       MicrosoftTeamsCloudSetting,
-    )}", which names no Microsoft cloud. Set it to ${MicrosoftTeamsCloudUtil.SETTING_VALUES.join(
-      ", ",
-    )}, or leave it unset for the commercial cloud.`;
+    )}", which names no Microsoft cloud. Set it to ${valuesList}, or leave it unset for the commercial cloud.`;
   }
 
   // The cloud this server's Microsoft Teams runs in, and its hosts.
