@@ -93,7 +93,7 @@ flowchart TB
 | Host Stopped Reporting | 重大 | `container.memory.percent`、ホスト上のすべてのコンテナに対する Count、過去 10 分 | ウィンドウ全体でデータがない | データが再び届く |
 | High Container CPU Usage | 警告 | `container.cpu.utilization`、コンテナごとの Avg、過去 5 分 | 80 を超える（一つのコアに対する %） | 72 以下 |
 | High Container Memory Usage | 警告 | `container.memory.percent`、コンテナごとの Avg、過去 5 分 | 85% を超える | 76.5% 以下 |
-| Container Restart Loop | 重大 | コンテナごとの `container.restarts` の増加、過去 15 分 | ウィンドウ内で 3 回を超える再起動（合計） | 2.7 以下 |
+| Container Restart Loop | 重大 | `container.restarts.increase`、コンテナごとの Sum、過去 15 分 | ウィンドウ内で 3 回を超える再起動（合計） | 2.7 以下 |
 | High Container Process Count | 警告 | `container.pids.count`、コンテナごとの Max、過去 5 分 | 2000 を超える | 1800 以下 |
 | Container Restarted (Low Uptime) | 重大 | `container.uptime`、コンテナごとの Min、過去 1 分 | 120 秒未満 | 132 秒以上 |
 
@@ -107,7 +107,7 @@ flowchart TB
 > `container.cpu.utilization` は `podman stats` が表示する数値をエージェントの 30 秒間隔で平均したもので、100% はコンテナの CPU 割り当て全体ではなく CPU 1 コア分です。複数のコアを割り当てたコンテナは健全な状態でも 100 を大きく超えるので、そうしたコンテナではしきい値を引き上げてください。
 
 > [!NOTE]
-> `container.restarts` は Podman が保持する累計値なので、**Container Restart Loop** は Docker と同じく、ウィンドウ内でどれだけ増えたかでアラートします。1 分ごとの Maximum と Minimum の 2 つのクエリを式で差し引き、合計します。エージェントの 30 秒ごとの収集では再起動のおよそ半分しか見えませんが、しきい値はそれを見込んでいます。また、エージェントは実行中のコンテナしかサンプリングしないため、起動直後に終了するコンテナはほとんどサンプリングされません。**Container Restarted (Low Uptime)** はエージェントが捉えた再起動のたびに発火します。
+> `container.restarts` は Podman が保持する累計値ですが、手動での再起動やコンテナの再作成で 0 からやり直しになります。そのためエージェントは、サンプルのたびに `container.restarts.increase` も送信します。これはそのコンテナの前回のサンプル以降の再起動回数です。**Container Restart Loop** は Docker と同じくこれを合計するので、サンプルの間隔がどれだけ空いても再起動をすべて数え、手動での再起動は数えません。古いエージェントは `container.restarts.increase` を送信しません。先に[アップグレードしてください](/docs/telemetry/podman-host#エージェントのアップグレード)。それ以前にこのテンプレートから作成したモニターは、1 分ごとに `container.restarts` がどれだけ増えたかを読むため、ループの再起動の約半分を見逃します。そのモニターを削除し、テンプレートからもう一度作成してください。
 
 > [!CAUTION]
 > `container.uptime` は実行中のコンテナにしか存在しません。停止したまま止まっているコンテナはデータを送らないため、**Container Restarted (Low Uptime)** が捉えるのは再起動や再デプロイで、恒久的な停止は捉えません。2 分未満だけ動く想定のコンテナは、その生涯ずっとアラート状態のままです。
@@ -154,6 +154,7 @@ CPU スロットリングのテンプレートはありません。エージェ�
 | --- | --- |
 | `container.uptime` | コンテナの起動からの秒数。実行中のコンテナだけが報告します。 |
 | `container.restarts` | コンテナが再起動した回数。累計です。 |
+| `container.restarts.increase` | エージェントによるそのコンテナの前回のサンプル以降の再起動回数。サンプルのたびに送信されます。ウィンドウ内の合計がそのウィンドウでの再起動回数なので、累計ではなくこちらでアラートを設定してください。 |
 | `container.pids.count` | コンテナ内のタスク数。cgroup の pids コントローラーはプロセスだけでなくスレッドも数えます。 |
 
 `container.cpu.throttling_data.throttled_periods` は一覧にないので、**詳細** から照会します。
@@ -290,8 +291,8 @@ OneUptime は `resource.host.name` でホストを識別し、エージェント
 **High Container CPU Usage** テンプレートと同じように、クエリを `resource.container.name` でグループ化し、コンテナを 1 つずつ判定してください。忙しいホストですべてのコンテナを平均すると、アイドル状態のコンテナに引き下げられます。100% は 1 コア分を意味するので、複数のコアを使えるコンテナにはより高いしきい値が必要です。負荷にかかわらずコンテナの CPU が平らな線のままなら、ホストで古いエージェントが動いています。[アップグレードしてください](/docs/telemetry/podman-host#エージェントのアップグレード)。
 :::
 
-:::details 再起動回数のアラートが解消しない
-`container.restarts` は累計なので、自然にしきい値を下回ることはありません。原因を直してから、回数をリセットするためにコンテナを作り直すか、しきい値を引き上げてください。
+:::details 再起動のアラートが発火しない、または解消しない
+`container.restarts` そのものをしきい値と比べるモニターは、再起動テンプレートの初期の版から作成したモニターがそうであるように、コンテナの履歴で発火し、解消しません。累計は増えるだけだからです。**Container Restart Loop** が `container.restarts.increase` を読むようになる前にこのテンプレートから作成したモニターは、1 分ごとに累計がどれだけ増えたかを測るため、ループの再起動の約半分を見逃します。古いエージェントは `container.restarts.increase` を送信しません。[エージェントをアップグレードし](/docs/telemetry/podman-host#エージェントのアップグレード)、そのモニターを削除してから **Container Restart Loop** をもう一度作成してください。
 :::
 
 ## 次のステップ

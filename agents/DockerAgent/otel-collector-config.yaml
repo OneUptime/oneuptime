@@ -264,6 +264,49 @@ processors:
           - set(metric.description, "CPU used over each collection interval, where 100% is one full CPU core.") where metric.name == "container.cpu.utilization"
           - set(metric.unit, "%") where metric.name == "container.memory.percent"
           - set(metric.description, "Memory in use as a percent of the container's limit, or of host memory if it has none.") where metric.name == "container.memory.percent"
+  # Container restarts as OneUptime's Container Restart Loop template counts
+  # them: every sample carries container.restarts.increase, the times the
+  # container restarted since the agent's previous sample of it.
+  #
+  # container.restarts is Docker's RestartCount for the container: a lifetime
+  # total that only its restart policy raises (a manual restart, and a
+  # recreated container, start it again at 0). A monitor can only take the
+  # difference of samples inside one minute, so growth between two samples
+  # in different minutes went uncounted - half of a crash loop at a 30-second
+  # interval. These two processors take it sample by sample instead:
+  #   1. transform/restarts-increase-source copies container.restarts (which
+  #      goes on to OneUptime unchanged, for the charts) as
+  #      container.restarts.increase;
+  #   2. cumulative_to_delta/restarts-increase turns the copy into the
+  #      restarts since the previous sample of the same container, however
+  #      far back it was. A container's first sample after the agent starts,
+  #      and a sample whose count went down (restarted by hand, or
+  #      recreated), send no increase; a container's previous sample is kept
+  #      for 2 hours, so one sampled again after a long gap still sends every
+  #      restart it made in between.
+  # docker_stats keeps sampling a container that Docker is restarting: Docker
+  # reports it as running while it waits to start it again, and answers the
+  # receiver's stats request for it with empty stats, so its count arrives
+  # every 30 seconds, between its runs too (as the receiver of
+  # otel/opentelemetry-collector-contrib:0.161.0 and Docker Engine's source
+  # read; the behaviour test below checks it against a real daemon).
+  # Tests/Ops/ContainerAgentRestarts.test.js holds the Docker and Podman
+  # agents to these processors, and Tests/Ops/container-agent-restarts-
+  # behaviour.sh runs them in the collector this image is built FROM, against
+  # a container in a restart loop.
+  transform/restarts-increase-source:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - copy_metric(name="container.restarts.increase", description="Times the container restarted since the agent's previous sample of it.") where metric.name == "container.restarts"
+  cumulative_to_delta/restarts-increase:
+    include:
+      metrics:
+        - container.restarts.increase
+      match_type: strict
+    initial_value: drop
+    max_staleness: 2h
   resource:
     attributes:
       - key: container.runtime
@@ -313,6 +356,8 @@ service:
           cumulative_to_delta/cpu-utilization,
           delta_to_rate/cpu-utilization,
           transform/percent-units,
+          transform/restarts-increase-source,
+          cumulative_to_delta/restarts-increase,
           resourcedetection,
           resource,
           batch,

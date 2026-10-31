@@ -139,7 +139,46 @@ describe.each(AGENTS)("%s: every receiver has a source", (agent) => {
 
     expect([...used].sort()).toEqual(Object.keys(config.receivers).sort());
   });
+
+  /*
+   * A processor defined but in no pipeline is configured and never runs:
+   * the collector starts happily, and the metric it was meant to make
+   * (container.cpu.utilization, container.restarts.increase) is simply
+   * never sent - a template on it never fires.
+   */
+  test("every processor runs in a pipeline, and every pipeline's processors are defined", () => {
+    const used = new Set(
+      Object.values(pipelines).flatMap((pipeline) => {
+        return pipeline.processors || [];
+      }),
+    );
+
+    expect([...used].sort()).toEqual(Object.keys(config.processors).sort());
+  });
 });
+
+/*
+ * Docker and Podman count a container's restarts; ContainerAgentRestarts
+ * holds the processors that send them as container.restarts.increase.
+ */
+describe.each(["DockerAgent", "PodmanAgent"])(
+  "%s: restarts reach OneUptime as the count and as the increase since each sample",
+  (agent) => {
+    const config = readConfig(agent);
+
+    test("the receiver's count is on, and the metrics pipeline turns a copy of it into increases", () => {
+      expect(
+        config.receivers.docker_stats.metrics["container.restarts"],
+      ).toEqual({ enabled: true });
+      expect(config.service.pipelines.metrics.processors).toEqual(
+        expect.arrayContaining([
+          "transform/restarts-increase-source",
+          "cumulative_to_delta/restarts-increase",
+        ]),
+      );
+    });
+  },
+);
 
 describe.each(["DockerAgent", "PodmanAgent"])(
   "%s: no inventory that never runs",

@@ -233,6 +233,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DOCKER]: [
     ...FORM_NAMES,
     "Host Stopped Reporting",
+    "Container Restart Loop",
+    "Container CPU Throttling",
     "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,

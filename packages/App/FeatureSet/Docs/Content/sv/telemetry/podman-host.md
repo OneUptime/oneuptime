@@ -284,6 +284,10 @@ Agenten måste köras som root för att läsa `/run/podman/podman.sock`. Kontrol
 En äldre agent skickar mottagaren `docker_stats` egen CPU-siffra, som behöver statistikmätningen före den aktuella, och Podmans Docker-kompatibla API skickar den aldrig: mottagaren delar all CPU som en container har använt sedan den startade med all CPU som värden har använt sedan den senast startades. Linjen rör sig knappt och följer inte belastningen, medan `container.cpu.usage.total` gör det. [Uppgradera agenten](#uppgradera-agenten): från sin andra mätning skickar den den CPU som varje container använde under varje intervall på 30 sekunder. Mätningar som redan har sparats förblir som de var.
 :::
 
+:::details Container Restart Loop utlöses aldrig eller missar omstarter
+En äldre agent skickar inte `container.restarts.increase`, omstarterna sedan dess förra mätning av varje container, som mallen summerar. [Uppgradera agenten](#uppgradera-agenten): från dess andra mätning av varje container räknas varje omstart. En monitor som skapades från mallen före uppgraderingen läser i stället hur mycket `container.restarts` växte inom varje minut, och missar ungefär hälften av omstarterna i en loop: ta bort den och skapa den igen från mallen.
+:::
+
 :::details Mätvärden kommer in men inga containerloggar
 Dina containrar använder troligen `journald`, Podmans standarddrivrutin för loggar. Kontrollera vilka filer agenten bevakar, och vilken drivrutin en container använder:
 

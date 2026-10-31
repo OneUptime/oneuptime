@@ -93,7 +93,7 @@ flowchart TB
 | Host Stopped Reporting | 重大 | `container.memory.percent`、ホスト上のすべてのコンテナに対する Count、過去 10 分 | ウィンドウ全体でデータがない | データが再び届く |
 | High Container CPU Usage | 警告 | `container.cpu.utilization`、コンテナごとの Max、過去 5 分 | 80 を超える（一つのコアに対する %） | 72 以下 |
 | High Container Memory Usage | 警告 | `container.memory.percent`、コンテナごとの Max、過去 5 分 | 85% を超える | 76.5% 以下 |
-| Container Restart Loop | 重大 | コンテナごとの `container.restarts` の増加、過去 15 分 | ウィンドウ内で 3 回を超える再起動（合計） | 2.7 以下 |
+| Container Restart Loop | 重大 | `container.restarts.increase`、コンテナごとの Sum、過去 15 分 | ウィンドウ内で 3 回を超える再起動（合計） | 2.7 以下 |
 | Container CPU Throttling | 警告 | コンテナごとの `container.cpu.throttling_data.throttled_time` の増加（ms）、過去 5 分 | ウィンドウ内で 1000 ms を超える（合計） | 900 ms 以下 |
 | High Container Process Count | 警告 | `container.pids.count`、コンテナごとの Max、過去 5 分 | 2000 を超える | 1800 以下 |
 | Container Restarted (Low Uptime) | 重大 | `container.uptime`、コンテナごとの Min、過去 1 分 | 120 秒未満 | 132 秒以上 |
@@ -110,7 +110,10 @@ flowchart TB
 > `container.memory.percent` は、コンテナにメモリ上限が設定されていればその上限で、設定されていなければ**ホスト**の総メモリで割ります。超過をメモリ不足による強制終了の前兆と見なす前に、コンテナが `--memory` 付きで起動されたかを確認してください。
 
 > [!WARNING]
-> `container.restarts` と `container.cpu.throttling_data.throttled_time` は増加しかしないため、この 2 つのテンプレートはウィンドウ内でどれだけ増えたかでアラートを出します。1 分ごとの Maximum クエリと Minimum クエリを数式で差し引いて合計します。エージェントの 30 秒ごとの収集では実際の動きの約半分しか見えませんが、しきい値はそれを織り込み済みです。エージェントの `collection_interval` を 60 秒以上にすると、1 分に 1 つのサンプルしか入らず、どちらのテンプレートもアラートを出さなくなります。また、エージェントは実行中のコンテナしかサンプリングしないため、起動直後に終了するコンテナはほとんどサンプリングされません。**Container Restarted (Low Uptime)** はエージェントが捉えた再起動のたびに発火します。
+> `container.cpu.throttling_data.throttled_time` は増加しかしないため、**Container CPU Throttling** はウィンドウ内でどれだけ増えたかでアラートを出します。1 分ごとの Maximum クエリと Minimum クエリを数式で差し引いて合計します。エージェントの 30 秒ごとの収集では実際のスロットリングの約半分しか見えませんが、しきい値はそれを織り込み済みです。エージェントの `collection_interval` を 60 秒以上にすると、1 分に 1 つのサンプルしか入らず、テンプレートはアラートを出さなくなります。
+
+> [!NOTE]
+> `container.restarts` も増加しかしません。ただし手動での再起動やコンテナの再作成で 0 からやり直しになります。そのためエージェントは、サンプルのたびに `container.restarts.increase` も送信します。これはそのコンテナの前回のサンプル以降の再起動回数です。**Container Restart Loop** はこれを合計するので、サンプルの間隔がどれだけ空いても再起動をすべて数え、手動での再起動は数えません。Docker は再起動中のコンテナを実行中として報告するため、エージェントは再起動ループに陥ったコンテナを実行と実行の間もサンプリングし続けます。古いエージェントは `container.restarts.increase` を送信しません。先に[アップグレードしてください](/docs/telemetry/docker-host#エージェントのアップグレード)。それ以前にこのテンプレートから作成したモニターは、1 分ごとに `container.restarts` がどれだけ増えたかを読むため、ループの再起動の約半分を見逃します。そのモニターを削除し、テンプレートからもう一度作成してください。
 
 > [!CAUTION]
 > `container.uptime` は実行中のコンテナにしか存在しません。停止したまま止まっているコンテナはデータを送らないため、**Container Restarted (Low Uptime)** が捉えるのは再起動や再デプロイで、恒久的な停止は捉えません。2 分未満だけ動く想定のコンテナは、その生涯ずっとアラート状態のままです。たとえば [API モニター](/docs/monitor/api-monitor) を使います。
@@ -155,6 +158,7 @@ flowchart TB
 | --- | --- |
 | `container.uptime` | コンテナの起動からの秒数。実行中のコンテナだけが報告します。 |
 | `container.restarts` | 作成以降にコンテナが再起動した回数。生涯カウンター。 |
+| `container.restarts.increase` | エージェントによるそのコンテナの前回のサンプル以降の再起動回数。サンプルのたびに送信されます。ウィンドウ内の合計がそのウィンドウでの再起動回数なので、生涯カウンターではなくこちらでアラートを設定してください。 |
 | `container.pids.count` | コンテナ内のタスク数。cgroup の pids コントローラーはプロセスだけでなくスレッドも数えます。 |
 
 `container.cpu.throttling_data.throttled_periods` は一覧にないので、**詳細** から照会します。
@@ -288,8 +292,12 @@ OneUptime は `resource.host.name` でホストを識別し、エージェント
 **High Container CPU Usage** テンプレートと同じように、クエリを `resource.container.name` でグループ化し、**最大** で集計してください。忙しいホストですべてのコンテナを平均すると、アイドル状態のコンテナに引き下げられます。100% は 1 コア分を意味するので、複数のコアを使えるコンテナにはより高いしきい値が必要です。負荷にかかわらずコンテナの CPU が平らな線のままなら、ホストで古いエージェントが動いています。[アップグレードしてください](/docs/telemetry/docker-host#エージェントのアップグレード)。
 :::
 
-:::details 再起動ループまたはスロットリングのテンプレートがアラートを出さなくなった
-どちらも、同じ 1 分間の 2 つのサンプルの間にカウンターがどれだけ増えたかを測ります。エージェントの `collection_interval` が 60 秒以上だと、1 分に 1 つのサンプルしか入らず、増加は常に 0 になり、どちらのテンプレートも発火しません。エージェントの既定の 30 秒のままにしてください。
+:::details スロットリングのテンプレートがアラートを出さなくなった
+このテンプレートは、同じ 1 分間の 2 つのサンプルの間に `container.cpu.throttling_data.throttled_time` がどれだけ増えたかを測ります。エージェントの `collection_interval` が 60 秒以上だと、1 分に 1 つのサンプルしか入らず、増加は常に 0 になり、テンプレートは発火しません。エージェントの既定の 30 秒のままにしてください。
+:::
+
+:::details 再起動ループのテンプレートが発火しない、または再起動を見逃す
+このテンプレートは `container.restarts.increase` を読みますが、古いエージェントはこれを送信しません。[エージェントをアップグレードしてください](/docs/telemetry/docker-host#エージェントのアップグレード)。それ以前にこのテンプレートから作成したモニターは、同じ 1 分間の 2 つのサンプルの間に `container.restarts` がどれだけ増えたかを読むため、異なる 2 つの分のサンプルの間の再起動を見逃します。そのモニターを削除し、テンプレートからもう一度作成してください。
 :::
 
 ## 次のステップ
