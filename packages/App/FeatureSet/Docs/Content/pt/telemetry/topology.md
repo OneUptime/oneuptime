@@ -86,6 +86,7 @@ Clique em uma seta para ver a taxa de requisições, a taxa de erro e a latênci
 
 Um vCenter, um cluster Kubernetes, um host, um host Docker ou Podman, um cluster Docker Swarm, Proxmox ou Ceph e um storage array têm, cada um, a sua própria página **Topologia**. Ela desenha esse recurso em detalhe, a partir do seu próprio inventário: o que está dentro do quê, cada parte colorida conforme o seu estado, e cada incidente e alerta aberto na parte a que se refere.
 
+- **Leia como uma árvore.** O recurso fica no topo, e as partes de cada parte são desenhadas à sua direita, ligadas a ela por uma linha que fica vermelha ou âmbar onde algo requer atenção. As partes com problemas dentro se abrem sozinhas, o botão redondo de uma parte a abre ou fecha, e as teclas de seta percorrem o mapa.
 - **Encontre o que requer atenção.** **Requer atenção** mantém só as partes com problemas e o caminho até cada uma, e a pesquisa encontra uma parte em qualquer lugar do recurso.
 - **Olhe mais de perto.** Clique em uma parte para ver o que ela é e um link para a sua própria página, e em **Focar nisto** para desenhar só essa parte, o que há dentro dela e aquilo com que se relaciona.
 - **Vá nos dois sentidos.** **Abrir na Topologia** abre o recurso em **Infraestrutura**, e o seu botão **Abrir a topologia do vCenter**, **Abrir a topologia do cluster**, **Abrir a topologia do host** ou **Abrir a topologia do storage array** leva de volta.

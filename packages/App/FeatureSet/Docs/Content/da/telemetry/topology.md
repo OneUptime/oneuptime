@@ -86,6 +86,7 @@ Klik på en pil for at se dens anmodningsrate, fejlrate og gennemsnitlige latens
 
 Et vCenter, en Kubernetes-klynge, en vært, en Docker- eller Podman-vært, en Docker Swarm-, Proxmox- eller Ceph-klynge og et storage-array har hver deres egen side **Topologi**. Den tegner netop den ressource i dybden ud fra dens eget inventar: hvad der ligger i hvad, hver del farvet efter, hvordan den har det, og hver åben hændelse og alarm på den del, den handler om.
 
+- **Læs det som et træ.** Ressourcen står øverst, og hver dels dele tegnes til højre for den, forbundet med den af en linje, der bliver rød eller orange, hvor noget kræver opmærksomhed. Dele med problemer indeni åbner af sig selv, den runde knap på en del åbner eller lukker den, og piletasterne bevæger sig gennem kortet.
 - **Find det, der kræver opmærksomhed.** **Kræver opmærksomhed** beholder kun de dele, der har problemer, og vejen til hver af dem, og søgningen finder en del hvor som helst i ressourcen.
 - **Se nærmere.** Klik på en del for at se, hvad den er, med et link til dens egen side, og på **Fokuser på dette** for kun at tegne den del, hvad den indeholder, og hvad den hænger sammen med.
 - **Gå begge veje.** **Åbn i Topologi** åbner ressourcen på **Infrastruktur**, og dens knap **Åbn vCenter-topologi**, **Åbn klyngetopologi**, **Åbn værtstopologi** eller **Åbn storage-arrayets topologi** fører tilbage.

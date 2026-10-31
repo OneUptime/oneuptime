@@ -816,11 +816,11 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       <p id={keysHintId} className="sr-only">
         {direction === "rtl"
           ? tx(
-              "On a part, Up and Down move between the parts beside it, Left opens it and goes in, and Right closes it and goes back out.",
+              "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.",
               translator,
             )
           : tx(
-              "On a part, Up and Down move between the parts beside it, Right opens it and goes in, and Left closes it and goes back out.",
+              "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.",
               translator,
             )}
       </p>

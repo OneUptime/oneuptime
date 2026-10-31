@@ -39012,5 +39012,9 @@
   "Release to add them.": "برای افزودن، رها کنید.",
   "Chosen files": "فایل‌های انتخاب‌شده",
   "Click to choose a file or drag & drop.": "برای انتخاب فایل کلیک کنید یا آن را بکشید و رها کنید.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید."
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "روی یک بخش، کلیدهای پیکان بالا و پایین میان بخش‌های کنار آن جابه‌جا می‌شوند، پیکان چپ آن را باز می‌کند و به درونش می‌رود، و پیکان راست آن را می‌بندد و دوباره بیرون می‌آید.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "روی یک بخش، کلیدهای پیکان بالا و پایین میان بخش‌های کنار آن جابه‌جا می‌شوند، پیکان راست آن را باز می‌کند و به درونش می‌رود، و پیکان چپ آن را می‌بندد و دوباره بیرون می‌آید.",
+  "Topology map": "نقشه توپولوژی",
+  "What is inside": "آنچه درون آن است"
 }

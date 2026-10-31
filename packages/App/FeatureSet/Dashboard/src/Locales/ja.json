@@ -39012,5 +39012,9 @@
   "Release to add them.": "離すと追加されます。",
   "Chosen files": "選択したファイル",
   "Click to choose a file or drag & drop.": "クリックしてファイルを1つ選択するか、ドラッグ＆ドロップしてください。",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。"
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "部分の上で、上下の矢印キーで隣の部分へ移動し、左矢印キーで開いて中に入り、右矢印キーで閉じて外に戻ります。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "部分の上で、上下の矢印キーで隣の部分へ移動し、右矢印キーで開いて中に入り、左矢印キーで閉じて外に戻ります。",
+  "Topology map": "トポロジーマップ",
+  "What is inside": "中にあるもの"
 }

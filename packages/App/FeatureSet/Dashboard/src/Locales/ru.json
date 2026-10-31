@@ -39012,5 +39012,9 @@
   "Release to add them.": "Отпустите, чтобы добавить их.",
   "Chosen files": "Выбранные файлы",
   "Click to choose a file or drag & drop.": "Нажмите, чтобы выбрать файл, или перетащите его сюда.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице."
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "На части стрелки вверх и вниз переходят к соседним частям, стрелка влево открывает её и переходит внутрь, а стрелка вправо закрывает её и возвращает назад.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "На части стрелки вверх и вниз переходят к соседним частям, стрелка вправо открывает её и переходит внутрь, а стрелка влево закрывает её и возвращает назад.",
+  "Topology map": "Карта топологии",
+  "What is inside": "Что внутри"
 }

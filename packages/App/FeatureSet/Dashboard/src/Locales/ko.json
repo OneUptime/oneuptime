@@ -39012,5 +39012,9 @@
   "Release to add them.": "놓으면 추가됩니다.",
   "Chosen files": "선택한 파일",
   "Click to choose a file or drag & drop.": "클릭하여 파일 하나를 선택하거나 끌어다 놓으세요.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}}은(는) 이 예외의 일부가 됩니다. 지금까지의 발생과 새 발생 모두 여기에서 집계되고 목록에서는 사라집니다. 해당 페이지에서 병합을 해제할 수 있습니다."
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}}은(는) 이 예외의 일부가 됩니다. 지금까지의 발생과 새 발생 모두 여기에서 집계되고 목록에서는 사라집니다. 해당 페이지에서 병합을 해제할 수 있습니다.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "부분에서 위쪽과 아래쪽 화살표로 옆의 부분 사이를 이동하고, 왼쪽 화살표로 열고 안으로 들어가며, 오른쪽 화살표로 닫고 다시 밖으로 나옵니다.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "부분에서 위쪽과 아래쪽 화살표로 옆의 부분 사이를 이동하고, 오른쪽 화살표로 열고 안으로 들어가며, 왼쪽 화살표로 닫고 다시 밖으로 나옵니다.",
+  "Topology map": "토폴로지 맵",
+  "What is inside": "안에 있는 것"
 }

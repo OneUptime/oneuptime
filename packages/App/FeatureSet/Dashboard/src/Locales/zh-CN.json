@@ -39012,5 +39012,9 @@
   "Release to add them.": "松开即可添加。",
   "Chosen files": "已选文件",
   "Click to choose a file or drag & drop.": "点击选择一个文件，或将文件拖放到此处。",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} 将成为此异常的一部分：它已有的和新的出现都计入这里，并从列表中移除。您可以在它的页面上取消合并。"
+  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} 将成为此异常的一部分：它已有的和新的出现都计入这里，并从列表中移除。您可以在它的页面上取消合并。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "在某个部分上，用上下方向键在旁边的部分之间移动，用左方向键将其展开并进入，用右方向键将其收起并返回。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "在某个部分上，用上下方向键在旁边的部分之间移动，用右方向键将其展开并进入，用左方向键将其收起并返回。",
+  "Topology map": "拓扑图",
+  "What is inside": "其中包含的内容"
 }
