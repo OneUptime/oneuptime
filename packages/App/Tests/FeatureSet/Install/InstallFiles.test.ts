@@ -432,6 +432,49 @@ describe("a folder that holds more than the list", () => {
   });
 });
 
+describe("the files are read once, when the router is made", () => {
+  test("a request reads nothing from disk: every file still answers after the folder is gone", async () => {
+    const root: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-install-once-"),
+    );
+
+    for (const entry of INSTALL_SCRIPTS) {
+      for (const file of entry.files) {
+        const target: string = path.join(root, entry.sourceDirectory, file);
+
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.copyFileSync(
+          path.join(REPO_ROOT, entry.sourceDirectory, file),
+          target,
+        );
+      }
+    }
+
+    const app: any = buildApp({ root: root, version: VERSION });
+
+    fs.rmSync(root, { recursive: true, force: true });
+    expect(fs.existsSync(root)).toBe(false);
+
+    for (const entry of INSTALL_SCRIPTS) {
+      for (const file of entry.files) {
+        const reply: Reply = await request(
+          app,
+          `${INSTALL_SCRIPTS_ROUTE}/${entry.name}/${file}`,
+        );
+
+        expect({ file: `${entry.name}/${file}`, status: reply.status }).toEqual(
+          { file: `${entry.name}/${file}`, status: 200 },
+        );
+        expect(
+          reply.body.equals(
+            fs.readFileSync(path.join(REPO_ROOT, entry.sourceDirectory, file)),
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+});
+
 describe("the release the files are from", () => {
   test("X-OneUptime-Version names it", async () => {
     const reply: Reply = await request(

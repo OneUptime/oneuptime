@@ -25,7 +25,9 @@ import path from "path";
  *
  *   - the body is the file as the image holds it, byte for byte, read-only
  *     and owned by root (packages/App/Dockerfile.tpl): nothing a request
- *     says reaches it, and nothing is filled in;
+ *     says reaches it, and nothing is filled in. Every listed file is read
+ *     once, when the router is made (a few hundred kilobytes in all), so a
+ *     request never touches the disk;
  *   - a request picks an entry and a file by their exact names in the
  *     list, never a path on disk, so "../" and absolute paths are no file
  *     of any entry and answer 404;
@@ -104,26 +106,52 @@ function sendNotFound(
   res.status(404).send(getNotFoundText());
 }
 
-async function sendInstallFile(data: {
+// The key of an entry's file in the files read when the router was made.
+function fileKey(entry: InstallScriptEntry, file: string): string {
+  return `${entry.name}/${file}`;
+}
+
+/*
+ * Every listed file, read from the image once. A file the image lacks is
+ * logged here and kept as null: its address then answers 500, never 404,
+ * which the scripts would take for an older OneUptime.
+ */
+export function readInstallFiles(root: string): Map<string, Buffer | null> {
+  const files: Map<string, Buffer | null> = new Map();
+
+  for (const entry of INSTALL_SCRIPTS) {
+    for (const file of entry.files) {
+      try {
+        files.set(
+          fileKey(entry, file),
+          fs.readFileSync(path.join(root, entry.sourceDirectory, file)),
+        );
+      } catch (err) {
+        logger.error(
+          `Install scripts: cannot read ${entry.sourceDirectory}/${file} under ${root}, which ${INSTALL_SCRIPTS_ROUTE}/${entry.name} serves. The image should carry it (packages/App/Dockerfile.tpl).`,
+        );
+        logger.error(err);
+        files.set(fileKey(entry, file), null);
+      }
+    }
+  }
+
+  return files;
+}
+
+function sendInstallFile(data: {
   res: ExpressResponse;
   entry: InstallScriptEntry;
   file: string;
+  files: Map<string, Buffer | null>;
   options: InstallFilesRouterOptions;
-}): Promise<void> {
-  const { res, entry, file, options } = data;
-  let content: Buffer;
+}): void {
+  const { res, entry, file, files, options } = data;
+  const content: Buffer | null = files.get(fileKey(entry, file)) || null;
 
-  try {
-    content = await fs.promises.readFile(
-      path.join(options.root, entry.sourceDirectory, file),
-    );
-  } catch (err) {
-    logger.error(
-      `Install scripts: cannot read ${entry.sourceDirectory}/${file} under ${options.root}, which ${INSTALL_SCRIPTS_ROUTE}/${entry.name} serves. The image should carry it (packages/App/Dockerfile.tpl).`,
-    );
-    logger.error(err);
+  setCommonHeaders(res, options);
 
-    setCommonHeaders(res, options);
+  if (!content) {
     res
       .status(500)
       .send(
@@ -132,7 +160,6 @@ async function sendInstallFile(data: {
     return;
   }
 
-  setCommonHeaders(res, options);
   res.setHeader(
     "Content-Disposition",
     `inline; filename="${path.posix.basename(file)}"`,
@@ -144,46 +171,42 @@ export function createInstallFilesRouter(
   options: InstallFilesRouterOptions,
 ): ExpressRouter {
   const router: ExpressRouter = Express.getRouter();
+  const files: Map<string, Buffer | null> = readInstallFiles(options.root);
 
   // An entry's install script: /install/proxmox-agent.
-  router.get(
-    "/:name",
-    async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-      const entry: InstallScriptEntry | null = getInstallScriptEntry(
-        req.params["name"],
-      );
+  router.get("/:name", (req: ExpressRequest, res: ExpressResponse): void => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      req.params["name"],
+    );
 
-      if (!entry || !entry.script) {
-        return sendNotFound(res, options);
-      }
+    if (!entry || !entry.script) {
+      return sendNotFound(res, options);
+    }
 
-      return sendInstallFile({
-        res,
-        entry,
-        file: entry.script,
-        options,
-      });
-    },
-  );
+    return sendInstallFile({
+      res,
+      entry,
+      file: entry.script,
+      files,
+      options,
+    });
+  });
 
   // One of its files: /install/database-agent/configs/postgresql.yaml.
-  router.get(
-    "/:name/*",
-    async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-      const entry: InstallScriptEntry | null = getInstallScriptEntry(
-        req.params["name"],
-      );
-      const file: string | null = entry
-        ? getInstallScriptFile(entry, req.params[0])
-        : null;
+  router.get("/:name/*", (req: ExpressRequest, res: ExpressResponse): void => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      req.params["name"],
+    );
+    const file: string | null = entry
+      ? getInstallScriptFile(entry, req.params[0])
+      : null;
 
-      if (!entry || !file) {
-        return sendNotFound(res, options);
-      }
+    if (!entry || !file) {
+      return sendNotFound(res, options);
+    }
 
-      return sendInstallFile({ res, entry, file, options });
-    },
-  );
+    return sendInstallFile({ res, entry, file, files, options });
+  });
 
   // Anything else under /install is no file either.
   router.get("*", (_req: ExpressRequest, res: ExpressResponse): void => {
