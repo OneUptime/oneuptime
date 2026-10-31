@@ -101,6 +101,8 @@ Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella 
 
 **Assegna** nell'intestazione dell'eccezione la affida a una persona o a un team, e togliere la scelta rimuove l'assegnazione. Ogni riga mostra a chi appartiene, il suo menu ⋯ offre **Assegna a me**, e **Assegna a…** in **Azioni di massa** ne assegna diverse insieme.
 
+**Attività**, in fondo alla **Panoramica** dell'eccezione, dice chi l'ha modificata e quando, dalle più recenti: chi l'ha risolta, riaperta, archiviata o assegnata, vi ha unito un'altra eccezione o ne ha separata una, e quando si è ripresentata dopo essere stata risolta. Vi compare ogni modifica, fatta sulla pagina dell'eccezione, nell'elenco, in **Azioni di massa**, tramite l'API o da OneUptime stesso, e una modifica fatta con una chiave API porta il nome della chiave.
+
 ## Classi di errore
 
 Ogni eccezione ha una classe di errore, che dice di chi è il problema. OneUptime AI la imposta quando smista un insight sull'eccezione, come un'eccezione nuova o in forte aumento: vedere [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo). Un'eccezione che non ha smistato resta `unknown`.

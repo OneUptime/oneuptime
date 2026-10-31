@@ -101,6 +101,8 @@ To change several at once, tick their rows in the list, or the box above the row
 
 **Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.
 
+**Activity**, at the bottom of the exception's **Overview**, says who changed it and when, newest first: who resolved, reopened, archived or assigned it, merged another exception into it or unmerged one, and when it came back after it was resolved. Every change is there, made on the exception's page, in the list, under **Bulk Actions**, through the API or by OneUptime itself, and a change made with an API key carries the key's name.
+
 ## Error classes
 
 Every exception has an error class, which says whose problem it is. OneUptime AI sets it when it triages an insight about the exception, such as a new or spiking exception: see [AI SRE](/docs/ai/ai-sre#insights-proactive-detection). An exception it has not triaged stays `unknown`.
