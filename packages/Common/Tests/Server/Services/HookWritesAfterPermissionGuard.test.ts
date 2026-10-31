@@ -628,6 +628,7 @@ describe("service write hooks write nothing a refused or failed write would leav
     "LogSavedViewService.ts",
     "MetricSavedViewService.ts",
     "TraceSavedViewService.ts",
+    "ExceptionSavedViewService.ts",
     "ProjectCallSMSConfigService.ts",
     "OnCallDutyPolicyEscalationRuleService.ts",
     "OnCallDutyPolicyScheduleLayerService.ts",

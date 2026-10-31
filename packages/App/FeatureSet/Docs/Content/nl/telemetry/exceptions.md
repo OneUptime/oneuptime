@@ -62,6 +62,8 @@ Elke rij toont ook hoeveel gebruikers de uitzondering in de gekozen periode trof
 
 Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**. **Aan mij toegewezen** toont alleen de uitzonderingen die aan u zijn toegewezen, en het sorteermenu ordent de lijst op **Laatst gezien**, **Voor het eerst gezien** of **Meeste gebeurtenissen**.
 
+**Opgeslagen weergaven** bewaart de lijst onder een naam, voor iedereen in het project: de zoekopdracht, de filters, het tijdsbereik, de status, wat als probleem telt, **Aan mij toegewezen**, de sortering en de paginagrootte. Een weergave met **Aan mij toegewezen** toont iedereen de uitzonderingen die aan hem of haar zijn toegewezen, en **Weergave wissen** zet de lijst terug zoals die eerst opent. Het adres van de pagina noemt de weergave die u koos, zodat een link die u deelt haar opent. Verder werken opgeslagen weergaven zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
+
 ### Een uitzondering openen
 
 Klik op een rij om de pagina van de uitzondering te openen.

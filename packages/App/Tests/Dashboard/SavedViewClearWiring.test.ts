@@ -69,6 +69,11 @@ const METRIC_EXPLORER_CODE: string = readCode(
   "MetricExplorer.tsx",
 );
 const LOGS_CODE: string = readCode("Components", "Logs", "LogsViewer.tsx");
+const EXCEPTIONS_CODE: string = readCode(
+  "Components",
+  "Exceptions",
+  "ExceptionsViewer.tsx",
+);
 
 /*
  * The body of a `const name: ... = useCallback((...) => { ... }, [deps]);`,
@@ -180,6 +185,7 @@ describe("every explorer mounting the control inherits clearing", () => {
     });
 
     expect(hosts.sort()).toEqual([
+      "ExceptionsViewer.tsx",
       "MetricExplorer.tsx",
       "MetricsViewer.tsx",
       "TracesViewer.tsx",
@@ -240,6 +246,33 @@ describe("an empty view state lands each explorer on its defaults", () => {
     );
   });
 
+  test("exceptions: every field the list keeps, from the view or the list's defaults, page one", () => {
+    /*
+     * readExceptionsSavedViewState gives the list's own default for each
+     * field an empty state leaves out (ExceptionSavedView.test pins that),
+     * and the host sets every one of them, unguarded.
+     */
+    const body: string = callbackBody(EXCEPTIONS_CODE, "applySavedViewState");
+
+    expect(body).toContain(
+      "readExceptionsSavedViewState( saved, savedViewDefaults, )",
+    );
+    expect(stateSettersIn(body)).toEqual([
+      "setActiveFilters(",
+      "setAssignedToMe(",
+      "setClassScope(",
+      "setPage(",
+      "setPageSize(",
+      "setSearchValue(",
+      "setSort(",
+      "setStatus(",
+      "setSubmittedSearch(",
+      "setTimeRange(",
+    ]);
+    expect(body).toContain("setPage(1)");
+    expect(body).not.toContain("if (");
+  });
+
   test("no field is left behind a truthiness guard", () => {
     /*
      * `if (state.pageSize) { setPageSize(...) }` is the shape that broke this
@@ -247,7 +280,7 @@ describe("an empty view state lands each explorer on its defaults", () => {
      * clear — visible both in the rows-per-page control and, through the URL
      * mirror, in the query string of a supposedly cleared explorer.
      */
-    for (const code of [TRACES_CODE, METRICS_CODE]) {
+    for (const code of [TRACES_CODE, METRICS_CODE, EXCEPTIONS_CODE]) {
       expect(code).not.toMatch(/if \(state\.\w+\) \{/);
     }
   });

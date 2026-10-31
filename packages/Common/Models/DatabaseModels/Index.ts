@@ -156,6 +156,7 @@ import Label from "./Label";
 import LogSavedView from "./LogSavedView";
 import MetricSavedView from "./MetricSavedView";
 import TraceSavedView from "./TraceSavedView";
+import ExceptionSavedView from "./ExceptionSavedView";
 import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
@@ -616,6 +617,7 @@ const AllModelTypes: Array<{
   LogSavedView,
   MetricSavedView,
   TraceSavedView,
+  ExceptionSavedView,
   LogPipeline,
   LogPipelineProcessor,
   LogDropFilter,
