@@ -108,6 +108,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
 import { customDomainCaller } from "./CustomDomainCallers";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -133,6 +134,11 @@ type Surface = {
   apiModulePath: string;
   // What somebody who may read and edit this kind of domain holds.
   editorPermissions: Array<Permission>;
+  /*
+   * The plan the caller's project is on, as getDatabaseCommonInteractionProps
+   * gives it: a form's domain needs the plan forms need where billing is on.
+   */
+  callerPlan?: PlanType | undefined;
 };
 
 const surfaces: Array<[string, Surface]> = [
@@ -188,14 +194,18 @@ const surfaces: Array<[string, Surface]> = [
         Permission.ReadFormDomain,
         Permission.EditFormDomain,
       ],
+      callerPlan: PlanType.Growth,
     },
   ],
 ];
 
 describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
-  const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
-    permissions: surface.editorPermissions,
-  });
+  const callerProps: DatabaseCommonInteractionProps = {
+    ...customDomainCaller({
+      permissions: surface.editorPermissions,
+    }),
+    ...(surface.callerPlan ? { currentPlan: surface.callerPlan } : {}),
+  };
 
   let domainId: ObjectID;
 

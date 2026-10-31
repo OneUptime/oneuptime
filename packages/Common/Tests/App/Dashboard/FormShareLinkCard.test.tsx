@@ -135,9 +135,9 @@ import FormShareLinkCard from "../../../../App/FeatureSet/Dashboard/src/Componen
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import {
   getFormShareLink,
+  FORM_EXAMPLE_DOMAIN,
   FORM_PUBLIC_ROUTE_SEGMENT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormShareLink";
-import { FORM_EXAMPLE_DOMAIN } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormShareLink";
 import PublicAddressCopy, {
   PUBLIC_ADDRESS_TEST_IDS,
   PublicAddressKind,
@@ -329,7 +329,9 @@ function oneUptimeRow(): HTMLElement {
   const row: HTMLElement | undefined = screen
     .queryAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)
     .find((candidate: HTMLElement): boolean => {
-      return candidate.getAttribute("data-kind") === PublicAddressKind.OneUptime;
+      return (
+        candidate.getAttribute("data-kind") === PublicAddressKind.OneUptime
+      );
     });
 
   expect(row).toBeDefined();
@@ -443,7 +445,9 @@ describe("the link", () => {
     expect(shownLinkText()).toBe(
       expectedLink(SHARE_KEY).split("://")[1] as string,
     );
-    expect(oneUptimeRow()).toHaveTextContent(PublicAddressCopy.oneUptimeAddress);
+    expect(oneUptimeRow()).toHaveTextContent(
+      PublicAddressCopy.oneUptimeAddress,
+    );
   });
 
   test("building a link leaves the shared Accounts URL alone", () => {
@@ -544,7 +548,9 @@ describe("the form's own domains", () => {
     expect(rows[0]!).toHaveTextContent(PublicAddressCopy.customDomain);
 
     // The link on OneUptime follows, and still works.
-    expect(rows[1]!.getAttribute("data-kind")).toBe(PublicAddressKind.OneUptime);
+    expect(rows[1]!.getAttribute("data-kind")).toBe(
+      PublicAddressKind.OneUptime,
+    );
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
 
     await act(async (): Promise<void> => {
@@ -591,9 +597,9 @@ describe("the form's own domains", () => {
     expect(line).toHaveTextContent(FORM_EXAMPLE_DOMAIN);
     expect(FORM_EXAMPLE_DOMAIN).toBe("report.example.com");
 
-    const link: HTMLAnchorElement = within(line).getByText(
-      PublicAddressCopy.addCustomDomainLink,
-    ).closest("a") as HTMLAnchorElement;
+    const link: HTMLAnchorElement = within(line)
+      .getByText(PublicAddressCopy.addCustomDomainLink)
+      .closest("a") as HTMLAnchorElement;
 
     expect(link.getAttribute("href")).toContain(
       `/forms/${FORM_ID}/custom-domains`,

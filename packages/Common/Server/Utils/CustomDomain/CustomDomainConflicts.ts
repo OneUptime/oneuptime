@@ -44,7 +44,9 @@ export default class CustomDomainConflicts {
    * The kinds a new domain of this kind may not share its name with: every
    * other kind, and, for a form, other forms.
    */
-  public static getKindsToCheck(kind: CustomDomainKind): Array<CustomDomainKind> {
+  public static getKindsToCheck(
+    kind: CustomDomainKind,
+  ): Array<CustomDomainKind> {
     return [
       CustomDomainKind.StatusPage,
       CustomDomainKind.Dashboard,

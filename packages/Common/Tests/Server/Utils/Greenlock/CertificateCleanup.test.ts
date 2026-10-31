@@ -443,12 +443,12 @@ describe("CertificateOwners", () => {
         dashboardQueries.push(domains);
         return ["dash.acme.com"];
       }) as never);
-    jest
-      .spyOn(FormDomainService, "getOwnedDomains")
-      .mockImplementation((async (domains: Array<string>) => {
-        formQueries.push(domains);
-        return ["report.acme.com"];
-      }) as never);
+    jest.spyOn(FormDomainService, "getOwnedDomains").mockImplementation((async (
+      domains: Array<string>,
+    ) => {
+      formQueries.push(domains);
+      return ["report.acme.com"];
+    }) as never);
 
     const domains: Array<string> = [
       "status.acme.com",

@@ -584,17 +584,20 @@ describe("a form's routes on its own domain, over HTTP", () => {
       ["the page, over plain HTTP", { origin: `http://${FORM_DOMAIN}` }],
       ["a request with no page at all", {}],
       ["a same-origin fetch", { "sec-fetch-site": "same-origin" }],
-    ])("lets %s through", async (_label: string, headers: object) => {
-      const result: HttpResult = await send({
-        port,
-        method: "GET",
-        path: READ,
-        host: FORM_DOMAIN,
-        headers: headers as http.OutgoingHttpHeaders,
-      });
+    ])(
+      "lets %s through",
+      async (_label: string, headers: Record<string, string>) => {
+        const result: HttpResult = await send({
+          port,
+          method: "GET",
+          path: READ,
+          host: FORM_DOMAIN,
+          headers: headers as http.OutgoingHttpHeaders,
+        });
 
-      expect(result.status).toBe(200);
-    });
+        expect(result.status).toBe(200);
+      },
+    );
 
     it.each([
       ["another site's page", { origin: "https://evil.example" }],
@@ -608,7 +611,7 @@ describe("a form's routes on its own domain, over HTTP", () => {
       ["a same-site fetch", { "sec-fetch-site": "same-site" }],
     ])(
       "refuses %s, before anything is counted or looked up",
-      async (_label: string, headers: object) => {
+      async (_label: string, headers: Record<string, string>) => {
         for (const method of ["GET", "POST"] as const) {
           const result: HttpResult = await send({
             port,

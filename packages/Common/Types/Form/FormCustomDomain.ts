@@ -45,7 +45,8 @@ export const FORM_CUSTOM_DOMAIN_CNAME_VERIFICATION_API_PATH: string = `/api/form
  * light, as every public form is. Only the server writes it, and only for a
  * domain a form has.
  */
-export const FORM_CUSTOM_DOMAIN_PAGE_META_NAME: string = "oneuptime-form-domain";
+export const FORM_CUSTOM_DOMAIN_PAGE_META_NAME: string =
+  "oneuptime-form-domain";
 export const FORM_CUSTOM_DOMAIN_PAGE_META_CONTENT: string = "true";
 
 /*

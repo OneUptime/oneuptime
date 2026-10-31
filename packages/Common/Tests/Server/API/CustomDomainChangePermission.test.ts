@@ -104,8 +104,10 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
 import FormDomain from "../../../Models/DatabaseModels/FormDomain";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
+import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
@@ -154,6 +156,13 @@ type Kind = {
    */
   labelledParentEditPermission: Permission | null;
   parentRelation: string;
+  /*
+   * The plan the caller's project is on, as getDatabaseCommonInteractionProps
+   * gives the props it: a form's domain is held to the plan forms need
+   * (Growth) where billing is on, as the form is; a status page's and a
+   * dashboard's domains name no plan of their own.
+   */
+  callerPlan: PlanType | null;
 };
 
 const KINDS: Array<[string, Kind]> = [
@@ -173,6 +182,7 @@ const KINDS: Array<[string, Kind]> = [
       readOnlyRoles: [Permission.Viewer, Permission.StatusPageViewer],
       labelledParentEditPermission: Permission.StatusPageMember,
       parentRelation: "statusPage",
+      callerPlan: null,
     },
   ],
   [
@@ -191,6 +201,7 @@ const KINDS: Array<[string, Kind]> = [
       readOnlyRoles: [Permission.Viewer, Permission.SettingsViewer],
       labelledParentEditPermission: Permission.EditDashboard,
       parentRelation: "dashboard",
+      callerPlan: null,
     },
   ],
   /*
@@ -217,6 +228,7 @@ const KINDS: Array<[string, Kind]> = [
       ],
       labelledParentEditPermission: null,
       parentRelation: "form",
+      callerPlan: PlanType.Growth,
     },
   ],
 ];
@@ -340,6 +352,14 @@ async function callAs(
   route: string,
   params?: Record<string, string>,
 ): Promise<{ next: MockedFn }> {
+  /*
+   * In place, not a copy: some tests check the very props the route hands
+   * on. A test that names a plan of its own keeps it.
+   */
+  if (kind.callerPlan && props.currentPlan === undefined) {
+    props.currentPlan = kind.callerPlan;
+  }
+
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(props);
@@ -403,6 +423,45 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
     .getUpdatePermissions()
     .slice()
     .sort();
+
+  /*
+   * A form's domains are a part of forms, which need Growth on OneUptime
+   * Cloud: a project below it is refused the change where billing is on -
+   * whoever asks - and nothing is asked where billing is off.
+   */
+  // Only for a kind whose domains name a plan of their own.
+  const planTest: (name: string, run: () => Promise<void>) => void = (
+    name: string,
+    run: () => Promise<void>,
+  ): void => {
+    if (kind.callerPlan) {
+      test(name, run);
+    }
+  };
+
+  planTest(
+    "a project below the plan its domains need is refused the change where billing is on",
+    async () => {
+      for (const [, changeRoute] of CHANGE_ROUTES) {
+        jest.clearAllMocks();
+        const spies: Spies = stubDomainTable(kind);
+        const props: DatabaseCommonInteractionProps = customDomainCaller({
+          permissions: [Permission.ProjectOwner],
+        });
+
+        props.currentPlan = PlanType.Free;
+
+        await callAs(props, kind, changeRoute.route);
+
+        expect({
+          route: changeRoute.route,
+          reached: changeRoute.reachedTheChange(spies),
+        }).toEqual({ route: changeRoute.route, reached: !IsBillingEnabled });
+
+        jest.restoreAllMocks();
+      }
+    },
+  );
 
   test("the update list the routes hold callers to is the domain table's own", () => {
     expect(updateList).toContain(kind.editPermission);

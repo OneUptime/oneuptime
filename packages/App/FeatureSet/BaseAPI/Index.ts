@@ -4941,7 +4941,10 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Status column's certificates (the routes its page calls on the domain
      * are the form API's, above).
      */
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FormDomainAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new FormDomainAPI().getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
