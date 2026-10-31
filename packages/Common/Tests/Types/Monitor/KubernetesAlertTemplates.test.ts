@@ -1717,9 +1717,8 @@ describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
   });
 
   test("says what it reads, that every failure counts, what it cannot see, and that an older agent sends none of it", () => {
-    const template: KubernetesAlertTemplate = getKubernetesAlertTemplateById(
-      "k8s-job-failures",
-    )!;
+    const template: KubernetesAlertTemplate =
+      getKubernetesAlertTemplateById("k8s-job-failures")!;
 
     expect(template.name).toBe("Job Failures");
     expect(template.description).toContain("k8s.job.failed_pods.increase");
@@ -1762,7 +1761,9 @@ describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
     expect(config).toContain(
       "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n",
     );
-    expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.job.failed_pods.increase");
+    expect(AGENT_EMITTED_METRIC_NAMES).toContain(
+      "k8s.job.failed_pods.increase",
+    );
     expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.job.failed_pods");
   });
 });
