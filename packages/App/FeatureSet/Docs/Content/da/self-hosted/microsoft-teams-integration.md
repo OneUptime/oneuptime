@@ -208,12 +208,12 @@ Alle tre værdier `MICROSOFT_TEAMS_APP_*` er påkrævede:
 
 Hvis din Microsoft 365-tenant ligger i en af Microsofts US Government-clouds, så sæt `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) til den cloud. Botten, Microsoft Teams-logins og [Teams-mødeappen](/docs/workspace-connections/video-calls#forbind-med-ét-klik-på-en-selvhostet-server) bruger så dens værter:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-cloud | Login | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Ikke sat | Kommerciel | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-cloud | Login | Microsoft Graph |
+| --- | --- | --- | --- |
+| Ikke sat | Kommerciel | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 Til GCC High og DoD skal app-registreringen og Azure Bot oprettes i Azure Government: brug [Azure Government-portalen](https://portal.azure.us) i stedet for Azure-portalen i trin 1 til 5. Alt andet er det samme. Kør `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` for at se, hvilken cloud serveren bruger: den nævner cloud'en og dens værter.
 

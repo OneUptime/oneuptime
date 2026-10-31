@@ -208,12 +208,12 @@ Alle de tre verdiene `MICROSOFT_TEAMS_APP_*` er påkrevd:
 
 Hvis Microsoft 365-leietakeren din ligger i en av Microsofts skyer for amerikanske myndigheter, setter du `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) til den skyen. Boten, Microsoft Teams-påloggingene og [Teams-møteappen](/docs/workspace-connections/video-calls#koble-til-med-ett-klikk-på-en-selvdriftet-server) bruker da vertene dens:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-sky | Pålogging | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Ikke satt | Kommersiell | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-sky | Pålogging | Microsoft Graph |
+| --- | --- | --- | --- |
+| Ikke satt | Kommersiell | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 For GCC High og DoD oppretter du app-registreringen og Azure Bot i Azure Government: bruk [Azure Government-portalen](https://portal.azure.us) i stedet for Azure-portalen i trinn 1 til 5. Alt annet er det samme. Kjør `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` for å se hvilken sky serveren bruker: den nevner skyen og vertene dens.
 

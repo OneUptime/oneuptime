@@ -208,12 +208,12 @@ Microsoft Teams で **Apps > Manage your apps** を開き、**Upload an app**、
 
 Microsoft 365 テナントが Microsoft の米国政府向けクラウドのいずれかにある場合は、`MICROSOFT_TEAMS_CLOUD` (Helm では `microsoftTeamsApp.cloud`) をそのクラウドに設定します。ボット、Microsoft Teams のサインイン、[Teams の会議アプリ](/docs/workspace-connections/video-calls#セルフホストのサーバーでのワンクリック接続)は、そのクラウドのホストを使うようになります:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 のクラウド | サインイン | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| 未設定 | 商用 | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 のクラウド | サインイン | Microsoft Graph |
+| --- | --- | --- | --- |
+| 未設定 | 商用 | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 GCC High と DoD では、アプリ登録と Azure Bot を Azure Government に作成します。ステップ 1 から 5 では、Azure Portal の代わりに [Azure Government Portal](https://portal.azure.us) を使います。それ以外は同じです。サーバーが使っているクラウドを確認するには、`curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` を実行します。クラウドとそのホストが表示されます。
 

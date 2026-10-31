@@ -208,12 +208,12 @@ OneUptime 重新執行後，**專案設定 > 工作區 > Microsoft Teams** 會�
 
 如果你的 Microsoft 365 租用戶位於 Microsoft 的某個美國政府雲端中，請將 `MICROSOFT_TEAMS_CLOUD`（Helm 中為 `microsoftTeamsApp.cloud`）設為該雲端。之後機器人、Microsoft Teams 登入和 [Teams 會議應用程式](/docs/workspace-connections/video-calls#在自行託管的伺服器上一鍵連接)都會使用該雲端的主機：
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 雲端 | 登入 | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| 未設定 | 商業 | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 雲端 | 登入 | Microsoft Graph |
+| --- | --- | --- | --- |
+| 未設定 | 商業 | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 對於 GCC High 和 DoD，請在 Azure Government 中建立應用程式註冊和 Azure Bot：在第 1 到 5 步中，使用 [Azure Government 入口網站](https://portal.azure.us)代替 Azure 入口網站。其他步驟都相同。要查看伺服器使用的是哪個雲端，請執行 `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`：它會列出該雲端及其主機。
 

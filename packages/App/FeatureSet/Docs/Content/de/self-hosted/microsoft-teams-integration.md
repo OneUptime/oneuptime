@@ -208,12 +208,12 @@ Alle drei Werte `MICROSOFT_TEAMS_APP_*` sind erforderlich:
 
 Liegt Ihr Microsoft-365-Tenant in einer der US-Government-Clouds von Microsoft, setzen Sie `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) auf diese Cloud. Der Bot, die Microsoft-Teams-Anmeldungen und die [Teams-Besprechungs-App](/docs/workspace-connections/video-calls#ein-klick-verbindung-auf-einem-selbst-gehosteten-server) nutzen dann deren Hosts:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft-365-Cloud | Anmeldung | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Nicht gesetzt | Kommerziell | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft-365-Cloud | Anmeldung | Microsoft Graph |
+| --- | --- | --- | --- |
+| Nicht gesetzt | Kommerziell | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 Für GCC High und DoD legen Sie die App-Registrierung und den Azure Bot in Azure Government an: Nutzen Sie in den Schritten 1 bis 5 das [Azure-Government-Portal](https://portal.azure.us) statt des Azure-Portals. Alles andere bleibt gleich. Welche Cloud der Server nutzt, zeigt `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: Es nennt die Cloud und ihre Hosts.
 

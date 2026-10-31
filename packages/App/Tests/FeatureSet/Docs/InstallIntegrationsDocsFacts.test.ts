@@ -2762,12 +2762,17 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
       sectionOf(page, "## US Government clouds"),
     );
 
+    /*
+     * Four columns, so the table fits the article column on a desktop: with
+     * a fifth (Azure or Azure Government) it scrolled sideways in every
+     * language. Where the app and the Azure Bot are made is the sentence
+     * under it.
+     */
     expect(rows[0]).toEqual([
       "`MICROSOFT_TEAMS_CLOUD`",
       "Microsoft 365 cloud",
       "Sign-in",
       "Microsoft Graph",
-      "Azure Bot",
     ]);
     expect(rows.slice(1)).toEqual(
       MICROSOFT_TEAMS_CLOUD_HOSTS.map(
@@ -2779,10 +2784,23 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
             hosts.title,
             `\`${new URL(hosts.signInOrigin).host}\``,
             `\`${new URL(hosts.graphOrigin).host}\``,
-            hosts.botChannelService ? "Azure Government" : "Azure",
           ];
         },
       ),
+    );
+
+    // The clouds whose bot is in Azure Government are the ones it names.
+    expect(
+      MICROSOFT_TEAMS_CLOUD_HOSTS.filter(
+        (hosts: MicrosoftTeamsCloudHosts): boolean => {
+          return Boolean(hosts.botChannelService);
+        },
+      ).map((hosts: MicrosoftTeamsCloudHosts): string => {
+        return hosts.title;
+      }),
+    ).toEqual(["GCC High", "DoD"]);
+    expect(sectionOf(page, "## US Government clouds")).toContain(
+      "For GCC High and DoD, create the app registration and the Azure Bot in Azure Government",
     );
 
     // Each value it names is one the server reads as that cloud.

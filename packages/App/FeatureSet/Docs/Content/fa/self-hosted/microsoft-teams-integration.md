@@ -208,12 +208,12 @@ microsoftTeamsApp:
 
 اگر مستأجر Microsoft 365 شما در یکی از ابرهای دولت آمریکای Microsoft است، `MICROSOFT_TEAMS_CLOUD` (در Helm `microsoftTeamsApp.cloud`) را برابر همان ابر بگذارید. ربات، ورودهای Microsoft Teams و [برنامهٔ جلسه‌های Teams](/docs/workspace-connections/video-calls#اتصال-یککلیکی-روی-یک-سرور-خودمیزبان) آن‌گاه از میزبان‌های همان ابر استفاده می‌کنند:
 
-| `MICROSOFT_TEAMS_CLOUD` | ابر Microsoft 365 | ورود | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| تنظیم‌نشده | تجاری | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | ابر Microsoft 365 | ورود | Microsoft Graph |
+| --- | --- | --- | --- |
+| تنظیم‌نشده | تجاری | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 برای GCC High و DoD، ثبت برنامه و Azure Bot را در Azure Government بسازید: در گام‌های ۱ تا ۵ به‌جای درگاه Azure از [درگاه Azure Government](https://portal.azure.us) استفاده کنید. باقی کارها همان است. برای دیدن ابری که سرور به کار می‌برد، `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` را اجرا کنید: نام ابر و میزبان‌هایش را می‌گوید.
 

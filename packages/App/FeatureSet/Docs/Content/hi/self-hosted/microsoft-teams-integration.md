@@ -208,12 +208,12 @@ Microsoft Teams में **Apps > Manage your apps** खोलें, **Upload 
 
 अगर आपका Microsoft 365 टेनेंट Microsoft के किसी US सरकारी क्लाउड में है, तो `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) को उसी क्लाउड पर सेट करें। तब बॉट, Microsoft Teams साइन-इन और [Teams मीटिंग ऐप](/docs/workspace-connections/video-calls#सेल्फ़-होस्टेड-सर्वर-पर-एक-क्लिक-में-कनेक्ट-करना) उसी क्लाउड के होस्ट उपयोग करते हैं:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 क्लाउड | साइन-इन | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| सेट नहीं | कमर्शियल | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 क्लाउड | साइन-इन | Microsoft Graph |
+| --- | --- | --- | --- |
+| सेट नहीं | कमर्शियल | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 GCC High और DoD के लिए ऐप पंजीकरण और Azure Bot को Azure Government में बनाएँ: चरण 1 से 5 में Azure पोर्टल की जगह [Azure Government पोर्टल](https://portal.azure.us) उपयोग करें। बाकी सब वैसा ही है। सर्वर कौन-सा क्लाउड उपयोग करता है, यह देखने के लिए `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` चलाएँ: यह क्लाउड और उसके होस्ट बताता है।
 

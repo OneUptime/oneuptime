@@ -208,12 +208,12 @@ Alla tre värdena `MICROSOFT_TEAMS_APP_*` är obligatoriska:
 
 Om din Microsoft 365-klientorganisation finns i ett av Microsofts moln för amerikanska myndigheter anger du `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) till det molnet. Boten, Microsoft Teams-inloggningarna och [Teams-mötesappen](/docs/workspace-connections/video-calls#anslut-med-ett-klick-på-en-egenvärdad-server) använder då dess värdar:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-moln | Inloggning | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Inte angiven | Kommersiellt | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-moln | Inloggning | Microsoft Graph |
+| --- | --- | --- | --- |
+| Inte angiven | Kommersiellt | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 För GCC High och DoD skapar du appregistreringen och Azure Bot i Azure Government: använd [Azure Government-portalen](https://portal.azure.us) i stället för Azure-portalen i steg 1 till 5. Allt annat är detsamma. Kör `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` för att se vilket moln servern använder: den anger molnet och dess värdar.
 

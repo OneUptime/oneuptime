@@ -208,12 +208,12 @@ All three `MICROSOFT_TEAMS_APP_*` values are required:
 
 If your Microsoft 365 tenant is in one of Microsoft's US Government clouds, set `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) to that cloud. The bot, the Microsoft Teams sign-ins and the [Teams meetings app](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server) then use its hosts:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 cloud | Sign-in | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Unset | Commercial | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 cloud | Sign-in | Microsoft Graph |
+| --- | --- | --- | --- |
+| Unset | Commercial | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 For GCC High and DoD, create the app registration and the Azure Bot in Azure Government: in steps 1 to 5, use the [Azure Government portal](https://portal.azure.us) instead of the Azure portal. Everything else is the same. To check which cloud the server uses, run `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: it names the cloud and its hosts.
 

@@ -208,12 +208,12 @@ Alle drie de waarden `MICROSOFT_TEAMS_APP_*` zijn verplicht:
 
 Staat je Microsoft 365-tenant in een van de clouds van de Amerikaanse overheid van Microsoft, zet `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) dan op die cloud. De bot, de Microsoft Teams-aanmeldingen en de [Teams-vergaderapp](/docs/workspace-connections/video-calls#koppelen-met-één-klik-op-een-zelf-gehoste-server) gebruiken dan de hosts daarvan:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-cloud | Aanmelding | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Niet ingesteld | Commercieel | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-cloud | Aanmelding | Microsoft Graph |
+| --- | --- | --- | --- |
+| Niet ingesteld | Commercieel | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 Maak voor GCC High en DoD de app-registratie en de Azure Bot in Azure Government: gebruik in stap 1 tot en met 5 het [Azure Government-portal](https://portal.azure.us) in plaats van het Azure-portal. Al het andere blijft hetzelfde. Voer `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` uit om te zien welke cloud de server gebruikt: hij noemt de cloud en de hosts ervan.
 

@@ -208,12 +208,12 @@ Microsoft Teams에서 **Apps > Manage your apps**를 열고 **Upload an app**, �
 
 Microsoft 365 테넌트가 Microsoft의 미국 정부 클라우드 중 하나에 있다면 `MICROSOFT_TEAMS_CLOUD`(Helm에서는 `microsoftTeamsApp.cloud`)를 해당 클라우드로 설정하세요. 그러면 봇, Microsoft Teams 로그인, [Teams 회의 앱](/docs/workspace-connections/video-calls#자체-호스팅-서버에서-한-번의-클릭으로-연결하기)이 그 클라우드의 호스트를 사용합니다:
 
-| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 클라우드 | 로그인 | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| 설정 안 함 | 상용 | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 클라우드 | 로그인 | Microsoft Graph |
+| --- | --- | --- | --- |
+| 설정 안 함 | 상용 | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 GCC High와 DoD에서는 앱 등록과 Azure Bot을 Azure Government에 만드세요. 1단계부터 5단계까지는 Azure Portal 대신 [Azure Government Portal](https://portal.azure.us)을 사용합니다. 나머지는 모두 같습니다. 서버가 어떤 클라우드를 사용하는지 확인하려면 `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`을 실행하세요. 클라우드와 그 호스트를 알려 줍니다.
 

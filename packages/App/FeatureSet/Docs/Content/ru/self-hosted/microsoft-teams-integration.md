@@ -208,12 +208,12 @@ microsoftTeamsApp:
 
 Если ваш клиент Microsoft 365 находится в одном из облаков Microsoft для госорганов США, задайте в `MICROSOFT_TEAMS_CLOUD` (в Helm — `microsoftTeamsApp.cloud`) это облако. Тогда бот, входы в Microsoft Teams и [приложение для собраний Teams](/docs/workspace-connections/video-calls#подключение-одним-нажатием-на-собственном-сервере) используют его узлы:
 
-| `MICROSOFT_TEAMS_CLOUD` | Облако Microsoft 365 | Вход | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Не задана | Коммерческое | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Облако Microsoft 365 | Вход | Microsoft Graph |
+| --- | --- | --- | --- |
+| Не задана | Коммерческое | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 Для GCC High и DoD создайте регистрацию приложения и Azure Bot в Azure Government: на шагах 1–5 используйте [портал Azure Government](https://portal.azure.us) вместо портала Azure. Всё остальное не меняется. Чтобы проверить, какое облако использует сервер, выполните `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: он называет облако и его узлы.
 

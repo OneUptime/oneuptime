@@ -208,12 +208,12 @@ Os três valores `MICROSOFT_TEAMS_APP_*` são obrigatórios:
 
 Se o seu locatário do Microsoft 365 estiver em uma das nuvens do governo dos EUA da Microsoft, defina `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) com essa nuvem. O bot, os logins do Microsoft Teams e o [app de reuniões do Teams](/docs/workspace-connections/video-calls#conectar-com-um-clique-em-um-servidor-auto-hospedado) passam então a usar os hosts dela:
 
-| `MICROSOFT_TEAMS_CLOUD` | Nuvem do Microsoft 365 | Login | Microsoft Graph | Azure Bot |
-| --- | --- | --- | --- | --- |
-| Não definida | Comercial | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
-| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
-| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+| `MICROSOFT_TEAMS_CLOUD` | Nuvem | Login | Microsoft Graph |
+| --- | --- | --- | --- |
+| Não definida | Comercial | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
 
 Para GCC High e DoD, crie o registro de app e o Azure Bot no Azure Government: nos passos 1 a 5, use o [portal do Azure Government](https://portal.azure.us) em vez do portal do Azure. Todo o resto é igual. Para conferir qual nuvem o servidor usa, execute `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: ele informa a nuvem e os hosts dela.
 
