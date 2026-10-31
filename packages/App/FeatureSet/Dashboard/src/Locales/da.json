@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Valgfrit: kommaseparerede tjeneste- og nodenavne (* matcher en vilkårlig række tegn), som OneUptime AI aldrig må ændre, ud over agenten selv og OneUptime-collectorerne.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Valgfrit: kommaseparerede globmønstre (session:<id>), som rettelser aldrig rører. Agenten afslutter under alle omstændigheder aldrig sin egen session.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Valgfrit: kommaseparerede systemd-unitnavne (* matcher en vilkårlig række tegn), som OneUptime AI aldrig må ændre, ud over agenten selv.",
+  "Or let the installer write both files and start it:": "Eller lad installationsprogrammet skrive begge filer og starte den:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "Den første linje henter scriptet som install.sh, så du kan læse det, før du kører det.",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman-AI-agenten",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "Tildelte underrettet",
   "Notify me about exceptions assigned to me or to a team I am on.": "Giv mig besked om undtagelser, der tildeles mig eller et team, jeg er med i.",
   "Someone assigns an exception to you, or to a team you are on.": "Nogen tildeler en undtagelse til dig eller til et team, du er med i.",
-  "Or let the installer write both files and start it:": "Eller lad installationsprogrammet skrive begge filer og starte den:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "Den første linje henter scriptet som install.sh, så du kan læse det, før du kører det."
+  "Exception Saved View": "Gemt undtagelsesvisning",
+  "Exception Saved Views": "Gemte undtagelsesvisninger",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Gem og genbrug visninger af undtagelseslisten, herunder den aktuelle søgning, filtre, tidsinterval, status, sortering og sidestørrelse."
 }

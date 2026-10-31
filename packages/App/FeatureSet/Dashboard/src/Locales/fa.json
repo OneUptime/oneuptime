@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "اختیاری: نام سرویس‌ها و گره‌هایی که OneUptime AI هرگز نباید تغییر دهد، جداشده با ویرگول (* با هر دنباله‌ای از نویسه‌ها مطابقت دارد)، علاوه بر خود عامل و گردآورنده‌های OneUptime.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "اختیاری: الگوهای glob به شکل session:<id>، جداشده با ویرگول، که اصلاح‌ها هرگز به آن‌ها دست نمی‌زنند. عامل در هر حال هرگز نشست خودش را پایان نمی‌دهد.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "اختیاری: نام آن دسته از واحدهای systemd که OneUptime AI هرگز نباید تغییر دهد، جداشده با ویرگول (* با هر دنباله‌ای از نویسه‌ها مطابقت دارد)، علاوه بر خود عامل.",
+  "Or let the installer write both files and start it:": "یا بگذارید نصب‌کننده هر دو فایل را بنویسد و عامل را راه‌اندازی کند:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "خط اول اسکریپت را با نام install.sh دانلود می‌کند تا بتوانید پیش از اجرا آن را بخوانید.",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "عامل هوش مصنوعی Podman",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "به واگذارشده اطلاع داده شد",
   "Notify me about exceptions assigned to me or to a team I am on.": "دربارهٔ استثناهایی که به من یا به تیمی که در آن هستم واگذار می‌شوند به من اطلاع بده.",
   "Someone assigns an exception to you, or to a team you are on.": "کسی استثنایی را به شما یا به تیمی که در آن هستید واگذار می‌کند.",
-  "Or let the installer write both files and start it:": "یا بگذارید نصب‌کننده هر دو فایل را بنویسد و عامل را راه‌اندازی کند:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "خط اول اسکریپت را با نام install.sh دانلود می‌کند تا بتوانید پیش از اجرا آن را بخوانید."
+  "Exception Saved View": "نمای ذخیره‌شدهٔ استثنا",
+  "Exception Saved Views": "نماهای ذخیره‌شدهٔ استثنا",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "نماهای فهرست استثناها را ذخیره کنید و دوباره به کار ببرید، از جمله جستجو، فیلترها، بازهٔ زمانی، وضعیت، مرتب‌سازی و اندازهٔ صفحهٔ کنونی."
 }

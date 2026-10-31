@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Optional: kommagetrennte Dienst- und Knotennamen (* passt auf eine beliebige Zeichenfolge), die OneUptime AI nie ändern darf, zusätzlich zum Agenten selbst und zu den OneUptime-Collectors.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Optional: kommagetrennte Glob-Muster für session:<id>, die Korrekturen nie antasten. Der Agent beendet seine eigene Sitzung in keinem Fall.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Optional: kommagetrennte systemd-Unit-Namen (* passt auf eine beliebige Zeichenfolge), die OneUptime AI nie ändern darf, zusätzlich zum Agenten selbst.",
+  "Or let the installer write both files and start it:": "Oder lassen Sie das Installationsskript beide Dateien schreiben und den Agenten starten:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "Die erste Zeile lädt das Skript als install.sh herunter, damit Sie es lesen können, bevor Sie es ausführen.",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman-KI-Agent",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "Zugewiesene benachrichtigt",
   "Notify me about exceptions assigned to me or to a team I am on.": "Benachrichtige mich über Ausnahmen, die mir oder einem meiner Teams zugewiesen werden.",
   "Someone assigns an exception to you, or to a team you are on.": "Jemand weist Ihnen oder einem Ihrer Teams eine Ausnahme zu.",
-  "Or let the installer write both files and start it:": "Oder lassen Sie das Installationsskript beide Dateien schreiben und den Agenten starten:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "Die erste Zeile lädt das Skript als install.sh herunter, damit Sie es lesen können, bevor Sie es ausführen."
+  "Exception Saved View": "Gespeicherte Ausnahmeansicht",
+  "Exception Saved Views": "Gespeicherte Ausnahmeansichten",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Ansichten der Ausnahmeliste speichern und wiederverwenden, einschließlich der aktuellen Suche, Filter, des Zeitraums, des Status, der Sortierung und der Seitengröße."
 }

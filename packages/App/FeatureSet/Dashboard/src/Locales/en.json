@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.",
+  "Or let the installer write both files and start it:": "Or let the installer write both files and start it:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "The first line downloads the script as install.sh, so you can read it before you run it.",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman AI agent",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "Is Assignee Notified",
   "Notify me about exceptions assigned to me or to a team I am on.": "Notify me about exceptions assigned to me or to a team I am on.",
   "Someone assigns an exception to you, or to a team you are on.": "Someone assigns an exception to you, or to a team you are on.",
-  "Or let the installer write both files and start it:": "Or let the installer write both files and start it:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "The first line downloads the script as install.sh, so you can read it before you run it."
+  "Exception Saved View": "Exception Saved View",
+  "Exception Saved Views": "Exception Saved Views",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size."
 }

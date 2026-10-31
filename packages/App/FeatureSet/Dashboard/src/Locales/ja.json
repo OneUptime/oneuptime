@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "任意: エージェント自体と OneUptime のコレクターに加えて、OneUptime AI が決して変更してはならないサービス名とノード名をカンマ区切りで指定します（* は任意の文字列に一致します）。",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "任意: 修正で決して操作しない session:<id> のグロブをカンマ区切りで指定します。いずれにしても、エージェントが自身のセッションを終了することはありません。",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "任意: エージェント自体に加えて、OneUptime AI が決して変更してはならない systemd ユニット名をカンマ区切りで指定します（* は任意の文字列に一致します）。",
+  "Or let the installer write both files and start it:": "または、インストーラーに両方のファイルを書き込ませて起動します:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "1 行目でスクリプトを install.sh としてダウンロードするので、実行する前に内容を読めます。",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "このデバイス用に Ping モニター「{{name}}」が作成されました。ping が失敗するとインシデントが発生します。最初の結果はモニターの間隔内に届きます。デバイス自体のステータスは、引き続きプローブのポーリングから取得されます。",
   "Please enter a valid name.": "有効な名前を入力してください。",
   "Podman AI agent": "Podman AI エージェント",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "担当者に通知済み",
   "Notify me about exceptions assigned to me or to a team I am on.": "自分または自分が所属するチームに割り当てられた例外について通知します。",
   "Someone assigns an exception to you, or to a team you are on.": "誰かがあなた、またはあなたが所属するチームに例外を割り当てました。",
-  "Or let the installer write both files and start it:": "または、インストーラーに両方のファイルを書き込ませて起動します:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "1 行目でスクリプトを install.sh としてダウンロードするので、実行する前に内容を読めます。"
+  "Exception Saved View": "保存済みの例外ビュー",
+  "Exception Saved Views": "保存済みの例外ビュー",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "現在の検索、フィルター、時間範囲、ステータス、並べ替え、ページサイズを含む例外一覧のビューを保存して再利用します。"
 }

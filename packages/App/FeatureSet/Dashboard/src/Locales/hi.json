@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "वैकल्पिक: अल्पविराम से अलग सर्विस और नोड नाम (* किसी भी वर्ण-क्रम से मेल खाता है), जिन्हें OneUptime AI को कभी नहीं बदलना चाहिए — खुद एजेंट और OneUptime कलेक्टरों के अलावा।",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "वैकल्पिक: अल्पविराम से अलग session:<id> glob, जिन्हें सुधार कभी नहीं छूते। एजेंट किसी भी हाल में अपना सेशन कभी समाप्त नहीं करता।",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "वैकल्पिक: अल्पविराम से अलग systemd यूनिट नाम (* किसी भी वर्ण-क्रम से मेल खाता है), जिन्हें OneUptime AI को कभी नहीं बदलना चाहिए — खुद एजेंट के अलावा।",
+  "Or let the installer write both files and start it:": "या इंस्टॉलर को दोनों फ़ाइलें लिखने और इसे शुरू करने दें:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "पहली पंक्ति स्क्रिप्ट को install.sh के रूप में डाउनलोड करती है, ताकि आप उसे चलाने से पहले पढ़ सकें।",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman AI एजेंट",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "असाइन किए गए को सूचित किया गया",
   "Notify me about exceptions assigned to me or to a team I am on.": "मुझे या मेरी किसी टीम को असाइन किए गए अपवादों के बारे में मुझे सूचित करें।",
   "Someone assigns an exception to you, or to a team you are on.": "कोई आपको या आपकी किसी टीम को कोई अपवाद असाइन करता है।",
-  "Or let the installer write both files and start it:": "या इंस्टॉलर को दोनों फ़ाइलें लिखने और इसे शुरू करने दें:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "पहली पंक्ति स्क्रिप्ट को install.sh के रूप में डाउनलोड करती है, ताकि आप उसे चलाने से पहले पढ़ सकें।"
+  "Exception Saved View": "अपवाद का सहेजा गया व्यू",
+  "Exception Saved Views": "अपवादों के सहेजे गए व्यू",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "अपवाद सूची के व्यू सहेजें और दोबारा इस्तेमाल करें, जिनमें मौजूदा खोज, फ़िल्टर, समय सीमा, स्थिति, क्रम और पेज का आकार शामिल हैं।"
 }

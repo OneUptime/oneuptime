@@ -23483,6 +23483,8 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "선택 사항: 에이전트 자체와 OneUptime 컬렉터 외에, OneUptime AI가 절대 변경해서는 안 되는 서비스 및 노드 이름을 쉼표로 구분해 지정합니다(*는 임의의 문자열과 일치).",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "선택 사항: 수정이 절대 건드리지 않을 session:<id> glob 패턴을 쉼표로 구분해 지정합니다. 어떤 경우에도 에이전트는 자신의 세션을 종료하지 않습니다.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "선택 사항: 에이전트 자체 외에, OneUptime AI가 절대 변경해서는 안 되는 systemd 유닛 이름을 쉼표로 구분해 지정합니다(*는 임의의 문자열과 일치).",
+  "Or let the installer write both files and start it:": "또는 설치 프로그램이 두 파일을 작성하고 에이전트를 시작하게 하세요:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "첫 번째 줄은 스크립트를 install.sh로 내려받으므로, 실행하기 전에 읽어 볼 수 있습니다.",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman AI 에이전트",
@@ -39050,6 +39052,7 @@
   "Is Assignee Notified": "담당자에게 알림 전송됨",
   "Notify me about exceptions assigned to me or to a team I am on.": "나 또는 내가 속한 팀에 할당된 예외를 알려 줍니다.",
   "Someone assigns an exception to you, or to a team you are on.": "누군가 나 또는 내가 속한 팀에 예외를 할당합니다.",
-  "Or let the installer write both files and start it:": "또는 설치 프로그램이 두 파일을 작성하고 에이전트를 시작하게 하세요:",
-  "The first line downloads the script as install.sh, so you can read it before you run it.": "첫 번째 줄은 스크립트를 install.sh로 내려받으므로, 실행하기 전에 읽어 볼 수 있습니다."
+  "Exception Saved View": "저장된 예외 보기",
+  "Exception Saved Views": "저장된 예외 보기",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "현재 검색, 필터, 시간 범위, 상태, 정렬, 페이지 크기를 포함한 예외 목록 보기를 저장하고 다시 사용합니다."
 }

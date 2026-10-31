@@ -62,6 +62,8 @@ Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsr
 
 Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
 
+**Gemte visninger** gemmer listen under et navn til alle i projektet: søgningen, filtrene, tidsintervallet, status, hvad der tæller som et problem, **Tildelt til mig**, sorteringen og sidestørrelsen. En visning med **Tildelt til mig** viser hver person de undtagelser, der er tildelt dem, og **Ryd visning** sætter listen tilbage, som den åbner første gang. Sidens adresse angiver den visning, du valgte, så et link, du deler, åbner den. Ellers fungerer gemte visninger som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
+
 ### Åbn en undtagelse
 
 Klik på en række for at åbne undtagelsens side.

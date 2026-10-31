@@ -8,6 +8,16 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import {
+  ExceptionsListViewDefaults,
+  ExceptionsListViewState,
+  buildExceptionsUrlScopeOverrides,
+  captureExceptionsSavedViewState,
+  readExceptionsSavedViewState,
+} from "../../Utils/ExceptionSavedView";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
 } from "Common/UI/Utils/Telemetry/TelemetryLoadError";
@@ -371,6 +381,10 @@ interface InitialUrlState {
   assignedToMe: boolean;
   // `sort=`: the list's order (ExceptionListSort), last seen by default.
   sort: ExceptionListSort;
+  // `savedView=`: the saved view a link opens (ExceptionSavedView).
+  savedViewId: string | null;
+  // Whether the link named a window: the list writes one on every change.
+  hasRange: boolean;
 }
 
 /*
@@ -421,6 +435,8 @@ function readInitialUrlState(): InitialUrlState {
   }
 
   let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_DAY };
+  // Whether the window above came from the link rather than the default.
+  let hasRange: boolean = false;
   const rangeRaw: string | null = params.get("range");
   if (rangeRaw) {
     const knownRanges: Array<string> = Object.values(TimeRange);
@@ -437,10 +453,12 @@ function readInitialUrlState(): InitialUrlState {
               range: matched,
               startAndEndDate: new InBetween<Date>(startDate, endDate),
             };
+            hasRange = true;
           }
         }
       } else {
         timeRange = { range: matched };
+        hasRange = true;
       }
     }
   }
@@ -472,6 +490,10 @@ function readInitialUrlState(): InitialUrlState {
   const assignedToMe: boolean = params.get("assigned") === "me";
   const sort: ExceptionListSort = readExceptionListSort(params.get("sort"));
 
+  const savedViewRaw: string | null = params.get("savedView");
+  const savedViewId: string | null =
+    savedViewRaw && savedViewRaw.trim().length > 0 ? savedViewRaw.trim() : null;
+
   return {
     search,
     filters,
@@ -482,6 +504,8 @@ function readInitialUrlState(): InitialUrlState {
     classScope,
     assignedToMe,
     sort,
+    savedViewId,
+    hasRange,
   };
 }
 
@@ -607,6 +631,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
 
   /*
+   * Saved views belong to the Exceptions list itself, as the traces
+   * explorer keeps its own to its explorer: a service or inventory item
+   * narrows the list to itself, which a view cannot carry, and the
+   * project default would otherwise open on every one of their tabs.
+   */
+  const enableSavedViews: boolean =
+    !hostOwnsView &&
+    !primaryEntityId &&
+    !(entityKeysFilter && entityKeysFilter.length > 0);
+
+  /*
    * Parse filter state from the URL once on first mount so refresh and
    * back-from-exception-detail restore the view.
    */
@@ -622,6 +657,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         classScope: null,
         assignedToMe: false,
         sort: DEFAULT_EXCEPTION_LIST_SORT,
+        savedViewId: null,
+        hasRange: false,
       };
     }
 
@@ -650,6 +687,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     initialUrlState.assignedToMe,
   );
   const [sort, setSort] = useState<ExceptionListSort>(initialUrlState.sort);
+  /*
+   * The saved view picked in the toolbar, mirrored into the address bar so
+   * the link opens it (ExceptionSavedView).
+   */
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
+    enableSavedViews ? initialUrlState.savedViewId : null,
+  );
   /*
    * Assign to…, from Bulk Actions, while its dialog is open: the selection
    * the run is for.
@@ -854,6 +898,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       // As `class`: written only off its default, and cleared explicitly.
       assigned: assignedToMe ? "me" : null,
       sort: sort === DEFAULT_EXCEPTION_LIST_SORT ? null : sort,
+      // The saved view picked, so the link opens it; cleared with it.
+      savedView: selectedSavedViewId || null,
     });
   }, [
     hostOwnsView,
@@ -867,6 +913,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     classScope,
     assignedToMe,
     sort,
+    selectedSavedViewId,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -2522,8 +2569,139 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </MoreMenu>
   );
 
+  /*
+   * SAVED VIEWS (ExceptionSavedView, Utils/ExceptionSavedView): the list as
+   * someone left it - search, filters, window, status, lens, Assigned to
+   * me, order, page size - saved for the project, applied from the
+   * toolbar, and opened by its link (`savedView=`), as in the traces
+   * explorer.
+   */
+  const savedViewDefaults: ExceptionsListViewDefaults = useMemo(() => {
+    return {
+      timeRange: { range: TimeRange.PAST_ONE_DAY },
+      pageSize: DEFAULT_PAGE_SIZE,
+      status: defaultStatus,
+      classScope: props.defaultClassScope || DEFAULT_EXCEPTION_CLASS_SCOPE,
+    };
+  }, [defaultStatus, props.defaultClassScope]);
+
+  /*
+   * Whether the list opened somewhere of its own, where the project's
+   * default view must not land over it: a link that said where, or a
+   * page that did - the Resolved and Archived addresses kept from before
+   * the one list name their status.
+   */
+  const hasInitialUrlState: boolean =
+    defaultStatus !== "unresolved" ||
+    initialUrlState.search.length > 0 ||
+    initialUrlState.filters.length > 0 ||
+    initialUrlState.timeRange.range !== TimeRange.PAST_ONE_DAY ||
+    initialUrlState.status !== null ||
+    initialUrlState.classScope !== null ||
+    initialUrlState.assignedToMe ||
+    initialUrlState.sort !== DEFAULT_EXCEPTION_LIST_SORT;
+
+  // What the link said besides the view it named, laid over that view.
+  const savedViewOverrides: Partial<TelemetrySavedViewState> | undefined =
+    useMemo(() => {
+      return buildExceptionsUrlScopeOverrides({
+        search: initialUrlState.search,
+        filters: initialUrlState.filters.map(
+          (filter: ActiveFilter): [string, string] => {
+            return [filter.facetKey, filter.value];
+          },
+        ),
+        timeRange: initialUrlState.timeRange,
+        hasRange: initialUrlState.hasRange,
+        status: initialUrlState.status,
+        classScope: initialUrlState.classScope,
+        assignedToMe: initialUrlState.assignedToMe,
+        sort: initialUrlState.sort,
+      });
+    }, [initialUrlState]);
+
+  const captureSavedViewState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      return captureExceptionsSavedViewState({
+        search: submittedSearch,
+        filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
+          return [filter.facetKey, filter.value];
+        }),
+        timeRange,
+        pageSize,
+        status,
+        classScope,
+        assignedToMe,
+        sort,
+      });
+    }, [
+      submittedSearch,
+      activeFilters,
+      timeRange,
+      pageSize,
+      status,
+      classScope,
+      assignedToMe,
+      sort,
+    ]);
+
+  /*
+   * Everything the view says, and the list's own defaults for the rest -
+   * which is also how a cleared view (the empty state) puts the list back.
+   */
+  const applySavedViewState: (saved: TelemetrySavedViewState) => void =
+    useCallback(
+      (saved: TelemetrySavedViewState): void => {
+        const view: ExceptionsListViewState = readExceptionsSavedViewState(
+          saved,
+          savedViewDefaults,
+        );
+
+        setSearchValue(view.search);
+        setSubmittedSearch(view.search);
+        setActiveFilters(
+          view.filters.map(
+            ([facetKey, value]: [string, string]): ActiveFilter => {
+              return {
+                facetKey,
+                value,
+                displayKey: facetKey,
+                displayValue: value,
+              };
+            },
+          ),
+        );
+        setTimeRange(view.timeRange);
+        setPageSize(view.pageSize);
+        setStatus(view.status);
+        setClassScope(view.classScope);
+        setAssignedToMe(view.assignedToMe);
+        setSort(view.sort);
+        setPage(1);
+      },
+      [savedViewDefaults],
+    );
+
+  const savedViewsControl: ReactElement = enableSavedViews ? (
+    <TelemetrySavedViewsControl<ExceptionSavedView>
+      modelType={ExceptionSavedView}
+      savedViewNoun="Exception"
+      explorerLabel="exceptions"
+      hasInitialUrlState={hasInitialUrlState}
+      initialSavedViewId={initialUrlState.savedViewId}
+      initialStateOverrides={savedViewOverrides}
+      onSelectionChange={setSelectedSavedViewId}
+      captureCurrentState={captureSavedViewState}
+      applyState={applySavedViewState}
+      onError={setError}
+    />
+  ) : (
+    <></>
+  );
+
   const leadingActions: ReactElement = (
     <div className="flex flex-wrap items-center gap-2">
+      {savedViewsControl}
       {statusPills}
       {classPills}
       {assignedToMeToggle}

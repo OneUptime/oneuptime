@@ -62,6 +62,8 @@ Each row also shows how many users the exception affected in the time range you 
 
 Type a query such as `type:TypeError env:production`, see [Search Syntax](/docs/telemetry/search-syntax#exceptions), or click a value in the **Filters** sidebar: a service, a host or other resource, an **Exception Type**, an **Environment** or an **Error Class**. **Assigned to me** shows only the exceptions assigned to you, and the sort menu orders the list by **Last seen**, **First seen** or **Most events**.
 
+**Saved Views** keeps the list under a name, for everyone in the project: the search, filters, time range, status, what counts as an issue, **Assigned to me**, the sort and the page size. A view with **Assigned to me** shows each person the exceptions assigned to them, and **Clear view** puts the list back as it first opens. The page's address names the view you picked, so a link you share opens it. Saved views otherwise work as they do in the [Logs Explorer](/docs/telemetry/logs-explorer#save-a-view).
+
 ### Open an exception
 
 Click a row to open the exception's page.
