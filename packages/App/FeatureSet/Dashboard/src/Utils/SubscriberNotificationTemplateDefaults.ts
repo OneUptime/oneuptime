@@ -1011,7 +1011,10 @@ const episodeNoteUpdatedDefaults: EventDefaults = {
  * conditionals ({{#if report.totalResources}}) over the structured `report`
  * object. It is kept self-contained with inline CSS so it renders correctly in
  * email clients without depending on OneUptime's chrome partials (those remain
- * available to power users who add {{> Start this}} etc.).
+ * available to power users who add {{> Start this}} etc.). Each stat tile
+ * names what it counts before the number (st-Stat-label), as the built-in
+ * report does, so a screen reader and the email's text part read
+ * "Downtime: 21m", never the number first.
  * SMS / Slack / Microsoft Teams / Webhook reports have no worker send path
  * today, so their defaults are best-effort summaries (like Webhook is for the
  * other events) and exist only so the form is usable.
@@ -1031,23 +1034,23 @@ const reportDefaults: EventDefaults = {
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;">Here is your status summary for {{report.reportPeriodName}}.</p>
   {{#if report.totalResources}}
   <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 24px; text-align: center; margin: 0 0 14px 0;">
-    <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b;">Average Uptime</p>
+    <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b;">Average Uptime</p>
     <p style="margin: 0; font-size: 44px; line-height: 52px; letter-spacing: -1.2px; font-weight: 700; color: #0f172a;">{{report.averageUptimePercent}}</p>
     <p style="margin: 10px 0 0 0; font-size: 13px; color: #64748b;">{{report.reportStartDate}} &ndash; {{report.reportEndDate}} ({{report.reportTimezone}})</p>
   </div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 24px 0;">
     <tr>
       <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalDowntimeInHoursAndMinutes}}</p>
-        <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Downtime</p>
+        <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Downtime</p>
+        <div style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalDowntimeInHoursAndMinutes}}</div>
       </td>
       <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalIncidents}}</p>
-        <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Incidents</p>
+        <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Incidents</p>
+        <div style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalIncidents}}</div>
       </td>
       <td width="34%" align="center" style="padding: 18px 8px;">
-        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalResources}}</p>
-        <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Resources</p>
+        <p class="st-Stat-label" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Resources</p>
+        <div style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalResources}}</div>
       </td>
     </tr>
   </table>
