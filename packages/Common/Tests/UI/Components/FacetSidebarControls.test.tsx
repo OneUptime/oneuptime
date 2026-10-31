@@ -12,6 +12,7 @@ import useFacetSectionSearch, {
   FacetSectionSearchOptions,
 } from "../../../UI/Components/TelemetryViewer/useFacetSectionSearch";
 import { FacetData } from "../../../UI/Components/TelemetryViewer/types";
+import { FacetHelp } from "../../../UI/Components/TelemetryViewer/FacetHelp";
 import IconProp from "../../../Types/Icon/IconProp";
 import "@testing-library/jest-dom";
 import {
@@ -251,6 +252,137 @@ describe("FacetSectionHeader", () => {
       screen.getByRole("button", { name: "Kubernetes Cluster" }),
     ).toBeInTheDocument();
     expect(within(screen.getByRole("button")).queryByText("0")).toBeNull();
+  });
+
+  /*
+   * A facet that explains itself (FacetHelp, the traces explorer's Span
+   * Type) has an (i) right after its title instead of a paragraph under
+   * it. A button cannot hold another, so the fold button holds the icon,
+   * title and badge, and its ::after covers the row (a click on the chevron
+   * lands on it in a browser); the (i) and the title sit above the cover.
+   */
+  describe("with help", () => {
+    const HELP: FacetHelp = {
+      entries: [
+        {
+          value: "root",
+          label: "Root spans",
+          description: "Where a trace starts.",
+        },
+      ],
+    };
+
+    function foldButton(): HTMLElement {
+      return screen.getByRole("button", { name: /^Span Type/ });
+    }
+
+    test("the fold button is named by its title alone, and the (i) after it by the facet", () => {
+      renderHeader({ title: "Span Type", help: HELP, activeCount: 1 });
+
+      expect(screen.getAllByRole("button")).toHaveLength(2);
+      expect(foldButton()).toHaveAccessibleName(/^Span Type\s*1$/);
+      expect(foldButton()).toHaveAttribute("aria-expanded", "true");
+      expect(
+        screen.getByRole("button", { name: "About Span Type" }),
+      ).not.toHaveAttribute("aria-expanded");
+    });
+
+    test("title, badge, (i), chevron: in that order, on one row, the (i) outside the fold button", () => {
+      renderHeader({
+        title: "Span Type",
+        help: HELP,
+        activeCount: 1,
+        icon: IconProp.Kubernetes,
+      });
+
+      const fold: HTMLElement = foldButton();
+      const info: HTMLElement = screen.getByRole("button", {
+        name: "About Span Type",
+      });
+      const chevron: HTMLElement = screen.getByTestId("facet-section-chevron");
+      const row: HTMLElement = fold.parentElement as HTMLElement;
+
+      expect(fold).not.toContainElement(info);
+      expect(fold).not.toContainElement(chevron);
+      expect(within(fold).getByTestId("facet-section-icon")).toBeVisible();
+      expect(within(fold).getByText("1")).toBeInTheDocument();
+      expect(row).toContainElement(info);
+      expect(row).toContainElement(chevron);
+      expect(
+        fold.compareDocumentPosition(info) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        info.compareDocumentPosition(chevron) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      // Drawn, not read: the fold button says whether it is open.
+      expect(chevron).toHaveAttribute("aria-hidden", "true");
+    });
+
+    test("the fold button's cover takes the whole row, under the (i) and the title", () => {
+      renderHeader({ title: "Span Type", help: HELP });
+
+      const fold: HTMLElement = foldButton();
+      const row: HTMLElement = fold.parentElement as HTMLElement;
+
+      expect(row).toHaveClass("relative", "hover:bg-gray-50");
+      expect(fold).toHaveClass(
+        "after:absolute",
+        "after:inset-0",
+        "focus-visible:after:ring-2",
+      );
+      expect(
+        screen.getByRole("button", { name: "About Span Type" }),
+      ).toHaveClass("relative", "z-10");
+      // A long title still shows whole on hover, above the cover.
+      const title: HTMLElement = within(fold).getByText("Span Type");
+      expect(title).toHaveAttribute("title", "Span Type");
+      expect(title).toHaveClass("relative", "z-10", "truncate");
+      /*
+       * REGRESSION: the turned chevron is painted above the cover (its
+       * transform puts it there), and took the click itself, folding
+       * nothing. It lets the pointer through to the cover.
+       */
+      expect(
+        screen.getByTestId("facet-section-chevron").parentElement,
+      ).toHaveClass("pointer-events-none");
+    });
+
+    test("the fold button folds; a press on the (i) does not", () => {
+      const onToggle: MockFunction = renderHeader({
+        title: "Span Type",
+        help: HELP,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "About Span Type" }));
+      fireEvent.keyDown(
+        screen.getByRole("button", { name: "About Span Type" }),
+        { key: "Enter" },
+      );
+      expect(onToggle).not.toHaveBeenCalled();
+
+      fireEvent.click(foldButton());
+      expect(onToggle).toHaveBeenCalledTimes(1);
+    });
+
+    test("the chevron still turns with the section", () => {
+      renderHeader({ title: "Span Type", help: HELP, isExpanded: false });
+
+      expect(screen.getByTestId("facet-section-chevron")).not.toHaveClass(
+        "rotate-90",
+      );
+      expect(foldButton()).toHaveAttribute("aria-expanded", "false");
+    });
+
+    test("without help the header is the plain one: one button, its chevron inside", () => {
+      renderHeader({ title: "Span Type" });
+
+      expect(screen.getAllByRole("button")).toHaveLength(1);
+      expect(
+        within(foldButton()).getByTestId("facet-section-chevron"),
+      ).not.toHaveAttribute("aria-hidden");
+      expect(foldButton()).toHaveClass("w-full", "hover:bg-gray-50");
+    });
   });
 });
 

@@ -14,6 +14,7 @@ import ResourceAiAgentService from "../../../../Server/Services/ResourceAiAgentS
 import { NEVER_CONFIGURED_RESOURCE_AI_ACCESS } from "../../../../Server/Utils/AI/ResourceAccess/ResourceAiAccessSettings";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { describe, expect, test } from "@jest/globals";
@@ -51,7 +52,24 @@ const TIMESTAMP: number = 1798000000000;
 
 type ModelType = { new (): unknown; name: string };
 
-const RESOURCE_MODELS: Record<AiResourceType, ModelType> = {
+/*
+ * The resource types this migration covered: cloud accounts got their AI
+ * columns later, in AddCloudAccountAiAccess.
+ */
+type MigratedType = Exclude<
+  AiResourceType,
+  | AiResourceType.AwsAccount
+  | AiResourceType.AzureSubscription
+  | AiResourceType.GoogleCloudProject
+>;
+
+const MIGRATED_TYPES: Array<MigratedType> = ALL_AI_RESOURCE_TYPES.filter(
+  (type: AiResourceType): type is MigratedType => {
+    return !isCloudAiResourceType(type);
+  },
+);
+
+const RESOURCE_MODELS: Record<MigratedType, ModelType> = {
   [AiResourceType.DockerHost]: DockerHost,
   [AiResourceType.PodmanHost]: PodmanHost,
   [AiResourceType.DockerSwarmCluster]: DockerSwarmCluster,
@@ -142,8 +160,8 @@ function declaredDefaultOf(model: ModelType, property: string): unknown {
   )?.options.default;
 }
 
-const RESOURCE_TABLES: Array<string> = ALL_AI_RESOURCE_TYPES.map(
-  (type: AiResourceType): string => {
+const RESOURCE_TABLES: Array<string> = MIGRATED_TYPES.map(
+  (type: MigratedType): string => {
     return tableNameOf(RESOURCE_MODELS[type]) as string;
   },
 );
@@ -204,7 +222,7 @@ describe("TurnOnResourceAiInvestigationByDefault1798000000000: the schema", () =
   test("the resource tables are the eight AiResourceType tables", () => {
     expect(RESOURCE_TABLES).toHaveLength(8);
     expect([...RESOURCE_TABLES].sort()).toEqual(
-      [...ALL_AI_RESOURCE_TYPES].map(String).sort(),
+      [...MIGRATED_TYPES].map(String).sort(),
     );
   });
 
@@ -232,9 +250,9 @@ describe("TurnOnResourceAiInvestigationByDefault1798000000000: the schema", () =
     ).toBe(true);
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(MIGRATED_TYPES)(
     "%s: the default up() sets is the one the model declares",
-    async (type: AiResourceType) => {
+    async (type: MigratedType) => {
       const model: ModelType = RESOURCE_MODELS[type];
 
       expect(declaredDefaultOf(model, "isAiInvestigationEnabled")).toBe(true);
@@ -383,9 +401,9 @@ describe("TurnOnResourceAiInvestigationByDefault1798000000000: down()", () => {
    * down() must land where AddResourceAiAgents left the columns, or a
    * rollback would leave a default no migration ever declared.
    */
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(MIGRATED_TYPES)(
     "%s: down() restores the default AddResourceAiAgents created the column with",
-    async (type: AiResourceType) => {
+    async (type: MigratedType) => {
       const table: string = tableNameOf(RESOURCE_MODELS[type]) as string;
       const created: string | undefined = (
         await recordQueries(new AddResourceAiAgents1796300000000(), "up")

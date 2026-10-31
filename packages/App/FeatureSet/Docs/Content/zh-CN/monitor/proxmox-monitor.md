@@ -4,14 +4,14 @@ Proxmox 监视器监控一个 Proxmox VE 集群（它的节点、虚拟机和 LX
 
 :::cards
 - [创建监视器](#创建-proxmox-监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 十一个现成的警报，每个节点、来宾或卷一个事件。
+- [模板](#现成的警报模板): 十二个现成的警报，每个节点、来宾或卷一个事件。
 - [资源标识](#资源标识): 如何指定单个节点、来宾或存储卷。
 - [指标](#收集的指标): 监视器可以据以报警的每个 `pve_*` 序列。
 :::
 
 ## 工作原理
 
-OneUptime Proxmox 代理运行在一台能访问 Proxmox VE API 的机器上。它每 30 秒使用集群和节点收集器抓取 prometheus-pve-exporter，给每个序列标上它所描述的资源，并把指标通过 OTLP 发送到 OneUptime，同时打上集群名称 `proxmox.cluster.name`。第一批数据会注册该集群。Proxmox VE 9 及更高版本也可以改为原生推送指标，无需安装任何东西；参见 [原生推送](#proxmox-ve-原生推送)。
+OneUptime Proxmox 代理运行在一台能访问 Proxmox VE API 的机器上。它每 30 秒抓取一次 prometheus-pve-exporter 的集群收集器，并对每个节点各抓取一次其节点收集器，给每个序列标上它所描述的资源，并把指标通过 OTLP 发送到 OneUptime，同时打上集群名称 `proxmox.cluster.name`。第一批数据会注册该集群。Proxmox VE 9 及更高版本也可以改为原生推送指标，无需安装任何东西；参见 [原生推送](#proxmox-ve-原生推送)。
 
 Proxmox 监视器绑定到一个集群。它每分钟对这个集群的指标运行查询，并把结果与条件进行比较。
 
@@ -109,12 +109,13 @@ flowchart TB
 
 ## 现成的警报模板
 
-**Quick Setup** 提供 11 个模板。每个模板都会构建一个完整的监视器：查询、属性过滤器、分组、一个触发的条件和一个恢复的条件。大多数按 `id` 分组，所以每个节点、来宾、卷或作业都有自己的事件和警报。阈值只是起点，你可以编辑。
+**Quick Setup** 提供 12 个模板。每个模板都会构建一个完整的监视器：查询、属性过滤器、分组、一个触发的条件和一个恢复的条件。大多数按 `id` 分组，所以每个节点、来宾、卷或作业都有自己的事件和警报。阈值只是起点，你可以编辑。
 
 除非表中另有说明，模板读取最近 5 分钟的数据。条件只有在其窗口的每一分钟都成立时才会触发，阈值条件在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 严重 | `pve_up`，对整个集群取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | Node Offline | 严重 | `pve.scope = node` 的 `pve_up`，按 `id` 取 Min | 低于 1 | 等于 1 |
 | Guest Down | Warning | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，按 `id` 取 Min | `pve_onboot_status` 为 1 时 `pve_up` 低于 1 | `pve_up` 恢复为 1，或关闭开机启动 |
 | Cluster Quorum at Risk | 严重 | `pve.scope = node` 的 `pve_up` ÷ `pve_node_info` × 100（两者都取总和）：在线节点所占比例 | 50% 或更低 | 高于 55% |
@@ -129,6 +130,7 @@ flowchart TB
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
 
+- **Cluster Stopped Reporting** 模板会在集群 10 分钟内没有任何数据到达时触发：Proxmox 代理或它的 pve-exporter 已停止、失去了通往 OneUptime 的路由或令牌被撤销，Proxmox API 不再响应它，或者原生推送的每个节点都停止了报告。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **停机类模板使用最小值**，所以只要有一次抓取时资源处于停机状态就会触发，而不会被资源正常运行的那些抓取掩盖。
 - **Guest Down** 模板只关注设置为开机启动的来宾，所以你特意停止的来宾永远不会呼叫任何人。
 - **Cluster Quorum at Risk** 模板是一种近似：pve-exporter 没有 corosync 指标，所以它统计在线的节点。
@@ -146,7 +148,7 @@ Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器�
 
 ## 收集的指标
 
-代理每 30 秒使用集群和节点两类收集器抓取 prometheus-pve-exporter，这也覆盖了导出器的 `backup-info` 和 `replication` 收集器（两者默认都开启）。
+代理每 30 秒抓取 prometheus-pve-exporter：其集群收集器在 `PVE_HOST` 上抓取一次，其节点收集器对 `PVE_NODES` 中的每个节点各抓取一次，因为节点收集器只读取导出器所询问的节点。节点收集器是 `config`（开机自启）和 `replication`；导出器的 `backup-info`（集群）和 `replication` 收集器默认都开启。
 
 ### 可用性
 
@@ -204,7 +206,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 
 ### 复制
 
-来自导出器的节点级 `replication` 收集器。只有当集群有复制作业时这些序列才存在，并在 `id` 中携带作业 ID：
+来自导出器的节点级 `replication` 收集器，从 `PVE_NODES` 中的每个节点读取。只有当集群有复制作业时这些序列才存在，并在 `id` 中携带作业 ID：
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
@@ -223,7 +225,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名指定。 |
 | **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（整个窗口内每个值都必须匹配）或 **Any Value**（一个就够）。 |
-| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据** 在查询于窗口内没有返回任何数据时匹配，**有数据** 在返回了数据时匹配。 |
 | **阈值** | 用于比较的值。如果指标有单位，旁边会有单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅限异常条件。**低**（4σ）、**中**（3σ，默认）或 **高**（2σ）。 |
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |
@@ -239,11 +241,11 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 
 | 顺序 | 条件 | 匹配时机 | 结果 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 第一个查询的任意值为 `0` | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
-| 2 | Check if _monitor name_ is online | 任意值大于 `0` | 将监视器标记为 **运行正常**。 |
+| 1 | Check if _monitor name_ is offline | 第一个查询在整个窗口内没有数据 | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
+| 2 | Check if _monitor name_ is online | 第一个查询有数据 | 将监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 静默不匹配任何一个条件：停止发送数据的集群会让监视器保持原样。要在数据停止时收到通知，请在某个条件上把 **如果无数据** 设为 **触发器**。OneUptime 自身未接收数据的时间永远不算作无数据：窗口中包含这类时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监控器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监控器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 故障排除
 
@@ -264,7 +266,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 :::
 
 :::details 缺少备份或复制指标
-`pve_not_backed_up_*` 来自导出器的 `backup-info` 收集器，`pve_replication_*` 来自它的 `replication` 收集器。两者默认都开启，并由随附配置的抓取参数 `cluster=1` 和 `node=1` 覆盖。如果你运行自己的导出器，请检查没有关闭它们。只有当集群有存储复制作业时，`pve_replication_*` 才存在。
+`pve_not_backed_up_*` 来自导出器的 `backup-info` 收集器，`pve_replication_*` 来自它的 `replication` 收集器。两者默认都开启，并由随附配置覆盖：`cluster=1` 抓取一次，`node=1` 对 `PVE_NODES` 中的每个节点各抓取一次。`PVE_NODES` 中缺少的节点不会发送复制作业，其客户机也不会发送开机自启标志，因此 **Guest Down** 对它们从不触发。如果你运行自己的导出器，请检查没有关闭它们。只有当集群有存储复制作业时，`pve_replication_*` 才存在。
 :::
 
 :::details 像 pve_network_receive_bytes 这样的计数器只增不减

@@ -47,6 +47,7 @@ import {
   TABLE_STUCK_END_CELL_CLASS_NAME,
   getTableCellPaddingClassName,
 } from "./TableLayout";
+import { TABLE_STICKY_END_ATTRIBUTE } from "./TableStickyEndFocus";
 import SortOrder, {
   SortOrderToAriaSortMap,
 } from "../../../Types/BaseDatabase/SortOrder";
@@ -430,6 +431,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
               }
               aria-sort={ariaSort}
               data-column-id={canResize ? columnId : undefined}
+              {...(isActions ? { [TABLE_STICKY_END_ATTRIBUTE]: "true" } : {})}
               className={`${TABLE_HEADER_CELL_CLASS_NAME}${
                 canResize ? " relative" : ""
               }${stickyCellClassName}`}

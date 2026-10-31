@@ -52,6 +52,11 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import { SecurityEventConnectionRunResult } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
+import {
+  SecurityEventConnectorCatalog,
+  SecurityEventConnectorCategories,
+  SecurityEventConnectorDefinition,
+} from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ModelColumn from "../../../UI/Components/ModelTable/Column";
@@ -217,6 +222,16 @@ const EXPECTED_TILES: Array<ExpectedTile> = [
     provider: SecurityEventConnectorProvider.OktaSystemLog,
     title: "Okta System Log",
     docsSlug: "okta",
+  },
+  {
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+    title: "Microsoft Entra ID",
+    docsSlug: "microsoft-entra-id",
+  },
+  {
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+    title: "Google Workspace",
+    docsSlug: "google-workspace",
   },
   {
     provider: SecurityEventConnectorProvider.GoogleSecOps,
@@ -386,9 +401,21 @@ function row(name: string = "Acme Okta"): HTMLElement {
  * and Update credentials are reached the way a person reaches them: open
  * that row's menu, then pick the item. The menu is portalled to the body,
  * so it is found on the screen rather than inside the row.
+ *
+ * It is opened as a mouse or a finger opens it - the press, then the click -
+ * so its first item takes the focus without bringing up that item's tooltip,
+ * which waits for the keys (MoreMenuItem). Opened from the keyboard, the
+ * tooltip comes up with the focus, and the first Escape puts it away before
+ * the next one closes the menu (TooltipEscape).
  */
 function openRowMenu(current: HTMLElement): HTMLElement {
-  fireEvent.click(within(current).getByTestId("row-actions-more-button"));
+  const button: HTMLElement = within(current).getByTestId(
+    "row-actions-more-button",
+  );
+  fireEvent.pointerDown(button);
+  fireEvent.mouseDown(button);
+  fireEvent.mouseUp(button);
+  fireEvent.click(button);
   return screen.getByRole("menu");
 }
 
@@ -579,14 +606,49 @@ describe("SecurityEventConnectionsTable", () => {
     }
   });
 
-  test("the card names every provider, Google SecOps included", (): void => {
+  /*
+   * Once a project has a connection the tiles are gone, and the card's
+   * description says what OneUptime connects to: every kind of product in
+   * the catalog, with a well-known one of each. Naming every product ran
+   * past the two lines a card's description may take (App's
+   * ShortDescriptionsGuard) once Microsoft Entra ID and Google Workspace
+   * joined, and the next product would again; the kinds change far less
+   * often, and Add connection lists every product. A kind the catalog
+   * gains fails here until the sentence names it.
+   */
+  test("the card names every kind of product in the catalog, with one of each", (): void => {
     renderTable([]);
 
     const props: ModelTableProps<BaseModel> = tableProps();
+    // A sentence, never an element: the extractor and the guards read it.
+    expect(typeof props.cardProps?.description).toBe("string");
+    const description: string = props.cardProps?.description as string;
     expect(props.cardProps?.title).toBe("Your security tools");
-    expect(props.cardProps?.description).toBe(
-      "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
+    expect(description).toBe(
+      "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.",
     );
+
+    for (const category of SecurityEventConnectorCategories) {
+      expect([category, description.toLowerCase()]).toEqual([
+        category,
+        expect.stringContaining(category.toLowerCase()),
+      ]);
+
+      // A product of that kind, by its title in the catalog.
+      const titles: Array<string> = SecurityEventConnectorCatalog.filter(
+        (definition: SecurityEventConnectorDefinition): boolean => {
+          return definition.category === category;
+        },
+      ).map((definition: SecurityEventConnectorDefinition): string => {
+        return definition.title;
+      });
+      expect([
+        category,
+        titles.some((title: string): boolean => {
+          return description.includes(title);
+        }),
+      ]).toEqual([category, true]);
+    }
   });
 
   /*

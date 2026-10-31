@@ -23,9 +23,10 @@ import { SecurityEntityCriticality as SecurityEntityCriticalityLevel } from "../
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * How much a user, a host or an address matters to the project: a domain
- * controller or the finance director's account is worth more attention than
- * a test machine, so the risk of an entity an entry names is weighted -
+ * How much a user, a host, an address or a data store matters to the
+ * project: a domain controller, the finance director's account or the
+ * bucket of card numbers is worth more attention than a test machine, so
+ * the risk of an entity an entry names is weighted -
  * Low x0.5, High x1.5, Extreme x2 (SecurityEntityRisk). An entry is a value
  * or a `*` pattern of one, matched whatever the case, as Protected Entities
  * are.
@@ -102,7 +103,7 @@ const editableColumnAccess: {
   pluralName: "Entity Criticalities",
   icon: IconProp.Star,
   tableDescription:
-    "How much each user, host and IP address matters: the risk of an entity an entry names counts less (Low) or more (High, Extreme).",
+    "How much each user, host, IP address and data store matters: the risk of an entity an entry names counts less (Low) or more (High, Extreme).",
 })
 export default class SecurityEntityCriticality extends BaseModel {
   @ColumnAccessControl({
@@ -158,7 +159,7 @@ export default class SecurityEntityCriticality extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Value",
     description:
-      "The user's sign-in name, the host's name or the address, matched whatever the case. * stands for any run of characters: dc-* names every domain controller.",
+      "The user's sign-in name, the host's name, the address or the data store, matched whatever the case. * stands for any run of characters: dc-* names every domain controller.",
   })
   @Column({
     nullable: false,
@@ -174,7 +175,7 @@ export default class SecurityEntityCriticality extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Type",
     description:
-      "User, Host or IP Address: the kind of entity it is for. Empty is any kind.",
+      "User, Host, IP Address or Data Store: the kind of entity it is for. Empty is any kind.",
   })
   @Column({
     nullable: true,

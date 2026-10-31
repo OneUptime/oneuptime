@@ -150,7 +150,7 @@ Dans les paramètres **Permissions & events** de votre GitHub App, abonnez-vous 
 | **Pull request review** | une mention dans le corps d'une relecture soumise |
 | **Pull request review comment** | une mention dans un commentaire en ligne sur le diff |
 
-Sous **Repository permissions**, **Issues** doit être en **Read & write** : GitHub envoie les commentaires de conversation d'une pull request via l'API des issues, c'est donc ce qui permet aussi à l'app de commenter les pull requests.
+Sous **Repository permissions**, **Issues** doit être en **Read & write** : GitHub envoie les commentaires de conversation d'une pull request via l'API des issues, c'est donc ce qui permet aussi à l'app de commenter les pull requests. **Checks** en **Read & write** permet à chaque revue de production d'ajouter un check au dernier commit de la pull request ; sans elle, une revue ne publie que le commentaire.
 
 ## Injection de prompt : ce qui est protégé et ce qui ne l'est pas
 

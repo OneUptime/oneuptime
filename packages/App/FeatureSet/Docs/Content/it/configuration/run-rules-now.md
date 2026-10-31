@@ -14,7 +14,7 @@ flowchart TB
 
 ## Quali regole si possono eseguire
 
-- **Regole etichette** e **Regole del proprietario**, per ogni risorsa che le ha: monitor, incidenti, episodi di incidente, avvisi, episodi di avviso, eventi di manutenzione programmata, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, vCenter VMware, cluster Ceph, storage array, database, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, workflow, runbook, dispositivi di rete e SLO.
+- **Regole etichette** e **Regole del proprietario**, per ogni risorsa che le ha: monitor, incidenti, episodi di incidente, avvisi, episodi di avviso, eventi di manutenzione programmata, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, vCenter VMware, cluster Ceph, storage array, database, archivi dati, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, workflow, runbook, dispositivi di rete e SLO.
 - **Regole di privacy**, per incidenti, avvisi, episodi di incidente ed episodi di avviso.
 - **Regole dei monitor** su una pagina di stato. Risincronizzano già la pagina ogni volta che si salva una regola; eseguirne una la risincronizza subito.
 - **Regole dei monitor** su uno SLO. Risincronizzano già lo SLO ogni volta che si salva una regola; eseguirne una risincronizza subito i monitor dello SLO. Vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules).

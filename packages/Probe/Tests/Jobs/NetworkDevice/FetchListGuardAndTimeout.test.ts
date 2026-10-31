@@ -42,6 +42,7 @@ import SnmpMonitor from "../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import InitJob, {
   resetDevicePollRunInProgress,
 } from "../../../Jobs/NetworkDevice/FetchList";
+import { PROBE_CAPABILITIES } from "../../../Utils/ProbeAPIRequest";
 
 /*
  * The polling logic itself is covered by FetchList.test.ts. These tests pin
@@ -142,11 +143,11 @@ describe("network-device job — deadline and fetch-only overlap guard", () => {
 
     const arg: JSONObject = fetchSpy.mock.calls[0]![0] as unknown as JSONObject;
     const body: JSONObject = arg["data"] as JSONObject;
-    expect(body["probeCapabilities"]).toEqual([
-      "networkDevicePing",
-      "snmpTables",
-      "snmpWalk",
-    ]);
+    // The whole list this build honours (ProbeAPIRequest), these three among it.
+    expect(body["probeCapabilities"]).toEqual([...PROBE_CAPABILITIES]);
+    expect(body["probeCapabilities"]).toEqual(
+      expect.arrayContaining(["networkDevicePing", "snmpTables", "snmpWalk"]),
+    );
   });
 
   test("a tick that arrives while the list fetch is still in flight is skipped", async () => {

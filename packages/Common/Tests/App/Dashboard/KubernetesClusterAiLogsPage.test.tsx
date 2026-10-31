@@ -1486,6 +1486,9 @@ describe("AI Logs page", () => {
       expect(
         screen.getByText("pods is forbidden: User cannot list resource"),
       ).toBeInTheDocument();
+      // Its rows are commands, never the model's "runner jobs".
+      expect(document.body.textContent || "").toMatch(/of 3 commands/);
+      expect(document.body.textContent || "").not.toMatch(/runner jobs/i);
 
       const request: ListRequest | undefined = jobListRequest();
       expect(request?.select).toEqual(

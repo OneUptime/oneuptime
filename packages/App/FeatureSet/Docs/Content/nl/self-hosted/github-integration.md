@@ -78,7 +78,7 @@ Stel onder **Permissions & events** deze **Repository permissions** in:
 | Contents | Read and write | Bestanden in de repository lezen en de branches van AI-fix-pull-requests pushen |
 | Pull requests | Read and write | Pull requests openen en bijwerken, en reviews plaatsen |
 | Issues | Read and write | De reacties van de app plaatsen — **ook op pull requests**, waarvan GitHub het gesprek via de issues-API laat lopen |
-| Checks | Read-only | Optioneel. Het CI-resultaat van fix-pull-requests lezen. Zonder dit recht blijft hun CI-status ongeverifieerd |
+| Checks | Read and write | Optioneel. Het CI-resultaat van fix-pull-requests lezen, en bij elke productiebeoordeling een check toevoegen. Met Read-only wordt het CI-resultaat gelezen maar geen check toegevoegd; zonder dit recht blijft de CI-status van fix-pull-requests ongeverifieerd |
 | Metadata | Read-only | Basismetadata van de repository (door GitHub vereist) |
 
 **Pas met Issues: Read and write wordt de app interactief.** Zonder dit recht worden vermeldingen ontvangen en mislukken ze daarna stil zodra de app probeert te antwoorden — GitHub levert reacties in pull-requestgesprekken via de issues-API, dus dit ene recht bepaalt elk antwoord van de app. Zie [Werken met OneUptime vanuit GitHub](/docs/ai/github-app).

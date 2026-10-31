@@ -4,7 +4,7 @@ Ein Host-Monitor überwacht einen einzelnen Rechner – seine CPU, seinen Arbeit
 
 :::cards
 - [Den Monitor erstellen](#einen-host-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Fünf fertige Warnungen für CPU, Arbeitsspeicher, Festplatte, Last und Prozesse.
+- [Vorlagen](#fertige-warnungsvorlagen): Sechs fertige Warnungen für einen verstummten Host, CPU, Arbeitsspeicher, Festplatte, Last und Prozesse.
 - [Metriken](#erfasste-metriken): Die Host-Metriken, bei denen Sie warnen können, und ihre Einheiten.
 - [Host oder Server / VM?](#host-monitor-oder-server-vm-monitor): Welchen der beiden Rechner-Monitore Sie verwenden.
 :::
@@ -95,12 +95,13 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet fünf Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+**Quick Setup** bietet sechs Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Kritisch | `system.memory.usage`, Count, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | High CPU Utilization | Warnung | `system.cpu.utilization` für die Zustände `user` und `system`, addiert und als Prozentsatz dargestellt, letzte 5 Minuten | Über 80 % | Bei oder unter 72 % |
 | High Memory Utilization | Warnung | `system.memory.utilization` für den Zustand `used`, als Prozentsatz, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
 | High Filesystem Usage | Kritisch | `system.filesystem.utilization`, Max pro `mountpoint` und `device`, als Prozentsatz, letzte 5 Minuten | Über 90 % | Bei oder unter 81 % |
@@ -109,9 +110,10 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
+- **Host Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Host eintrifft: Der Rechner ist ausgefallen oder nicht erreichbar, oder sein Collector läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **CPU** ist die Belegtzeit (`user` plus `system`), derselbe Wert, den die **Übersicht** des Hosts in Diagrammen zeigt. I/O-Wartezeit und Steal sind nicht enthalten.
 - **Arbeitsspeicher** schließt Puffer und Seitencache aus, sodass ein Host, der überwiegend Cache enthält, sie nicht auslöst.
-- **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll; schließen Sie sie im Scraper `filesystem` des Collectors aus.
+- **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll: Die Collector-Konfigurationen von OneUptime lassen sie mit `exclude_fs_types` im Scraper `filesystem` aus, und eine eigene Konfiguration braucht dasselbe.
 - **Lastdurchschnitt** ist eine rohe Länge der Ausführungswarteschlange, nicht durch die Anzahl der Kerne geteilt: 4 ist auf einem Host mit 2 Kernen Sättigung und auf einem mit 32 Kernen Routine; erhöhen Sie ihn daher auf großen Hosts.
 - **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet nur unter Linux.
 
@@ -173,7 +175,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, anhand ihres Variablennamens. |
 | **Aggregation** | Wie die Werte im Zeitfenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Zeitfenster) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** – oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** – oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte. |
 | **Schwellenwert** | Der Vergleichswert. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Wird bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -189,11 +191,11 @@ Ein Monitor, den Sie nicht aus einer Vorlage erstellen, beginnt mit zwei Kriteri
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Ein beliebiger Wert der ersten Abfrage `0` ist | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
-| 2 | Check if _monitor name_ is online | Ein beliebiger Wert über `0` liegt | Markiert den Monitor als **Betriebsbereit**. |
+| 1 | Check if _monitor name_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
+| 2 | Check if _monitor name_ is online | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
 
 > [!IMPORTANT]
-> Stille erfüllt keines der beiden Kriterien: Ein Host, der keine Daten mehr sendet, lässt den Monitor, wie er war. Um benachrichtigt zu werden, wenn der Host verstummt, setzen Sie **Bei keinen Daten** in einem Kriterium auf **Auslöser**. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
+> Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ## Fehlerbehebung
 
@@ -210,7 +212,7 @@ Der Monitor beschränkt jede Abfrage auf `resource.host.name` gleich dem Host, d
 :::
 
 :::details High Filesystem Usage löst für ein Mount aus, das immer voll ist
-Schreibgeschützte Pseudo-Dateisysteme wie snap-Loop-Mounts vom Typ `squashfs` unter `/snap` oder `devfs` unter macOS sind konstruktionsbedingt zu 100 % voll und erholen sich nie. Schließen Sie sie im Scraper `filesystem` des Collectors aus.
+Schreibgeschützte Pseudo-Dateisysteme wie snap-Loop-Mounts vom Typ `squashfs` unter `/snap` oder `devfs` unter macOS sind konstruktionsbedingt zu 100 % voll und erholen sich nie. Die Konfigurationen, die OneUptime ausführt und ausgibt, lassen sie mit `exclude_fs_types` aus; eine eigene Konfiguration oder eine Collector-Konfiguration, die vorher entstanden ist, braucht dasselbe: Übernehmen Sie es aus [Host-Metriken](/docs/telemetry/host-otel-collector#host-metriken). Lassen Sie ein anderes Mount, das immer voll ist, etwa eine eingehängte `.dmg`, mit `exclude_mount_points` aus.
 :::
 
 ## Nächste Schritte

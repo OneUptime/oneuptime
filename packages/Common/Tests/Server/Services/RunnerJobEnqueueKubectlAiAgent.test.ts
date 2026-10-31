@@ -28,6 +28,15 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../../Types/Runbook/RunnerJobStatus";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import AiCommandKillSwitch from "../../../Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 /*
  * Contract under test — the enqueue chokepoint when the cluster's access

@@ -56,6 +56,7 @@ import UserService from "../../../../../Server/Services/UserService";
 import User from "../../../../../Models/DatabaseModels/User";
 import Name from "../../../../../Types/Name";
 import WorkspaceNotificationLogService from "../../../../../Server/Services/WorkspaceNotificationLogService";
+import OnCallPersonPageAnswer from "../../../../../Server/Utils/OnCall/OnCallPersonPageAnswer";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -1532,6 +1533,152 @@ describe("Slack buttons answered from the one read", (): void => {
     for (const otherRead of otherReads) {
       expect(otherRead).not.toHaveBeenCalled();
     }
+  });
+
+  /*
+   * The press a person's page makes natural (UI review of block 31): Jane
+   * paged Platform into INC-42, which Simon had acknowledged; the member,
+   * one of Platform, presses Acknowledge Incident in its channel. That
+   * answers their page - it would page them again otherwise - and the
+   * answer says so first.
+   */
+  test("Acknowledge on an incident acknowledged already answers the presser's own page about it, and says so first", async (): Promise<void> => {
+    mockMember([Permission.IncidentMember]);
+    const states: ProjectStates = incidentStates();
+    const incidentId: ObjectID = ObjectID.generate();
+    stubRecord({
+      service: IncidentService,
+      makeRecord: (): unknown => {
+        return new Incident();
+      },
+      stateColumn: "currentIncidentStateId",
+      currentStateId: states.acknowledged,
+      columns: { incidentNumber: 42, incidentNumberWithPrefix: "INC-42" },
+    });
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident/42"));
+    const createSpy: AnySpy = stubCreate(IncidentStateTimelineService);
+    stubLateAnswerReads({
+      timelineService: IncidentStateTimelineService,
+      rows: [
+        {
+          incidentStateId: states.acknowledged,
+          startsAt: new Date(FIRST_AT),
+          createdByUserId: SIMON,
+        },
+      ],
+    });
+    const answerSpy: AnySpy = jest
+      .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+      .mockResolvedValue(1) as AnySpy;
+
+    await SlackIncidentActions.handleIncidentAction(
+      handlerArgs(SlackActionType.AcknowledgeIncident, incidentId.toString()),
+    );
+
+    // The incident's state is not written: Simon acknowledged it.
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+    expect(answerSpy.mock.calls[0]![0]).toEqual({
+      kind: "incident",
+      recordId: incidentId,
+      projectId: projectId,
+      pressedByUserId: userId,
+      isResolved: false,
+    });
+    expect(answerTexts()).toEqual([
+      `✅ You acknowledged the page for **[Incident INC-42](https://oneuptime.test/incident/42)**, so paging stopped. **Simon Lee** acknowledged the incident at {{TIME(${FIRST_AT})}}.`,
+    ]);
+  });
+
+  test("Acknowledge on an alert acknowledged already answers the presser's page too; one with no page of theirs says who got there first", async (): Promise<void> => {
+    mockMember([Permission.AlertMember]);
+    const states: ProjectStates = alertStates();
+    const alertId: ObjectID = ObjectID.generate();
+    stubRecord({
+      service: AlertService,
+      makeRecord: (): unknown => {
+        return new Alert();
+      },
+      stateColumn: "currentAlertStateId",
+      currentStateId: states.acknowledged,
+      columns: { alertNumber: 9 },
+    });
+    jest
+      .spyOn(AlertService, "getAlertLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/alert/9"));
+    stubCreate(AlertStateTimelineService);
+    stubLateAnswerReads({
+      timelineService: AlertStateTimelineService,
+      rows: [
+        {
+          alertStateId: states.acknowledged,
+          startsAt: new Date(FIRST_AT),
+          createdByUserId: SIMON,
+        },
+      ],
+    });
+    const answerSpy: AnySpy = jest
+      .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0) as AnySpy;
+
+    await SlackAlertActions.handleAlertAction(
+      handlerArgs(SlackActionType.AcknowledgeAlert, alertId.toString()),
+    );
+    await SlackAlertActions.handleAlertAction(
+      handlerArgs(SlackActionType.AcknowledgeAlert, alertId.toString()),
+    );
+
+    expect(answerSpy.mock.calls[0]![0]).toMatchObject({
+      kind: "alert",
+      recordId: alertId,
+      pressedByUserId: userId,
+      isResolved: false,
+    });
+    expect(answerTexts()).toEqual([
+      `✅ You acknowledged the page for **[Alert #9](https://oneuptime.test/alert/9)**, so paging stopped. **Simon Lee** acknowledged the alert at {{TIME(${FIRST_AT})}}.`,
+      `✅ **[Alert #9](https://oneuptime.test/alert/9)** was already acknowledged by **Simon Lee** at {{TIME(${FIRST_AT})}}.`,
+    ]);
+  });
+
+  test("Acknowledge on a resolved incident asks for no page to be answered: resolving it ended them", async (): Promise<void> => {
+    mockMember([Permission.IncidentMember]);
+    const states: ProjectStates = incidentStates();
+    stubRecord({
+      service: IncidentService,
+      makeRecord: (): unknown => {
+        return new Incident();
+      },
+      stateColumn: "currentIncidentStateId",
+      currentStateId: states.resolved,
+      columns: { incidentNumber: 42, incidentNumberWithPrefix: "INC-42" },
+    });
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident/42"));
+    stubCreate(IncidentStateTimelineService);
+    stubLateAnswerReads({
+      timelineService: IncidentStateTimelineService,
+      rows: [],
+    });
+    const answerSpy: AnySpy = jest
+      .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+      .mockResolvedValue(0) as AnySpy;
+
+    await SlackIncidentActions.handleIncidentAction(
+      handlerArgs(
+        SlackActionType.AcknowledgeIncident,
+        ObjectID.generate().toString(),
+      ),
+    );
+
+    // Asked as resolved: it answers nothing (OnCallPersonPageAnswer).
+    expect(answerSpy.mock.calls[0]![0]).toMatchObject({ isResolved: true });
+    expect(answerTexts()).toEqual([
+      "✅ **[Incident INC-42](https://oneuptime.test/incident/42)** is already resolved.",
+    ]);
   });
 
   test("Resolve on an alert resolved already says so with the number the read found", async (): Promise<void> => {

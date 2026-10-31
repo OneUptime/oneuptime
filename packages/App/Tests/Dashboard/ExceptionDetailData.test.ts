@@ -17,6 +17,7 @@ const NOTHING_EXTRA: ExceptionDetailDataPlan = {
   loadTraceBreadcrumbs: false,
   loadOccurrenceAttributes: false,
   loadAIAssistance: false,
+  loadAiExplanation: false,
   loadOccurrenceTrend: false,
   loadTriageHistory: false,
   showHeaderActions: true,
@@ -29,6 +30,7 @@ describe("exception detail data ownership", () => {
       {
         ...NOTHING_EXTRA,
         loadLatestOccurrence: true,
+        loadAiExplanation: true,
         loadOccurrenceTrend: true,
       },
     ],

@@ -32,12 +32,12 @@ I tilstanden **Skrivebeskyttet** tilbydes modellen aldrig handlingerne, så samt
 | --- | --- |
 | Enhver side | Klik på **Spørg AI** i topbjælken, eller tryk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en editor, forbliver tasterne editorens genvej til kursiv. |
 | Kommandopaletten | Tryk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og vælg **Spørg AI**. |
-| Et fejlmønster i logs eller et diagrams fund | Klik på **Explain with AI**: Spørg AI åbner med beviserne som et spørgsmål, du kan redigere, før du sender det. |
+| Et fejlmønster i logs eller et diagrams fund | Klik på **Forklar med AI**: Spørg AI åbner med beviserne som et spørgsmål, du kan redigere, før du sender det. |
 | Produktmenuen | Åbn **Produkter → AI → Chat**. Spørg AI åbner over den side, du var på. Hver samtale har sin egen adresse, så du kan bogmærke den og vende tilbage til den. |
 
 Spørg AI åbner midt på skærmen, over den side, du var på, og på en telefon fylder den hele skærmen. Tryk på `Esc`, eller klik ved siden af, for at gå tilbage til siden. Samtalen bliver, hvor du forlod den: åbn Spørg AI igen for at fortsætte. Lukker du den, mens den stadig svarer, siger en påmindelse i hjørnet, hvornår svaret er klar, og åbner det.
 
-På en hændelse eller en advarsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles af alle, der kan se hændelsen eller advarslen: se [Tal med OneUptime AI om hændelsen](/docs/ai/ai-sre#tal-med-oneuptime-ai-om-hændelsen).
+På en hændelse eller en advarsel har kortet **OneUptime AI** sin egen samtale, **Ask OneUptime AI**, som deles af alle, der kan se hændelsen eller advarslen: se [Tal med OneUptime AI om hændelsen](/docs/ai/ai-sre#tal-med-oneuptime-ai-om-hændelsen).
 
 ## Hvad den kan se
 
@@ -87,7 +87,7 @@ Hvad Spørg AI kan gøre, når en tilstand tillader det:
 - Skrive en intern note på en hændelse eller en advarsel. Interne noter vises aldrig på en statusside.
 - Offentliggøre en statusopdatering på en hændelse. Det er en særskilt handling, fordi den giver statussidens abonnenter besked.
 - Kalde en vagtpolitik ud, køre en runbook eller starte en AI-undersøgelse af en hændelse eller advarsel.
-- Foreslå en kodeændring: committe til en ny branch i et forbundet repository og åbne en pull request. Den skriver aldrig til standardbranchen eller en beskyttet branch, så en person stadig merger ændringen.
+- Foreslå en kodeændring: committe til en ny branch i et repository på GitHub, GitLab, Forgejo eller Gitea og åbne en pull request (en merge request på GitLab). Den skriver aldrig til standardbranchen eller en beskyttet branch, så en person stadig merger ændringen.
 
 Bed om en hændelse, når brugere er berørt, og om en advarsel, når noget først kræver dit teams opmærksomhed, fx en værts hukommelse, der bliver ved med at stige. Begge oprettes én gang og overvåger intet: For at blive advaret, hver gang en værts hukommelse kommer over 75 %, skal du oprette en [værts-monitor](/docs/monitor/host-monitor#færdige-advarselsskabeloner) ud fra dens hukommelsesskabelon med 75 % som tærskel. Spørg AI kan ikke oprette monitorer. Bliver den bedt om en, siger den det, tjekker den aktuelle værdi og tilbyder at oprette en advarsel, hvis den allerede er over.
 

@@ -4,11 +4,12 @@
 #
 # Runs the commands OneUptime AI asks for on ONE infrastructure resource —
 # a Docker, Podman or Swarm host, a Proxmox cluster, a VMware vCenter, a Ceph
-# cluster, a database server or a host — with the credentials of its own
-# environment, read-only unless the operator sets
-# ONEUPTIME_AI_ALLOW_WRITES=true. Installed next to each resource's collector
-# (the "ai-agent" service of its docker-compose.yml) and selected with
-# ONEUPTIME_AI_AGENT_RESOURCE_TYPE.
+# cluster, a database server, a host, or a cloud account (AWS, Azure, Google
+# Cloud) — with the credentials of its own environment, read-only unless the
+# operator sets ONEUPTIME_AI_ALLOW_WRITES=true. Installed next to each
+# resource's collector (the "ai-agent" service of its docker-compose.yml), or
+# for a cloud account in the customer's cloud by its setup command, and
+# selected with ONEUPTIME_AI_AGENT_RESOURCE_TYPE.
 #
 
 # Alpine, like the other agents. The agent itself is plain JavaScript (no
@@ -18,8 +19,8 @@
 #   govc             VMware vCenter (GovcExecutor)
 #   ceph19-common    the ceph CLI (CephExecutor)
 #   util-linux-misc  nsenter, to run a host's own programs (HostExecutor)
-# Proxmox is reached over its HTTPS API and databases through their Node
-# drivers, so neither needs a binary.
+# Proxmox and the clouds are reached over their HTTPS APIs and databases
+# through their Node drivers, so none of them needs a binary.
 FROM public.ecr.aws/docker/library/node:26-alpine3.24
 
 # Update npm to npm@latest with every dependency it bundles (tar, undici,
@@ -46,7 +47,7 @@ ENV NODE_OPTIONS="--use-openssl-ca"
 # command (Executors/SpawnSandbox.ts).
 
 LABEL org.opencontainers.image.title="OneUptime Resource AI Agent"
-LABEL org.opencontainers.image.description="OneUptime resource AI agent — runs the commands OneUptime AI asks for on one Docker, Podman or Swarm host, Proxmox or VMware cluster, Ceph cluster, database server or host, with its own credentials (read-only unless you allow fixes)."
+LABEL org.opencontainers.image.description="OneUptime resource AI agent — runs the commands OneUptime AI asks for on one Docker, Podman or Swarm host, Proxmox or VMware cluster, Ceph cluster, database server, host or cloud account, with its own credentials (read-only unless you allow fixes)."
 LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
 LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"

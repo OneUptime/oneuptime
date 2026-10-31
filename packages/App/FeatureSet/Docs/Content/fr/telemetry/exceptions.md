@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Une exception par service et par erreur.** L'empreinte est calculée à partir du service, du type d'exception, du message et de la stack trace. Les valeurs qui changent d'un appel à l'autre en sont d'abord retirées : UUID et autres identifiants, horodatages, adresses IP et e-mail, et nombres de sept chiffres ou plus. Ainsi `Order id=1042 not found` et `Order id=2077 not found` forment une seule exception.
-- **Une nouvelle occurrence rouvre une exception résolue.** Si elle se reproduit après que vous l'avez résolue, le correctif n'a pas tenu.
+- **Une nouvelle occurrence rouvre une exception résolue.** Si elle se reproduit après que vous l'avez résolue, le correctif n'a pas tenu, et l'exception est marquée **Régression**. Une occurrence antérieure à la résolution qui n'arrive dans OneUptime que plus tard ne la rouvre pas.
 - **Une exception archivée reste archivée.** Ses nouvelles occurrences sont toujours comptées, mais elles ne déclenchent plus de notification.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Ouvrez **Produits → Observabilité → Exceptions**. Le badge de l'onglet **Ex
 
 ### Choisir un statut
 
-Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps.
+Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps. Une ligne marquée **Régression** est revenue après avoir été résolue, et une ligne marquée **Nouveau** a été vue pour la première fois au cours des dernières 24 heures.
 
 ### Choisir ce qui compte comme un problème
 
@@ -58,7 +58,7 @@ Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique
 
 ### Chercher et filtrer
 
-Tapez une requête comme `type:TypeError env:production`, voir [Syntaxe de recherche](/docs/telemetry/search-syntax#exceptions), ou cliquez sur une valeur de la barre latérale **Filtres** : un service, un hôte ou une autre ressource, un **Type d'exception**, un **Environnement** ou une **Classe d'erreur**.
+Tapez une requête comme `type:TypeError env:production`, voir [Syntaxe de recherche](/docs/telemetry/search-syntax#exceptions), ou cliquez sur une valeur de la barre latérale **Filtres** : un service, un hôte ou une autre ressource, un **Type d'exception**, un **Environnement** ou une **Classe d'erreur**. **Attribuées à moi** n'affiche que les exceptions qui vous sont attribuées, et le menu de tri classe la liste par **Vu pour la dernière fois**, **Vu pour la première fois** ou **Le plus d'événements**.
 
 ### Ouvrir une exception
 
@@ -71,7 +71,7 @@ Le menu latéral de la page regroupe ce que vous faites d'une exception :
 
 | Page | Ce qu'elle montre |
 | --- | --- |
-| **Vue d'ensemble** | Le message, le service, combien de fois elle s'est produite et quand elle a été vue la première et la dernière fois, sa tendance dans le temps, et sa dernière occurrence : la version, l'environnement, le span, la trace et la session utilisateur. |
+| **Vue d'ensemble** | Le message, le service, combien de fois elle s'est produite et quand elle a été vue la première et la dernière fois, sa tendance dans le temps, et sa dernière occurrence : la version, l'environnement, le span, la trace et la session utilisateur. En haut, l'explication de OneUptime AI sur ce qui s'est passé, quand l'IA est activée. |
 | **Stack trace** | Les frames de la pile. Pour le code de navigateur, les fichiers et lignes d'origine, une fois que vous avez envoyé les [Source maps](/docs/telemetry/source-maps) de la version. |
 | **Occurrences** | Chaque occurrence, avec son heure, son message et la trace où elle s'est produite. |
 | **Contexte** | Les attributs de la dernière occurrence, son enregistrement de session s'il y en a un, et les étapes qui y ont mené. |
@@ -86,13 +86,18 @@ Les boutons en haut de la page de l'exception, sa page **Paramètres** et le men
 | Action | Quand l'utiliser | Ce qui se passe ensuite |
 | --- | --- | --- |
 | **Résoudre** | Vous avez déployé le correctif. | Elle quitte la liste **Non résolu**. Une nouvelle occurrence la rouvre. |
+| **Résoudre dans la prochaine version** | Le correctif sort dans votre prochaine version. | Elle quitte la liste **Non résolu**. Les occurrences de la version où elle a été vue en dernier ne la rouvrent pas, et une occurrence de toute autre version la rouvre. |
 | **Rouvrir** | Le correctif n'a pas marché. | Elle est de nouveau non résolue. |
 | **Archiver** | C'est du bruit que vous ne comptez pas corriger. | Elle quitte la liste. Les nouvelles occurrences sont comptées mais ne déclenchent plus de notification. |
 | **Désarchiver** | Vous voulez de nouveau en entendre parler. | Elle revient dans la liste qui lui correspond. |
 
+**Résoudre dans la prochaine version** se trouve dans le menu à côté de **Résoudre**, dans le menu ⋯ de la ligne, sous **Actions groupées** et dans **Paramètres**, tant que les occurrences de l'exception nomment leur version : l'attribut de ressource `service.version`.
+
 **Paramètres** indique qui a résolu ou archivé l'exception en dernier, et quand. Ses boutons s'intitulent **Marquer comme résolu** ou **Marquer comme non résolu**, et **Archiver** ou **Désarchiver**.
 
 Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
+
+**Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois.
 
 ## Classes d'erreur
 
@@ -108,6 +113,22 @@ Chaque exception a une classe d'erreur, qui dit à qui revient le problème. One
 
 Avec **Archiver les exceptions attendues** activé, dans les paramètres des insights IA, les exceptions que le tri identifie comme des refus attendus sont archivées pour vous.
 
+## L'expliquer avec l'IA
+
+En haut de la **Vue d'ensemble** d'une exception, **Expliquer avec OneUptime AI** demande à OneUptime AI ce qui n'a pas fonctionné. Il lit la stack trace, la trace et les journaux de la dernière occurrence, ainsi que les déploiements du service autour du moment où l'exception a commencé, et répond dans la carte **Ce qui s'est passé** :
+
+| Partie | Ce qu'elle dit |
+| --- | --- |
+| **Ce qui s'est passé** | Une ou deux phrases, le degré de certitude de OneUptime AI, et l'endroit où se trouve la faute : le code, une dépendance, l'infrastructure, une entrée invalide ou la configuration. |
+| **Cause racine probable** | La cause, et le frame, le span, la ligne de journal ou le déploiement qui la montre. |
+| **Correctif suggéré** | Ce qu'il faut changer. |
+| **Où regarder** | Les frames de la stack trace à ouvrir en premier. |
+| **Prochaines étapes** | Au plus trois étapes pour la confirmer ou la corriger. |
+
+L'explication est conservée sur l'exception : la personne suivante qui l'ouvre la lit tout de suite, et **Expliquer à nouveau** en demande une nouvelle. **Ouvrir une pull request de correction** ouvre la page **Assistance IA** de l'exception, et **Poser une question complémentaire** ouvre Ask AI sur l'exception.
+
+Les identifiants, les adresses e-mail et IP et les jetons sont retirés de tout ce qui est envoyé, et seuls quelques attributs d'un span sont envoyés, comme sa route et son code de statut. L'explication utilise le fournisseur LLM et les crédits IA du projet, et n'est pas proposée tant que **Activer l'IA** est désactivé. Toute personne qui peut lire l'exception peut en demander une.
+
 ## La corriger avec l'IA
 
 La page **Assistance IA** propose trois tâches. Chacune s'exécute comme une tâche IA qui ouvre une pull request dans votre dépôt de code :
@@ -118,7 +139,7 @@ La page **Assistance IA** propose trois tâches. Chacune s'exécute comme une t�
 | **Générer un test de régression** | Ajoute un test qui échoue tant que le bug n'est pas corrigé. |
 | **Améliorer la gestion des erreurs** | Pour les erreurs attendues : valide les saisies plus tôt, garde les données utilisateur hors des messages et marque l'erreur comme gérée. |
 
-L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté (sur GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git), et un agent IA en ligne pour exécuter la tâche. La page vérifie chacune et renvoie vers ce qui manque. Les tâches sont en pause tant que l'exception est résolue ou archivée. Voir [Code](/docs/ai/ai-agent).
+L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté (sur GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git), et un agent IA en ligne pour exécuter la tâche. La page vérifie chacune et renvoie vers ce qui manque. Les tâches sont en pause tant que l'exception est résolue ou archivée. Voir [Code](/docs/ai/ai-agent). Démarrer une tâche demande l'autorisation de modifier le dépôt où elle travaille : qui ne peut que lire l'exception voit ses tâches, mais ne peut pas en démarrer.
 
 ## Trouver et corriger les exceptions nouvelles ou en hausse avec l'IA
 
@@ -162,6 +183,8 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 
 L'onglet **Analyses** compte vos exceptions **Non résolu**, **Résolu** et **Archivé** ainsi que votre taux de résolution, et liste les exceptions les plus fréquentes, les services qu'elles touchent et les plus récemment vues.
 
+**Quoi de neuf**, en haut de l'onglet, demande à OneUptime AI, avec **Résumer avec OneUptime AI**, de résumer les exceptions vues pour la première fois dans les dernières 24 heures et celles revenues après avoir été résolues : quelques phrases sur l'ensemble, puis chacune en une ligne, la plus urgente d'abord, avec un lien vers l'exception. Le résumé est écrit quand vous le demandez et n'est pas conservé, utilise les crédits d'IA du projet et n'est pas proposé tant que **Activer l'IA** est désactivé.
+
 ## Dépannage
 
 :::details Une exception que je viens de lever n'est pas dans la liste
@@ -173,7 +196,7 @@ L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemp
 :::
 
 :::details Une exception résolue revient sans cesse
-Une nouvelle occurrence rouvre volontairement une exception résolue : l'erreur se produit encore. Vérifiez que le correctif a atteint la version qui la signale, ou archivez l'exception si vous ne voulez plus en entendre parler.
+Une nouvelle occurrence rouvre volontairement une exception résolue : l'erreur se produit encore. Vérifiez que le correctif a atteint la version qui la signale, ou archivez l'exception si vous ne voulez plus en entendre parler. Si d'anciens pods de la version continuent de la signaler pendant un déploiement, utilisez plutôt **Résoudre dans la prochaine version**.
 :::
 
 ## Étapes suivantes

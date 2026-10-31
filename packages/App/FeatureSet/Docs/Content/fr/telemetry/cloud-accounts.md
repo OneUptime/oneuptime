@@ -7,6 +7,8 @@ Connectez un compte AWS, un abonnement Azure ou un projet Google Cloud depuis le
 - [Microsoft Azure](#microsoft-azure): Une application avec le rôle Monitoring Reader.
 - [Google Cloud](#google-cloud): Un compte de service avec quatre rôles en lecture seule.
 - [Ce que lit OneUptime](#ce-que-lit-oneuptime): Ressources, métriques, modifications et événements de santé, à quelle fréquence, et ce que cela coûte.
+- [Sécurité des données](#sécurité-des-données): Ce que la connexion permet à Sécurité des données de lire, et ce que chaque niveau ajoute à la commande.
+- [Laisser l'IA corriger les problèmes](#laisser-lia-corriger-les-problèmes): Une commande de plus, et OneUptime AI peut corriger ce qu'il trouve.
 :::
 
 ## Fonctionnement
@@ -20,7 +22,7 @@ flowchart TB
     ou --> chg["Modifications et<br/>événements de santé"]
 ```
 
-- **L'accès ne peut que lire.** La commande crée un accès qui lit vos ressources et leur configuration, leurs métriques, ce qui a changé et les événements de santé de votre fournisseur, et rien d'autre : les actions listées ci-dessous sur AWS, le rôle **Monitoring Reader** sur Azure et quatre rôles de lecteur sur Google Cloud. Il ne lit jamais de données ni de secrets. Supprimez-le pour couper l'accès de OneUptime.
+- **L'accès ne peut que lire.** La commande crée un accès qui lit vos ressources et leur configuration, leurs métriques, ce qui a changé et les événements de santé de votre fournisseur, et rien d'autre : les actions listées ci-dessous sur AWS, le rôle **Monitoring Reader** sur Azure et quatre rôles de lecteur sur Google Cloud. OneUptime ne lit jamais de données ni de secrets avec lui, sauf des lignes de journal si vous laissez l'IA lire les journaux d'un compte, et des échantillons de contenu si vous les activez pour [Sécurité des données](#sécurité-des-données). Supprimez-le pour couper l'accès de OneUptime.
 - **OneUptime lit selon un calendrier.** Toutes les 5 minutes pour Azure et Google Cloud, et toutes les 10 minutes pour AWS, sauf si vous choisissez un autre intervalle à la connexion. Chaque lecture enregistre aussi ce qui a changé depuis la précédente, et toutes les 30 minutes une lecture liste à nouveau chaque ressource.
 - **Chaque ressource a sa propre page.** Les ressources apparaissent dans **Cloud → Toutes les ressources** avec leurs métriques clés, leurs propriétaires et leurs libellés. La page d'une ressource listée montre aussi ses **Ressources connectées** (ce dans quoi elle s'exécute, ce qui lui envoie du trafic), ses points de terminaison, étiquettes et paramètres, ainsi que ses **Incidents**, **Alertes** et **Modifications**.
 - **Chaque compte a sa propre page.** Les comptes apparaissent dans **Cloud → Comptes** avec leurs ressources par type et par région, leurs **Modifications** et une **Topologie** qui montre comment leurs ressources s'articulent.
@@ -48,7 +50,7 @@ Utilisez une **Clé d'accès** lorsqu'un rôle n'est pas possible : elle ne lit 
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -70,6 +72,9 @@ Le rôle et l'utilisateur peuvent faire ceci, et rien d'autre :
 | Lister chaque ressource et sa configuration, via Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Lire ce qui a changé : les événements de gestion du compte | `cloudtrail:LookupEvents` |
 | Lire les propres événements de santé d'AWS pour le compte | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Lire l'état actuel et les événements récents d'une ressource pendant une investigation | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
+| Lire les quotas du compte pendant une investigation | `servicequotas:ListServiceQuotas` |
+| Lire des lignes de journal, uniquement si vous laissez l'IA lire les journaux d'un compte | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | Lister les comptes de l'organisation, depuis son compte de gestion | `organizations:ListAccounts` |
 
 `apigateway:GET` n'est autorisé que sur les définitions des API elles-mêmes, jamais sur leurs clés, et seul le rôle du compte de gestion peut lister les comptes de l'organisation. AWS Health ne répond qu'aux comptes dotés d'un plan de support Business, Enterprise On-Ramp ou Enterprise : sans lui, OneUptime redemande un jour plus tard.
@@ -178,6 +183,62 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 La connexion d'une organisation lit jusqu'à 50 de ses projets, sauf si vous en listez certains dans **Projets**.
 
+## Sécurité des données
+
+La même connexion peut permettre à [Sécurité des données](/docs/data-security/index) de lire les magasins de données du compte : ses buckets, ses bases de données et ses entrepôts. Sous **Plus de champs**, **Sécurité des données** est **Désactivé** jusqu'à ce que vous choisissiez autrement, et la commande qu'affiche le formulaire change en conséquence :
+
+| Sécurité des données | Ce que Sécurité des données peut lire | Ce qu'ajoute la commande |
+| --- | --- | --- |
+| **Désactivé** | Aucun des magasins de données du compte | Rien |
+| **Configuration uniquement** | Qui peut accéder à chaque magasin de données, et comment il est chiffré, sauvegardé et journalisé. Jamais de données. | Sur AWS, une deuxième stratégie en ligne, `OneUptimeDataSecurity`, faite d'actions de lecture. Sur Azure et Google Cloud, rien : **Monitoring Reader** et **Cloud Asset Viewer** la lisent déjà. |
+| **Configuration et échantillons de contenu** | Cela, plus des échantillons d'objets et de lignes, pour y trouver des données sensibles | Sur AWS, la même stratégie avec `s3:ListBucket`, `s3:GetObject` et `kms:Decrypt` via S3 uniquement. Sur Azure, **Storage Blob Data Reader**. Sur Google Cloud, `roles/storage.objectViewer`, `roles/bigquery.dataViewer` et l'API BigQuery. |
+
+Sur AWS, la commande du rôle ajoute la stratégie avec une ligne de plus. Au niveau de contenu, c'est :
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+```
+
+IAM limite les stratégies en ligne propres à un utilisateur à 2 048 caractères au total, donc avec une **Clé d'accès** la stratégie va sur un groupe, `OneUptimeDataSecurity`, que l'utilisateur rejoint :
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Sur Azure, le niveau de contenu ajoute **Storage Blob Data Reader** sur la même étendue que **Monitoring Reader** :
+
+```bash
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+Sur Google Cloud, il ajoute les deux rôles et active `bigquery.googleapis.com` :
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/storage.objectViewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.dataViewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+La commande d'un niveau inférieur remplace la stratégie AWS par celle de ce niveau. **Désactivé** n'ajoute rien, donc il laisse en place ce qu'une commande précédente a accordé jusqu'à ce que vous le supprimiez : la stratégie `OneUptimeDataSecurity` sur AWS, avec `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, et les rôles du niveau de contenu sur Azure et Google Cloud. Dans les deux cas, Sécurité des données cesse aussitôt de lire : elle ne lit que ce qu'indique le niveau de la connexion. [Configurer la Sécurité des données](/docs/data-security/setup) liste chaque action de la stratégie, et ce que Sécurité des données conserve de ce qu'elle lit.
+
 ## Ce que lit OneUptime
 
 | | AWS | Azure | Google Cloud |
@@ -201,9 +262,25 @@ Les appels de OneUptime sont facturés à votre compte cloud, aux tarifs de votr
 
 ## Ce que vous voyez dans OneUptime
 
-- **La page d'un compte.** Dans **Cloud → Comptes**, la vue d'ensemble d'un compte compte ses ressources par type et par région, et indique quand une connexion l'a lu pour la dernière fois. Ses **Ressources** les listent, ses **Modifications** listent ce qui y a changé, les plus récentes d'abord, et sa **Topologie** dessine ses régions, les réseaux qu'elles contiennent et ce qui s'exécute dans chacun, avec les incidents et alertes ouverts sur les ressources auxquelles ils sont liés.
+- **La page d'un compte.** Dans **Cloud → Comptes**, la vue d'ensemble d'un compte compte ses ressources par type et par région, et indique quand une connexion l'a lu pour la dernière fois. Ses **Ressources** les listent, ses **Modifications** listent ce qui y a changé, les plus récentes d'abord, et sa **Topologie** dessine ses régions, les réseaux qu'elles contiennent et ce qui s'exécute dans chacun, avec les incidents et alertes ouverts sur les ressources auxquelles ils sont liés. Son **Fil d'activité** indique comment le compte est arrivé dans OneUptime, quand son agent IA cloud s'est connecté ou a été réinitialisé, et qui a modifié ce que OneUptime AI peut y faire.
 - **Les modifications d'une ressource.** Une modification est conservée comme un événement de changement lié à la ressource modifiée et à son compte, et dessinée comme un repère sur les graphiques de métriques de la ressource, avec ses incidents et ses alertes. Les graphiques filtrés sur aucune ressource laissent de côté le journal d'activité d'un compte cloud, pour qu'un compte très actif n'éclipse pas vos déploiements ; les événements de santé du fournisseur y restent.
 - **Incidents et alertes.** Liez une ressource cloud à un moniteur, un incident ou une alerte dans ses ressources liées, et ses incidents et alertes sont listés sur la page de la ressource. Un moniteur de site web, d'API, SSL, ping ou port dont l'hôte mène à un point de terminaison d'une ressource, directement ou via son DNS, affiche la ressource sous **Ressources cloud suggérées** sur sa carte **Ressources liées** : sélectionnez **Lier la ressource** pour la lier.
+
+## Laisser l'IA corriger les problèmes
+
+OneUptime AI lit chaque compte connecté pendant ses investigations, avec l'accès en lecture seule décrit ci-dessus. Pour qu'il puisse aussi corriger les problèmes, par exemple redémarrer un service, augmenter sa capacité ou le ramener à sa version précédente, ouvrez le compte dans **Cloud → Comptes** et sélectionnez **Laisser l'IA corriger les problèmes** dans la carte **Agent IA** de sa **Vue d'ensemble**.
+
+La boîte de dialogue pose une seule question, **Jusqu'où l'IA peut-elle aller ?** : **Me demander d'abord**, la valeur par défaut, où OneUptime AI propose chaque correctif et une personne l'approuve en un clic, ou **Appliquer d'elle-même les correctifs sûrs**, où les modifications sûres s'exécutent d'elles-mêmes et les plus risquées attendent toujours une approbation. Tout le reste a une valeur par défaut sûre sous **Plus de champs**. Elle affiche ensuite une seule commande, écrite pour ce compte : exécutez-la dans AWS CloudShell, Azure Cloud Shell ou Google Cloud Shell, connecté en tant que personne autorisée à créer des rôles dans le compte. La commande crée un rôle qui ne peut effectuer que les modifications activées, et démarre avec lui l'agent IA cloud dans votre compte. L'agent se connecte de lui-même en quelques minutes, et la boîte de dialogue l'indique : il n'y a rien à recoller.
+
+L'agent est un petit conteneur qui s'exécute tout le mois dans votre compte, facturé par votre cloud à ses prix catalogue :
+
+| Cloud | Ce qui s'exécute | Environ |
+| --- | --- | --- |
+| AWS | Une tâche ECS Fargate de 0.25 vCPU et 0.5 Go, et son adresse IPv4 publique, aux prix de `us-east-1` | $13 par mois |
+| Azure | Un réplica Container Apps de 0.25 vCPU et 0.5 Gio, après l'octroi gratuit mensuel de l'abonnement de 180 000 vCPU-secondes et 360 000 Gio-secondes | $14 par mois |
+| Google Cloud | Une instance Cloud Run de 1 vCPU et 0.5 Gio avec un CPU toujours alloué, qui occupe un vCPU entier, après le niveau gratuit mensuel de 240 000 vCPU-secondes et 450 000 Gio-secondes | $45 par mois |
+
+Ce que l'agent peut modifier, comment chaque modification est classée et annulée, et comment lire ses journaux : [Agents IA pour l'infrastructure](/docs/ai/infrastructure-ai-agents#dans-un-compte-cloud).
 
 ## Dépannage
 

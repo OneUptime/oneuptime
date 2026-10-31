@@ -12,6 +12,7 @@ import {
   scanSourceText,
   SKIPPED_SOURCE_FILES,
   SOURCE_ROOTS,
+  SourceKind,
   SourceScanResult,
   toRepositoryPath,
   USER_FACING_PROPS,
@@ -32,11 +33,11 @@ import path from "path";
 const scan: (
   source: string,
   file?: string,
-  kind?: "ui" | "models",
+  kind?: SourceKind,
 ) => SourceScanResult = (
   source: string,
   file: string = "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
-  kind: "ui" | "models" = "ui",
+  kind: SourceKind = "ui",
 ): SourceScanResult => {
   return scanSourceText(file, source, { kind: kind });
 };
@@ -685,6 +686,79 @@ describe("model metadata", () => {
   });
 });
 
+/*
+ * A "keys" root gives the locales only what it marks with a translation
+ * call. TraceSpanType's choices keep their names as written in every
+ * language ("Entry spans", as the translated docs quote them), while what
+ * each one is reads in the reader's: read as a "ui" root, its `label:`
+ * properties would have become keys too.
+ */
+describe("a root that marks its keys", () => {
+  const KEYS_FILE: string = "packages/Common/Types/Example.tsx";
+
+  test("takes the text of its translation calls, and nothing else", () => {
+    const result: SourceScanResult = scan(
+      `
+      const translationKey = (text: string): string => text;
+      export const OPTIONS = [
+        {
+          value: "entry",
+          label: "Entry spans",
+          title: "Not marked",
+          description: translationKey("Where a request or message enters a service."),
+        },
+        { value: "root", label: "Root spans", description: "Unmarked description" },
+      ];
+      export const AGAIN: string = translateText("A looked-up sentence");
+      export const PLURAL = { one: "{{count}} span", other: "{{count}} spans" };
+      export const Element = () => <p title="A title">Text between tags</p>;
+      setErrorMessage("A message for a setter");
+    `,
+      KEYS_FILE,
+      "keys",
+    );
+
+    expect(textsOf(result)).toEqual([
+      "Where a request or message enters a service.",
+      "A looked-up sentence",
+    ]);
+    expect(
+      result.strings.every((entry: ExtractedString): boolean => {
+        return entry.kind === "call" && entry.file === KEYS_FILE;
+      }),
+    ).toBe(true);
+    // Its other words are drawn as written on purpose: not work left to do.
+    expect(result.hardcoded).toEqual([]);
+  });
+
+  test("the same file read as a ui root takes every name too", () => {
+    expect(
+      textsOf(
+        scan(
+          `export const OPTIONS = [{ label: "Entry spans", description: translationKey("Where a trace starts.") }];`,
+          KEYS_FILE,
+          "ui",
+        ),
+      ),
+    ).toEqual(["Entry spans", "Where a trace starts."]);
+  });
+
+  test("TraceSpanType gives the locales its three sentences and none of its names", () => {
+    const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect(textsOf(result)).toEqual([
+      "Where a request or message enters a service.",
+      "Where a trace starts.",
+      "Every operation, including database calls and internal steps.",
+    ]);
+    expect(result.hardcoded).toEqual([]);
+  });
+});
+
 describe("isTranslatableText", () => {
   test.each([
     ["Name", true],
@@ -936,7 +1010,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, and what is wrong with a hunt or why its run could not be made", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, and what each of the traces explorer's span types is", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -971,6 +1045,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
       // What is wrong with a hunt, and why its scheduled run could not be made.
       "ui packages/Common/Types/SecurityEvent/SecurityHunt.ts",
+      // What each span type is - its marked sentences, not its choices' names.
+      "keys packages/Common/Types/Telemetry/TraceSpanType.ts",
     ]);
   });
 

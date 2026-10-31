@@ -39,14 +39,14 @@ flowchart TB
 
 ## 시작하기 전에
 
-- Docker Engine 20.10 이상과 Docker Compose v2 플러그인이 있고, 포트 8006으로 Proxmox VE API에 도달할 수 있는 머신.
+- Docker Engine 20.10 이상과 Docker Compose v2 플러그인이 있고, 포트 8006으로 모든 노드의 Proxmox VE API에 도달할 수 있는 머신.
 - API 토큰을 만들기 위한 아무 Proxmox VE 노드의 root 셸 또는 Proxmox 웹 UI.
 - 수집 키. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 만들고 값을 복사합니다.
 - 그 머신에서 OneUptime URL로 나가는 HTTPS.
 
 ### 에이전트를 실행할 위치
 
-에이전트는 네트워크를 통해 Proxmox VE API를 쿼리하므로 클러스터 노드에 있을 필요가 없으며, 있어서도 안 됩니다. 노드 장애에서 살아남는 머신(별도 하드웨어의 작은 모니터링 VM, 관리 호스트)에서 실행하거나, `PVE_HOST`가 노드 하나의 주소 대신 가상 IP나 라운드 로빈 DNS 이름을 가리키게 하세요. 에이전트의 API 대상이 방금 죽은 노드라면 모니터링도 함께 죽습니다. 유일한 예외는 선택 사항인 journald 로그 파이프라인으로, Proxmox VE 노드에서 실행해야 합니다([Proxmox 서비스 로그 전송](#선택-사항-proxmox-서비스-로그-전송) 참조).
+에이전트는 네트워크를 통해 Proxmox VE API를 쿼리하므로 클러스터 노드에 있을 필요가 없으며, 있어서도 안 됩니다. 노드 장애에서 살아남는 머신(별도 하드웨어의 작은 모니터링 VM, 관리 호스트)에서 실행하거나, `PVE_HOST`가 노드 하나의 주소 대신 가상 IP나 라운드 로빈 DNS 이름을 가리키게 하세요. 에이전트의 API 대상이 방금 죽은 노드라면 모니터링도 함께 죽습니다. `PVE_NODES`는 다릅니다. 모든 노드를 각자의 주소로 나열하며, 가상 IP는 절대 쓰지 않습니다([에이전트가 수집하는 것](#에이전트가-수집하는-것) 참조). 유일한 예외는 선택 사항인 journald 로그 파이프라인으로, Proxmox VE 노드에서 실행해야 합니다([Proxmox 서비스 로그 전송](#선택-사항-proxmox-서비스-로그-전송) 참조).
 
 ## 에이전트 설치
 
@@ -87,7 +87,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-스크립트는 OneUptime URL, 수집 키, 클러스터 이름, Proxmox VE API 호스트, 번들 익스포터를 실행할지 여부, 토큰 ID와 시크릿을 묻습니다. 또한 [AI 에이전트](#ai-에이전트)가 수정을 적용해도 되는지, 그렇다면 그 전용 토큰과 절대 변경하면 안 되는 게스트도 묻습니다. `/opt/oneuptime-proxmox-agent`에 설치하고, `0600` `.env` 파일을 쓰고, Docker Compose로 에이전트를 시작합니다. 스크립트를 다시 실행하면 다시 묻지 않고 그 `.env`의 모든 값을 재사용하며, 이것이 [에이전트를 업그레이드](#에이전트-업그레이드)하는 방법입니다.
+스크립트는 OneUptime URL, 수집 키, 클러스터 이름, Proxmox VE API 호스트, 번들 익스포터를 실행할지 여부, 토큰 ID와 시크릿, 그리고 모든 노드의 주소(토큰을 받으면 클러스터 자체의 목록을 제안함)를 묻습니다. 또한 [AI 에이전트](#ai-에이전트)가 수정을 적용해도 되는지, 그렇다면 그 전용 토큰과 절대 변경하면 안 되는 게스트도 묻습니다. `/opt/oneuptime-proxmox-agent`에 설치하고, `0600` `.env` 파일을 쓰고, Docker Compose로 에이전트를 시작합니다. 스크립트를 다시 실행하면 다시 묻지 않고 그 `.env`의 모든 값을 재사용하며, 이것이 [에이전트를 업그레이드](#에이전트-업그레이드)하는 방법입니다.
 @tab Docker Compose
 [ProxmoxAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)에서 `docker-compose.yml`과 `otel-collector-config.yaml`을 새 폴더로 내려받으세요:
 
@@ -104,12 +104,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
 ```
 
-`COMPOSE_PROFILES=pve-exporter`는 번들 익스포터도 시작합니다. 에이전트를 시작하세요:
+`PVE_NODES`는 모든 노드를 각자의 주소로 대괄호 안에 나열하고, `COMPOSE_PROFILES=pve-exporter`는 번들 익스포터도 시작합니다. 에이전트를 시작하세요:
 
 ```bash
 docker compose up -d
@@ -149,7 +150,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `PROXMOX_CLUSTER_NAME` | 예 | OneUptime에서의 클러스터 이름으로, 모든 메트릭에 `proxmox.cluster.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 클러스터가 등록됩니다. 기본값은 `proxmox-cluster`입니다. |
-| `PVE_HOST` | 예 | 익스포터와 AI 에이전트가 쿼리하는 Proxmox VE API 호스트로, 클러스터의 아무 노드나 됩니다. 예: `192.168.1.10`. |
+| `PVE_HOST` | 예 | 익스포터가 클러스터를 읽고 AI 에이전트가 쿼리하는 Proxmox VE API 호스트로, 아무 노드나 노드 사이에서 전환되는 가상 IP가 됩니다. 예: `192.168.1.10`. |
+| `PVE_NODES` | 클러스터인 경우 | 각 노드 자체의 API 주소를 쉼표로 구분해 대괄호 안에 넣습니다. 예: `[192.168.1.10,192.168.1.11,192.168.1.12]`. 익스포터는 부팅 시 시작, 복제, 구독을 자신이 묻는 노드에 대해서만 읽으므로 각 노드에 차례로 묻습니다. 기본값은 `PVE_HOST` 하나뿐이며, 단일 노드라면 이것으로 충분합니다. |
 | `PVE_EXPORTER_URL` | 아니요 | prometheus-pve-exporter의 주소(`host:port`, 스킴 없음). 기본값은 번들 익스포터인 `pve-exporter:9221`입니다. |
 | `PVE_API_TOKEN_ID` | 번들 익스포터 또는 AI 에이전트 | 전체 Proxmox API 토큰 ID(예: `monitoring@pam!oneuptime`). AI 에이전트는 자체 토큰(`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`)이 없으면 이것으로 API를 읽습니다. |
 | `PVE_API_TOKEN_SECRET` | 번들 익스포터 또는 AI 에이전트 | Proxmox API 토큰 시크릿. |
@@ -158,7 +160,7 @@ Everything is ready. Begin running and processing data.
 
 ## 에이전트가 수집하는 것
 
-Collector는 클러스터와 노드 수집기를 모두 켜고 30초마다 익스포터를 스크레이프하며, 이는 익스포터에서 기본으로 켜져 있는 `backup-info`(클러스터 수준)와 `replication`(노드 수준) 수집기도 포함합니다. 모든 시계열에는 리소스를 가리키는 `id` 레이블이 있습니다: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, `storage/<node>/<storage>`.
+Collector는 30초마다 익스포터를 스크레이프합니다. 클러스터 수집기는 `PVE_HOST`에서 한 번, 노드 수집기는 `PVE_NODES`의 각 노드마다 한 번입니다. 클러스터 수집기(기본으로 켜져 있는 `backup-info` 포함)는 어느 노드든 클러스터 전체에 대해 응답합니다. 노드 수집기(부팅 시 시작을 위한 `config`와 `replication`)는 익스포터가 묻는 노드만 읽으므로, `PVE_NODES`에 없는 노드는 **Guest Down**에 필요한 게스트의 부팅 시 시작 플래그도, 복제 작업도 보내지 않습니다. 모든 시계열에는 리소스를 가리키는 `id` 레이블이 있습니다: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, `storage/<node>/<storage>`.
 
 | 범주 | 메트릭 |
 | --- | --- |
@@ -168,6 +170,7 @@ Collector는 클러스터와 노드 수집기를 모두 켜고 30초마다 익�
 | 스토리지 | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
 | 백업 적용 범위 | `pve_not_backed_up_total`(어떤 백업 작업도 다루지 않는 게스트. 클러스터 수준 시계열 하나, `id` 레이블 없음)과 `pve_not_backed_up_info`(다뤄지지 않는 게스트마다 시계열 하나, `id` 포함). 다뤄진다는 것은 적어도 한 작업이 그 게스트를 선택한다는 뜻이며, 백업이 최근에 실행되었는지나 성공했는지는 익스포터가 노출하지 않습니다. |
+| 부팅 시 시작 | 게스트마다 시계열 하나인 `pve_onboot_status`. 게스트가 부팅 시 시작하도록 설정되어 있으면 1입니다. **Guest Down**은 이 게스트에 대해서만 알립니다. |
 | 복제 | 스토리지 복제 작업별 `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`. 이 시계열의 `id` 레이블은 리소스가 아니라 작업 ID(예: `100-0`)입니다. |
 
 모니터 조건과 속성 필터는 접두사가 아니라 일치 여부로 비교하므로, Collector의 `transform/pve-identity` 프로세서는 `id`를 세 가지 속성으로도 나눕니다. 기본 제공 Proxmox 알림 템플릿은 이 속성으로 필터링하므로, 구성을 사용자 지정하더라도 이 프로세서는 유지하세요:
@@ -297,7 +300,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 에이전트는 파일이 고정한 Collector 버전을 **에이전트 버전**으로 보고합니다. 그것이 이 OneUptime 릴리스가 고정한 버전보다 오래되었으면 클러스터의 **개요**에서 그 옆에 경고 표시가 나타납니다. 표시를 선택하면 이 명령들이 보입니다. 파일이 버전을 보고하기 전에 설치된 에이전트는 이 방법으로 업그레이드할 때까지 버전이 표시되지 않습니다.
 
-Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치며(편집한 파일은 `<file>.bak.<timestamp>`로 보관), 이미지를 가져와 에이전트를 다시 만들므로 Collector가 새 구성을 읽습니다.
+Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치며(편집한 파일은 `<file>.bak.<timestamp>`로 보관), 이미지를 가져와 에이전트를 다시 만들므로 Collector가 새 구성을 읽습니다. `PVE_NODES` 이전의 `.env`는 계속 `PVE_HOST`만 읽으며, 스크립트가 추가해야 할 노드를 알려 줍니다.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
@@ -359,6 +362,10 @@ API 토큰이 잘못되었거나 권한이 부족합니다. 토큰 ID 형식(`us
 
 :::details 노드 메트릭만 있고 게스트 메트릭이 없음
 게스트 시계열(`qemu/*`와 `lxc/*` ID)은 익스포터의 클러스터 수집기에서 오며, 제공되는 구성은 스크레이프 매개변수 `cluster=1`로 이를 켭니다. `otel-collector-config.yaml`을 사용자 지정했다면 `cluster: ["1"]` 매개변수를 다시 넣으세요.
+:::
+
+:::details Guest Down이나 Replication Failing이 일부 게스트에 대해 발생하지 않음
+게스트의 부팅 시 시작 플래그와 복제 작업은 게스트가 실행되는 노드에서 오며, 에이전트는 `PVE_NODES`의 노드만 읽습니다. 그곳에 각 노드 자체의 주소를 나열하고(예: `PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`) `docker compose up -d`를 실행하세요. 편집한 뒤 Collector가 시작되지 않으면 목록의 대괄호가 사라진 것입니다. 진단 스크립트는 목록의 모든 노드를 확인합니다.
 :::
 
 :::details 메트릭이 잘못된 클러스터에 들어감

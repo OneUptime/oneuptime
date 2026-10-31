@@ -32,12 +32,12 @@ Im Modus **Nur Lesezugriff** werden dem Modell keine Aktionen angeboten, die Unt
 | --- | --- |
 | Auf jeder Seite | Klicken Sie in der Kopfzeile auf **KI fragen** oder drücken Sie `Ctrl` + `I` (`Cmd` + `I` auf einem Mac). Während Sie in ein Textfeld oder einen Editor tippen, bleibt die Tastenkombination die Kursiv-Taste des Editors. |
 | Die Befehlspalette | Drücken Sie `Ctrl` + `K` (`Cmd` + `K` auf einem Mac) und wählen Sie **KI fragen**. |
-| Ein Fehlermuster in den Logs oder die Befunde eines Diagramms | Klicken Sie auf **Explain with AI**: KI fragen öffnet sich mit den Belegen als Frage, die Sie vor dem Senden bearbeiten können. |
+| Ein Fehlermuster in den Logs oder die Befunde eines Diagramms | Klicken Sie auf **Mit KI erklären**: KI fragen öffnet sich mit den Belegen als Frage, die Sie vor dem Senden bearbeiten können. |
 | Das Produktmenü | Öffnen Sie **Produkte → AI → Chat**. KI fragen öffnet sich über der Seite, auf der Sie waren. Jede Unterhaltung hat eine eigene Adresse, sodass Sie sie als Lesezeichen speichern und später wieder aufrufen können. |
 
 KI fragen öffnet sich in der Mitte des Bildschirms über der Seite, auf der Sie waren, und füllt auf einem Telefon den ganzen Bildschirm. Drücken Sie `Esc` oder klicken Sie daneben, um zur Seite zurückzukehren. Die Unterhaltung bleibt, wo Sie sie verlassen haben: Öffnen Sie KI fragen erneut, um weiterzumachen. Schließen Sie den Chat, während er noch antwortet, sagt ein Hinweis in der Ecke, wann die Antwort fertig ist, und öffnet sie.
 
-Bei einem Vorfall oder einer Warnung hat die Karte **KI-Untersuchung** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#mit-oneuptime-ai-über-den-vorfall-sprechen).
+Bei einem Vorfall oder einer Warnung hat die Karte **OneUptime AI** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#mit-oneuptime-ai-über-den-vorfall-sprechen).
 
 ## Was KI fragen sehen kann
 
@@ -87,7 +87,7 @@ Was KI fragen tun kann, wenn ein Modus es erlaubt:
 - Eine interne Notiz zu einem Vorfall oder einer Warnung veröffentlichen. Interne Notizen erscheinen nie auf einer Statusseite.
 - Eine öffentliche Statusmeldung zu einem Vorfall veröffentlichen. Das ist eine eigene Aktion, weil sie die Abonnenten der Statusseite benachrichtigt.
 - Eine Bereitschaftsrichtlinie alarmieren, ein Runbook ausführen oder eine KI-Untersuchung eines Vorfalls oder einer Warnung starten.
-- Eine Codeänderung vorschlagen: in einen neuen Branch eines verbundenen Repositorys committen und einen Pull Request öffnen. Er schreibt nie in den Standard-Branch oder einen geschützten Branch, sodass weiterhin ein Mensch die Änderung mergt.
+- Eine Codeänderung vorschlagen: in einen neuen Branch eines Repositorys auf GitHub, GitLab, Forgejo oder Gitea committen und einen Pull Request öffnen (auf GitLab einen Merge Request). Er schreibt nie in den Standard-Branch oder einen geschützten Branch, sodass weiterhin ein Mensch die Änderung mergt.
 
 Fragen Sie nach einem Vorfall, wenn Benutzer betroffen sind, und nach einer Warnung, wenn etwas zuerst die Aufmerksamkeit Ihres Teams braucht, etwa wenn der Speicher eines Hosts immer weiter steigt. Beides wird einmal angelegt und überwacht nichts: Um jedes Mal benachrichtigt zu werden, wenn der Speicher eines Hosts 75 % übersteigt, legen Sie eine [Host-Überwachung](/docs/monitor/host-monitor#fertige-warnungsvorlagen) aus ihrer Speichervorlage an, mit 75 % als Schwellenwert. KI fragen kann keine Monitore anlegen. Danach gefragt, sagt es das, prüft den aktuellen Wert und bietet an, eine Warnung auszulösen, wenn er schon darüber liegt.
 

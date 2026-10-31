@@ -58,6 +58,11 @@ interface TemplateGroupByCase {
 
 const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
   {
+    id: "k8s-cluster-stopped-reporting",
+    groupByKeys: [],
+    why: "a heartbeat over the whole cluster: grouped, a silent cluster would leave no series to fire on",
+  },
+  {
     id: "k8s-crashloopbackoff",
     groupByKeys: [
       "resource.k8s.namespace.name",
@@ -301,6 +306,7 @@ describe("KubernetesAlertTemplates - per-series group-by keys", () => {
      * and this count falls back toward four.
      */
     expect(grouped).toBe(13);
-    expect(EXPECTED_GROUP_BY.length - grouped).toBe(4);
+    // The four cluster-scalar templates, and the whole-cluster heartbeat.
+    expect(EXPECTED_GROUP_BY.length - grouped).toBe(5);
   });
 });

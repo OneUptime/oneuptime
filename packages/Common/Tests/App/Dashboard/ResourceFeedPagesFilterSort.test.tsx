@@ -71,6 +71,7 @@ import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
+import CloudAccountFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Feed";
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
 import SloFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Feed";
@@ -80,6 +81,16 @@ import { getSecurityCaseFeedKind } from "../../../../App/FeatureSet/Dashboard/sr
 import SecurityCaseFeedModel, {
   SecurityCaseFeedEventType,
 } from "../../../Models/DatabaseModels/SecurityCaseFeed";
+import DataSecurityIssueFeed from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueFeed";
+import { getDataSecurityIssueFeedKind } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueFeedKind";
+import DataStoreTimeline from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/StoreFeed";
+import { getDataStoreFeedKind } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/StoreFeedKind";
+import DataSecurityIssueFeedModel, {
+  DataSecurityIssueFeedEventType,
+} from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
+import DataStoreFeedModel, {
+  DataStoreFeedEventType,
+} from "../../../Models/DatabaseModels/DataStoreFeed";
 import {
   getSloFeedEventIcon,
   getSloFeedEventKind,
@@ -124,6 +135,9 @@ import HostFeed, {
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../Models/DatabaseModels/CloudResourceFeed";
+import CloudAccountFeed, {
+  CloudAccountFeedEventType,
+} from "../../../Models/DatabaseModels/CloudAccountFeed";
 import DatabaseServerFeed, {
   DatabaseServerFeedEventType,
 } from "../../../Models/DatabaseModels/DatabaseServerFeed";
@@ -321,6 +335,16 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     enumObject: CloudResourceFeedEventType,
   },
   {
+    product: "Cloud accounts",
+    file: "Pages/Cloud/Accounts/View/Feed.tsx",
+    Page: CloudAccountFeedPage,
+    route: RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED] as Route,
+    modelType: CloudAccountFeed,
+    resourceIdColumn: "cloudAccountId",
+    eventTypeColumn: "cloudAccountFeedEventType",
+    enumObject: CloudAccountFeedEventType,
+  },
+  {
     product: "Databases",
     file: "Pages/Database/View/Feed.tsx",
     Page: DatabaseServerFeedPage,
@@ -459,10 +483,60 @@ const SECURITY_CASE_TIMELINE: ResourceFeedSurface = {
   },
 };
 
+/*
+ * A Data Security issue's timeline and a data store's, each on its record's
+ * own Timeline page. The page hands the feed the record its layout read, so
+ * - like the security case's - the record comes from the prop, and the
+ * address bar points at another one.
+ */
+const DATA_SECURITY_ISSUE_TIMELINE: ResourceFeedSurface = {
+  product: "Data Security issue timeline",
+  feedProduct: "Data Security Issue",
+  file: "Components/DataSecurity/IssueFeed.tsx",
+  component: DataSecurityIssueFeed,
+  modelType: DataSecurityIssueFeedModel,
+  resourceIdColumn: "dataSecurityIssueId",
+  eventTypeColumn: "dataSecurityIssueFeedEventType",
+  enumObject: DataSecurityIssueFeedEventType,
+  getKind: getDataSecurityIssueFeedKind,
+  mount: (resourceId: ObjectID): React.ReactElement => {
+    window.history.pushState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/data-security/issues/${ObjectID.generate().toString()}/timeline`,
+    );
+
+    return <DataSecurityIssueFeed dataSecurityIssueId={resourceId} />;
+  },
+};
+
+const DATA_STORE_TIMELINE: ResourceFeedSurface = {
+  product: "Data store timeline",
+  feedProduct: "Data Store",
+  file: "Components/DataSecurity/StoreFeed.tsx",
+  component: DataStoreTimeline,
+  modelType: DataStoreFeedModel,
+  resourceIdColumn: "dataStoreId",
+  eventTypeColumn: "dataStoreFeedEventType",
+  enumObject: DataStoreFeedEventType,
+  getKind: getDataStoreFeedKind,
+  mount: (resourceId: ObjectID): React.ReactElement => {
+    window.history.pushState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/data-security/stores/${ObjectID.generate().toString()}/timeline`,
+    );
+
+    return <DataStoreTimeline dataStoreId={resourceId} />;
+  },
+};
+
 const SURFACES: Array<ResourceFeedSurface> = [
   ...FEED_PAGES.map(toSurface),
   EMBEDDED_SLO_FEED,
   SECURITY_CASE_TIMELINE,
+  DATA_SECURITY_ISSUE_TIMELINE,
+  DATA_STORE_TIMELINE,
 ];
 
 type GetEventTypes = (surface: ResourceFeedSurface) => Array<string>;

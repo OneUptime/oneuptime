@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme.
-- **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten.
+- **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten, und die Ausnahme wird als **Regression** markiert. Ein Vorkommen von vor der Behebung, das OneUptime erst später erreicht, öffnet sie nicht wieder.
 - **Eine archivierte Ausnahme bleibt archiviert.** Ihre neuen Vorkommen werden weiter gezählt, lösen aber keine Benachrichtigungen mehr aus.
 
 > [!TIP]
@@ -50,7 +50,7 @@ flowchart TB
 
 ### Einen Status wählen
 
-Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle**. Das Diagramm über der Liste zeigt, wie viele Vorkommen im Zeitverlauf **Nicht behandelt** und wie viele **Behandelt** waren.
+Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle**. Das Diagramm über der Liste zeigt, wie viele Vorkommen im Zeitverlauf **Nicht behandelt** und wie viele **Behandelt** waren. Eine mit **Regression** markierte Zeile ist nach der Behebung wieder aufgetreten, und eine mit **Neu** markierte wurde in den letzten 24 Stunden zum ersten Mal gesehen.
 
 ### Festlegen, was als Problem zählt
 
@@ -58,7 +58,7 @@ Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle*
 
 ### Suchen und filtern
 
-Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**.
+Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**. **Mir zugewiesen** zeigt nur die Ihnen zugewiesenen Ausnahmen, und das Sortiermenü ordnet die Liste nach **Zuletzt gesehen**, **Zuerst gesehen** oder **Meiste Ereignisse**.
 
 ### Eine Ausnahme öffnen
 
@@ -71,7 +71,7 @@ Das Seitenmenü der Seite ordnet, was Sie mit einer Ausnahme tun:
 
 | Seite | Was sie zeigt |
 | --- | --- |
-| **Übersicht** | Die Nachricht, den Dienst, wie oft sie auftrat und wann sie zuerst und zuletzt gesehen wurde, ihren Verlauf über die Zeit und ihr letztes Vorkommen: Release, Umgebung, Span, Trace und Benutzersitzung. |
+| **Übersicht** | Die Nachricht, den Dienst, wie oft sie auftrat und wann sie zuerst und zuletzt gesehen wurde, ihren Verlauf über die Zeit und ihr letztes Vorkommen: Release, Umgebung, Span, Trace und Benutzersitzung. Ganz oben die Erklärung von OneUptime AI, was passiert ist, wenn KI aktiviert ist. |
 | **Stack-Trace** | Die Frames des Stacks. Bei Browser-Code die ursprünglichen Dateien und Zeilen, sobald Sie [Source Maps](/docs/telemetry/source-maps) für das Release hochladen. |
 | **Vorkommen** | Jedes Vorkommen mit seiner Zeit, seiner Nachricht und dem Trace, in dem es auftrat. |
 | **Kontext** | Die Attribute des letzten Vorkommens, seine Sitzungsaufzeichnung, wenn eine aufgenommen wurde, und die Schritte, die dazu führten. |
@@ -86,13 +86,18 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 | Aktion | Wann Sie sie nutzen | Was danach geschieht |
 | --- | --- | --- |
 | **Beheben** | Sie haben die Korrektur bereitgestellt. | Sie verlässt die Liste **Nicht behoben**. Ein neues Vorkommen öffnet sie wieder. |
+| **Im nächsten Release beheben** | Die Korrektur kommt mit Ihrem nächsten Release. | Sie verlässt die Liste **Nicht behoben**. Vorkommen aus dem Release, in dem sie zuletzt gesehen wurde, öffnen sie nicht wieder, ein Vorkommen aus jedem anderen Release schon. |
 | **Wieder öffnen** | Die Korrektur hat nicht gewirkt. | Sie ist wieder ungelöst. |
 | **Archivieren** | Es ist Rauschen, das Sie nicht beheben wollen. | Sie verlässt die Liste. Neue Vorkommen werden gezählt, lösen aber keine Benachrichtigungen mehr aus. |
 | **Aus Archiv entfernen** | Sie wollen wieder davon hören. | Sie steht wieder in der Liste, in die sie gehört. |
 
+**Im nächsten Release beheben** steht im Menü neben **Beheben**, im Menü ⋯ der Zeile, unter **Massenaktionen** und auf **Einstellungen**, sofern die Vorkommen der Ausnahme ihr Release nennen: das Ressourcenattribut `service.version`.
+
 **Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
+
+**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu.
 
 ## Fehlerklassen
 
@@ -108,6 +113,22 @@ Jede Ausnahme hat eine Fehlerklasse, die sagt, wessen Problem sie ist. OneUptime
 
 Ist **Erwartete Ausnahmen archivieren** in den Einstellungen der KI-Einblicke eingeschaltet, werden Ausnahmen, die die Sichtung als erwartete Ablehnungen einstuft, für Sie archiviert.
 
+## Mit KI erklären
+
+Oben auf der **Übersicht** einer Ausnahme fragt **Mit OneUptime AI erklären** OneUptime AI, was schiefgelaufen ist. Es liest den Stack-Trace, den Trace und die Protokolle des letzten Vorkommens sowie die Deployments des Dienstes um die Zeit, zu der die Ausnahme begann, und antwortet in der Karte **Hergang**:
+
+| Teil | Was er sagt |
+| --- | --- |
+| **Hergang** | Ein, zwei Sätze, wie sicher OneUptime AI ist und wo der Fehler liegt: im Code, in einer Abhängigkeit, in der Infrastruktur, in fehlerhafter Eingabe oder in der Konfiguration. |
+| **Wahrscheinliche Grundursache** | Die Ursache und der Frame, Span, die Protokollzeile oder das Deployment, die sie zeigen. |
+| **Vorgeschlagene Korrektur** | Was zu ändern ist. |
+| **Wo nachsehen** | Die Frames des Stack-Traces, die Sie zuerst öffnen sollten. |
+| **Nächste Schritte** | Höchstens drei Schritte, um sie zu bestätigen oder zu beheben. |
+
+Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die sie öffnet, sie sofort liest, und **Erneut erklären** fordert eine neue an. **Pull Request mit Korrektur öffnen** öffnet die Seite **KI-Unterstützung** der Ausnahme, und **Nachfrage stellen** öffnet Ask AI zu der Ausnahme.
+
+IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesendet wird, und von den Attributen eines Spans werden nur wenige gesendet, etwa seine Route und sein Statuscode. Die Erklärung nutzt den LLM-Anbieter und die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Jeder, der die Ausnahme lesen kann, kann eine anfordern.
+
 ## Mit KI beheben
 
 Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe, die einen Pull Request in Ihrem Code-Repository öffnet:
@@ -118,7 +139,7 @@ Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe
 | **Regressionstest generieren** | Fügt einen Test hinzu, der fehlschlägt, bis der Fehler behoben ist. |
 | **Fehlerbehandlung verbessern** | Für erwartete Fehler: prüft Eingaben früher, hält Benutzerdaten aus Meldungen heraus und markiert den Fehler als behandelt. |
 
-Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository (auf GitHub, GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server) und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent).
+Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository (auf GitHub, GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server) und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent). Eine Aufgabe zu starten erfordert die Berechtigung, das Repository zu bearbeiten, in dem sie arbeitet: Wer die Ausnahme nur lesen darf, sieht ihre Aufgaben, kann aber keine starten.
 
 ## Neue und zunehmende Ausnahmen mit KI finden und beheben
 
@@ -162,6 +183,8 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 Der Tab **Einblicke** zählt Ihre Ausnahmen unter **Nicht behoben**, **Behoben** und **Archiviert** sowie Ihre Behebungsquote und listet die häufigsten Ausnahmen, die Dienste, die sie betreffen, und die zuletzt gesehenen.
 
+**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und nicht gespeichert, nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
+
 ## Fehlerbehebung
 
 :::details Eine Ausnahme, die ich gerade ausgelöst habe, fehlt in der Liste
@@ -173,7 +196,7 @@ Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie s
 :::
 
 :::details Eine behobene Ausnahme kommt immer wieder
-Ein neues Vorkommen öffnet eine behobene Ausnahme absichtlich wieder: Der Fehler tritt noch auf. Prüfen Sie, ob die Korrektur das Release erreicht hat, das ihn meldet, oder archivieren Sie die Ausnahme, wenn Sie nichts mehr davon hören wollen.
+Ein neues Vorkommen öffnet eine behobene Ausnahme absichtlich wieder: Der Fehler tritt noch auf. Prüfen Sie, ob die Korrektur das Release erreicht hat, das ihn meldet, oder archivieren Sie die Ausnahme, wenn Sie nichts mehr davon hören wollen. Melden alte Pods des Releases sie während eines Rollouts weiter, nutzen Sie stattdessen **Im nächsten Release beheben**.
 :::
 
 ## Nächste Schritte

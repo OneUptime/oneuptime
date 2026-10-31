@@ -22,7 +22,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 /*
  * Who may see a resource's AI agent: whoever may read a resource of any of
  * the AiResourceType models (DockerHost, PodmanHost, DockerSwarmCluster,
- * ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host) — the
+ * ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, and the
+ * CloudAccount of the three cloud types) — the
  * roles every one of their read lists shares, plus each model's own Read
  * permission. The table is polymorphic, so no one list can be "exactly the
  * resource's readers" the way KubernetesAiAgent's is the cluster's: the
@@ -48,6 +49,7 @@ const RESOURCE_READERS: Array<Permission> = [
   Permission.ReadCephCluster,
   Permission.ReadDatabaseServer,
   Permission.ReadHost,
+  Permission.ReadCloudResource,
 ];
 
 /*

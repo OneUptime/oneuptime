@@ -63,10 +63,18 @@ interface TemplateExpectation {
   severity: string;
   rollingTime: RollingTime;
   queries: Array<QueryExpectation>;
-  groupBy: string;
+  // Null for the one whole-vCenter template, the heartbeat.
+  groupBy: string | null;
   fire: ThresholdExpectation;
   recover: ThresholdExpectation;
 }
+
+/*
+ * The heartbeat: a whole-vCenter template, ungrouped on purpose (grouped, a
+ * silent vCenter would leave no series to fire on), so the per-object
+ * invariants below run over every OTHER template and it has its own suite.
+ */
+const STOPPED_REPORTING_ID: string = "vmware-vcenter-stopped-reporting";
 
 const HOST: string = "resource.vcenter.host.name";
 const VM: string = "resource.vcenter.vm.name";
@@ -76,6 +84,32 @@ const DATACENTER: string = "resource.vcenter.datacenter.name";
 const RESOURCE_POOL: string = "resource.vcenter.resource_pool.inventory_path";
 
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
+  {
+    // Counted, so the `< 0` criteria only fires on an empty window.
+    id: STOPPED_REPORTING_ID,
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    queries: [
+      {
+        metricName: "vcenter.datacenter.cpu.limit",
+        aggregation: MetricsAggregationType.Count,
+        attributes: {},
+        legendUnit: undefined,
+      },
+    ],
+    groupBy: null,
+    fire: {
+      alias: "samples_received",
+      filterType: FilterType.LessThan,
+      value: 0,
+    },
+    recover: {
+      alias: "samples_received",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 0,
+    },
+  },
   {
     id: "vmware-host-cpu-saturation",
     category: "Host",
@@ -740,6 +774,13 @@ function expectedRecoveryValue(recover: {
 
 const ALL_TEMPLATES: Array<VMwareAlertTemplate> = getAllVMwareAlertTemplates();
 
+// Every template that watches vSphere objects: all but the heartbeat.
+const PER_OBJECT_TEMPLATES: Array<VMwareAlertTemplate> = ALL_TEMPLATES.filter(
+  (template: VMwareAlertTemplate): boolean => {
+    return template.id !== STOPPED_REPORTING_ID;
+  },
+);
+
 describe("VMwareAlertTemplates - registry", () => {
   test("template ids are unique and match the expectation table exactly", () => {
     const ids: Array<string> = ALL_TEMPLATES.map((t: VMwareAlertTemplate) => {
@@ -754,8 +795,10 @@ describe("VMwareAlertTemplates - registry", () => {
     );
   });
 
-  test("ships the 23 templates the design spec lists", () => {
-    expect(ALL_TEMPLATES).toHaveLength(23);
+  test("ships the 23 per-object templates the design spec lists, and the heartbeat first", () => {
+    expect(PER_OBJECT_TEMPLATES).toHaveLength(23);
+    expect(ALL_TEMPLATES).toHaveLength(24);
+    expect(ALL_TEMPLATES[0]!.id).toBe(STOPPED_REPORTING_ID);
   });
 
   test("every template id carries the vmware- prefix", () => {
@@ -786,6 +829,7 @@ describe("VMwareAlertTemplates - registry", () => {
 
   test("getVMwareAlertTemplatesByCategory partitions the registry", () => {
     const categories: Array<string> = [
+      "Availability",
       "Host",
       "Virtual Machine",
       "Datastore",
@@ -908,7 +952,7 @@ describe("VMwareAlertTemplates - enumerated invariants (every template)", () => 
   );
 
   test.each(
-    ALL_TEMPLATES.map((t: VMwareAlertTemplate) => {
+    PER_OBJECT_TEMPLATES.map((t: VMwareAlertTemplate) => {
       return [t.id, t];
     }),
   )(
@@ -949,7 +993,7 @@ describe("VMwareAlertTemplates - enumerated invariants (every template)", () => 
   );
 
   test.each(
-    ALL_TEMPLATES.map((t: VMwareAlertTemplate) => {
+    PER_OBJECT_TEMPLATES.map((t: VMwareAlertTemplate) => {
       return [t.id, t];
     }),
   )(
@@ -1131,7 +1175,7 @@ describe("VMwareAlertTemplates - enumerated invariants (every template)", () => 
   );
 
   test.each(
-    ALL_TEMPLATES.map((t: VMwareAlertTemplate) => {
+    PER_OBJECT_TEMPLATES.map((t: VMwareAlertTemplate) => {
       return [t.id, t];
     }),
   )(
@@ -1222,7 +1266,7 @@ describe("VMwareAlertTemplates - spec table expectations", () => {
 
         const groupBys: Array<string> =
           queryConfigs[i].metricQueryData.groupByAttributeKeys || [];
-        expect(groupBys).toEqual([tc.groupBy]);
+        expect(groupBys).toEqual(tc.groupBy ? [tc.groupBy] : []);
       }
 
       // No ratio formulas: the receiver ships ready-made percentages.
@@ -1340,8 +1384,8 @@ describe("VMwareAlertTemplates - VM vs host CPU asymmetry (regression)", () => {
     expect(recover.value).toBeLessThan(90);
   });
 
-  test("every other template uses the 5-minute window", () => {
-    for (const template of ALL_TEMPLATES) {
+  test("every other per-object template uses the 5-minute window", () => {
+    for (const template of PER_OBJECT_TEMPLATES) {
       if (template.id === "vmware-vm-cpu-saturation") {
         continue;
       }
@@ -1455,9 +1499,10 @@ describe("VMwareAlertTemplates - attribute-filtered count templates (regression)
     /*
      * `vcenter.datacenter.host.count` is a property of the DATACENTER: the
      * series carries only `vcenter.datacenter.name`. Grouping it by host
-     * would key on an attribute the series never has.
+     * would key on an attribute the series never has. (The heartbeat reads a
+     * datacenter series too, but over the whole vCenter: it is ungrouped.)
      */
-    for (const template of ALL_TEMPLATES) {
+    for (const template of PER_OBJECT_TEMPLATES) {
       const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(
         template.getMonitorStep(buildArgs()),
       );

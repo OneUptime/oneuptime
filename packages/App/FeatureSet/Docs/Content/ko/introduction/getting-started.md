@@ -64,6 +64,7 @@ flowchart TB
 - [클라우드](/docs/telemetry/cloud-environments): ECS, Cloud Run, Azure Container Apps 등 관리형 플랫폼을 관찰합니다.
 - [AI 옵저버빌리티](/docs/telemetry/ai-llm-observability): AI의 대화를 따라가고, 답변이 좋지 않을 때 알림을 받습니다.
 - [보안](/docs/telemetry/security-events): 보안 이벤트와 위협 인텔리전스를 수집합니다.
+- [데이터 보안](/docs/data-security/index): 버킷, 데이터베이스, 텔레메트리에 있는 민감한 데이터를 찾고, 그 보관 방식을 바로잡습니다.
 - [실제 사용자 모니터링](/docs/rum/index): Core Web Vitals와 세션 리플레이로 실제 사용자의 경험을 측정합니다.
 - [대시보드](/docs/dashboards/index): 메트릭, 로그, 모니터로 대시보드를 만듭니다.
 - [인벤토리](/docs/inventory/overview): OneUptime이 알고 있는 모든 서비스, 호스트, 장치를 확인합니다.

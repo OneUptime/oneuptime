@@ -60,12 +60,15 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import Incident from "../../Models/DatabaseModels/Incident";
 import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
+import User from "../../Models/DatabaseModels/User";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import AIRunService from "../Services/AIRunService";
 import AlertService from "../Services/AlertService";
 import AutoRemediationSuggestionService from "../Services/AutoRemediationSuggestionService";
 import CephClusterService from "../Services/CephClusterService";
+import CloudAccountService from "../Services/CloudAccountService";
+import { getCloudCatalogProvider } from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import DatabaseServerService from "../Services/DatabaseServerService";
 import DatabaseService from "../Services/DatabaseService";
 import DockerHostService from "../Services/DockerHostService";
@@ -79,6 +82,7 @@ import ResourceAiAgentService from "../Services/ResourceAiAgentService";
 import RunnerJobService from "../Services/RunnerJobService";
 import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
@@ -172,6 +176,25 @@ interface ResourceAiAccessKind {
   service: DatabaseService<any>;
   subjectRelation: string;
   scopeLabelKeys: ReadonlyArray<string>;
+  // Conditions every read of the type's rows adds (a cloud account's cloud).
+  query?: Record<string, unknown> | undefined;
+}
+
+/*
+ * A cloud account: one table for the three clouds, told apart by its
+ * provider. Incidents and alerts link the account's resources, not the
+ * account, so the relation finds no subject of its own here: the account's
+ * AI Logs are the operations AI ran or proposed in it, and the runs and
+ * fixes they belong to.
+ */
+function cloudAccountKind(resourceType: AiResourceType): ResourceAiAccessKind {
+  return {
+    service: CloudAccountService,
+    subjectRelation: "cloudResources",
+    // The account its resources' telemetry names.
+    scopeLabelKeys: ["cloud.account.id", "resource.cloud.account.id"],
+    query: { provider: getCloudCatalogProvider(resourceType) || "" },
+  };
 }
 
 export const RESOURCE_AI_ACCESS_KINDS: Readonly<
@@ -222,6 +245,13 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
     subjectRelation: "hosts",
     scopeLabelKeys: [...HostIdLabelKeys, ...HostNameLabelKeys],
   },
+  [AiResourceType.AwsAccount]: cloudAccountKind(AiResourceType.AwsAccount),
+  [AiResourceType.AzureSubscription]: cloudAccountKind(
+    AiResourceType.AzureSubscription,
+  ),
+  [AiResourceType.GoogleCloudProject]: cloudAccountKind(
+    AiResourceType.GoogleCloudProject,
+  ),
 };
 
 // The resource a route acts on, once the caller may read it.
@@ -296,6 +326,7 @@ async function findAccessibleResource(data: {
     resourceType
   ].service.findOneBy({
     query: {
+      ...(RESOURCE_AI_ACCESS_KINDS[resourceType].query || {}),
       _id: resourceIdString,
       projectId: data.tenantId,
     },
@@ -1634,18 +1665,35 @@ async function getLogInvestigations(data: {
 
 /*
  * Read as root, so never the rationale: that is read under the caller's
- * props (getLogFixes).
+ * props (getLogFixes). Who approved a fix is read by name and email only,
+ * as the incident's own feed names them.
  */
-const LOG_FIX_SELECT: Record<string, boolean> = {
+const LOG_FIX_SELECT: Select<AutoRemediationSuggestion> = {
   _id: true,
   status: true,
   executionMode: true,
   suggestionType: true,
   createdAt: true,
   approvedAt: true,
+  approvedByUser: {
+    _id: true,
+    name: true,
+    email: true,
+  },
   incidentId: true,
   alertId: true,
 };
+
+// A person as a log row names them: their name, or their email without one.
+function describeApprover(user: User | undefined): string | undefined {
+  const name: string = user?.name?.toString().trim() || "";
+
+  if (name) {
+    return name;
+  }
+
+  return user?.email?.toString().trim() || undefined;
+}
 
 async function getLogFixes(data: {
   projectId: ObjectID;
@@ -1732,6 +1780,7 @@ async function getLogFixes(data: {
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
+        approvedByName: describeApprover(suggestion.approvedByUser),
         incidentId: suggestion.incidentId?.toString(),
         alertId: suggestion.alertId?.toString(),
       };

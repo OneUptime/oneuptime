@@ -32,12 +32,12 @@ En mode **Lecture seule**, les actions ne sont jamais proposées au modèle : la
 | --- | --- |
 | N'importe quelle page | Cliquez sur **Demander à l'IA** dans l'en-tête, ou appuyez sur `Ctrl` + `I` (`Cmd` + `I` sur un Mac). Pendant que vous tapez dans un champ de texte ou un éditeur, ces touches restent le raccourci italique de l'éditeur. |
 | La palette de commandes | Appuyez sur `Ctrl` + `K` (`Cmd` + `K` sur un Mac) et choisissez **Demander à l'IA**. |
-| Un motif d'erreur des logs, ou les constats d'un graphique | Cliquez sur **Explain with AI** : Demander à l'IA s'ouvre avec les éléments comme une question que vous pouvez modifier avant de l'envoyer. |
+| Un motif d'erreur des logs, ou les constats d'un graphique | Cliquez sur **Expliquer avec l'IA** : Demander à l'IA s'ouvre avec les éléments comme une question que vous pouvez modifier avant de l'envoyer. |
 | Le menu des produits | Ouvrez **Produits → AI → Chat**. Demander à l'IA s'ouvre par-dessus la page où vous étiez. Chaque conversation a sa propre adresse : vous pouvez la mettre en favori et y revenir. |
 
 Demander à l'IA s'ouvre au milieu de l'écran, par-dessus la page où vous étiez, et occupe tout l'écran sur un téléphone. Appuyez sur `Esc`, ou cliquez à côté, pour revenir à la page. La conversation reste où vous l'avez laissée : rouvrez Demander à l'IA pour la poursuivre. Si vous le fermez pendant qu'il répond encore, un rappel dans le coin indique quand la réponse est prête, et l'ouvre.
 
-Sur un incident ou une alerte, la carte **Investigation IA** a sa propre conversation, **Ask OneUptime AI**, partagée avec tous ceux qui voient cet incident ou cette alerte : voir [Parler de l'incident avec OneUptime AI](/docs/ai/ai-sre#parler-de-lincident-avec-oneuptime-ai).
+Sur un incident ou une alerte, la carte **OneUptime AI** a sa propre conversation, **Ask OneUptime AI**, partagée avec tous ceux qui voient cet incident ou cette alerte : voir [Parler de l'incident avec OneUptime AI](/docs/ai/ai-sre#parler-de-lincident-avec-oneuptime-ai).
 
 ## Ce qu'il voit
 
@@ -87,7 +87,7 @@ Ce que Demander à l'IA peut faire quand un mode le permet :
 - Publier une note interne sur un incident ou une alerte. Les notes internes n'apparaissent jamais sur une page de statut.
 - Publier une mise à jour de statut publique sur un incident. C'est une action distincte, car elle prévient les abonnés de la page de statut.
 - Appeler une politique d'astreinte, exécuter un runbook ou lancer une investigation IA d'un incident ou d'une alerte.
-- Proposer un changement de code : committer sur une nouvelle branche d'un dépôt connecté et ouvrir une pull request. Il n'écrit jamais sur la branche par défaut ni sur une branche protégée, si bien qu'une personne fusionne toujours le changement.
+- Proposer un changement de code : committer sur une nouvelle branche d'un dépôt sur GitHub, GitLab, Forgejo ou Gitea et ouvrir une pull request (une demande de fusion sur GitLab). Il n'écrit jamais sur la branche par défaut ni sur une branche protégée, si bien qu'une personne fusionne toujours le changement.
 
 Demandez un incident quand des utilisateurs sont touchés, et une alerte quand quelque chose demande d'abord l'attention de votre équipe, comme la mémoire d'un hôte qui ne cesse de grimper. L'un comme l'autre est créé une fois et ne surveille rien : pour être alerté chaque fois que la mémoire d'un hôte dépasse 75 %, créez un [moniteur d'hôte](/docs/monitor/host-monitor#modèles-dalerte-prêts-à-lemploi) à partir de son modèle de mémoire, avec 75 % comme seuil. Demander à l'IA ne peut pas créer de moniteurs. Quand on lui en demande un, il le dit, vérifie la valeur actuelle et propose de lever une alerte si elle est déjà dépassée.
 

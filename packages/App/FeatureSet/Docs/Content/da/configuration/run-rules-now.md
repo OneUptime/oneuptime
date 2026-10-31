@@ -14,7 +14,7 @@ flowchart TB
 
 ## Hvilke regler kan køres
 
-- **Etiketregler** og **Ejerregler**, for hver ressource, der har dem: monitorer, hændelser, hændelsesepisoder, alarmer, alarmepisoder, planlagte vedligeholdelsesbegivenheder, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, VMware vCentre, Ceph-klynger, storage-arrays, databaser, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, workflows, runbooks, netværksenheder og SLO'er.
+- **Etiketregler** og **Ejerregler**, for hver ressource, der har dem: monitorer, hændelser, hændelsesepisoder, alarmer, alarmepisoder, planlagte vedligeholdelsesbegivenheder, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, workflows, runbooks, netværksenheder og SLO'er.
 - **Privatlivsregler**, for hændelser, alarmer, hændelsesepisoder og alarmepisoder.
 - **Monitorregler** på en statusside. De synkroniserer allerede siden igen, hver gang en regel gemmes; at køre en synkroniserer den med det samme.
 - **Monitorregler** på et SLO. De synkroniserer allerede SLO'et igen, hver gang en regel gemmes; at køre en synkroniserer SLO'ets monitorer med det samme. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).

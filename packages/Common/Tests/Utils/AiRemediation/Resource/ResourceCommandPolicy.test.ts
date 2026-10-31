@@ -16,6 +16,11 @@ import GovcCommandPolicy from "../../../../Utils/AiRemediation/Resource/GovcComm
 import CephCommandPolicy from "../../../../Utils/AiRemediation/Resource/CephCommandPolicy";
 import DatabaseCommandPolicy from "../../../../Utils/AiRemediation/Resource/DatabaseCommandPolicy";
 import HostCommandPolicy from "../../../../Utils/AiRemediation/Resource/HostCommandPolicy";
+import {
+  AwsCloudCommandPolicy,
+  AzureCloudCommandPolicy,
+  GcpCloudCommandPolicy,
+} from "../../../../Utils/AiRemediation/Resource/CloudCommandPolicy";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -196,6 +201,9 @@ describe("routing", () => {
       [AiResourceType.CephCluster]: CephCommandPolicy,
       [AiResourceType.DatabaseServer]: DatabaseCommandPolicy,
       [AiResourceType.Host]: HostCommandPolicy,
+      [AiResourceType.AwsAccount]: AwsCloudCommandPolicy,
+      [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
+      [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
     };
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
@@ -217,6 +225,9 @@ describe("routing", () => {
       "ceph",
       "db",
       "host",
+      "cloud-aws",
+      "cloud-azure",
+      "cloud-gcp",
     ]);
   });
 

@@ -256,7 +256,7 @@ describe("Kubernetes: one breakdown per query", () => {
   function mockNodeMemory(failScanFor?: Array<string>): void {
     mockRawRows({
       rowsByMetricName: {
-        "k8s.node.memory.usage": [
+        "k8s.node.memory.working_set": [
           row(230e9, nodeA),
           row(225e9, nodeA),
           row(100e9, nodeB),
@@ -269,7 +269,7 @@ describe("Kubernetes: one breakdown per query", () => {
       failScanFor: failScanFor,
     });
     mockDeclaredUnits({
-      "k8s.node.memory.usage": "By",
+      "k8s.node.memory.working_set": "By",
       "k8s.node.allocatable_memory": "By",
     });
   }
@@ -298,7 +298,7 @@ describe("Kubernetes: one breakdown per query", () => {
         return [breakdown.metricAlias, breakdown.metricName];
       }),
     ).toEqual([
-      ["used_mem", "k8s.node.memory.usage"],
+      ["used_mem", "k8s.node.memory.working_set"],
       ["alloc_mem", "k8s.node.allocatable_memory"],
     ]);
 
@@ -362,9 +362,9 @@ describe("Kubernetes: one breakdown per query", () => {
 
     // The criteria evaluator gets a unit for both queries of the ratio.
     expect(response.nativeUnitsByMetricName).toEqual({
-      "k8s.node.memory.usage": PlatformMetricUnitUtil.getMetricUnit({
+      "k8s.node.memory.working_set": PlatformMetricUnitUtil.getMetricUnit({
         platform: "kubernetes",
-        metricName: "k8s.node.memory.usage",
+        metricName: "k8s.node.memory.working_set",
         declaredUnit: "By",
       }),
       "k8s.node.allocatable_memory": PlatformMetricUnitUtil.getMetricUnit({
@@ -394,7 +394,7 @@ describe("Kubernetes: one breakdown per query", () => {
   });
 
   test("a query whose raw scan throws still yields the other query's breakdown", async () => {
-    mockNodeMemory(["k8s.node.memory.usage"]);
+    mockNodeMemory(["k8s.node.memory.working_set"]);
 
     const response: MetricMonitorResponse = await monitorKubernetes({
       monitorStep: kubernetesTemplateStep("k8s-high-memory"),
@@ -734,8 +734,8 @@ describe("VMware and Docker Swarm: single-query templates", () => {
       "resource.docker.swarm.cluster.name": "swarm-prod",
       "resource.container.name": "web.1.abc123",
       "resource.container.image.name": "nginx:1.27",
-      "docker.swarm.node.name": "worker-1",
-      "docker.swarm.service.name": "web",
+      "resource.docker.swarm.node.name": "worker-1",
+      "resource.docker.swarm.service.name": "web",
     };
 
     mockRawRows({
@@ -1126,9 +1126,11 @@ function legacyDockerSwarm(rows: Array<RawRow>): Array<LegacyResource> {
     const containerImage: string | undefined = a[
       "resource.container.image.name"
     ] as string;
-    const nodeName: string | undefined = a["docker.swarm.node.name"] as string;
+    const nodeName: string | undefined = a[
+      "resource.docker.swarm.node.name"
+    ] as string;
     const serviceName: string | undefined = a[
-      "docker.swarm.service.name"
+      "resource.docker.swarm.service.name"
     ] as string;
     return {
       key: [
@@ -1392,21 +1394,25 @@ describe("identity parity with the pre-refactor inline mappings", () => {
       row(60, {
         "resource.container.name": "web.1.abc",
         "resource.container.image.name": "nginx:1.27",
-        "docker.swarm.node.name": "worker-1",
-        "docker.swarm.service.name": "web",
+        "resource.docker.swarm.node.name": "worker-1",
+        "resource.docker.swarm.service.name": "web",
       }),
       row(95, {
         "resource.container.name": "web.1.abc",
         "resource.container.image.name": "nginx:1.27",
-        "docker.swarm.node.name": "worker-1",
-        "docker.swarm.service.name": "web",
+        "resource.docker.swarm.node.name": "worker-1",
+        "resource.docker.swarm.service.name": "web",
       }),
       row(20, {
         "resource.container.name": "api.2.def",
         "resource.container.image.name": "api:3",
       }),
-      // The bare key is NOT the identity; this row is anonymous.
-      row(5, { "container.name": "legacy.1.xyz" }),
+      // The bare keys are NOT the identity; this row is anonymous.
+      row(5, {
+        "container.name": "legacy.1.xyz",
+        "docker.swarm.node.name": "worker-9",
+        "docker.swarm.service.name": "legacy",
+      }),
     ];
 
     const step: MonitorStep = new MonitorStep();

@@ -1107,6 +1107,9 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       [AiResourceType.CephCluster]: "Ceph clusters",
       [AiResourceType.DatabaseServer]: "database servers",
       [AiResourceType.Host]: "Hosts",
+      [AiResourceType.AwsAccount]: "AWS accounts",
+      [AiResourceType.AzureSubscription]: "Azure subscriptions",
+      [AiResourceType.GoogleCloudProject]: "Google Cloud projects",
     };
 
     for (const type of ALL_AI_RESOURCE_TYPES) {

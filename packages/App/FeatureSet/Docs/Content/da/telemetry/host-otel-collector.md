@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Hver konfiguration følger samme form: receivers til det, der skal læses, proce
 `hostmetrics` virker på alle operativsystemer. Den læser CPU, hukommelse, diske, filsystemer, netværk, belastning, paging og processer fra kernen, hvert `collection_interval`. Metrikkerne `*.utilization` og `system.cpu.logical.count` er som standard slået fra i receiveren, og værtens grafer og Host-advarselsskabelonerne læser dem, så hold dem aktiveret, som konfigurationerne ovenfor gør. Scraperen `process` forsyner siden **Processer**; den er også den største kilde til serier (se [Send mindre](#reducering-af-den-indsamlede-datamængde)).
 
 På Linux læser collectoren `/proc` og `/sys`. En collector i en container skal montere værtens og sætte `HOST_PROC` og `HOST_SYS` (se [I en Docker-container](#i-en-docker-container)); en native installation behøver intet.
+
+Konfigurationerne ovenfor udelader de filsystemer fra scraperen `filesystem`, der er fulde med vilje eller ikke rummer data (`exclude_fs_types`): snap-pakker (`squashfs`) og andre skrivebeskyttede images, cd'er og dvd'er, macOS' `/dev` (`devfs`) og automounterens maps (`autofs`). De fulde viser 100 % brugt, så længe de er monteret, så skabelonen High Filesystem Usage ville udløses på dem og aldrig komme sig: behold udeladelsen i en konfiguration, du selv skriver. Et skrivebeskyttet image med et almindeligt filsystem, såsom en monteret `.dmg`, viser også fuldt; udelad dets monteringspunkt med `exclude_mount_points`.
 
 ### Fillogs
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true

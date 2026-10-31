@@ -2,23 +2,25 @@ receivers:
   docker_stats:
     endpoint: unix:///run/podman/podman.sock
     # Docker Engine API version the receiver speaks, from DOCKER_API_VERSION.
+    # Empty by default (the image's ENV and docker-compose.yml), and empty
+    # means NEGOTIATE.
     #
     # Verified against otel/opentelemetry-collector-contrib:0.161.0:
+    #   * empty makes the receiver let the Docker SDK negotiate (one HEAD
+    #     /_ping, then the daemon's own maximum, down to API 1.40), which
+    #     works against any daemon this agent supports: Docker Engine 20.10
+    #     (API 1.41) to the newest;
     #   * a daemon rejects a client NEWER than its maximum ("client version 1.44
     #     is too new"), and a rejected receiver fails to start, which takes the
-    #     whole collector down with it -- so a host on an older Engine has to be
-    #     able to lower this without replacing the config;
-    #   * the receiver's own default is 1.44 (1.25 is its accepted MINIMUM, not
-    #     its default);
-    #   * leaving this empty is safe, not broken: the receiver then asks the
-    #     Docker SDK to auto-negotiate (one HEAD /_ping, then the daemon's own
-    #     maximum), which works against any daemon. Operators who do not want to
-    #     look their maximum up can set DOCKER_API_VERSION= (empty) instead.
+    #     whole collector down with it -- which is what the image's old pinned
+    #     1.44 did on Engine 20.10 to 24, so a version is pinned only when
+    #     DOCKER_API_VERSION names one;
+    #   * the receiver's own default, with the field left out, is 1.44 (1.25
+    #     is its accepted MINIMUM, not its default) -- which is why the field
+    #     is here, and empty, rather than left out.
     #
-    # Deliberately a plain ${env:...} and not ${env:...:-1.44}: confmap applies a
-    # ":-" default only when the variable is UNSET, so it would not catch the
-    # empty string Compose injects for an absent .env entry -- and the unset case
-    # already degrades to auto-negotiation, which is the safer of the two.
+    # A plain ${env:...}: an unset variable expands to empty too, which is
+    # the same negotiation.
     # Podman exposes a Docker-API compatible socket, so the docker_stats
     # receiver works unchanged against it (there is no podman_stats
     # receiver in otel-contrib).
@@ -223,31 +225,6 @@ receivers:
         id: remove-severity-attr
         field: attributes.severity_text
 
-  # Inventory snapshots produced by inventory-snapshot.sh. Each line
-  # in the file is a JSON envelope:
-  #   {"oneuptime.podman.kind":"Container","data":{...}}
-  # The json_parser promotes both fields to attributes, then we move
-  # `data` into the body and surface the kind on a dedicated log
-  # record attribute the OneUptime backend reads.
-  filelog/inventory:
-    include:
-      - /var/log/oneuptime-podman-inventory.log
-    start_at: beginning
-    include_file_path: false
-    include_file_name: false
-    # The poller atomically rewrites the file on each interval, so we
-    # need to re-read from the top each time it changes.
-    poll_interval: 30s
-    operators:
-      - type: json_parser
-        id: parser-inventory
-      - type: move
-        from: attributes.data
-        to: body
-      - type: move
-        from: 'attributes["oneuptime.podman.kind"]'
-        to: 'attributes["oneuptime.podman.kind"]'
-
 processors:
   # Container CPU as OneUptime shows it: the CPU the container used over each
   # collection interval, as a percent of ONE core -- 100% is one core busy for
@@ -363,11 +340,4 @@ service:
       receivers: [filelog]
       processors:
         [memory_limiter, filter/drop_self_logs, resourcedetection, resource, batch]
-      exporters: [otlphttp]
-    # Inventory snapshots travel on a separate logs pipeline so the
-    # drop-self-logs filter (which is body-match against runtime
-    # noise) cannot accidentally swallow them.
-    logs/inventory:
-      receivers: [filelog/inventory]
-      processors: [memory_limiter, resourcedetection, resource, batch]
       exporters: [otlphttp]

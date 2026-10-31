@@ -85,6 +85,8 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "Ceph",
   "Cloud",
   "Dashboards",
+  // Data Types, Checks, Residency Rules and Scanning.
+  "DataSecurity",
   "Database",
   "Docker",
   "DockerSwarm",

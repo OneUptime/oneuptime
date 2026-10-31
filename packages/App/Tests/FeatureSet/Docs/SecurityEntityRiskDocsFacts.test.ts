@@ -43,9 +43,17 @@ import { buildEntityRiskSignal } from "Common/Server/Utils/SecurityEvent/EntityR
 import {
   SecurityRiskFinding,
   importedAlertRiskEntities,
+  riskFindingsForDataSecurityIssues,
   riskFindingsForIndicatorMatches,
   riskFindingsForRuleMatches,
 } from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import {
+  DATA_SECURITY_CRITICALITY_BY_SENSITIVITY,
+  getWantedCriticalityEntries,
+} from "Common/Server/Utils/DataSecurity/DataSecurityCriticalitySync";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
+import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
+import SecuritySeverity from "Common/Types/SecuritySeverity";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -302,14 +310,15 @@ describe("Entity Risk docs", () => {
       PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
     ]);
     expect(page).toContain(
-      `Open ${bold("Products → Security Events → Entity Risk")}: every user, host and IP address with risk now, the riskiest first`,
+      `Open ${bold("Products → Security Events → Entity Risk")}: every user, host, IP address and data store with risk now, the riskiest first`,
     );
 
-    // The users, hosts and addresses: the only kinds that carry risk.
+    // The users, hosts, addresses and data stores: the only kinds that carry risk.
     expect(RISK_ENTITY_TYPES).toEqual([
       SecurityEntityType.User,
       SecurityEntityType.Host,
       SecurityEntityType.IpAddress,
+      SecurityEntityType.DataStore,
     ]);
 
     // Click View on a row, or the risk beside an entity on a case's Entities.
@@ -489,8 +498,31 @@ describe("Entity Risk docs", () => {
       }),
     ).toEqual(["IP Address: 203.0.113.7"]);
 
+    // A Data Security issue: the store it was found on.
+    expect(
+      entitiesOf(
+        riskFindingsForDataSecurityIssues({
+          projectId: PROJECT_ID,
+          issues: [
+            {
+              checkId: "public-read-sensitive",
+              title: "Anyone can read it, and it holds card numbers",
+              severity: SecuritySeverity.Critical,
+              dataStoreKey: "cloud:aws:AWS S3 Bucket:arn:aws:s3:::cards",
+              seenAt: NOW,
+            },
+          ],
+        }),
+      ),
+    ).toEqual([
+      "Data Store: data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::cards",
+    ]);
+
     expect(page).toContain(
-      "A detection rule's points go to the value it groups by. A threat intelligence match adds to the IP address the indicator names. A connected product's alert adds to the user and the host it names, or else to its IP address.",
+      "A detection rule's points go to the value it groups by. A threat intelligence match adds to the IP address the indicator names. A connected product's alert adds to the user and the host it names, or else to its IP address. A Data Security issue adds to the data store it was found on.",
+    );
+    expect(page).toContain(
+      "A detection rule, a threat intelligence feed, a connected product's rule or a Data Security check counts once in",
     );
   });
 
@@ -566,7 +598,11 @@ describe("Entity Risk docs", () => {
       SecurityDetectionSource.DetectionRule,
       SecurityDetectionSource.ThreatIntel,
       SecurityDetectionSource.ConnectedProduct,
+      SecurityDetectionSource.DataSecurity,
     ]);
+    expect(page).toContain(
+      "Entity risk adds up what your detection rules, threat intelligence, connected products and Data Security find about each user, host, IP address and data store",
+    );
     expect(
       flat(
         source("Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator.ts"),
@@ -988,7 +1024,7 @@ describe("Entity Risk docs", () => {
       }),
     ).toBeUndefined();
     expect(page).toContain(
-      `${bold("Type")} narrows it to users, hosts or IP addresses; empty matches any of them.`,
+      `${bold("Type")} narrows it to users, hosts, IP addresses or data stores; empty matches any of them.`,
     );
 
     // A value written out over a pattern, a longer pattern over a shorter one.
@@ -1030,6 +1066,47 @@ describe("Entity Risk docs", () => {
     );
     expect(page).toContain(
       "A change reaches every entity's score within minutes.",
+    );
+  });
+
+  it("says Data Security lists the stores it finds sensitive itself, and leaves an entry once someone changes it", () => {
+    expect(DATA_SECURITY_CRITICALITY_BY_SENSITIVITY).toEqual({
+      [DataSensitivity.Restricted]: SecurityEntityCriticality.Extreme,
+      [DataSensitivity.Confidential]: SecurityEntityCriticality.High,
+    });
+
+    const store: (key: string, sensitivity: DataSensitivity) => DataStore = (
+      key: string,
+      sensitivity: DataSensitivity,
+    ): DataStore => {
+      const model: DataStore = new DataStore();
+      model.storeKey = key;
+      model.sensitivity = sensitivity;
+      return model;
+    };
+
+    // The Internal and Public ones are not listed.
+    expect(
+      Array.from(
+        getWantedCriticalityEntries([
+          store("manual:wiki", DataSensitivity.Internal),
+          store("manual:site", DataSensitivity.Public),
+          store("manual:cards", DataSensitivity.Restricted),
+        ]).values(),
+      ).map((entry: { value: string }): string => {
+        return entry.value;
+      }),
+    ).toEqual(["data-store:manual:cards"]);
+
+    // Through the list's own service, and never over a person's entry.
+    const sync: string = flat(
+      source("Common/Server/Utils/DataSecurity/DataSecurityCriticalitySync.ts"),
+    );
+
+    expect(sync).toContain("await SecurityEntityCriticalityService.create({");
+    expect(sync).toContain("if (readDataSecurityCriticalityEntry(entry)) {");
+    expect(page).toContain(
+      "Data Security lists the data stores it finds sensitive itself, Confidential ones at High and Restricted ones at Extreme; change one and it is yours, and Data Security leaves it alone.",
     );
   });
 

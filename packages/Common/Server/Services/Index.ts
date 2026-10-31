@@ -401,6 +401,22 @@ import SecurityCaseStatusService from "./SecurityCaseStatusService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import DataStoreService from "./DataStoreService";
+import DataStoreFindingService from "./DataStoreFindingService";
+import DataStoreAccessService from "./DataStoreAccessService";
+import DataStoreFeedService from "./DataStoreFeedService";
+import DataStoreOwnerUserService from "./DataStoreOwnerUserService";
+import DataStoreOwnerTeamService from "./DataStoreOwnerTeamService";
+import DataStoreOwnerRuleService from "./DataStoreOwnerRuleService";
+import DataStoreLabelRuleService from "./DataStoreLabelRuleService";
+import DataSecurityFlowService from "./DataSecurityFlowService";
+import DataSecurityIssueService from "./DataSecurityIssueService";
+import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
+import DataSecurityScanService from "./DataSecurityScanService";
+import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeService";
+import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
+import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
+import DataSecuritySettingService from "./DataSecuritySettingService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -505,6 +521,7 @@ import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
+import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -920,6 +937,24 @@ const services: Array<BaseService> = [
   SecurityDetectionService,
   SecurityPlaybookService,
   SecurityPlaybookRunService,
+
+  // Data Security (DSPM)
+  DataStoreService,
+  DataStoreFindingService,
+  DataStoreAccessService,
+  DataStoreFeedService,
+  DataStoreOwnerUserService,
+  DataStoreOwnerTeamService,
+  DataStoreOwnerRuleService,
+  DataStoreLabelRuleService,
+  DataSecurityFlowService,
+  DataSecurityIssueService,
+  DataSecurityIssueFeedService,
+  DataSecurityScanService,
+  DataSecurityCustomDataTypeService,
+  DataSecurityCheckSettingService,
+  DataSecurityResidencyRuleService,
+  DataSecuritySettingService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
@@ -1015,6 +1050,7 @@ const services: Array<BaseService> = [
    * none of these families has an existing entry to sit next to.
    */
   CloudAccountService,
+  CloudAccountFeedService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,

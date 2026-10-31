@@ -224,6 +224,74 @@ describe("AiRemediationCommandPlanUtil.parse — ResourceCommand steps", () => {
   });
 });
 
+describe("a cloud change's managedAsCode", () => {
+  function cloudStep(overrides: JSONObject = {}): JSONObject {
+    return resourceStep({
+      runnerNameSnapshot: "Cloud AI agent",
+      resourceType: AiResourceType.AwsAccount,
+      resourceNameSnapshot: "prod",
+      command:
+        "cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4",
+      rollbackCommand: undefined,
+      ...overrides,
+    });
+  }
+
+  test("is kept, trimmed, and survives a toJSON round trip", () => {
+    const plan: AiRemediationCommandPlan | null =
+      AiRemediationCommandPlanUtil.parse({
+        commands: [
+          cloudStep({ managedAsCode: '  CloudFormation stack "web"  ' }),
+        ],
+      });
+
+    expect(plan?.commands[0]?.managedAsCode).toBe('CloudFormation stack "web"');
+    expect(
+      AiRemediationCommandPlanUtil.parse(
+        AiRemediationCommandPlanUtil.toJSON(plan!),
+      ),
+    ).toEqual(plan);
+  });
+
+  test("is capped at 256 characters", () => {
+    expect(
+      parseOne(cloudStep({ managedAsCode: "x".repeat(400) }))?.managedAsCode,
+    ).toHaveLength(256);
+  });
+
+  test.each([[""], ["   "], [42], [null], [{ owner: "Terraform" }]])(
+    "%p is no code at all, and the step still parses",
+    (value: unknown) => {
+      const command: AiRemediationCommand | null = parseOne(
+        cloudStep({ managedAsCode: value as JSONObject[string] }),
+      );
+
+      expect(command).not.toBeNull();
+      expect(command).not.toHaveProperty("managedAsCode");
+    },
+  );
+
+  test("on a step of another kind it is ignored", () => {
+    const plan: AiRemediationCommandPlan | null =
+      AiRemediationCommandPlanUtil.parse({
+        commands: [
+          {
+            sequence: 1,
+            stepType: RunbookStepType.Kubectl,
+            runnerId: AGENT_ID,
+            kubernetesClusterId: RESOURCE_ID,
+            kubectlTier: KubectlCommandTier.SafeWrite,
+            managedAsCode: "Terraform",
+            command: "kubectl rollout restart deployment/web -n web",
+            policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+          },
+        ],
+      });
+
+    expect(plan?.commands[0]).not.toHaveProperty("managedAsCode");
+  });
+});
+
 describe("plans stored before ResourceCommand parse exactly as before", () => {
   /*
    * The shape of every key parse produces for an old step — no resource

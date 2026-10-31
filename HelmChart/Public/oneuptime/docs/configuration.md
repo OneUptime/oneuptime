@@ -602,16 +602,22 @@ for the full picture.
 ## Update check
 
 Once a day the worker asks GitHub which OneUptime version is the latest
-release, so admins are shown an "update available" notice in the dashboard. No
-usage data is sent — GitHub sees your public IP and a `User-Agent` naming
-OneUptime and the version you run. An installation with no route to
+release, and which security advisories OneUptime published. Master admins are
+shown an "Update available" pill in the footer when a newer release is out, and
+a red "Security update" pill and a notice on the Admin Dashboard when a
+published advisory affects the version you run; master admins and the Admin
+Notification Email are emailed once about each such advisory. Nothing about
+your installation is sent, not even the version you run — GitHub sees your
+public IP and a `User-Agent` naming OneUptime. An installation with no route to
 `api.github.com` does not need to change anything: the request fails, is
-logged, and nothing is shown.
+logged at debug level, the last answer is kept, and nothing new is shown. See
+[Update and Security Checks](https://oneuptime.com/docs/self-hosted/update-checks).
 
-| Parameter              | Description                                                                                                            | Default |
-|------------------------|------------------------------------------------------------------------------------------------------------------------|---------|
-| `updateCheck.disabled` | Set to `true` to make no outbound call at all.                                                                          | `false` |
-| `updateCheck.url`      | Point the check at an internal mirror. Must answer with GitHub's release shape (`tag_name`, `html_url`, `published_at`). | `""` (GitHub) |
+| Parameter                           | Description                                                                                                                                                                                  | Default |
+|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `updateCheck.disabled`              | Set to `true` to make no outbound call at all.                                                                                                                                                | `false` |
+| `updateCheck.url`                   | Point the release check at an internal mirror. Must answer with GitHub's release shape (`tag_name`, `html_url`, `published_at`).                                                             | `""` (GitHub) |
+| `updateCheck.securityAdvisoriesUrl` | Point the security advisory check at an internal mirror. Must answer with GitHub's repository security advisory shape (`ghsa_id`, `summary`, `severity`, `html_url`, `published_at`, `vulnerabilities`). | `""` (GitHub) |
 
 ## Daily check-in
 

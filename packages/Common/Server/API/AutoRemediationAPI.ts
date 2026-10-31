@@ -22,7 +22,19 @@ import {
   REMOVED_SSH_COMMAND_NEXT_STEP,
   isRemovedSshCommand,
 } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
-import { DEFAULT_VERIFICATION_WINDOW_MINUTES } from "../Services/AutoRemediationRuleEngineService";
+import AutoRemediationRuleEngineService, {
+  DEFAULT_VERIFICATION_WINDOW_MINUTES,
+} from "../Services/AutoRemediationRuleEngineService";
+import AlertService from "../Services/AlertService";
+import IncidentService from "../Services/IncidentService";
+import Alert from "../../Models/DatabaseModels/Alert";
+import Incident from "../../Models/DatabaseModels/Incident";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../Types/JSON";
+import {
+  getRemediationTryAgainRefusal,
+  RemediationTryAgainResult,
+} from "../../Types/AutoRemediation/RemediationTryAgain";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import {
   KubernetesAiAccessGap,
@@ -80,6 +92,10 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import ExternalMcpServer from "../../Models/DatabaseModels/ExternalMcpServer";
 import ExternalMcpServerService from "../Services/ExternalMcpServerService";
 import McpRemediationRunner from "../Utils/AI/Remediation/McpRemediationRunner";
+import CloudChangeDryRun, {
+  CloudDryRunStart,
+  getCloudChangesToDryRun,
+} from "../Utils/AutoRemediation/CloudChangeDryRun";
 import {
   ExternalMcpToolCall,
   ExternalMcpToolCallPlan,
@@ -1409,6 +1425,102 @@ router.post(
   },
 );
 
+/*
+ * Dry run again: dry-run the cloud changes of a fix that waits for approval
+ * (CloudChangeDryRun), as OneUptime did when the fix was proposed. The
+ * answers land on the plan's steps, which the Remediation card polls.
+ *
+ * Asked by someone who could approve the fix: the dry run is a job sent to
+ * the account's Cloud AI agent, so the same bar as approving holds -
+ * executing runbooks, and an edit of every resource the plan changes. It
+ * changes nothing, and runs in the background (a change's dry run waits
+ * for its agent), so the route answers as soon as each change is marked
+ * as being checked: what it started, or 400 with why it would not.
+ */
+router.post(
+  "/auto-remediation/dry-run",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const suggestionId: ObjectID = await findAccessibleSuggestion(req, props);
+
+      const suggestion: AutoRemediationSuggestion =
+        await loadSuggestionAsRoot(suggestionId);
+
+      if (
+        suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
+        suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+      ) {
+        throw new BadDataException(
+          "Only a fix that waits for approval can be checked with a dry run.",
+        );
+      }
+
+      if (!suggestion.projectId) {
+        throw new BadDataException("This suggestion has no project.");
+      }
+
+      assertCanExecuteRunbooks(props, suggestion.projectId);
+
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+      if (getCloudChangesToDryRun(plan).length === 0) {
+        throw new BadDataException(
+          "This fix changes no cloud account, so there is nothing to dry-run.",
+        );
+      }
+
+      await assertApproverMayChangeResources({
+        plan: plan!,
+        props,
+        projectId: suggestion.projectId,
+      });
+
+      /*
+       * Answered once each change is marked as being checked, so the
+       * card's read right after shows the dry run on its way and polls
+       * until the answers land on the plan's steps, in the background.
+       * Busy: another dry run of it already marked them.
+       */
+      const start: CloudDryRunStart = await CloudChangeDryRun.startDryRun({
+        suggestionId,
+      });
+
+      if (start.kind === "not-awaiting-approval") {
+        throw new BadDataException(
+          "This fix no longer waits for approval, so there is nothing to dry-run.",
+        );
+      }
+
+      if (start.kind === "nothing-to-check") {
+        throw new BadDataException(
+          "This fix changes no cloud account, so there is nothing to dry-run.",
+        );
+      }
+
+      Response.sendJsonObjectResponse(req, res, {
+        suggestionId: suggestionId.toString(),
+        started: start.kind === "started",
+        changes:
+          start.kind === "started"
+            ? start.changes
+            : getCloudChangesToDryRun(plan).length,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
 router.post(
   "/auto-remediation/dismiss",
   UserMiddleware.getUserMiddleware,
@@ -1523,6 +1635,153 @@ router.post(
         suggestionId: suggestion.id!.toString(),
         status: AutoRemediationSuggestionStatus.Dismissed,
       });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * The incident or alert a Try again names (body: incidentId OR alertId),
+ * checked as the person asking, inside the tenant they asked in: they may
+ * read it, and change it - Try again may start a fix on it, as a link of
+ * what it is about may (#5293). "Not found" and "not yours" read alike, so
+ * the route never says whether an id exists in another project.
+ */
+export async function findTryAgainSubject(data: {
+  body: JSONObject;
+  tenantId: ObjectID;
+  viewerProps: DatabaseCommonInteractionProps;
+}): Promise<{ incidentId?: ObjectID; alertId?: ObjectID }> {
+  const readId: (key: string) => ObjectID | undefined = (
+    key: string,
+  ): ObjectID | undefined => {
+    const value: unknown = data.body[key];
+
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+
+    if (typeof value !== "string" || !ObjectID.isValidUUID(value.trim())) {
+      throw new BadDataException(`${key} must be a valid ID.`);
+    }
+
+    return new ObjectID(value.trim());
+  };
+
+  const incidentId: ObjectID | undefined = readId("incidentId");
+  const alertId: ObjectID | undefined = readId("alertId");
+
+  if (Boolean(incidentId) === Boolean(alertId)) {
+    throw new BadDataException("Send exactly one of incidentId and alertId.");
+  }
+
+  const kind: "incident" | "alert" = incidentId ? "incident" : "alert";
+  const noun: string = incidentId ? "Incident" : "Alert";
+
+  const readable: Incident | Alert | null = incidentId
+    ? await IncidentService.findOneById({
+        id: incidentId,
+        select: { _id: true, projectId: true },
+        props: data.viewerProps,
+      })
+    : await AlertService.findOneById({
+        id: alertId!,
+        select: { _id: true, projectId: true },
+        props: data.viewerProps,
+      });
+
+  if (
+    !readable ||
+    !readable.projectId ||
+    readable.projectId.toString() !== data.tenantId.toString()
+  ) {
+    throw new BadDataException(
+      `${noun} not found (or you do not have access to it).`,
+    );
+  }
+
+  let changeable: Incident | Alert | null = null;
+
+  try {
+    changeable = incidentId
+      ? await IncidentService.findOneUpdatableById({
+          id: incidentId,
+          select: { _id: true },
+          props: data.viewerProps,
+        })
+      : await AlertService.findOneUpdatableById({
+          id: alertId!,
+          select: { _id: true },
+          props: data.viewerProps,
+        });
+  } catch {
+    changeable = null;
+  }
+
+  if (!changeable) {
+    throw new NotAuthorizedException(
+      `You do not have permission to change this ${kind}, so you cannot ask OneUptime AI to try fixing it again.`,
+    );
+  }
+
+  return incidentId ? { incidentId } : { alertId: alertId! };
+}
+
+/*
+ * Try again on the Remediation step of an incident's or alert's AI card
+ * (Types/AutoRemediation/RemediationTryAgain): OneUptime AI decides again,
+ * now, how to fix it - with the project's settings of now, as for a new
+ * incident (AutoRemediationRuleEngineService.tryAgain). For whoever may
+ * change the record. Body: { incidentId } or { alertId }. Response:
+ * { result: "Evaluated" }; the step then reads the new decision. Refused
+ * with what stops it: the record is resolved, its remediation still waits
+ * for its investigation, a fix is on its way, it was decided moments ago,
+ * or it is being decided right now.
+ */
+router.post(
+  "/auto-remediation/try-again",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      // Pinned to the tenant: the multi-tenant header never widens the read.
+      const viewerProps: DatabaseCommonInteractionProps = {
+        ...props,
+        isMultiTenantRequest: false,
+      };
+
+      const subject: { incidentId?: ObjectID; alertId?: ObjectID } =
+        await findTryAgainSubject({
+          body: (req.body || {}) as JSONObject,
+          tenantId,
+          viewerProps,
+        });
+
+      const result: RemediationTryAgainResult =
+        await AutoRemediationRuleEngineService.tryAgain({
+          projectId: tenantId,
+          ...subject,
+        });
+
+      if (result !== RemediationTryAgainResult.Evaluated) {
+        throw new BadDataException(
+          getRemediationTryAgainRefusal({
+            result,
+            signal: subject.incidentId ? "incident" : "alert",
+          }),
+        );
+      }
+
+      Response.sendJsonObjectResponse(req, res, { result });
       return;
     } catch (err) {
       next(err);

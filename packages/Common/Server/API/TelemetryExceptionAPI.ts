@@ -33,6 +33,12 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import { JSONArray, JSONObject } from "../../Types/JSON";
+import ExceptionExplainer, {
+  ExceptionExplanationResult,
+} from "../Utils/AI/TelemetryAi/ExceptionExplanation";
+import ExceptionDigester, {
+  ExceptionDigestResult,
+} from "../Utils/AI/TelemetryAi/ExceptionDigest";
 
 /*
  * User-facing wording for a code-fix run's status on the exception page —
@@ -136,6 +142,45 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     );
 
     /*
+     * OneUptime AI's explanation of the exception: what happened, the likely
+     * root cause and a suggested fix (ExceptionExplainer), kept on the
+     * exception and returned. Anyone who may read the exception may ask for
+     * one; the project's Enable AI switch, credits and limits apply.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/ai-explanation/:telemetryExceptionId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.explainWithAI(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * OneUptime AI's summary of the project's exceptions that are new, or
+     * came back after they were resolved, in the last day
+     * (ExceptionDigester): read as the caller, not kept. The project's
+     * Enable AI switch, credits and limits apply; with nothing new, no
+     * model is asked.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/ai-digest`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.digestWithAI(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Aggregated dashboard summary for the Exceptions overview page.
      * Returns counts, top/recent exceptions, and per-service summaries
      * in a single round-trip with one SQL GROUP BY for service aggregation.
@@ -151,6 +196,60 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  private async explainWithAI(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const idParam: string | undefined = req.params["telemetryExceptionId"];
+
+    if (!idParam) {
+      throw new BadDataException("Telemetry Exception ID is required");
+    }
+
+    // ObjectID takes any string: a malformed one is refused here.
+    if (!ObjectID.isValidUUID(idParam)) {
+      throw new BadDataException("Invalid Telemetry Exception ID");
+    }
+
+    const telemetryExceptionId: ObjectID = new ObjectID(idParam);
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const result: ExceptionExplanationResult = await ExceptionExplainer.explain(
+      { telemetryExceptionId, props },
+    );
+
+    return Response.sendJsonObjectResponse(req, res, {
+      explanation: result.explanation as unknown as JSONObject,
+      generatedAt: result.generatedAt.toISOString(),
+    });
+  }
+
+  private async digestWithAI(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!props.tenantId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    const result: ExceptionDigestResult = await ExceptionDigester.digest({
+      projectId: props.tenantId,
+      props,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      digest: result.digest as unknown as JSONObject,
+      exceptionCount: result.exceptionCount,
+      generatedAt: result.generatedAt.toISOString(),
+      windowHours: result.windowHours,
+    });
   }
 
   private async createAIAgentTask(

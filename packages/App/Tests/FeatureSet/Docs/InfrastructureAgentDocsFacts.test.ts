@@ -34,6 +34,7 @@ import {
   getKubernetesSetupGuide,
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import {
   MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_ACTIVE_STATES,
@@ -66,6 +67,7 @@ import {
   DOCKER_SWARM_DEFAULT_API_VERSION,
   DOCKER_SWARM_DEFAULT_CLUSTER_NAME,
   DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS,
+  DOCKER_SWARM_NODE_NAME_COMMAND,
   getDockerSwarmAgentDownloadCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { STORAGE_ARRAY_AGENT_INSTALL_DIR } from "../../../FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
@@ -77,11 +79,19 @@ import {
 } from "Common/Types/Monitor/CephMetricCatalog";
 import { CEPH_SNAPSHOT_METRIC_NAMES } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import { DEFAULT_MESSAGE_QUEUE_MIN_SPANS } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
-import { FAAS_CLOUD_PLATFORM_VALUES } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudProvider,
+  FAAS_CLOUD_PLATFORM_VALUES,
+} from "Common/Types/Cloud/CloudPlatform";
 import {
   AGENT_AI_FIXES_SETTING_VALUES,
   AI_FIXES_ENV,
 } from "Common/Types/AI/AgentAiSettings";
+import {
+  CLOUD_AI_AGENT_FIXES_MODES,
+  CloudAiAgentEnvironmentVariable,
+  getCloudAiAgentEnvironment,
+} from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -267,10 +277,14 @@ describe("the Docker agent page, against the setup guide and the agent", () => {
   });
 
   it("states the host name and API version defaults the image sets", () => {
-    const dockerfile: string = repoFile("agents/DockerAgent/Dockerfile.tpl");
+    const dockerfile: Array<string> = repoFile(
+      "agents/DockerAgent/Dockerfile.tpl",
+    ).split("\n");
     expect(dockerfile).toContain(
       `ENV DOCKER_HOST_NAME=${DOCKER_DEFAULT_HOST_NAME}`,
     );
+    // Empty: the agent negotiates the version with the daemon.
+    expect(DOCKER_DEFAULT_API_VERSION).toBe("");
     expect(dockerfile).toContain(
       `ENV DOCKER_API_VERSION=${DOCKER_DEFAULT_API_VERSION}`,
     );
@@ -278,21 +292,25 @@ describe("the Docker agent page, against the setup guide and the agent", () => {
       `Defaults to \`${DOCKER_DEFAULT_HOST_NAME}\``,
     );
     expect(rowOf(DOCKER_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
-      `Defaults to \`${DOCKER_DEFAULT_API_VERSION}\``,
+      "Empty by default: the agent negotiates it with the daemon",
     );
   });
 
-  it("reads stats every 30 seconds and lists the inventory every 5 minutes, as the agent does", () => {
+  /*
+   * The image is the upstream collector with the config copied in, and has
+   * no shell: the inventory poller that sat beside the config never ran, so
+   * the page promised an inventory every 5 minutes that never arrived.
+   */
+  it("reads stats every 30 seconds, and promises no inventory the agent never sends", () => {
     const config: YamlNode = yamlOf(
       repoFile("agents/DockerAgent/otel-collector-config.yaml"),
     );
     expect(at(config, "receivers.docker_stats.collection_interval")).toBe(
       "30s",
     );
-    expect(repoFile("agents/DockerAgent/inventory-snapshot.sh")).toContain(
-      'INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"',
-    );
-    lineWith(DOCKER_PAGE, "stats every 30 seconds", "every 5 minutes");
+    expect(at(config, "receivers.filelog/inventory")).toBeUndefined();
+    lineWith(DOCKER_PAGE, "stats every 30 seconds");
+    expect(english(DOCKER_PAGE)).not.toMatch(/inventory|every 5 minutes/i);
   });
 
   it("tails the files the json-file driver writes, and only those", () => {
@@ -325,10 +343,14 @@ describe("the Podman agent page, against the setup guide and the agent", () => {
   });
 
   it("states the host name and API version defaults the image sets", () => {
-    const dockerfile: string = repoFile("agents/PodmanAgent/Dockerfile.tpl");
+    const dockerfile: Array<string> = repoFile(
+      "agents/PodmanAgent/Dockerfile.tpl",
+    ).split("\n");
     expect(dockerfile).toContain(
       `ENV PODMAN_HOST_NAME=${PODMAN_DEFAULT_HOST_NAME}`,
     );
+    // Empty: the agent negotiates the version with the socket.
+    expect(PODMAN_DEFAULT_API_VERSION).toBe("");
     expect(dockerfile).toContain(
       `ENV DOCKER_API_VERSION=${PODMAN_DEFAULT_API_VERSION}`,
     );
@@ -336,11 +358,11 @@ describe("the Podman agent page, against the setup guide and the agent", () => {
       `Defaults to \`${PODMAN_DEFAULT_HOST_NAME}\``,
     );
     expect(rowOf(PODMAN_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
-      `Defaults to \`${PODMAN_DEFAULT_API_VERSION}\``,
+      "Empty by default: the agent negotiates it with the socket",
     );
   });
 
-  it("reads the socket the page names, every 30 seconds, and the inventory every 5 minutes", () => {
+  it("reads the socket the page names, every 30 seconds, and promises no inventory the agent never sends", () => {
     const config: YamlNode = yamlOf(
       repoFile("agents/PodmanAgent/otel-collector-config.yaml"),
     );
@@ -350,11 +372,28 @@ describe("the Podman agent page, against the setup guide and the agent", () => {
     expect(at(config, "receivers.docker_stats.collection_interval")).toBe(
       "30s",
     );
-    expect(repoFile("agents/PodmanAgent/inventory-snapshot.sh")).toContain(
-      'INTERVAL="${PODMAN_INVENTORY_INTERVAL_SECONDS:-300}"',
-    );
-    lineWith(PODMAN_PAGE, "stats every 30 seconds", "every 5 minutes");
+    expect(at(config, "receivers.filelog/inventory")).toBeUndefined();
+    lineWith(PODMAN_PAGE, "stats every 30 seconds");
     lineWith(PODMAN_PAGE, `Podman's API socket at \`${PODMAN_SOCKET_PATH}\``);
+    expect(english(PODMAN_PAGE)).not.toMatch(/inventory|every 5 minutes/i);
+  });
+
+  /*
+   * Rootless Podman keeps its socket and storage under the user: the page
+   * says where, and that install.sh mounts them (ContainerAgentInstallers in
+   * Tests/Ops runs it rootless).
+   */
+  it("tells a rootless reader where their socket and storage are, and that install.sh mounts them", () => {
+    const line: string = lineWith(
+      PODMAN_PAGE,
+      "`/run/user/<uid>/podman/podman.sock`",
+    );
+    expect(line).toContain("`~/.local/share/containers/storage`");
+    expect(line).toContain(`\`${PODMAN_SOCKET_PATH}\``);
+    expect(line).toContain("`install.sh`");
+    expect(repoFile("agents/PodmanAgent/install.sh")).toContain(
+      "systemctl --user enable --now podman.socket",
+    );
   });
 
   it("tails the ctr.log files the k8s-file driver writes, and only those", () => {
@@ -406,21 +445,61 @@ describe("the Proxmox agent page, against the agent", () => {
     );
   });
 
-  it("scrapes every 30 seconds with the cluster and node collectors on", () => {
-    const scrape: YamlNode = (
-      at(
-        yamlOf(config),
-        "receivers.prometheus.config.scrape_configs",
-      ) as Array<YamlNode>
-    )[0] as YamlNode;
-    expect(scrape["scrape_interval"]).toBe("30s");
-    expect(at(scrape, "params.cluster")).toEqual(["1"]);
-    expect(at(scrape, "params.node")).toEqual(["1"]);
+  /*
+   * pve-exporter's node collectors (start-on-boot, replication, the
+   * subscription) read only the node whose API answers the scrape. One
+   * scrape of PVE_HOST with cluster=1&node=1 left the guests and jobs of
+   * every other node out, so Guest Down and Replication Failing never saw
+   * them.
+   */
+  it("scrapes the cluster collectors once, and the node collectors once per node, every 30 seconds", () => {
+    const jobs: Array<YamlNode> = at(
+      yamlOf(config),
+      "receivers.prometheus.config.scrape_configs",
+    ) as Array<YamlNode>;
+    expect(
+      jobs.map((job: YamlNode): unknown => {
+        return job["job_name"];
+      }),
+    ).toEqual(["oneuptime-proxmox", "oneuptime-proxmox-nodes"]);
+    for (const job of jobs) {
+      expect(job["scrape_interval"]).toBe("30s");
+    }
+    expect(at(jobs[0], "params")).toEqual({
+      target: ["${env:PVE_HOST}"],
+      cluster: ["1"],
+      node: ["0"],
+    });
+    expect(at(jobs[1], "params")).toEqual({ cluster: ["0"], node: ["1"] });
+    expect(jobs[1]!["static_configs"]).toEqual([
+      { targets: "${env:PVE_NODES}" },
+    ]);
+    expect(compose).toContain(
+      "- PVE_NODES=${PVE_NODES:-[${PVE_HOST:-localhost}]}",
+    );
+
     lineWith(
       PROXMOX_PAGE,
-      "scrapes the exporter every 30 seconds with both its cluster and node collectors on",
+      "scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`",
+    );
+    expect(rowOf(PROXMOX_PAGE, "`PVE_NODES`")[2]).toContain(
+      "comma-separated in square brackets, such as `[192.168.1.10,192.168.1.11,192.168.1.12]`",
+    );
+    expect(rowOf(PROXMOX_PAGE, "`PVE_NODES`")[2]).toContain(
+      "Defaults to `PVE_HOST` alone",
+    );
+    expect(english(PROXMOX_PAGE)).toContain(
+      "PVE_HOST=192.168.1.10\nPVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]\n",
     );
     lineWith(PROXMOX_PAGE, "`cluster=1`", '`cluster: ["1"]`');
+  });
+
+  it("says a virtual IP serves PVE_HOST, never PVE_NODES", () => {
+    lineWith(
+      PROXMOX_PAGE,
+      "point `PVE_HOST` at a virtual IP or round-robin DNS name",
+      "`PVE_NODES` is different: it lists every node at its own address, never a virtual IP",
+    );
   });
 
   it("names the eight journald units the shipped config's receiver reads", () => {
@@ -1204,6 +1283,58 @@ describe("the host collector page, against the setup guide", () => {
       }
     });
 
+    /*
+     * Snap packages, CD and ISO images and macOS's /dev read 100% used for
+     * as long as they are mounted, so a config that measures them keeps
+     * High Filesystem Usage firing on them for good.
+     */
+    it("leaves the file systems that are full by design out, as OneUptime's default does", () => {
+      for (const config of configs) {
+        expect(
+          at(
+            config,
+            "receivers.hostmetrics.scrapers.filesystem.exclude_fs_types",
+          ),
+        ).toEqual({
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        });
+      }
+      lineWith(
+        HOST_PAGE,
+        "The configs above leave out of the `filesystem` scraper the file systems that are full by design",
+        "`exclude_fs_types`",
+        "`exclude_mount_points`",
+      );
+    });
+
+    it("and so does every other hostmetrics receiver it hands out", () => {
+      const receivers: Array<YamlNode> = fencesOf(HOST_PAGE)
+        .filter((fence: DocsFence): boolean => {
+          return fence.lang === "yaml";
+        })
+        .map((fence: DocsFence): YamlNode => {
+          return yamlOf(fence.code);
+        })
+        .map((document: YamlNode): YamlNode => {
+          return at(document, "receivers.hostmetrics.scrapers") as YamlNode;
+        })
+        .filter((scrapers: YamlNode | undefined): boolean => {
+          return Boolean(scrapers) && "filesystem" in scrapers!;
+        });
+
+      // The four configs and the narrowed process scraper.
+      expect(receivers).toHaveLength(5);
+      for (const scrapers of receivers) {
+        expect(
+          (scrapers["filesystem"] as YamlNode)["exclude_fs_types"],
+        ).toEqual({
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        });
+      }
+    });
+
     it("stamps every attribute the inventory table says resourcedetection sets", () => {
       const fromDetection: Array<string> = english(HOST_PAGE)
         .split("\n")
@@ -1624,12 +1755,62 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
       `Defaults to \`${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}\``,
     );
 
-    // "${VAR-default}": an empty value stays empty and negotiates the version.
-    expect(compose).toContain(
-      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${DOCKER_SWARM_DEFAULT_API_VERSION}}`,
+    // Empty: the collector negotiates the version with the daemon.
+    expect(DOCKER_SWARM_DEFAULT_API_VERSION).toBe("");
+    expect(composeDefault(compose, "DOCKER_API_VERSION")).toBe(
+      DOCKER_SWARM_DEFAULT_API_VERSION,
     );
     expect(rowOf(DOCKER_SWARM_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
-      `Defaults to \`${DOCKER_SWARM_DEFAULT_API_VERSION}\`; empty negotiates it with the daemon`,
+      "Empty by default: they use the daemon's own",
+    );
+  });
+
+  /*
+   * Swarm labels a task with its node's ID only: the node's name comes from
+   * DOCKER_SWARM_NODE_NAME, which install.sh writes and a Docker Compose
+   * install adds with the setup guide's command.
+   */
+  it("says where the node's name comes from, as the installer, the compose file and the setup guide do", () => {
+    expect(composeDefault(compose, "DOCKER_SWARM_NODE_NAME")).toBe("");
+    expect(repoFile("agents/DockerSwarmAgent/install.sh")).toContain(
+      "DOCKER_SWARM_NODE_NAME=${DOCKER_SWARM_NODE_NAME}",
+    );
+    expect(codesOf(DOCKER_SWARM_PAGE)).toContain(
+      DOCKER_SWARM_NODE_NAME_COMMAND,
+    );
+    expect(rowOf(DOCKER_SWARM_PAGE, "`DOCKER_SWARM_NODE_NAME`")[2]).toContain(
+      "The install script sets it to the node's hostname",
+    );
+    lineWith(
+      DOCKER_SWARM_PAGE,
+      "writes a `.env` file only its owner can read, with the node's hostname as `DOCKER_SWARM_NODE_NAME`",
+    );
+  });
+
+  /*
+   * The receiver stamps container.runtime=docker on a Swarm task's metrics
+   * too: the page used to say the agent stamps only the cluster name.
+   */
+  it("says what each task's metrics carry, as the collector config sends it", () => {
+    const config: string = repoFile(
+      "agents/DockerSwarmAgent/otel-collector-config.yaml",
+    );
+    const line: string = lineWith(
+      DOCKER_SWARM_PAGE,
+      "Each task's metrics carry",
+    );
+    for (const [label, attribute] of [
+      ["com.docker.swarm.service.name", "docker.swarm.service.name"],
+      ["com.docker.swarm.node.id", "docker.swarm.node.id"],
+    ]) {
+      expect(config).toContain(`${label}: ${attribute}`);
+      expect(line).toContain(`\`${attribute}\``);
+    }
+    expect(config).toContain('set(attributes["docker.swarm.node.name"]');
+    expect(line).toContain("`docker.swarm.node.name`");
+    expect(line).toContain("`container.runtime=docker`");
+    expect(english(DOCKER_SWARM_PAGE)).not.toContain(
+      "stamps only `docker.swarm.cluster.name`",
     );
   });
 
@@ -2170,6 +2351,48 @@ describe("where the Ceph and VMware agents' fix mode is set", () => {
         });
       }
     }
+  });
+
+  /*
+   * A Cloud AI agent has no .env: its setup command writes the same
+   * variable, from the answer to "How far may AI go?", in one of the values
+   * the page's table names, with the write switch on.
+   */
+  it("has a Cloud AI agent's setup command write the same fix modes, as the Infrastructure AI Agents page says", () => {
+    const modes: Array<string> = Object.values(AGENT_AI_FIXES_SETTING_VALUES);
+    const written: Array<string> = CLOUD_AI_AGENT_FIXES_MODES.map(
+      (fixesMode: (typeof CLOUD_AI_AGENT_FIXES_MODES)[number]): string => {
+        const variable: CloudAiAgentEnvironmentVariable | undefined =
+          getCloudAiAgentEnvironment({
+            provider: CloudProvider.AWS,
+            oneuptimeUrl: "https://oneuptime.com",
+            ingestionKey: "ingestion-key",
+            cloudAccountId: "11111111-1111-1111-1111-111111111111",
+            accountId: "123456789012",
+            fixesMode,
+          }).find((candidate: CloudAiAgentEnvironmentVariable): boolean => {
+            return candidate.name === AI_FIXES_ENV;
+          });
+
+        return variable?.value || "";
+      },
+    );
+
+    expect(written).toEqual([
+      "ask-for-approval",
+      "automatic",
+      "bypass-approval",
+    ]);
+
+    for (const mode of written) {
+      expect(modes).toContain(mode);
+    }
+
+    lineWith(
+      "ai/infrastructure-ai-agents",
+      `\`${AI_FIXES_ENV}\` from your answer`,
+      "`ONEUPTIME_AI_ALLOW_WRITES=true`",
+    );
   });
 });
 

@@ -4,7 +4,7 @@ A Host monitor watches one machine — its CPU, memory, disks, load and processe
 
 :::cards
 - [Create the monitor](#create-a-host-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Five ready-made alerts for CPU, memory, disk, load and processes.
+- [Templates](#pre-built-alert-templates): Six ready-made alerts for a silent host, CPU, memory, disk, load and processes.
 - [Metrics](#collected-metrics): The host metrics you can alert on, and their units.
 - [Host or Server / VM?](#host-monitor-or-server-vm-monitor): Which of the two machine monitors to use.
 :::
@@ -95,12 +95,13 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+**Quick Setup** offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critical | `system.memory.usage`, Count, past 10 minutes | No data for the whole window | Data arrives again |
 | High CPU Utilization | Warning | `system.cpu.utilization` for the `user` and `system` states, added and shown as a percentage, past 5 minutes | Above 80% | At or below 72% |
 | High Memory Utilization | Warning | `system.memory.utilization` for the `used` state, as a percentage, past 5 minutes | Above 85% | At or below 76.5% |
 | High Filesystem Usage | Critical | `system.filesystem.utilization`, Max per `mountpoint` and `device`, as a percentage, past 5 minutes | Above 90% | At or below 81% |
@@ -109,9 +110,10 @@ A criteria fires only when the condition holds for every minute of its window, a
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
+- **Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the machine is down or unreachable, or its collector stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **CPU** is busy time (`user` plus `system`), the same figure the host's **Overview** charts. Iowait and steal are left out.
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
-- **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full; exclude them in the collector's `filesystem` scraper.
+- **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full: OneUptime's collector configs leave them out of the `filesystem` scraper with `exclude_fs_types`, and a config of your own needs the same.
 - **Load average** is a raw run-queue length, not divided by the number of cores: 4 is saturation on a 2-core host and routine on a 32-core one, so raise it on large hosts.
 - **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux only.
 
@@ -173,7 +175,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -189,11 +191,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a host that stops sending data leaves the monitor as it was. To be told when the host goes quiet, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Troubleshooting
 
@@ -210,7 +212,7 @@ The monitor scopes every query with `resource.host.name` equal to the host you p
 :::
 
 :::details High Filesystem Usage fires for a mount that is always full
-Read-only pseudo-filesystems, such as snap `squashfs` loop mounts under `/snap` or macOS `devfs`, are 100% full by design and never recover. Exclude them from the collector's `filesystem` scraper.
+Read-only pseudo-filesystems, such as snap `squashfs` loop mounts under `/snap` or macOS `devfs`, are 100% full by design and never recover. The configs OneUptime runs and hands out leave them out with `exclude_fs_types`; a config of your own, or a Collector Config made before they did, needs the same: copy it from [Host metrics](/docs/telemetry/host-otel-collector#host-metrics). Leave out another always-full mount, such as a mounted `.dmg`, with `exclude_mount_points`.
 :::
 
 ## Next steps

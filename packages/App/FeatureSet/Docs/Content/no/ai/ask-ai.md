@@ -32,12 +32,12 @@ I modusen **Skrivebeskyttet** tilbys modellen aldri handlingene, så samtalen ba
 | --- | --- |
 | Hvilken som helst side | Klikk **Spør AI** i toppfeltet, eller trykk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en redigerer, forblir tastene redigererens snarvei for kursiv. |
 | Kommandopaletten | Trykk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og velg **Spør AI**. |
-| Et feilmønster i loggene, eller funnene i et diagram | Klikk **Explain with AI**: Spør AI åpnes med bevisene som et spørsmål du kan redigere før du sender det. |
+| Et feilmønster i loggene, eller funnene i et diagram | Klikk **Forklar med AI**: Spør AI åpnes med bevisene som et spørsmål du kan redigere før du sender det. |
 | Produktmenyen | Åpne **Produkter → AI → Chat**. Spør AI åpnes over siden du var på. Hver samtale har sin egen adresse, så du kan bokmerke den og komme tilbake til den. |
 
 Spør AI åpnes midt på skjermen, over siden du var på, og på en telefon fyller den hele skjermen. Trykk `Esc`, eller klikk ved siden av, for å gå tilbake til siden. Samtalen blir der du forlot den: åpne Spør AI igjen for å fortsette. Lukker du den mens den fortsatt svarer, sier en påminnelse i hjørnet når svaret er klart, og åpner det.
 
-På en hendelse eller et varsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
+På en hendelse eller et varsel har kortet **OneUptime AI** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
 
 ## Hva den kan se
 
@@ -87,7 +87,7 @@ Hva Spør AI kan gjøre når en modus tillater det:
 - Legge inn et internt notat på en hendelse eller et varsel. Interne notater vises aldri på en statusside.
 - Publisere en offentlig statusoppdatering på en hendelse. Det er en egen handling, fordi den varsler abonnentene på statussiden.
 - Kalle ut en vaktretningslinje, kjøre en runbook eller starte en AI-undersøkelse av en hendelse eller et varsel.
-- Foreslå en kodeendring: committe til en ny gren i et tilkoblet repositorium og åpne en pull request. Den skriver aldri til standardgrenen eller en beskyttet gren, så et menneske fletter fortsatt endringen.
+- Foreslå en kodeendring: committe til en ny gren i et repositorium på GitHub, GitLab, Forgejo eller Gitea og åpne en pull request (en merge request på GitLab). Den skriver aldri til standardgrenen eller en beskyttet gren, så et menneske fletter fortsatt endringen.
 
 Be om en hendelse når brukere blir berørt, og om et varsel når noe først trenger oppmerksomheten til teamet ditt, for eksempel minnet på en vert som bare stiger. Begge opprettes én gang og overvåker ingenting: For å bli varslet hver gang minnet på en vert går over 75 %, oppretter du en [vertsmonitor](/docs/monitor/host-monitor#ferdige-varslingsmaler) fra minnemalen dens, med 75 % som terskel. Spør AI kan ikke opprette monitorer. Blir den bedt om en, sier den det, sjekker gjeldende verdi og tilbyr å opprette et varsel hvis den allerede er over.
 

@@ -19,6 +19,8 @@ import { getErrorClassBadgeLabel } from "../../Utils/ExceptionErrorClassLabels";
 import ExceptionResource from "./ExceptionResource";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ExceptionIssueBadge } from "Common/Utils/Exceptions/ExceptionIssueState";
+import { getExceptionIssueBadgePresentation } from "./ExceptionIssueBadges";
 
 export const EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT: number = 240;
 
@@ -128,6 +130,29 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * Regressed or New, beside the status, as the list row shows them
+   * (ExceptionIssueBadges). Unhandled has its own pill below.
+   */
+  for (const badge of getExceptionIssueBadgePresentation(
+    props.exception,
+    translator,
+  )) {
+    if (badge.badge === ExceptionIssueBadge.Unhandled) {
+      continue;
+    }
+
+    pills.push({
+      label: badge.label,
+      className:
+        badge.badge === ExceptionIssueBadge.Regressed
+          ? "bg-orange-50 text-orange-700 ring-orange-600/20"
+          : "bg-sky-50 text-sky-700 ring-sky-600/20",
+      title: badge.title,
+      testId: `exception-summary-${badge.badge}`,
+    });
+  }
+
   if (props.exception.unhandled) {
     pills.push({
       label: translator.translateText("Unhandled") as string,
@@ -232,10 +257,13 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
        * enough for both (a container query, not the window's width): from
        * lg up beside the side menu, three buttons - Resolve, Archive,
        * Create monitor - left the message a word a line at 1024px. On a
-       * narrower card they go under it.
+       * narrower card they go under it. The assignee and Assign (#5422) and
+       * Resolve's menu (#5416) took the row to some 40rem, which left the
+       * message 230px at 1440px: beside it only from 72rem, where the
+       * message keeps a reading width of 26rem.
        */}
       <div className="px-5 py-5 [container-type:inline-size] sm:px-6">
-        <div className="flex flex-col gap-4 [@container(min-width:56rem)]:flex-row [@container(min-width:56rem)]:items-start">
+        <div className="flex flex-col gap-4 [@container(min-width:72rem)]:flex-row [@container(min-width:72rem)]:items-start">
           <div className="flex min-w-0 flex-1 items-start gap-4">
             <div
               className={`max-sm:hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${status.containerClassName}`}
@@ -328,7 +356,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
              * between them is the row's own.
              */
             <div
-              className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:gap-3 sm:ps-[3.75rem] [@container(min-width:56rem)]:justify-end [@container(min-width:56rem)]:ps-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"
+              className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:gap-3 sm:ps-[3.75rem] [@container(min-width:72rem)]:justify-end [@container(min-width:72rem)]:ps-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"
               data-testid="exception-summary-actions"
             >
               {props.actions}

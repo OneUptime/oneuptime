@@ -37,7 +37,7 @@ In **Read-only** mode the actions are never offered to the model, so the convers
 
 Ask AI opens in the middle of the screen, over the page you were on, and on a phone it fills the screen. Press `Esc`, or click beside it, to go back to the page. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it.
 
-On an incident or an alert, the **AI Investigation** card has a conversation of its own, **Ask OneUptime AI**, shared with everyone who can see that incident or alert: see [Talk to OneUptime AI about the incident](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
+On an incident or an alert, the **OneUptime AI** card has a conversation of its own, **Ask OneUptime AI**, shared with everyone who can see that incident or alert: see [Talk to OneUptime AI about the incident](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
 
 ## What it can see
 
@@ -87,7 +87,7 @@ What Ask AI can do when a mode allows it:
 - Post an internal note on an incident or an alert. Internal notes never show on a status page.
 - Post a public status update on an incident. It is a separate action, because it notifies the status page's subscribers.
 - Page an on-call policy, run a runbook, or start an AI investigation of an incident or alert.
-- Propose a code change: commit to a new branch of a connected repository and open a pull request. It never writes to the default branch or a protected one, so a person still merges the change.
+- Propose a code change: commit to a new branch of a repository on GitHub, GitLab, Forgejo or Gitea and open a pull request (a merge request on GitLab). It never writes to the default branch or a protected one, so a person still merges the change.
 
 Ask for an incident when users are affected, and for an alert when something needs your team's attention first, such as a host's memory running high. Either one is created once and watches nothing: to be alerted every time a host's memory goes over 75%, create a [Host monitor](/docs/monitor/host-monitor#pre-built-alert-templates) from its memory template, with 75% as its threshold. Ask AI cannot create monitors. Asked for one, it says so, checks the value now, and offers to raise an alert if it is already over.
 

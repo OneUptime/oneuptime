@@ -173,6 +173,40 @@ export const RESOURCE_AI_AGENT_API_KEY_ENVS: ReadonlyArray<string> = [
 ];
 
 /*
+ * What a Cloud AI agent reads besides (the cloud's setup command sets them):
+ *
+ * CLOUD_ACCOUNT_ID:  OneUptime's id of the cloud account the command was
+ *                    written for, sent on registration as the pinned
+ *                    resourceId. The agent still binds by the account its
+ *                    cloud says it is in; an agent that runs somewhere else
+ *                    is refused, and the account it was meant for says so.
+ * CLOUD_OPERATIONS:  comma-separated catalog changes the agent may make
+ *                    (restart-service, scale-out, ...). Unset means every
+ *                    change of the catalog; their tiers still apply. Reads
+ *                    are not in the list.
+ * CLOUD_REQUIRED_TAG: "key=value": the agent changes only resources that
+ *                    carry this tag (or label), such as oneuptime-ai=allow.
+ * AWS_WRITE_ROLE_ARN: AWS only: the role the agent assumes for each change,
+ *                    with a session policy that allows only that change's
+ *                    actions on its one resource.
+ * Protected targets (ONEUPTIME_AI_PROTECTED_TARGETS) take the agent's own
+ * service, roles and stack on top of what an operator lists.
+ */
+export const RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV: string =
+  "ONEUPTIME_AI_CLOUD_ACCOUNT_ID";
+export const RESOURCE_AI_CLOUD_OPERATIONS_ENV: string =
+  "ONEUPTIME_AI_CLOUD_OPERATIONS";
+export const RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV: string =
+  "ONEUPTIME_AI_CLOUD_REQUIRED_TAG";
+export const RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV: string =
+  "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN";
+export const RESOURCE_AI_PROTECTED_TARGETS_ENV: string =
+  "ONEUPTIME_AI_PROTECTED_TARGETS";
+
+// The tag a team may require on every resource AI changes.
+export const CLOUD_AI_DEFAULT_REQUIRED_TAG: string = "oneuptime-ai=allow";
+
+/*
  * What the agent reports about itself on registration and every heartbeat.
  * The agent is the only component holding the resource's credentials, so
  * the server learns its write posture from the agent itself and never
@@ -437,6 +471,12 @@ export function parseResourceAiAgentPosture(
  *                                into Enable AI (ai_disabled_for_project);
  *                                the status no longer produces it and the
  *                                code stays for compatibility.
+ * cloud_connection_missing:      a cloud account no cloud connection reads.
+ *                                Its live reads run on the server through
+ *                                that connection, so an investigation has
+ *                                nothing to read with. (A cloud account's
+ *                                investigation needs no agent: the agent
+ *                                gaps block only its fixes.)
  */
 export type ResourceAiAccessGapCode =
   | "ai_agent_not_connected"
@@ -448,7 +488,8 @@ export type ResourceAiAccessGapCode =
   | "ai_disabled_for_project"
   | "auto_remediation_disabled_for_project"
   | "llm_provider_missing"
-  | "ai_balance_insufficient";
+  | "ai_balance_insufficient"
+  | "cloud_connection_missing";
 
 export interface ResourceAiAccessGap {
   code: ResourceAiAccessGapCode;
@@ -483,6 +524,19 @@ export interface ResourceAiAgentSummary {
  * Computed from current configuration every time it is asked for — a
  * readiness check, not a recorded decision.
  */
+/*
+ * The project's "Fix new incidents automatically" and "Fix new alerts
+ * automatically" switches, as a resource's AI agent page shows them under
+ * its fixes: a resource whose fixes are on still fixes nothing new while
+ * both are off (they are off by default, for new projects too). The
+ * project's, never the resource's, and never a gap: a fix a person starts
+ * by hand still runs. The same line a Kubernetes cluster's page draws.
+ */
+export interface ResourceAiAutomaticRemediationSettings {
+  incidents: boolean;
+  alerts: boolean;
+}
+
 export interface ResourceAiAccessStatus {
   resourceType: AiResourceType;
   resourceId: string;
@@ -513,6 +567,12 @@ export interface ResourceAiAccessStatus {
   isInvestigationReady: boolean;
   // True only when remediation is enabled AND every remediation gap is absent.
   isRemediationReady: boolean;
+  /*
+   * The project's automatic fixing switches (see
+   * ResourceAiAutomaticRemediationSettings); absent from an older server,
+   * or when the project's settings could not be read.
+   */
+  automaticRemediation?: ResourceAiAutomaticRemediationSettings | undefined;
 }
 
 /*

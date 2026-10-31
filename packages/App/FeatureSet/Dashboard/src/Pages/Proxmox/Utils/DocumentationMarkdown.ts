@@ -80,9 +80,11 @@ export const PROXMOX_AGENT_SOURCE_URL: string =
 export const PROXMOX_AGENT_INSTALL_DIR: string = "/opt/oneuptime-proxmox-agent";
 
 /*
- * The collector image agents/ProxmoxAgent/docker-compose.yml pins, which
- * its config reports as the agent's version. The journald wrapper image
- * below is built on it too.
+ * The collector image agents/ProxmoxAgent/docker-compose.yml pins
+ * (PROXMOX_AGENT_COLLECTOR_VERSION). Its config reports the agent's files
+ * release instead, PROXMOX_AGENT_VERSION: the collector's, its last number
+ * raised each time the files change on that collector. The journald wrapper
+ * image below is built on it too.
  */
 export const PROXMOX_AGENT_COLLECTOR_IMAGE: string =
   "otel/opentelemetry-collector-contrib:0.161.0";
@@ -94,6 +96,16 @@ export const PROXMOX_AI_AGENT_CONTAINER: string = "oneuptime-proxmox-ai-agent";
 
 // The name the guide suggests when it is not installing for a known cluster.
 export const PROXMOX_EXAMPLE_CLUSTER_NAME: string = "my-proxmox-cluster";
+
+/*
+ * Every node's own address, as PVE_NODES lists them: pve-exporter reads
+ * start-on-boot, replication and the subscription only for the node it
+ * queries, so the agent queries each one (agents/ProxmoxAgent).
+ */
+export const PROXMOX_EXAMPLE_NODES: string =
+  "[192.168.1.10,192.168.1.11,192.168.1.12]";
+const PROXMOX_NODES_REASON: string =
+  "The exporter reads start-on-boot (Guest Down), replication and the subscription only for the node it asks, so each node is asked in turn; a node left out goes unseen.";
 
 // The token the "Create a read-only API token" step creates.
 export const PROXMOX_TOKEN_USER: string = "monitoring@pam";
@@ -117,26 +129,55 @@ export const PROXMOX_AGENT_COLLECTOR_CONFIG: string = `receivers:
   prometheus:
     config:
       scrape_configs:
+        # The exporter's cluster collectors, once for the whole cluster: any
+        # node answers them for every node, guest and storage — status and
+        # usage (pve_up, pve_node_info, pve_guest_info, pve_storage_info,
+        # pve_cpu_usage_ratio, pve_memory_*, pve_disk_*), HA state
+        # (pve_ha_state), backup-job coverage (pve_not_backed_up_*) and the
+        # version.
         - job_name: oneuptime-proxmox
           # The exporter serves metrics on /pve and proxies each scrape
           # to the Proxmox VE API host given in the \`target\` parameter.
           metrics_path: /pve
           params:
-            # Proxmox VE API host (any cluster node) the exporter queries.
+            # Proxmox VE API host the exporter queries: any node of the
+            # cluster, or a virtual IP that fails over between them.
             target: ["\${env:PVE_HOST}"]
-            # Enable both the cluster collectors (guest up/cpu/memory,
-            # HA state, backup-job coverage — pve_up, pve_guest_info,
-            # pve_ha_state, pve_not_backed_up_total) and the node
-            # collectors (node cpu/memory/disk, replication —
-            # pve_node_info, pve_cpu_usage_ratio on node ids,
-            # pve_replication_* series).
             cluster: ["1"]
-            node: ["1"]
+            node: ["0"]
           # pve-exporter answers each scrape with a live Proxmox VE API
           # round-trip; 30s keeps the load on pveproxy negligible.
           scrape_interval: 30s
           static_configs:
             - targets: ["\${env:PVE_EXPORTER_URL}"]
+        # The exporter's node collectors, once per node: start-on-boot
+        # (pve_onboot_status, which Guest Down reads), storage replication
+        # (pve_replication_*) and the subscription (pve_subscription_*).
+        # The exporter reads these only for the node it queries, so every
+        # node is queried at its own address. PVE_NODES lists them, as a
+        # comma-separated list in square brackets so the collector reads a
+        # list, e.g.
+        #   PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
+        # Guests and replication jobs on a node it leaves out are never
+        # seen; a virtual IP here would mix up the nodes behind it.
+        - job_name: oneuptime-proxmox-nodes
+          metrics_path: /pve
+          params:
+            cluster: ["0"]
+            node: ["1"]
+          scrape_interval: 30s
+          static_configs:
+            - targets: \${env:PVE_NODES}
+          relabel_configs:
+            # Each node becomes the exporter's \`target\` parameter (and the
+            # scrape's instance)...
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_target]
+              target_label: instance
+            # ...and the exporter is what is scraped.
+            - target_label: __address__
+              replacement: "\${env:PVE_EXPORTER_URL}"
 
   # Optional: ship Proxmox VE service logs from the systemd journal — this
   # is what powers the Logs tab of the Proxmox dashboard. Off by default
@@ -214,19 +255,20 @@ processors:
         value: "\${env:PROXMOX_CLUSTER_NAME}"
         action: upsert
       # Shown as the agent version on the cluster's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.1"
         action: upsert
       # The prometheus receiver synthesizes service.name (= the scrape job
-      # name, "oneuptime-proxmox") and service.instance.id on every batch
-      # per the Prometheus->OTLP compatibility spec. Drop them: OneUptime
-      # routes batches by service.name first, so leaving them in would
-      # register a phantom "oneuptime-proxmox" Service instead of routing
-      # this data to the Proxmox cluster discovered from
-      # \`proxmox.cluster.name\` (which would also break per-cluster
-      # retention settings). Do not remove these two deletes.
+      # name, "oneuptime-proxmox" or "oneuptime-proxmox-nodes") and
+      # service.instance.id on every batch per the Prometheus->OTLP
+      # compatibility spec. Drop them: OneUptime routes batches by
+      # service.name first, so leaving them in would register a phantom
+      # Service named after the job instead of routing this data to the
+      # Proxmox cluster discovered from \`proxmox.cluster.name\` (which
+      # would also break per-cluster retention settings). Do not remove
+      # these two deletes.
       - key: service.name
         action: delete
       - key: service.instance.id
@@ -421,7 +463,7 @@ function agentFolder(method: ProxmoxAgentInstallMethod): string {
 
 function getAgentPrerequisites(): Array<string> {
   return [
-    "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach the Proxmox VE API on port 8006",
+    "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach every node's Proxmox VE API on port 8006",
     "A root shell on any PVE node, or the Proxmox web UI, to create a read-only API token",
     "Ideally a machine outside the cluster — an agent that scrapes a single node goes dark exactly when that node dies",
   ];
@@ -499,6 +541,7 @@ ${
 - **Proxmox VE API host** — any node, e.g. \`192.168.1.10\`, or better a virtual IP that fails over between nodes.
 - **Bundled prometheus-pve-exporter** — answer **Y** unless you already run one.
 - **API token** — the token id and secret from the previous step.
+- **Every node's address** — each node's own address, comma-separated, never a virtual IP. With the token, the script offers the cluster's own list: press Enter to take it.
 - **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only.
 
 It installs to \`${PROXMOX_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts everything with Docker Compose. Running the script again reuses everything in that \`.env\` instead of asking again, so it is also how you upgrade.`,
@@ -509,6 +552,7 @@ function getDockerComposeStep(context: AgentGuideContext): SetupGuideStep {
   const notes: Array<string> = [
     getClusterNameNote(context),
     "Set `PVE_HOST` to any node of the cluster — or better, a virtual IP that fails over between nodes.",
+    `Set \`PVE_NODES\` to every node's own address, in square brackets, never a virtual IP. ${PROXMOX_NODES_REASON}`,
     "Fill in the token from the previous step. `COMPOSE_PROFILES=pve-exporter` also starts the bundled prometheus-pve-exporter, which reads the API with it.",
   ];
 
@@ -532,6 +576,7 @@ ${codeBlock(
 ONEUPTIME_TELEMETRY_INGESTION_KEY=${context.apiKey}
 PROXMOX_CLUSTER_NAME=${shellQuote(context.clusterName)}
 PVE_HOST=192.168.1.10
+PVE_NODES=${PROXMOX_EXAMPLE_NODES}
 PVE_API_TOKEN_ID=${PROXMOX_TOKEN_ID}
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter`,
@@ -587,7 +632,8 @@ function getEnvironmentVariablesTopic(
 | \`ONEUPTIME_URL\` | Yes | Your OneUptime instance URL (e.g. \`${context.oneuptimeUrl}\`) |
 | \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | Telemetry ingestion key — the one picked in step 1 |
 | \`PROXMOX_CLUSTER_NAME\` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the \`proxmox.cluster.name\` resource attribute. Keep it stable — changing it registers a new cluster (default: \`proxmox-cluster\`) |
-| \`PVE_HOST\` | Yes | Proxmox VE API host (any node of the cluster) the exporter and the AI agent query, e.g. \`192.168.1.10\` |
+| \`PVE_HOST\` | Yes | Proxmox VE API host the exporter reads the cluster from and the AI agent queries: any node, or a virtual IP that fails over between them, e.g. \`192.168.1.10\` |
+| \`PVE_NODES\` | On a cluster | Every node's own API address, comma-separated in square brackets, e.g. \`${PROXMOX_EXAMPLE_NODES}\`. Defaults to \`PVE_HOST\` alone, which is enough for a single node. ${PROXMOX_NODES_REASON} |
 | \`PVE_EXPORTER_URL\` | No | Address (\`host:port\`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (\`pve-exporter:9221\`) |
 | \`PVE_API_TOKEN_ID\` | Bundled exporter and AI agent | Full Proxmox API token id, e.g. \`${PROXMOX_TOKEN_ID}\` (PVEAuditor, read-only) |
 | \`PVE_API_TOKEN_SECRET\` | Bundled exporter and AI agent | Proxmox API token secret |
@@ -625,7 +671,7 @@ function getCollectedDataTopic(): SetupGuideTopic {
     title: "What the agent collects",
     summary:
       "Nodes, guests, storage, HA state, backup coverage and replication, with equality-filterable identity attributes.",
-    markdown: `The agent scrapes the exporter every 30 seconds with both the cluster and node collectors enabled. Every series carries an \`id\` label identifying the resource — \`node/<name>\`, \`qemu/<vmid>\`, \`lxc/<vmid>\`, or \`storage/<node>/<storage>\`:
+    markdown: `The agent scrapes the exporter every 30 seconds: its cluster collectors once, at \`PVE_HOST\`, and its node collectors once for each node in \`PVE_NODES\`. Every series carries an \`id\` label identifying the resource — \`node/<name>\`, \`qemu/<vmid>\`, \`lxc/<vmid>\`, or \`storage/<node>/<storage>\`:
 
 | Category | Metrics |
 |----------|---------|
@@ -635,7 +681,10 @@ function getCollectedDataTopic(): SetupGuideTopic {
 | **Storage** | \`pve_disk_usage_bytes\`, \`pve_disk_size_bytes\`, \`pve_storage_info\` |
 | **HA** | \`pve_ha_state\` |
 | **Backup coverage** | \`pve_not_backed_up_total\`, \`pve_not_backed_up_info\` — guests no backup job selects (whether backups ran or succeeded is not exposed) |
+| **Start-on-boot** | \`pve_onboot_status\` per guest, which **Guest Down** reads |
 | **Replication** | \`pve_replication_*\` series per storage replication job — their \`id\` label is the job id (e.g. \`100-0\`), not a resource |
+
+Start-on-boot and replication come from the exporter's node collectors, which read only the node the exporter asks: a node missing from \`PVE_NODES\` has neither.
 
 The collector also splits the \`id\` label into three equality-filterable datapoint attributes (the \`transform/pve-identity\` processor) — monitor criteria and dashboard filters match on these:
 
@@ -831,7 +880,7 @@ It ends with a verdict naming the most likely cause.`,
 
 ${codeBlock(
   "bash",
-  `docker run --rm --network container:${PROXMOX_EXPORTER_CONTAINER} curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=1" | head`,
+  `docker run --rm --network container:${PROXMOX_EXPORTER_CONTAINER} curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=0" | head`,
 )}
 
 2. Verify the API token has the **PVEAuditor** role on path \`/\`, on the token and on its user.
@@ -845,6 +894,10 @@ ${codeBlock(
       title: "Only node metrics, no guest metrics",
       markdown:
         'Guest series (`qemu/*`, `lxc/*` ids) come from the exporter\'s cluster collector. The shipped config enables it (the `cluster=1` scrape parameter) — if you customized the config, restore the `cluster: ["1"]` param.',
+    },
+    {
+      title: "Guest Down or Replication Failing misses some guests",
+      markdown: `Their start-on-boot flags and replication jobs come from the node they run on, and the agent reads only the nodes in \`PVE_NODES\`. List every node's own address there, such as \`PVE_NODES=${PROXMOX_EXAMPLE_NODES}\`, and apply it with \`docker compose up -d\` in ${agentFolder(context.method)}. If the collector stops starting after an edit, the list lost its square brackets. \`troubleshoot.sh\` checks every node in the list.`,
     },
     {
       title: "Cluster appears under the wrong name",

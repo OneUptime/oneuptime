@@ -38,6 +38,7 @@ import { SleepFunction, sleep as defaultSleep } from "./Sleep";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
+  isCloudAiResourceType,
 } from "./Common/Types/ResourceAiAgent/AiResourceType";
 import {
   MAX_POSTURE_STRING_LENGTH,
@@ -429,7 +430,10 @@ export default class ResourceAiAgent {
     options: { quiet?: boolean } = {},
   ): Promise<IdentityFailure | null> {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[resourceType];
-    const missing: string = `${info.identityEnvVars.join(" / ")} is not set, and the agent could not read this ${info.displayName}'s name itself. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the name the ${info.displayName}'s collector reports.`;
+    const isCloud: boolean = isCloudAiResourceType(resourceType);
+    const missing: string = isCloud
+      ? `${info.identityEnvVars.join(" / ")} is not set, and the agent could not ask its cloud which ${info.displayName} it is in. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the ${info.displayName} the agent serves.`
+      : `${info.identityEnvVars.join(" / ")} is not set, and the agent could not read this ${info.displayName}'s name itself. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the name the ${info.displayName}'s collector reports.`;
 
     if (typeof this.executor.resolveResourceIdentifier !== "function") {
       return { problem: missing, retry: false };
@@ -473,7 +477,9 @@ export default class ResourceAiAgent {
     this.status.resourceIdentifier = identifier;
 
     Logger.info(
-      `${info.identityEnvVars.join(" / ")} is not set; serving this ${info.displayName} under its own name "${identifier}". It must match the name the collector reports.`,
+      isCloud
+        ? `${info.identityEnvVars.join(" / ")} is not set; serving the ${info.displayName} "${identifier}", the one its cloud says it is in.`
+        : `${info.identityEnvVars.join(" / ")} is not set; serving this ${info.displayName} under its own name "${identifier}". It must match the name the collector reports.`,
     );
 
     const placeholder: string | null = describeDefaultIdentity({
