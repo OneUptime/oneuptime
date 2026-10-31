@@ -348,7 +348,11 @@ async function connectAccount(person: string): Promise<{
   return {
     authorizationUrl: started.authorizationUrl,
     callback: atMicrosoft.redirectTo
-      ? await comeBack(atMicrosoft.redirectTo, SIGN_IN_CALLBACK, started.browser)
+      ? await comeBack(
+          atMicrosoft.redirectTo,
+          SIGN_IN_CALLBACK,
+          started.browser,
+        )
       : null,
   };
 }
@@ -555,7 +559,10 @@ describe.each(PEOPLE)(
         }),
       ).toEqual(["authorization_code", "client_credentials"]);
       expect(calledOrigins()).toEqual(
-        [microsoft.hosts.graphOrigin, "https://login.microsoftonline.us"].sort(),
+        [
+          microsoft.hosts.graphOrigin,
+          "https://login.microsoftonline.us",
+        ].sort(),
       );
     });
 
@@ -588,7 +595,10 @@ describe.each(PEOPLE)(
         "a0a0a0a0-0000-4000-8000-000000000001",
       );
       expect(calledOrigins()).toEqual(
-        [microsoft.hosts.graphOrigin, "https://login.microsoftonline.us"].sort(),
+        [
+          microsoft.hosts.graphOrigin,
+          "https://login.microsoftonline.us",
+        ].sort(),
       );
     });
   },
@@ -663,10 +673,34 @@ describe("a MICROSOFT_TEAMS_CLOUD that names no cloud", () => {
 
 describe("the bot check, in each cloud", () => {
   test.each([
-    [null, "Commercial", "https://login.microsoftonline.com", "https://graph.microsoft.com", "Azure public cloud (the Bot Framework's default)"],
-    ["gcc", "GCC", "https://login.microsoftonline.com", "https://graph.microsoft.com", "Azure public cloud (the Bot Framework's default)"],
-    ["gcc-high", "GCC High", "https://login.microsoftonline.us", "https://graph.microsoft.us", "https://botframework.azure.us"],
-    ["dod", "DoD", "https://login.microsoftonline.us", "https://dod-graph.microsoft.us", "https://botframework.azure.us"],
+    [
+      null,
+      "Commercial",
+      "https://login.microsoftonline.com",
+      "https://graph.microsoft.com",
+      "Azure public cloud (the Bot Framework's default)",
+    ],
+    [
+      "gcc",
+      "GCC",
+      "https://login.microsoftonline.com",
+      "https://graph.microsoft.com",
+      "Azure public cloud (the Bot Framework's default)",
+    ],
+    [
+      "gcc-high",
+      "GCC High",
+      "https://login.microsoftonline.us",
+      "https://graph.microsoft.us",
+      "https://botframework.azure.us",
+    ],
+    [
+      "dod",
+      "DoD",
+      "https://login.microsoftonline.us",
+      "https://dod-graph.microsoft.us",
+      "https://botframework.azure.us",
+    ],
   ])(
     "%s: says which cloud, and its hosts",
     async (

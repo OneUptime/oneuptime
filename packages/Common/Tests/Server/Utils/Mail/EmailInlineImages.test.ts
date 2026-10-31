@@ -717,18 +717,17 @@ describe("EmailInlineImages.replaceImageSources - an image's address, swapped", 
   });
 
   test("HTML without an image comes back as it was, the caller never asked", () => {
-    let asked: number = 0;
+    const asked: Array<string> = [];
+    const replace: (source: string) => null = (source: string): null => {
+      asked.push(source);
+      return null;
+    };
 
     for (const html of ["", "<p>Hello</p>", "plain text"]) {
-      expect(
-        EmailInlineImages.replaceImageSources(html, (): null => {
-          asked++;
-          return null;
-        }),
-      ).toBe(html);
+      expect(EmailInlineImages.replaceImageSources(html, replace)).toBe(html);
     }
 
-    expect(asked).toBe(0);
+    expect(asked).toEqual([]);
   });
 
   test("linear: a body of twenty thousand images beside a screenshot of megabytes", () => {

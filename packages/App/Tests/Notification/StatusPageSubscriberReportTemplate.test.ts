@@ -295,9 +295,7 @@ function expectLabelsFirstAndLinedUp(
 
   tiles.forEach((tile: string, index: number): void => {
     const [label, value] = values[index]!;
-    const labelAt: number = tile.indexOf(
-      `class="st-Stat-label"`,
-    );
+    const labelAt: number = tile.indexOf(`class="st-Stat-label"`);
 
     expect(tile).toContain('valign="top"');
     expect(labelAt).toBeGreaterThan(-1);

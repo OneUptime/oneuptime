@@ -169,9 +169,9 @@ describe.each(CLOUDS)(
     test("a single-tenant app signs in at the agency's tenant there", () => {
       setCloud(cloud.setting);
 
-      expect(
-        oneClickApp(scriptedFetch([]), AGENCY).getSignInAuthority(),
-      ).toBe(`${SIGN_IN}/${AGENCY}`);
+      expect(oneClickApp(scriptedFetch([]), AGENCY).getSignInAuthority()).toBe(
+        `${SIGN_IN}/${AGENCY}`,
+      );
     });
 
     test("the code is exchanged there, and the refresh goes to the account's own tenant there", async () => {

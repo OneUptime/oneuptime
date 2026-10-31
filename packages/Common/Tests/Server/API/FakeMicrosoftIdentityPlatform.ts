@@ -359,11 +359,10 @@ export default class FakeMicrosoftIdentityPlatform {
       });
     }
 
-    const account: FakeAccount | undefined = ENDPOINTS_FOR_EVERY_ORGANIZATION.includes(
-      authority,
-    )
-      ? this.homeAccountOf(person)
-      : this.accountOf(person, authority);
+    const account: FakeAccount | undefined =
+      ENDPOINTS_FOR_EVERY_ORGANIZATION.includes(authority)
+        ? this.homeAccountOf(person)
+        : this.accountOf(person, authority);
 
     if (!account) {
       return FakeMicrosoftIdentityPlatform.errorPage("AADSTS50020");
