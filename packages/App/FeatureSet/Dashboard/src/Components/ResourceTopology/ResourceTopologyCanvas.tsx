@@ -41,8 +41,8 @@ import {
   ResourceTopologyGraph,
   ResourceTopologyNode,
   ResourceTopologyRelation,
-  getTopologyAncestors,
   getTopologyNeighbours,
+  getTopologyPathIds,
 } from "./ResourceTopologyModel";
 import {
   ResourceTopologyBranch,
@@ -50,10 +50,12 @@ import {
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
   ResourceTopologySide,
-  getBranchPath,
+  getRelatedColumnSides,
   getRelationCurve,
   getRelationSides,
   getTopologyFrameIds,
+  getTopologyKeyMove,
+  placedNodeId,
 } from "./ResourceTopologyLayout";
 import {
   ResourceTopologyKeyAction,
@@ -74,13 +76,15 @@ import {
   tx,
 } from "./ResourceTopologyNodes";
 import {
-  BRANCH_TONE_ORDER,
   RESOURCE_TOPOLOGY_BRANCH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_RELATION_COLOR,
   RESOURCE_TOPOLOGY_SELECTED_COLOR,
+  ResourceTopologyBranchLine,
   ResourceTopologyBranchTone,
-  getBranchTone,
+  ResourceTopologyDetailLevel,
+  describeTopologyBranches,
+  getResourceTopologyDetailLevel,
 } from "./ResourceTopologyLook";
 
 /*
@@ -131,17 +135,6 @@ export interface ComponentProps {
 
 export const RESOURCE_TOPOLOGY_PAN_MARGIN: number = 240;
 
-/* Below this zoom a card drops its smaller lines: they could not be read. */
-export const RESOURCE_TOPOLOGY_DETAIL_ZOOM: number = 0.5;
-
-export type ResourceTopologyDetailLevel = "near" | "far";
-
-export function getResourceTopologyDetailLevel(
-  zoom: number,
-): ResourceTopologyDetailLevel {
-  return zoom < RESOURCE_TOPOLOGY_DETAIL_ZOOM ? "far" : "near";
-}
-
 /* The class the canvas's own rules are scoped to. */
 const CANVAS_CLASS: string = "resource-topology-map";
 
@@ -152,33 +145,6 @@ const CANVAS_CLASS: string = "resource-topology-map";
  * time, a moment after the class first shows up).
  */
 const CANVAS_RULES: string = `.${CANVAS_CLASS}[data-detail="far"] .${TOPOLOGY_DETAIL_CLASS}{display:none !important}`;
-
-/*
- * The map's keys: the arrows that point along the line move forward into a
- * part and back out of it, so on a page read from right to left left is
- * forward.
- */
-export function getTopologyKeyMove(
-  key: string,
-  direction: ResourceTopologyDirection,
-): ResourceTopologyKeyMove | null {
-  switch (key) {
-    case "ArrowDown":
-      return "next";
-    case "ArrowUp":
-      return "previous";
-    case "Home":
-      return "first";
-    case "End":
-      return "last";
-    case "ArrowRight":
-      return direction === "rtl" ? "back" : "forward";
-    case "ArrowLeft":
-      return direction === "rtl" ? "forward" : "back";
-    default:
-      return null;
-  }
-}
 
 /*
  * A relation's line: React Flow's curve, with its label nearer the part it
@@ -247,14 +213,14 @@ const BranchEdge: FunctionComponent<EdgeProps<ResourceTopologyBranchData>> = (
       data-tone={data?.isOnPath ? "path" : data?.tone || "calm"}
       d={data?.path || ""}
       fill="none"
-      stroke={
-        data?.isOnPath
+      style={{
+        stroke: data?.isOnPath
           ? RESOURCE_TOPOLOGY_SELECTED_COLOR
-          : RESOURCE_TOPOLOGY_BRANCH_COLORS[data?.tone || "calm"]
-      }
-      strokeWidth={data?.isOnPath ? 2.5 : data?.tone === "calm" ? 1.5 : 2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+          : RESOURCE_TOPOLOGY_BRANCH_COLORS[data?.tone || "calm"],
+        strokeWidth: data?.isOnPath ? 2.5 : data?.tone === "calm" ? 1.5 : 2,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+      }}
     />
   );
 };
@@ -278,123 +244,29 @@ const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
 };
 
 /*
- * The sides a line between a focused part and a part of its related column
- * leaves and enters by: the column is after the drawing (at its right, or
- * at its left on a page read from right to left), so the line leaves the
- * focused part by the side facing it and enters the related part by its
- * near side, whichever way the relation points.
- */
-export function getRelatedColumnSides(
-  outward: boolean,
-  direction: ResourceTopologyDirection,
-): { source: ResourceTopologySide; target: ResourceTopologySide } {
-  const towardsColumn: ResourceTopologySide =
-    direction === "rtl" ? "left" : "right";
-  const awayFromColumn: ResourceTopologySide =
-    direction === "rtl" ? "right" : "left";
-
-  return outward
-    ? { source: towardsColumn, target: awayFromColumn }
-    : { source: awayFromColumn, target: towardsColumn };
-}
-
-/* The part a placed item stands for, when it stands for one. */
-export function placedNodeId(placed: ResourceTopologyPlaced): string | null {
-  return (
-    placed.card?.nodeId ||
-    placed.chip?.nodeId ||
-    placed.related?.nodeId ||
-    placed.heading?.laneSectionId ||
-    null
-  );
-}
-
-/*
- * The parts on the way from the resource to `nodeId`, it included: the
- * lines between them are the path someone picked.
- */
-export function getTopologyPathIds(
-  graph: ResourceTopologyGraph,
-  nodeId: string | null,
-): Set<string> {
-  const path: Set<string> = new Set<string>();
-
-  if (!nodeId || !graph.nodes.has(nodeId)) {
-    return path;
-  }
-
-  path.add(nodeId);
-
-  for (const ancestor of getTopologyAncestors(graph, nodeId)) {
-    path.add(ancestor.id);
-  }
-
-  return path;
-}
-
-/*
- * The lines from each part to what it holds, as React Flow edges, worst
- * last so a red line is drawn over the grey one it shares a leg with, and
- * the picked part's path over them all.
+ * The lines from each part to what it holds, as React Flow edges, in the
+ * order describeTopologyBranches draws them: worst last, the picked part's
+ * path over them all.
  */
 export function buildBranchEdges(
   graph: ResourceTopologyGraph,
   branches: ReadonlyArray<ResourceTopologyBranch>,
   pathIds: ReadonlySet<string>,
 ): Array<Edge<ResourceTopologyBranchData>> {
-  const edges: Array<Edge<ResourceTopologyBranchData>> = branches.map(
-    (branch: ResourceTopologyBranch): Edge<ResourceTopologyBranchData> => {
-      const isOnPath: boolean =
-        pathIds.has(branch.fromNodeId) &&
-        branch.nodeIds.some((id: string): boolean => {
-          return pathIds.has(id);
-        });
-
+  return describeTopologyBranches(graph, branches, pathIds).map(
+    (line: ResourceTopologyBranchLine): Edge<ResourceTopologyBranchData> => {
       return {
-        id: branch.id,
-        source: branch.from,
-        target: branch.to,
+        id: line.branch.id,
+        source: line.branch.from,
+        target: line.branch.to,
         sourceHandle: "right-source",
         targetHandle: "left-target",
         type: "resourceTopologyBranch",
         focusable: false,
-        data: {
-          path: getBranchPath(branch.points),
-          tone: getBranchTone(graph, branch.nodeIds),
-          isOnPath: isOnPath,
-        },
+        data: { path: line.path, tone: line.tone, isOnPath: line.isOnPath },
       };
     },
   );
-
-  const rank: (edge: Edge<ResourceTopologyBranchData>) => number = (
-    edge: Edge<ResourceTopologyBranchData>,
-  ): number => {
-    return edge.data?.isOnPath
-      ? 10
-      : BRANCH_TONE_ORDER[edge.data?.tone || "calm"];
-  };
-
-  return edges
-    .map((edge: Edge<ResourceTopologyBranchData>, index: number) => {
-      return { edge: edge, index: index };
-    })
-    .sort(
-      (
-        a: { edge: Edge<ResourceTopologyBranchData>; index: number },
-        b: { edge: Edge<ResourceTopologyBranchData>; index: number },
-      ): number => {
-        return rank(a.edge) - rank(b.edge) || a.index - b.index;
-      },
-    )
-    .map(
-      (entry: {
-        edge: Edge<ResourceTopologyBranchData>;
-        index: number;
-      }): Edge<ResourceTopologyBranchData> => {
-        return entry.edge;
-      },
-    );
 }
 
 /*
@@ -936,11 +808,21 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       onKeyDown={onKeyDown}
     >
       <style>{CANVAS_RULES}</style>
+      {/*
+       * What the keys do, for a screen reader: the arrows that open a part
+       * and go back out are the other way round on a page read from right
+       * to left.
+       */}
       <p id={keysHintId} className="sr-only">
-        {tx(
-          "On a part, the arrow keys move through the map: down and up to the parts beside it, forward to open it and go in, back to close it and go out.",
-          translator,
-        )}
+        {direction === "rtl"
+          ? tx(
+              "On a part, Up and Down move between the parts beside it, Left opens it and goes in, and Right closes it and goes back out.",
+              translator,
+            )
+          : tx(
+              "On a part, Up and Down move between the parts beside it, Right opens it and goes in, and Left closes it and goes back out.",
+              translator,
+            )}
       </p>
       <ReactFlow
         nodes={nodes}

@@ -70,9 +70,10 @@ import {
  * builder made, so they all work the same way (README.md in this folder says
  * how a product adds its own):
  *
- *   - the map is a tree read outwards from the resource: each part's parts
- *     in the column after it, joined to it by a line that is red or amber
- *     when a part that needs attention is that way (ResourceTopologyLayout);
+ *   - the map is a tree, never a box inside a box: the resource at the top,
+ *     each part's parts in the column after it, joined to it by a line that
+ *     is red or amber when a part that needs attention is that way, and the
+ *     way to trouble open by itself (ResourceTopologyLayout, ...View);
  *   - "Needs attention" narrows the map to what is troubled and the path to
  *     it; a search narrows it to what matches;
  *   - clicking a part opens its panel (its own page one click further),
@@ -972,7 +973,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
                   strokeLinecap="round"
                 />
               </svg>
-              {tx("What a part holds", translator)}
+              {tx("What is inside", translator)}
             </span>
           ) : null}
           {display === "map" && arrangement.relationLegend ? (

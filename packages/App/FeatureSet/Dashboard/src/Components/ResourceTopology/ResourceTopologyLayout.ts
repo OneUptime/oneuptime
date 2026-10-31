@@ -3,38 +3,42 @@ import {
   ResourceTopologyCardItem,
   ResourceTopologyChipItem,
   ResourceTopologyGroupItem,
+  ResourceTopologyKeyMove,
   ResourceTopologyMoreItem,
   ResourceTopologyRelatedItem,
   ResourceTopologyVisible,
 } from "./ResourceTopologyView";
 
 /*
- * Where everything of a resource topology goes on the map: a tree read
- * outwards from the resource, never a box inside a box.
+ * Where everything of a resource topology goes on the map: a tree read from
+ * the resource down and outwards, never a box inside a box.
  *
- * Every part is a card of its own (a chip when it holds nothing and has
- * many siblings), and no part is ever drawn inside another. What a part
- * holds sits in the column after it, one group per kind under a small
- * heading ("ESXi Hosts 4 · 1 needs attention"), and one line joins the part
- * to each of its groups: containment reads along the line - a cluster, then
- * its nodes, then their pods; a host, then its virtual machines - and the
- * column a part stands in says how deep it sits. A group is a heading over
- * its parts, never a frame, and it never holds another group: a part's own
- * parts hang off that part, in the next column. Sections - parts with no
- * record of their own, such as "Hardware" or "Not on a node" - stand in
- * their column like any part, with no heading of their own.
+ * The resource sits at the top, and its own parts under it, a little in
+ * from its edge. Every other part's parts stand in the column after it. Every
+ * part is a card of its own (a chip when it holds nothing and has many
+ * siblings), and no part is ever drawn inside another. What a part holds is
+ * grouped by kind under a small heading ("ESXi Hosts 4 · 1 needs
+ * attention"), and one line joins the part to each of its groups:
+ * containment reads along the line - a cluster, then its nodes, then their
+ * pods; a host, then its virtual machines - and the column a part stands in
+ * says how deep it sits. A group is a heading over its parts, never a frame,
+ * and it never holds another group: a part's own parts hang off that part,
+ * in the next column. Sections - parts with no record of their own, such as
+ * "Hardware" or "Not on a node" - stand in their column like any part, with
+ * no heading of their own.
  *
  * A part's parts start below its middle, so a straight line across the
  * map at the height of any part runs past every part above it: a host's
- * callers, in a lane before it, and what its services call, in a lane after
- * everything, reach the services they talk to without crossing a card.
+ * callers, in a lane before the tree, and what its services call, in a lane
+ * after it, reach the services they talk to without crossing a card.
  * Parts that are closed, or hold nothing, flow into rows, so a host's forty
  * virtual machines make a block rather than a tower; a part that is open
  * stands alone in its column, with room after it for its own parts.
  *
- * The drawing tries a few widths for those rows and keeps the one that
- * fits the canvas at the largest zoom. A page read from right to left gets
- * the same tree mirrored: the resource at the right, its parts to its left.
+ * The drawing tries a few row lengths and keeps the one that fits the canvas
+ * at the largest zoom - or the one it is handed, so that opening a part
+ * never re-flows the rest. A page read from right to left gets the same tree
+ * mirrored: the resource at the top right, its parts to its left.
  *
  * Pure and free of React, so the App suite can check every rule.
  */
@@ -189,6 +193,66 @@ export interface ResourceTopologyLayout {
 export type ResourceTopologyDirection = "ltr" | "rtl";
 
 export type ResourceTopologySide = "top" | "right" | "bottom" | "left";
+
+/* The part a placed item stands for, when it stands for one. */
+export function placedNodeId(placed: ResourceTopologyPlaced): string | null {
+  return (
+    placed.card?.nodeId ||
+    placed.chip?.nodeId ||
+    placed.related?.nodeId ||
+    placed.heading?.laneSectionId ||
+    null
+  );
+}
+
+/*
+ * The map's keys: the arrows that point along the line move forward into a
+ * part and back out of it, so on a page read from right to left, where the
+ * drawing is mirrored, left is forward.
+ */
+export function getTopologyKeyMove(
+  key: string,
+  direction: ResourceTopologyDirection,
+): ResourceTopologyKeyMove | null {
+  switch (key) {
+    case "ArrowDown":
+      return "next";
+    case "ArrowUp":
+      return "previous";
+    case "Home":
+      return "first";
+    case "End":
+      return "last";
+    case "ArrowRight":
+      return direction === "rtl" ? "back" : "forward";
+    case "ArrowLeft":
+      return direction === "rtl" ? "forward" : "back";
+    default:
+      return null;
+  }
+}
+
+/*
+ * The sides a line between a focused part and a part of its related column
+ * leaves and enters by: the column is after the drawing (at its right, or
+ * at its left on a page read from right to left), so the line leaves the
+ * focused part by the side facing it and enters the related part by its
+ * near side, whichever way the relation points - never down the column
+ * across the parts in it.
+ */
+export function getRelatedColumnSides(
+  outward: boolean,
+  direction: ResourceTopologyDirection,
+): { source: ResourceTopologySide; target: ResourceTopologySide } {
+  const towardsColumn: ResourceTopologySide =
+    direction === "rtl" ? "left" : "right";
+  const awayFromColumn: ResourceTopologySide =
+    direction === "rtl" ? "right" : "left";
+
+  return outward
+    ? { source: towardsColumn, target: awayFromColumn }
+    : { source: awayFromColumn, target: towardsColumn };
+}
 
 type Rect = Pick<ResourceTopologyPlaced, "x" | "y" | "width" | "height">;
 

@@ -11,6 +11,7 @@ import {
   getAutomaticDepth,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyView";
 import {
+  ROW_LENGTHS_TRIED,
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
   layoutResourceTopology,
@@ -50,12 +51,16 @@ function part(
   };
 }
 
-/* A vCenter of datacenters, clusters, hosts and virtual machines. */
+/*
+ * A vCenter of datacenters, clusters, hosts and virtual machines; the
+ * virtual machines named in `critical` are critical.
+ */
 function vcenter(
   datacenters: number,
   clusters: number,
   hosts: number,
   vms: number,
+  critical: Array<string> = [],
 ): ResourceTopologyGraph {
   const nodes: Array<ResourceTopologyNodeInput> = [
     part("vc", null, { kind: "vmware.vcenter" }),
@@ -77,8 +82,12 @@ function vcenter(
         );
 
         for (let v: number = 0; v < vms; v++) {
+          const vmId: string = `${clusterId}-h-${h}-vm-${v}`;
+
           nodes.push(
-            part(`${clusterId}-h-${h}-vm-${v}`, `${clusterId}-h-${h}`),
+            part(vmId, `${clusterId}-h-${h}`, {
+              health: critical.includes(vmId) ? "critical" : "healthy",
+            }),
           );
         }
       }
@@ -125,17 +134,29 @@ describe("the zoom a drawing is framed at", () => {
 });
 
 describe("how deep the first view opens", () => {
-  test("a small resource opens all the way down on any canvas", () => {
-    const graph: ResourceTopologyGraph = vcenter(1, 1, 2, 3);
+  test("a small resource opens as far as its parts open by themselves", () => {
+    // Healthy: the lone datacenter and cluster open, the two hosts stay shut.
+    const healthy: ResourceTopologyGraph = vcenter(1, 1, 2, 3);
 
-    expect(fitResourceTopology(graph, null, LAPTOP).depth).toBe(
-      getAutomaticDepth(graph, "vc", getViewBudgetFor(LAPTOP)),
+    expect(fitResourceTopology(healthy, null, LAPTOP).depth).toBe(
+      getAutomaticDepth(healthy, "vc", getViewBudgetFor(LAPTOP)),
     );
-    expect(fitResourceTopology(graph, null, LAPTOP).depth).toBe(4);
+    expect(fitResourceTopology(healthy, null, LAPTOP).depth).toBe(3);
+
+    // A critical virtual machine opens its host too: one level more.
+    const troubled: ResourceTopologyGraph = vcenter(1, 1, 2, 3, [
+      "dc-0-cl-0-h-1-vm-2",
+    ]);
+
+    expect(getAutomaticDepth(troubled, "vc", getViewBudgetFor(WIDE))).toBe(4);
+    expect(fitResourceTopology(troubled, null, WIDE).depth).toBe(4);
   });
 
   test("the level it stops at fits the canvas at a readable zoom", () => {
-    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12);
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+      "dc-1-cl-3-h-7-vm-11",
+    ]);
 
     // The wide screen opens past the top, so the check below is not empty.
     expect(fitResourceTopology(graph, null, WIDE).depth).toBeGreaterThan(1);
@@ -162,7 +183,9 @@ describe("how deep the first view opens", () => {
   });
 
   test("a wide screen opens at least as deep as a laptop, a phone no deeper", () => {
-    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12);
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+    ]);
     const laptop: number = fitResourceTopology(graph, null, LAPTOP).depth;
 
     expect(fitResourceTopology(graph, null, WIDE).depth).toBeGreaterThanOrEqual(
@@ -177,6 +200,26 @@ describe("how deep the first view opens", () => {
     const graph: ResourceTopologyGraph = vcenter(30, 2, 2, 2);
 
     expect(fitResourceTopology(graph, null, SMALL).depth).toBe(1);
+  });
+
+  test("hands back the row length of the first view, for the map to keep", () => {
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+    ]);
+
+    for (const canvas of [LAPTOP, WIDE, SMALL]) {
+      const fit: ResourceTopologyFit = fitResourceTopology(graph, null, canvas);
+      const layout: ResourceTopologyLayout = layoutResourceTopology(
+        computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+          budget: fit.budget,
+          maxAutomaticDepth: fit.depth,
+        }),
+        { aspect: Math.max(0.5, canvas.width / canvas.height) },
+      );
+
+      expect(ROW_LENGTHS_TRIED).toContain(fit.rowLength);
+      expect(fit.rowLength).toBe(layout.rowLength);
+    }
   });
 
   test("a resource with nothing inside opens nothing", () => {

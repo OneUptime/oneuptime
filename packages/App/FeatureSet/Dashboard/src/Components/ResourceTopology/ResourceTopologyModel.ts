@@ -575,6 +575,30 @@ export function getTopologyAncestors(
   return ancestors;
 }
 
+/*
+ * The parts on the way from the resource to `nodeId`, it included: the
+ * lines between them are the path the map lights up for a picked part.
+ * Empty for no part, or one that is not there.
+ */
+export function getTopologyPathIds(
+  graph: ResourceTopologyGraph,
+  nodeId: string | null,
+): Set<string> {
+  const path: Set<string> = new Set<string>();
+
+  if (!nodeId || !graph.nodes.has(nodeId)) {
+    return path;
+  }
+
+  path.add(nodeId);
+
+  for (const ancestor of getTopologyAncestors(graph, nodeId)) {
+    path.add(ancestor.id);
+  }
+
+  return path;
+}
+
 /* Every part below a node, breadth first; the node itself left out. */
 export function getTopologyDescendantIds(
   graph: ResourceTopologyGraph,

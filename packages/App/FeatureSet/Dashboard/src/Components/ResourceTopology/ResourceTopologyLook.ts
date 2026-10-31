@@ -4,6 +4,7 @@ import {
   ResourceTopologyHealth,
   ResourceTopologyNode,
 } from "./ResourceTopologyModel";
+import { ResourceTopologyBranch, getBranchPath } from "./ResourceTopologyLayout";
 
 /*
  * How health reads on a resource topology: one colour and one word per
@@ -97,8 +98,8 @@ export const RESOURCE_TOPOLOGY_BRANCH_COLORS: Record<
   ResourceTopologyBranchTone,
   string
 > = {
-  critical: "#dc2626",
-  warning: "#f59e0b",
+  critical: RESOURCE_TOPOLOGY_HEALTH_COLORS.critical,
+  warning: RESOURCE_TOPOLOGY_HEALTH_COLORS.warning,
   calm: "var(--ou-border-strong, #cbd5e1)",
 };
 
@@ -134,6 +135,86 @@ export const BRANCH_TONE_ORDER: Record<ResourceTopologyBranchTone, number> = {
   warning: 1,
   critical: 2,
 };
+
+/* A line from a part to what it holds, as the map draws it. */
+export interface ResourceTopologyBranchLine {
+  branch: ResourceTopologyBranch;
+  /* Its SVG path, turns rounded. */
+  path: string;
+  tone: ResourceTopologyBranchTone;
+  /* On the way from the resource to the part someone picked: indigo. */
+  isOnPath: boolean;
+}
+
+/*
+ * Every line from a part to what it holds, coloured by the worst it leads
+ * to, in the order they are drawn: calm first, then amber, then red, so a
+ * red line is drawn over the grey one it shares a leg with - and the picked
+ * part's path over them all. Lines of one rank keep the layout's order.
+ */
+export function describeTopologyBranches(
+  graph: ResourceTopologyGraph,
+  branches: ReadonlyArray<ResourceTopologyBranch>,
+  pathIds: ReadonlySet<string>,
+): Array<ResourceTopologyBranchLine> {
+  const lines: Array<{ line: ResourceTopologyBranchLine; index: number }> =
+    branches.map((branch: ResourceTopologyBranch, index: number) => {
+      return {
+        line: {
+          branch: branch,
+          path: getBranchPath(branch.points),
+          tone: getBranchTone(graph, branch.nodeIds),
+          isOnPath:
+            pathIds.has(branch.fromNodeId) &&
+            branch.nodeIds.some((id: string): boolean => {
+              return pathIds.has(id);
+            }),
+        },
+        index: index,
+      };
+    });
+  const rank: (line: ResourceTopologyBranchLine) => number = (
+    line: ResourceTopologyBranchLine,
+  ): number => {
+    return line.isOnPath
+      ? BRANCH_TONE_ORDER.critical + 1
+      : BRANCH_TONE_ORDER[line.tone];
+  };
+
+  return lines
+    .sort(
+      (
+        a: { line: ResourceTopologyBranchLine; index: number },
+        b: { line: ResourceTopologyBranchLine; index: number },
+      ): number => {
+        return rank(a.line) - rank(b.line) || a.index - b.index;
+      },
+    )
+    .map(
+      (entry: {
+        line: ResourceTopologyBranchLine;
+        index: number;
+      }): ResourceTopologyBranchLine => {
+        return entry.line;
+      },
+    );
+}
+
+/* Below this zoom a card drops its smaller lines: they could not be read. */
+export const RESOURCE_TOPOLOGY_DETAIL_ZOOM: number = 0.5;
+
+/*
+ * How much a card says at a zoom: everything near, only its name, its
+ * colour and its issue counts far out, where its smaller lines would be
+ * specks, so the shape of a large resource stays readable.
+ */
+export type ResourceTopologyDetailLevel = "near" | "far";
+
+export function getResourceTopologyDetailLevel(
+  zoom: number,
+): ResourceTopologyDetailLevel {
+  return zoom < RESOURCE_TOPOLOGY_DETAIL_ZOOM ? "far" : "near";
+}
 
 /*
  * The shares of a part's insides by how they are doing, worst first, for
