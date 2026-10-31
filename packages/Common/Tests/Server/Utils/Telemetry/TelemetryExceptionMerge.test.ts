@@ -551,9 +551,8 @@ describe("what a merge or an unmerge tells the reads of occurrences", () => {
     ]);
 
     const written: number = Math.max(
-      ...(
-        TelemetryExceptionService.executeTransaction as unknown as jest.Mock
-      ).mock.invocationCallOrder,
+      ...(TelemetryExceptionService.executeTransaction as unknown as jest.Mock)
+        .mock.invocationCallOrder,
     );
     expect(forget.mock.invocationCallOrder[0]!).toBeGreaterThan(written);
   }

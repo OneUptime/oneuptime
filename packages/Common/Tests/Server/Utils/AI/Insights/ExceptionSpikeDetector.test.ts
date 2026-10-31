@@ -1,10 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import ExceptionSpikeDetector, {
   EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
   EXCEPTION_SPIKE_CANDIDATE_LIMIT,
@@ -333,7 +327,8 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
         }) => {
           const window: InBetween<Date> = data.query["time"] as InBetween<Date>;
           const isRecent: boolean = window.endValue.getTime() === now.getTime();
-          const isGroup: boolean = data.query["fingerprint"] instanceof Includes;
+          const isGroup: boolean =
+            data.query["fingerprint"] instanceof Includes;
 
           return new PositiveNumber(
             isRecent ? (isGroup ? 50 : 5) : isGroup ? 24 : 20,
@@ -365,11 +360,13 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
     });
 
     test("what was merged into the candidates is read once for them all, in the project", async () => {
-      jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([
-        fakeCandidate(),
-        { ...fakeCandidate(), id: otherId, fingerprint: "fp-other" },
-        { id: ObjectID.generate(), fingerprint: undefined },
-      ] as unknown as Array<TelemetryException>);
+      jest
+        .spyOn(TelemetryExceptionService, "findBy")
+        .mockResolvedValue([
+          fakeCandidate(),
+          { ...fakeCandidate(), id: otherId, fingerprint: "fp-other" },
+          { id: ObjectID.generate(), fingerprint: undefined },
+        ] as unknown as Array<TelemetryException>);
       const countBySpy: jest.SpyInstance = jest
         .spyOn(ExceptionInstanceService, "countBy")
         .mockResolvedValue(new PositiveNumber(1));

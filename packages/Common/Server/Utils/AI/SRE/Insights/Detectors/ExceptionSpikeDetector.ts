@@ -237,17 +237,19 @@ export default class ExceptionSpikeDetector implements InsightDetector {
      * the candidates (TelemetryExceptionService.getGroupFingerprints). A
      * candidate nothing was merged into is counted by its own fingerprint.
      */
-    const groupFingerprints: Map<string, Array<string>> =
-      await TelemetryExceptionService.getGroupFingerprints({
-        projectId: context.projectId,
-        exceptions: exceptions
-          .filter((exception: TelemetryException): boolean => {
-            return Boolean(exception.id && exception.fingerprint);
-          })
-          .map((exception: TelemetryException): ExceptionOfGroup => {
-            return { id: exception.id!, fingerprint: exception.fingerprint! };
-          }),
-      });
+    const groupFingerprints: Map<
+      string,
+      Array<string>
+    > = await TelemetryExceptionService.getGroupFingerprints({
+      projectId: context.projectId,
+      exceptions: exceptions
+        .filter((exception: TelemetryException): boolean => {
+          return Boolean(exception.id && exception.fingerprint);
+        })
+        .map((exception: TelemetryException): ExceptionOfGroup => {
+          return { id: exception.id!, fingerprint: exception.fingerprint! };
+        }),
+    });
 
     for (const exception of exceptions) {
       if (!exception.id || !exception.fingerprint) {

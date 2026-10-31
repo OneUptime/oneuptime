@@ -801,17 +801,19 @@ describe("ProductionReviewFindings reads", () => {
         10000,
       ],
     ]);
-    const query: JSONObject = (countBy.mock.calls[0]![0] as { query: JSONObject })
-      .query;
+    const query: JSONObject = (
+      countBy.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
     expect((query["fingerprint"] as unknown as Includes).values).toEqual([
       "fp-1",
       "fp-merged",
     ]);
     // Still the group's service, in the project, as the system.
     expect(String(query["primaryEntityId"])).toBe(CHECKOUT);
-    expect(
-      (countBy.mock.calls[0]![0] as { props: JSONObject }).props,
-    ).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+    expect((countBy.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
+      isRoot: true,
+      tenantId: PROJECT_ID,
+    });
     TelemetryExceptionService.clearGroupFingerprints();
   });
 

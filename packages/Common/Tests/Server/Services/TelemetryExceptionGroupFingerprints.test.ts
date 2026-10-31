@@ -151,7 +151,10 @@ async function answer(
       .sort(byRecency)
       .slice(0, limit)
       .map((member: Row): Record<string, unknown> => {
-        return { survivorId: member.mergedInto, fingerprint: member.fingerprint };
+        return {
+          survivorId: member.mergedInto,
+          fingerprint: member.fingerprint,
+        };
       });
   }
 
@@ -407,7 +410,9 @@ describe("what was merged into some exceptions, in one read", () => {
             fingerprint: `s-${survivor}-m-${String(member).padStart(3, "0")}`,
             mergedInto: idOf(survivor),
             // Survivor 0's members were seen last of all.
-            lastSeenAt: new Date(Date.UTC(2026, 9, 1) + (100 - survivor) * 1000),
+            lastSeenAt: new Date(
+              Date.UTC(2026, 9, 1) + (100 - survivor) * 1000,
+            ),
           }),
         );
       }
@@ -416,9 +421,12 @@ describe("what was merged into some exceptions, in one read", () => {
     const read: MergedFingerprintsRead =
       await TelemetryExceptionService.readMergedFingerprints({
         projectId: PROJECT_ID,
-        survivorIds: Array.from({ length: 101 }, (_value: unknown, i: number) => {
-          return idOf(i);
-        }),
+        survivorIds: Array.from(
+          { length: 101 },
+          (_value: unknown, i: number) => {
+            return idOf(i);
+          },
+        ),
       });
 
     expect(read.isComplete).toBe(false);
@@ -453,9 +461,19 @@ describe("an exception's group fingerprints", () => {
         mergedInto: idOf(1),
         lastSeenAt: new Date(Date.UTC(2026, 9, 5)),
       }),
-      row({ id: idOf(4), fingerprint: "d", mergedInto: idOf(1), lastSeenAt: null }),
+      row({
+        id: idOf(4),
+        fingerprint: "d",
+        mergedInto: idOf(1),
+        lastSeenAt: null,
+      }),
       // Deleted, or merged into another: not its.
-      row({ id: idOf(5), fingerprint: "e", mergedInto: idOf(1), deleted: true }),
+      row({
+        id: idOf(5),
+        fingerprint: "e",
+        mergedInto: idOf(1),
+        deleted: true,
+      }),
       row({ id: idOf(6), fingerprint: "f", mergedInto: idOf(7) }),
       row({ id: idOf(7), fingerprint: "g" }),
     ];
@@ -473,17 +491,19 @@ describe("an exception's group fingerprints", () => {
       row({ id: idOf(3), fingerprint: "c" }),
     ];
 
-    const groups: Map<string, Array<string>> =
-      await TelemetryExceptionService.getGroupFingerprints({
-        projectId: PROJECT_ID,
-        exceptions: [
-          { id: new ObjectID(idOf(1).toUpperCase()), fingerprint: "a" },
-          { id: idOf(3), fingerprint: "c" },
-          { id: idOf(1), fingerprint: "a" },
-          { id: "not-an-id", fingerprint: "x" },
-          { id: idOf(4), fingerprint: "" },
-        ],
-      });
+    const groups: Map<
+      string,
+      Array<string>
+    > = await TelemetryExceptionService.getGroupFingerprints({
+      projectId: PROJECT_ID,
+      exceptions: [
+        { id: new ObjectID(idOf(1).toUpperCase()), fingerprint: "a" },
+        { id: idOf(3), fingerprint: "c" },
+        { id: idOf(1), fingerprint: "a" },
+        { id: "not-an-id", fingerprint: "x" },
+        { id: idOf(4), fingerprint: "" },
+      ],
+    });
 
     expect(Object.fromEntries(groups)).toEqual({
       [idOf(1)]: ["a", "b"],
@@ -561,9 +581,9 @@ describe("an exception's group fingerprints", () => {
 
     expect(await groupOf(rows[0]!)).toEqual(["a", "b"]);
     expect(await groupOf(rows[0]!)).toEqual(["a", "b"]);
-    expect(TelemetryExceptionService.readMergedFingerprints).toHaveBeenCalledTimes(
-      2,
-    );
+    expect(
+      TelemetryExceptionService.readMergedFingerprints,
+    ).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -666,7 +686,11 @@ describe("the group fingerprints kept", () => {
     const setString: jest.SpiedFunction<typeof GlobalCache.setString> =
       jest.spyOn(GlobalCache, "setString");
 
-    await TelemetryExceptionService.forgetGroupFingerprints([null, "", undefined]);
+    await TelemetryExceptionService.forgetGroupFingerprints([
+      null,
+      "",
+      undefined,
+    ]);
 
     expect(setString).not.toHaveBeenCalled();
   });
@@ -766,12 +790,7 @@ describe("the group of the exception a fingerprint is the own of", () => {
     expect(lookup.sql).toContain(
       `"projectId" = $1 AND "fingerprint" = $2 AND "mergedIntoTelemetryExceptionId" IS NULL AND "deletedAt" IS NULL AND "primaryEntityId" = $4`,
     );
-    expect(lookup.params).toEqual([
-      PROJECT_ID.toString(),
-      "a",
-      20,
-      SERVICE_ID,
-    ]);
+    expect(lookup.params).toEqual([PROJECT_ID.toString(), "a", 20, SERVICE_ID]);
   });
 
   test("without a service, every not merged exception that carries it", async () => {
@@ -995,9 +1014,11 @@ describe("a seeded sweep of merges and unmerges", () => {
 
         // The two the big service's merges go into, often.
         if (project === 0 && random(2) === 0) {
-          for (const hot of rows.filter((found: Row): boolean => {
-            return found.primaryEntityId === services[1]!.id;
-          }).slice(0, 2)) {
+          for (const hot of rows
+            .filter((found: Row): boolean => {
+              return found.primaryEntityId === services[1]!.id;
+            })
+            .slice(0, 2)) {
             if (!asked.includes(hot)) {
               asked.push(hot);
             }
@@ -1006,11 +1027,13 @@ describe("a seeded sweep of merges and unmerges", () => {
         failReads = random(12) === 0;
         const readsBefore: number = memberReads();
 
-        const groups: Map<string, Array<string>> =
-          await TelemetryExceptionService.getGroupFingerprints({
-            projectId: projects[project]!,
-            exceptions: asked.map(exception),
-          });
+        const groups: Map<
+          string,
+          Array<string>
+        > = await TelemetryExceptionService.getGroupFingerprints({
+          projectId: projects[project]!,
+          exceptions: asked.map(exception),
+        });
 
         let anyNotKept: boolean = false;
 

@@ -639,12 +639,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (missing.length > 0) {
       try {
-        const read: MergedFingerprintsRead = await this.readMergedFingerprints(
-          {
-            projectId: data.projectId,
-            survivorIds: missing,
-          },
-        );
+        const read: MergedFingerprintsRead = await this.readMergedFingerprints({
+          projectId: data.projectId,
+          survivorIds: missing,
+        });
 
         for (const id of missing) {
           const merged: Array<string> = read.bySurvivor.get(id) || [];
@@ -685,12 +683,10 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     exception: ExceptionOfGroup;
   }): Promise<Array<string>> {
-    const groups: Map<string, Array<string>> = await this.getGroupFingerprints(
-      {
-        projectId: data.projectId,
-        exceptions: [data.exception],
-      },
-    );
+    const groups: Map<string, Array<string>> = await this.getGroupFingerprints({
+      projectId: data.projectId,
+      exceptions: [data.exception],
+    });
 
     return (
       groups.get(Service.normalizeExceptionId(data.exception.id)) ||
@@ -753,14 +749,12 @@ export class Service extends ProjectReferencesService<Model> {
       return [data.fingerprint];
     }
 
-    const groups: Map<string, Array<string>> = await this.getGroupFingerprints(
-      {
-        projectId: data.projectId,
-        exceptions: ids.map((id: string): ExceptionOfGroup => {
-          return { id, fingerprint: data.fingerprint };
-        }),
-      },
-    );
+    const groups: Map<string, Array<string>> = await this.getGroupFingerprints({
+      projectId: data.projectId,
+      exceptions: ids.map((id: string): ExceptionOfGroup => {
+        return { id, fingerprint: data.fingerprint };
+      }),
+    });
 
     const fingerprints: Array<string> = [data.fingerprint];
 

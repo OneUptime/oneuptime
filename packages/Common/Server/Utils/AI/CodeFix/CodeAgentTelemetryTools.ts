@@ -887,13 +887,15 @@ async function readOccurrences(data: {
     return occurrences;
   }
 
-  const groupFingerprints: Map<string, Array<string>> =
-    await TelemetryExceptionService.getGroupFingerprints({
-      projectId: data.scope.projectId,
-      exceptions: groups.map((group: TelemetryException): ExceptionOfGroup => {
-        return { id: group._id!.toString(), fingerprint: group.fingerprint! };
-      }),
-    });
+  const groupFingerprints: Map<
+    string,
+    Array<string>
+  > = await TelemetryExceptionService.getGroupFingerprints({
+    projectId: data.scope.projectId,
+    exceptions: groups.map((group: TelemetryException): ExceptionOfGroup => {
+      return { id: group._id!.toString(), fingerprint: group.fingerprint! };
+    }),
+  });
 
   const fingerprintsOf: (group: TelemetryException) => Array<string> = (
     group: TelemetryException,

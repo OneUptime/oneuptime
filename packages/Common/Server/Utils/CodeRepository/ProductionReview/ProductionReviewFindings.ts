@@ -1034,18 +1034,20 @@ export default class ProductionReviewFindings {
     const reads: Promise<void> = (async (): Promise<void> => {
       try {
         // One read of what was merged into them all, within the time allowed.
-        const groupFingerprints: Map<string, Array<string>> =
-          await TelemetryExceptionService.getGroupFingerprints({
-            projectId: data.projectId,
-            exceptions: groups.map(
-              (group: TelemetryException): ExceptionOfGroup => {
-                return {
-                  id: group._id!.toString(),
-                  fingerprint: group.fingerprint!,
-                };
-              },
-            ),
-          });
+        const groupFingerprints: Map<
+          string,
+          Array<string>
+        > = await TelemetryExceptionService.getGroupFingerprints({
+          projectId: data.projectId,
+          exceptions: groups.map(
+            (group: TelemetryException): ExceptionOfGroup => {
+              return {
+                id: group._id!.toString(),
+                fingerprint: group.fingerprint!,
+              };
+            },
+          ),
+        });
 
         await ProductionReviewFindings.countEach({
           projectId: data.projectId,
@@ -1092,23 +1094,21 @@ export default class ProductionReviewFindings {
     await Promise.all(
       data.groups.map(async (group: TelemetryException): Promise<void> => {
         try {
-          const count: PositiveNumber = await ExceptionInstanceService.countBy(
-            {
-              query: {
-                projectId: data.projectId,
-                primaryEntityId: group.primaryEntityId,
-                fingerprint: getOccurrenceFingerprintQuery(
-                  data.groupFingerprints.get(
-                    group._id!.toString().toLowerCase(),
-                  ) || [group.fingerprint!],
-                ),
-                time: new InBetween(data.since, data.now),
-              } as never,
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              props: { isRoot: true, tenantId: data.projectId },
-            },
-          );
+          const count: PositiveNumber = await ExceptionInstanceService.countBy({
+            query: {
+              projectId: data.projectId,
+              primaryEntityId: group.primaryEntityId,
+              fingerprint: getOccurrenceFingerprintQuery(
+                data.groupFingerprints.get(
+                  group._id!.toString().toLowerCase(),
+                ) || [group.fingerprint!],
+              ),
+              time: new InBetween(data.since, data.now),
+            } as never,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true, tenantId: data.projectId },
+          });
 
           counts.set(group._id!.toString(), count.toNumber());
         } catch (error) {

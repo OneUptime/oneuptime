@@ -525,9 +525,10 @@ describe("find_production_exceptions", () => {
     ]);
 
     const recentQuery: JSONObject = firstQuery(reads.occurrences);
-    expect((recentQuery["fingerprint"] as unknown as Includes).values).toEqual(
-      [thrownInTotal.fingerprint, "fp-merged-duplicate"],
-    );
+    expect((recentQuery["fingerprint"] as unknown as Includes).values).toEqual([
+      thrownInTotal.fingerprint,
+      "fp-merged-duplicate",
+    ]);
     TelemetryExceptionService.clearGroupFingerprints();
   });
 
