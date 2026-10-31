@@ -21,6 +21,8 @@ export interface ComponentProps {
    */
   breaksLikeAName?: boolean | undefined;
   dataTestId?: string | undefined;
+  // A size worked out as it is drawn (a dashboard Value widget's title).
+  style?: React.CSSProperties | undefined;
 }
 
 /*
@@ -46,6 +48,7 @@ const IsolatedText: FunctionComponent<ComponentProps> = (
     <bdi
       dir={direction || undefined}
       className={props.className}
+      style={props.style}
       title={props.title}
       data-testid={props.dataTestId}
     >

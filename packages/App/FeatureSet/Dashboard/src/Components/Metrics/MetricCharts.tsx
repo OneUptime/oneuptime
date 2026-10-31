@@ -64,6 +64,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IconProp from "Common/Types/Icon/IconProp";
 import HintChip from "./HintChip";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -1468,21 +1469,25 @@ function renderSeriesControls(input: {
                         : undefined
                     }
                   />
-                  <span
+                  {/*
+                   * The series' name and its value are data, in whatever
+                   * language they were written: each reads its own way
+                   * (IsolatedText), so on a Persian page an English name
+                   * cut short keeps its start ("Req...", not "...sts").
+                   */}
+                  <IsolatedText
+                    text={series.seriesName}
                     className={`${SERIES_CHIP_NAME_CLASS_NAME} ${
                       isHidden ? "line-through" : ""
                     }`}
-                  >
-                    {series.seriesName}
-                  </span>
+                  />
                   {valueLabel !== null ? (
-                    <span
+                    <IsolatedText
+                      text={valueLabel}
                       className={`${SERIES_CHIP_VALUE_CLASS_NAME} tabular-nums font-medium ${
                         isHidden ? "text-gray-300" : "text-gray-500"
                       }`}
-                    >
-                      {valueLabel}
-                    </span>
+                    />
                   ) : null}
                 </button>
                 {onInvestigateSeries ? (

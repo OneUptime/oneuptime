@@ -1449,10 +1449,10 @@ test.describe("the dashboard inside OneUptime at any width", () => {
         '[id^="dashboard-component-"] button[aria-pressed]',
       ) as HTMLElement;
       const frame: HTMLElement = button.parentElement as HTMLElement;
-      const spans: NodeListOf<HTMLElement> =
-        button.querySelectorAll<HTMLElement>(":scope > span");
-      const name: HTMLElement = spans[1] as HTMLElement;
-      const value: HTMLElement = spans[2] as HTMLElement;
+      // The colour's dot, the series' name, its value.
+      const parts: Array<Element> = Array.from(button.children);
+      const name: HTMLElement = parts[1] as HTMLElement;
+      const value: HTMLElement = parts[2] as HTMLElement;
       const investigate: HTMLElement = frame.children[1] as HTMLElement;
 
       return {

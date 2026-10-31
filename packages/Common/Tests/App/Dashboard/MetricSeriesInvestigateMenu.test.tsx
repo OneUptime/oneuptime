@@ -416,6 +416,13 @@ describe("a series chip on a narrow chart", () => {
     const value: HTMLElement = toggle.lastElementChild as HTMLElement;
 
     expect(value).not.toBe(name);
+    /*
+     * Each reads its own way, so on a Persian page an English name cut
+     * short keeps its start ("host.na...", not "...web-01").
+     */
+    expect([name.tagName, name.getAttribute("dir")]).toEqual(["BDI", "ltr"]);
+    // A number with no letters takes the isolate's own reading.
+    expect([value.tagName, value.getAttribute("dir")]).toEqual(["BDI", null]);
     expect(classesOf(name)).toEqual(
       expect.arrayContaining(SERIES_CHIP_NAME_CLASS_NAME.split(" ")),
     );
