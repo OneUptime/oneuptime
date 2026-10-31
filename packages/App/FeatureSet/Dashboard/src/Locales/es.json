@@ -38968,6 +38968,8 @@
   "Number of exceptions that came back": "Número de excepciones que volvieron",
   "Number of new exceptions": "Número de excepciones nuevas",
   "Rise over the usual (in %)": "Aumento sobre lo habitual (en %)",
+  "Shown in your public dashboard's header.": "Se muestra en el encabezado de tu panel público.",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "Se muestra en lugar del logotipo donde tu panel público es oscuro. Sin uno, el logotipo se muestra allí sobre un fondo claro.",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "El gráfico muestra cuántas excepciones ocurrieron. No se dibuja para excepciones nuevas, excepciones que volvieron o un aumento sobre lo habitual.",
   "This incident is private, so public notes cannot be added to it.": "Este incidente es privado, así que no se le pueden añadir notas públicas.",
   "This episode is private, so public notes cannot be added to it.": "Este episodio es privado, así que no se le pueden añadir notas públicas.",

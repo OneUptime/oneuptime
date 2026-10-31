@@ -91,6 +91,8 @@ Die Arbeitsfläche ist ein Raster mit zwölf Spalten. Widgets rasten darin ein, 
 
 Jede Art von Widget hat eine Mindestgröße, damit das, was es zeichnet, lesbar bleibt: Ein Diagramm ist mindestens sechs Spalten breit und drei Zeilen hoch, während eine einzelne Zahl in eine Zelle passt.
 
+Das Raster ist so breit wie der Bildschirm. Auf einem schmaleren Bildschirm werden seine Spalten schmaler, und seine Zeilen behalten ihre Höhe. Auf einem Smartphone stehen die Widgets untereinander, jedes so breit wie der Bildschirm, in der Reihenfolge, in der sie im Raster stehen: Zeile für Zeile von oben, innerhalb einer Zeile von links nach rechts. Ein Diagramm wird dort höher gezeichnet, damit sein Verlauf Platz hat. Beim Bearbeiten auf einem Smartphone sehen Sie das Raster, das sich seitlich scrollen lässt.
+
 Um ein Widget später zu ändern, klicken Sie während der Bearbeitung darauf. Seine Einstellungen öffnen sich erneut, mit zwei weiteren Schaltflächen unten:
 
 - **Widget duplizieren** fügt an der ersten freien Stelle eine Kopie mit denselben Einstellungen hinzu.

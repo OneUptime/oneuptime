@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -1328,14 +1329,19 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
       }),
   );
 
+  /*
+   * The title is words someone wrote, in their language whatever the
+   * page's: it reads its own way (IsolatedText), so an English title cut
+   * short on a Persian page keeps its start ("ACTIVE REQUE...", not
+   * "...IVE REQUESTS").
+   */
   const titleElement: ReactElement = (
-    <span
+    <IsolatedText
+      text={props.title || ""}
       className="font-medium text-gray-500 truncate uppercase tracking-wider"
       style={{ fontSize: `${layout.titleFontSizeInPx}px` }}
       title={props.title}
-    >
-      {props.title}
-    </span>
+    />
   );
 
   return (

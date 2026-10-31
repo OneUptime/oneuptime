@@ -54,9 +54,7 @@ import {
   PUBLIC_AUTO_REFRESH_MENU_TEST_ID,
 } from "./DashboardToolbarCopy";
 import {
-  PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX,
   PUBLIC_DASHBOARD_BOARD_TEST_ID,
-  PUBLIC_DASHBOARD_FRAME_CLASS_NAME,
   PUBLIC_DASHBOARD_FRAME_TEST_ID,
   PUBLIC_DASHBOARD_HEADER_TEST_ID,
   PUBLIC_DASHBOARD_PAGE_TEST_ID,
@@ -67,6 +65,33 @@ export interface ComponentProps {
   dashboardId: ObjectID;
   onLoadComplete?: (() => void) | undefined;
 }
+
+/*
+ * An image the public dashboard API sends ({ file: base64, fileType }) as a
+ * data: URL, or null when there is none - the API sends null for an image
+ * the dashboard does not have, or that is not a file of its own project.
+ */
+export const getImageDataUrl: (value: unknown) => string | null = (
+  value: unknown,
+): string | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const image: JSONObject = value as JSONObject;
+  const file: unknown = image["file"];
+
+  if (typeof file !== "string" || !file) {
+    return null;
+  }
+
+  const fileType: string =
+    typeof image["fileType"] === "string" && image["fileType"]
+      ? (image["fileType"] as string)
+      : "image/png";
+
+  return `data:${fileType};base64,${file}`;
+};
 
 const DashboardViewPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -100,13 +125,15 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   > | null> = useRef<ReturnType<typeof setInterval> | null>(null);
   const [refreshTick, setRefreshTick] = useState<number>(0);
 
-  // The board itself: as wide as the page, and never under 1000px.
+  // The board itself: as wide as the page.
   const boardRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
   const [dashboardTotalWidth, setDashboardTotalWidth] = useState<number>(0);
   const [dashboardName, setDashboardName] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  // The logo made for the dark theme, drawn instead while the page is dark.
+  const [darkThemeLogoUrl, setDarkThemeLogoUrl] = useState<string | null>(null);
   const [pageDescription, setPageDescription] = useState<string>("");
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
@@ -170,15 +197,9 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       );
       setPageDescription((response.data["pageDescription"] as string) || "");
 
-      // Extract logo data
-      const logoData: JSONObject | null =
-        (response.data["logoFile"] as JSONObject) || null;
-      if (logoData && logoData["file"]) {
-        const fileData: string = logoData["file"] as string;
-        const fileType: string =
-          (logoData["fileType"] as string) || "image/png";
-        setLogoUrl(`data:${fileType};base64,${fileData}`);
-      }
+      // The logos, as data: URLs.
+      setLogoUrl(getImageDataUrl(response.data["logoFile"]));
+      setDarkThemeLogoUrl(getImageDataUrl(response.data["darkThemeLogoFile"]));
 
       /*
        * The dashboard's own default time range and auto-refresh, for a
@@ -307,12 +328,10 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
    * (Common/UI/Styles/Theme.css), the ones the dashboard your team sees is
    * drawn on, so each is right in the light theme and the dark one.
    *
-   * The page is the width of the screen. Only the board keeps the width its
-   * twelve columns are laid out for (PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX),
-   * and on a narrower screen - a phone - it scrolls sideways inside its own
-   * frame. The whole page used to be 1000px wide, so on a phone the
-   * toolbar - auto-refresh, theme, full screen - sat past the right edge,
-   * and the header and footer scrolled away with the board.
+   * The page is the width of the screen, and so is the board: it lays its
+   * widgets out in that width (DashboardViewLayout), on a phone one under
+   * another. The board used to keep 1000px in a frame that scrolled
+   * sideways, so a phone showed half of each row of widgets.
    */
   return (
     <div
@@ -340,13 +359,31 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             {/* Logo + Title + Description */}
             <div className="flex min-w-0 flex-1 basis-72 items-center gap-3 sm:gap-4">
-              {logoUrl && (
-                <LogoPlate className="flex-shrink-0">
-                  <img
-                    src={logoUrl}
-                    alt={dashboardName}
-                    className="h-8 w-auto object-contain"
-                  />
+              {/*
+               * The logo, or while the page is dark the logo made for the
+               * dark theme (LogoPlate). A dashboard with only a dark theme
+               * logo shows it on the dark page and nothing on the light one.
+               */}
+              {(logoUrl || darkThemeLogoUrl) && (
+                <LogoPlate
+                  className="flex-shrink-0"
+                  darkLogo={
+                    darkThemeLogoUrl ? (
+                      <img
+                        src={darkThemeLogoUrl}
+                        alt={dashboardName}
+                        className="h-8 w-auto object-contain"
+                      />
+                    ) : undefined
+                  }
+                >
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={dashboardName}
+                      className="h-8 w-auto object-contain"
+                    />
+                  ) : undefined}
                 </LogoPlate>
               )}
               <div className="min-w-0">
@@ -552,21 +589,16 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
-       * Dashboard Canvas: the board in a frame of its own, which scrolls it
-       * sideways where the screen is narrower than the board, and is what
+       * Dashboard Canvas: the board in a frame of its own, which is what
        * Full Screen shows.
        */}
       <div
         ref={dashboardCanvasRef}
-        className={`mt-3 ${PUBLIC_DASHBOARD_FRAME_CLASS_NAME}`}
+        className="mt-3"
         style={{ background: "var(--ou-surface-primary, #ffffff)" }}
         data-testid={PUBLIC_DASHBOARD_FRAME_TEST_ID}
       >
-        <div
-          ref={boardRef}
-          style={{ minWidth: `${PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX}px` }}
-          data-testid={PUBLIC_DASHBOARD_BOARD_TEST_ID}
-        >
+        <div ref={boardRef} data-testid={PUBLIC_DASHBOARD_BOARD_TEST_ID}>
           <DashboardCanvas
             dashboardViewConfig={dashboardViewConfig}
             onDashboardViewConfigChange={(_config: DashboardViewConfig) => {

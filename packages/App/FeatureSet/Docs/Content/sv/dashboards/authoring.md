@@ -91,6 +91,8 @@ Arbetsytan är ett rutnät som är tolv kolumner brett. Widgetar fäster mot det
 
 Varje sorts widget har en minsta storlek, så att det den ritar förblir läsbart: ett diagram är minst sex kolumner brett och tre rader högt, medan ett enda tal får plats i en cell.
 
+Rutnätet är lika brett som skärmen. På en smalare skärm blir dess kolumner smalare och dess rader behåller sin höjd. På en telefon visas widgetarna under varandra, var och en lika bred som skärmen, i den ordning de står i rutnätet: rad för rad uppifrån och, inom en rad, från vänster till höger. Ett diagram ritas högre där, så att dess kurva får plats. När du redigerar på en telefon ser du rutnätet, som går att rulla i sidled.
+
 För att ändra en widget senare klickar du på den medan du redigerar. Dess inställningar öppnas igen, med två knappar till längst ned:
 
 - **Duplicate Widget** lägger till en kopia, med samma inställningar, på den första lediga platsen.

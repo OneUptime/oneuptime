@@ -525,6 +525,101 @@ describe("ValueWidgetLayout", () => {
     });
   });
 
+  describe("a one-row tile on the board's shortest row", () => {
+    /*
+     * A board's rows are never shorter than 70px, and exactly 70px on every
+     * board 500 to 950px wide - a laptop's beside the side menu, a tablet's -
+     * and on a phone, where the widgets are one under another, each the
+     * board's width (DashboardBoardLayout). The title's gate let a one-row
+     * tile there keep its name only from 70.5px up, so the shipped 3x1 tile
+     * was a bare number on all of them. Re-declared, as the chrome is above.
+     */
+    const SHORTEST_ROW_IN_PX: number = 70;
+    const COLUMNS: number = 12;
+    const GAP_IN_PX: number = 10;
+
+    // A grid of this width's 3x1 tile, as the canvas sizes it.
+    type ThreeByOneFunction = (boardWidthInPx: number) => number;
+
+    const threeByOneWidthInPx: ThreeByOneFunction = (
+      boardWidthInPx: number,
+    ): number => {
+      const columnInPx: number =
+        (boardWidthInPx - (COLUMNS - 1) * GAP_IN_PX) / COLUMNS;
+
+      return 3 * columnInPx + 2 * GAP_IN_PX;
+    };
+
+    it("keeps its title over the number on every grid whose rows are 70px", () => {
+      for (
+        let boardWidthInPx: number = 500;
+        boardWidthInPx <= 950;
+        boardWidthInPx = boardWidthInPx + 10
+      ) {
+        const layout: ValueWidgetLayout = getValueWidgetLayout(
+          makeInput({
+            widthInPx: threeByOneWidthInPx(boardWidthInPx),
+            heightInPx: SHORTEST_ROW_IN_PX,
+          }),
+        );
+
+        expect([boardWidthInPx, layout.showTitle]).toEqual([
+          boardWidthInPx,
+          true,
+        ]);
+        // The number keeps a size worth reading under its name.
+        expect(layout.valueFontSizeInPx).toBeGreaterThanOrEqual(20);
+        expect(renderedStackHeightInPx(layout)).toBeLessThanOrEqual(
+          layout.contentHeightInPx + EPSILON,
+        );
+      }
+    });
+
+    it("on a phone, as wide as the screen, shows its title and its trend on the line above the number", () => {
+      for (
+        let boardWidthInPx: number = 280;
+        boardWidthInPx < 500;
+        boardWidthInPx = boardWidthInPx + 10
+      ) {
+        const layout: ValueWidgetLayout = getValueWidgetLayout(
+          makeInput({
+            widthInPx: boardWidthInPx,
+            heightInPx: SHORTEST_ROW_IN_PX,
+          }),
+        );
+
+        expect([boardWidthInPx, layout.stackMode]).toEqual([
+          boardWidthInPx,
+          ValueWidgetStackMode.Compact,
+        ]);
+        expect(layout.showTitle).toBe(true);
+        expect(layout.showStatusRow).toBe(true);
+        expect(layout.valueFontSizeInPx).toBeGreaterThanOrEqual(20);
+        expect(renderedStackHeightInPx(layout)).toBeLessThanOrEqual(
+          layout.contentHeightInPx + EPSILON,
+        );
+      }
+    });
+
+    it("gives the number the whole tile when the tile is shorter than the row, or being edited", () => {
+      const shorter: ValueWidgetLayout = getValueWidgetLayout(
+        makeInput({ widthInPx: 340, heightInPx: SHORTEST_ROW_IN_PX - 4 }),
+      );
+      const edited: ValueWidgetLayout = getValueWidgetLayout(
+        makeInput({
+          widthInPx: 340,
+          heightInPx: SHORTEST_ROW_IN_PX,
+          isEditMode: true,
+        }),
+      );
+
+      expect(shorter.showTitle).toBe(false);
+      expect(edited.showTitle).toBe(false);
+      expect(shorter.valueRowHeightInPx).toBe(shorter.contentHeightInPx);
+      expect(edited.valueRowHeightInPx).toBe(edited.contentHeightInPx);
+    });
+  });
+
   describe("the degradation ladder", () => {
     it("drops the sparkline, then the trend, then the title as the widget shrinks", () => {
       const tall: ValueWidgetLayout = getValueWidgetLayout(

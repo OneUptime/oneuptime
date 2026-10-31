@@ -39,9 +39,11 @@ each with a picture of a warning and a critical cell) drawn in the Live Preview 
 change and kept by Save Changes and a reload, Lower is worse on a percent column still at
 80 and 90 starting it at 20 and 10, the levels under the fields lined up with them, a
 column with no thresholds asking for a value, the card in the dark theme and German, and
-the card in a window 390px wide, its fields stacked. Phone (Pixel 5, 390px) Chromium runs the board: a
-dashboard is edited on a laptop. Both run the public dashboard, Light and Dark. Screenshots are under
-`output/playwright/dashboard-table-thresholds-ui`.
+the card in a window 390px wide, its fields stacked. Phone (Pixel 5, 390px) Chromium runs
+the board, its widgets one under another, each the screen's width: a dashboard is edited
+on a laptop. Both run a table's title keeping its line, the row search beside it at 1280
+and under it on the phone, and the public dashboard, Light and Dark. Screenshots are
+under `output/playwright/dashboard-table-thresholds-ui`.
 
 This checks real browser rendering and the widget's handling of its readings; the API,
 the database and the deployed app's routing are outside this fixture.

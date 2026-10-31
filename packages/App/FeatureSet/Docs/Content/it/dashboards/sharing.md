@@ -155,12 +155,13 @@ Nella pagina **Branding** della dashboard, puoi configurare:
 - **Titolo della pagina**: ciò che appare nella scheda del browser e in cima alla pagina.
 - **Descrizione della pagina**: la descrizione usata dai motori di ricerca e dalle anteprime sui social.
 - **Logo**: un'immagine mostrata nell'intestazione della dashboard pubblica.
+- **Logo per il tema scuro**: un logo pensato per uno sfondo scuro, mostrato al posto del logo ovunque la dashboard pubblica sia scura.
 - **Tema**: chiaro, scuro o come è impostato il dispositivo di ogni visitatore; vedi [Tema](#tema).
 - **Favicon**: la piccola icona nella scheda del browser.
 
-Il logo e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
+Il logo, il logo per il tema scuro e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
 
-Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. Il logo, il tema e la favicon valgono solo per la dashboard pubblica.
+Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. I loghi, il tema e la favicon valgono solo per la dashboard pubblica.
 
 I visitatori vedono il branding solo quando possono vedere la dashboard. Prima che venga inserita la password, una dashboard condivisa con password mostra solo il titolo della pagina, la favicon e il tema, e i motori di ricerca e le anteprime dei link vedono il titolo della pagina ma non la descrizione della pagina. Una dashboard con una lista di IP consentiti mostra il suo branding solo agli indirizzi della lista, e i motori di ricerca e le anteprime dei link non ne vedono nulla.
 
@@ -174,7 +175,7 @@ La scheda **Tema**, subito sotto il logo, decide come appare la dashboard pubbli
 | **Scuro** | La dashboard scura, comunque sia impostato il loro dispositivo. |
 | **Come il dispositivo di ogni visitatore** | Chiara o scura, come è impostato il loro dispositivo, e cambia con esso mentre la dashboard è aperta. |
 
-Qualunque cosa tu scelga, un pulsante con il sole o la luna nella barra degli strumenti della dashboard permette a ogni visitatore di passare alla dashboard chiara o a quella scura, o di tornare al tema che hai impostato, e il suo browser ricorda la scelta per ogni dashboard pubblica di quell'indirizzo. Sulla dashboard scura il logo poggia su uno sfondo chiaro, così anche un logo pensato per una pagina bianca resta ben visibile.
+Qualunque cosa tu scelga, un pulsante con il sole o la luna nella barra degli strumenti della dashboard permette a ogni visitatore di passare alla dashboard chiara o a quella scura, o di tornare al tema che hai impostato, e il suo browser ricorda la scelta per ogni dashboard pubblica di quell'indirizzo. Sulla dashboard scura viene mostrato il logo per il tema scuro al posto del logo; senza, il logo poggia su uno sfondo chiaro, così anche un logo pensato per una pagina bianca resta ben visibile.
 
 Una dashboard creata da ora in poi parte con **Come il dispositivo di ogni visitatore**. Tramite l'API e Terraform il campo è `theme`, con uno dei valori `Light`, `Dark` o `System` (**Come il dispositivo di ogni visitatore**), scritti esattamente così; qualsiasi altro valore viene rifiutato. Una configurazione Terraform che non imposta alcun `theme` riceve `Light`, quindi una configurazione scritta prima dell'impostazione non pianifica mai una modifica a una dashboard che gestisce.
 

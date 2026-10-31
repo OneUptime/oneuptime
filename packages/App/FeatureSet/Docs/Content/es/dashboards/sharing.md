@@ -155,12 +155,13 @@ En la página **Marca** del panel, puedes configurar:
 - **Título de la página**: lo que se muestra en la pestaña del navegador y en la parte superior de la página.
 - **Descripción de la página**: la descripción que usan los buscadores y las vistas previas en redes sociales.
 - **Logotipo**: una imagen que se muestra en el encabezado del panel público.
+- **Logotipo para el tema oscuro**: un logotipo pensado para un fondo oscuro, que se muestra en lugar del logotipo dondequiera que el panel público sea oscuro.
 - **Tema**: claro, oscuro o según esté configurado el dispositivo de cada visitante; consulta [Tema](#tema).
 - **Favicon**: el icono pequeño de la pestaña del navegador.
 
-El logotipo y el favicon son archivos subidos en el propio proyecto del panel, y eso se comprueba cada vez que se guarda uno, desde el panel, la API, Terraform o un flujo de trabajo. Un archivo subido en otro proyecto se rechaza con las mismas palabras que recibe un archivo que ya no existe: "The logo's file could not be found. Upload the logo again." o "The favicon's file could not be found. Upload the favicon again." El panel público solo muestra imágenes de su propio proyecto.
+El logotipo, el logotipo para el tema oscuro y el favicon son archivos subidos en el propio proyecto del panel, y eso se comprueba cada vez que se guarda uno, desde el panel, la API, Terraform o un flujo de trabajo. Un archivo subido en otro proyecto se rechaza con las mismas palabras que recibe un archivo que ya no existe: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." o "The favicon's file could not be found. Upload the favicon again." El panel público solo muestra imágenes de su propio proyecto.
 
-El título y la descripción de la página también encabezan la barra de herramientas del panel para tu equipo, en lugar de su nombre y su descripción. El logotipo, el tema y el favicon solo se aplican al panel público.
+El título y la descripción de la página también encabezan la barra de herramientas del panel para tu equipo, en lugar de su nombre y su descripción. Los logotipos, el tema y el favicon solo se aplican al panel público.
 
 Los visitantes solo ven la marca una vez que pueden ver el panel. Antes de introducir la contraseña, un panel compartido con contraseña solo muestra su título de la página, su favicon y su tema, y los buscadores y las vistas previas de enlaces ven su título de la página pero no su descripción de la página. Un panel con una lista de IP permitidas solo muestra su marca a las direcciones de la lista, y los buscadores y las vistas previas de enlaces no ven nada de ella.
 
@@ -174,7 +175,7 @@ La tarjeta **Tema**, justo debajo del logotipo, decide cómo ven el panel públi
 | **Oscuro** | El panel oscuro, tenga como tenga configurado su dispositivo. |
 | **Según el dispositivo de cada visitante** | Claro u oscuro, según esté configurado su dispositivo, y cambia con él mientras el panel está abierto. |
 
-Elijas lo que elijas, un botón de sol o de luna en la barra de herramientas del panel permite a cada visitante cambiar al panel claro o al oscuro, o volver al tema que definiste, y su navegador recuerda la elección para todos los paneles públicos de esa dirección. En el panel oscuro, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien.
+Elijas lo que elijas, un botón de sol o de luna en la barra de herramientas del panel permite a cada visitante cambiar al panel claro o al oscuro, o volver al tema que definiste, y su navegador recuerda la elección para todos los paneles públicos de esa dirección. En el panel oscuro, el logotipo para el tema oscuro se muestra en lugar del logotipo; sin uno, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien.
 
 Un panel creado a partir de ahora empieza con **Según el dispositivo de cada visitante**. En la API y en Terraform el campo es `theme`, con uno de los valores `Light`, `Dark` o `System` (**Según el dispositivo de cada visitante**), escritos exactamente así; cualquier otro valor se rechaza. Una configuración de Terraform que no indica ningún `theme` recibe `Light`, así que una configuración escrita antes del ajuste nunca planifica un cambio en un panel que gestiona.
 

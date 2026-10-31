@@ -74,16 +74,17 @@ describe("Status page branding docs: the images are the project's own files", ()
 describe("Public dashboard branding docs: the images are the project's own files", () => {
   const page: string = readPage("dashboards/sharing.md");
 
-  it("says the logo and favicon are files of the dashboard's own project, checked on every save", () => {
+  it("says the logos and favicon are files of the dashboard's own project, checked on every save", () => {
     expect(page).toContain(
-      "The logo and the favicon are files uploaded in the dashboard's own project",
+      "The logo, the dark theme logo and the favicon are files uploaded in the dashboard's own project",
     );
   });
 
   it("quotes every refusal the server gives, word for word", () => {
     const refusals: Array<string> = refusalsOf(new Dashboard());
 
-    expect(refusals).toHaveLength(2);
+    // The logo, the dark theme logo and the favicon.
+    expect(refusals).toHaveLength(3);
 
     for (const refusal of refusals) {
       expect(page).toContain(`"${refusal}"`);

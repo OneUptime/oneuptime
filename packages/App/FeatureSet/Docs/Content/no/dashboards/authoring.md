@@ -91,6 +91,8 @@ Lerretet er et rutenett som er tolv kolonner bredt. Widgets fester seg til det, 
 
 Hver type widget har en minste størrelse, slik at det den tegner forblir lesbart: et diagram er minst seks kolonner bredt og tre rader høyt, mens ett enkelt tall får plass i én celle.
 
+Rutenettet er like bredt som skjermen. På en smalere skjerm blir kolonnene smalere, og radene beholder høyden sin. På en telefon vises widgetene under hverandre, hver like bred som skjermen, i den rekkefølgen de står i rutenettet: rad for rad ovenfra og, innenfor en rad, fra venstre mot høyre. Et diagram tegnes høyere der, så kurven har plass. Når du redigerer på en telefon, ser du rutenettet, som kan rulles sidelengs.
+
 For å endre en widget senere klikker du på den mens du redigerer. Innstillingene åpnes igjen, med to knapper til nederst:
 
 - **Duplicate Widget** legger til en kopi, med de samme innstillingene, på det første ledige stedet.
