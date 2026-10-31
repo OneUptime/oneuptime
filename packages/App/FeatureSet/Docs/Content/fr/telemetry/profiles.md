@@ -317,7 +317,7 @@ Quand une fonction de votre propre code prend au moins 5 % du temps ou de la mé
 
 Quand un profil porte des ID de trace et de span (par exemple sous forme d'étiquettes d'échantillon `trace_id` / `span_id`), vous passez directement d'un span de trace lent au profil CPU ou mémoire correspondant pour comprendre exactement quel code s'exécutait, et **Ouvrir la trace associée** fait le chemin inverse.
 
-L'onglet **Profil** d'un span inclut aussi les échantillons liés aux spans imbriqués sous lui, car les profileurs attribuent souvent le temps CPU d'une requête à un span enfant plutôt qu'au span de la requête lui-même.
+L'onglet **Échantillons de profil** d'un span inclut aussi les échantillons liés aux spans imbriqués sous lui, car les profileurs attribuent souvent le temps CPU d'une requête à un span enfant plutôt qu'au span de la requête lui-même.
 
 La page d'une trace renvoie aussi vers le Profiler sur le service de la trace, pour les 15 minutes avant et après, quand ce service était profilé à ce moment-là, et la page **Profils de performance** d'un service ou d'un hôte ouvre le Profiler sur ce service ou cet hôte.
 

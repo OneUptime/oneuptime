@@ -317,7 +317,7 @@ Wanneer een functie van uw eigen code minstens 5% van de tijd of het geheugen va
 
 Wanneer een profiel trace- en span-ID's draagt (bijvoorbeeld als samplelabels `trace_id` / `span_id`), gaat u rechtstreeks van een trage tracespan naar het bijbehorende CPU- of geheugenprofiel om precies te begrijpen welke code draaide, en **Gekoppelde trace openen** gaat de andere kant op.
 
-Het tabblad **Profiel** van een span bevat ook de samples die gekoppeld zijn aan de spans die eronder zijn genest, omdat profilers de CPU-tijd van een verzoek vaak aan een kindspan toekennen in plaats van aan de span van het verzoek zelf.
+Het tabblad **Profielsamples** van een span bevat ook de samples die gekoppeld zijn aan de spans die eronder zijn genest, omdat profilers de CPU-tijd van een verzoek vaak aan een kindspan toekennen in plaats van aan de span van het verzoek zelf.
 
 De pagina van een trace linkt ook naar de Profiler op de service van de trace, voor de 15 minuten ervoor en erna, wanneer die service toen werd geprofileerd, en de pagina **Prestatieprofielen** van een service of host opent de Profiler op die service of host.
 

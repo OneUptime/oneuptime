@@ -1,4 +1,6 @@
 import { readPage } from "./DocsContentSupport";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -82,8 +84,8 @@ import ProfileUtil from "../../../FeatureSet/Dashboard/src/Utils/ProfileUtil";
  *     through the shared grammar and each explorer's own compiler.
  *   - Continuous Profiling: the ingest routes, the three ways to pass the
  *     key, which keys may send profiles, the ingress body limit, the sample
- *     type a profile is stored under, the profile type table and the
- *     default retention.
+ *     type a profile is stored under, the profile type table, the
+ *     default retention and the name of a span's profile tab.
  *   - Source Maps: the five settings and their defaults (code, Helm chart and
  *     page agree), which two can only be lowered, the ingress body limit, the
  *     bundle path rule, which keys may upload, and who reads raw map content.
@@ -1037,6 +1039,35 @@ describe("Continuous Profiling", () => {
     expect(page).toContain(
       "sets the **Default Retention (Days)**, 15 days unless you change it",
     );
+  });
+
+  /*
+   * The span panel's tab is "Profile samples", as the trace's Related
+   * signals name the same samples: the locales word "Profile" alone as a
+   * person's profile. Every page bolds it as its language draws it.
+   */
+  it("names a span's profile tab as the span panel draws it, in every language", () => {
+    const spanPanel: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceSpanPanel.tsx",
+    );
+
+    expect(spanPanel).toMatch(
+      /id: "profile" as PanelTab,\s*label: "Profile samples",/,
+    );
+    expect(spanPanel).toContain("{translator.translateText(tab.label)}");
+    expect(page).toContain(
+      "A span's **Profile samples** tab also includes the samples linked to the spans nested under it",
+    );
+
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const drawn: string = drawnDashboardLabel(language, "Profile samples");
+
+      expect({
+        language,
+        drawn,
+        named: readPage(language, PROFILES).includes(`**${drawn}**`),
+      }).toEqual({ language, drawn, named: true });
+    }
   });
 });
 

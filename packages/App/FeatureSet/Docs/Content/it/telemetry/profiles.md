@@ -317,7 +317,7 @@ Quando una funzione del vostro codice occupa almeno il 5% del tempo o della memo
 
 Quando un profilo contiene ID di traccia e di span (per esempio come etichette di campione `trace_id` / `span_id`), potete passare direttamente da uno span lento di una traccia al profilo CPU o di memoria corrispondente per capire esattamente quale codice era in esecuzione, e **Apri la traccia collegata** fa il percorso inverso.
 
-La scheda **Profilo** di uno span include anche i campioni collegati agli span annidati sotto di esso, perché i profiler spesso attribuiscono il tempo CPU di una richiesta a uno span figlio anziché allo span della richiesta stessa.
+La scheda **Campioni di profilo** di uno span include anche i campioni collegati agli span annidati sotto di esso, perché i profiler spesso attribuiscono il tempo CPU di una richiesta a uno span figlio anziché allo span della richiesta stessa.
 
 La pagina di una traccia rimanda anche al Profiler sul servizio della traccia, per i 15 minuti prima e dopo, quando quel servizio era profilato in quel momento, e la pagina **Profili di prestazioni** di un servizio o di un host apre il Profiler su quel servizio o host.
 

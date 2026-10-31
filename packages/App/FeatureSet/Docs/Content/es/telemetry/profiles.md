@@ -317,7 +317,7 @@ Cuando una función de su propio código ocupa al menos el 5 % del tiempo o la m
 
 Cuando un perfil lleva ID de traza y de span (por ejemplo, como etiquetas de muestra `trace_id` / `span_id`), puede ir directamente de un span lento de una traza al perfil de CPU o memoria correspondiente para entender exactamente qué código se ejecutaba, y **Abrir la traza vinculada** hace el camino inverso.
 
-La pestaña **Perfil** de un span incluye también las muestras vinculadas a los spans anidados bajo él, porque los perfiladores suelen atribuir el tiempo de CPU de una petición a un span hijo en lugar de al span de la propia petición.
+La pestaña **Muestras de perfiles** de un span incluye también las muestras vinculadas a los spans anidados bajo él, porque los perfiladores suelen atribuir el tiempo de CPU de una petición a un span hijo en lugar de al span de la propia petición.
 
 La página de una traza también enlaza al Profiler en el servicio de la traza, para los 15 minutos anteriores y posteriores, cuando ese servicio se perfilaba entonces, y la página **Perfiles de rendimiento** de un servicio o de un host abre el Profiler en ese servicio o host.
 
