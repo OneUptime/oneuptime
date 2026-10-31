@@ -33,6 +33,17 @@ const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
     MicrosoftTeamsCloud.GccHigh,
   ).azurePortalOrigin;
 
+  /*
+   * What the guide says of this server's cloud. A value that names no cloud
+   * stops every Microsoft Teams request on the server (MicrosoftTeamsHosts),
+   * so the guide says so, rather than name the commercial cloud its links
+   * fall back to.
+   */
+  const serverCloud: string =
+    MicrosoftTeamsCloudUtil.read(MicrosoftTeamsCloudSetting) === null
+      ? "This server's value names no Microsoft cloud, so Microsoft Teams is off until it does."
+      : `This server's cloud: **${cloud.title}**.`;
+
   const markdownText: string = `
 
 ##### Step 1: Prerequisites
@@ -154,7 +165,7 @@ microsoftTeamsApp:
 - \`MICROSOFT_TEAMS_APP_CLIENT_ID\` (\`clientId\`): the app registration's **Application (client) ID**. It is also the bot id of the Teams app package.
 - \`MICROSOFT_TEAMS_APP_CLIENT_SECRET\` (\`clientSecret\`): the client secret's **Value** from Step 4.
 - \`MICROSOFT_TEAMS_APP_TENANT_ID\` (\`tenantId\`): the **Directory (tenant) ID**. The bot authenticates in this tenant, and people sign in to it to connect their Microsoft Teams account.
-- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for Microsoft 365 in a US Government cloud - \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud. For GCC High and DoD, make the app registration and the Azure Bot in [Azure Government's portal](${governmentPortal}). This server's cloud: **${cloud.title}**.
+- \`MICROSOFT_TEAMS_CLOUD\` (\`cloud\`): only for Microsoft 365 in a US Government cloud - \`gcc\`, \`gcc-high\` or \`dod\`. Leave it unset for the commercial cloud. For GCC High and DoD, make the app registration and the Azure Bot in [Azure Government's portal](${governmentPortal}). ${serverCloud}
 
 
 Restart your OneUptime server after adding these environment variables so they take effect.
