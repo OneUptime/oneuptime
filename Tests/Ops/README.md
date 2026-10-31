@@ -828,6 +828,40 @@ body wraps the Event under `object`; the rule used to read the watch's own
 helm; the "Ops Config Test" workflow runs it after
 `agent-metric-filter-behaviour.sh`.
 
+### `agent-restarts-increase-behaviour.sh`
+
+What the Kubernetes agent sends for container restarts, in the collector the
+chart ships (and in 0.96.0, which an upgrade with `--reuse-values` keeps, where
+the gauge is made a sum in datapoint context). It renders the chart, lifts the
+cluster collector's `metrics/restarts-increase` processors out of its ConfigMap
+as rendered (all but `memory_limiter` and `batch`), and posts them, in order,
+seven samples of what the `k8s_cluster` receiver sends for four containers - 30
+seconds, five minutes and an hour apart: `k8s.container.restarts` as an int
+gauge on the container's own resource, keyed by `container.id`, which changes
+with every restart because the kubelet runs each one as a new container, with
+`k8s.container.ready` beside it and a pod's `k8s.pod.phase`. Only
+`k8s.container.restarts.increase` may come out, as a monotonic delta sum
+without `container.id`, stamped with the cluster's name: a crash loop's
+restarts since each sample before, nothing for a pod recreated under the same
+name (a new UID) at its first sample, nothing for a count that went down in the
+same pod, and 0 for a quiet container. Kept by `container.id`, the same
+processors would count no restart at all. It needs docker and helm; the "Ops
+Config Test" workflow runs it after `agent-cpu-names-behaviour.sh`.
+`Utils/KubernetesAgentRestartsIncreaseBehaviour.js` builds its config and
+payloads and checks what comes out.
+
+### `KubernetesAgentRestartsIncrease.test.js`
+
+Holds `agent-restarts-increase-behaviour.sh` to the arithmetic and to the
+chart: the increases it expects are what `cumulative_to_delta` makes of its
+samples keyed by the pod (and none, keyed by `container.id`); its samples are
+what the kubelet reports (a new container ID with every count, a recreated pod
+under a new UID from 0) and its payloads what `k8s_cluster` sends; the
+processors it lifts are the ones the template's pipeline lists, in order; its
+check passes the export the arithmetic predicts and fails one that kept
+`container.id`, lost a restart, sent another metric, or is not a delta sum
+from the previous sample. It also holds the workflow to running the script.
+
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 
 The runtime counterpart of the query-event check above. It runs each query-event

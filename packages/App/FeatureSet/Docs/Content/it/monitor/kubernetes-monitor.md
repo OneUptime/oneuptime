@@ -85,13 +85,13 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Carico di lavoro | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Piano di controllo | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** e **Node CPU Usage** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Pod Phase (Code)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Node Ready Condition** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1.
+> **Pod CPU Usage** e **Node CPU Usage** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Pod Phase (Code)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Node Ready Condition** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1. **Container Restarts** è il contatore progressivo dei riavvii del container; **Container Restarts (Increase)** è ciò che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container, quindi la sua somma su una finestra dà i riavvii avvenuti in essa.
 
 ## Criteri di monitoraggio
 
@@ -158,7 +158,10 @@ I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, jo
 **Cluster Stopped Reporting** scatta quando dall'agente del cluster non arriva nulla per dieci minuti: l'agente è stato disinstallato o va continuamente in crash, la sua chiave API è stata revocata, ha perso la connessione a OneUptime, oppure il server API del cluster ha smesso di rispondergli. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** e **Job Failures** contano quanto è cresciuto nella finestra un contatore di riavvii o di pod falliti, non il contatore stesso, quindi si risolvono da soli quando i riavvii o i fallimenti si fermano. La crescita si vede solo tra due campioni dello stesso minuto: con l'intervallo di 30 secondi dell'agente è circa la metà. Un crash loop si riavvia di continuo e viene rilevato; un singolo riavvio può passare inosservato.
+> **CrashLoopBackOff Detection** somma `k8s.container.restarts.increase`, che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container. Così conta ogni riavvio per quanto distanti siano i campioni, si risolve da solo quando i riavvii si fermano, e un pod ricreato inizia un nuovo conteggio invece di essere letto come riavvii. Un agente più vecchio non invia `k8s.container.restarts.increase`: prima [aggiornatelo](/docs/monitor/kubernetes-agent#aggiornamento). Un monitor creato dal modello prima di allora legge quanto è cresciuto `k8s.container.restarts` entro ogni minuto, e così perde circa la metà dei riavvii di un crash loop: eliminatelo e create di nuovo il modello.
+
+> [!NOTE]
+> **Job Failures** conta quanto è cresciuto nella finestra il contatore dei pod falliti di un Job, non il contatore stesso, quindi si risolve da solo quando i fallimenti si fermano. La crescita si vede solo tra due campioni dello stesso minuto: con l'intervallo di 30 secondi dell'agente è circa la metà. Un Job che esaurisce i suoi tentativi viene rilevato; un singolo fallimento può passare inosservato.
 
 ### Cogliere le cause, non solo i sintomi
 
@@ -187,7 +190,7 @@ I cluster si registrano da soli a partire dai dati dell'agente, con il `clusterN
 :::
 
 :::details CrashLoopBackOff Detection non è scattato per un riavvio
-Il modello scatta quando il contatore dei riavvii di un container cresce in 15 minuti mentre il container è stato pronto per meno della metà di essi, quindi un container che si è riavviato una volta ed è tornato subito non avvisa. La crescita si vede solo tra due campioni dello stesso minuto, quindi un singolo riavvio può passare inosservato; un crash loop si riavvia ogni pochi minuti e viene rilevato.
+Il modello scatta quando un container si riavvia in 15 minuti mentre è stato pronto per meno della metà di essi, quindi un container che si è riavviato una volta ed è tornato subito non avvisa. Legge `k8s.container.restarts.increase`, che un agente più vecchio non invia: [aggiornate l'agente](/docs/monitor/kubernetes-agent#aggiornamento). Un monitor creato dal modello prima di allora legge quanto è cresciuto `k8s.container.restarts` tra due campioni dello stesso minuto, e perde i riavvii tra i campioni di due minuti: eliminatelo e create di nuovo il modello. Se `filters.metrics.include` elenca le metriche che l'agente invia, aggiungete `k8s.container.restarts.increase`.
 :::
 
 ## Passaggi successivi
