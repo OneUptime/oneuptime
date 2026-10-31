@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "اختیاری: نام سرویس‌ها و گره‌هایی که OneUptime AI هرگز نباید تغییر دهد، جداشده با ویرگول (* با هر دنباله‌ای از نویسه‌ها مطابقت دارد)، علاوه بر خود عامل و گردآورنده‌های OneUptime.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "اختیاری: الگوهای glob به شکل session:<id>، جداشده با ویرگول، که اصلاح‌ها هرگز به آن‌ها دست نمی‌زنند. عامل در هر حال هرگز نشست خودش را پایان نمی‌دهد.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "اختیاری: نام آن دسته از واحدهای systemd که OneUptime AI هرگز نباید تغییر دهد، جداشده با ویرگول (* با هر دنباله‌ای از نویسه‌ها مطابقت دارد)، علاوه بر خود عامل.",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "یا بگذارید نصب‌کننده هر دو فایل را بنویسد و عامل را راه‌اندازی کند: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "عامل هوش مصنوعی Podman",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: یک استثنای برطرف‌شده برگشت",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها",
   "Pick who to page.": "انتخاب کنید چه کسی فراخوانده شود.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "انتخاب کنید این گردش کاری چه کسی را فرا بخواند. می‌توانید بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "انتخاب کنید این گردش کاری چه کسی را فرا بخواند. می‌توانید بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید.",
+  "Or let the installer write both files and start it:": "یا بگذارید نصب‌کننده هر دو فایل را بنویسد و عامل را راه‌اندازی کند:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "خط اول اسکریپت را با نام install.sh دانلود می‌کند تا بتوانید پیش از اجرا آن را بخوانید."
 }

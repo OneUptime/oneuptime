@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Valgfrit: kommaseparerede tjeneste- og nodenavne (* matcher en vilkårlig række tegn), som OneUptime AI aldrig må ændre, ud over agenten selv og OneUptime-collectorerne.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Valgfrit: kommaseparerede globmønstre (session:<id>), som rettelser aldrig rører. Agenten afslutter under alle omstændigheder aldrig sin egen session.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Valgfrit: kommaseparerede systemd-unitnavne (* matcher en vilkårlig række tegn), som OneUptime AI aldrig må ændre, ud over agenten selv.",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "Eller lad installationsprogrammet skrive begge filer og starte den: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman-AI-agenten",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: en løst undtagelse kom tilbage",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: undtagelser toppede",
   "Pick who to page.": "Vælg, hvem der skal kaldes op.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Vælg, hvem denne arbejdsgang kalder op. Du kan ændre det senere i dens opkaldstrin i Bygger."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Vælg, hvem denne arbejdsgang kalder op. Du kan ændre det senere i dens opkaldstrin i Bygger.",
+  "Or let the installer write both files and start it:": "Eller lad installationsprogrammet skrive begge filer og starte den:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "Den første linje henter scriptet som install.sh, så du kan læse det, før du kører det."
 }

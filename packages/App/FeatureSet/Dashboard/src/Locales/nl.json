@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Optioneel: door komma's gescheiden service- en nodenamen (* komt overeen met elke reeks tekens) die OneUptime AI nooit mag wijzigen, naast de agent zelf en de OneUptime-collectors.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Optioneel: door komma's gescheiden globs van de vorm session:<id> die oplossingen nooit aanraken. De agent beëindigt zijn eigen sessie hoe dan ook nooit.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Optioneel: door komma's gescheiden systemd-unitnamen (* komt overeen met elke reeks tekens) die OneUptime AI nooit mag wijzigen, naast de agent zelf.",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "Of laat het installatieprogramma beide bestanden schrijven en de agent starten: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman-AI-agent",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: een opgeloste uitzondering is terug",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: uitzonderingen piekten",
   "Pick who to page.": "Kies wie er wordt opgeroepen.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Kies wie deze workflow oproept. Je kunt dit later wijzigen in de oproepstap in de Bouwer."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Kies wie deze workflow oproept. Je kunt dit later wijzigen in de oproepstap in de Bouwer.",
+  "Or let the installer write both files and start it:": "Of laat het installatieprogramma beide bestanden schrijven en de agent starten:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "De eerste regel downloadt het script als install.sh, zodat je het kunt lezen voordat je het uitvoert."
 }

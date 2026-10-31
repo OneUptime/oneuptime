@@ -16,6 +16,11 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  InstallScriptName,
+  TROUBLESHOOT_SCRIPT_FILE,
+  getInstallFileUrl,
+} from "Common/Types/InstallScripts/InstallScripts";
 
 /*
  * The steps the "how do I connect this?" card (ResourceConnectionGuideCard)
@@ -379,7 +384,7 @@ const getComposeAgentConnectionGuide: (
                 }),
               },
             ),
-            code: `curl -sSL ${agent.troubleshootScriptUrl} -o troubleshoot.sh && bash troubleshoot.sh`,
+            code: `curl -fsSL ${agent.troubleshootScriptUrl} -o troubleshoot.sh && bash troubleshoot.sh`,
           }
         : {
             title: "Read the agent's logs",
@@ -407,16 +412,23 @@ const getComposeAgentConnectionGuide: (
   };
 };
 
-const troubleshootScript: (agentDirectory: string) => string = (
-  agentDirectory: string,
-): string => {
-  return `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${agentDirectory}/troubleshoot.sh`;
+/*
+ * The agent's diagnostic script on the reader's own OneUptime, which serves
+ * the agents' files for its own release (Common/Types/InstallScripts).
+ */
+const troubleshootScript: (
+  oneuptimeUrl: string,
+  name: InstallScriptName,
+) => string = (oneuptimeUrl: string, name: InstallScriptName): string => {
+  return getInstallFileUrl(oneuptimeUrl, name, TROUBLESHOOT_SCRIPT_FILE);
 };
 
 export const getDockerSwarmClusterConnectionGuide: (
   clusterName: string,
+  oneuptimeUrl: string,
 ) => ResourceConnectionGuide = (
   clusterName: string,
+  oneuptimeUrl: string,
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
@@ -427,7 +439,10 @@ export const getDockerSwarmClusterConnectionGuide: (
       installDescription: translationKey(
         'Run the install script from the setup guide on a manager node of the swarm. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
       ),
-      troubleshootScriptUrl: troubleshootScript("DockerSwarmAgent"),
+      troubleshootScriptUrl: troubleshootScript(
+        oneuptimeUrl,
+        InstallScriptName.DockerSwarmAgent,
+      ),
     },
     clusterName,
   );
@@ -435,8 +450,10 @@ export const getDockerSwarmClusterConnectionGuide: (
 
 export const getProxmoxClusterConnectionGuide: (
   clusterName: string,
+  oneuptimeUrl: string,
 ) => ResourceConnectionGuide = (
   clusterName: string,
+  oneuptimeUrl: string,
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
@@ -447,7 +464,10 @@ export const getProxmoxClusterConnectionGuide: (
       installDescription: translationKey(
         'Run the install script from the setup guide on a machine that can reach the Proxmox API. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
       ),
-      troubleshootScriptUrl: troubleshootScript("ProxmoxAgent"),
+      troubleshootScriptUrl: troubleshootScript(
+        oneuptimeUrl,
+        InstallScriptName.ProxmoxAgent,
+      ),
     },
     clusterName,
   );
@@ -455,8 +475,10 @@ export const getProxmoxClusterConnectionGuide: (
 
 export const getCephClusterConnectionGuide: (
   clusterName: string,
+  oneuptimeUrl: string,
 ) => ResourceConnectionGuide = (
   clusterName: string,
+  oneuptimeUrl: string,
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
@@ -467,7 +489,10 @@ export const getCephClusterConnectionGuide: (
       installDescription: translationKey(
         'Run the install script from the setup guide on a machine that can reach the Ceph manager. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
       ),
-      troubleshootScriptUrl: troubleshootScript("CephAgent"),
+      troubleshootScriptUrl: troubleshootScript(
+        oneuptimeUrl,
+        InstallScriptName.CephAgent,
+      ),
     },
     clusterName,
   );
@@ -475,7 +500,11 @@ export const getCephClusterConnectionGuide: (
 
 export const getStorageArrayConnectionGuide: (
   arrayName: string,
-) => ResourceConnectionGuide = (arrayName: string): ResourceConnectionGuide => {
+  oneuptimeUrl: string,
+) => ResourceConnectionGuide = (
+  arrayName: string,
+  oneuptimeUrl: string,
+): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
       resourceNoun: translationKey("storage array"),
@@ -485,7 +514,10 @@ export const getStorageArrayConnectionGuide: (
       installDescription: translationKey(
         'Run the install script from the setup guide on a machine that can reach the array\'s management address. When it asks for the storage array name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
       ),
-      troubleshootScriptUrl: troubleshootScript("StorageArrayAgent"),
+      troubleshootScriptUrl: troubleshootScript(
+        oneuptimeUrl,
+        InstallScriptName.StorageArrayAgent,
+      ),
     },
     arrayName,
   );
@@ -493,8 +525,10 @@ export const getStorageArrayConnectionGuide: (
 
 export const getVMwareVCenterConnectionGuide: (
   vcenterName: string,
+  oneuptimeUrl: string,
 ) => ResourceConnectionGuide = (
   vcenterName: string,
+  oneuptimeUrl: string,
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
@@ -505,7 +539,10 @@ export const getVMwareVCenterConnectionGuide: (
       installDescription: translationKey(
         'Run the install script from the setup guide on a machine that can reach vCenter. When it asks for the vCenter name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
       ),
-      troubleshootScriptUrl: troubleshootScript("VMwareAgent"),
+      troubleshootScriptUrl: troubleshootScript(
+        oneuptimeUrl,
+        InstallScriptName.VMwareAgent,
+      ),
     },
     vcenterName,
   );

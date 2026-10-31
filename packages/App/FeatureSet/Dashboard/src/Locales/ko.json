@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "선택 사항: 에이전트 자체와 OneUptime 컬렉터 외에, OneUptime AI가 절대 변경해서는 안 되는 서비스 및 노드 이름을 쉼표로 구분해 지정합니다(*는 임의의 문자열과 일치).",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "선택 사항: 수정이 절대 건드리지 않을 session:<id> glob 패턴을 쉼표로 구분해 지정합니다. 어떤 경우에도 에이전트는 자신의 세션을 종료하지 않습니다.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "선택 사항: 에이전트 자체 외에, OneUptime AI가 절대 변경해서는 안 되는 systemd 유닛 이름을 쉼표로 구분해 지정합니다(*는 임의의 문자열과 일치).",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "또는 설치 프로그램이 두 파일을 작성하고 에이전트를 시작하게 하세요: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman AI 에이전트",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 해결된 예외가 다시 발생",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: 예외 급증",
   "Pick who to page.": "호출할 대상을 선택하세요.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "이 워크플로가 호출할 대상을 선택하세요. 나중에 빌더의 호출 단계에서 변경할 수 있습니다."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "이 워크플로가 호출할 대상을 선택하세요. 나중에 빌더의 호출 단계에서 변경할 수 있습니다.",
+  "Or let the installer write both files and start it:": "또는 설치 프로그램이 두 파일을 작성하고 에이전트를 시작하게 하세요:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "첫 번째 줄은 스크립트를 install.sh로 내려받으므로, 실행하기 전에 읽어 볼 수 있습니다."
 }

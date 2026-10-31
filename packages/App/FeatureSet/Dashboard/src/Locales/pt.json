@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Opcional: nomes de serviços e de nós, separados por vírgula (* corresponde a qualquer sequência de caracteres), que o OneUptime AI nunca deve alterar, além do próprio agente e dos coletores do OneUptime.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Opcional: globs session:<id>, separados por vírgula, que as correções nunca afetam. De qualquer forma, o agente nunca encerra a própria sessão.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Opcional: nomes de unidades systemd, separados por vírgula (* corresponde a qualquer sequência de caracteres), que o OneUptime AI nunca deve alterar, além do próprio agente.",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "Ou deixe o instalador gravar os dois arquivos e iniciá-lo: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Agente de IA do Podman",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: uma exceção resolvida voltou",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: pico de exceções",
   "Pick who to page.": "Escolha quem acionar.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Escolha quem este fluxo de trabalho aciona. Você pode alterar depois na etapa de acionamento, no Construtor."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Escolha quem este fluxo de trabalho aciona. Você pode alterar depois na etapa de acionamento, no Construtor.",
+  "Or let the installer write both files and start it:": "Ou deixe o instalador gravar os dois arquivos e iniciá-lo:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "A primeira linha baixa o script como install.sh, para que você possa lê-lo antes de executá-lo."
 }

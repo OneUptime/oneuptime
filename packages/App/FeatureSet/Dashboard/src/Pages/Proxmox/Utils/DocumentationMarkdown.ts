@@ -11,6 +11,13 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import {
+  INSTALL_SCRIPT_READ_FIRST_NOTE,
+  getAgentFileDownloadCommand,
+  getInstallScriptDownloadCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 
 /*
  * The in-app guide for connecting a Proxmox VE cluster. Two ways in:
@@ -72,11 +79,13 @@ export type ProxmoxAgentInstallMethod = Exclude<
   "native-push"
 >;
 
-// Where the agent's files are published, and where install.sh puts them.
-export const PROXMOX_AGENT_RAW_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent";
-export const PROXMOX_AGENT_SOURCE_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent";
+/*
+ * Where every OneUptime serves the agent's install script and files, for
+ * its own release (Common/Types/InstallScripts): /install/proxmox-agent on
+ * the reader's OneUptime. And where install.sh puts them.
+ */
+export const PROXMOX_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.ProxmoxAgent;
 export const PROXMOX_AGENT_INSTALL_DIR: string = "/opt/oneuptime-proxmox-agent";
 
 /*
@@ -367,7 +376,8 @@ export function getProxmoxPushTarget(oneuptimeUrl: string): ProxmoxPushTarget {
  * install.sh prompts only for the values its environment does not already
  * hold, so the command can carry the reader's URL and key. Only a real key
  * goes there: the script writes whatever it is given into .env, and a
- * placeholder would become the key the agent sends.
+ * placeholder would become the key the agent sends. The script itself comes
+ * from the same OneUptime, which serves the agent of its own release.
  */
 export function getProxmoxInstallScriptCommand(data: {
   oneuptimeUrl: string;
@@ -386,7 +396,10 @@ export function getProxmoxInstallScriptCommand(data: {
   }
 
   return [
-    `curl -sSL ${PROXMOX_AGENT_RAW_URL}/install.sh -o install.sh`,
+    getInstallScriptDownloadCommand(
+      data.oneuptimeUrl,
+      PROXMOX_AGENT_INSTALL_NAME,
+    ),
     [...environment, "bash install.sh"].join(" "),
   ].join("\n");
 }
@@ -433,18 +446,26 @@ function inAgentFolder(
  * uninstall the agent" topic and the dialog beside an outdated agent
  * version (Components/AgentVersion) both show these.
  */
-export function getProxmoxAgentUpgradeCommand(): string {
+export function getProxmoxAgentUpgradeCommand(oneuptimeUrl: string): string {
   return getProxmoxInstallScriptCommand({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: oneuptimeUrl,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
   });
 }
 
-export function getProxmoxAgentDownloadCommand(): string {
+export function getProxmoxAgentDownloadCommand(oneuptimeUrl: string): string {
   return [
-    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
-    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      PROXMOX_AGENT_INSTALL_NAME,
+      "docker-compose.yml",
+    ),
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      PROXMOX_AGENT_INSTALL_NAME,
+      "otel-collector-config.yaml",
+    ),
   ].join("\n");
 }
 
@@ -543,6 +564,7 @@ ${
 - **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only.
 
 It installs to \`${PROXMOX_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts everything with Docker Compose. Running the script again reuses everything in that \`.env\` instead of asking again, so it is also how you upgrade.`,
+    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
   };
 }
 
@@ -558,12 +580,12 @@ function getDockerComposeStep(context: AgentGuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the agent's files, write its settings to a .env file and start it with Docker Compose.",
-    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [ProxmoxAgent directory](${PROXMOX_AGENT_SOURCE_URL}) into a new folder:
+    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from this OneUptime into a new folder:
 
 ${codeBlock(
   "bash",
   `mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-${getProxmoxAgentDownloadCommand()}`,
+${getProxmoxAgentDownloadCommand(context.oneuptimeUrl)}`,
 )}
 
 Create a \`.env\` file next to them — it holds the token secret, so keep it private with \`chmod 600 .env\`:
@@ -793,12 +815,12 @@ function getUpgradeTopic(context: AgentGuideContext): SetupGuideTopic {
     context.method === "install-script"
       ? `**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Run the install script again. It reuses every value in your existing \`.env\` (nothing is asked again), downloads the latest \`docker-compose.yml\` and \`otel-collector-config.yaml\` — a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\` — pulls the images and recreates the agent with them:
 
-${codeBlock("bash", getProxmoxAgentUpgradeCommand())}`
+${codeBlock("bash", getProxmoxAgentUpgradeCommand(context.oneuptimeUrl))}`
       : `Run these in the agent's folder, the one with \`docker-compose.yml\`.
 
 **Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
 
-${codeBlock("bash", getProxmoxAgentDownloadCommand())}
+${codeBlock("bash", getProxmoxAgentDownloadCommand(context.oneuptimeUrl))}
 
 Then pull the images and recreate the agent, so the collector reads its new config:
 
@@ -859,7 +881,7 @@ function getAgentTroubleshootingTopics(
 
 ${codeBlock(
   "bash",
-  `curl -sSL ${PROXMOX_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+  `${getTroubleshootScriptDownloadCommand(context.oneuptimeUrl, PROXMOX_AGENT_INSTALL_NAME)}
 ${runScript}`,
 )}
 

@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "選填：除了代理程式本身與 OneUptime 收集器之外，OneUptime AI 絕不可變更的服務名稱與節點名稱，以逗號分隔（* 可比對任意字串）。",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "選填：修正絕不會觸及的 session:<id> glob 模式，以逗號分隔。無論如何，代理程式都不會結束自己的工作階段。",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "選填：除了代理程式本身之外，OneUptime AI 絕不可變更的 systemd 單元名稱，以逗號分隔（* 可比對任意字串）。",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "或讓安裝程式寫入這兩個檔案並啟動它：curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman AI 代理程式",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}：已解決的例外再次出現",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}：例外激增",
   "Pick who to page.": "請選擇要呼叫的人。",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "請選擇此工作流程要呼叫的人。你可以稍後在建構器的呼叫步驟中變更。"
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "請選擇此工作流程要呼叫的人。你可以稍後在建構器的呼叫步驟中變更。",
+  "Or let the installer write both files and start it:": "或讓安裝程式寫入這兩個檔案並啟動它：",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "第一行會將指令碼下載為 install.sh，讓你可以在執行前先閱讀它。"
 }

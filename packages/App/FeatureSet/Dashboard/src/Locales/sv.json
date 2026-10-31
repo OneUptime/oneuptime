@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Valfritt: kommaseparerade tjänst- och nodnamn (* matchar valfri teckenföljd) som OneUptime AI aldrig får ändra, utöver agenten själv och OneUptimes collectors.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Valfritt: kommaseparerade glob-mönster för session:<id> som korrigeringar aldrig rör. Agenten avslutar oavsett aldrig sin egen session.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Valfritt: kommaseparerade systemd-unitnamn (* matchar valfri teckenföljd) som OneUptime AI aldrig får ändra, utöver agenten själv.",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "Eller låt installationsprogrammet skriva båda filerna och starta agenten: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman-AI-agenten",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: ett löst undantag kom tillbaka",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: undantagen toppade",
   "Pick who to page.": "Välj vem som ska larmas.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Välj vem det här arbetsflödet larmar. Du kan ändra det senare i larmsteget i Byggare."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Välj vem det här arbetsflödet larmar. Du kan ändra det senare i larmsteget i Byggare.",
+  "Or let the installer write both files and start it:": "Eller låt installationsprogrammet skriva båda filerna och starta agenten:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "Den första raden laddar ned skriptet som install.sh, så att du kan läsa det innan du kör det."
 }

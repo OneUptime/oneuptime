@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "Необязательно: имена сервисов и узлов через запятую (* соответствует любой последовательности символов), которые OneUptime AI никогда не должен изменять, — в дополнение к самому агенту и коллекторам OneUptime.",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "Необязательно: glob-шаблоны session:<id> через запятую, которых исправления никогда не касаются. Собственный сеанс агент не завершает в любом случае.",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "Необязательно: имена модулей systemd через запятую (* соответствует любой последовательности символов), которые OneUptime AI никогда не должен изменять, — в дополнение к самому агенту.",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "Или пусть установщик сам создаст оба файла и запустит агент: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "ИИ-агент Podman",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: устранённое исключение вернулось",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений",
   "Pick who to page.": "Выберите, кого вызывать.",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Выберите, кого вызывает этот рабочий процесс. Это можно изменить позже в шаге вызова в Конструкторе."
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Выберите, кого вызывает этот рабочий процесс. Это можно изменить позже в шаге вызова в Конструкторе.",
+  "Or let the installer write both files and start it:": "Или пусть установщик сам создаст оба файла и запустит агент:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "Первая строка скачивает скрипт в файл install.sh, чтобы вы могли прочитать его перед запуском."
 }

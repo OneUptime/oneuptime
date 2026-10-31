@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "可选：除代理自身和 OneUptime 收集器之外，OneUptime AI 绝不能更改的服务名称和节点名称，以逗号分隔（* 匹配任意字符序列）。",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "可选：修复绝不会触及的 session:<id> 通配模式，以逗号分隔。无论如何，代理都不会结束其自身的会话。",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "可选：除代理自身之外，OneUptime AI 绝不能更改的 systemd 单元名称，以逗号分隔（* 匹配任意字符序列）。",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "或者让安装程序写入这两个文件并启动代理：curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
   "Please enter a valid name.": "Please enter a valid name.",
   "Podman AI agent": "Podman AI 代理",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}：已解决的异常再次出现",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}：异常激增",
   "Pick who to page.": "请选择要呼叫的人。",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "请选择此工作流要呼叫的人。你可以稍后在生成器的呼叫步骤中更改。"
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "请选择此工作流要呼叫的人。你可以稍后在生成器的呼叫步骤中更改。",
+  "Or let the installer write both files and start it:": "或者让安装程序写入这两个文件并启动代理：",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "第一行将脚本下载为 install.sh，方便你在运行前先阅读它。"
 }

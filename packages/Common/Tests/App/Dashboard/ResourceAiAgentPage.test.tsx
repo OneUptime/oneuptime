@@ -55,6 +55,7 @@ import {
 import {
   COMPOSE_DIRECTORY_COMMENT,
   RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+  getHostAiAgentInstallCommand,
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
@@ -97,6 +98,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 
 jest.mock("react-i18next", () => {
   return {
@@ -368,6 +370,10 @@ function openAgentPage(
     </MemoryRouter>,
   );
 }
+
+// The Host AI agent's installer, downloaded from this OneUptime.
+const HOST_AI_AGENT_DOWNLOAD: RegExp =
+  /^curl -fsSL '?\S+\/install\/host-ai-agent'? -o install\.sh$/m;
 
 // The types whose agent is installed next to a collector (compose).
 const COMPOSE_INSTALLED_TYPES: Array<AiResourceType> =
@@ -3318,6 +3324,59 @@ describe("every resource type", () => {
       ).toHaveTextContent(
         `Install the ${descriptor.agentName} with the instructions above.`,
       );
+    },
+  );
+
+  /*
+   * A host has no collector container for the agent to sit beside, so its
+   * agent has an installer of its own: the page shows it to copy, from this
+   * OneUptime (which serves it for its release), with how to read it first.
+   * Every other agent is started by its collector's own installer.
+   */
+  test.each(COMPOSE_INSTALLED_TYPES)(
+    "%s: the agent's own installer, where it has one, from this OneUptime",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve({
+        ...notInstalledStatus(),
+        resourceType: type,
+      });
+      openAgentPage(descriptor);
+
+      await findTestId("ai-agent-install-command");
+
+      if (type !== AiResourceType.Host) {
+        expect(
+          screen.queryByTestId("ai-agent-install-installer"),
+        ).not.toBeInTheDocument();
+        return;
+      }
+
+      const installer: HTMLElement = screen.getByTestId(
+        "ai-agent-install-installer",
+      );
+
+      expect(installer).toHaveTextContent(
+        "Or let the installer write both files and start it:",
+      );
+      expect(codeIn(installer)).toBe(
+        getHostAiAgentInstallCommand(getConfiguredOneUptimeUrl()),
+      );
+      // The address may be quoted: the placeholder is, a host is not.
+      expect(codeIn(installer)).toMatch(HOST_AI_AGENT_DOWNLOAD);
+      expect(codeIn(installer)).not.toContain("githubusercontent");
+      expect(installer).toHaveTextContent(
+        "The first line downloads the script as install.sh, so you can read it before you run it.",
+      );
+      // It comes after the start command, and no bullet repeats it.
+      const order: number = screen
+        .getByTestId("ai-agent-install-start")
+        .compareDocumentPosition(installer);
+      expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(
+        screen.getByTestId("ai-agent-install-prerequisites"),
+      ).not.toHaveTextContent("install.sh");
     },
   );
 

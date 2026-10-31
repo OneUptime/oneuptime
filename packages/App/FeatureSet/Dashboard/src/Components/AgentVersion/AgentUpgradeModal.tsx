@@ -12,6 +12,7 @@ import SetupGuideSteps, {
   SetupGuideStepView,
 } from "../SetupGuide/SetupGuideSteps";
 import { AGENT_KINDS, AgentKind, AgentKindDefinition } from "./AgentKind";
+import { getConfiguredOneUptimeUrl } from "../SetupGuide/ConfiguredOneUptimeUrl";
 import {
   AgentUpgradeGuide,
   AgentUpgradeGuideContext,
@@ -48,10 +49,11 @@ const AgentUpgradeModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const definition: AgentKindDefinition = AGENT_KINDS[props.kind];
-  const guide: AgentUpgradeGuide | null = getAgentUpgradeGuide(
-    props.kind,
-    props.upgradeGuideContext,
-  );
+  // The commands download from the OneUptime the reader uses, as the setup guides do.
+  const guide: AgentUpgradeGuide | null = getAgentUpgradeGuide(props.kind, {
+    oneuptimeUrl: getConfiguredOneUptimeUrl(),
+    ...props.upgradeGuideContext,
+  });
 
   const title: string = translator.translateTemplate(
     "Upgrade the {{agentName}}",

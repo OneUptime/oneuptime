@@ -55,6 +55,7 @@ function setServerVersion(version: string): void {
 }
 
 import AgentVersion from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentVersion";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 import {
   AgentKind,
   DOCKER_SWARM_AGENT_VERSION,
@@ -98,6 +99,12 @@ import {
   getStorageArrayAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import Route from "../../../Types/API/Route";
+
+/*
+ * The OneUptime the dialog's commands download from: this Dashboard's own
+ * (HOST and HTTP_PROTOCOL), as every setup guide's commands are.
+ */
+const READER_URL: string = getConfiguredOneUptimeUrl();
 
 const SETUP_GUIDE: Route = new Route("/dashboard/p1/docker/h1/documentation");
 
@@ -508,7 +515,7 @@ describe("the upgrade dialog", () => {
       ),
     ).toBeInTheDocument();
     expect(codeBlocksIn(dialog)).toEqual([
-      getDockerSwarmAgentInstallScriptCommand(),
+      getDockerSwarmAgentInstallScriptCommand(READER_URL),
     ]);
 
     fireEvent.click(
@@ -549,7 +556,9 @@ describe("the upgrade dialog", () => {
         }),
     ).toEqual(["Install script", "Docker Compose", "Kubernetes"]);
 
-    expect(codeBlocksIn(dialog)).toEqual([getDatabaseAgentUpgradeCommand()]);
+    expect(codeBlocksIn(dialog)).toEqual([
+      getDatabaseAgentUpgradeCommand(READER_URL),
+    ]);
     expect(
       within(dialog).getByTestId("agent-upgrade-method-note"),
     ).toHaveTextContent(
@@ -560,7 +569,7 @@ describe("the upgrade dialog", () => {
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
     expect(codeBlocksIn(dialog)).toEqual([
-      getDatabaseAgentDownloadCommand("postgresql"),
+      getDatabaseAgentDownloadCommand(READER_URL, "postgresql"),
       DATABASE_AGENT_RECREATE_COMMAND,
     ]);
 
@@ -757,15 +766,15 @@ describe("the agents that report the collector they pin", () => {
     [
       AgentKind.ProxmoxAgent,
       "Upgrade the OneUptime Proxmox Agent",
-      getProxmoxAgentUpgradeCommand(),
-      getProxmoxAgentDownloadCommand(),
+      getProxmoxAgentUpgradeCommand(READER_URL),
+      getProxmoxAgentDownloadCommand(READER_URL),
       PROXMOX_AGENT_RECREATE_COMMAND,
     ],
     [
       AgentKind.CephAgent,
       "Upgrade the OneUptime Ceph Agent",
-      getCephAgentUpgradeCommand(),
-      getCephAgentDownloadCommand(),
+      getCephAgentUpgradeCommand(READER_URL),
+      getCephAgentDownloadCommand(READER_URL),
       CEPH_AGENT_RECREATE_COMMAND,
     ],
   ])(
@@ -852,7 +861,9 @@ describe("the agents that report the collector they pin", () => {
         name: "Upgrade the OneUptime VMware Agent",
       }),
     ).toBeInTheDocument();
-    expect(codeBlocksIn(dialog)).toEqual([getVMwareAgentUpgradeCommand()]);
+    expect(codeBlocksIn(dialog)).toEqual([
+      getVMwareAgentUpgradeCommand(READER_URL),
+    ]);
     expect(
       within(dialog).getByText("Run the install script again"),
     ).toBeVisible();
@@ -861,7 +872,7 @@ describe("the agents that report the collector they pin", () => {
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
     expect(codeBlocksIn(dialog)).toEqual([
-      getVMwareAgentDownloadCommand(),
+      getVMwareAgentDownloadCommand(READER_URL),
       VMWARE_AGENT_RECREATE_COMMAND,
     ]);
 
@@ -875,7 +886,9 @@ describe("the agents that report the collector they pin", () => {
     fireEvent.click(
       within(dialog).getByRole("tab", { name: "Without Docker" }),
     );
-    expect(codeBlocksIn(dialog)).toEqual([getVMwareNativeUpgradeCommand()]);
+    expect(codeBlocksIn(dialog)).toEqual([
+      getVMwareNativeUpgradeCommand(READER_URL),
+    ]);
     expect(within(dialog).getByText("Install the new release")).toBeVisible();
     // Nothing in it needs the setup guide: no key, no folder.
     expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
@@ -907,7 +920,7 @@ describe("the agents that report the collector they pin", () => {
     ).toEqual(["Install script", "Docker Compose"]);
 
     expect(codeBlocksIn(dialog)).toEqual([
-      getStorageArrayAgentUpgradeCommand(),
+      getStorageArrayAgentUpgradeCommand(READER_URL),
     ]);
     expect(
       within(dialog).getByText("Run the install script again"),
@@ -924,7 +937,7 @@ describe("the agents that report the collector they pin", () => {
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
     expect(codeBlocksIn(dialog)).toEqual([
-      getStorageArrayAgentDownloadCommand(),
+      getStorageArrayAgentDownloadCommand(READER_URL),
       STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
     ]);
     expect(within(dialog).getByText("Download the latest files")).toBeVisible();

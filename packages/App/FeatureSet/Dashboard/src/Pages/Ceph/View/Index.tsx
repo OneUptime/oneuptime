@@ -23,6 +23,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getCephClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -1657,6 +1658,7 @@ const CephClusterOverview: FunctionComponent<
           lastSeenAt={cluster.lastSeenAt}
           guide={getCephClusterConnectionGuide(
             (cluster.name as string | undefined) || "",
+            getConfiguredOneUptimeUrl(),
           )}
           documentationRoute={RouteUtil.populateRouteParams(
             RouteMap[PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION] as Route,

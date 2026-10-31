@@ -10,6 +10,7 @@ import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getDockerSwarmClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -695,6 +696,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
         lastSeenAt={cluster.lastSeenAt}
         guide={getDockerSwarmClusterConnectionGuide(
           (cluster.name as string | undefined) || "",
+          getConfiguredOneUptimeUrl(),
         )}
         documentationRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION] as Route,

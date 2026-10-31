@@ -19,15 +19,26 @@ Run it on a **manager node**. For full per-node container metrics, run the colle
 ## Quick Start — install script
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
+
+Every OneUptime serves this script and the agent's files for its own release, at `<your OneUptime URL>/install/docker-swarm-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com` in the commands here. The first line saves the script as `install.sh`, so you can read it before you run it.
 
 The script prompts for your OneUptime URL, ingestion key, and cluster name, writes the node's hostname to `.env` as `DOCKER_SWARM_NODE_NAME`, installs to `/opt/oneuptime-docker-swarm-agent`, and starts the agent.
 
 ## Quick Start — Docker Compose
 
-Download `docker-compose.yml`, `otel-collector-config.yaml`, and `inventory-snapshot.sh` into a folder on a manager node, then create a `.env`:
+Download `docker-compose.yml`, `otel-collector-config.yaml`, and `inventory-snapshot.sh` from your OneUptime into a folder on a manager node:
+
+```bash
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
+chmod +x inventory-snapshot.sh
+```
+
+Then create a `.env`:
 
 ```bash
 ONEUPTIME_URL=https://oneuptime.com
@@ -96,7 +107,7 @@ Logs: `docker compose logs -f oneuptime-docker-swarm-ai-agent`. Every setting is
 `troubleshoot.sh` checks the whole chain — both containers, that the inventory poller is on a manager (`docker node ls`), the snapshot file, cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints refuse a bad ingestion key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss; the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 

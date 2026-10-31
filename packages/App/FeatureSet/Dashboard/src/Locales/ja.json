@@ -23483,7 +23483,6 @@
   "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.": "任意: エージェント自体と OneUptime のコレクターに加えて、OneUptime AI が決して変更してはならないサービス名とノード名をカンマ区切りで指定します（* は任意の文字列に一致します）。",
   "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.": "任意: 修正で決して操作しない session:<id> のグロブをカンマ区切りで指定します。いずれにしても、エージェントが自身のセッションを終了することはありません。",
   "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.": "任意: エージェント自体に加えて、OneUptime AI が決して変更してはならない systemd ユニット名をカンマ区切りで指定します（* は任意の文字列に一致します）。",
-  "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh": "または、インストーラーに両方のファイルを書き込ませて起動します: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
   "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.": "このデバイス用に Ping モニター「{{name}}」が作成されました。ping が失敗するとインシデントが発生します。最初の結果はモニターの間隔内に届きます。デバイス自体のステータスは、引き続きプローブのポーリングから取得されます。",
   "Please enter a valid name.": "有効な名前を入力してください。",
   "Podman AI agent": "Podman AI エージェント",
@@ -38956,5 +38955,7 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 解決済みの例外が再発",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: 例外が急増",
   "Pick who to page.": "呼び出す相手を選んでください。",
-  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "このワークフローが呼び出す相手を選んでください。後からビルダーの呼び出しステップで変更できます。"
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "このワークフローが呼び出す相手を選んでください。後からビルダーの呼び出しステップで変更できます。",
+  "Or let the installer write both files and start it:": "または、インストーラーに両方のファイルを書き込ませて起動します:",
+  "The first line downloads the script as install.sh, so you can read it before you run it.": "1 行目でスクリプトを install.sh としてダウンロードするので、実行する前に内容を読めます。"
 }

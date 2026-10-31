@@ -41,7 +41,7 @@ import {
   DatabaseAgentEngine,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
 import {
-  HOST_AI_AGENT_INSTALL_COMMAND,
+  getHostAiAgentInstallCommand,
   HOST_AI_AGENT_TOPIC_TITLE,
   HOST_INSTALL_METHODS,
   HostInstallMethod,
@@ -488,7 +488,7 @@ describe("the host guide", () => {
         /^\*\*AI investigations are on by default\*\* for every host/,
       );
       expect(topic.markdown).toContain(
-        `\`\`\`bash\n${HOST_AI_AGENT_INSTALL_COMMAND}\n\`\`\``,
+        `\`\`\`bash\n${getHostAiAgentInstallCommand(URL)}\n\`\`\``,
       );
       expect(topic.markdown).toContain(
         "changes nothing unless you allow fixes",
@@ -501,8 +501,9 @@ describe("the host guide", () => {
   );
 
   test("the installer it runs is the Host AI agent's, and asks what the topic says", () => {
-    expect(HOST_AI_AGENT_INSTALL_COMMAND).toBe(
-      "curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh\nsudo bash install.sh",
+    // From the reader's own OneUptime, which serves it for its release.
+    expect(getHostAiAgentInstallCommand(URL)).toBe(
+      `curl -fsSL ${URL}/install/host-ai-agent -o install.sh\nsudo bash install.sh`,
     );
 
     const installer: string = fs.readFileSync(

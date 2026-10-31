@@ -9,8 +9,6 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Protocol from "Common/Types/API/Protocol";
-import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
@@ -24,9 +22,9 @@ import {
   SetupGuideStepVariant,
   SetupGuideTopic,
   SetupGuideVariables,
-  getSetupGuideOneUptimeUrl,
   resolveSetupGuideOption,
 } from "./SetupGuide";
+import { getConfiguredOneUptimeUrl } from "./ConfiguredOneUptimeUrl";
 import SetupGuideOptionPicker, {
   SetupGuideOptionLayout,
 } from "./SetupGuideOptionPicker";
@@ -233,10 +231,8 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const oneuptimeUrl: string = getSetupGuideOneUptimeUrl({
-    host: HOST,
-    isHttps: HTTP_PROTOCOL === Protocol.HTTPS,
-  });
+  // The OneUptime the reader uses: what ONEUPTIME_URL and every download name.
+  const oneuptimeUrl: string = getConfiguredOneUptimeUrl();
 
   const secret: string = selectedKey?.secretKey?.toString() || "";
   const apiKey: string = secret || SETUP_GUIDE_API_KEY_PLACEHOLDER;

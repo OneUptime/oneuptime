@@ -76,6 +76,8 @@ import {
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
 } from "./ResourceAiAgentInstall";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../SetupGuide/AgentInstallCommands";
+import { getConfiguredOneUptimeUrl } from "../SetupGuide/ConfiguredOneUptimeUrl";
 import {
   getProjectBalanceAccess,
   ProjectBalanceAccess,
@@ -731,6 +733,21 @@ function InstallInstructions(props: {
       <div data-testid="ai-agent-install-start">
         <CodeBlock language="bash" code={props.install.startCommand} />
       </div>
+      {props.install.installerCommand ? (
+        <div className="space-y-2" data-testid="ai-agent-install-installer">
+          <p className="text-xs text-gray-600">
+            {translator.translateText(
+              "Or let the installer write both files and start it:",
+            )}
+          </p>
+          <CodeBlock language="bash" code={props.install.installerCommand} />
+          <p className="text-xs text-gray-600">
+            {translator.translateText(INSTALL_SCRIPT_READ_FIRST_NOTE)}
+          </p>
+        </div>
+      ) : (
+        <></>
+      )}
       {props.install.prerequisites.length > 0 ? (
         <ul
           className="list-disc space-y-1 pl-5 text-xs leading-5 text-gray-600"
@@ -1445,6 +1462,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           resourceType: descriptor.resourceType,
           resourceId: modelId.toString(),
           identity,
+          oneuptimeUrl: getConfiguredOneUptimeUrl(),
         })
       : null;
 

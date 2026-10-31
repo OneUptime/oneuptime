@@ -16,6 +16,7 @@ import {
   doesCollectorShipResourceAiAgent,
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentDirectory,
+  getHostAiAgentInstallCommand,
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
@@ -52,6 +53,7 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import { SETUP_GUIDE_URL_PLACEHOLDER } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 
 /*
  * The install and write-access instructions a resource's AI agent page
@@ -792,6 +794,87 @@ describe("the install instructions", () => {
       expect(install.prerequisites.length).toBeGreaterThan(0);
       for (const prerequisite of install.prerequisites) {
         expect(prerequisite.trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
+});
+
+/*
+ * The Host AI agent is the one agent with an installer of its own (a host
+ * has no OneUptime container for it to sit beside). Its install.sh comes
+ * from the reader's own OneUptime, which serves it for its release - never
+ * GitHub - and the page shows that command to copy. Every other agent is
+ * started by its collector's own installer.
+ */
+describe("the agent's own installer", () => {
+  test("the Host AI agent's is downloaded from the reader's OneUptime, then run as root", () => {
+    for (const oneuptimeUrl of [
+      "https://oneuptime.com",
+      "https://oneuptime.acme.internal:8443",
+      "http://10.0.0.5",
+      "https://tools.acme.com/oneuptime/",
+    ]) {
+      const base: string = oneuptimeUrl.replace(/\/+$/, "");
+      const expected: string = `curl -fsSL ${base}/install/host-ai-agent -o install.sh\nsudo bash install.sh`;
+
+      expect(getHostAiAgentInstallCommand(oneuptimeUrl)).toBe(expected);
+      expect(
+        getResourceAiAgentInstall({
+          resourceType: AiResourceType.Host,
+          resourceId: RESOURCE_ID,
+          oneuptimeUrl: oneuptimeUrl,
+        }).installerCommand,
+      ).toBe(expected);
+    }
+  });
+
+  test("without the reader's OneUptime it names the placeholder, never GitHub", () => {
+    const command: string | null = getResourceAiAgentInstall({
+      resourceType: AiResourceType.Host,
+      resourceId: RESOURCE_ID,
+    }).installerCommand;
+
+    expect(command).toBe(
+      `curl -fsSL '${SETUP_GUIDE_URL_PLACEHOLDER}/install/host-ai-agent' -o install.sh\nsudo bash install.sh`,
+    );
+  });
+
+  test.each(
+    COMPOSE_INSTALLED_AI_RESOURCE_TYPES.filter(
+      (type: ComposeInstalledAiResourceType): boolean => {
+        return type !== AiResourceType.Host;
+      },
+    ),
+  )(
+    "%s: none - its collector's installer starts it",
+    (type: ComposeInstalledAiResourceType) => {
+      expect(
+        getResourceAiAgentInstall({
+          resourceType: type,
+          resourceId: RESOURCE_ID,
+          oneuptimeUrl: "https://oneuptime.com",
+        }).installerCommand,
+      ).toBeNull();
+    },
+  );
+
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
+    "%s: no instruction names a GitHub file",
+    (type: ComposeInstalledAiResourceType) => {
+      const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+        oneuptimeUrl: "https://oneuptime.com",
+      });
+
+      for (const text of [
+        install.whereText,
+        install.composeSnippet,
+        install.startCommand,
+        install.installerCommand || "",
+        ...install.prerequisites,
+      ]) {
+        expect(text).not.toContain("githubusercontent");
       }
     },
   );
