@@ -94,6 +94,23 @@ export class WhiteLabelProvider {
     return settings ? toProductBranding(settings) : {};
   }
 
+  /*
+   * The bytes of the logo for light backgrounds that getProductBranding's
+   * logoUrl shows, or null: while the license does not allow
+   * white-labelling, and while there is no such logo. From the same cache,
+   * so an email carries the logo its header names (core's
+   * EmailCarriedLogos) without a read of its own.
+   */
+  public getProductBrandingLogo(): Buffer | null {
+    if (!this.isAllowed()) {
+      return null;
+    }
+
+    const settings: WhiteLabelSettings | null = this.getCachedSettings();
+
+    return settings?.logo?.bytes || null;
+  }
+
   // The settings held right now (reading them again in the background when stale).
   public getCachedSettings(): WhiteLabelSettings | null {
     if (!this.isFresh() && !this.isInFailureBackoff() && !this.inFlightLoad) {

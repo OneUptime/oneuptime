@@ -83,7 +83,7 @@ Alt annet kobler seg bare utover når du slår det på, og hver har en side som 
 
 Tilkoblinger den andre veien – SendGrid som leverer innkommende e-post, og Slack og Microsoft Teams som ringer tilbake – krever at ingress kan nås fra internett. Hvilke private adresser appen og probene kan nå, bestemmer du: se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
 
-OneUptimes logo ligger inne i hver e-post som OneUptime sender, så den vises selv på et nettverk uten internettilgang, og når en e-post åpnes, blir ingen annen vert spurt om noe. Bilder du laster opp selv, som din egen logo eller logoen til en statusside, vises fra OneUptime-URL-en din, som de som leser disse e-postene, må kunne nå.
+OneUptimes logo ligger inne i hver e-post som OneUptime sender, så den vises selv på et nettverk uten internettilgang, og når en e-post åpnes, blir ingen annen vert spurt om noe. En logo du laster opp selv, som din egen eller logoen til en statusside, ligger også inne i e-posten når den er en PNG, JPEG eller GIF på høyst 512 KB. Alle andre bilder du laster opp, vises fra OneUptime-URL-en din, som de som leser disse e-postene, må kunne nå.
 
 ## Neste steg
 

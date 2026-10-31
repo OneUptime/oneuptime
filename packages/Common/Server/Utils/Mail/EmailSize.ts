@@ -1,6 +1,7 @@
 import EmailInlineImages, {
   EmailHtmlWithInlineImages,
   EmailInlineImage,
+  EmailOwnImage,
 } from "./EmailInlineImages";
 import EmailLogo from "./EmailLogo";
 
@@ -28,9 +29,10 @@ import EmailLogo from "./EmailLogo";
  *     fields - is cut, with the note.
  *
  * OneUptime's logo, in the header of an email that shows OneUptime's
- * branding, is an attachment too (EmailLogo), and goes with the email
- * whatever else is left out: its few kilobytes are set aside before the
- * rest is measured.
+ * branding, is an attachment too (EmailLogo), and so is a logo an operator
+ * uploaded that the email carries (EmailCarriedLogos): each goes with the
+ * email whatever else is left out, its bytes set aside before the rest is
+ * measured.
  *
  * An email within the limit is sent exactly as it always was.
  */
@@ -197,26 +199,42 @@ export default class EmailSize {
   }
 
   /*
-   * `html` with OneUptime's logo attached (EmailLogo) and its inline images
-   * attached (EmailInlineImages.attach), the whole held to `maxBytes` (see
-   * the top of this file): as it is when it fits; else with only the images
-   * that fit beside the HTML and the logo, the others each a note; else,
-   * when the HTML alone is too big, with no images but the logo and the
-   * HTML cut (cutHtml).
+   * `html` with its own images attached - OneUptime's logo (EmailLogo),
+   * then each logo an operator uploaded that it carries (`carriedLogos`,
+   * EmailCarriedLogos) - and its inline images attached
+   * (EmailInlineImages.attach), the whole held to `maxBytes` (see the top
+   * of this file): as it is when it fits; else with only the images that
+   * fit beside the HTML and the logos, the others each a note; else, when
+   * the HTML alone is too big, with no images but the logos and the HTML
+   * cut (cutHtml).
    */
   public static attachWithinLimit(
     html: string,
     maxBytes: number = MAX_EMAIL_BYTES,
+    carriedLogos: ReadonlyArray<EmailOwnImage> = [],
   ): EmailWithinLimit {
-    // The logo first, and counted before anything else is measured.
-    const withLogo: EmailHtmlWithInlineImages = EmailLogo.attach(html);
+    // The logos first, and counted before anything else is measured.
+    let withLogos: EmailHtmlWithInlineImages = EmailLogo.attach(html);
+
+    for (const logo of carriedLogos) {
+      const attached: EmailHtmlWithInlineImages = EmailInlineImages.attachImage(
+        withLogos.html,
+        logo,
+      );
+
+      withLogos = {
+        html: attached.html,
+        inlineImages: [...withLogos.inlineImages, ...attached.inlineImages],
+      };
+    }
+
     const logoBytes: number = EmailSize.getSizeInBytes({
       html: "",
-      inlineImages: withLogo.inlineImages,
+      inlineImages: withLogos.inlineImages,
     });
 
     const fitted: EmailWithinLimit = EmailSize.attachImagesWithinLimit(
-      withLogo.html,
+      withLogos.html,
       maxBytes - logoBytes,
     );
 
@@ -224,7 +242,7 @@ export default class EmailSize {
       html: fitted.html,
       inlineImages: [
         // Unless the HTML that pointed at it was cut away.
-        ...withLogo.inlineImages.filter((logo: EmailInlineImage): boolean => {
+        ...withLogos.inlineImages.filter((logo: EmailInlineImage): boolean => {
           return fitted.html.indexOf(`cid:${logo.contentId}`) !== -1;
         }),
         ...fitted.inlineImages,

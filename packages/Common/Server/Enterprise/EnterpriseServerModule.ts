@@ -187,6 +187,16 @@ export default interface EnterpriseServerModule {
   getProductBranding?(): ProductBranding | null;
 
   /*
+   * The bytes of the logo getProductBranding's logoUrl shows - the
+   * installation's own logo for light backgrounds - or null when it has
+   * none, or getProductBranding would answer null. An email carries the
+   * logo inside itself rather than load it from that address
+   * (Utils/Mail/EmailCarriedLogos.ts). Synchronous, from the module's own
+   * cache, as getProductBranding is. Must not throw.
+   */
+  getProductBrandingLogo?(): Buffer | null;
+
+  /*
    * The payment provider OneUptime Cloud bills cards through (Stripe), or
    * null when this process has none: billing off, or no say in it. Core's
    * BillingService hands every payment-provider call to it, and answers as a
@@ -215,6 +225,7 @@ const REQUIRED_MODULE_FUNCTIONS: ReadonlyArray<string> = [
 // Hooks a module may leave out; core falls back to the Community Edition's answer.
 const OPTIONAL_MODULE_FUNCTIONS: ReadonlyArray<string> = [
   "getProductBranding",
+  "getProductBrandingLogo",
   "getBillingProvider",
   "getProjectBillingHooks",
 ];

@@ -171,6 +171,66 @@ describe("StatusPageEmailLogo.getLogoUrl", () => {
   });
 });
 
+/*
+ * Just before an email goes out, an image at a page's logo address shows
+ * the logo itself (StatusPageCarriedLogo): the address getLogoUrl writes is
+ * read back here, and nothing else is a page's logo.
+ */
+describe("StatusPageEmailLogo.readLogoAddress", () => {
+  const readOnHost: (address: string) => ObjectID | null = (
+    address: string,
+  ): ObjectID | null => {
+    return StatusPageEmailLogo.readLogoAddress(address, {
+      host: HOST,
+      httpProtocol: Protocol.HTTPS,
+    });
+  };
+
+  test("reads back the page every address getLogoUrl writes", () => {
+    const page: ObjectID | null = readOnHost(logoUrlOf(statusPage(Logo.Own)));
+
+    expect(page?.toString()).toBe(STATUS_PAGE_ID.toString());
+  });
+
+  test("on the host and protocol the senders build it with, whatever case the host is in", () => {
+    expect(
+      readOnHost(LOGO_URL.replace("oneuptime.acme.com", "OneUptime.Acme.com"))
+        ?.toString(),
+    ).toBe(STATUS_PAGE_ID.toString());
+
+    expect(
+      StatusPageEmailLogo.readLogoAddress(
+        `http://localhost/status-page-api/logo/${STATUS_PAGE_ID.toString()}`,
+        { host: new Hostname("localhost"), httpProtocol: Protocol.HTTP },
+      )?.toString(),
+    ).toBe(STATUS_PAGE_ID.toString());
+  });
+
+  test.each([
+    ["another host", LOGO_URL.replace("oneuptime.acme.com", "evil.test")],
+    [
+      "a host that only starts like the installation's",
+      LOGO_URL.replace("oneuptime.acme.com", "oneuptime.acme.com.evil.test"),
+    ],
+    ["another protocol", LOGO_URL.replace("https://", "http://")],
+    ["another port", LOGO_URL.replace("acme.com/", "acme.com:8443/")],
+    ["credentials in it", LOGO_URL.replace("https://", "https://a:b@")],
+    ["a query", `${LOGO_URL}?v=2`],
+    ["a fragment", `${LOGO_URL}#top`],
+    ["the dark theme logo", LOGO_URL.replace("/logo/", "/dark-theme-logo/")],
+    ["the favicon", LOGO_URL.replace("/logo/", "/favicon/")],
+    ["a page that is no id", LOGO_URL.replace(STATUS_PAGE_ID.toString(), "1")],
+    ["a path below the page", `${LOGO_URL}/x`],
+    ["a path above the logo route", LOGO_URL.replace("/status-page-api", "")],
+    ["a page's domain in place of its id", LOGO_URL.replace(STATUS_PAGE_ID.toString(), "status.acme.com")],
+    ["no address at all", ""],
+    ["text that is no address", "logo"],
+    ["a data: URL", "data:image/png;base64,iVBORw0KGgo="],
+  ])("%s is no page's logo", (_label: string, address: string) => {
+    expect(readOnHost(address)).toBeNull();
+  });
+});
+
 describe("STATUS_PAGE_EMAIL_LOGO_SELECT", () => {
   test("reads what the logo route decides by: the page's project, whether it is archived, the logo and its project", () => {
     expect(STATUS_PAGE_EMAIL_LOGO_SELECT).toEqual({
