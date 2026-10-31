@@ -4,9 +4,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { ExceptionGroupFingerprintsOfException } from "Common/Types/Telemetry/ExceptionGroupFingerprints";
+import { findExceptionGroupFingerprints } from "../../Utils/ExceptionMerge";
 import SecurityEventsInSignal from "./SecurityEventsInSignal";
 
 export interface ComponentProps {
@@ -19,18 +19,20 @@ export interface ComponentProps {
  * exception an attack keeps triggering is the code path the attack found,
  * and is worth fixing before anything else.
  *
- * The exception group is read for its fingerprint (what a followed event
- * names it by, SECURITY_REQUEST_ATTRIBUTES.exceptionFingerprint); the
- * events are then read as SecurityEventsInSignal reads them.
+ * The exception is read for the fingerprints its occurrences carry - its
+ * own, then those of the exceptions merged into it, which count on it
+ * (findExceptionGroupFingerprints) - what a followed event names it by
+ * (SECURITY_REQUEST_ATTRIBUTES.exceptionFingerprint). The events are then
+ * read as SecurityEventsInSignal reads them.
  */
 const SecurityEventsForException: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [fingerprint, setFingerprint] = useState<string>("");
+  const [fingerprints, setFingerprints] = useState<Array<string>>([]);
   const exceptionId: string = props.telemetryExceptionId.toString();
 
   useEffect(() => {
-    setFingerprint("");
+    setFingerprints([]);
 
     if (!ObjectID.isValidUUID(exceptionId)) {
       return;
@@ -38,14 +40,20 @@ const SecurityEventsForException: FunctionComponent<ComponentProps> = (
 
     let isCurrent: boolean = true;
 
-    ModelAPI.getItem<TelemetryException>({
-      modelType: TelemetryException,
-      id: new ObjectID(exceptionId),
-      select: { fingerprint: true },
-    })
-      .then((exception: TelemetryException | null): void => {
-        if (isCurrent && exception?.fingerprint) {
-          setFingerprint(exception.fingerprint);
+    findExceptionGroupFingerprints([exceptionId])
+      .then((groups: Array<ExceptionGroupFingerprintsOfException>): void => {
+        const group: ExceptionGroupFingerprintsOfException | undefined =
+          groups.find(
+            (entry: ExceptionGroupFingerprintsOfException): boolean => {
+              return (
+                entry.telemetryExceptionId.toLowerCase() ===
+                exceptionId.toLowerCase()
+              );
+            },
+          );
+
+        if (isCurrent && group && group.fingerprints.length > 0) {
+          setFingerprints(group.fingerprints);
         }
       })
       .catch((): void => {
@@ -57,13 +65,18 @@ const SecurityEventsForException: FunctionComponent<ComponentProps> = (
     };
   }, [exceptionId]);
 
-  if (!fingerprint) {
+  if (fingerprints.length === 0) {
     return <></>;
   }
 
   return (
     <SecurityEventsInSignal
-      scope={{ exceptionFingerprint: fingerprint }}
+      scope={{
+        exceptionFingerprint: fingerprints[0],
+        ...(fingerprints.length > 1
+          ? { mergedExceptionFingerprints: fingerprints.slice(1) }
+          : {}),
+      }}
       className={props.className}
     />
   );

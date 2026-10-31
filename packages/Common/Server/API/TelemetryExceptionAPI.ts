@@ -6,6 +6,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import TelemetryExceptionService, {
   DashboardServiceSummary,
   DashboardSummaryResult,
+  ExceptionOfGroup,
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
 import { AIFixReadiness } from "../../Types/AI/AIFixReadiness";
@@ -51,6 +52,10 @@ import {
   MAX_EXCEPTION_FINGERPRINT_LENGTH,
   MAX_EXCEPTION_FINGERPRINT_LOOKUP,
 } from "../../Types/Telemetry/ExceptionFingerprintLookup";
+import {
+  ExceptionGroupFingerprintsOfException,
+  MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP,
+} from "../../Types/Telemetry/ExceptionGroupFingerprints";
 import TelemetryExceptionMerge, {
   ExceptionMergeResult,
   ExceptionUnmergeResult,
@@ -264,6 +269,26 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.findByFingerprints(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * The fingerprints the occurrences of each of a batch of exceptions
+     * carry: its own, then those of the exceptions merged into it
+     * (TelemetryExceptionService.getGroupFingerprints) - what an
+     * exception's page reads its security events by, and what the
+     * Exceptions monitor form's preview leaves out with a resolved one.
+     * Read as the caller: only the exceptions they may read are answered.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/group-fingerprints`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.findGroupFingerprints(req, res);
         } catch (err) {
           next(err);
         }
@@ -514,6 +539,98 @@ export default class TelemetryExceptionAPI extends BaseAPI<
 
     return Response.sendJsonObjectResponse(req, res, {
       exceptions: exceptions as unknown as JSONArray,
+    });
+  }
+
+  // The exceptions a group fingerprint request names: ids, each once.
+  public static readGroupFingerprintIds(raw: unknown): Array<ObjectID> {
+    if (!Array.isArray(raw)) {
+      throw new BadDataException("telemetryExceptionIds must be a list");
+    }
+
+    if (raw.length > MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP) {
+      throw new BadDataException(
+        `Ask about at most ${MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP} exceptions at once`,
+      );
+    }
+
+    const ids: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const value of raw) {
+      if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
+        throw new BadDataException("Invalid Telemetry Exception ID");
+      }
+
+      if (!seen.has(value.toLowerCase())) {
+        seen.add(value.toLowerCase());
+        ids.push(new ObjectID(value));
+      }
+    }
+
+    return ids;
+  }
+
+  private async findGroupFingerprints(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+
+    // Refused before anything is read.
+    const ids: Array<ObjectID> = TelemetryExceptionAPI.readGroupFingerprintIds(
+      body["telemetryExceptionIds"],
+    );
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!props.tenantId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    // The ones the caller may read, merged ones named by id included.
+    const exceptions: Array<TelemetryException> =
+      ids.length > 0
+        ? await this.service.findBy({
+            query: {
+              projectId: props.tenantId,
+              _id: QueryHelper.any(ids),
+            },
+            select: { _id: true, fingerprint: true },
+            limit: ids.length,
+            skip: 0,
+            props,
+          })
+        : [];
+
+    const groups: Map<string, Array<string>> =
+      await this.service.getGroupFingerprints({
+        projectId: props.tenantId,
+        exceptions: exceptions
+          .filter((exception: TelemetryException): boolean => {
+            return Boolean(exception.id && exception.fingerprint);
+          })
+          .map((exception: TelemetryException): ExceptionOfGroup => {
+            return { id: exception.id!, fingerprint: exception.fingerprint! };
+          }),
+      });
+
+    // In the order asked.
+    const answer: Array<ExceptionGroupFingerprintsOfException> = [];
+
+    for (const id of ids) {
+      const fingerprints: Array<string> | undefined = groups.get(
+        id.toString().toLowerCase(),
+      );
+
+      if (fingerprints) {
+        answer.push({ telemetryExceptionId: id.toString(), fingerprints });
+      }
+    }
+
+    return Response.sendJsonObjectResponse(req, res, {
+      exceptions: answer as unknown as JSONArray,
     });
   }
 

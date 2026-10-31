@@ -83,6 +83,7 @@ const SecurityEventsInSignal: FunctionComponent<ComponentProps> = (
     props.scope.logId,
     props.scope.sessionId,
     props.scope.exceptionFingerprint,
+    (props.scope.mergedExceptionFingerprints || []).join(","),
   ].join("|");
 
   const [events, setEvents] = useState<Array<SecurityEvent>>([]);
