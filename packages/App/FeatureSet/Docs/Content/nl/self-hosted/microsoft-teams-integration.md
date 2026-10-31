@@ -194,6 +194,7 @@ Opmerkingen:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | De **Application (client) ID**. Dit is ook de bot-ID in het Teams-app-pakket, dus het moet een GUID zijn. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | De **Value** van het clientgeheim, niet de ID ervan. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | De **Directory (tenant) ID**. De bot verifieert zich als single-tenant-app in deze tenant, en mensen melden zich erbij aan om hun Microsoft Teams-account te verbinden. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Alleen voor een Microsoft 365-tenant in een cloud van de Amerikaanse overheid: `gcc`, `gcc-high` of `dod`. Laat hem leeg voor de commerciële cloud. Zie [Clouds van de Amerikaanse overheid](#clouds-van-de-amerikaanse-overheid). |
 | `HOST` | `host` | Je openbare hostnaam. De omleidings-URI's, het berichten-endpoint en het Teams-app-pakket worden ermee opgebouwd. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service roept alleen HTTPS-endpoints aan. |
 
@@ -202,6 +203,21 @@ Alle drie de waarden `MICROSOFT_TEAMS_APP_*` zijn verplicht:
 - Zonder de client-ID toont de Microsoft Teams-pagina de installatiehandleiding in plaats van **Beheerderstoestemming verlenen**.
 - Zonder de client-ID of het geheim eindigt verbinden met **"Microsoft Teams is niet ingesteld op deze OneUptime-server."**
 - Zonder de tenant-ID kan de bot zich niet verifiëren, dus posten en het bot-endpoint mislukken.
+
+## Clouds van de Amerikaanse overheid
+
+Staat je Microsoft 365-tenant in een van de clouds van de Amerikaanse overheid van Microsoft, zet `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) dan op die cloud. De bot, de Microsoft Teams-aanmeldingen en de [Teams-vergaderapp](/docs/workspace-connections/video-calls#koppelen-met-één-klik-op-een-zelf-gehoste-server) gebruiken dan de hosts daarvan:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-cloud | Aanmelding | Microsoft Graph | Azure Bot |
+| --- | --- | --- | --- | --- |
+| Niet ingesteld | Commercieel | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+
+Maak voor GCC High en DoD de app-registratie en de Azure Bot in Azure Government: gebruik in stap 1 tot en met 5 het [Azure Government-portal](https://portal.azure.us) in plaats van het Azure-portal. Al het andere blijft hetzelfde. Voer `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` uit om te zien welke cloud de server gebruikt: hij noemt de cloud en de hosts ervan.
+
+Een waarde die geen cloud noemt, stopt elk Microsoft Teams-verzoek met een fout die `MICROSOFT_TEAMS_CLOUD` noemt, zodat de aanmeldingen van je tenant nooit naar de commerciële cloud gaan. Microsoft Teams dat door 21Vianet in China wordt beheerd, wordt niet ondersteund.
 
 ## Netwerktoegang
 
@@ -237,7 +253,7 @@ De [instellingen voor toegang tot privénetwerken](/docs/self-hosted/private-net
 
 ### Uitgaande toegang en IP-beperkingen
 
-Sta DNS-resolutie en uitgaand HTTPS toe vanaf de OneUptime-app. Gebruik `graph.microsoft.com`, `login.microsoftonline.com`, de authenticatie- en kanaal-endpoints van Bot Framework, en de connectorservice-URL die voor een gesprek wordt meegegeven. De fallback-connector van de commerciële cloud is `https://smba.trafficmanager.net/teams/`; de service-URL's van gesprekken kunnen afwijken. Volg de [firewallrichtlijnen van Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) en bekijk geblokkeerd verkeer tijdens het testen; dit is geen volledige lijst van hostnamen.
+Sta DNS-resolutie en uitgaand HTTPS toe vanaf de OneUptime-app. Gebruik `graph.microsoft.com`, `login.microsoftonline.com`, de authenticatie- en kanaal-endpoints van Bot Framework, en de connectorservice-URL die voor een gesprek wordt meegegeven. De fallback-connector van de commerciële cloud is `https://smba.trafficmanager.net/teams/`; de service-URL's van gesprekken kunnen afwijken. Volg de [firewallrichtlijnen van Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) en bekijk geblokkeerd verkeer tijdens het testen; dit is geen volledige lijst van hostnamen. In een [cloud van de Amerikaanse overheid](#clouds-van-de-amerikaanse-overheid) zijn dat de eigen hosts van die cloud.
 
 Microsoft ondersteunt geen vaste IP-toestaanlijsten voor inkomend Bot Framework-verkeer, omdat de bronadressen ervan veranderen. De IP-bereiken voor media van Teams-clients beschrijven niet waar botwebhooks vandaan komen. Houd de Bot Framework-verificatie ingeschakeld in plaats van een bron-IP als bewijs van identiteit te behandelen.
 

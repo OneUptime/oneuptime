@@ -194,6 +194,7 @@ microsoftTeamsApp:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Это также идентификатор бота в пакете приложения Teams, поэтому он должен быть GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | **Value** секрета клиента, а не его идентификатор. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Бот проходит проверку подлинности как одноклиентское приложение в этом клиенте, и пользователи входят в него, чтобы подключить свою учётную запись Microsoft Teams. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Только для клиента Microsoft 365 в облаке для госорганов США: `gcc`, `gcc-high` или `dod`. Для коммерческого облака оставьте её пустой. См. [Облака для госорганов США](#облака-для-госорганов-сша). |
 | `HOST` | `host` | Ваше публичное имя хоста. Из него строятся URI перенаправления, конечная точка сообщений и пакет приложения Teams. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service обращается только к конечным точкам HTTPS. |
 
@@ -202,6 +203,21 @@ microsoftTeamsApp:
 - Без идентификатора клиента страница Microsoft Teams показывает руководство по настройке вместо **Предоставить согласие администратора**.
 - Без идентификатора клиента или секрета подключение заканчивается сообщением **"Microsoft Teams не настроен на этом сервере OneUptime."**
 - Без идентификатора клиента (tenant) бот не может пройти проверку подлинности, поэтому не работают ни публикация, ни конечная точка бота.
+
+## Облака для госорганов США
+
+Если ваш клиент Microsoft 365 находится в одном из облаков Microsoft для госорганов США, задайте в `MICROSOFT_TEAMS_CLOUD` (в Helm — `microsoftTeamsApp.cloud`) это облако. Тогда бот, входы в Microsoft Teams и [приложение для собраний Teams](/docs/workspace-connections/video-calls#подключение-одним-нажатием-на-собственном-сервере) используют его узлы:
+
+| `MICROSOFT_TEAMS_CLOUD` | Облако Microsoft 365 | Вход | Microsoft Graph | Azure Bot |
+| --- | --- | --- | --- | --- |
+| Не задана | Коммерческое | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+
+Для GCC High и DoD создайте регистрацию приложения и Azure Bot в Azure Government: на шагах 1–5 используйте [портал Azure Government](https://portal.azure.us) вместо портала Azure. Всё остальное не меняется. Чтобы проверить, какое облако использует сервер, выполните `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: он называет облако и его узлы.
+
+Значение, не называющее ни одного облака, останавливает каждый запрос к Microsoft Teams с ошибкой, называющей `MICROSOFT_TEAMS_CLOUD`, поэтому входы вашего клиента никогда не отправляются в коммерческое облако. Microsoft Teams под управлением 21Vianet в Китае не поддерживается.
 
 ## Сетевой доступ
 
@@ -237,7 +253,7 @@ flowchart TB
 
 ### Исходящий доступ и ограничения по IP
 
-Разрешите разрешение DNS-имён и исходящий HTTPS из приложения OneUptime. Используйте `graph.microsoft.com`, `login.microsoftonline.com`, конечные точки проверки подлинности и каналов Bot Framework, а также URL службы соединителя, переданный для беседы. Резервный соединитель коммерческого облака — `https://smba.trafficmanager.net/teams/`; URL служб бесед могут отличаться. Следуйте [рекомендациям Microsoft по брандмауэру](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) и проверяйте заблокированный трафик во время тестирования; это не исчерпывающий список имён хостов.
+Разрешите разрешение DNS-имён и исходящий HTTPS из приложения OneUptime. Используйте `graph.microsoft.com`, `login.microsoftonline.com`, конечные точки проверки подлинности и каналов Bot Framework, а также URL службы соединителя, переданный для беседы. Резервный соединитель коммерческого облака — `https://smba.trafficmanager.net/teams/`; URL служб бесед могут отличаться. Следуйте [рекомендациям Microsoft по брандмауэру](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) и проверяйте заблокированный трафик во время тестирования; это не исчерпывающий список имён хостов. В [облаке для госорганов США](#облака-для-госорганов-сша) это собственные узлы этого облака.
 
 Microsoft не поддерживает фиксированные списки разрешённых IP для входящего трафика Bot Framework, потому что его исходные адреса меняются. Диапазоны IP-адресов мультимедиа клиентов Teams не описывают источники веб-хуков ботов. Не отключайте проверку подлинности Bot Framework и не считайте исходный IP доказательством подлинности.
 

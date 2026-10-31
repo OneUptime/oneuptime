@@ -605,6 +605,44 @@ describe("Video Calls docs - connecting in one click", () => {
       "\nMICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID=\n",
     );
   });
+
+  test("a Teams meetings app in a US Government cloud: MICROSOFT_TEAMS_CLOUD, which the meetings app's sign-ins, scopes and meetings follow", () => {
+    const section: string = sectionOf(
+      readPage(),
+      "one-click-connect-on-a-self-hosted-server",
+    );
+    const bullet: string | undefined = section
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- **Microsoft Teams**:");
+      });
+
+    expect(bullet).toContain(
+      "If your Microsoft 365 tenant is in a US Government cloud, register the app in that cloud's Microsoft Entra admin center and set `MICROSOFT_TEAMS_CLOUD`, as for the [Microsoft Teams bot](/docs/self-hosted/microsoft-teams-integration#us-government-clouds): its sign-ins and meetings then go to that cloud's hosts.",
+    );
+
+    const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+    const read: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(repositoryRoot, relative), "utf8");
+    };
+    const videoCall: string = "packages/Common/Server/Utils/VideoCall";
+
+    // The one-click app signs in, and asks for its scopes, on the cloud's hosts.
+    const oneClick: string = read(
+      `${videoCall}/OAuth/MicrosoftTeamsMeetingsOAuthApp.ts`,
+    );
+    expect(oneClick).toContain("MicrosoftTeamsHosts.getSignInOrigin()");
+    expect(oneClick).toContain("MicrosoftTeamsHosts.getGraphScope(");
+    // A project's own app, and the meetings and transcripts, on the cloud's Graph.
+    const meetings: string = read(
+      `${videoCall}/Providers/MicrosoftTeamsMeetingClient.ts`,
+    );
+    expect(meetings).toContain('MicrosoftTeamsHosts.getGraphUrl("")');
+    expect(meetings).toContain("MicrosoftTeamsHosts.getGraphDefaultScope()");
+    expect(
+      read(`${videoCall}/Transcripts/MicrosoftTeamsTranscriptClient.ts`),
+    ).toContain("getMicrosoftGraphBaseUrl()");
+  });
 });
 
 /*

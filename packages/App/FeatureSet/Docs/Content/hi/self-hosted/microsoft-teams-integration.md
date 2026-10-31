@@ -194,6 +194,7 @@ Microsoft Teams में **Apps > Manage your apps** खोलें, **Upload 
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**। यही Teams ऐप पैकेज में बॉट ID भी है, इसलिए यह GUID होना चाहिए। |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | क्लाइंट सीक्रेट का **Value**, उसकी ID नहीं। |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**। बॉट इस टेनेंट में सिंगल-टेनेंट ऐप के रूप में प्रमाणीकरण करता है, और लोग अपना Microsoft Teams खाता जोड़ने के लिए इसी में साइन इन करते हैं। |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | केवल किसी US सरकारी क्लाउड में मौजूद Microsoft 365 टेनेंट के लिए: `gcc`, `gcc-high` या `dod`। कमर्शियल क्लाउड के लिए इसे खाली छोड़ें। [US सरकारी क्लाउड](#us-सरकारी-क्लाउड) देखें। |
 | `HOST` | `host` | आपका सार्वजनिक होस्टनेम। रीडायरेक्ट URI, मैसेजिंग एंडपॉइंट और Teams ऐप पैकेज इसी से बनते हैं। |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`। Azure Bot Service केवल HTTPS एंडपॉइंट को कॉल करती है। |
 
@@ -202,6 +203,21 @@ Microsoft Teams में **Apps > Manage your apps** खोलें, **Upload 
 - क्लाइंट ID के बिना Microsoft Teams पेज **एडमिन सहमति प्रदान करें** की जगह सेटअप गाइड दिखाता है।
 - क्लाइंट ID या सीक्रेट के बिना कनेक्ट करना **"इस OneUptime सर्वर पर Microsoft Teams सेट अप नहीं है।"** संदेश पर ख़त्म होता है।
 - टेनेंट ID के बिना बॉट प्रमाणीकरण नहीं कर पाता, इसलिए पोस्ट करना और बॉट एंडपॉइंट दोनों विफल होते हैं।
+
+## US सरकारी क्लाउड
+
+अगर आपका Microsoft 365 टेनेंट Microsoft के किसी US सरकारी क्लाउड में है, तो `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) को उसी क्लाउड पर सेट करें। तब बॉट, Microsoft Teams साइन-इन और [Teams मीटिंग ऐप](/docs/workspace-connections/video-calls#सेल्फ़-होस्टेड-सर्वर-पर-एक-क्लिक-में-कनेक्ट-करना) उसी क्लाउड के होस्ट उपयोग करते हैं:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 क्लाउड | साइन-इन | Microsoft Graph | Azure Bot |
+| --- | --- | --- | --- | --- |
+| सेट नहीं | कमर्शियल | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+
+GCC High और DoD के लिए ऐप पंजीकरण और Azure Bot को Azure Government में बनाएँ: चरण 1 से 5 में Azure पोर्टल की जगह [Azure Government पोर्टल](https://portal.azure.us) उपयोग करें। बाकी सब वैसा ही है। सर्वर कौन-सा क्लाउड उपयोग करता है, यह देखने के लिए `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` चलाएँ: यह क्लाउड और उसके होस्ट बताता है।
+
+जो मान किसी क्लाउड का नाम नहीं है, वह हर Microsoft Teams अनुरोध को एक त्रुटि के साथ रोक देता है जो `MICROSOFT_TEAMS_CLOUD` का नाम लेती है, ताकि आपके टेनेंट के साइन-इन कभी कमर्शियल क्लाउड पर न भेजे जाएँ। चीन में 21Vianet द्वारा संचालित Microsoft Teams समर्थित नहीं है।
 
 ## नेटवर्क एक्सेस
 
@@ -237,7 +253,7 @@ OneUptime की [निजी नेटवर्क पहुँच सेट�
 
 ### आउटबाउंड एक्सेस और IP प्रतिबंध
 
-OneUptime ऐप से DNS रिज़ॉल्यूशन और आउटबाउंड HTTPS की अनुमति दें। `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework के प्रमाणीकरण और चैनल एंडपॉइंट, और किसी बातचीत के लिए दिया गया कनेक्टर सर्विस URL उपयोग करें। कमर्शियल क्लाउड का फ़ॉलबैक कनेक्टर `https://smba.trafficmanager.net/teams/` है; बातचीत के सर्विस URL अलग हो सकते हैं। [Microsoft का फ़ायरवॉल मार्गदर्शन](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) लागू करें और परीक्षण के दौरान ब्लॉक हुए ट्रैफ़िक की जाँच करें; यह होस्टनेम की पूरी सूची नहीं है।
+OneUptime ऐप से DNS रिज़ॉल्यूशन और आउटबाउंड HTTPS की अनुमति दें। `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework के प्रमाणीकरण और चैनल एंडपॉइंट, और किसी बातचीत के लिए दिया गया कनेक्टर सर्विस URL उपयोग करें। कमर्शियल क्लाउड का फ़ॉलबैक कनेक्टर `https://smba.trafficmanager.net/teams/` है; बातचीत के सर्विस URL अलग हो सकते हैं। [Microsoft का फ़ायरवॉल मार्गदर्शन](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) लागू करें और परीक्षण के दौरान ब्लॉक हुए ट्रैफ़िक की जाँच करें; यह होस्टनेम की पूरी सूची नहीं है। किसी [US सरकारी क्लाउड](#us-सरकारी-क्लाउड) में ये उसी क्लाउड के अपने होस्ट होते हैं।
 
 Microsoft इनबाउंड Bot Framework ट्रैफ़िक के लिए निश्चित IP अनुमति-सूचियों का समर्थन नहीं करता, क्योंकि उसके स्रोत पते बदलते रहते हैं। Teams क्लाइंट की मीडिया IP रेंज बॉट वेबहुक के स्रोत नहीं बतातीं। स्रोत IP को पहचान का प्रमाण मानने के बजाय Bot Framework प्रमाणीकरण चालू रखें।
 

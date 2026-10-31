@@ -194,6 +194,7 @@ Anteckningar:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Det är också bot-ID:t i Teams-apppaketet, så det måste vara ett GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Klienthemlighetens **Value**, inte dess ID. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Boten autentiserar sig som en app för en enda klientorganisation i den här klientorganisationen, och personer loggar in i den för att ansluta sitt Microsoft Teams-konto. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Bara för en Microsoft 365-klientorganisation i ett moln för amerikanska myndigheter: `gcc`, `gcc-high` eller `dod`. Lämna den tom för det kommersiella molnet. Se [Moln för amerikanska myndigheter](#moln-för-amerikanska-myndigheter). |
 | `HOST` | `host` | Ditt offentliga värdnamn. Omdirigerings-URI:erna, meddelandeslutpunkten och Teams-apppaketet byggs utifrån det. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service anropar bara HTTPS-slutpunkter. |
 
@@ -202,6 +203,21 @@ Alla tre värdena `MICROSOFT_TEAMS_APP_*` är obligatoriska:
 - Utan klient-ID:t visar Microsoft Teams-sidan installationsguiden i stället för **Bevilja administratörssamtycke**.
 - Utan klient-ID:t eller hemligheten slutar anslutningen med **"Microsoft Teams är inte konfigurerat på den här OneUptime-servern."**
 - Utan klientorganisations-ID:t kan boten inte autentisera sig, så både publicering och botslutpunkten misslyckas.
+
+## Moln för amerikanska myndigheter
+
+Om din Microsoft 365-klientorganisation finns i ett av Microsofts moln för amerikanska myndigheter anger du `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) till det molnet. Boten, Microsoft Teams-inloggningarna och [Teams-mötesappen](/docs/workspace-connections/video-calls#anslut-med-ett-klick-på-en-egenvärdad-server) använder då dess värdar:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-moln | Inloggning | Microsoft Graph | Azure Bot |
+| --- | --- | --- | --- | --- |
+| Inte angiven | Kommersiellt | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` | Azure |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` | Azure Government |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` | Azure Government |
+
+För GCC High och DoD skapar du appregistreringen och Azure Bot i Azure Government: använd [Azure Government-portalen](https://portal.azure.us) i stället för Azure-portalen i steg 1 till 5. Allt annat är detsamma. Kör `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` för att se vilket moln servern använder: den anger molnet och dess värdar.
+
+Ett värde som inte anger något moln stoppar varje Microsoft Teams-begäran med ett fel som anger `MICROSOFT_TEAMS_CLOUD`, så att din klientorganisations inloggningar aldrig skickas till det kommersiella molnet. Microsoft Teams som drivs av 21Vianet i Kina stöds inte.
 
 ## Nätverksåtkomst
 
@@ -237,7 +253,7 @@ OneUptimes [inställningar för åtkomst till privata nätverk](/docs/self-hoste
 
 ### Utgående åtkomst och IP-begränsningar
 
-Tillåt DNS-uppslag och utgående HTTPS från OneUptime-appen. Använd `graph.microsoft.com`, `login.microsoftonline.com`, Bot Frameworks autentiserings- och kanalslutpunkter och den URL för anslutningstjänsten som anges för en konversation. Reservanslutningen i det kommersiella molnet är `https://smba.trafficmanager.net/teams/`; konversationers tjänst-URL:er kan vara andra. Följ [Microsofts brandväggsvägledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) och granska blockerad trafik under testning; det här är inte en fullständig lista över värdnamn.
+Tillåt DNS-uppslag och utgående HTTPS från OneUptime-appen. Använd `graph.microsoft.com`, `login.microsoftonline.com`, Bot Frameworks autentiserings- och kanalslutpunkter och den URL för anslutningstjänsten som anges för en konversation. Reservanslutningen i det kommersiella molnet är `https://smba.trafficmanager.net/teams/`; konversationers tjänst-URL:er kan vara andra. Följ [Microsofts brandväggsvägledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) och granska blockerad trafik under testning; det här är inte en fullständig lista över värdnamn. I ett [moln för amerikanska myndigheter](#moln-för-amerikanska-myndigheter) är det här molnets egna värdar.
 
 Microsoft stöder inte fasta IP-tillåtelselistor för inkommande Bot Framework-trafik, eftersom dess källadresser ändras. IP-intervallen för media från Teams-klienter beskriver inte var botwebhookar kommer ifrån. Håll Bot Framework-autentiseringen aktiverad i stället för att behandla en käll-IP som bevis på identitet.
 

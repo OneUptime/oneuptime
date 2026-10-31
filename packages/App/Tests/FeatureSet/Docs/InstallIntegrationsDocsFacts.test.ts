@@ -30,6 +30,11 @@ import Permission, {
 } from "Common/Types/Permission";
 import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import MicrosoftTeamsCloudUtil, {
+  MICROSOFT_TEAMS_CLOUD_HOSTS,
+  MicrosoftTeamsCloud,
+  MicrosoftTeamsCloudHosts,
+} from "Common/Types/Workspace/MicrosoftTeamsCloud";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -145,6 +150,7 @@ const SOURCES: Record<string, string> = {
   teamsApi: `${COMMON_SERVER}/API/MicrosoftTeamsAPI.ts`,
   teamsSignInAuthority: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority.ts`,
   teamsDocumentation: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx`,
+  teamsHosts: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHosts.ts`,
   teamsUtil: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeams.ts`,
   teamsProjectChoice: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice.ts`,
   projectChoiceStore: `${COMMON_SERVER}/Utils/Workspace/WorkspaceProjectChoiceStore.ts`,
@@ -2742,8 +2748,117 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
 
   it("the variables the table names are the server's, and the chart sets each from its Helm value", () => {
     expect(expectEnvironmentTableHeld(TEAMS, "## Environment variables")).toBe(
-      5,
+      6,
     );
+  });
+
+  /*
+   * A GCC High or DoD tenant is unknown to the commercial cloud's hosts: the
+   * section's table is the server's table of Microsoft's clouds
+   * (Types/Workspace/MicrosoftTeamsCloud), row for row.
+   */
+  it("the US Government clouds table is the server's: each value it takes, and the hosts the bot and the sign-ins use for it", () => {
+    const rows: Array<Array<string>> = tableRows(
+      sectionOf(page, "## US Government clouds"),
+    );
+
+    expect(rows[0]).toEqual([
+      "`MICROSOFT_TEAMS_CLOUD`",
+      "Microsoft 365 cloud",
+      "Sign-in",
+      "Microsoft Graph",
+      "Azure Bot",
+    ]);
+    expect(rows.slice(1)).toEqual(
+      MICROSOFT_TEAMS_CLOUD_HOSTS.map(
+        (hosts: MicrosoftTeamsCloudHosts): Array<string> => {
+          return [
+            hosts.cloud === MicrosoftTeamsCloud.Commercial
+              ? "Unset"
+              : `\`${hosts.cloud}\``,
+            hosts.title,
+            `\`${new URL(hosts.signInOrigin).host}\``,
+            `\`${new URL(hosts.graphOrigin).host}\``,
+            hosts.botChannelService ? "Azure Government" : "Azure",
+          ];
+        },
+      ),
+    );
+
+    // Each value it names is one the server reads as that cloud.
+    for (const hosts of MICROSOFT_TEAMS_CLOUD_HOSTS) {
+      expect(MicrosoftTeamsCloudUtil.read(hosts.cloud)).toBe(hosts.cloud);
+    }
+
+    expect(MicrosoftTeamsCloudUtil.read(undefined)).toBe(
+      MicrosoftTeamsCloud.Commercial,
+    );
+  });
+
+  it("the setting is the server's, the chart's and Compose's, and the Dashboard reads it for its links", () => {
+    expect(readSource("environmentConfig")).toContain(
+      'process.env["MICROSOFT_TEAMS_CLOUD"]',
+    );
+    // Not a secret: the Dashboard links to Teams in that cloud.
+    expect(
+      blockFrom(
+        readSource("environmentConfig"),
+        "const FRONTEND_ENV_ALLOW_LIST",
+        "];",
+      ),
+    ).toContain('"MICROSOFT_TEAMS_CLOUD",');
+    expect(chartEnvBlock("MICROSOFT_TEAMS_CLOUD")).toContain(
+      "$.Values.microsoftTeamsApp.cloud",
+    );
+    expect(readSource("baseCompose")).toContain(
+      "MICROSOFT_TEAMS_CLOUD: ${MICROSOFT_TEAMS_CLOUD:-}",
+    );
+    expect(configExample().has("MICROSOFT_TEAMS_CLOUD")).toBe(true);
+  });
+
+  it("a value that names no cloud stops every request with an error naming the setting, and the bot check names the cloud", () => {
+    const hosts: string = readSource("teamsHosts");
+    const check: string = blockFrom(
+      api,
+      '"/microsoft-bot/test"',
+      "router.get(",
+    );
+
+    expect(hosts).toContain("throw new BadDataException(");
+    expect(hosts).toContain(
+      "export const MICROSOFT_TEAMS_CLOUD_SETTING_NAME: string",
+    );
+    expect(hosts).toContain('"MICROSOFT_TEAMS_CLOUD";');
+    expect(page).toContain(
+      "A value that names no cloud stops every Microsoft Teams request with an error that names `MICROSOFT_TEAMS_CLOUD`",
+    );
+
+    expect(check).toContain("MicrosoftTeamsHosts.getSettingProblem()");
+    expect(check).toContain("cloud: cloud.title,");
+    expect(page).toContain(
+      "run `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: it names the cloud and its hosts.",
+    );
+
+    // 21Vianet's cloud is not in the server's table.
+    expect(page).toContain(
+      "Microsoft Teams operated by 21Vianet, in China, is not supported.",
+    );
+    expect(
+      MICROSOFT_TEAMS_CLOUD_HOSTS.some(
+        (cloudHosts: MicrosoftTeamsCloudHosts): boolean => {
+          return cloudHosts.graphOrigin.endsWith(".cn");
+        },
+      ),
+    ).toBe(false);
+  });
+
+  it("the in-product setup guide sends a US Government cloud's admins to Azure Government's portal", () => {
+    const guide: string = readSource("teamsDocumentation");
+
+    expect(guide).toContain("[Azure Portal](${cloud.azurePortalOrigin})");
+    expect(guide).toContain("MicrosoftTeamsCloudUtil.getHostsOrCommercial(");
+    // Inside the guide's template literal, a code span's backticks are escaped.
+    expect(guide).toContain("\\`MICROSOFT_TEAMS_CLOUD\\`");
   });
 
   /*
@@ -3030,9 +3145,14 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
   });
 
   it("the commercial cloud's fallback connector is the URL the page names", () => {
+    // The fallback is the server's cloud's Teams service for bots.
     expect(readSource("teamsServiceUrl")).toContain(
-      '"https://smba.trafficmanager.net/teams/"',
+      "return MicrosoftTeamsHosts.getDefaultServiceUrl();",
     );
+    expect(
+      MicrosoftTeamsCloudUtil.getHosts(MicrosoftTeamsCloud.Commercial)
+        .defaultServiceUrl,
+    ).toBe("https://smba.trafficmanager.net/teams/");
     expect(page).toContain(
       "The commercial-cloud fallback connector is `https://smba.trafficmanager.net/teams/`",
     );
