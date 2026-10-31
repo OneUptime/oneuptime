@@ -604,17 +604,19 @@ export default class TelemetryExceptionAPI extends BaseAPI<
           })
         : [];
 
-    const groups: Map<string, Array<string>> =
-      await this.service.getGroupFingerprints({
-        projectId: props.tenantId,
-        exceptions: exceptions
-          .filter((exception: TelemetryException): boolean => {
-            return Boolean(exception.id && exception.fingerprint);
-          })
-          .map((exception: TelemetryException): ExceptionOfGroup => {
-            return { id: exception.id!, fingerprint: exception.fingerprint! };
-          }),
-      });
+    const groups: Map<
+      string,
+      Array<string>
+    > = await this.service.getGroupFingerprints({
+      projectId: props.tenantId,
+      exceptions: exceptions
+        .filter((exception: TelemetryException): boolean => {
+          return Boolean(exception.id && exception.fingerprint);
+        })
+        .map((exception: TelemetryException): ExceptionOfGroup => {
+          return { id: exception.id!, fingerprint: exception.fingerprint! };
+        }),
+    });
 
     // In the order asked.
     const answer: Array<ExceptionGroupFingerprintsOfException> = [];

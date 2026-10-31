@@ -76,10 +76,7 @@ export function buildExceptionGroupFingerprintsRequests(
   for (const id of ids) {
     const trimmed: string = typeof id === "string" ? id.trim() : "";
 
-    if (
-      ObjectID.isValidUUID(trimmed) &&
-      !seen.has(trimmed.toLowerCase())
-    ) {
+    if (ObjectID.isValidUUID(trimmed) && !seen.has(trimmed.toLowerCase())) {
       seen.add(trimmed.toLowerCase());
       asked.push(trimmed);
     }

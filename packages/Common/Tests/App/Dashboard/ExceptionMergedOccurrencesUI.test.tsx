@@ -140,24 +140,24 @@ describe("the security events above an exception's Overview", () => {
 
   beforeEach(() => {
     eventQueries = [];
-    jest
-      .spyOn(AnalyticsModelAPI, "getList")
-      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
-        eventQueries.push(args.query);
-        return {
-          data: [
-            Object.assign(new SecurityEvent(), {
-              time: new Date("2026-10-27T06:45:12.000Z"),
-              severityName: OcsfSeverity.High,
-              severityId: 4,
-              message: "SQL injection attempt",
-            }),
-          ],
-          count: 1,
-          skip: 0,
-          limit: 50,
-        };
-      }) as never);
+    jest.spyOn(AnalyticsModelAPI, "getList").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }) => {
+      eventQueries.push(args.query);
+      return {
+        data: [
+          Object.assign(new SecurityEvent(), {
+            time: new Date("2026-10-27T06:45:12.000Z"),
+            severityName: OcsfSeverity.High,
+            severityId: 4,
+            message: "SQL injection attempt",
+          }),
+        ],
+        count: 1,
+        skip: 0,
+        limit: 50,
+      };
+    }) as never);
   });
 
   async function renderCallout(): Promise<void> {
@@ -254,16 +254,16 @@ describe("the Exceptions monitor form's preview", () => {
     resolved = [exception(RESOLVED_ID, "fp-resolved")];
     archived = [exception(ARCHIVED_ID, "fp-archived")];
 
-    jest
-      .spyOn(ModelAPI, "getList")
-      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
-        const data: Array<TelemetryException> = args.query["isResolved"]
-          ? resolved
-          : args.query["isArchived"]
-            ? archived
-            : [];
-        return { data, count: data.length, skip: 0, limit: 1000 };
-      }) as never);
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }) => {
+      const data: Array<TelemetryException> = args.query["isResolved"]
+        ? resolved
+        : args.query["isArchived"]
+          ? archived
+          : [];
+      return { data, count: data.length, skip: 0, limit: 1000 };
+    }) as never);
   });
 
   afterEach(() => {
@@ -286,7 +286,9 @@ describe("the Exceptions monitor form's preview", () => {
         telemetryEntities={[]}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Matching exceptions" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Matching exceptions" }),
+    );
     await settle();
   }
 

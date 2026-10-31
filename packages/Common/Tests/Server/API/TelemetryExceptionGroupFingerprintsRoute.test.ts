@@ -164,11 +164,9 @@ describe("the group fingerprints route", () => {
         query: async (_sql: string, params: Array<unknown>) => {
           memberReads.push(params);
           const ids: Array<string> = params[1] as Array<string>;
-          return mergedInto.filter(
-            (row: { survivorId: string }): boolean => {
-              return ids.includes(row.survivorId);
-            },
-          );
+          return mergedInto.filter((row: { survivorId: string }): boolean => {
+            return ids.includes(row.survivorId);
+          });
         },
       },
     } as never);
@@ -253,7 +251,9 @@ describe("the group fingerprints route", () => {
 
     expect(sent).toEqual([
       {
-        exceptions: [{ telemetryExceptionId: MERGED_ID, fingerprints: ["fp-b"] }],
+        exceptions: [
+          { telemetryExceptionId: MERGED_ID, fingerprints: ["fp-b"] },
+        ],
       },
     ]);
   });
@@ -297,9 +297,9 @@ describe("the group fingerprints route", () => {
     const next: NextFunction = await post({ telemetryExceptionIds: ids });
 
     expect(next).not.toHaveBeenCalled();
-    expect(
-      (find.mock.calls[0]![0] as FindBy<TelemetryException>).limit,
-    ).toBe(MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP);
+    expect((find.mock.calls[0]![0] as FindBy<TelemetryException>).limit).toBe(
+      MAX_EXCEPTION_GROUP_FINGERPRINTS_LOOKUP,
+    );
   });
 
   test.each([
