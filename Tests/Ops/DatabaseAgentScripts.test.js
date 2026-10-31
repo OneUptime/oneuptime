@@ -316,7 +316,16 @@ describe("install.sh", () => {
     const section = readme.substring(
       readme.indexOf("## Quick Start — Docker Compose"),
     );
-    const sample = section.match(/```bash\n([\s\S]*?)\n```/)[1];
+    // The section downloads the files from OneUptime first, then shows the .env.
+    expect(section.match(/```bash\n([\s\S]*?)\n```/)[1]).toBe(
+      [
+        "curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml",
+        "curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml",
+      ].join("\n"),
+    );
+    const sample = section
+      .substring(section.indexOf("Create a `.env` file"))
+      .match(/```bash\n([\s\S]*?)\n```/)[1];
 
     // The sample says what it holds, in install.sh's own words.
     expect(sample.split("\n")[0]).toBe(MARKER);
