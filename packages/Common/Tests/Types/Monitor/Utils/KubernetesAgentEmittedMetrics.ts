@@ -12,7 +12,7 @@ import path from "path";
  * k8s.pod.cpu.utilization and container.cpu.utilization in collector
  * 0.125.0. The node collector's transform/cpu-utilization sends them again
  * from the receiver's *.cpu.usage, and sends no container.cpu.usage. And the
- * cluster collector makes one metric of its own (CHART_DERIVED_METRICS).
+ * cluster collector makes two metrics of its own (CHART_DERIVED_METRICS).
  * Apart from that, what
  * reaches ingest is exactly what the upstream receivers emit. These lists
  * are those receivers' default-enabled metrics — plus the ones the chart's
@@ -207,14 +207,20 @@ export const ALLOWLISTED_SCRAPE_METRICS: ReadonlyArray<string> = [
 ];
 
 /*
- * Not a receiver metric: the cluster collector makes it from k8s_cluster's
- * k8s.container.restarts in its metrics/restarts-increase pipeline
- * (templates/configmap-deployment.yaml, tests/restarts-increase_test.yaml):
- * the restarts since its previous sample of the container, which
- * CrashLoopBackOff Detection sums.
+ * Not receiver metrics: the cluster collector makes them from k8s_cluster's
+ * (templates/configmap-deployment.yaml):
+ *   - k8s.container.restarts.increase, from k8s.container.restarts in its
+ *     metrics/restarts-increase pipeline (tests/restarts-increase_test.yaml):
+ *     the restarts since its previous sample of the container, which
+ *     CrashLoopBackOff Detection sums;
+ *   - k8s.job.failed_pods.increase, a copy of k8s.job.failed_pods in its
+ *     metrics pipeline (tests/job-failures-increase_test.yaml): the Job's
+ *     failed pods since its previous sample of the Job, which Job Failures
+ *     sums.
  */
 export const CHART_DERIVED_METRICS: ReadonlyArray<string> = [
   "k8s.container.restarts.increase",
+  "k8s.job.failed_pods.increase",
 ];
 
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([

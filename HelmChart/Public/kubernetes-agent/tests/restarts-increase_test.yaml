@@ -81,10 +81,12 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n  transform/restarts-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"container\\.id\"\\)\\n      - context: metric\\n        statements:\\n          - set\\(name, \"k8s\\.container\\.restarts\\.increase\"\\) where name == \"k8s\\.container\\.restarts\"\\n          - set\\(description, \"Times the container restarted since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulative_to_delta/restarts-increase:\\n"
-      # Exactly once: never in metric context there too.
+      # Exactly once: never in metric context there too. (The Job
+      # failures copy has a convert_gauge_to_sum of its own,
+      # tests/job-failures-increase_test.yaml.)
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "convert_gauge_to_sum\\([\\s\\S]*convert_gauge_to_sum\\("
+          pattern: "convert_gauge_to_sum\\([^\\n]*k8s\\.container\\.restarts\\.increase[\\s\\S]*convert_gauge_to_sum\\([^\\n]*k8s\\.container\\.restarts\\.increase"
 
   - it: and on the releases before 0.108.0, the one that made it a metric function
     set:

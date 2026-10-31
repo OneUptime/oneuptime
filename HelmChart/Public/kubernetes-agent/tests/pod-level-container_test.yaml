@@ -47,7 +47,7 @@ tests:
           pattern: "\\n  transform/pod-level-unmark:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"k8s\\.container\\.name\"\\) where attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\] == true\\n          - delete_key\\(attributes, \"oneuptime\\.k8s\\.pod_level\"\\)\\n    trace_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"k8s\\.container\\.name\"\\) where attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\] == true\\n          - delete_key\\(attributes, \"oneuptime\\.k8s\\.pod_level\"\\)\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    metrics:\\n      receivers:\\n(?:        [^\\n]*\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n"
+          pattern: "\\n    metrics:\\n      receivers:\\n(?:        [^\\n]*\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n"
