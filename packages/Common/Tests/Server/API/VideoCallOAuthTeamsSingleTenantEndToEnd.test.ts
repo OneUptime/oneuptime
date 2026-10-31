@@ -25,6 +25,10 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
+import {
+  ConnectCallbackError,
+  ConnectProvider,
+} from "../../../Types/Workspace/ConnectCallback";
 import FakeMicrosoftIdentityPlatform, {
   FakeAuthorizeOutcome,
   FakeSignInAudience,
@@ -177,6 +181,10 @@ const callbackPathOf: (redirectTo: string) => string = (
   return redirectTo.slice(at);
 };
 
+// The runtime's own fetch, if it has one, put back after each test.
+const globalFetch: PropertyDescriptor | undefined =
+  Object.getOwnPropertyDescriptor(globalThis, "fetch");
+
 describe("Microsoft Teams one-click Connect, a single-tenant app, end to end", () => {
   let app: RunningApp;
   let microsoft: FakeMicrosoftIdentityPlatform;
@@ -251,13 +259,22 @@ describe("Microsoft Teams one-click Connect, a single-tenant app, end to end", (
 
     environment["MicrosoftTeamsMeetingsAppTenantId"] = CONTOSO;
 
-    // Microsoft's token endpoint, as the meetings app posts its code.
-    jest.spyOn(globalThis, "fetch").mockImplementation((async (
-      url: string,
-      init?: { body?: string },
-    ): Promise<unknown> => {
-      return microsoft.tokenFromFetch(String(url), init?.body);
-    }) as unknown as typeof fetch);
+    /*
+     * Microsoft's token endpoint, as the meetings app posts its code: with
+     * the runtime's fetch, read as it sends (VideoCallHttpClient). The jest
+     * environment is jsdom, which has none, so this suite lends it one for
+     * each test and takes it back after.
+     */
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      writable: true,
+      value: async (
+        url: string,
+        init?: { body?: string },
+      ): Promise<unknown> => {
+        return microsoft.tokenFromFetch(String(url), init?.body);
+      },
+    });
 
     getCurrentPlan.mockImplementation(async () => {
       return { plan: PlanType.Growth, isSubscriptionUnpaid: false };
@@ -310,6 +327,12 @@ describe("Microsoft Teams one-click Connect, a single-tenant app, end to end", (
   afterEach(() => {
     environment["MicrosoftTeamsMeetingsAppTenantId"] = null;
     jest.restoreAllMocks();
+
+    if (globalFetch) {
+      Object.defineProperty(globalThis, "fetch", globalFetch);
+    } else {
+      delete (globalThis as { fetch?: unknown }).fetch;
+    }
   });
 
   function videoCallsPage(): string {
@@ -378,7 +401,7 @@ describe("Microsoft Teams one-click Connect, a single-tenant app, end to end", (
 
     expect(callback.status).toBe(302);
     expect(callback.location).toBe(
-      `${videoCallsPage()}?provider=microsoft-teams&connected=${CONNECTION_ID.toString()}`,
+      `${videoCallsPage()}?provider=${ConnectProvider.MicrosoftTeamsMeetings}&connected=${CONNECTION_ID.toString()}`,
     );
     // Exchanged once, at the authority that issued the code.
     expect(microsoft.tokenRequests).toEqual([
@@ -466,8 +489,8 @@ describe("Microsoft Teams one-click Connect, a single-tenant app, end to end", (
     );
 
     expect(callback.status).toBe(302);
-    expect(callback.location).toContain(
-      `${videoCallsPage()}?provider=microsoft-teams&error=`,
+    expect(callback.location).toBe(
+      `${videoCallsPage()}?provider=${ConnectProvider.MicrosoftTeamsMeetings}&error=${ConnectCallbackError.CouldNotFinish}`,
     );
     expect(callback.location).not.toContain("AADSTS");
     expect(microsoft.tokenRequests).toEqual([]);
