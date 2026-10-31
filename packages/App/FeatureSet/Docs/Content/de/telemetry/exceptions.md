@@ -62,6 +62,8 @@ Jede Zeile zeigt außerdem, wie viele Benutzer die Ausnahme im gewählten Zeitra
 
 Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**. **Mir zugewiesen** zeigt nur die Ihnen zugewiesenen Ausnahmen, und das Sortiermenü ordnet die Liste nach **Zuletzt gesehen**, **Zuerst gesehen** oder **Meiste Ereignisse**.
 
+**Gespeicherte Ansichten** behält die Liste unter einem Namen, für alle im Projekt: die Suche, die Filter, den Zeitraum, den Status, was als Problem zählt, **Mir zugewiesen**, die Sortierung und die Seitengröße. Eine Ansicht mit **Mir zugewiesen** zeigt jeder Person die Ausnahmen, die ihr zugewiesen sind, und **Ansicht zurücksetzen** stellt die Liste so wieder her, wie sie sich zuerst öffnet. Die Adresse der Seite nennt die gewählte Ansicht, sodass ein geteilter Link sie öffnet. Ansonsten funktionieren gespeicherte Ansichten wie im [Protokoll-Explorer](/docs/telemetry/logs-explorer#eine-ansicht-speichern).
+
 ### Eine Ausnahme öffnen
 
 Klicken Sie auf eine Zeile, um die Seite der Ausnahme zu öffnen.

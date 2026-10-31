@@ -62,6 +62,8 @@ Cada fila muestra también a cuántos usuarios afectó la excepción en el inter
 
 Escriba una consulta como `type:TypeError env:production`, consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#excepciones), o haga clic en un valor de la barra lateral **Filtros**: un servicio, un host u otro recurso, un **Tipo de excepción**, un **Entorno** o una **Clase de error**. **Asignadas a mí** muestra solo las excepciones asignadas a usted, y el menú de orden ordena la lista por **Visto por última vez**, **Visto por primera vez** o **Más eventos**.
 
+**Vistas guardadas** conserva la lista con un nombre, para todos en el proyecto: la búsqueda, los filtros, el intervalo de tiempo, el estado, lo que cuenta como un problema, **Asignadas a mí**, el orden y el tamaño de página. Una vista con **Asignadas a mí** muestra a cada persona las excepciones asignadas a ella, y **Quitar vista** devuelve la lista a como se abre por primera vez. La dirección de la página nombra la vista que eligió, así que un enlace que comparta la abre. Por lo demás, las vistas guardadas funcionan como en el [Explorador de registros](/docs/telemetry/logs-explorer#guardar-una-vista).
+
 ### Abrir una excepción
 
 Haga clic en una fila para abrir la página de la excepción.

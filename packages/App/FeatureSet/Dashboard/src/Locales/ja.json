@@ -39050,5 +39050,8 @@
   "Exception assigned to me": "自分に割り当てられた例外",
   "Is Assignee Notified": "担当者に通知済み",
   "Notify me about exceptions assigned to me or to a team I am on.": "自分または自分が所属するチームに割り当てられた例外について通知します。",
-  "Someone assigns an exception to you, or to a team you are on.": "誰かがあなた、またはあなたが所属するチームに例外を割り当てました。"
+  "Someone assigns an exception to you, or to a team you are on.": "誰かがあなた、またはあなたが所属するチームに例外を割り当てました。",
+  "Exception Saved View": "保存済みの例外ビュー",
+  "Exception Saved Views": "保存済みの例外ビュー",
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "現在の検索、フィルター、時間範囲、ステータス、並べ替え、ページサイズを含む例外一覧のビューを保存して再利用します。"
 }
