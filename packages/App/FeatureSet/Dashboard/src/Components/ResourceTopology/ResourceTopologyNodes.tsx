@@ -12,6 +12,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceTopologyFact,
+  ResourceTopologyGraph,
   ResourceTopologyHealth,
   ResourceTopologyNode,
   ResourceTopologyText,
@@ -22,6 +23,8 @@ import {
 } from "./ResourceTopologyKinds";
 import {
   ResourceTopologyDirection,
+  ResourceTopologyHeading,
+  ResourceTopologyHeadingWidth,
   ResourceTopologyPlaced,
   ResourceTopologyRelatedCaption,
   ResourceTopologySide,
@@ -141,12 +144,16 @@ export function tx(text: string, translator: Translator): string {
 
 let measuringContext: CanvasRenderingContext2D | null | undefined;
 
-/* The drawn width of a string in a font, or 0 where nothing can measure it. */
-function measureTextWidth(text: string, font: string): number {
+/*
+ * The drawn width of a string in a font, or 0 where nothing can measure it:
+ * outside a browser, and in a test's document, which lays no text out (it
+ * has no document.fonts, and no canvas to measure with).
+ */
+export function measureTextWidth(text: string, font: string): number {
   if (measuringContext === undefined) {
     try {
       measuringContext =
-        typeof document === "undefined"
+        typeof document === "undefined" || !("fonts" in document)
           ? null
           : document.createElement("canvas").getContext("2d");
     } catch {
@@ -792,7 +799,11 @@ export const StatusLine: FunctionComponent<{
               >
                 {tx(fact.label, translator)}
               </span>
-              <span
+              {/*
+               * A value keeps its own order on a page read from right to
+               * left: "600/min", never "min/600".
+               */}
+              <bdi
                 style={{
                   fontWeight: 600,
                   color:
@@ -804,7 +815,7 @@ export const StatusLine: FunctionComponent<{
                 }}
               >
                 {fact.value}
-              </span>
+              </bdi>
             </span>
           );
         })}
@@ -875,6 +886,32 @@ export function describeTopologyOpen(
     .join(", ");
 }
 
+/* The class the canvas's rules give the round toggle its hover by. */
+export const TOPOLOGY_TOGGLE_CLASS: string = "rt-toggle";
+
+/*
+ * The round button's colours: a quiet disc on the card's own surface,
+ * whichever way it is. Closed, it is grey like a card's edge; open, its
+ * ring and chevron take the map's accent, mixed into the theme, so an open
+ * part is told from a closed one without a filled disc outshouting the red
+ * and amber the map is read by.
+ */
+export function getTopologyToggleColors(isOpen: boolean): {
+  border: string;
+  background: string;
+  color: string;
+} {
+  return {
+    border: isOpen
+      ? `color-mix(in srgb, ${RESOURCE_TOPOLOGY_SELECTED_COLOR} 55%, var(--ou-border-default, #e5e7eb))`
+      : "var(--ou-border-strong, #d1d5db)",
+    background: "var(--ou-surface-primary, #ffffff)",
+    color: isOpen
+      ? RESOURCE_TOPOLOGY_SELECTED_COLOR
+      : "var(--ou-text-secondary, #4b5563)",
+  };
+}
+
 /*
  * The round button on the edge a part's line leaves by: it opens the part,
  * and its parts appear after it; open, it closes it again. The chevron
@@ -894,11 +931,13 @@ const PartToggle: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const size: number = 24;
+  const colors: { border: string; background: string; color: string } =
+    getTopologyToggleColors(props.isOpen);
 
   return (
     <button
       type="button"
-      className={FOCUS_RING}
+      className={`${FOCUS_RING} ${TOPOLOGY_TOGGLE_CLASS}`}
       data-testid={`resource-topology-${props.isOpen ? "close" : "open"}-${props.node.id}`}
       aria-expanded={props.isOpen}
       aria-label={
@@ -923,11 +962,9 @@ const PartToggle: FunctionComponent<{
         alignItems: "center",
         justifyContent: "center",
         borderRadius: "50%",
-        border: `1px solid ${props.isOpen ? RESOURCE_TOPOLOGY_SELECTED_COLOR : "var(--ou-border-strong, #d1d5db)"}`,
-        background: props.isOpen
-          ? RESOURCE_TOPOLOGY_SELECTED_COLOR
-          : "var(--ou-surface-primary, #ffffff)",
-        color: props.isOpen ? "#ffffff" : "var(--ou-text-secondary, #4b5563)",
+        border: `1px solid ${colors.border}`,
+        background: colors.background,
+        color: colors.color,
         boxShadow: "var(--ou-shadow-sm, 0 1px 3px rgb(15 23 42 / 8%))",
         zIndex: 2,
       }}
@@ -960,17 +997,21 @@ export const ResourceTopologyCardNode: FunctionComponent<
     isSection ? "healthy" : node.effectiveHealth,
   );
   const status: string = renderTopologyText(translator, node.status);
+  const facts: Array<ResourceTopologyFact> = node.facts || [];
   /*
    * Under a group's heading a card need not say what it is; the resource
-   * itself, and a part in a lane (lanes mix kinds), do.
+   * itself, a part in a lane (lanes mix kinds), and a part with neither a
+   * status nor a number of its own (a datacenter, a region) do - a dot
+   * alone would say nothing.
    */
   const kindLabel: string =
-    isRoot || placed.lane ? topologyKindLabel(translator, node) : "";
+    isRoot || placed.lane || (!status && facts.length === 0)
+      ? topologyKindLabel(translator, node)
+      : "";
   const contents: string = card.canOpen
     ? describeTopologyContents(translator, node)
     : "";
   const attention: number = node.attentionBelow;
-  const facts: Array<ResourceTopologyFact> = node.facts || [];
   const statusLine: string = [status, kindLabel]
     .filter((part: string): boolean => {
       return part.length > 0;
@@ -1146,13 +1187,19 @@ export const ResourceTopologyChipNode: FunctionComponent<
   const kindLabel: string = placed.lane
     ? topologyKindLabel(translator, node)
     : "";
-  const second: string =
-    [status, kindLabel]
-      .filter((part: string): boolean => {
-        return part.length > 0;
-      })
-      .join(" · ") ||
-    (firstFact ? `${tx(firstFact.label, translator)} ${firstFact.value}` : "");
+  const described: string = [status, kindLabel]
+    .filter((part: string): boolean => {
+      return part.length > 0;
+    })
+    .join(" · ");
+  // With nothing else to say, its first number - the value kept in its order.
+  const second: ReactElement | string | null =
+    described ||
+    (firstFact ? (
+      <>
+        {tx(firstFact.label, translator)} <bdi>{firstFact.value}</bdi>
+      </>
+    ) : null);
 
   return (
     <div
@@ -1310,6 +1357,143 @@ export const ResourceTopologyMoreNode: FunctionComponent<
 };
 
 /*
+ * What a heading says, in the reader's language: over a group, the kind of
+ * its parts, how many, how many need attention, and "Show all" or "Show
+ * fewer"; over a lane, the name of what the lane holds ("Called by") and
+ * how many. The map draws these words, and lays headings out by them.
+ */
+export interface ResourceTopologyHeadingWords {
+  title: string;
+  count: string;
+  attention: string;
+  action: string;
+  canFold: boolean;
+  canShowAll: boolean;
+}
+
+export function getTopologyHeadingWords(
+  translator: Translator,
+  heading: ResourceTopologyHeading | undefined,
+  laneNode: ResourceTopologyNode | null,
+): ResourceTopologyHeadingWords {
+  const group: ResourceTopologyGroupItem | undefined = heading?.group;
+  const attention: number = group
+    ? group.attention
+    : laneNode
+      ? laneNode.attentionBelow
+      : 0;
+  const canFold: boolean = Boolean(group?.isShownInFull);
+  const canShowAll: boolean = Boolean(group?.more?.canShowAll);
+
+  return {
+    title: group
+      ? tx(getResourceTopologyKind(group.kind).plural, translator)
+      : laneNode
+        ? topologyNodeName(translator, laneNode)
+        : "",
+    count: translator.formatNumber(
+      group ? group.total : heading?.laneCount || 0,
+    ),
+    attention:
+      attention > 0 ? describeTopologyAttention(translator, attention) : "",
+    action:
+      group && canFold
+        ? tx("Show fewer", translator)
+        : group && canShowAll
+          ? translator.translateTemplate("Show all {{count}}", {
+              count: translator.formatNumber(group.total),
+            })
+          : "",
+    canFold: canFold,
+    canShowAll: canShowAll,
+  };
+}
+
+// A heading's type, as ResourceTopologyHeadingNode sets it.
+const HEADING_FONT_SIZE: number = 11;
+const HEADING_GAP: number = 8;
+// Clear of the line that runs into it, and room for a button's focus ring.
+const HEADING_PADDING_START: number = 6;
+const HEADING_PADDING_END: number = 4;
+const HEADING_LETTER_SPACING: number = 0.04 * HEADING_FONT_SIZE;
+const HEADING_FONT_FAMILY: string =
+  'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+// Room for a font that arrives after the first measure, and for rounding.
+const HEADING_SLACK: number = 1.06;
+
+/*
+ * How wide each heading's words are drawn, for the layout
+ * (ResourceTopologyLayoutOptions.headingWidth): measured in the page's font,
+ * so a heading in German or Persian is as wide as its words, and one in
+ * English no wider than it needs. 0 where nothing can measure text.
+ */
+export function createTopologyHeadingMeasure(
+  translator: Translator,
+  graph: ResourceTopologyGraph,
+  // How a string is measured in a font: the page's canvas by default.
+  measure: (text: string, font: string) => number = measureTextWidth,
+): ResourceTopologyHeadingWidth {
+  const widths: Map<string, number> = new Map<string, number>();
+
+  return (heading: ResourceTopologyHeading): number => {
+    const words: ResourceTopologyHeadingWords = getTopologyHeadingWords(
+      translator,
+      heading,
+      heading.laneSectionId
+        ? graph.nodes.get(heading.laneSectionId) || null
+        : null,
+    );
+    const key: string = JSON.stringify([
+      words.title,
+      words.count,
+      words.attention,
+      words.action,
+    ]);
+    const known: number | undefined = widths.get(key);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const font: (weight: number) => string = (weight: number): string => {
+      return `${weight} ${HEADING_FONT_SIZE}px ${HEADING_FONT_FAMILY}`;
+    };
+    const title: string = words.title.toLocaleUpperCase(translator.language);
+    const parts: Array<number> = [
+      measure(title, font(600)) +
+        HEADING_LETTER_SPACING * Array.from(title).length,
+      measure(words.count, font(400)),
+    ];
+
+    if (words.attention) {
+      parts.push(measure("·", font(400)), measure(words.attention, font(600)));
+    }
+
+    if (words.action) {
+      parts.push(measure(words.action, font(600)));
+    }
+
+    const width: number = parts.some((part: number): boolean => {
+      return part <= 0;
+    })
+      ? 0
+      : Math.ceil(
+          (HEADING_PADDING_START +
+            HEADING_PADDING_END +
+            parts.reduce((sum: number, part: number): number => {
+              return sum + part;
+            }, 0) +
+            HEADING_GAP * (parts.length - 1)) *
+            HEADING_SLACK,
+        );
+
+    widths.set(key, width);
+
+    return width;
+  };
+}
+
+/*
  * Over a group's parts: what they are, how many, how many need attention,
  * and a way to show them all or fold them back. Over a lane: the name of
  * what the lane holds ("Called by") and how many.
@@ -1321,19 +1505,11 @@ export const ResourceTopologyHeadingNode: FunctionComponent<
   const data: ResourceTopologyNodeData = props.data;
   const placed: ResourceTopologyPlaced = data.placed;
   const group: ResourceTopologyGroupItem | undefined = placed.heading?.group;
-  const title: string = group
-    ? tx(getResourceTopologyKind(group.kind).plural, translator)
-    : data.node
-      ? topologyNodeName(translator, data.node)
-      : "";
-  const total: number = group ? group.total : placed.heading?.laneCount || 0;
-  const attention: number = group
-    ? group.attention
-    : data.node
-      ? data.node.attentionBelow
-      : 0;
-  const canFold: boolean = Boolean(group?.isShownInFull);
-  const canShowAll: boolean = Boolean(group?.more?.canShowAll);
+  const words: ResourceTopologyHeadingWords = getTopologyHeadingWords(
+    translator,
+    placed.heading,
+    group ? null : data.node,
+  );
 
   return (
     <div
@@ -1350,8 +1526,9 @@ export const ResourceTopologyHeadingNode: FunctionComponent<
         display: "flex",
         alignItems: "center",
         gap: 8,
-        // Clear of the line that runs into it.
-        paddingInlineStart: 6,
+        paddingInlineStart: HEADING_PADDING_START,
+        // Room for "Show all"'s focus ring at the end, which overflow clips.
+        paddingInlineEnd: HEADING_PADDING_END,
         fontSize: 11,
         color: "var(--ou-text-muted, #6b7280)",
         whiteSpace: "nowrap",
@@ -1368,29 +1545,38 @@ export const ResourceTopologyHeadingNode: FunctionComponent<
           color: "var(--ou-text-secondary, #4b5563)",
         }}
       >
-        {title}
+        {words.title}
       </span>
-      <span style={{ flexShrink: 0 }}>{translator.formatNumber(total)}</span>
-      {attention > 0 ? (
-        <span
-          style={{
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            fontWeight: 600,
-            color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
-          }}
-        >
-          {describeTopologyAttention(translator, attention)}
-        </span>
+      <span style={{ flexShrink: 0 }}>{words.count}</span>
+      {words.attention ? (
+        <>
+          {/*
+           * Between the count and what needs attention, so "2" and "1 needs
+           * attention" never read as one number.
+           */}
+          <span aria-hidden={true} style={{ flexShrink: 0 }}>
+            ·
+          </span>
+          <span
+            style={{
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontWeight: 600,
+              color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+            }}
+          >
+            {words.attention}
+          </span>
+        </>
       ) : null}
-      {group && (canFold || canShowAll) ? (
+      {group && words.action ? (
         <button
           type="button"
           className={FOCUS_RING}
           data-testid={`resource-topology-group-toggle-${group.groupKey}`}
           // Shown in full is open: the button then folds the group.
-          aria-expanded={canFold}
+          aria-expanded={words.canFold}
           onClick={() => {
             data.callbacks.onToggleGroup(group.groupKey);
           }}
@@ -1403,11 +1589,7 @@ export const ResourceTopologyHeadingNode: FunctionComponent<
             color: "var(--ou-link, #4f46e5)",
           }}
         >
-          {canFold
-            ? tx("Show fewer", translator)
-            : translator.translateTemplate("Show all {{count}}", {
-                count: translator.formatNumber(group.total),
-              })}
+          {words.action}
         </button>
       ) : null}
     </div>

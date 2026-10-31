@@ -65,6 +65,7 @@ export const RESOURCE_TOPOLOGY_SIZES: {
   rootGap: number;
   drop: number;
   laneGap: number;
+  laneHeadingClearance: number;
   relatedGap: number;
   relatedWidth: number;
   relatedHeight: number;
@@ -104,6 +105,7 @@ export const RESOURCE_TOPOLOGY_SIZES: {
   drop: 10,
   // Between a lane and the tree: room for a call's rate on its line.
   laneGap: 96,
+  laneHeadingClearance: 24,
   relatedGap: 120,
   relatedWidth: 232,
   relatedHeight: 52,
@@ -476,7 +478,20 @@ export interface ResourceTopologyLayoutOptions {
    * passes the first view's, so opening a part never re-flows the rest.
    */
   rowLength?: number | undefined;
+  /*
+   * How wide a heading's words are drawn, in the reader's language (0 when
+   * that cannot be told). With it, a heading is as wide as its words or
+   * its parts, whichever is wider, and a lane makes room for its heading,
+   * so no heading is cut short and none is wider than it needs. Left out,
+   * a group's heading is at least headingMinWidth wide and a lane's as
+   * wide as the lane.
+   */
+  headingWidth?: ResourceTopologyHeadingWidth | undefined;
 }
+
+export type ResourceTopologyHeadingWidth = (
+  heading: ResourceTopologyHeading,
+) => number;
 
 /* The widest rows tried, in parts: the drawing keeps what fits best. */
 export const ROW_LENGTHS_TRIED: ReadonlyArray<number> = [1, 2, 3, 4, 5, 6];
@@ -600,6 +615,53 @@ function cellsOf(group: ResourceTopologyGroupItem): Array<Cell> {
   return cells;
 }
 
+function sizeOfCell(cell: Cell): Size {
+  if (cell.type === "card") {
+    return getCardSize(cell.card, { isRoot: false });
+  }
+
+  return cell.type === "chip" ? CHIP_SIZE : moreSize(cell.more);
+}
+
+/* What a lane's heading says: its section, and how many parts it holds. */
+function laneHeadingOf(
+  section: ResourceTopologyCardItem,
+): ResourceTopologyHeading {
+  return {
+    laneSectionId: section.nodeId,
+    laneCount: section.groups.reduce(
+      (sum: number, group: ResourceTopologyGroupItem): number => {
+        return sum + group.total;
+      },
+      0,
+    ),
+  };
+}
+
+/*
+ * How wide a lane stands: as its widest part - a lane of chips is a chip
+ * wide, not a card - or as its heading's words, whichever is wider, so the
+ * drawing is no wider than it has to be and the heading is never cut.
+ */
+function laneWidthOf(
+  section: ResourceTopologyCardItem,
+  headingWidth: ResourceTopologyHeadingWidth | undefined,
+): number {
+  if (!section.isOpen) {
+    return getCardSize(section, { isRoot: false }).width;
+  }
+
+  let width: number = 0;
+
+  for (const cell of section.groups.flatMap(cellsOf)) {
+    width = Math.max(width, sizeOfCell(cell).width);
+  }
+
+  const words: number = headingWidth ? headingWidth(laneHeadingOf(section)) : 0;
+
+  return Math.max(width > 0 ? width : SIZES.cardWidth, words);
+}
+
 function nodeIdsOfCell(cell: Cell): Array<string> {
   if (cell.type === "card") {
     return [cell.card.nodeId];
@@ -628,7 +690,11 @@ export function getTopologyColumnX(depth: number): number {
  * Lays the tree out once, for rows of at most `rowLength` parts, from the
  * resource at the top. Returns what it placed and the lines between.
  */
-function layoutTree(top: ResourceTopologyCardItem, rowLength: number): Draft {
+function layoutTree(
+  top: ResourceTopologyCardItem,
+  rowLength: number,
+  headingWidth?: ResourceTopologyHeadingWidth | undefined,
+): Draft {
   const placed: Array<ResourceTopologyPlaced> = [];
   const branches: Array<ResourceTopologyBranch> = [];
   const columnX: (depth: number) => number = getTopologyColumnX;
@@ -893,7 +959,12 @@ function layoutTree(top: ResourceTopologyCardItem, rowLength: number): Draft {
 
       flushRun();
       cursor -= SIZES.itemGap;
-      heading.width = Math.max(SIZES.headingMinWidth, blockWidth);
+      // As wide as its parts, and its words where those can be told.
+      const words: number = headingWidth ? headingWidth(heading.heading!) : 0;
+      heading.width =
+        words > 0
+          ? Math.max(blockWidth, words)
+          : Math.max(SIZES.headingMinWidth, blockWidth);
 
       branches.push({
         id: `branch:${card.id}->${group.id}`,
@@ -940,6 +1011,78 @@ export function getTopologyFrameIds(
   return ids;
 }
 
+/*
+ * Everything a part's open branch draws: the part, its groups' headings,
+ * its parts, their parts and so on down - a namespace with its workloads
+ * and the pods of the one that opened with it. Lanes and a focused part's
+ * related column stand beside the tree and are left out.
+ */
+export function getTopologySubtreeIds(
+  layout: Pick<ResourceTopologyLayout, "placed">,
+  nodeIds: ReadonlyArray<string>,
+): Array<string> {
+  const wanted: Set<string> = new Set<string>(nodeIds);
+  const inTree: (item: ResourceTopologyPlaced) => boolean = (
+    item: ResourceTopologyPlaced,
+  ): boolean => {
+    return (
+      !item.lane && item.kind !== "related" && item.kind !== "relatedCaption"
+    );
+  };
+  // What holds each part, as the layout placed it.
+  const holderOf: Map<string, string | null> = new Map<string, string | null>();
+
+  for (const item of layout.placed) {
+    const nodeId: string | null =
+      item.card?.nodeId || item.chip?.nodeId || null;
+
+    if (nodeId !== null && inTree(item)) {
+      holderOf.set(nodeId, item.parentId);
+    }
+  }
+
+  const isUnderWanted: (holderId: string | null) => boolean = (
+    holderId: string | null,
+  ): boolean => {
+    let current: string | null = holderId;
+
+    // A tree is no deeper than its parts are many: the walk always ends.
+    for (
+      let step: number = 0;
+      current !== null && step <= holderOf.size;
+      step++
+    ) {
+      if (wanted.has(current)) {
+        return true;
+      }
+
+      current = holderOf.get(current) ?? null;
+    }
+
+    return false;
+  };
+
+  const ids: Array<string> = [];
+
+  for (const item of layout.placed) {
+    if (!inTree(item)) {
+      continue;
+    }
+
+    const nodeId: string | null =
+      item.card?.nodeId || item.chip?.nodeId || null;
+
+    if (
+      (nodeId !== null && wanted.has(nodeId)) ||
+      isUnderWanted(item.parentId)
+    ) {
+      ids.push(item.id);
+    }
+  }
+
+  return ids;
+}
+
 /* The right edge of what is placed, and the bottom. */
 function extentOf(placed: Array<ResourceTopologyPlaced>): {
   minX: number;
@@ -974,6 +1117,7 @@ function placeLane(
   section: ResourceTopologyCardItem,
   side: ResourceTopologyLaneSide,
   x: number,
+  width: number,
   draft: Draft,
   relations: ReadonlyArray<ResourceTopologyLayoutRelation>,
 ): void {
@@ -1046,13 +1190,7 @@ function placeLane(
     },
   );
 
-  const sizeOf: (cell: Cell) => Size = (cell: Cell): Size => {
-    if (cell.type === "card") {
-      return getCardSize(cell.card, { isRoot: false });
-    }
-
-    return cell.type === "chip" ? CHIP_SIZE : moreSize(cell.more);
-  };
+  const sizeOf: (cell: Cell) => Size = sizeOfCell;
 
   const firstCentre: number | null = wanted[0]?.centre ?? null;
   const firstHeight: number = wanted[0] ? sizeOf(wanted[0].cell).height : 0;
@@ -1067,20 +1205,12 @@ function placeLane(
       kind: "heading",
       x: x,
       y: headingTop,
-      width: SIZES.cardWidth,
+      width: width,
       height: SIZES.headingHeight,
       depth: 1,
       parentId: null,
       lane: side,
-      heading: {
-        laneSectionId: section.nodeId,
-        laneCount: section.groups.reduce(
-          (sum: number, group: ResourceTopologyGroupItem): number => {
-            return sum + group.total;
-          },
-          0,
-        ),
-      },
+      heading: laneHeadingOf(section),
     });
   }
 
@@ -1231,20 +1361,61 @@ export function layoutResourceTopology(
     options.relations || [];
 
   const build: (rowLength: number) => Draft = (rowLength: number): Draft => {
-    const draft: Draft = layoutTree(split.top, rowLength);
-    const tree: { maxX: number } = extentOf(draft.placed);
-    let laneX: number = tree.maxX + SIZES.laneGap;
+    const draft: Draft = layoutTree(split.top, rowLength, options.headingWidth);
+    /*
+     * The lanes stand a gap from the tree's parts, and clear of every
+     * heading's words where those are measured. A heading only given its
+     * least width (headingMinWidth) may run on past its parts; before a
+     * lane it is cut short of the lane instead, so a host's map is not
+     * drawn wider - and smaller - for room its words may not need.
+     */
+    const treeHeadings: Array<ResourceTopologyPlaced> = draft.placed.filter(
+      (item: ResourceTopologyPlaced): boolean => {
+        return item.kind === "heading";
+      },
+    );
+    const tree: { minX: number; maxX: number } = extentOf(
+      draft.placed.filter((item: ResourceTopologyPlaced): boolean => {
+        return item.kind !== "heading";
+      }),
+    );
+    let firstLaneX: number = tree.maxX + SIZES.laneGap;
 
-    for (const section of split.right) {
-      placeLane(section, "end", laneX, draft, relations);
-      laneX += SIZES.cardWidth + SIZES.columnGap;
+    if (options.headingWidth) {
+      for (const heading of treeHeadings) {
+        firstLaneX = Math.max(
+          firstLaneX,
+          heading.x + heading.width + SIZES.laneHeadingClearance,
+        );
+      }
     }
 
-    let leftX: number = -(SIZES.cardWidth + SIZES.laneGap);
+    let laneX: number = firstLaneX;
+
+    for (const section of split.right) {
+      const width: number = laneWidthOf(section, options.headingWidth);
+      placeLane(section, "end", laneX, width, draft, relations);
+      laneX += width + SIZES.columnGap;
+    }
+
+    if (split.right.length > 0) {
+      for (const heading of treeHeadings) {
+        heading.width = Math.min(
+          heading.width,
+          firstLaneX - SIZES.laneHeadingClearance - heading.x,
+        );
+      }
+    }
+
+    let laneEdge: number = tree.minX;
+    let gap: number = SIZES.laneGap;
 
     for (const section of split.left) {
-      placeLane(section, "start", leftX, draft, relations);
-      leftX -= SIZES.cardWidth + SIZES.columnGap;
+      const width: number = laneWidthOf(section, options.headingWidth);
+      const x: number = laneEdge - gap - width;
+      placeLane(section, "start", x, width, draft, relations);
+      laneEdge = x;
+      gap = SIZES.columnGap;
     }
 
     placeRelated(visible, draft);

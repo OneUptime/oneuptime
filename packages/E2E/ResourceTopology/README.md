@@ -40,18 +40,24 @@ The suite drives the pages the way a person does:
   another on any product's map, the line to trouble red and the rest grey,
   the way to a picked part lit, the arrow keys moving through the tree,
   opening and closing parts, the small print gone when zoomed far out, and a
-  large cluster's forty nodes shown in full at once;
+  large cluster's forty nodes shown in full at once; an open part's round
+  button a quiet disc, a part with no status saying what it is, the first
+  view and Fit at the top of the canvas, and a namespace opened framed with
+  the pods that opened with it;
 - a Kubernetes cluster read by workload and by node, and a picked pod's line
   to the node it runs on;
 - a host read left to right: what calls it, the host, what it calls, every
-  call drawn with its rate;
+  call drawn with its rate, at a readable zoom with its lanes of chips, and
+  no heading's words cut, in German too; a focused node's pods joined by one
+  square spine;
 - the other six resources, and a cloud account, drawn from their own
   inventories;
 - the master Topology opened on a vCenter, a cluster and a host from their
   maps, each offering the way back ("Open vCenter topology");
 - a phone's list, dark mode, German, and Persian (the tree and a host's lanes
-  mirrored, the left arrow going in); an empty inventory, a failed read tried
-  again, and incidents and alerts the reader may not see.
+  mirrored, the left arrow going in, the zoom buttons at the bottom right); an
+  empty inventory, a failed read tried again, and incidents and alerts the
+  reader may not see.
 
 Every test fails on a page error and on any request the fixture does not
 model (`window.__resourceTopologyFixture.unhandled`).

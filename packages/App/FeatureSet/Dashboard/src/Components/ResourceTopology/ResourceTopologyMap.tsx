@@ -36,6 +36,7 @@ import {
 } from "./ResourceTopologyView";
 import {
   ResourceTopologyDirection,
+  ResourceTopologyHeadingWidth,
   ResourceTopologyLanes,
   ResourceTopologyLayout,
   ResourceTopologyLayoutRelation,
@@ -52,6 +53,7 @@ import ResourceTopologyOutline from "./ResourceTopologyOutline";
 import ResourceTopologyDetailPanel from "./ResourceTopologyDetailPanel";
 import {
   ResourceTopologyNodeCallbacks,
+  createTopologyHeadingMeasure,
   topologyNodeName,
   tx,
 } from "./ResourceTopologyNodes";
@@ -366,6 +368,50 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     return getLaneViewOptions(graph, arrangement.lanes);
   }, [graph, arrangement.lanes]);
 
+  /*
+   * The page's font may arrive after the map is first laid out: its
+   * headings are then measured again in it, and the view framed again.
+   */
+  const [fontsReady, setFontsReady] = useState<boolean>((): boolean => {
+    return (
+      typeof document === "undefined" ||
+      !document.fonts ||
+      document.fonts.status === "loaded"
+    );
+  });
+
+  useEffect(() => {
+    if (fontsReady) {
+      return undefined;
+    }
+
+    let current: boolean = true;
+
+    document.fonts.ready
+      .then(() => {
+        if (current) {
+          setFontsReady(true);
+          requestFit(null, false);
+        }
+      })
+      .catch(() => {
+        // The fallback font's measure stands.
+      });
+
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  /*
+   * How wide each heading's words are drawn in the reader's language, so
+   * the drawing is laid out around them: none cut short, none wider than
+   * it needs.
+   */
+  const headingWidth: ResourceTopologyHeadingWidth = useMemo(() => {
+    return createTopologyHeadingMeasure(translator, graph);
+  }, [graph, translator.language, fontsReady]);
+
   const fit: ResourceTopologyFit = useMemo(() => {
     return fitResourceTopology(
       graph,
@@ -377,6 +423,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
         relations: arrangement.lanes ? graph.relations : undefined,
         alwaysOpen: laneOptions.alwaysOpen,
         reveal: laneOptions.reveal,
+        headingWidth: headingWidth,
       },
     );
   }, [
@@ -387,6 +434,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     aspect,
     arrangement.lanes,
     laneOptions,
+    headingWidth,
   ]);
 
   const visible: ResourceTopologyVisible = useMemo(() => {
@@ -417,6 +465,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       relations: laneRelations,
       direction: direction,
       rowLength: fit.rowLength,
+      headingWidth: headingWidth,
     });
   }, [
     visible,
@@ -425,6 +474,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     laneRelations,
     direction,
     fit.rowLength,
+    headingWidth,
   ]);
 
   // A new canvas shape lays the drawing out again: frame it again.
@@ -957,12 +1007,13 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
           )}
           {display === "map" ? (
             <span className="inline-flex items-center gap-1.5">
+              {/* The tree's line, turned the way the map's run on this page. */}
               <svg
                 aria-hidden={true}
                 width="20"
                 height="12"
                 viewBox="0 0 20 12"
-                className="flex-shrink-0"
+                className="flex-shrink-0 rtl:-scale-x-100"
               >
                 <path
                   d="M1 2 H7 Q10 2 10 5 V7 Q10 10 13 10 H19"

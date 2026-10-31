@@ -195,7 +195,8 @@ export interface ResourceTopologyViewOptions {
   maxAutomaticDepth?: number | undefined;
   /*
    * Parts that are always open: what a lane holds (a host's callers and
-   * what it calls) is the lane, never one closed card.
+   * what it calls) is the lane, never one closed card. Its parts that hold
+   * nothing are chips, however few.
    */
   alwaysOpen?: ReadonlySet<string> | undefined;
   /*
@@ -831,15 +832,24 @@ export function computeResourceTopologyView(
       return card;
     }
 
+    /*
+     * A lane's parts that hold nothing are chips however few: the line of
+     * each call carries its rate, so a card would only repeat it - and a
+     * narrow lane leaves the host's map room to be drawn larger.
+     */
+    const isLane: boolean = Boolean(options.alwaysOpen?.has(node.id));
+    const holdsNothing: (member: ResourceTopologyNode) => boolean = (
+      member: ResourceTopologyNode,
+    ): boolean => {
+      return keptChildren(member).length === 0;
+    };
+
     for (const group of groupByKind(children)) {
       const key: string = groupKey(node.id, group.kind);
       const inFull: boolean = state.shownInFull.has(key);
-      const asChips: boolean = drawnAsChips(
-        group.members,
-        (member: ResourceTopologyNode): boolean => {
-          return keptChildren(member).length === 0;
-        },
-      );
+      const asChips: boolean = isLane
+        ? group.members.every(holdsNothing)
+        : drawnAsChips(group.members, holdsNothing);
       const limit: number = asChips
         ? inFull
           ? CHIP_FULL_LIMIT

@@ -23,9 +23,26 @@ import {
 import { SECTION_KIND } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyKinds";
 import {
   InsideHealthBar,
+  ResourceTopologyHeadingWords,
   StatusLine,
   TOPOLOGY_DETAIL_CLASS,
+  TOPOLOGY_TOGGLE_CLASS,
+  createTopologyHeadingMeasure,
+  getTopologyHeadingWords,
+  getTopologyToggleColors,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyNodes";
+import {
+  CANVAS_RULES,
+  RELATED_SPINE_OFFSET,
+  getRelatedBranchPoints,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyCanvas";
+import { RESOURCE_TOPOLOGY_SELECTED_COLOR } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLook";
+import { ResourceTopologyGroupItem } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyView";
+import { ResourceTopologyHeadingWidth } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
+import {
+  Translator,
+  createTranslator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * The map a person reads - the customer's "box inside a box" redrawn as a
@@ -49,6 +66,7 @@ interface MockFlowProps {
 
 let mockFlow: MockFlowProps | null = null;
 let mockZoom: number = 1;
+let mockControls: Record<string, unknown> | null = null;
 
 jest.mock("reactflow", () => {
   return {
@@ -59,7 +77,9 @@ jest.mock("reactflow", () => {
     Background: () => {
       return null;
     },
-    Controls: () => {
+    Controls: (props: Record<string, unknown>) => {
+      mockControls = props;
+
       return null;
     },
     Handle: () => {
@@ -76,6 +96,7 @@ jest.mock("reactflow", () => {
         fitView: (): boolean => {
           return true;
         },
+        setViewport: (): void => {},
       };
     },
     useStoreApi: () => {
@@ -313,6 +334,7 @@ function branchTone(target: string): string | null {
 beforeEach(() => {
   mockFlow = null;
   mockZoom = 1;
+  mockControls = null;
   document.documentElement.removeAttribute("dir");
   window.history.replaceState({}, "", "/topology");
 });
@@ -446,6 +468,302 @@ describe("opening and closing a part", () => {
     expect(screen.queryByTestId("resource-topology-open-vc")).toBeNull();
     expect(screen.queryByTestId("resource-topology-close-vc")).toBeNull();
   });
+
+  test("the round button is a quiet disc on the card's surface, open or closed", () => {
+    /*
+     * A filled indigo disc on every open part was the loudest thing on the
+     * map - louder than the red and amber it is read by, and the colour of
+     * the picked part's path. Open, the disc keeps the card's surface and
+     * only its ring and chevron take the accent.
+     */
+    const open: ReturnType<typeof getTopologyToggleColors> =
+      getTopologyToggleColors(true);
+    const closed: ReturnType<typeof getTopologyToggleColors> =
+      getTopologyToggleColors(false);
+
+    expect(open.background).toBe("var(--ou-surface-primary, #ffffff)");
+    expect(closed.background).toBe(open.background);
+    expect(open.color).toBe(RESOURCE_TOPOLOGY_SELECTED_COLOR);
+    // Its ring is the accent mixed into the theme's border, not the accent.
+    expect(open.border).toContain("color-mix");
+    expect(open.border).toContain(RESOURCE_TOPOLOGY_SELECTED_COLOR);
+    expect(open.border).toContain("var(--ou-border-default");
+    expect(closed.border).toBe("var(--ou-border-strong, #d1d5db)");
+    expect(closed.color).toBe("var(--ou-text-secondary, #4b5563)");
+
+    renderMap();
+    const close: HTMLElement = screen.getByTestId(
+      "resource-topology-close-ams-prod",
+    );
+    const opener: HTMLElement = screen.getByTestId(
+      "resource-topology-open-ams-dev",
+    );
+
+    /*
+     * Drawn from those colours: the accent on the chevron, never as a fill
+     * (jsdom keeps a plain colour and drops a var() or color-mix()), and
+     * both carry the class the hover rule reads.
+     */
+    const accent: string = "rgb(99, 102, 241)";
+
+    expect(close.style.color).toBe(accent);
+    expect(close.style.backgroundColor).not.toBe(accent);
+    expect(close.getAttribute("style")).not.toContain(`background: ${accent}`);
+    expect(opener.style.color).not.toBe(accent);
+    expect(close).toHaveClass(TOPOLOGY_TOGGLE_CLASS);
+    expect(opener).toHaveClass(TOPOLOGY_TOGGLE_CLASS);
+    // Under the pointer, the ring and chevron take the accent.
+    expect(CANVAS_RULES).toContain(
+      `.${TOPOLOGY_TOGGLE_CLASS}:hover{border-color:${RESOURCE_TOPOLOGY_SELECTED_COLOR} !important;color:${RESOURCE_TOPOLOGY_SELECTED_COLOR} !important}`,
+    );
+    expect(
+      screen.getByTestId("resource-topology-canvas").querySelector("style")
+        ?.textContent,
+    ).toBe(CANVAS_RULES);
+  });
+});
+
+describe("what a card says under its name", () => {
+  test("a part with neither a status nor a number says what it is, never a dot alone", () => {
+    renderMap();
+    const line: HTMLElement = within(card("ams")).getByTestId(
+      "resource-topology-status-line",
+    );
+
+    // Amsterdam is a datacenter, with no status of its own.
+    expect(line).toHaveTextContent("Datacenter");
+  });
+
+  test("a part with a status or a number says that, not its kind again", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "vc",
+      nodes: [
+        part("vc", null, { kind: "vmware.vcenter", name: "vcenter-prod" }),
+        part("ams", "vc", { kind: "vmware.datacenter", name: "Amsterdam" }),
+        part("cl", "ams", {
+          kind: "vmware.cluster",
+          name: "ams-prod",
+          health: "warning",
+          facts: [{ label: "Effective hosts", value: "3/4" }],
+        }),
+        part("esx", "cl", {
+          kind: "vmware.host",
+          name: "esx-1",
+          status: { text: "Reporting" },
+        }),
+        part("vm", "esx", { name: "web-01" }),
+      ],
+    });
+
+    renderMap([{ id: "vcenter", label: "Hosts", graph: graph }]);
+
+    const cluster: HTMLElement = within(card("cl")).getByTestId(
+      "resource-topology-status-line",
+    );
+
+    expect(cluster).toHaveTextContent("Effective hosts3/4");
+    expect(cluster).not.toHaveTextContent("Cluster");
+    expect(
+      within(card("esx")).getByTestId("resource-topology-status-line"),
+    ).not.toHaveTextContent("ESXi Host");
+  });
+
+  test("a number keeps its own order on a page read from right to left", () => {
+    render(
+      <StatusLine
+        health="healthy"
+        status=""
+        facts={[
+          { label: "Requests", value: "600/min" },
+          { label: "Errors", value: "0.2%" },
+        ]}
+      />,
+    );
+
+    /*
+     * In a right-to-left line "600/min" was drawn "min/600": each value is
+     * isolated, so it reads in its own order whatever the page's.
+     */
+    expect(
+      Array.from(
+        screen
+          .getByTestId("resource-topology-status-line")
+          .querySelectorAll("bdi"),
+      ).map((element: Element): string | null => {
+        return element.textContent;
+      }),
+    ).toEqual(["600/min", "0.2%"]);
+  });
+});
+
+describe("a heading's words", () => {
+  const english: Translator = createTranslator(undefined);
+
+  function group(
+    overrides: Partial<ResourceTopologyGroupItem>,
+  ): ResourceTopologyGroupItem {
+    return {
+      type: "group",
+      id: "group:ams|vmware.cluster",
+      parentId: "ams",
+      kind: "vmware.cluster",
+      groupKey: "ams|vmware.cluster",
+      total: 12,
+      attention: 0,
+      isShownInFull: false,
+      asChips: false,
+      items: [],
+      more: null,
+      memberIds: [],
+      ...overrides,
+    };
+  }
+
+  test("say the kind, the count, what needs attention and how to show the rest", () => {
+    const words: ResourceTopologyHeadingWords = getTopologyHeadingWords(
+      english,
+      {
+        group: group({
+          attention: 3,
+          more: {
+            type: "more",
+            id: "more:ams|vmware.cluster",
+            parentId: "ams",
+            kind: "vmware.cluster",
+            groupKey: "ams|vmware.cluster",
+            asChip: false,
+            hiddenCount: 4,
+            hiddenAttention: 0,
+            canShowAll: true,
+          },
+        }),
+      },
+      null,
+    );
+
+    expect(words).toEqual({
+      title: "Clusters",
+      count: "12",
+      attention: "3 need attention",
+      action: "Show all 12",
+      canFold: false,
+      canShowAll: true,
+    });
+    expect(
+      getTopologyHeadingWords(
+        english,
+        { group: group({ isShownInFull: true }) },
+        null,
+      ).action,
+    ).toBe("Show fewer");
+    expect(
+      getTopologyHeadingWords(english, { group: group({}) }, null),
+    ).toEqual({
+      title: "Clusters",
+      count: "12",
+      attention: "",
+      action: "",
+      canFold: false,
+      canShowAll: false,
+    });
+  });
+
+  test("over a lane, the lane's own name and how many parts it holds", () => {
+    const graph: ResourceTopologyGraph = hostGraph();
+
+    expect(
+      getTopologyHeadingWords(
+        english,
+        { laneSectionId: "calls", laneCount: 1 },
+        graph.nodes.get("calls")!,
+      ),
+    ).toEqual({
+      title: "Talks to",
+      count: "1",
+      attention: "",
+      action: "",
+      canFold: false,
+      canShowAll: false,
+    });
+  });
+
+  test("are measured in the page's font for the layout: every word, gap and the padding", () => {
+    const measured: Array<[string, string]> = [];
+    // Ten pixels a character, whatever the font.
+    const tenPerCharacter: (text: string, font: string) => number = (
+      text: string,
+      font: string,
+    ): number => {
+      measured.push([text, font]);
+
+      return text.length * 10;
+    };
+    const width: ResourceTopologyHeadingWidth = createTopologyHeadingMeasure(
+      english,
+      vcenterGraph(),
+      tenPerCharacter,
+    );
+    const heading: { group: ResourceTopologyGroupItem } = {
+      group: group({ attention: 1 }),
+    };
+    /*
+     * "CLUSTERS" (80, and 0.44px letter spacing a character), "12" (20),
+     * "·" (10) and "1 needs attention" (170); 8px between the four, 6 of
+     * padding before them and 4 after (a button's focus ring), with 6% to
+     * spare.
+     */
+    const words: number = 80 + 0.44 * 8 + 20 + 10 + 170;
+
+    expect(width(heading)).toBe(Math.ceil((6 + 4 + words + 8 * 3) * 1.06));
+    // The title is measured as it is drawn: upper case, semibold.
+    expect(measured[0]![0]).toBe("CLUSTERS");
+    expect(measured[0]![1]).toContain("600 11px");
+    expect(measured[0]![1]).toContain("Inter");
+    // The same words are measured once.
+    const calls: number = measured.length;
+
+    width(heading);
+    expect(measured.length).toBe(calls);
+  });
+
+  test("where nothing can measure text, a heading has no width of its own", () => {
+    // A test's document lays no text out: the layout keeps its least widths.
+    expect(
+      createTopologyHeadingMeasure(
+        english,
+        vcenterGraph(),
+      )({
+        group: group({}),
+      }),
+    ).toBe(0);
+    expect(
+      createTopologyHeadingMeasure(english, vcenterGraph(), (): number => {
+        return 0;
+      })({ group: group({ attention: 2 }) }),
+    ).toBe(0);
+  });
+
+  test("a group's heading puts a dot between its count and what needs attention", () => {
+    renderMap();
+    const clusters: HTMLElement = screen.getByTestId(
+      "resource-topology-group-ams|vmware.cluster",
+    );
+
+    // "2" and "1 needs attention" never read as one number, "2 1".
+    expect(clusters).toHaveTextContent("Clusters2·1 needs attention");
+
+    const dot: HTMLElement | undefined = Array.from(
+      clusters.querySelectorAll("span"),
+    ).find((span: HTMLSpanElement): boolean => {
+      return span.textContent === "·";
+    });
+
+    expect(dot).toHaveAttribute("aria-hidden", "true");
+    // Without anything that needs attention, there is no dot.
+    expect(
+      screen.getByTestId("resource-topology-group-ams|vmware.datastore"),
+    ).not.toHaveTextContent("·");
+  });
 });
 
 describe("lines say where trouble is", () => {
@@ -510,6 +828,61 @@ describe("lines say where trouble is", () => {
     expect(screen.getByTestId("resource-topology-legend")).toHaveTextContent(
       "Calls per minute, red or amber when they fail",
     );
+  });
+
+  test("a focused part's related column is joined by one square spine, not a fan of curves", () => {
+    window.history.replaceState({}, "", "/topology?focus=checkout");
+    renderMap([{ id: "host", label: "Host", graph: hostGraph() }]);
+
+    const related: Array<Edge> = mockFlow!.edges.filter((edge: Edge) => {
+      return edge.type === "resourceTopologyRelatedBranch";
+    });
+
+    // mobile calls checkout; checkout calls the database.
+    expect(
+      related
+        .map((edge: Edge): string => {
+          return `${edge.id} ${(edge.data as { relatedEnd: string }).relatedEnd}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "relation:checkout->db target",
+        "relation:mobile->checkout source",
+      ].sort(),
+    );
+
+    // The column's heading says what they are: no arrow on each.
+    for (const edge of related) {
+      expect(edge.markerEnd).toBeUndefined();
+    }
+  });
+
+  test("the spine stands before the related column, whichever side it is on", () => {
+    const focus: { x: number; y: number } = { x: 300, y: 100 };
+
+    // The column after the drawing: out, along, down the spine and in.
+    expect(getRelatedBranchPoints(focus, { x: 600, y: 260 })).toEqual([
+      [300, 100],
+      [600 - RELATED_SPINE_OFFSET, 100],
+      [600 - RELATED_SPINE_OFFSET, 260],
+      [600, 260],
+    ]);
+    // Read from right to left, the column is before it: mirrored.
+    expect(getRelatedBranchPoints(focus, { x: 0, y: 40 })).toEqual([
+      [300, 100],
+      [RELATED_SPINE_OFFSET, 100],
+      [RELATED_SPINE_OFFSET, 40],
+      [0, 40],
+    ]);
+    // Lines to a dozen parts leave by one trunk to one spine.
+    const spines: Set<number> = new Set<number>(
+      [100, 160, 220, 280].map((y: number): number => {
+        return getRelatedBranchPoints(focus, { x: 600, y: y })[1]![0];
+      }),
+    );
+
+    expect(spines.size).toBe(1);
   });
 
   test("a map with lanes shows each call's ends; one without asks for nothing", () => {
@@ -670,6 +1043,21 @@ describe("level of detail", () => {
       "data-detail",
       "near",
     );
+  });
+});
+
+describe("the zoom buttons", () => {
+  test("sit where a line starts: bottom left, or bottom right read right to left", () => {
+    renderMap();
+    expect(mockControls?.["position"]).toBe("bottom-left");
+    expect(mockControls?.["showInteractive"]).toBe(false);
+    // Fit frames the drawing the way the map does, from the top.
+    expect(typeof mockControls?.["onFitView"]).toBe("function");
+
+    cleanup();
+    document.documentElement.setAttribute("dir", "rtl");
+    renderMap();
+    expect(mockControls?.["position"]).toBe("bottom-right");
   });
 });
 

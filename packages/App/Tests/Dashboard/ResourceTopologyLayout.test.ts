@@ -22,6 +22,8 @@ import {
   RESOURCE_TOPOLOGY_SIZES,
   ROW_LENGTHS_TRIED,
   ResourceTopologyBranch,
+  ResourceTopologyHeading,
+  ResourceTopologyHeadingWidth,
   ResourceTopologyLayout,
   ResourceTopologyLayoutOptions,
   ResourceTopologyPlaced,
@@ -34,6 +36,7 @@ import {
   getTopologyColumnX,
   getTopologyFrameIds,
   getTopologyKeyMove,
+  getTopologySubtreeIds,
   layoutResourceTopology,
   placedNodeId,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
@@ -346,6 +349,23 @@ interface NamedLayout {
   layout: ResourceTopologyLayout;
 }
 
+/*
+ * Headings' words as a browser would measure them, made up: some narrower
+ * than the parts under them, some much wider (a long language, "Show all
+ * 40"), a lane's wider than its chips.
+ */
+const MEASURED_HEADINGS: ResourceTopologyHeadingWidth = (
+  heading: ResourceTopologyHeading,
+): number => {
+  if (heading.laneSectionId) {
+    return 300;
+  }
+
+  const total: number = heading.group?.total || 0;
+
+  return total % 2 === 0 ? 150 : 150 + 70 * (total % 7);
+};
+
 // The estates every rule is checked on: small, deep, wide, narrowed, drawn.
 function estates(): Array<NamedLayout> {
   const vcenter: ResourceTopologyGraph = vcenterEstate();
@@ -368,12 +388,21 @@ function estates(): Array<NamedLayout> {
     },
   ];
 
+  result.push({
+    name: "a vCenter opened all the way, its headings measured",
+    layout: lay(openAll(vcenter), { headingWidth: MEASURED_HEADINGS }),
+  });
+
   for (const seed of [11, 23, 47, 101, 977]) {
     const graph: ResourceTopologyGraph = randomEstate(seed, 7);
     result.push({ name: `estate ${seed}`, layout: lay(openAll(graph)) });
     result.push({
       name: `estate ${seed}, right to left`,
       layout: lay(openAll(graph), { direction: "rtl" }),
+    });
+    result.push({
+      name: `estate ${seed}, its headings measured`,
+      layout: lay(openAll(graph), { headingWidth: MEASURED_HEADINGS }),
     });
   }
 
@@ -551,6 +580,57 @@ describe("a part's parts are grouped under a heading per kind", () => {
     };
 
     walk(visible.top);
+  });
+
+  test("measured, a heading is as wide as its words or its parts, whichever is wider", () => {
+    const measured: ResourceTopologyLayout = lay(visible, {
+      headingWidth: MEASURED_HEADINGS,
+    });
+    let wider: number = 0;
+    let asParts: number = 0;
+
+    for (const heading of measured.placed) {
+      if (heading.kind !== "heading" || !heading.heading?.group) {
+        continue;
+      }
+
+      const group: ResourceTopologyGroupItem = heading.heading.group;
+      const words: number = MEASURED_HEADINGS(heading.heading);
+      // The parts drawn in the heading's own column (an open part's own
+      // parts stand in the next one).
+      const right: number = Math.max(
+        ...measured.placed
+          .filter((item: ResourceTopologyPlaced): boolean => {
+            return (
+              isPart(item) &&
+              item.parentId === group.parentId &&
+              item.depth === heading.depth &&
+              (group.memberIds.includes(placedNodeId(item) || "") ||
+                item.id === group.more?.id)
+            );
+          })
+          .map((item: ResourceTopologyPlaced): number => {
+            return item.x + item.width;
+          }),
+      );
+
+      expect(heading.width).toBe(Math.max(words, right - heading.x));
+      if (words > right - heading.x) {
+        wider++;
+      } else {
+        asParts++;
+      }
+    }
+
+    // Both cases happened: words wider than the parts, and the other way.
+    expect(wider).toBeGreaterThan(0);
+    expect(asParts).toBeGreaterThan(0);
+    // Without a measure, a heading keeps its least width, room for "Show all".
+    for (const heading of layout.placed) {
+      if (heading.kind === "heading") {
+        expect(heading.width).toBeGreaterThanOrEqual(SIZES.headingMinWidth);
+      }
+    }
   });
 
   test("a heading never holds another heading: groups are one level deep", () => {
@@ -932,6 +1012,7 @@ describe("a host's callers and calls stand in lanes either side of the tree", ()
 
   function laneLayout(
     direction: "ltr" | "rtl" = "ltr",
+    headingWidth?: ResourceTopologyHeadingWidth | undefined,
   ): ResourceTopologyLayout {
     const graph: ResourceTopologyGraph = hostEstate();
 
@@ -940,26 +1021,54 @@ describe("a host's callers and calls stand in lanes either side of the tree", ()
         alwaysOpen: new Set<string>(["callers", "calls"]),
         reveal: ["mobile", "svc", "db", "svc-2", "pay"],
       }),
-      { lanes: LANES, relations: RELATIONS, direction: direction },
+      {
+        lanes: LANES,
+        relations: RELATIONS,
+        direction: direction,
+        headingWidth: headingWidth,
+      },
+    );
+  }
+
+  // The tree's own items: parts, or headings too.
+  function treeItems(
+    layout: ResourceTopologyLayout,
+    withHeadings: boolean,
+  ): Array<ResourceTopologyPlaced> {
+    return layout.placed.filter((item: ResourceTopologyPlaced): boolean => {
+      return !item.lane && (withHeadings || item.kind !== "heading");
+    });
+  }
+
+  function leftOf(items: Array<ResourceTopologyPlaced>): number {
+    return Math.min(
+      ...items.map((item: ResourceTopologyPlaced): number => {
+        return item.x;
+      }),
+    );
+  }
+
+  function rightOf(items: Array<ResourceTopologyPlaced>): number {
+    return Math.max(
+      ...items.map((item: ResourceTopologyPlaced): number => {
+        return item.x + item.width;
+      }),
     );
   }
 
   test("callers before the tree, what it calls after it", () => {
     const layout: ResourceTopologyLayout = laneLayout();
-    const tree: Array<ResourceTopologyPlaced> = layout.placed.filter(
-      (item: ResourceTopologyPlaced): boolean => {
-        return !item.lane;
-      },
-    );
-    const treeLeft: number = Math.min(
-      ...tree.map((item: ResourceTopologyPlaced): number => {
-        return item.x;
-      }),
-    );
-    const treeRight: number = Math.max(
-      ...tree.map((item: ResourceTopologyPlaced): number => {
-        return item.x + item.width;
-      }),
+    const treeLeft: number = leftOf(treeItems(layout, true));
+    // The lanes keep their gap from the tree's parts ...
+    const treeRight: number = rightOf(treeItems(layout, false));
+    const laneLeft: number = Math.min(
+      ...layout.placed
+        .filter((item: ResourceTopologyPlaced): boolean => {
+          return item.lane === "end";
+        })
+        .map((item: ResourceTopologyPlaced): number => {
+          return item.x;
+        }),
     );
 
     for (const item of layout.placed) {
@@ -972,6 +1081,13 @@ describe("a host's callers and calls stand in lanes either side of the tree", ()
       }
     }
 
+    // ... and every heading of the tree ends clear of the lane after it.
+    for (const item of treeItems(layout, true)) {
+      expect(item.x + item.width).toBeLessThanOrEqual(
+        laneLeft - (item.kind === "heading" ? SIZES.laneHeadingClearance : 0),
+      );
+    }
+
     expect(placedOf(layout, "mobile").lane).toBe("start");
     expect(placedOf(layout, "db").lane).toBe("end");
     expect(placedOf(layout, "pay").lane).toBe("end");
@@ -979,6 +1095,71 @@ describe("a host's callers and calls stand in lanes either side of the tree", ()
     expect(placedOf(layout, "callers").kind).toBe("heading");
     expect(placedOf(layout, "calls").kind).toBe("heading");
     expect(overlapsIn(layout)).toEqual([]);
+  });
+
+  test("a lane is as wide as its widest part: a lane of chips is a chip wide", () => {
+    const layout: ResourceTopologyLayout = laneLayout();
+    const treeLeft: number = leftOf(treeItems(layout, true));
+
+    /*
+     * A lane's parts hold nothing: chips, even the two with numbers a card
+     * would show (the call's line carries its rate).
+     */
+    for (const id of ["mobile", "db", "pay"]) {
+      expect(placedOf(layout, id).kind).toBe("chip");
+      expect(placedOf(layout, id).width).toBe(SIZES.chipWidth);
+    }
+
+    // Each lane, its heading included, is a chip wide.
+    expect(placedOf(layout, "callers").width).toBe(SIZES.chipWidth);
+    expect(placedOf(layout, "calls").width).toBe(SIZES.chipWidth);
+    // The callers' lane stands a gap from the tree, not a card's width more.
+    expect(placedOf(layout, "mobile").x).toBe(
+      treeLeft - SIZES.laneGap - SIZES.chipWidth,
+    );
+    expect(placedOf(layout, "callers").x).toBe(placedOf(layout, "mobile").x);
+  });
+
+  test("measured, a lane makes room for its heading's words, and the tree's headings for theirs", () => {
+    // A lane's heading wider than its chips, and the tree's narrow.
+    const words: ResourceTopologyHeadingWidth = (
+      heading: ResourceTopologyHeading,
+    ): number => {
+      return heading.laneSectionId ? 330 : 120;
+    };
+    const layout: ResourceTopologyLayout = laneLayout("ltr", words);
+    const treeLeft: number = leftOf(treeItems(layout, true));
+    const treeRight: number = rightOf(treeItems(layout, true));
+
+    expect(placedOf(layout, "callers").width).toBe(330);
+    expect(placedOf(layout, "calls").width).toBe(330);
+    // The callers' lane, heading and all, stands a gap from the tree.
+    expect(placedOf(layout, "callers").x + 330).toBe(treeLeft - SIZES.laneGap);
+    expect(placedOf(layout, "mobile").x).toBe(placedOf(layout, "callers").x);
+    expect(placedOf(layout, "calls").x).toBeGreaterThanOrEqual(
+      treeRight + SIZES.laneGap,
+    );
+    expect(overlapsIn(layout)).toEqual([]);
+
+    // A heading of the tree whose words run on past its parts pushes the lane out.
+    const long: ResourceTopologyHeadingWidth = (
+      heading: ResourceTopologyHeading,
+    ): number => {
+      return heading.laneSectionId ? 0 : 520;
+    };
+    const pushed: ResourceTopologyLayout = laneLayout("ltr", long);
+    const headingsRight: number = rightOf(
+      treeItems(pushed, true).filter(
+        (item: ResourceTopologyPlaced): boolean => {
+          return item.kind === "heading";
+        },
+      ),
+    );
+
+    expect(placedOf(pushed, "calls").x).toBe(
+      headingsRight + SIZES.laneHeadingClearance,
+    );
+    expect(overlapsIn(pushed)).toEqual([]);
   });
 
   test("each lane part is lined up with the part it talks to", () => {
@@ -1201,6 +1382,82 @@ describe("a focused part's related parts", () => {
 });
 
 describe("what to frame when a part opens", () => {
+  test("everything its branch draws: the part, its parts and theirs - never what is beside it", () => {
+    const layout: ResourceTopologyLayout = lay(openAll(vcenterEstate()));
+    const ids: Array<string> = getTopologySubtreeIds(layout, ["cl-a1"]);
+
+    expect(ids).toContain("cl-a1");
+    expect(ids).toContain("h-a1");
+    // What opened with it, a level further in, too.
+    expect(ids).toContain("h-a1-vm1");
+    expect(
+      ids.some((id: string): boolean => {
+        return id.startsWith("group:h-a1|");
+      }),
+    ).toBe(true);
+    // Its neighbours and what holds it are not.
+    expect(ids).not.toContain("cl-a2");
+    expect(ids).not.toContain("h-a4");
+    expect(ids).not.toContain("dc-a");
+    // Every item it names is under the part, by the lines that join them.
+    const holder: Map<string, string | null> = new Map<string, string | null>();
+
+    for (const item of layout.placed) {
+      const nodeId: string | null = placedNodeId(item);
+
+      if (nodeId) {
+        holder.set(nodeId, item.parentId);
+      }
+    }
+
+    for (const id of ids) {
+      let current: string | null = layout.byId.get(id)!.parentId;
+      const own: string | null = placedNodeId(layout.byId.get(id)!);
+
+      while (current !== null && current !== "cl-a1" && own !== "cl-a1") {
+        current = holder.get(current) ?? null;
+      }
+
+      expect({ id: id, under: own === "cl-a1" || current === "cl-a1" }).toEqual(
+        { id: id, under: true },
+      );
+    }
+
+    expect(getTopologySubtreeIds(layout, ["missing"])).toEqual([]);
+  });
+
+  test("a lane is never part of a branch, though its section is the resource's", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        part("host", null, { kind: "entity:Host" }),
+        part("container", "host", { kind: "entity:Container" }),
+        part("svc", "container", { kind: "entity:Service" }),
+        part("calls", "host", {
+          kind: SECTION_KIND,
+          isSection: true,
+          name: "Talks to",
+        }),
+        part("db", "calls", { kind: "entity:Service" }),
+      ],
+      relations: [
+        { from: "svc", to: "db", label: "Calls", inverseLabel: "Called by" },
+      ],
+    });
+    const layout: ResourceTopologyLayout = lay(
+      computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+        alwaysOpen: new Set<string>(["calls"]),
+        reveal: ["svc", "db"],
+      }),
+      { lanes: { left: [], right: ["calls"] } },
+    );
+    const ids: Array<string> = getTopologySubtreeIds(layout, ["host"]);
+
+    expect(ids).toContain("svc");
+    expect(ids).not.toContain("calls");
+    expect(ids).not.toContain("db");
+  });
+
   test("the part, its headings and its own parts - not what is inside them, nor lanes", () => {
     const layout: ResourceTopologyLayout = lay(openAll(vcenterEstate()));
     const ids: Array<string> = getTopologyFrameIds(layout, ["cl-a1"]);

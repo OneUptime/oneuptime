@@ -50,10 +50,10 @@ import {
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
   ResourceTopologySide,
+  getBranchPath,
   getRelatedColumnSides,
   getRelationCurve,
   getRelationSides,
-  getTopologyFrameIds,
   getTopologyKeyMove,
   placedNodeId,
 } from "./ResourceTopologyLayout";
@@ -65,6 +65,9 @@ import {
 } from "./ResourceTopologyView";
 import {
   RESOURCE_TOPOLOGY_FIT_PADDING,
+  getDrawingBounds,
+  getTopAlignedViewport,
+  getTopologyOpenFrameIds,
   holdsResourceTopologyDrawing,
 } from "./ResourceTopologyFit";
 import {
@@ -73,6 +76,7 @@ import {
   ResourceTopologyNodeData,
   TOPOLOGY_DETAIL_CLASS,
   TOPOLOGY_ITEM_ATTRIBUTE,
+  TOPOLOGY_TOGGLE_CLASS,
   tx,
 } from "./ResourceTopologyNodes";
 import {
@@ -134,22 +138,56 @@ export interface ComponentProps {
 }
 
 export const RESOURCE_TOPOLOGY_PAN_MARGIN: number = 240;
+/* The furthest out the map zooms. */
+export const RESOURCE_TOPOLOGY_MIN_ZOOM: number = 0.05;
 
 /* The class the canvas's own rules are scoped to. */
 const CANVAS_CLASS: string = "resource-topology-map";
 
 /*
  * Rules React Flow's nodes cannot carry inline: a card's smaller lines go
- * when the map is zoomed far out. Written here, not as utilities, so they
+ * when the map is zoomed far out, and a part's round toggle takes the
+ * map's accent under the pointer. Written here, not as utilities, so they
  * hold the moment a card appears (the Dashboard's utilities are made at run
  * time, a moment after the class first shows up).
  */
-const CANVAS_RULES: string = `.${CANVAS_CLASS}[data-detail="far"] .${TOPOLOGY_DETAIL_CLASS}{display:none !important}`;
+export const CANVAS_RULES: string = [
+  `.${CANVAS_CLASS}[data-detail="far"] .${TOPOLOGY_DETAIL_CLASS}{display:none !important}`,
+  `.${CANVAS_CLASS} .${TOPOLOGY_TOGGLE_CLASS}:hover{border-color:${RESOURCE_TOPOLOGY_SELECTED_COLOR} !important;color:${RESOURCE_TOPOLOGY_SELECTED_COLOR} !important}`,
+].join("");
 
 /*
  * A relation's line: React Flow's curve, with its label nearer the part it
  * points at than halfway (see getRelationCurve).
  */
+type EdgeLook = Pick<
+  EdgeProps,
+  | "label"
+  | "labelStyle"
+  | "labelShowBg"
+  | "labelBgStyle"
+  | "labelBgPadding"
+  | "labelBgBorderRadius"
+  | "style"
+>;
+
+/* A line's words, their background and its stroke, as React Flow hands them on. */
+function getEdgeLook(props: EdgeProps): EdgeLook {
+  return {
+    ...(props.label !== undefined ? { label: props.label } : {}),
+    ...(props.labelStyle ? { labelStyle: props.labelStyle } : {}),
+    ...(props.labelShowBg !== undefined
+      ? { labelShowBg: props.labelShowBg }
+      : {}),
+    ...(props.labelBgStyle ? { labelBgStyle: props.labelBgStyle } : {}),
+    ...(props.labelBgPadding ? { labelBgPadding: props.labelBgPadding } : {}),
+    ...(props.labelBgBorderRadius !== undefined
+      ? { labelBgBorderRadius: props.labelBgBorderRadius }
+      : {}),
+    ...(props.style ? { style: props.style } : {}),
+  };
+}
+
 const RelationEdge: FunctionComponent<EdgeProps> = (
   props: EdgeProps,
 ): ReactElement => {
@@ -174,23 +212,46 @@ const RelationEdge: FunctionComponent<EdgeProps> = (
       labelX={curve.labelX}
       labelY={curve.labelY}
       interactionWidth={0}
-      {...(props.label !== undefined ? { label: props.label } : {})}
-      {...(props.labelStyle ? { labelStyle: props.labelStyle } : {})}
-      {...(props.labelShowBg !== undefined
-        ? { labelShowBg: props.labelShowBg }
-        : {})}
-      {...(props.labelBgStyle ? { labelBgStyle: props.labelBgStyle } : {})}
-      {...(props.labelBgPadding
-        ? { labelBgPadding: props.labelBgPadding }
-        : {})}
-      {...(props.labelBgBorderRadius !== undefined
-        ? { labelBgBorderRadius: props.labelBgBorderRadius }
-        : {})}
-      {...(props.style ? { style: props.style } : {})}
+      {...getEdgeLook(props)}
       {...(props.markerEnd ? { markerEnd: props.markerEnd } : {})}
     />
   );
 };
+
+/*
+ * How far before a focused part's related column its lines meet: the
+ * column's own spine, as a part's line meets its groups', with room on each
+ * line's last leg for a call's rate.
+ */
+export const RELATED_SPINE_OFFSET: number = 60;
+
+export interface ResourceTopologyRelatedBranchData {
+  // Which end of the line is the related part; the other is the focused one.
+  relatedEnd: "source" | "target";
+}
+
+/*
+ * The points of a line from a focused part to one in its related column:
+ * out of the focused part, along to the column's spine, down (or up) it and
+ * into the related part - square, like the tree's own lines, and always
+ * drawn from the focused part, so the lines to a dozen related parts share
+ * one trunk and one spine (their dashes falling together) instead of
+ * fanning out of one point.
+ */
+export function getRelatedBranchPoints(
+  focus: { x: number; y: number },
+  related: { x: number; y: number },
+): Array<[number, number]> {
+  const towards: number = related.x >= focus.x ? 1 : -1;
+  const spineX: number = related.x - towards * RELATED_SPINE_OFFSET;
+
+  return [
+    [focus.x, focus.y],
+    [spineX, focus.y],
+    [spineX, related.y],
+    [related.x, related.y],
+  ];
+}
 
 export interface ResourceTopologyBranchData {
   path: string;
@@ -225,9 +286,45 @@ const BranchEdge: FunctionComponent<EdgeProps<ResourceTopologyBranchData>> = (
   );
 };
 
+/*
+ * A line from a focused part to a part of its related column (see
+ * getRelatedBranchPoints), its words - a call's rate - on its last leg.
+ */
+const RelatedBranchEdge: FunctionComponent<
+  EdgeProps<ResourceTopologyRelatedBranchData>
+> = (props: EdgeProps<ResourceTopologyRelatedBranchData>): ReactElement => {
+  const relatedIsSource: boolean = props.data?.relatedEnd === "source";
+  const source: { x: number; y: number } = {
+    x: props.sourceX,
+    y: props.sourceY,
+  };
+  const target: { x: number; y: number } = {
+    x: props.targetX,
+    y: props.targetY,
+  };
+  const related: { x: number; y: number } = relatedIsSource ? source : target;
+  const points: Array<[number, number]> = getRelatedBranchPoints(
+    relatedIsSource ? target : source,
+    related,
+  );
+  const spineX: number = points[1]![0];
+
+  return (
+    <BaseEdge
+      id={props.id}
+      path={getBranchPath(points)}
+      labelX={(spineX + related.x) / 2}
+      labelY={related.y}
+      interactionWidth={0}
+      {...getEdgeLook(props)}
+    />
+  );
+};
+
 const RESOURCE_TOPOLOGY_EDGE_TYPES: EdgeTypes = {
   resourceTopologyRelation: RelationEdge,
   resourceTopologyBranch: BranchEdge,
+  resourceTopologyRelatedBranch: RelatedBranchEdge,
 };
 
 function ignoreNodeClick(): void {
@@ -323,30 +420,42 @@ const ViewportController: FunctionComponent<{
        * React Flow still holds the previous drawing until its own effect
        * takes the new nodes: fitting that would frame what is gone.
        */
-      const internals: ReturnType<typeof store.getState>["nodeInternals"] =
-        store.getState().nodeInternals;
+      const state: ReturnType<typeof store.getState> = store.getState();
       const holdsDrawing: boolean = holdsResourceTopologyDrawing(
-        internals,
+        state.nodeInternals,
         props.drawingIds,
       );
+      const canvas: { width: number; height: number } = {
+        width: state.width,
+        height: state.height,
+      };
+      const duration: number = request.animate ? 280 : 0;
       // A part is framed with what it holds, which has just appeared.
       const frameIds: Array<string> | null = request.nodeIds
-        ? getTopologyFrameIds(props.layout, request.nodeIds)
+        ? getTopologyOpenFrameIds(props.layout, request.nodeIds, canvas)
         : null;
-      const fitted: boolean =
-        holdsDrawing &&
-        instance.fitView({
+      let fitted: boolean = false;
+
+      if (holdsDrawing && frameIds && frameIds.length > 0) {
+        fitted = instance.fitView({
           padding: RESOURCE_TOPOLOGY_FIT_PADDING,
           maxZoom: 1,
-          duration: request.animate ? 280 : 0,
-          ...(frameIds && frameIds.length > 0
-            ? {
-                nodes: frameIds.map((id: string): { id: string } => {
-                  return { id: id };
-                }),
-              }
-            : {}),
+          duration: duration,
+          nodes: frameIds.map((id: string): { id: string } => {
+            return { id: id };
+          }),
         });
+      } else if (holdsDrawing && canvas.width > 0 && canvas.height > 0) {
+        // The whole drawing, from the top: a tree reads from the resource down.
+        instance.setViewport(
+          getTopAlignedViewport(getDrawingBounds(props.layout.placed), canvas, {
+            maxZoom: 1,
+            minZoom: RESOURCE_TOPOLOGY_MIN_ZOOM,
+          }),
+          { duration: duration },
+        );
+        fitted = true;
+      }
 
       if (fitted) {
         if (pending.current === request) {
@@ -431,6 +540,42 @@ const ViewportController: FunctionComponent<{
   }, [store]);
 
   return <></>;
+};
+
+/*
+ * Zoom in, zoom out and fit, at the corner where a line of text starts: the
+ * bottom left, or the bottom right on a page read from right to left. Fit
+ * frames the drawing the way the map does, from the top.
+ */
+const MapControls: FunctionComponent<{
+  layout: ResourceTopologyLayout;
+  direction: ResourceTopologyDirection;
+}> = (props: {
+  layout: ResourceTopologyLayout;
+  direction: ResourceTopologyDirection;
+}): ReactElement => {
+  const instance: ReactFlowInstance = useReactFlow();
+  const store: ReturnType<typeof useStoreApi> = useStoreApi();
+
+  return (
+    <Controls
+      showInteractive={false}
+      position={props.direction === "rtl" ? "bottom-right" : "bottom-left"}
+      onFitView={() => {
+        const state: ReturnType<typeof store.getState> = store.getState();
+
+        if (state.width > 0 && state.height > 0) {
+          instance.setViewport(
+            getTopAlignedViewport(
+              getDrawingBounds(props.layout.placed),
+              { width: state.width, height: state.height },
+              { maxZoom: 1, minZoom: RESOURCE_TOPOLOGY_MIN_ZOOM },
+            ),
+          );
+        }
+      }}
+    />
+  );
 };
 
 const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
@@ -548,6 +693,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       forcedSides?:
         | { source: ResourceTopologySide; target: ResourceTopologySide }
         | undefined,
+      relatedEnd?: "source" | "target" | undefined,
     ) => void = (
       from: string,
       to: string,
@@ -557,6 +703,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       forcedSides?:
         | { source: ResourceTopologySide; target: ResourceTopologySide }
         | undefined,
+      relatedEnd?: "source" | "target" | undefined,
     ): void => {
       const id: string = `relation:${from}->${to}`;
 
@@ -604,7 +751,15 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         target: to,
         sourceHandle: `${sides.source}-source`,
         targetHandle: `${sides.target}-target`,
-        type: "resourceTopologyRelation",
+        /*
+         * A related column's lines share one spine, as the tree's do: the
+         * column's heading says which way they point, so they carry no
+         * arrows of their own.
+         */
+        type: relatedEnd
+          ? "resourceTopologyRelatedBranch"
+          : "resourceTopologyRelation",
+        ...(relatedEnd ? { data: { relatedEnd: relatedEnd } } : {}),
         ...(text
           ? {
               label: text,
@@ -624,10 +779,12 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
               labelBgBorderRadius: 6,
             }
           : {}),
-        markerEnd: { type: MarkerType.ArrowClosed, color: color },
+        ...(relatedEnd
+          ? {}
+          : { markerEnd: { type: MarkerType.ArrowClosed, color: color } }),
         style: {
           stroke: color,
-          strokeWidth: emphasised ? 2.25 : 1.5,
+          strokeWidth: emphasised && !relatedEnd ? 2.25 : 1.5,
           strokeDasharray:
             props.alwaysShowRelations && !emphasised ? undefined : "6 4",
         },
@@ -651,9 +808,9 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
 
     /*
      * The column's heading says what these lines are: no words on each.
-     * They fan out of the focused part's side that faces the column into
-     * each related part's near side, so no line runs down the column across
-     * the parts in it.
+     * They leave the focused part's side that faces the column, share one
+     * spine before it and enter each related part's near side, so no line
+     * runs down the column across the parts in it.
      */
     if (props.visible.focusId) {
       for (const related of props.visible.related) {
@@ -668,6 +825,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
           relationBetween(from, to),
           false,
           getRelatedColumnSides(outward, direction),
+          outward ? "target" : "source",
         );
       }
     }
@@ -836,7 +994,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         edges={edges}
         nodeTypes={RESOURCE_TOPOLOGY_NODE_TYPES}
         edgeTypes={RESOURCE_TOPOLOGY_EDGE_TYPES}
-        minZoom={0.05}
+        minZoom={RESOURCE_TOPOLOGY_MIN_ZOOM}
         maxZoom={1.75}
         translateExtent={extent}
         /*
@@ -859,7 +1017,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
          */
         onNodeClick={ignoreNodeClick}
       >
-        <Controls showInteractive={false} />
+        <MapControls layout={props.layout} direction={direction} />
         <Background
           variant={BackgroundVariant.Dots}
           gap={22}

@@ -7,9 +7,13 @@ import {
   getAutomaticDepth,
 } from "./ResourceTopologyView";
 import {
+  ResourceTopologyHeadingWidth,
   ResourceTopologyLanes,
   ResourceTopologyLayout,
   ResourceTopologyLayoutRelation,
+  ResourceTopologyPlaced,
+  getTopologyFrameIds,
+  getTopologySubtreeIds,
   layoutResourceTopology,
 } from "./ResourceTopologyLayout";
 
@@ -86,6 +90,106 @@ export function getFitZoom(
   );
 }
 
+/*
+ * The most room left above a framed drawing. A tree reads from the
+ * resource down, so a drawing shorter than its canvas sits at the top of
+ * it, centred across - not floating in the middle with its resource
+ * halfway down the canvas - and grows into the room below as parts open.
+ */
+export const RESOURCE_TOPOLOGY_TOP_GAP: number = 24;
+
+export interface ResourceTopologyViewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/*
+ * Where a whole drawing is framed: at the zoom React Flow's fitView would
+ * pick (no closer than `maxZoom`), centred across the canvas, and at the
+ * top of it with RESOURCE_TOPOLOGY_TOP_GAP above - or centred, as fitView
+ * would, when it fills the canvas's height anyway.
+ */
+export function getTopAlignedViewport(
+  drawing: { x: number; y: number; width: number; height: number },
+  canvas: ResourceTopologyCanvasSize,
+  options: { maxZoom?: number; minZoom?: number; padding?: number } = {},
+): ResourceTopologyViewport {
+  const zoom: number = Math.max(
+    options.minZoom ?? 0,
+    Math.min(
+      options.maxZoom ?? 1,
+      getFitZoom(drawing, canvas, options.padding),
+    ),
+  );
+  const drawnWidth: number = drawing.width * zoom;
+  const drawnHeight: number = drawing.height * zoom;
+  const top: number = Math.min(
+    (canvas.height - drawnHeight) / 2,
+    RESOURCE_TOPOLOGY_TOP_GAP,
+  );
+
+  return {
+    x: (canvas.width - drawnWidth) / 2 - drawing.x * zoom,
+    y: top - drawing.y * zoom,
+    zoom: zoom,
+  };
+}
+
+/* The box around every placed item of a drawing. */
+export function getDrawingBounds(
+  placed: ReadonlyArray<
+    Pick<ResourceTopologyPlaced, "x" | "y" | "width" | "height">
+  >,
+): { x: number; y: number; width: number; height: number } {
+  if (placed.length === 0) {
+    return { x: 0, y: 0, width: 0, height: 0 };
+  }
+
+  let minX: number = Number.POSITIVE_INFINITY;
+  let minY: number = Number.POSITIVE_INFINITY;
+  let maxX: number = Number.NEGATIVE_INFINITY;
+  let maxY: number = Number.NEGATIVE_INFINITY;
+
+  for (const item of placed) {
+    minX = Math.min(minX, item.x);
+    minY = Math.min(minY, item.y);
+    maxX = Math.max(maxX, item.x + item.width);
+    maxY = Math.max(maxY, item.y + item.height);
+  }
+
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/*
+ * What to frame when a part opens: the part and everything that opened
+ * with it - a namespace with the pods of its troubled workload - when that
+ * still reads (READABLE_ZOOM) on this canvas; otherwise the part with its
+ * own parts (getTopologyFrameIds), so what just appeared is on screen at a
+ * size a person can read, rather than cut off at the canvas's edge.
+ */
+export function getTopologyOpenFrameIds(
+  layout: Pick<ResourceTopologyLayout, "placed">,
+  nodeIds: ReadonlyArray<string>,
+  canvas: ResourceTopologyCanvasSize,
+): Array<string> {
+  const near: Array<string> = getTopologyFrameIds(layout, nodeIds);
+  const all: Array<string> = getTopologySubtreeIds(layout, nodeIds);
+
+  if (all.length <= near.length || canvas.width <= 0 || canvas.height <= 0) {
+    return near;
+  }
+
+  const ids: Set<string> = new Set<string>(all);
+  const bounds: { width: number; height: number } = getDrawingBounds(
+    layout.placed.filter((item: ResourceTopologyPlaced): boolean => {
+      return ids.has(item.id);
+    }),
+  );
+
+  return getFitZoom(bounds, canvas) >= READABLE_ZOOM ? all : near;
+}
+
 export interface ResourceTopologyFitOptions {
   lanes?: ResourceTopologyLanes | undefined;
   /* The shape the map lays the drawing out for; the canvas's by default. */
@@ -95,6 +199,8 @@ export interface ResourceTopologyFitOptions {
   /* Parts always open and parts always shown (see the view's options). */
   alwaysOpen?: ReadonlySet<string> | undefined;
   reveal?: ReadonlyArray<string> | undefined;
+  /* How wide a heading's words are drawn (see the layout's options). */
+  headingWidth?: ResourceTopologyHeadingWidth | undefined;
 }
 
 /*
@@ -159,6 +265,7 @@ export function fitResourceTopology(
       aspect: aspect,
       lanes: options.lanes,
       relations: options.relations,
+      headingWidth: options.headingWidth,
     });
   };
 

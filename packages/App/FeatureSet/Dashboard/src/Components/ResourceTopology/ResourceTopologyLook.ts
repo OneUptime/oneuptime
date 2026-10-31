@@ -30,7 +30,12 @@ export const RESOURCE_TOPOLOGY_HEALTH_COLORS: Record<
   warning: "#f59e0b",
   healthy: "#16a34a",
   off: "#94a3b8",
-  unknown: "#cbd5e1",
+  /*
+   * The theme's strongest border: fainter than "Off" in the light and in
+   * the dark alike, so a part with no data never outshines a healthy one
+   * on a dark surface.
+   */
+  unknown: "var(--ou-border-strong, #cbd5e1)",
 };
 
 export const RESOURCE_TOPOLOGY_HEALTH_LABELS: Record<

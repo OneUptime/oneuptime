@@ -15,6 +15,8 @@ import {
   ROW_LENGTHS_TRIED,
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
+  getTopologyFrameIds,
+  getTopologySubtreeIds,
   layoutResourceTopology,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
 import {
@@ -24,10 +26,15 @@ import {
   REFERENCE_CANVAS_AREA,
   SPARE_ROOM_ZOOM,
   RESOURCE_TOPOLOGY_FIT_PADDING,
+  RESOURCE_TOPOLOGY_TOP_GAP,
   ResourceTopologyCanvasSize,
   ResourceTopologyFit,
+  ResourceTopologyViewport,
   fitResourceTopology,
+  getDrawingBounds,
   getFitZoom,
+  getTopAlignedViewport,
+  getTopologyOpenFrameIds,
   getViewBudgetFor,
   holdsResourceTopologyDrawing,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyFit";
@@ -322,6 +329,162 @@ describe("how deep the first view opens", () => {
     expect(fitResourceTopology(graph, "gone", LAPTOP)).toEqual(
       fitResourceTopology(graph, null, LAPTOP),
     );
+  });
+});
+
+describe("where a whole drawing is framed: at the top of the canvas", () => {
+  /*
+   * A tree reads from the resource down. Framed in the middle of a tall
+   * canvas, a short drawing left its resource floating halfway down with
+   * empty canvas above it (a host's map, a vCenter on a tablet or a phone);
+   * it now sits at the top, centred across, with room below to grow into.
+   */
+  test("a drawing shorter than its canvas sits at its top, centred across", () => {
+    const drawing: { x: number; y: number; width: number; height: number } = {
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 300,
+    };
+    const canvas: ResourceTopologyCanvasSize = { width: 880, height: 640 };
+    const viewport: ResourceTopologyViewport = getTopAlignedViewport(
+      drawing,
+      canvas,
+    );
+
+    // React Flow's own zoom for it.
+    expect(viewport.zoom).toBeCloseTo(getFitZoom(drawing, canvas));
+    // At the top, the gap above it no more than RESOURCE_TOPOLOGY_TOP_GAP ...
+    expect(viewport.y).toBe(RESOURCE_TOPOLOGY_TOP_GAP);
+    // ... and centred across.
+    expect(viewport.x).toBeCloseTo(
+      (canvas.width - drawing.width * viewport.zoom) / 2,
+    );
+  });
+
+  test("one that fills the canvas's height is centred, as React Flow centres it", () => {
+    const drawing: { x: number; y: number; width: number; height: number } = {
+      x: 0,
+      y: 0,
+      width: 400,
+      height: 1200,
+    };
+    const canvas: ResourceTopologyCanvasSize = { width: 880, height: 640 };
+    const viewport: ResourceTopologyViewport = getTopAlignedViewport(
+      drawing,
+      canvas,
+    );
+    const drawn: number = drawing.height * viewport.zoom;
+
+    expect(viewport.y).toBeCloseTo((canvas.height - drawn) / 2);
+    expect(viewport.y).toBeLessThan(RESOURCE_TOPOLOGY_TOP_GAP);
+  });
+
+  test("a small drawing is never drawn larger than life, and an offset one lands the same", () => {
+    const small: { x: number; y: number; width: number; height: number } = {
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 200,
+    };
+    const viewport: ResourceTopologyViewport = getTopAlignedViewport(
+      small,
+      LAPTOP,
+      { maxZoom: 1 },
+    );
+
+    expect(viewport.zoom).toBe(1);
+    expect(viewport.y).toBe(RESOURCE_TOPOLOGY_TOP_GAP);
+    expect(viewport.x).toBe((LAPTOP.width - 300) / 2);
+
+    // A drawing that starts away from the origin is moved, not mis-framed.
+    const moved: ResourceTopologyViewport = getTopAlignedViewport(
+      { ...small, x: -150, y: 40 },
+      LAPTOP,
+      { maxZoom: 1 },
+    );
+
+    expect(moved.x).toBe(viewport.x + 150);
+    expect(moved.y).toBe(viewport.y - 40);
+    // And never further out than the map zooms.
+    expect(
+      getTopAlignedViewport(
+        { x: 0, y: 0, width: 100000, height: 100 },
+        LAPTOP,
+        { minZoom: 0.05 },
+      ).zoom,
+    ).toBe(0.05);
+  });
+
+  test("the bounds of a drawing are the box around everything placed", () => {
+    expect(
+      getDrawingBounds([
+        { x: -20, y: 10, width: 100, height: 50 },
+        { x: 200, y: -5, width: 40, height: 20 },
+      ]),
+    ).toEqual({ x: -20, y: -5, width: 260, height: 65 });
+    expect(getDrawingBounds([])).toEqual({ x: 0, y: 0, width: 0, height: 0 });
+  });
+});
+
+describe("what a part that opens is framed with", () => {
+  /*
+   * Opening a part opens its troubled parts with it (a namespace, its
+   * failing workload's pods). Framing only the part and its own parts cut
+   * those off at the canvas's edge; the map now frames everything that
+   * opened, as long as that still reads.
+   */
+  function opened(graph: ResourceTopologyGraph): ResourceTopologyLayout {
+    return layoutResourceTopology(
+      computeResourceTopologyView(
+        graph,
+        createResourceTopologyViewState({
+          opened: new Set<string>(graph.nodes.keys()),
+        }),
+      ),
+    );
+  }
+
+  test("everything that opened with it, when that reads on this canvas", () => {
+    const layout: ResourceTopologyLayout = opened(vcenter(1, 1, 2, 3));
+    const ids: Array<string> = getTopologyOpenFrameIds(
+      layout,
+      ["dc-0-cl-0"],
+      LAPTOP,
+    );
+
+    expect(ids).toEqual(getTopologySubtreeIds(layout, ["dc-0-cl-0"]));
+    // Its hosts' virtual machines, a level further in, are framed too.
+    expect(ids).toContain("dc-0-cl-0-h-0-vm-0");
+    expect(ids.length).toBeGreaterThan(
+      getTopologyFrameIds(layout, ["dc-0-cl-0"]).length,
+    );
+  });
+
+  test("only the part and its own parts when all of it would not read", () => {
+    const layout: ResourceTopologyLayout = opened(vcenter(1, 1, 8, 12));
+    const ids: Array<string> = getTopologyOpenFrameIds(
+      layout,
+      ["dc-0-cl-0"],
+      SMALL,
+    );
+    const all: Array<string> = getTopologySubtreeIds(layout, ["dc-0-cl-0"]);
+    const bounds: { width: number; height: number } = getDrawingBounds(
+      layout.placed.filter((item: ResourceTopologyPlaced): boolean => {
+        return all.includes(item.id);
+      }),
+    );
+
+    // All of it would be framed below the readable zoom on a phone.
+    expect(getFitZoom(bounds, SMALL)).toBeLessThan(READABLE_ZOOM);
+    expect(ids).toEqual(getTopologyFrameIds(layout, ["dc-0-cl-0"]));
+    // A canvas not measured yet, or a part with nothing open below it.
+    expect(
+      getTopologyOpenFrameIds(layout, ["dc-0-cl-0"], { width: 0, height: 0 }),
+    ).toEqual(getTopologyFrameIds(layout, ["dc-0-cl-0"]));
+    expect(
+      getTopologyOpenFrameIds(layout, ["dc-0-cl-0-h-0-vm-0"], LAPTOP),
+    ).toEqual(getTopologyFrameIds(layout, ["dc-0-cl-0-h-0-vm-0"]));
   });
 });
 

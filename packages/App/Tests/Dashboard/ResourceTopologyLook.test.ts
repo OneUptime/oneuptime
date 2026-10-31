@@ -35,6 +35,9 @@ import {
  * zoomed far out.
  */
 
+// "#dc2626": a colour written out.
+const HEX_COLOR: RegExp = /^#[0-9a-f]{6}$/;
+
 function part(
   id: string,
   parentId: string | null,
@@ -121,6 +124,22 @@ describe("a card's surface says how the part is doing", () => {
         border: "var(--ou-border-default, #e5e7eb)",
         edge: "transparent",
       });
+    }
+  });
+
+  test("no data is the theme's strongest border: never brighter than a healthy part in the dark", () => {
+    /*
+     * A fixed light grey glowed brighter than green on a dark surface - in
+     * the bar of a part's insides, the legend and every dot. The theme's
+     * own border keeps it the faintest of the five in both themes.
+     */
+    expect(RESOURCE_TOPOLOGY_HEALTH_COLORS.unknown).toBe(
+      "var(--ou-border-strong, #cbd5e1)",
+    );
+
+    // The others are the master topology's fixed colours.
+    for (const health of ["critical", "warning", "healthy", "off"] as const) {
+      expect(RESOURCE_TOPOLOGY_HEALTH_COLORS[health]).toMatch(HEX_COLOR);
     }
   });
 });

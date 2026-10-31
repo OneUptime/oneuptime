@@ -1108,6 +1108,83 @@ describe("a map about calls: lanes always open, every call's ends shown", () => 
     expect(findCard(visible.top, "container-11")!.isOpen).toBe(false);
     expect(visible.visibleNodeIds.has("service-11-2")).toBe(false);
   });
+
+  test("a lane's parts are chips however few, even ones with numbers a card would show", () => {
+    /*
+     * Two services with request rates: in the tree they are cards (a few
+     * parts with numbers), in a lane chips - each call's line carries its
+     * rate, and a narrow lane lets the host's map be drawn larger.
+     */
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        part("host", null, { kind: "entity:Host" }),
+        part("calls", "host", {
+          kind: SECTION_KIND,
+          isSection: true,
+          name: "Talks to",
+        }),
+        part("db", "calls", {
+          kind: "entity:Service",
+          facts: [{ label: "Requests", value: "600/min" }],
+        }),
+        part("pay", "calls", {
+          kind: "entity:Service",
+          facts: [{ label: "Requests", value: "200/min" }],
+        }),
+      ],
+    });
+    const groupOf: (
+      visible: ResourceTopologyVisible,
+    ) => ResourceTopologyGroupItem = (
+      visible: ResourceTopologyVisible,
+    ): ResourceTopologyGroupItem => {
+      return findCard(visible.top, "calls")!.groups[0]!;
+    };
+    const asLane: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { alwaysOpen: new Set<string>(["calls"]) },
+    );
+    const inTree: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState({ opened: new Set<string>(["calls"]) }),
+    );
+
+    expect(groupOf(asLane).asChips).toBe(true);
+    expect(
+      groupOf(asLane).items.map((item: { type: string }): string => {
+        return item.type;
+      }),
+    ).toEqual(["chip", "chip"]);
+    expect(groupOf(inTree).asChips).toBe(false);
+  });
+
+  test("a lane's part that holds others stays a card that opens", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        part("host", null, { kind: "entity:Host" }),
+        part("calls", "host", {
+          kind: SECTION_KIND,
+          isSection: true,
+          name: "Talks to",
+        }),
+        part("remote", "calls", { kind: "entity:Container" }),
+        part("remote-svc", "remote", { kind: "entity:Service" }),
+      ],
+    });
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { alwaysOpen: new Set<string>(["calls"]) },
+    );
+    const group: ResourceTopologyGroupItem = findCard(visible.top, "calls")!
+      .groups[0]!;
+
+    expect(group.asChips).toBe(false);
+    expect(findCard(visible.top, "remote")!.canOpen).toBe(true);
+  });
 });
 
 describe("what each card and group tells the map", () => {
