@@ -6,11 +6,11 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ComposedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import SpanUtil from "../../../Utils/SpanUtil";
-import { formatRelativeTime } from "../../../Utils/ExceptionDetailPresentation";
+import { exceptionTimeValue } from "../../../Utils/ExceptionDetailPresentation";
 import {
   ERROR_COUNT,
   OrphanSpanNote,
@@ -68,9 +68,13 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
   const rootService: TraceServiceInfo | null = summary.rootSpan
     ? getServiceInfo(props.serviceInfoById, summary.rootSpan.serviceId)
     : null;
-  const startedRelative: string | null = summary.startTime
-    ? formatRelativeTime(summary.startTime)
-    : null;
+  /*
+   * How long ago it started, written in the language the "Started" sentence
+   * is filled in: never a German time in an English sentence.
+   */
+  const startedRelative: ComposedValue | undefined = summary.startTime
+    ? exceptionTimeValue(summary.startTime)
+    : undefined;
   const startedAbsolute: string | null = summary.startTime
     ? OneUptimeDate.getDateAsUserFriendlyFormattedString(summary.startTime)
     : null;
