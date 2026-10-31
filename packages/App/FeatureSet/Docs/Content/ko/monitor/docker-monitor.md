@@ -93,7 +93,7 @@ flowchart TB
 | Host Stopped Reporting | 심각 | `container.memory.percent`, 호스트의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, 컨테이너별 Max, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Container Memory Usage | Warning | `container.memory.percent`, 컨테이너별 Max, 최근 5분 | 85% 초과 | 76.5% 이하 |
-| Container Restart Loop | 심각 | 컨테이너별 `container.restarts` 증가량, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
+| Container Restart Loop | 심각 | `container.restarts.increase`, 컨테이너별 Sum, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
 | Container CPU Throttling | Warning | 컨테이너별 `container.cpu.throttling_data.throttled_time` 증가량(ms), 최근 5분 | 기간 내 1000 ms 초과(합계) | 900 ms 이하 |
 | High Container Process Count | Warning | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 | Container Restarted (Low Uptime) | 심각 | `container.uptime`, 컨테이너별 Min, 최근 1분 | 120초 미만 | 132초 이상 |
@@ -110,7 +110,10 @@ flowchart TB
 > `container.memory.percent`는 컨테이너에 메모리 한도가 있으면 그 한도로, 없으면 **호스트** 의 전체 메모리로 나눕니다. 초과를 곧 닥칠 메모리 부족 종료로 보기 전에, 컨테이너가 `--memory`로 시작되었는지 확인하세요.
 
 > [!WARNING]
-> `container.restarts`와 `container.cpu.throttling_data.throttled_time`은 늘기만 하므로, 두 템플릿은 기간 동안 얼마나 늘었는지로 알림을 보냅니다. 분마다 Maximum 쿼리와 Minimum 쿼리를 수식으로 빼고 합산합니다. 에이전트의 30초 수집에서는 실제 활동의 절반 정도만 보이며, 임계값은 이미 이를 감안합니다. 에이전트의 `collection_interval`을 60초 이상으로 올리면 1분에 샘플이 하나만 들어가 두 템플릿 모두 알림을 보내지 않습니다. 또한 에이전트는 실행 중인 컨테이너만 샘플링하므로 시작하자마자 종료되는 컨테이너는 거의 샘플링되지 않습니다. **Container Restarted (Low Uptime)** 템플릿은 에이전트가 보는 모든 재시작에서 발생합니다.
+> `container.cpu.throttling_data.throttled_time`은 늘기만 하므로, **Container CPU Throttling** 템플릿은 기간 동안 얼마나 늘었는지로 알림을 보냅니다. 분마다 Maximum 쿼리와 Minimum 쿼리를 수식으로 빼고 합산합니다. 에이전트의 30초 수집에서는 실제 스로틀링의 절반 정도만 보이며, 임계값은 이미 이를 감안합니다. 에이전트의 `collection_interval`을 60초 이상으로 올리면 1분에 샘플이 하나만 들어가 템플릿이 알림을 보내지 않습니다.
+
+> [!NOTE]
+> `container.restarts`도 늘기만 하다가, 수동 재시작이나 다시 만든 컨테이너가 이를 0부터 다시 시작하게 합니다. 그래서 에이전트는 샘플마다 `container.restarts.increase`도 보냅니다. 이는 해당 컨테이너의 이전 샘플 이후의 재시작 횟수입니다. **Container Restart Loop** 템플릿은 이를 합산하므로, 샘플 간격이 얼마나 벌어져도 모든 재시작을 세며 수동 재시작은 세지 않습니다. Docker는 재시작 중인 컨테이너를 실행 중으로 보고하므로, 에이전트는 재시작 루프에 빠진 컨테이너를 실행과 실행 사이에도 계속 샘플링합니다. 오래된 에이전트는 `container.restarts.increase`를 보내지 않습니다. 먼저 [에이전트를 업그레이드하세요](/docs/telemetry/docker-host#에이전트-업그레이드). 그 전에 이 템플릿으로 만든 모니터는 1분 안에 `container.restarts`가 얼마나 늘었는지를 읽으므로 루프 재시작의 절반 정도를 놓칩니다. 그 모니터를 삭제하고 템플릿으로 다시 만드세요.
 
 > [!CAUTION]
 > `container.uptime`은 실행 중인 컨테이너에만 있습니다. 멈춘 채로 있는 컨테이너는 데이터를 보내지 않으므로, **Container Restarted (Low Uptime)** 템플릿은 재시작과 재배포를 잡을 뿐 영구적인 종료는 잡지 못합니다. 2분보다 짧게 실행되도록 만든 컨테이너는 수명 내내 알림 상태로 남습니다. 예를 들어 [API 모니터](/docs/monitor/api-monitor)를 쓸 수 있습니다.
@@ -155,6 +158,7 @@ flowchart TB
 | --- | --- |
 | `container.uptime` | 컨테이너가 시작된 이후의 초. 실행 중인 컨테이너만 보고합니다. |
 | `container.restarts` | 생성된 이후 컨테이너가 다시 시작된 횟수. 수명 전체 카운터. |
+| `container.restarts.increase` | 에이전트가 해당 컨테이너를 이전에 샘플링한 이후의 재시작 횟수로, 샘플마다 보냅니다. 기간 동안의 합계가 그 기간의 재시작 횟수이므로, 수명 전체 카운터 대신 이 메트릭으로 알림을 설정하세요. |
 | `container.pids.count` | 컨테이너 안의 작업 수. cgroup의 pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. |
 
 `container.cpu.throttling_data.throttled_periods`는 목록에 없으므로 **고급** 에서 조회하세요.
@@ -288,8 +292,12 @@ OneUptime은 `resource.host.name`으로 호스트를 식별하며, 에이전트�
 **High Container CPU Usage** 템플릿처럼 쿼리를 `resource.container.name`으로 그룹화하고 **최대** 로 집계하세요. 바쁜 호스트에서 모든 컨테이너를 평균하면 유휴 컨테이너 때문에 값이 낮아집니다. 100%는 코어 하나를 뜻하므로, 여러 코어를 쓸 수 있는 컨테이너에는 더 높은 임계값이 필요합니다. 부하와 관계없이 컨테이너 CPU가 평평한 선이라면 호스트에서 오래된 에이전트가 실행 중입니다. [에이전트를 업그레이드하세요](/docs/telemetry/docker-host#에이전트-업그레이드).
 :::
 
-:::details 재시작 루프나 스로틀링 템플릿이 알림을 멈춤
-둘 다 같은 1분 안의 두 샘플 사이에 카운터가 얼마나 늘었는지 측정합니다. 에이전트의 `collection_interval`이 60초 이상이면 1분에 샘플이 하나만 들어가 증가량이 항상 0이 되고, 어느 템플릿도 작동하지 않습니다. 에이전트의 기본값인 30초를 유지하세요.
+:::details 스로틀링 템플릿이 알림을 멈춤
+이 템플릿은 같은 1분 안의 두 샘플 사이에 `container.cpu.throttling_data.throttled_time`이 얼마나 늘었는지 측정합니다. 에이전트의 `collection_interval`이 60초 이상이면 1분에 샘플이 하나만 들어가 증가량이 항상 0이 되고, 템플릿이 작동하지 않습니다. 에이전트의 기본값인 30초를 유지하세요.
+:::
+
+:::details 재시작 루프 템플릿이 작동하지 않거나 재시작을 놓침
+이 템플릿은 `container.restarts.increase`를 읽는데, 오래된 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/telemetry/docker-host#에이전트-업그레이드). 그 전에 이 템플릿으로 만든 모니터는 같은 1분 안의 두 샘플 사이에 `container.restarts`가 얼마나 늘었는지를 읽으므로, 서로 다른 두 분의 샘플 사이에 일어난 재시작을 놓칩니다. 그 모니터를 삭제하고 템플릿으로 다시 만드세요.
 :::
 
 ## 다음 단계

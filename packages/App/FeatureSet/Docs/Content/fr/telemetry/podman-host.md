@@ -284,6 +284,10 @@ L'agent doit s'exécuter en tant que root pour lire `/run/podman/podman.sock`. V
 Un agent plus ancien envoie le chiffre de CPU calculé par le récepteur `docker_stats` lui-même, qui a besoin de la lecture des statistiques précédant la lecture actuelle, et l'API compatible Docker de Podman ne l'envoie jamais : le récepteur divise tout le CPU qu'un conteneur a utilisé depuis son démarrage par tout le CPU que l'hôte a utilisé depuis son amorçage. La ligne bouge à peine et ne suit pas la charge, contrairement à `container.cpu.usage.total`. [Mettez à jour l'agent](#mettre-à-jour-lagent) : à partir de sa deuxième lecture, il envoie le CPU que chaque conteneur a utilisé sur chaque intervalle de 30 secondes. Les lectures déjà enregistrées restent telles quelles.
 :::
 
+:::details Container Restart Loop ne se déclenche jamais ou manque des redémarrages
+Un agent plus ancien n'envoie pas `container.restarts.increase`, les redémarrages depuis sa mesure précédente de chaque conteneur, que le modèle additionne. [Mettez à jour l'agent](#mettre-à-jour-lagent) : à partir de sa deuxième mesure de chaque conteneur, chaque redémarrage compte. Un moniteur créé à partir du modèle avant la mise à jour lit à la place de combien `container.restarts` a augmenté au sein de chaque minute, et manque environ la moitié des redémarrages d'une boucle : supprimez-le et recréez-le à partir du modèle.
+:::
+
 :::details Les métriques arrivent, mais pas les journaux des conteneurs
 Vos conteneurs utilisent très probablement `journald`, le pilote de journalisation par défaut de Podman. Vérifiez quels fichiers l'agent surveille, et quel pilote utilise un conteneur :
 

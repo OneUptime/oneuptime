@@ -1,5 +1,9 @@
 import OldestKeyCursor from "../../Utils/OldestKeyCursor";
-import { FastestRun, fastestRun } from "../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
@@ -258,19 +262,20 @@ describe("OldestKeyCursor in a full cache that evicts on every write", () => {
       return map.size;
     };
 
-    // Timed against each other (limit 0): the machine's speed cancels out.
-    const cursorRun: FastestRun<number> = fastestRun({
-      run: (): number => {
+    /*
+     * Timed against each other, in turns (fastestRunsCompared): the
+     * machine's speed cancels out, and one stall cannot slow one side alone.
+     */
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         return churn(true);
       },
-      limitInMs: 0,
-    });
-    const iteratorRun: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         return churn(false);
       },
-      limitInMs: 0,
     });
+    const cursorRun: FastestRun<number> = runs.first;
+    const iteratorRun: FastestRun<number> = runs.second;
 
     expect(cursorRun.result).toBe(CAPACITY);
     expect(iteratorRun.result).toBe(CAPACITY);

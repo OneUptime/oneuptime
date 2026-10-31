@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}} 取消了此例外的指派",
   "{{actor}} unmerged another exception from this exception": "{{actor}} 將另一個例外從此例外中取消合併",
   "{{actor}} unmerged this exception from another one": "{{actor}} 將此例外從另一個例外中取消合併",
+  "Exception assigned to me": "指派給我的例外",
+  "Is Assignee Notified": "已通知負責人",
+  "Notify me about exceptions assigned to me or to a team I am on.": "當例外指派給我或我所在的團隊時通知我。",
+  "Someone assigns an exception to you, or to a team you are on.": "有人將例外指派給你或你所在的團隊。",
   "Or let the installer write both files and start it:": "或讓安裝程式寫入這兩個檔案並啟動它：",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "第一行會將指令碼下載為 install.sh，讓你可以在執行前先閱讀它。"
 }

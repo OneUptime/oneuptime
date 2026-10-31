@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}} fjernede tildelingen af denne undtagelse",
   "{{actor}} unmerged another exception from this exception": "{{actor}} fjernede fletningen af en anden undtagelse fra denne undtagelse",
   "{{actor}} unmerged this exception from another one": "{{actor}} fjernede fletningen af denne undtagelse fra en anden",
+  "Exception assigned to me": "Undtagelse tildelt mig",
+  "Is Assignee Notified": "Tildelte underrettet",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Giv mig besked om undtagelser, der tildeles mig eller et team, jeg er med i.",
+  "Someone assigns an exception to you, or to a team you are on.": "Nogen tildeler en undtagelse til dig eller til et team, du er med i.",
   "Or let the installer write both files and start it:": "Eller lad installationsprogrammet skrive begge filer og starte den:",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "Den første linje henter scriptet som install.sh, så du kan læse det, før du kører det."
 }

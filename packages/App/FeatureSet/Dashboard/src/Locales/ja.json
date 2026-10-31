@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}} がこの例外の割り当てを解除しました",
   "{{actor}} unmerged another exception from this exception": "{{actor}} が別の例外とこの例外の統合を解除しました",
   "{{actor}} unmerged this exception from another one": "{{actor}} がこの例外と別の例外の統合を解除しました",
+  "Exception assigned to me": "自分に割り当てられた例外",
+  "Is Assignee Notified": "担当者に通知済み",
+  "Notify me about exceptions assigned to me or to a team I am on.": "自分または自分が所属するチームに割り当てられた例外について通知します。",
+  "Someone assigns an exception to you, or to a team you are on.": "誰かがあなた、またはあなたが所属するチームに例外を割り当てました。",
   "Or let the installer write both files and start it:": "または、インストーラーに両方のファイルを書き込ませて起動します:",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "1 行目でスクリプトを install.sh としてダウンロードするので、実行する前に内容を読めます。"
 }

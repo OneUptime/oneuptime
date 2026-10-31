@@ -285,6 +285,10 @@ L'agent deve essere eseguito come root per leggere `/var/run/docker.sock`. Verif
 Un agent più vecchio invia il valore di CPU calcolato dal receiver `docker_stats` stesso. Dal collector 0.150.0 il receiver lo ricava da una sola lettura delle statistiche: tutta la CPU usata da un container dal suo avvio, divisa per tutta la CPU usata dall'host dal suo boot. La linea si muove appena e non segue il carico, mentre `container.cpu.usage.total` sì. [Aggiorna l'agent](#aggiornare-lagent): dalla sua seconda lettura in poi invia la CPU usata da ogni container in ogni intervallo di 30 secondi. Le letture già salvate restano com'erano.
 :::
 
+:::details Container Restart Loop non scatta mai o perde dei riavvii
+Un agent più vecchio non invia `container.restarts.increase`, i riavvii dal suo campione precedente di ogni container, che il modello somma. [Aggiorna l'agent](#aggiornare-lagent): dal suo secondo campione di ogni container in poi, ogni riavvio conta. Un monitor creato dal modello prima dell'aggiornamento legge invece di quanto è cresciuto `container.restarts` entro ogni minuto, e perde circa metà dei riavvii di un loop: eliminalo e crealo di nuovo dal modello.
+:::
+
 :::details Le metriche arrivano, ma i log dei container no
 Molto probabilmente i tuoi container usano un driver di log diverso da `json-file`. Controlla quali file osserva l'agent e quale driver usa un container:
 

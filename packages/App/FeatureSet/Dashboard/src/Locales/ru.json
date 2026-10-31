@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}}: назначение исключения снято",
   "{{actor}} unmerged another exception from this exception": "{{actor}}: другое исключение отделено от этого",
   "{{actor}} unmerged this exception from another one": "{{actor}}: исключение отделено от другого",
+  "Exception assigned to me": "Исключение, назначенное мне",
+  "Is Assignee Notified": "Назначенный уведомлён",
+  "Notify me about exceptions assigned to me or to a team I am on.": "Уведомлять меня об исключениях, назначенных мне или команде, в которой я состою.",
+  "Someone assigns an exception to you, or to a team you are on.": "Кто-то назначает исключение вам или команде, в которой вы состоите.",
   "Or let the installer write both files and start it:": "Или пусть установщик сам создаст оба файла и запустит агент:",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "Первая строка скачивает скрипт в файл install.sh, чтобы вы могли прочитать его перед запуском."
 }

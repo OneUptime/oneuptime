@@ -93,7 +93,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 | Host Stopped Reporting | Kritisch | `container.memory.percent`, Count über alle Container des Hosts, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
 | High Container CPU Usage | Warnung | `container.cpu.utilization`, Avg pro Container, letzte 5 Minuten | Über 80 (% eines Kerns) | Bei oder unter 72 |
 | High Container Memory Usage | Warnung | `container.memory.percent`, Avg pro Container, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
-| Container Restart Loop | Kritisch | Zuwachs von `container.restarts` pro Container, letzte 15 Minuten | Mehr als 3 Neustarts im Zeitfenster (Summe) | 2,7 oder weniger |
+| Container Restart Loop | Kritisch | `container.restarts.increase`, Sum pro Container, letzte 15 Minuten | Mehr als 3 Neustarts im Zeitfenster (Summe) | 2,7 oder weniger |
 | High Container Process Count | Warnung | `container.pids.count`, Max pro Container, letzte 5 Minuten | Über 2000 | Bei oder unter 1800 |
 | Container Restarted (Low Uptime) | Kritisch | `container.uptime`, Min pro Container, letzte 1 Minute | Unter 120 Sekunden | Bei oder über 132 Sekunden |
 
@@ -107,7 +107,7 @@ Die beiden Prozent-Vorlagen verwenden **Durchschnitt**: Ihre Metriken sind berei
 > `container.cpu.utilization` ist die Zahl, die `podman stats` ausgibt, gemittelt über das 30-Sekunden-Intervall des Agenten: 100 % ist ein voller CPU-Kern, nicht das gesamte CPU-Kontingent des Containers. Ein Container mit mehreren Kernen liest im gesunden Zustand deutlich über 100; erhöhen Sie für solche den Schwellenwert.
 
 > [!NOTE]
-> `container.restarts` ist eine von Podman geführte laufende Summe, daher warnt **Container Restart Loop** wie bei Docker danach, wie stark sie im Zeitfenster gewachsen ist: eine Maximum- und eine Minimum-Abfrage pro Minute, durch eine Formel voneinander abgezogen und summiert. Bei der 30-Sekunden-Erfassung des Agenten wird etwa die Hälfte der Neustarts gesehen, und der Schwellenwert berücksichtigt das bereits. Der Agent erfasst außerdem nur laufende Container, sodass ein Container, der sofort nach dem Start wieder endet, kaum je erfasst wird: **Container Restarted (Low Uptime)** löst bei jedem Neustart aus, den der Agent sieht.
+> `container.restarts` ist eine von Podman geführte laufende Summe, bis ein manueller Neustart oder ein neu erstellter Container sie wieder bei 0 beginnen lässt, daher sendet der Agent mit jedem Messwert zusätzlich `container.restarts.increase`: die Neustarts seit seinem vorigen Messwert des Containers. **Container Restart Loop** zählt diese wie bei Docker zusammen, erfasst also jeden Neustart, wie weit die Messwerte auch auseinanderliegen, und ein manueller Neustart zählt nicht als einer. Ein älterer Agent sendet `container.restarts.increase` nicht: [Aktualisieren Sie ihn](/docs/telemetry/podman-host#agent-aktualisieren) zuerst. Ein Monitor, der davor aus der Vorlage erstellt wurde, liest, wie stark `container.restarts` innerhalb jeder Minute gewachsen ist, und übersieht so etwa die Hälfte der Neustarts einer Schleife: Löschen Sie ihn und erstellen Sie die Vorlage erneut.
 
 > [!CAUTION]
 > `container.uptime` gibt es nur für laufende Container. Ein Container, der stoppt und gestoppt bleibt, sendet keine Daten; **Container Restarted (Low Uptime)** erkennt daher Neustarts und erneute Deployments, kein dauerhaftes Herunterfahren. Ein Container, der weniger als zwei Minuten laufen soll, bleibt sein ganzes Leben lang im Warnzustand.
@@ -154,6 +154,7 @@ Der Agent verwendet den OpenTelemetry-Receiver `docker_stats`, gerichtet auf den
 | --- | --- |
 | `container.uptime` | Sekunden seit dem Start des Containers. Nur laufende Container melden sie. |
 | `container.restarts` | Wie oft der Container neu gestartet wurde. Eine laufende Summe. |
+| `container.restarts.increase` | Neustarts seit dem vorigen Messwert des Agenten für den Container, mit jedem Messwert gesendet. Ihre Summe über ein Zeitfenster sind die Neustarts darin, warnen Sie daher auf diese statt auf die laufende Summe. |
 | `container.pids.count` | Tasks im Container. Der pids-Controller der cgroup zählt Threads ebenso wie Prozesse. |
 
 `container.cpu.throttling_data.throttled_periods` steht nicht in der Liste; fragen Sie sie über **Erweitert** ab.
@@ -290,8 +291,8 @@ OneUptime erkennt einen Host an `resource.host.name`, den der Agent aus `PODMAN_
 Gruppieren Sie die Abfrage nach `resource.container.name`, wie es die Vorlage **High Container CPU Usage** tut, damit jeder Container einzeln beurteilt wird. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/podman-host#agent-aktualisieren).
 :::
 
-:::details Die Warnung zur Neustartzahl klingt nie ab
-`container.restarts` ist eine laufende Summe und fällt daher nicht von selbst unter den Schwellenwert zurück. Beheben Sie die Ursache und erstellen Sie den Container dann neu, um die Zahl zurückzusetzen, oder erhöhen Sie den Schwellenwert.
+:::details Die Neustart-Warnung löst nie aus oder klingt nie ab
+Ein Monitor, der `container.restarts` selbst mit einem Schwellenwert vergleicht, wie einer aus einer frühen Fassung der Neustart-Vorlage, löst wegen der Vergangenheit eines Containers aus und klingt nie ab: Die Summe wächst nur. Einer, der aus **Container Restart Loop** erstellt wurde, bevor diese `container.restarts.increase` las, misst, wie stark die Summe innerhalb jeder Minute gewachsen ist, und übersieht etwa die Hälfte der Neustarts einer Schleife. Ein älterer Agent sendet `container.restarts.increase` nicht: [Aktualisieren Sie den Agenten](/docs/telemetry/podman-host#agent-aktualisieren), löschen Sie dann den Monitor und erstellen Sie **Container Restart Loop** erneut.
 :::
 
 ## Nächste Schritte

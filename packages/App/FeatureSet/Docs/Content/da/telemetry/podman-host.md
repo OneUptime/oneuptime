@@ -284,6 +284,10 @@ Agenten skal køre som root for at læse `/run/podman/podman.sock`. Kontrollér,
 En ældre agent sender receiveren `docker_stats`' eget CPU-tal, som kræver statistikmålingen før den aktuelle, og Podmans Docker-kompatible API sender den aldrig: Receiveren dividerer al den CPU, en container har brugt, siden den startede, med al den CPU, værten har brugt, siden den bootede. Linjen bevæger sig knap og følger ikke belastningen, mens `container.cpu.usage.total` gør. [Opgradér agenten](#opgradering-af-agenten): fra sin anden måling sender den den CPU, hver container brugte i hvert interval på 30 sekunder. Målinger, der allerede er gemt, forbliver som de var.
 :::
 
+:::details Container Restart Loop udløses aldrig eller overser genstarter
+En ældre agent sender ikke `container.restarts.increase`, genstarterne siden dens forrige måling af hver container, som skabelonen lægger sammen. [Opgradér agenten](#opgradering-af-agenten): fra dens anden måling af hver container tæller hver genstart. En monitor, der blev lavet ud fra skabelonen før opgraderingen, læser i stedet, hvor meget `container.restarts` voksede inden for hvert minut, og overser omkring halvdelen af en løkkes genstarter: slet den, og opret den igen ud fra skabelonen.
+:::
+
 :::details Metrikker ankommer, men ingen containerlogs
 Dine containere bruger højst sandsynligt `journald`, Podmans standardlogdriver. Kontrollér, hvilke filer agenten overvåger, og hvilken driver en container bruger:
 

@@ -93,7 +93,7 @@ Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la cond
 | Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del host, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | High Container CPU Usage | Advertencia | `container.cpu.utilization`, Max por contenedor, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Container Memory Usage | Advertencia | `container.memory.percent`, Max por contenedor, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
-| Container Restart Loop | Crítico | Crecimiento de `container.restarts` por contenedor, últimos 15 minutos | Más de 3 reinicios en la ventana (Suma) | 2,7 o menos |
+| Container Restart Loop | Crítico | `container.restarts.increase`, Sum por contenedor, últimos 15 minutos | Más de 3 reinicios en la ventana (Suma) | 2,7 o menos |
 | Container CPU Throttling | Advertencia | Crecimiento de `container.cpu.throttling_data.throttled_time` en ms por contenedor, últimos 5 minutos | Más de 1000 ms en la ventana (Suma) | 900 ms o menos |
 | High Container Process Count | Advertencia | `container.pids.count`, Max por contenedor, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
 | Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contenedor, último 1 minuto | Menos de 120 segundos | 132 segundos o más |
@@ -110,7 +110,10 @@ Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la cond
 > `container.memory.percent` divide entre el límite de memoria del contenedor cuando hay uno y, si no, entre la memoria total **del host**. Compruebe si el contenedor se inició con `--memory` antes de tratar una superación como una terminación inminente por falta de memoria.
 
 > [!WARNING]
-> `container.restarts` y `container.cpu.throttling_data.throttled_time` solo crecen, así que esas dos plantillas alertan según cuánto crecieron en la ventana: una consulta de Máximo y otra de Mínimo por minuto, restadas mediante una fórmula y sumadas. Con la recopilación del agente cada 30 segundos, eso ve aproximadamente la mitad de la actividad real, y los umbrales ya lo tienen en cuenta. Si sube el `collection_interval` del agente a 60 segundos o más, cada minuto contiene una sola muestra y ambas plantillas dejan de alertar. Además, el agente solo muestrea contenedores en ejecución, así que un contenedor que termina en cuanto arranca casi nunca se muestrea: **Container Restarted (Low Uptime)** se dispara en cada reinicio que el agente sí ve.
+> `container.cpu.throttling_data.throttled_time` solo crece, así que **Container CPU Throttling** alerta según cuánto creció en la ventana: una consulta de Máximo y otra de Mínimo por minuto, restadas mediante una fórmula y sumadas. Con la recopilación del agente cada 30 segundos, eso ve aproximadamente la mitad de la limitación real, y el umbral ya lo tiene en cuenta. Si sube el `collection_interval` del agente a 60 segundos o más, cada minuto contiene una sola muestra y la plantilla deja de alertar.
+
+> [!NOTE]
+> `container.restarts` también solo crece, hasta que un reinicio manual o un contenedor recreado lo vuelve a empezar en 0, así que el agente también envía `container.restarts.increase` con cada muestra: los reinicios desde su muestra anterior del contenedor. **Container Restart Loop** los suma, así que cuenta cada reinicio por muy separadas que estén las muestras, y un reinicio manual no cuenta como uno. Docker informa de un contenedor que está reiniciando como en ejecución, así que el agente sigue muestreando un contenedor en bucle de reinicios entre sus ejecuciones. Un agente antiguo no envía `container.restarts.increase`: [actualícelo](/docs/telemetry/docker-host#actualizar-el-agente) primero. Un monitor creado a partir de la plantilla antes de eso lee cuánto creció `container.restarts` dentro de cada minuto, lo que pasa por alto aproximadamente la mitad de los reinicios de un bucle: elimínelo y vuelva a crear la plantilla.
 
 > [!CAUTION]
 > `container.uptime` solo existe para los contenedores en ejecución. Un contenedor que se detiene y sigue detenido no envía datos, así que **Container Restarted (Low Uptime)** detecta reinicios y nuevos despliegues, no una parada definitiva. Un contenedor pensado para ejecutarse menos de dos minutos permanece en estado de alerta durante toda su vida. Para un servicio que debe seguir activo, vigile también lo que sirve – por ejemplo con un [monitor de API](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry contra el socket de Do
 | --- | --- |
 | `container.uptime` | Segundos desde que se inició el contenedor. Solo los contenedores en ejecución la informan. |
 | `container.restarts` | Veces que el contenedor se ha reiniciado desde que se creó. Un contador de toda la vida útil. |
+| `container.restarts.increase` | Reinicios desde la muestra anterior del agente para el contenedor, enviados con cada muestra. Su suma en una ventana son los reinicios de esa ventana, así que alerte sobre esta y no sobre el contador de toda la vida útil. |
 | `container.pids.count` | Tareas del contenedor. El controlador pids del cgroup cuenta los hilos además de los procesos. |
 
 `container.cpu.throttling_data.throttled_periods` no está en la lista; consúltela desde **Avanzado**.
@@ -288,8 +292,12 @@ OneUptime identifica un host por `resource.host.name`, que el agente toma de `DO
 Agrupe la consulta por `resource.container.name` y agregue con **Máximo**, como hace la plantilla **High Container CPU Usage**. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/docker-host#actualizar-el-agente).
 :::
 
-:::details La plantilla de bucle de reinicios o de limitación dejó de alertar
-Ambas miden cuánto creció un contador entre dos muestras del mismo minuto. Si el `collection_interval` del agente es de 60 segundos o más, cada minuto contiene una sola muestra, el crecimiento siempre marca 0 y ninguna de las dos plantillas se dispara. Mantenga el valor predeterminado del agente, 30 segundos.
+:::details La plantilla de limitación dejó de alertar
+Mide cuánto creció `container.cpu.throttling_data.throttled_time` entre dos muestras del mismo minuto. Si el `collection_interval` del agente es de 60 segundos o más, cada minuto contiene una sola muestra, el crecimiento siempre marca 0 y la plantilla nunca se dispara. Mantenga el valor predeterminado del agente, 30 segundos.
+:::
+
+:::details La plantilla de bucle de reinicios nunca se dispara o pasa por alto reinicios
+Lee `container.restarts.increase`, que un agente antiguo no envía: [actualice el agente](/docs/telemetry/docker-host#actualizar-el-agente). Un monitor creado a partir de la plantilla antes de eso lee cuánto creció `container.restarts` entre dos muestras del mismo minuto, y pasa por alto los reinicios entre las muestras de dos minutos distintos: elimínelo y vuelva a crear la plantilla.
 :::
 
 ## Próximos pasos

@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}}: 이 예외의 할당을 해제했습니다",
   "{{actor}} unmerged another exception from this exception": "{{actor}}: 다른 예외를 이 예외에서 병합 해제했습니다",
   "{{actor}} unmerged this exception from another one": "{{actor}}: 이 예외를 다른 예외에서 병합 해제했습니다",
+  "Exception assigned to me": "나에게 할당된 예외",
+  "Is Assignee Notified": "담당자에게 알림 전송됨",
+  "Notify me about exceptions assigned to me or to a team I am on.": "나 또는 내가 속한 팀에 할당된 예외를 알려 줍니다.",
+  "Someone assigns an exception to you, or to a team you are on.": "누군가 나 또는 내가 속한 팀에 예외를 할당합니다.",
   "Or let the installer write both files and start it:": "또는 설치 프로그램이 두 파일을 작성하고 에이전트를 시작하게 하세요:",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "첫 번째 줄은 스크립트를 install.sh로 내려받으므로, 실행하기 전에 읽어 볼 수 있습니다."
 }

@@ -285,6 +285,10 @@ Agenten må kjøre som root for å lese `/var/run/docker.sock`. Sjekk at `--user
 En eldre agent sender mottakeren `docker_stats` sitt eget CPU-tall. Siden collector 0.150.0 regner mottakeren det ut fra én enkelt statistikkmåling: all CPU en container har brukt siden den startet, delt på all CPU verten har brukt siden den startet opp. Linjen beveger seg knapt og følger ikke belastningen, mens `container.cpu.usage.total` gjør det. [Oppgrader agenten](#oppgradere-agenten): fra sin andre måling sender den CPU-en hver container brukte i hvert intervall på 30 sekunder. Målinger som allerede er lagret, forblir som de var.
 :::
 
+:::details Container Restart Loop utløses aldri eller går glipp av omstarter
+En eldre agent sender ikke `container.restarts.increase`, omstartene siden dens forrige måling av hver container, som malen legger sammen. [Oppgrader agenten](#oppgradere-agenten): fra dens andre måling av hver container teller hver omstart. En monitor som ble laget fra malen før oppgraderingen, leser i stedet hvor mye `container.restarts` vokste innenfor hvert minutt, og går glipp av omtrent halvparten av omstartene i en løkke: slett den og opprett den på nytt fra malen.
+:::
+
 :::details Metrikker kommer inn, men ingen containerlogger
 Containerne dine bruker mest sannsynlig en annen loggdriver enn `json-file`. Sjekk hvilke filer agenten overvåker, og hvilken driver en container bruker:
 

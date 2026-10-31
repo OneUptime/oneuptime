@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}} a retiré l'attribution de cette exception",
   "{{actor}} unmerged another exception from this exception": "{{actor}} a défusionné une autre exception de cette exception",
   "{{actor}} unmerged this exception from another one": "{{actor}} a défusionné cette exception d'une autre",
+  "Exception assigned to me": "Exception qui m'est attribuée",
+  "Is Assignee Notified": "Personne attribuée avertie",
+  "Notify me about exceptions assigned to me or to a team I am on.": "M'avertir des exceptions qui me sont attribuées, ou à une équipe dont je fais partie.",
+  "Someone assigns an exception to you, or to a team you are on.": "Quelqu'un vous attribue une exception, à vous ou à une équipe dont vous faites partie.",
   "Or let the installer write both files and start it:": "Ou laissez le programme d'installation écrire les deux fichiers et démarrer l'agent :",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "La première ligne télécharge le script sous le nom install.sh, pour que vous puissiez le lire avant de l'exécuter."
 }

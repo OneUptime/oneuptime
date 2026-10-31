@@ -39046,6 +39046,10 @@
   "{{actor}} unassigned this exception": "{{actor}} 取消了此异常的分配",
   "{{actor}} unmerged another exception from this exception": "{{actor}} 将另一个异常从此异常中取消合并",
   "{{actor}} unmerged this exception from another one": "{{actor}} 将此异常从另一个异常中取消合并",
+  "Exception assigned to me": "分配给我的异常",
+  "Is Assignee Notified": "已通知负责人",
+  "Notify me about exceptions assigned to me or to a team I am on.": "当异常分配给我或我所在的团队时通知我。",
+  "Someone assigns an exception to you, or to a team you are on.": "有人将异常分配给你或你所在的团队。",
   "Or let the installer write both files and start it:": "或者让安装程序写入这两个文件并启动代理：",
   "The first line downloads the script as install.sh, so you can read it before you run it.": "第一行将脚本下载为 install.sh，方便你在运行前先阅读它。"
 }

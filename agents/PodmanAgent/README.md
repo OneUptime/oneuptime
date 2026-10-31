@@ -91,8 +91,10 @@ These metrics come from the `docker_stats` receiver, which works against Podman'
 - **CPU**: `container.cpu.usage.total`, `container.cpu.utilization`, `container.cpu.throttling_data.throttled_time`
 - **Memory**: `container.memory.usage.total`, `container.memory.usage.limit`, `container.memory.percent`
 - **Network**: `container.network.io.usage.rx_bytes`, `container.network.io.usage.tx_bytes`
-- **Block I/O**: `container.blockio.io_service_bytes_recursive.read`, `container.blockio.io_service_bytes_recursive.write`
-- **Container Info**: `container.uptime`, `container.restarts`, `container.pids.count`
+- **Block I/O**: `container.blockio.io_service_bytes_recursive`, split by its `operation` attribute (`read`, `write`)
+- **Container Info**: `container.uptime`, `container.restarts`, `container.restarts.increase`, `container.pids.count`
+
+`container.restarts` is Podman's RestartCount for the container: the times its restart policy restarted it, a running total that a restart by hand or a recreated container starts again at 0. `container.restarts.increase` is what OneUptime's Container Restart Loop alert counts: sent with every sample, it is the restarts since the agent's previous sample of that container, however far back that was, so their sum over a window is every restart in it (see `transform/restarts-increase-source` and `cumulative_to_delta/restarts-increase` in `otel-collector-config.yaml`). A container's first sample after the agent starts, and a sample whose count went down, send none. An agent from before `container.restarts.increase` existed does not send it, and the alert never fires: update the agent.
 
 `container.cpu.utilization` is the CPU a container used over each 30-second collection interval, as a percent of one core: 100% is one full core, so a container busy on two cores reads 200%, as `podman stats` counts it. The agent works it out from `container.cpu.usage.total` (see `otel-collector-config.yaml`), so the two always agree. A container has no CPU percent at its first reading after the agent or the container starts. The `docker_stats` receiver's own CPU percent is turned off: Podman's Docker-compatible API sends no previous reading with a stats sample, so that figure is a flat line that does not follow the load.
 
