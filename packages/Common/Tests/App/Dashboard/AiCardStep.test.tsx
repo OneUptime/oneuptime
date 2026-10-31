@@ -206,7 +206,7 @@ describe("AiCardStep", () => {
    * script, never from Tab, and draws no ring of its own.
    */
   test("its title can take the focus from script when the step asks for it, and only then", () => {
-    const headingRef: React.RefObject<HTMLHeadingElement | null> =
+    const headingRef: React.RefObject<HTMLHeadingElement> =
       React.createRef<HTMLHeadingElement>();
 
     render(
