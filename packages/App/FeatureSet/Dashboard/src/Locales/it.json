@@ -39055,5 +39055,9 @@
   "Someone assigns an exception to you, or to a team you are on.": "Qualcuno assegna un'eccezione a te o a un team di cui fai parte.",
   "Exception Saved View": "Vista salvata delle eccezioni",
   "Exception Saved Views": "Viste salvate delle eccezioni",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Salva e riutilizza viste dell'elenco delle eccezioni, inclusi la ricerca, i filtri, l'intervallo di tempo, lo stato, l'ordinamento e la dimensione della pagina correnti."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Salva e riutilizza viste dell'elenco delle eccezioni, inclusi la ricerca, i filtri, l'intervallo di tempo, lo stato, l'ordinamento e la dimensione della pagina correnti.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "Su una parte, le frecce su e giù passano tra le parti accanto, la freccia sinistra la apre ed entra, e la freccia destra la chiude e torna fuori.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "Su una parte, le frecce su e giù passano tra le parti accanto, la freccia destra la apre ed entra, e la freccia sinistra la chiude e torna fuori.",
+  "Topology map": "Mappa della topologia",
+  "What is inside": "Cosa contiene"
 }

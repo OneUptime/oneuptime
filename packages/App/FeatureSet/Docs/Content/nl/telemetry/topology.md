@@ -86,6 +86,7 @@ Klik op een pijl voor het aantal verzoeken, het foutpercentage en de gemiddelde 
 
 Een vCenter, een Kubernetes-cluster, een host, een Docker- of Podman-host, een Docker Swarm-, Proxmox- of Ceph-cluster en een storage-array hebben elk een eigen pagina **Topologie**. Die tekent die ene resource in detail, uit haar eigen inventaris: wat waarin zit, elk onderdeel gekleurd naar hoe het ervoor staat, en elk open incident en elke open waarschuwing bij het onderdeel waar die over gaat.
 
+- **Lees het als een boom.** De resource staat bovenaan, en de onderdelen van elk onderdeel staan rechts ervan, ermee verbonden door een lijn die rood of oranje wordt waar iets aandacht vraagt. Onderdelen met een probleem erin gaan vanzelf open, de ronde knop op een onderdeel opent of sluit het, en de pijltjestoetsen bewegen door de kaart.
 - **Vind wat aandacht vraagt.** **Vraagt aandacht** houdt alleen de onderdelen met problemen over en de weg naar elk ervan, en de zoekfunctie vindt een onderdeel overal in de resource.
 - **Kijk van dichterbij.** Klik op een onderdeel voor wat het is en een link naar zijn eigen pagina, en op **Hierop focussen** om alleen dat onderdeel te tekenen, met wat erin zit en waarmee het samenhangt.
 - **Ga beide kanten op.** **Openen in Topologie** opent de resource op **Infrastructuur**, en haar knop **vCenter-topologie openen**, **Clustertopologie openen**, **Hosttopologie openen** of **Topologie van de storage-array openen** brengt u terug.

@@ -39055,5 +39055,9 @@
   "Someone assigns an exception to you, or to a team you are on.": "Кто-то назначает исключение вам или команде, в которой вы состоите.",
   "Exception Saved View": "Сохранённое представление исключений",
   "Exception Saved Views": "Сохранённые представления исключений",
-  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Сохраняйте и используйте повторно представления списка исключений, включая текущий поиск, фильтры, диапазон времени, статус, сортировку и размер страницы."
+  "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Сохраняйте и используйте повторно представления списка исключений, включая текущий поиск, фильтры, диапазон времени, статус, сортировку и размер страницы.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "На части стрелки вверх и вниз переходят к соседним частям, стрелка влево открывает её и переходит внутрь, а стрелка вправо закрывает её и возвращает назад.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "На части стрелки вверх и вниз переходят к соседним частям, стрелка вправо открывает её и переходит внутрь, а стрелка влево закрывает её и возвращает назад.",
+  "Topology map": "Карта топологии",
+  "What is inside": "Что внутри"
 }

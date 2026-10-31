@@ -19,10 +19,19 @@ import path from "path";
  * what the topology is, pinpoint issues, and look into issues. Maybe we can
  * add all of these things into the master topology that we have as well."
  *
+ * A customer found the first design hard to read - "it looks like nested
+ * boxes, a box inside of a box" - so every map is now a tree of cards: the
+ * resource at the top, each part's parts in the column after it, joined by
+ * lines that turn red or amber where trouble lies, the way to trouble open
+ * from the first view.
+ *
  * What jsdom cannot show is checked here: the drawing framed at a readable
- * zoom, the boxes nested and laid out side by side, a host's callers and
- * calls either side of it with every call drawn, a picked pod's line to its
- * node, the list a phone gets, dark mode and German - with screenshots of
+ * zoom, no card drawn inside or over another on any product's map, the
+ * lines and their colours, a host's callers and calls either side of the
+ * tree with every call drawn, a picked pod's line to its node, the keys
+ * moving through the tree, a page read from right to left drawn mirrored, a
+ * large estate staying quick, the small print going when zoomed far out,
+ * the list a phone gets, dark mode, German and Persian - with screenshots of
  * each in output/playwright/resource-topology-ui.
  */
 
@@ -38,6 +47,7 @@ const PAGES: Record<string, string> = {
   proxmox: `proxmox/37000000-0000-4000-8000-000000000001`,
   ceph: `ceph/38000000-0000-4000-8000-000000000001`,
   storage: `storage-arrays/39000000-0000-4000-8000-000000000001`,
+  cloud: `cloud/accounts/3a000000-0000-4000-8000-000000000001`,
 };
 
 // The id each product's builder gives the resource itself.
@@ -51,6 +61,7 @@ const ROOT_IDS: Record<string, string> = {
   proxmox: "cluster",
   ceph: "cluster",
   storage: "array",
+  cloud: "account",
 };
 
 const SCREENSHOTS: string = path.resolve(
@@ -187,6 +198,72 @@ async function isInsideCanvas(page: Page, locator: Locator): Promise<boolean> {
   );
 }
 
+interface Box {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Every part on the map, card or chip, where the browser drew it.
+async function drawnParts(page: Page): Promise<Array<Box>> {
+  return await page.evaluate((): Array<Box> => {
+    return Array.from(
+      document.querySelectorAll(
+        '[data-testid^="resource-topology-card-"], [data-testid^="resource-topology-chip-"]',
+      ),
+    ).map((element: Element): Box => {
+      const box: DOMRect = element.getBoundingClientRect();
+
+      return {
+        id: element.getAttribute("data-testid") || "",
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      };
+    });
+  });
+}
+
+// Pairs of parts drawn inside, or over, one another.
+function stacked(boxes: Array<Box>): Array<string> {
+  const found: Array<string> = [];
+
+  boxes.forEach((a: Box, index: number) => {
+    for (const b of boxes.slice(index + 1)) {
+      // A pixel of give: borders and shadows meet, they do not overlap.
+      const overlap: boolean =
+        a.x + 1 < b.x + b.width &&
+        b.x + 1 < a.x + a.width &&
+        a.y + 1 < b.y + b.height &&
+        b.y + 1 < a.y + a.height;
+
+      if (overlap) {
+        found.push(`${a.id} / ${b.id}`);
+      }
+    }
+  });
+
+  return found;
+}
+
+// The tone of the line into a group's heading (or a section's card).
+async function lineTone(page: Page, target: string): Promise<string | null> {
+  return await byTestId(
+    page,
+    `resource-topology-branch-${target}`,
+  ).getAttribute("data-tone");
+}
+
+// The id of the part the keyboard is on, as the map names it.
+async function focusedPart(page: Page): Promise<string | null> {
+  return await page.evaluate((): string | null => {
+    return document.activeElement?.getAttribute("data-topology-item") || null;
+  });
+}
+
 // A part drawn as a card or as a chip, by its name.
 function partNamed(page: Page, name: string): Locator {
   return page
@@ -199,6 +276,54 @@ function partNamed(page: Page, name: string): Locator {
 // The panel of the part someone picked, its name in its title.
 function panel(page: Page): Locator {
   return byTestId(page, "side-over");
+}
+
+// How far below the canvas's top edge a part is drawn.
+async function gapAbove(page: Page, locator: Locator): Promise<number> {
+  const canvas: { y: number } = await boxOf(
+    byTestId(page, "resource-topology-canvas"),
+  );
+  const part: { y: number } = await boxOf(locator);
+
+  return part.y - canvas.y;
+}
+
+/*
+ * The words of every heading on the map that are cut short or run out of
+ * it: none, when the layout gives each heading room for its words.
+ */
+async function cutHeadings(page: Page): Promise<Array<string>> {
+  return await page.evaluate((): Array<string> => {
+    const cut: Array<string> = [];
+
+    for (const heading of Array.from(
+      document.querySelectorAll(
+        '[data-testid^="resource-topology-group-"], [data-testid^="resource-topology-lane-"]',
+      ),
+    )) {
+      const id: string = heading.getAttribute("data-testid") || "";
+
+      if (id.startsWith("resource-topology-group-toggle-")) {
+        continue;
+      }
+
+      const box: DOMRect = heading.getBoundingClientRect();
+
+      for (const span of Array.from(heading.querySelectorAll("span"))) {
+        const words: DOMRect = span.getBoundingClientRect();
+
+        if (
+          span.scrollWidth > span.clientWidth + 1 ||
+          words.left < box.left - 1 ||
+          words.right > box.right + 1
+        ) {
+          cut.push(`${id}: ${span.textContent || ""}`);
+        }
+      }
+    }
+
+    return cut;
+  });
 }
 
 test.describe("a vCenter's Topology page", () => {
@@ -215,13 +340,35 @@ test.describe("a vCenter's Topology page", () => {
     await expect(
       byTestId(page, "resource-topology-count-vmware.datacenter"),
     ).toContainText("2");
-    await expect(byTestId(page, "resource-topology-box-vcenter")).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-card-vcenter"),
+    ).toBeVisible();
+    // Amsterdam has trouble inside: it opens by itself; Frankfurt does not.
     await expect(
       byTestId(
         page,
-        "resource-topology-box-vmware.datacenter:datacenter/Amsterdam",
+        "resource-topology-card-vmware.datacenter:datacenter/Amsterdam",
       ),
-    ).toBeVisible();
+    ).toHaveAttribute("data-open", "true");
+    await expect(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Frankfurt",
+      ),
+    ).toHaveAttribute("data-open", "false");
+    // The resource at the top; its datacenters under it, a little in.
+    const root: { x: number; y: number; height: number } = await boxOf(
+      byTestId(page, "resource-topology-card-vcenter"),
+    );
+    const amsterdam: { x: number; y: number } = await boxOf(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Amsterdam",
+      ),
+    );
+
+    expect(amsterdam.y).toBeGreaterThan(root.y + root.height);
+    expect(amsterdam.x).toBeGreaterThan(root.x);
     // The open incidents and alerts of the whole vCenter, counted at the top.
     await expect(
       byTestId(page, "resource-topology-issue-summary"),
@@ -239,7 +386,85 @@ test.describe("a vCenter's Topology page", () => {
     await expect(
       page.getByRole("link", { name: "Topology" }).first(),
     ).toBeVisible();
+    /*
+     * A part with no status of its own says what it is, not a dot alone;
+     * one with a number says that, not its kind again.
+     */
+    await expect(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Frankfurt",
+      ).getByTestId("resource-topology-status-line"),
+    ).toHaveText("Datacenter");
+    await expect(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.cluster:cluster/Amsterdam/ams-prod",
+      ).getByTestId("resource-topology-status-line"),
+    ).not.toContainText("Cluster");
+    /*
+     * An open part's round button is a quiet disc on its card, not a filled
+     * one that outshouts the red and amber the map is read by.
+     */
+    const open: Locator = byTestId(
+      page,
+      "resource-topology-close-vmware.datacenter:datacenter/Amsterdam",
+    );
+    const closed: Locator = byTestId(
+      page,
+      "resource-topology-open-vmware.datacenter:datacenter/Frankfurt",
+    );
+    const look: (locator: Locator) => Promise<{
+      background: string;
+      border: string;
+      color: string;
+    }> = async (
+      locator: Locator,
+    ): Promise<{ background: string; border: string; color: string }> => {
+      return await locator.evaluate(
+        (
+          element: Element,
+        ): { background: string; border: string; color: string } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
 
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopColor,
+            color: style.color,
+          };
+        },
+      );
+    };
+    const openLook: { background: string; border: string; color: string } =
+      await look(open);
+    const closedLook: { background: string; border: string; color: string } =
+      await look(closed);
+
+    // Both on the card's white; open told apart by its accent ring and chevron.
+    expect(openLook.background).toBe("rgb(255, 255, 255)");
+    expect(closedLook.background).toBe("rgb(255, 255, 255)");
+    expect(openLook.color).toBe("rgb(99, 102, 241)");
+    expect(openLook.border).not.toBe(closedLook.border);
+    expect(closedLook.color).not.toBe(openLook.color);
+
+    // Under the pointer, a closed one takes the accent too.
+    await closed.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await look(closed)).color;
+      })
+      .toBe("rgb(99, 102, 241)");
+    // The zoom buttons sit where a line starts: the bottom left.
+    const canvasBox: { x: number } = await boxOf(
+      byTestId(page, "resource-topology-canvas"),
+    );
+    const controlsBox: { x: number } = await boxOf(
+      page.locator(".react-flow__controls"),
+    );
+
+    expect(controlsBox.x - canvasBox.x).toBeLessThan(40);
+
+    await page.mouse.move(0, 0);
     await screenshot(page, "vmware-1280-light");
   });
 
@@ -356,26 +581,37 @@ test.describe("a vCenter's Topology page", () => {
     await expect(byTestId(page, "resource-topology-focus")).toHaveCount(0);
   });
 
-  test("opening a cluster draws its hosts inside it; closing it folds them away", async ({
+  test("opening a cluster draws its hosts after it, joined by a line; closing it folds them away", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openTopology(page, "vmware");
     const cluster: string = "vmware.cluster:cluster/Amsterdam/ams-prod";
+    const card: Locator = byTestId(page, `resource-topology-card-${cluster}`);
 
+    await expect(card).toHaveAttribute("data-open", "false");
+    await expect(
+      byTestId(page, `resource-topology-open-${cluster}`),
+    ).toHaveAttribute("aria-expanded", "false");
     await byTestId(page, `resource-topology-open-${cluster}`).click();
-    const box: Locator = byTestId(page, `resource-topology-box-${cluster}`);
-    await expect(box).toBeVisible();
-    // The hosts sit inside the cluster's box.
+    await expect(card).toHaveAttribute("data-open", "true");
+    await expect(
+      byTestId(page, `resource-topology-close-${cluster}`),
+    ).toHaveAttribute("aria-expanded", "true");
+
     const host: Locator = startingWith(
       page,
-      "resource-topology-card-vmware.host:",
+      "resource-topology-card-vmware.host:host/Amsterdam/",
     ).first();
     await expect(host).toBeVisible();
+    // A line runs from the cluster to its hosts' heading.
+    await expect(
+      byTestId(page, `resource-topology-branch-group:${cluster}|vmware.host`),
+    ).toBeAttached();
     /*
-     * Both read in one frame: the map is still framing the opened cluster,
-     * and two reads a frame apart see two different zooms.
+     * The hosts stand after the cluster, never inside it, and the map frames
+     * the cluster with them. Read in one frame: the map is still moving.
      */
     await expect
       .poll(async (): Promise<boolean> => {
@@ -384,31 +620,38 @@ test.describe("a vCenter's Topology page", () => {
             const outer: Element | null = document.querySelector(
               `[data-testid="${outerId}"]`,
             );
+            const canvas: Element | null = document.querySelector(
+              '[data-testid="resource-topology-canvas"]',
+            );
 
-            if (!outer) {
+            if (!outer || !canvas) {
               return false;
             }
 
             const inner: DOMRect = element.getBoundingClientRect();
             const around: DOMRect = outer.getBoundingClientRect();
+            const frame: DOMRect = canvas.getBoundingClientRect();
 
             return (
-              inner.left >= around.left &&
-              inner.right <= around.right + 1 &&
-              inner.top >= around.top &&
-              inner.bottom <= around.bottom + 1
+              inner.left > around.right &&
+              inner.top > around.top + around.height / 2 &&
+              around.left >= frame.left - 1 &&
+              inner.right <= frame.right + 1 &&
+              inner.bottom <= frame.bottom + 1
             );
           },
-          `resource-topology-box-${cluster}`,
+          `resource-topology-card-${cluster}`,
         );
       })
       .toBe(true);
+    expect(stacked(await drawnParts(page))).toEqual([]);
+    await screenshot(page, "vmware-cluster-opened");
 
     await byTestId(page, `resource-topology-close-${cluster}`).click();
-    await expect(box).toHaveCount(0);
+    await expect(card).toHaveAttribute("data-open", "false");
     await expect(
-      byTestId(page, `resource-topology-card-${cluster}`),
-    ).toBeVisible();
+      startingWith(page, "resource-topology-card-vmware.host:host/Amsterdam/"),
+    ).toHaveCount(0);
   });
 
   test("a large vCenter folds each kind into '+ N more' and says how much is drawn", async ({
@@ -418,19 +661,22 @@ test.describe("a vCenter's Topology page", () => {
   }) => {
     await openTopology(page, "vmware", "estate=large");
     /*
-     * Three datacenters of hundreds of virtual machines: the first view stops
-     * at the datacenters, each saying what it holds.
+     * Three datacenters of hundreds of virtual machines: Amsterdam, where
+     * the trouble is, opens by itself; the healthy two stay closed cards
+     * that say what they hold.
      */
     await expect(
       byTestId(
         page,
         "resource-topology-card-vmware.datacenter:datacenter/Amsterdam",
       ),
-    ).toBeVisible();
-    await byTestId(
-      page,
-      "resource-topology-open-vmware.datacenter:datacenter/Amsterdam",
-    ).click();
+    ).toHaveAttribute("data-open", "true");
+    await expect(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/London",
+      ),
+    ).toHaveAttribute("data-open", "false");
 
     // 24 datastores: a dozen drawn, the rest one "+ 12 more".
     const key: string =
@@ -439,19 +685,12 @@ test.describe("a vCenter's Topology page", () => {
     await expect(more).toBeVisible();
     await expect(more).toContainText("+ 12 more");
     /*
-     * Opening it frames it: the datacenter, "+ 12 more" and all, fills the
-     * canvas. A drawing with a folded group was never framed: the view
-     * stayed where it was, the datacenter running off the canvas.
+     * The first view is framed whole: a drawing with a folded group was once
+     * never framed, the view running off the canvas.
      */
     await expect
       .poll(async (): Promise<boolean> => {
-        return await isInsideCanvas(
-          page,
-          byTestId(
-            page,
-            "resource-topology-box-vmware.datacenter:datacenter/Amsterdam",
-          ),
-        );
+        return await isInsideCanvas(page, more);
       })
       .toBe(true);
     await screenshot(page, "vmware-large");
@@ -505,11 +744,7 @@ test.describe("a Kubernetes cluster's Topology page", () => {
     ).toHaveCount(0);
     // By node, each node holds the pods it runs.
     await expect(
-      page
-        .locator(
-          '[data-testid^="resource-topology-card-k8s.node:"], [data-testid^="resource-topology-box-k8s.node:"]',
-        )
-        .first(),
+      startingWith(page, "resource-topology-card-k8s.node:").first(),
     ).toBeVisible();
     await screenshot(page, "kubernetes-by-node");
   });
@@ -525,8 +760,15 @@ test.describe("a Kubernetes cluster's Topology page", () => {
       "resource-topology-open-k8s.namespace:payments",
     ).click();
     await expect(
-      byTestId(page, "resource-topology-box-k8s.namespace:payments"),
-    ).toBeVisible();
+      byTestId(page, "resource-topology-card-k8s.namespace:payments"),
+    ).toHaveAttribute("data-open", "true");
+    // A healthy workload is one closed card: open it for its pods.
+    await startingWith(
+      page,
+      "resource-topology-open-k8s.deployment:payments/payments-api",
+    )
+      .first()
+      .click();
 
     const pod: Locator = startingWith(
       page,
@@ -580,8 +822,39 @@ test.describe("a node that runs many pods", () => {
     ).toHaveCount(12);
     expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
     // The heading says what the lines are: they carry no words of their own.
-    await expect(page.locator(".react-flow__edge")).toHaveCount(12);
+    await expect(
+      page.locator('[data-testid^="rf__edge-relation:"]'),
+    ).toHaveCount(12);
     await expect(page.locator(".react-flow__edge-text")).toHaveCount(0);
+    /*
+     * They are square, like the tree's lines, and share one spine before
+     * the column - not a fan of twelve curves and arrows out of one point.
+     */
+    const paths: Array<string> = await page
+      .locator('[data-testid^="rf__edge-relation:"] path.react-flow__edge-path')
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return element.getAttribute("d") || "";
+        });
+      });
+
+    expect(paths).toHaveLength(12);
+    expect(
+      paths.filter((path: string): boolean => {
+        return path.includes("C");
+      }),
+    ).toEqual([]);
+    expect(
+      new Set<string>(
+        paths.map((path: string): string => {
+          // Where it starts: every line leaves the node at one point.
+          return path.split(" ")[0] || "";
+        }),
+      ).size,
+    ).toBe(1);
+    await expect(
+      page.locator('[data-testid^="rf__edge-relation:"] [marker-end]'),
+    ).toHaveCount(0);
     await screenshot(page, "kubernetes-node-focus");
 
     // The pods not drawn are counted, and listed in the node's panel.
@@ -607,14 +880,15 @@ test.describe("a host's Topology page", () => {
     page: Page;
   }) => {
     await openTopology(page, "host");
+    // The lanes are always open: their headings, and the parts under them.
     const callers: Locator = byTestId(
       page,
-      "resource-topology-box-section:callers",
+      "resource-topology-lane-section:callers",
     );
-    const host: Locator = byTestId(page, "resource-topology-box-host");
+    const host: Locator = byTestId(page, "resource-topology-card-host");
     const calls: Locator = byTestId(
       page,
-      "resource-topology-box-section:calls",
+      "resource-topology-lane-section:calls",
     );
 
     await expect(callers).toBeVisible();
@@ -627,7 +901,7 @@ test.describe("a host's Topology page", () => {
     expect(middle.x + middle.width).toBeLessThan(right.x);
     // Every call, without picking anything, with its rate on it.
     expect(
-      await page.locator(".react-flow__edge").count(),
+      await page.locator('[data-testid^="rf__edge-relation:"]').count(),
     ).toBeGreaterThanOrEqual(3);
     await expect(page.locator(".react-flow__edge-text").first()).toContainText(
       "/min",
@@ -635,8 +909,68 @@ test.describe("a host's Topology page", () => {
     await expect(byTestId(page, "resource-topology-legend")).toContainText(
       "Calls per minute",
     );
+    /*
+     * Its callers, the tree and what it calls make a wide drawing: with
+     * lanes a card wide and a heading's least width pushing the calls out,
+     * it was drawn at 0.59 - its words too small to read.
+     */
+    expect(await mapScale(page)).toBeGreaterThanOrEqual(0.62);
+    // A lane's parts are chips: each call's line carries its rate.
+    for (const id of [
+      "callers:service-mobile-bff",
+      "calls:service-payments",
+      "calls:db-orders",
+    ]) {
+      await expect(
+        byTestId(page, `resource-topology-chip-${id}`),
+      ).toBeVisible();
+    }
+
+    await expect(
+      startingWith(page, "resource-topology-card-calls:"),
+    ).toHaveCount(0);
+    expect(await cutHeadings(page)).toEqual([]);
+    expect(stacked(await drawnParts(page))).toEqual([]);
+    /*
+     * A tree reads from the top: the drawing is framed there, not in the
+     * middle with the host floating halfway down an empty canvas.
+     */
+    await expect
+      .poll(async (): Promise<number> => {
+        return await gapAbove(page, host);
+      })
+      .toBeLessThanOrEqual(32);
 
     await screenshot(page, "host-1280-light");
+
+    // Zoomed in, Fit frames it from the top again.
+    for (let step: number = 0; step < 3; step++) {
+      await page.getByRole("button", { name: "zoom in" }).click();
+    }
+
+    await page.getByRole("button", { name: "fit view" }).click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return await gapAbove(page, host);
+      })
+      .toBeLessThanOrEqual(32);
+    expect(await isInsideCanvas(page, host)).toBe(true);
+  });
+
+  test("German words in a lane's heading are never cut, and the map still reads", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "host", "lang=de");
+
+    // "Spricht mit 2 · 1 erfordert Aufmerksamkeit": measured, given room.
+    await expect(
+      byTestId(page, "resource-topology-lane-section:calls"),
+    ).toContainText(GERMAN["Talks to"] as string);
+    expect(await mapScale(page)).toBeGreaterThanOrEqual(0.62);
+    expect(await cutHeadings(page)).toEqual([]);
+    await screenshot(page, "host-1280-de");
   });
 });
 
@@ -648,6 +982,7 @@ test.describe("every resource that holds parts", () => {
     "proxmox",
     "ceph",
     "storage",
+    "cloud",
   ]) {
     test(`${product}: the Topology page draws the resource from its own inventory`, async ({
       page,
@@ -656,13 +991,309 @@ test.describe("every resource that holds parts", () => {
     }) => {
       await openTopology(page, product);
       await expect(
-        byTestId(page, `resource-topology-box-${ROOT_IDS[product]}`),
+        byTestId(page, `resource-topology-card-${ROOT_IDS[product]}`),
       ).toBeVisible();
       expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
+      // A tree of cards: no part inside or over another.
+      expect(stacked(await drawnParts(page))).toEqual([]);
 
       await screenshot(page, `${product}-1280-light`);
     });
   }
+});
+
+test.describe("a tree of cards, never a box inside a box", () => {
+  for (const product of ["vmware", "kubernetes", "host"]) {
+    test(`${product}: no part is drawn inside or over another`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openTopology(page, product);
+      await mapScale(page);
+      const parts: Array<Box> = await drawnParts(page);
+
+      expect(parts.length).toBeGreaterThan(3);
+      expect(stacked(parts)).toEqual([]);
+      // No frame around parts is drawn at all.
+      await expect(startingWith(page, "resource-topology-box-")).toHaveCount(0);
+    });
+  }
+
+  test("a calm vCenter with room to spare shows its shape: healthy parts open too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware", "estate=quiet");
+
+    for (const datacenter of ["Amsterdam", "Frankfurt"]) {
+      await expect(
+        byTestId(
+          page,
+          `resource-topology-card-vmware.datacenter:datacenter/${datacenter}`,
+        ),
+      ).toHaveAttribute("data-open", "true");
+    }
+
+    // Every line is calm: nothing needs attention.
+    expect(await lineTone(page, "group:vcenter|vmware.datacenter")).toBe(
+      "calm",
+    );
+    expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
+    expect(stacked(await drawnParts(page))).toEqual([]);
+    await screenshot(page, "vmware-quiet");
+  });
+
+  test("opening a part frames what opened with it, the troubled pods inside it included", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "kubernetes");
+    await byTestId(
+      page,
+      "resource-topology-open-k8s.namespace:catalog",
+    ).click();
+
+    // Its failing workload opened with it, and its pods with that.
+    const pods: Locator = startingWith(
+      page,
+      "resource-topology-card-k8s.pod:catalog/",
+    );
+
+    await expect(pods.first()).toBeVisible();
+    const count: number = await pods.count();
+
+    expect(count).toBeGreaterThan(0);
+    await expect
+      .poll(async (): Promise<boolean> => {
+        for (let index: number = 0; index < count; index++) {
+          if (!(await isInsideCanvas(page, pods.nth(index)))) {
+            return false;
+          }
+        }
+
+        return isInsideCanvas(
+          page,
+          byTestId(page, "resource-topology-card-k8s.namespace:catalog"),
+        );
+      })
+      .toBe(true);
+    await screenshot(page, "kubernetes-namespace-opened");
+  });
+
+  test("the line to a group is red where the trouble is, grey where all is well", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "kubernetes");
+    // A node is not ready: the line to the nodes is red.
+    expect(await lineTone(page, "group:cluster|k8s.node")).toBe("critical");
+    // The volume is bound and well: its line is calm.
+    expect(await lineTone(page, "group:cluster|k8s.pv")).toBe("calm");
+    await expect(byTestId(page, "resource-topology-legend")).toContainText(
+      "What is inside",
+    );
+  });
+
+  test("picking a part lights the way from the resource to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware");
+    await startingWith(
+      page,
+      "resource-topology-chip-vmware.datastore:datastore/Amsterdam/ams-ssd-03",
+    )
+      .first()
+      .click();
+
+    expect(await lineTone(page, "group:vcenter|vmware.datacenter")).toBe(
+      "path",
+    );
+    expect(
+      await lineTone(
+        page,
+        "group:vmware.datacenter:datacenter/Amsterdam|vmware.datastore",
+      ),
+    ).toBe("path");
+    // The other line out of Amsterdam keeps its own colour.
+    expect(
+      await lineTone(
+        page,
+        "group:vmware.datacenter:datacenter/Amsterdam|vmware.cluster",
+      ),
+    ).toBe("critical");
+  });
+
+  test("the arrow keys move through the tree, open a part and close it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware");
+    await byTestId(page, "resource-topology-select-vcenter").focus();
+
+    await page.keyboard.press("ArrowRight");
+    expect(await focusedPart(page)).toBe(
+      "vmware.datacenter:datacenter/Amsterdam",
+    );
+    await page.keyboard.press("ArrowDown");
+    expect(await focusedPart(page)).toBe(
+      "vmware.datacenter:datacenter/Frankfurt",
+    );
+    // Right on a closed part opens it, and the keyboard stays on it.
+    await page.keyboard.press("ArrowRight");
+    const frankfurt: Locator = byTestId(
+      page,
+      "resource-topology-card-vmware.datacenter:datacenter/Frankfurt",
+    );
+    await expect(frankfurt).toHaveAttribute("data-open", "true");
+    await page.keyboard.press("ArrowRight");
+    expect(await focusedPart(page)).toBe(
+      "vmware.cluster:cluster/Frankfurt/fra-prod",
+    );
+    // The part the keyboard is on is on screen.
+    expect(await isInsideCanvas(page, page.locator(":focus").first())).toBe(
+      true,
+    );
+    // Left goes back out; left again closes.
+    await page.keyboard.press("ArrowLeft");
+    expect(await focusedPart(page)).toBe(
+      "vmware.datacenter:datacenter/Frankfurt",
+    );
+    await page.keyboard.press("ArrowLeft");
+    await expect(frankfurt).toHaveAttribute("data-open", "false");
+    // The map tells a screen reader how its keys work.
+    await expect(byTestId(page, "resource-topology-canvas")).toHaveAttribute(
+      "aria-label",
+      "Topology map",
+    );
+  });
+
+  test("zoomed far out, cards keep their name and colour and drop the small print", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware");
+    const canvas: Locator = byTestId(page, "resource-topology-canvas");
+    await expect(canvas).toHaveAttribute("data-detail", "near");
+
+    for (let step: number = 0; step < 5; step++) {
+      await page.getByRole("button", { name: "zoom out" }).click();
+    }
+
+    await expect(canvas).toHaveAttribute("data-detail", "far");
+    const card: Locator = byTestId(page, "resource-topology-card-vcenter");
+    await expect(card.locator(".rt-detail").first()).toBeHidden();
+    await expect(card).toContainText("vcenter-prod");
+    expect(await mapScale(page)).toBeLessThan(0.5);
+  });
+
+  test("a large cluster stays quick: forty nodes shown in full, at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const started: number = Date.now();
+    await openTopology(page, "kubernetes", "estate=large");
+    await expect(
+      startingWith(page, "resource-topology-chip-k8s.node:").first(),
+    ).toBeVisible();
+    // 1,642 parts read and drawn: the page is up within seconds.
+    expect(Date.now() - started).toBeLessThan(15000);
+
+    const key: string = "cluster|k8s.node";
+    const shownAt: number = Date.now();
+    await byTestId(page, `resource-topology-group-toggle-${key}`).click();
+    await expect(
+      startingWith(page, "resource-topology-chip-k8s.node:"),
+    ).toHaveCount(40);
+    expect(Date.now() - shownAt).toBeLessThan(3000);
+    // React Flow holds what is drawn, not the estate.
+    expect(await page.locator(".react-flow__node").count()).toBeLessThan(200);
+    expect(stacked(await drawnParts(page))).toEqual([]);
+    await screenshot(page, "kubernetes-large-nodes");
+  });
+});
+
+test.describe("a page read from right to left", () => {
+  test("Persian draws the tree mirrored: the resource at the top right, the left arrow goes in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware", "lang=fa");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const canvas: Locator = byTestId(page, "resource-topology-canvas");
+    await expect(canvas).toHaveAttribute("data-direction", "rtl");
+    await mapScale(page);
+
+    const root: { x: number; width: number } = await boxOf(
+      byTestId(page, "resource-topology-card-vcenter"),
+    );
+    const amsterdam: { x: number; width: number } = await boxOf(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Amsterdam",
+      ),
+    );
+    const cluster: { x: number; width: number } = await boxOf(
+      byTestId(
+        page,
+        "resource-topology-card-vmware.cluster:cluster/Amsterdam/ams-prod",
+      ),
+    );
+
+    // Each level stands to the left of the one that holds it.
+    expect(amsterdam.x + amsterdam.width).toBeLessThan(root.x + root.width);
+    expect(cluster.x + cluster.width).toBeLessThan(amsterdam.x);
+    expect(stacked(await drawnParts(page))).toEqual([]);
+
+    await byTestId(page, "resource-topology-select-vcenter").focus();
+    await page.keyboard.press("ArrowLeft");
+    expect(await focusedPart(page)).toBe(
+      "vmware.datacenter:datacenter/Amsterdam",
+    );
+    // The zoom buttons sit where a line starts: the bottom right.
+    const frame: { x: number; width: number } = await boxOf(canvas);
+    const zoomButtons: { x: number; width: number } = await boxOf(
+      page.locator(".react-flow__controls"),
+    );
+
+    expect(zoomButtons.x).toBeGreaterThan(frame.x + frame.width / 2);
+    expect(
+      frame.x + frame.width - (zoomButtons.x + zoomButtons.width),
+    ).toBeLessThan(40);
+    await screenshot(page, "vmware-1280-fa");
+  });
+
+  test("a host's lanes swap sides: what calls it on the right, what it calls on the left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "host", "lang=fa");
+    await mapScale(page);
+    const callers: { x: number } = await boxOf(
+      byTestId(page, "resource-topology-lane-section:callers"),
+    );
+    const host: { x: number; width: number } = await boxOf(
+      byTestId(page, "resource-topology-card-host"),
+    );
+    const calls: { x: number; width: number } = await boxOf(
+      byTestId(page, "resource-topology-lane-section:calls"),
+    );
+
+    expect(callers.x).toBeGreaterThan(host.x + host.width);
+    expect(calls.x + calls.width).toBeLessThan(host.x);
+    expect(await cutHeadings(page)).toEqual([]);
+    await screenshot(page, "host-1280-fa");
+  });
 });
 
 test.describe("the master Topology", () => {
@@ -684,7 +1315,9 @@ test.describe("the master Topology", () => {
 
     await back.click();
     await expect(page).toHaveURL(new RegExp(`${PAGES["vmware"]}/topology`));
-    await expect(byTestId(page, "resource-topology-box-vcenter")).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-card-vcenter"),
+    ).toBeVisible();
   });
 
   test("a Kubernetes cluster and a host link back from the master map too", async ({
@@ -802,7 +1435,9 @@ test.describe("when there is nothing, or the read fails", () => {
     page: Page;
   }) => {
     await openTopology(page, "vmware", "issues=denied");
-    await expect(byTestId(page, "resource-topology-box-vcenter")).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-card-vcenter"),
+    ).toBeVisible();
     await expect(byTestId(page, "resource-topology-issue-summary")).toHaveCount(
       0,
     );

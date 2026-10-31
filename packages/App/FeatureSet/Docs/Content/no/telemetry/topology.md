@@ -86,6 +86,7 @@ Klikk på en pil for å se forespørselsraten, feilraten og gjennomsnittlig vent
 
 Et vCenter, en Kubernetes-klynge, en vert, en Docker- eller Podman-vert, en Docker Swarm-, Proxmox- eller Ceph-klynge og et lagringsarray har hver sin egen side **Topologi**. Den tegner nettopp den ressursen i dybden ut fra dens eget inventar: hva som ligger i hva, hver del farget etter hvordan den har det, og hver åpen hendelse og hvert åpent varsel på delen det gjelder.
 
+- **Les det som et tre.** Ressursen står øverst, og delene i hver del tegnes til høyre for den, koblet til den med en linje som blir rød eller oransje der noe krever oppmerksomhet. Deler med problemer inni åpner seg selv, den runde knappen på en del åpner eller lukker den, og piltastene beveger seg gjennom kartet.
 - **Finn det som krever oppmerksomhet.** **Krever oppmerksomhet** beholder bare delene med problemer og veien til hver av dem, og søket finner en del hvor som helst i ressursen.
 - **Se nærmere.** Klikk på en del for å se hva den er, med en lenke til dens egen side, og på **Fokuser på dette** for å tegne bare den delen, hva den inneholder og hva den henger sammen med.
 - **Gå begge veier.** **Åpne i Topologi** åpner ressursen på **Infrastruktur**, og knappen **Åpne vCenter-topologi**, **Åpne klyngetopologi**, **Åpne vertstopologi** eller **Åpne topologien til lagringsarrayet** fører tilbake.

@@ -3,75 +3,122 @@ import {
   ResourceTopologyCardItem,
   ResourceTopologyChipItem,
   ResourceTopologyGroupItem,
+  ResourceTopologyKeyMove,
   ResourceTopologyMoreItem,
   ResourceTopologyRelatedItem,
   ResourceTopologyVisible,
 } from "./ResourceTopologyView";
 
 /*
- * Where everything of a resource topology goes on the map.
+ * Where everything of a resource topology goes on the map: a tree read from
+ * the resource down and outwards, never a box inside a box.
  *
- * Containment is drawn as nesting: an open part is a box with its own
- * heading, and inside it its parts sit in one group per kind ("ESXi Hosts ·
- * 12", "Virtual Machines · 38"), flowing left to right and wrapping. Small
- * groups sit side by side — a namespace's one deployment, one StatefulSet
- * and one CronJob make a row, not a tower — and a large group takes the
- * box's whole width. A closed
- * part is a card that says what it holds, and parts that hold nothing are
- * small chips. Nesting reads at a glance — the virtual machines are inside
- * their host, the host inside its cluster — and it stays compact where a
- * tree of lines does not: a level of 40 hosts wraps into rows instead of
- * running ten thousand pixels to the side. Lines are kept for what crosses
- * the tree: a pod running on a node, a service calling a database.
+ * The resource sits at the top, and its own parts under it, a little in
+ * from its edge. Every other part's parts stand in the column after it. Every
+ * part is a card of its own (a chip when it holds nothing and has many
+ * siblings), and no part is ever drawn inside another. What a part holds is
+ * grouped by kind under a small heading ("ESXi Hosts 4 · 1 needs
+ * attention"), and one line joins the part to each of its groups:
+ * containment reads along the line - a cluster, then its nodes, then their
+ * pods; a host, then its virtual machines - and the column a part stands in
+ * says how deep it sits. A group is a heading over its parts, never a frame,
+ * and it never holds another group: a part's own parts hang off that part,
+ * in the next column. Sections - parts with no record of their own, such as
+ * "Hardware" or "Not on a node" - stand in their column like any part, with
+ * no heading of their own.
  *
- * Each box is sized from the inside out, aiming for a wider-than-tall shape
- * so a whole resource fits a laptop screen at a readable zoom. Positions are
- * absolute, so every card and chip is a node of its own on the map.
+ * A part's parts start below its middle, so a straight line across the
+ * map at the height of any part runs past every part above it: a host's
+ * callers, in a lane before the tree, and what its services call, in a lane
+ * after it, reach the services they talk to without crossing a card.
+ * Parts that are closed, or hold nothing, flow into rows, so a host's forty
+ * virtual machines make a block rather than a tower; a part that is open
+ * stands alone in its column, with room after it for its own parts.
  *
- * A map about calls (a host's) reads left to right: what calls the
- * resource in a column on its left, the resource in the middle, what it
- * calls in a column on its right (`lanes`), so every line runs one way.
+ * The drawing tries a few row lengths and keeps the one that fits the canvas
+ * at the largest zoom - or the one it is handed, so that opening a part
+ * never re-flows the rest. A page read from right to left gets the same tree
+ * mirrored: the resource at the top right, its parts to its left.
+ *
+ * Pure and free of React, so the App suite can check every rule.
  */
 
 export const RESOURCE_TOPOLOGY_SIZES: {
   cardWidth: number;
   cardHeight: number;
+  holderHeight: number;
+  rootWidth: number;
+  rootHeight: number;
+  sectionHeight: number;
   chipWidth: number;
   chipHeight: number;
-  headerHeight: number;
-  padding: number;
-  groupGap: number;
-  captionHeight: number;
+  headingHeight: number;
+  headingMinWidth: number;
+  headingGap: number;
   itemGap: number;
-  minContainerWidth: number;
-  maxContentWidth: number;
+  toggleGap: number;
+  groupGap: number;
+  columnGap: number;
+  spineOffset: number;
+  rootIndent: number;
+  rootSpineX: number;
+  rootGap: number;
+  drop: number;
+  laneGap: number;
+  laneHeadingClearance: number;
   relatedGap: number;
   relatedWidth: number;
   relatedHeight: number;
+  captionHeight: number;
 } = {
+  // A part that holds nothing: its name, and how it is doing.
   cardWidth: 248,
-  cardHeight: 100,
+  cardHeight: 62,
+  // A part that holds others says what, on a line of its own.
+  holderHeight: 80,
+  // The resource itself.
+  rootWidth: 264,
+  rootHeight: 80,
+  // "Hardware", "Not on a node": a name and what it holds.
+  sectionHeight: 62,
   chipWidth: 200,
-  chipHeight: 48,
-  headerHeight: 64,
-  padding: 14,
-  groupGap: 14,
-  captionHeight: 28,
+  chipHeight: 44,
+  // "ESXi Hosts 4 · 1 needs attention": over a group's parts.
+  headingHeight: 26,
+  headingMinWidth: 360,
+  headingGap: 4,
   itemGap: 10,
-  minContainerWidth: 276,
-  maxContentWidth: 3200,
+  // Side by side, after a part that opens: room for its round toggle.
+  toggleGap: 26,
+  groupGap: 22,
+  // Between a column of parts and the next: the lines run here.
+  columnGap: 60,
+  // Where a part's line turns down to its groups, from the part's edge.
+  spineOffset: 24,
+  // The resource's parts start under it, this far in from its edge ...
+  rootIndent: 40,
+  // ... joined to it by a line this far in, that leaves from its bottom.
+  rootSpineX: 18,
+  // Between the resource and the first of its parts.
+  rootGap: 18,
+  // A part's parts start this far below its middle.
+  drop: 10,
+  // Between a lane and the tree: room for a call's rate on its line.
+  laneGap: 96,
+  laneHeadingClearance: 24,
   relatedGap: 120,
   relatedWidth: 232,
   relatedHeight: 52,
+  captionHeight: 28,
 };
 
 const SIZES: typeof RESOURCE_TOPOLOGY_SIZES = RESOURCE_TOPOLOGY_SIZES;
 
 export type ResourceTopologyPlacedKind =
-  | "container"
   | "card"
   | "chip"
   | "more"
+  | "heading"
   | "related"
   | "relatedCaption";
 
@@ -82,41 +129,132 @@ export interface ResourceTopologyRelatedCaption {
   count: number;
 }
 
-/* A group's heading inside its box, relative to the box. */
-export interface ResourceTopologyCaption {
-  group: ResourceTopologyGroupItem;
-  x: number;
-  y: number;
-  width: number;
+/* A heading: over a group's parts, or over a lane (its section's name). */
+export interface ResourceTopologyHeading {
+  group?: ResourceTopologyGroupItem | undefined;
+  /* The section a lane holds: "Called by", "Talks to". */
+  laneSectionId?: string | undefined;
+  /* How many parts the lane holds. */
+  laneCount?: number | undefined;
 }
 
+export type ResourceTopologyLaneSide = "start" | "end";
+
 export interface ResourceTopologyPlaced {
-  /* The map node's id: the part's id, or the "+ N more" item's. */
+  /* The map node's id: the part's id, a group's or a "+ N more" item's. */
   id: string;
   kind: ResourceTopologyPlacedKind;
   x: number;
   y: number;
   width: number;
   height: number;
-  /* How many boxes it sits inside: draws boxes under what they hold. */
+  /* The column it stands in: 0 for the resource, 1 for its parts... */
   depth: number;
+  /* The part it hangs from (the part whose groups hold it). */
+  parentId: string | null;
+  /* Set for what stands in a lane. */
+  lane?: ResourceTopologyLaneSide | undefined;
   card?: ResourceTopologyCardItem | undefined;
   chip?: ResourceTopologyChipItem | undefined;
   more?: ResourceTopologyMoreItem | undefined;
+  heading?: ResourceTopologyHeading | undefined;
   related?: ResourceTopologyRelatedItem | undefined;
   relatedCaption?: ResourceTopologyRelatedCaption | undefined;
-  /* A box's group headings. */
-  captions?: Array<ResourceTopologyCaption> | undefined;
+}
+
+/*
+ * A line from a part to one of its groups (or to a section it holds): from
+ * the part's edge, along to the spine, down it and into the group's
+ * heading. `nodeIds` are the parts it leads to, so the map can colour it by
+ * how they are doing and light it up on the way to the part someone picked.
+ */
+export interface ResourceTopologyBranch {
+  id: string;
+  /* The map node it leaves: the part. */
+  from: string;
+  /* The map node it enters: a heading or a section. */
+  to: string;
+  /* The part it leaves. */
+  fromNodeId: string;
+  nodeIds: Array<string>;
+  points: Array<[number, number]>;
 }
 
 export interface ResourceTopologyLayout {
   placed: Array<ResourceTopologyPlaced>;
   byId: Map<string, ResourceTopologyPlaced>;
+  branches: Array<ResourceTopologyBranch>;
   width: number;
   height: number;
+  /* The page's reading direction the tree was laid out for. */
+  direction: ResourceTopologyDirection;
+  /* The most parts a row of closed parts holds in this drawing. */
+  rowLength: number;
 }
 
+export type ResourceTopologyDirection = "ltr" | "rtl";
+
 export type ResourceTopologySide = "top" | "right" | "bottom" | "left";
+
+/* The part a placed item stands for, when it stands for one. */
+export function placedNodeId(placed: ResourceTopologyPlaced): string | null {
+  return (
+    placed.card?.nodeId ||
+    placed.chip?.nodeId ||
+    placed.related?.nodeId ||
+    placed.heading?.laneSectionId ||
+    null
+  );
+}
+
+/*
+ * The map's keys: the arrows that point along the line move forward into a
+ * part and back out of it, so on a page read from right to left, where the
+ * drawing is mirrored, left is forward.
+ */
+export function getTopologyKeyMove(
+  key: string,
+  direction: ResourceTopologyDirection,
+): ResourceTopologyKeyMove | null {
+  switch (key) {
+    case "ArrowDown":
+      return "next";
+    case "ArrowUp":
+      return "previous";
+    case "Home":
+      return "first";
+    case "End":
+      return "last";
+    case "ArrowRight":
+      return direction === "rtl" ? "back" : "forward";
+    case "ArrowLeft":
+      return direction === "rtl" ? "forward" : "back";
+    default:
+      return null;
+  }
+}
+
+/*
+ * The sides a line between a focused part and a part of its related column
+ * leaves and enters by: the column is after the drawing (at its right, or
+ * at its left on a page read from right to left), so the line leaves the
+ * focused part by the side facing it and enters the related part by its
+ * near side, whichever way the relation points - never down the column
+ * across the parts in it.
+ */
+export function getRelatedColumnSides(
+  outward: boolean,
+  direction: ResourceTopologyDirection,
+): { source: ResourceTopologySide; target: ResourceTopologySide } {
+  const towardsColumn: ResourceTopologySide =
+    direction === "rtl" ? "left" : "right";
+  const awayFromColumn: ResourceTopologySide =
+    direction === "rtl" ? "right" : "left";
+
+  return outward
+    ? { source: towardsColumn, target: awayFromColumn }
+    : { source: awayFromColumn, target: towardsColumn };
+}
 
 type Rect = Pick<ResourceTopologyPlaced, "x" | "y" | "width" | "height">;
 
@@ -162,9 +300,8 @@ export const RELATION_LABEL_AT: number = 0.68;
 /*
  * A line's curve — React Flow's own bezier, the same control points — and
  * the point `at` of the way along it for the label. Midway, a label lands
- * on whatever the line passes over (a line from a service up to the one it
- * calls crosses its own box's heading); nearer the end it points at, it
- * sits in the gap before that part.
+ * on whatever the line passes over; nearer the end it points at, it sits in
+ * the gap before that part.
  */
 export function getRelationCurve(
   source: ResourceTopologyCurveEnd,
@@ -216,261 +353,177 @@ export function getRelationCurve(
   };
 }
 
+/* How round a line's turns are, at most. */
+export const BRANCH_CORNER_RADIUS: number = 10;
+
+/*
+ * A branch's path through its points, its turns rounded: a quarter circle
+ * of BRANCH_CORNER_RADIUS, or less where a leg is too short for one.
+ */
+export function getBranchPath(points: Array<[number, number]>): string {
+  if (points.length === 0) {
+    return "";
+  }
+
+  const round: (value: number) => string = (value: number): string => {
+    return String(Math.round(value * 100) / 100);
+  };
+  const first: [number, number] = points[0]!;
+  let path: string = `M${round(first[0])},${round(first[1])}`;
+
+  for (let index: number = 1; index < points.length; index++) {
+    const current: [number, number] = points[index]!;
+    const next: [number, number] | undefined = points[index + 1];
+
+    if (!next) {
+      path += ` L${round(current[0])},${round(current[1])}`;
+      break;
+    }
+
+    const previous: [number, number] = points[index - 1]!;
+    const inLength: number = Math.hypot(
+      current[0] - previous[0],
+      current[1] - previous[1],
+    );
+    const outLength: number = Math.hypot(
+      next[0] - current[0],
+      next[1] - current[1],
+    );
+    const radius: number = Math.min(
+      BRANCH_CORNER_RADIUS,
+      inLength / 2,
+      outLength / 2,
+    );
+
+    if (radius <= 0.5) {
+      path += ` L${round(current[0])},${round(current[1])}`;
+      continue;
+    }
+
+    const before: [number, number] = [
+      current[0] - ((current[0] - previous[0]) / inLength) * radius,
+      current[1] - ((current[1] - previous[1]) / inLength) * radius,
+    ];
+    const after: [number, number] = [
+      current[0] + ((next[0] - current[0]) / outLength) * radius,
+      current[1] + ((next[1] - current[1]) / outLength) * radius,
+    ];
+
+    path += ` L${round(before[0])},${round(before[1])} Q${round(current[0])},${round(current[1])} ${round(after[0])},${round(after[1])}`;
+  }
+
+  return path;
+}
+
 interface Size {
   width: number;
   height: number;
 }
 
-type Block =
-  | { type: "card"; card: ResourceTopologyCardItem; size: Size }
-  | { type: "chip"; chip: ResourceTopologyChipItem; size: Size }
-  | { type: "more"; more: ResourceTopologyMoreItem; size: Size };
-
-interface Row {
-  blocks: Array<{ block: Block; x: number }>;
-  width: number;
-  height: number;
-}
-
-/* A group inside a box: its heading and its rows, as one tile. */
-interface GroupPlan {
-  group: ResourceTopologyGroupItem;
-  rows: Array<Row>;
-  /* Relative to the box's content (x) and the box's top (y). */
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-interface BoxPlan {
-  size: Size;
-  contentWidth: number;
-  groups: Array<GroupPlan>;
-}
-
-const CARD_SIZE: Size = {
-  width: SIZES.cardWidth,
-  height: SIZES.cardHeight,
-};
-
-const CHIP_SIZE: Size = {
-  width: SIZES.chipWidth,
-  height: SIZES.chipHeight,
-};
-
-/* Fills rows left to right, starting a new row when the next block won't fit. */
-function flowRows(blocks: Array<Block>, contentWidth: number): Array<Row> {
-  const rows: Array<Row> = [];
-  let row: Row = { blocks: [], width: 0, height: 0 };
-
-  for (const block of blocks) {
-    const x: number = row.blocks.length === 0 ? 0 : row.width + SIZES.itemGap;
-
-    if (row.blocks.length > 0 && x + block.size.width > contentWidth) {
-      rows.push(row);
-      row = { blocks: [], width: 0, height: 0 };
-    }
-
-    const placedX: number =
-      row.blocks.length === 0 ? 0 : row.width + SIZES.itemGap;
-    row.blocks.push({ block: block, x: placedX });
-    row.width = placedX + block.size.width;
-    row.height = Math.max(row.height, block.size.height);
+/* How big a card is: the resource, a section, a part that holds others. */
+export function getCardSize(
+  card: ResourceTopologyCardItem,
+  options: { isRoot: boolean },
+): Size {
+  if (options.isRoot) {
+    return { width: SIZES.rootWidth, height: SIZES.rootHeight };
   }
 
-  if (row.blocks.length > 0) {
-    rows.push(row);
-  }
-
-  return rows;
-}
-
-function rowsHeight(rows: Array<Row>): number {
-  if (rows.length === 0) {
-    return 0;
-  }
-
-  return (
-    rows.reduce((total: number, row: Row): number => {
-      return total + row.height;
-    }, 0) +
-    (rows.length - 1) * SIZES.itemGap
-  );
-}
-
-/*
- * A group's heading: "ESXi Hosts 4 · 2 need attention". Sections ("Talks
- * to", "Hardware") are titled by their own box, so their group has none.
- */
-export function captionHeightOf(group: ResourceTopologyGroupItem): number {
-  return group.kind === SECTION_KIND ? SECTION_GAP : SIZES.captionHeight;
-}
-
-const SECTION_GAP: number = 6;
-
-/* The shape (width over height) the boxes inside the drawing aim for. */
-export const INNER_ASPECT: number = 2.2;
-
-/* Widths tried per group, at most: enough to find the shape, never slow. */
-const MAX_WIDTH_CANDIDATES_PER_GROUP: number = 48;
-
-type GroupBlocks = Array<{
-  group: ResourceTopologyGroupItem;
-  blocks: Array<Block>;
-}>;
-
-/* Between two groups side by side: wider than between two parts of one. */
-export const GROUP_SIDE_GAP: number = 28;
-
-/*
- * A box's groups packed at one content width. Each group is a tile — its
- * heading over its rows — and the tiles flow left to right like the parts
- * inside them, wrapping when the next one won't fit.
- */
-function packBox(groupBlocks: GroupBlocks, contentWidth: number): BoxPlan {
-  const minimumContent: number = SIZES.minContainerWidth - 2 * SIZES.padding;
-  const groups: Array<GroupPlan> = [];
-  let usedWidth: number = minimumContent;
-  let lineY: number = SIZES.headerHeight;
-  let lineWidth: number = 0;
-  let lineHeight: number = 0;
-
-  for (const entry of groupBlocks) {
-    const rows: Array<Row> = flowRows(entry.blocks, contentWidth);
-    let width: number = 0;
-
-    for (const row of rows) {
-      width = Math.max(width, row.width);
-    }
-
-    const height: number = captionHeightOf(entry.group) + rowsHeight(rows);
-    let x: number = lineWidth === 0 ? 0 : lineWidth + GROUP_SIDE_GAP;
-
-    if (lineWidth > 0 && x + width > contentWidth) {
-      lineY += lineHeight + SIZES.groupGap;
-      lineWidth = 0;
-      lineHeight = 0;
-      x = 0;
-    }
-
-    groups.push({
-      group: entry.group,
-      rows: rows,
-      x: x,
-      y: lineY,
-      width: width,
-      height: height,
-    });
-    lineWidth = x + width;
-    lineHeight = Math.max(lineHeight, height);
-    usedWidth = Math.max(usedWidth, lineWidth);
+  if (card.isSection) {
+    return { width: SIZES.cardWidth, height: SIZES.sectionHeight };
   }
 
   return {
-    size: {
-      width: Math.ceil(usedWidth + 2 * SIZES.padding),
-      height: Math.ceil(lineY + lineHeight + SIZES.padding),
-    },
-    contentWidth: usedWidth,
-    groups: groups,
+    width: SIZES.cardWidth,
+    height: card.canOpen ? SIZES.holderHeight : SIZES.cardHeight,
   };
 }
 
-/*
- * What else shares the drawing's shape with a box: the lanes beside the
- * top box add their width, and the drawing is at least as tall as they are.
- */
-interface BoxSurroundings {
-  extraWidth: number;
-  minHeight: number;
+const CHIP_SIZE: Size = { width: SIZES.chipWidth, height: SIZES.chipHeight };
+
+function moreSize(more: ResourceTopologyMoreItem): Size {
+  return more.asChip
+    ? CHIP_SIZE
+    : { width: SIZES.cardWidth, height: SIZES.cardHeight };
 }
 
-/*
- * The content width whose packing comes closest to `aspect`. The widths
- * worth trying are where a row would break: each part on its own, the width
- * of each group's first one, two, three ... parts side by side, and the
- * width of the first one, two, three ... whole groups side by side.
- */
-function planBox(
-  groupBlocks: GroupBlocks,
-  aspect: number,
-  surroundings: BoxSurroundings = { extraWidth: 0, minHeight: 0 },
-): BoxPlan {
-  const minimumContent: number = SIZES.minContainerWidth - 2 * SIZES.padding;
-  const candidates: Set<number> = new Set<number>([minimumContent]);
-  let groupsWidth: number = 0;
-
-  groupBlocks.forEach((entry: GroupBlocks[number], groupIndex: number) => {
-    let width: number = 0;
-
-    entry.blocks
-      .slice(0, MAX_WIDTH_CANDIDATES_PER_GROUP)
-      .forEach((block: Block, index: number) => {
-        width += (index > 0 ? SIZES.itemGap : 0) + block.size.width;
-        candidates.add(width);
-      });
-
-    for (const block of entry.blocks) {
-      candidates.add(block.size.width);
-    }
-
-    groupsWidth += (groupIndex > 0 ? GROUP_SIDE_GAP : 0) + width;
-    candidates.add(groupsWidth);
-  });
-
-  let best: BoxPlan | null = null;
-  let bestScore: number = Number.POSITIVE_INFINITY;
-  const widths: Array<number> = Array.from(candidates).sort(
-    (a: number, b: number): number => {
-      return a - b;
-    },
-  );
-
-  for (const width of widths) {
-    if (width < minimumContent || width > SIZES.maxContentWidth) {
-      continue;
-    }
-
-    const plan: BoxPlan = packBox(groupBlocks, width);
-    const drawnWidth: number = plan.size.width + surroundings.extraWidth;
-    const drawnHeight: number = Math.max(
-      plan.size.height,
-      surroundings.minHeight,
-    );
-    const score: number = Math.abs(Math.log(drawnWidth / drawnHeight / aspect));
-
-    if (score < bestScore - 1e-9) {
-      best = plan;
-      bestScore = score;
-    }
-  }
-
-  return best || packBox(groupBlocks, SIZES.maxContentWidth);
-}
-
-/* Parts of the top drawn beside it rather than inside it. */
+/* Parts of the resource drawn beside the tree rather than in it. */
 export interface ResourceTopologyLanes {
-  /* What calls the resource: a column on its left. */
+  /* What calls the resource: a lane before it. */
   left: Array<string>;
-  /* What the resource calls: a column on its right. */
+  /* What the resource calls: a lane after everything. */
   right: Array<string>;
 }
 
-export interface ResourceTopologyLayoutOptions {
-  /* The shape the whole drawing aims for: the canvas's. */
-  aspect: number;
-  lanes?: ResourceTopologyLanes | undefined;
+/* A relation, as far as where things go is concerned. */
+export interface ResourceTopologyLayoutRelation {
+  from: string;
+  to: string;
 }
 
-/* Between a lane and the top box: room for the lines' labels. */
-export const LANE_GAP: number = 88;
-/* A lane is a column: its boxes aim tall rather than wide. */
-export const LANE_ASPECT: number = 0.75;
+export interface ResourceTopologyLayoutOptions {
+  /* The shape of the canvas, width over height. */
+  aspect: number;
+  lanes?: ResourceTopologyLanes | undefined;
+  /*
+   * The resource's relations: a lane's parts line up with the parts they
+   * are related to, so their lines run straight across.
+   */
+  relations?: ReadonlyArray<ResourceTopologyLayoutRelation> | undefined;
+  /* Which way the page reads: a right-to-left page gets the tree mirrored. */
+  direction?: ResourceTopologyDirection | undefined;
+  /*
+   * The most parts a row holds. Left out, the layout tries
+   * ROW_LENGTHS_TRIED and keeps the one that fits the canvas best; the map
+   * passes the first view's, so opening a part never re-flows the rest.
+   */
+  rowLength?: number | undefined;
+  /*
+   * How wide a heading's words are drawn, in the reader's language (0 when
+   * that cannot be told). With it, a heading is as wide as its words or
+   * its parts, whichever is wider, and a lane makes room for its heading,
+   * so no heading is cut short and none is wider than it needs. Left out,
+   * a group's heading is at least headingMinWidth wide and a lane's as
+   * wide as the lane.
+   */
+  headingWidth?: ResourceTopologyHeadingWidth | undefined;
+}
+
+export type ResourceTopologyHeadingWidth = (
+  heading: ResourceTopologyHeading,
+) => number;
+
+/* The widest rows tried, in parts: the drawing keeps what fits best. */
+export const ROW_LENGTHS_TRIED: ReadonlyArray<number> = [1, 2, 3, 4, 5, 6];
 
 /*
- * The top without the parts that go in its lanes, and those parts, in the
- * lanes' order. Only cards in the top's own groups can go in a lane.
+ * How many parts a row of `count` holds when rows hold `longest` at most:
+ * as even as can be - six chips in rows of up to four make two rows of
+ * three, not a row of four and one of two.
+ */
+export function getRowLength(count: number, longest: number): number {
+  if (count <= 0) {
+    return 1;
+  }
+
+  const rows: number = Math.ceil(count / Math.max(1, longest));
+
+  return Math.max(1, Math.ceil(count / rows));
+}
+
+type Cell =
+  | { type: "card"; card: ResourceTopologyCardItem }
+  | { type: "chip"; chip: ResourceTopologyChipItem }
+  | { type: "more"; more: ResourceTopologyMoreItem };
+
+interface Draft {
+  placed: Array<ResourceTopologyPlaced>;
+  branches: Array<ResourceTopologyBranch>;
+}
+
+/*
+ * The top without the sections that go in its lanes, and those sections,
+ * in the lanes' order. Only cards in the top's own groups can go in a lane.
  */
 function splitLanes(
   top: ResourceTopologyCardItem,
@@ -506,13 +559,17 @@ function splitLanes(
   const pick: (ids: Array<string>) => Array<ResourceTopologyCardItem> = (
     ids: Array<string>,
   ): Array<ResourceTopologyCardItem> => {
-    return ids
-      .map((id: string): ResourceTopologyCardItem | undefined => {
-        return found.get(id);
-      })
-      .filter((item: ResourceTopologyCardItem | undefined): boolean => {
-        return item !== undefined;
-      }) as Array<ResourceTopologyCardItem>;
+    const picked: Array<ResourceTopologyCardItem> = [];
+
+    for (const id of ids) {
+      const item: ResourceTopologyCardItem | undefined = found.get(id);
+
+      if (item) {
+        picked.push(item);
+      }
+    }
+
+    return picked;
   };
 
   return {
@@ -540,306 +597,894 @@ function splitLanes(
   };
 }
 
+function cellsOf(group: ResourceTopologyGroupItem): Array<Cell> {
+  const cells: Array<Cell> = [];
+
+  for (const item of group.items) {
+    if (item.type === "card") {
+      cells.push({ type: "card", card: item });
+    } else {
+      cells.push({ type: "chip", chip: item });
+    }
+  }
+
+  if (group.more) {
+    cells.push({ type: "more", more: group.more });
+  }
+
+  return cells;
+}
+
+function sizeOfCell(cell: Cell): Size {
+  if (cell.type === "card") {
+    return getCardSize(cell.card, { isRoot: false });
+  }
+
+  return cell.type === "chip" ? CHIP_SIZE : moreSize(cell.more);
+}
+
+/* What a lane's heading says: its section, and how many parts it holds. */
+function laneHeadingOf(
+  section: ResourceTopologyCardItem,
+): ResourceTopologyHeading {
+  return {
+    laneSectionId: section.nodeId,
+    laneCount: section.groups.reduce(
+      (sum: number, group: ResourceTopologyGroupItem): number => {
+        return sum + group.total;
+      },
+      0,
+    ),
+  };
+}
+
+/*
+ * How wide a lane stands: as its widest part - a lane of chips is a chip
+ * wide, not a card - or as its heading's words, whichever is wider, so the
+ * drawing is no wider than it has to be and the heading is never cut.
+ */
+function laneWidthOf(
+  section: ResourceTopologyCardItem,
+  headingWidth: ResourceTopologyHeadingWidth | undefined,
+): number {
+  if (!section.isOpen) {
+    return getCardSize(section, { isRoot: false }).width;
+  }
+
+  let width: number = 0;
+
+  for (const cell of section.groups.flatMap(cellsOf)) {
+    width = Math.max(width, sizeOfCell(cell).width);
+  }
+
+  const words: number = headingWidth ? headingWidth(laneHeadingOf(section)) : 0;
+
+  return Math.max(width > 0 ? width : SIZES.cardWidth, words);
+}
+
+function nodeIdsOfCell(cell: Cell): Array<string> {
+  if (cell.type === "card") {
+    return [cell.card.nodeId];
+  }
+
+  if (cell.type === "chip") {
+    return [cell.chip.nodeId];
+  }
+
+  return [];
+}
+
+/*
+ * Where a column starts: the resource's own parts just in from its edge,
+ * under it, and every further level a card and a gap to the side.
+ */
+export function getTopologyColumnX(depth: number): number {
+  if (depth <= 0) {
+    return 0;
+  }
+
+  return SIZES.rootIndent + (depth - 1) * (SIZES.cardWidth + SIZES.columnGap);
+}
+
+/*
+ * Lays the tree out once, for rows of at most `rowLength` parts, from the
+ * resource at the top. Returns what it placed and the lines between.
+ */
+function layoutTree(
+  top: ResourceTopologyCardItem,
+  rowLength: number,
+  headingWidth?: ResourceTopologyHeadingWidth | undefined,
+): Draft {
+  const placed: Array<ResourceTopologyPlaced> = [];
+  const branches: Array<ResourceTopologyBranch> = [];
+  const columnX: (depth: number) => number = getTopologyColumnX;
+
+  const placeCell: (
+    cell: Cell,
+    x: number,
+    y: number,
+    depth: number,
+    parentId: string,
+  ) => number = (
+    cell: Cell,
+    x: number,
+    y: number,
+    depth: number,
+    parentId: string,
+  ): number => {
+    if (cell.type === "card") {
+      return placeCard(cell.card, depth, y, parentId, x);
+    }
+
+    if (cell.type === "chip") {
+      placed.push({
+        id: cell.chip.id,
+        kind: "chip",
+        x: x,
+        y: y,
+        width: CHIP_SIZE.width,
+        height: CHIP_SIZE.height,
+        depth: depth,
+        parentId: parentId,
+        chip: cell.chip,
+      });
+
+      return y + CHIP_SIZE.height;
+    }
+
+    const size: Size = moreSize(cell.more);
+    placed.push({
+      id: cell.more.id,
+      kind: "more",
+      x: x,
+      y: y,
+      width: size.width,
+      height: size.height,
+      depth: depth,
+      parentId: parentId,
+      more: cell.more,
+    });
+
+    return y + size.height;
+  };
+
+  const cellSize: (cell: Cell) => Size = (cell: Cell): Size => {
+    if (cell.type === "card") {
+      return getCardSize(cell.card, { isRoot: false });
+    }
+
+    if (cell.type === "chip") {
+      return CHIP_SIZE;
+    }
+
+    return moreSize(cell.more);
+  };
+
+  /*
+   * A card, and when it is open everything it holds, from `y` down. Returns
+   * where its part of the drawing ends.
+   */
+  function placeCard(
+    card: ResourceTopologyCardItem,
+    depth: number,
+    y: number,
+    parentId: string | null,
+    x: number = columnX(depth),
+  ): number {
+    const size: Size = getCardSize(card, { isRoot: depth === 0 });
+
+    placed.push({
+      id: card.id,
+      kind: "card",
+      x: x,
+      y: y,
+      width: size.width,
+      height: size.height,
+      depth: depth,
+      parentId: parentId,
+      card: card,
+    });
+
+    if (!card.isOpen || card.groups.length === 0) {
+      return y + size.height;
+    }
+
+    /*
+     * A line from the part to each of its groups: out of its edge at its
+     * middle, along to the spine, down it and into the group. The resource
+     * is the exception: its parts are under it, and its line drops from its
+     * bottom.
+     */
+    const isTop: boolean = depth === 0;
+    const middle: number = y + size.height / 2;
+    const edge: number = x + size.width;
+    const spineX: number = isTop
+      ? x + SIZES.rootSpineX
+      : edge + SIZES.spineOffset;
+    const childX: number = columnX(depth + 1);
+    let cursor: number = isTop
+      ? y + size.height + SIZES.rootGap
+      : middle + SIZES.drop;
+    const lineTo: (targetY: number) => Array<[number, number]> = (
+      targetY: number,
+    ): Array<[number, number]> => {
+      if (isTop) {
+        return [
+          [spineX, y + size.height],
+          [spineX, targetY],
+          [childX, targetY],
+        ];
+      }
+
+      return [
+        [edge, middle],
+        [spineX, middle],
+        [spineX, targetY],
+        [childX, targetY],
+      ];
+    };
+
+    card.groups.forEach((group: ResourceTopologyGroupItem, index: number) => {
+      if (index > 0) {
+        cursor += SIZES.groupGap;
+      }
+
+      const cells: Array<Cell> = cellsOf(group);
+      const isSectionGroup: boolean = group.kind === SECTION_KIND;
+
+      /*
+       * A group of sections has no heading: each section is its own, and
+       * the line runs to each one.
+       */
+      if (isSectionGroup) {
+        cells.forEach((cell: Cell, cellIndex: number) => {
+          if (cellIndex > 0) {
+            cursor += SIZES.itemGap;
+          }
+
+          const cellTop: number = cursor;
+          const size: Size = cellSize(cell);
+          const bottom: number = placeCell(
+            cell,
+            childX,
+            cellTop,
+            depth + 1,
+            card.nodeId,
+          );
+          const target: string =
+            cell.type === "card"
+              ? cell.card.id
+              : cell.type === "chip"
+                ? cell.chip.id
+                : cell.more.id;
+
+          branches.push({
+            id: `branch:${card.id}->${target}`,
+            from: card.id,
+            to: target,
+            fromNodeId: card.nodeId,
+            nodeIds: nodeIdsOfCell(cell),
+            points: lineTo(cellTop + size.height / 2),
+          });
+          cursor = bottom;
+        });
+
+        return;
+      }
+
+      const headingTop: number = cursor;
+      const heading: ResourceTopologyPlaced = {
+        id: group.id,
+        kind: "heading",
+        x: childX,
+        y: headingTop,
+        width: SIZES.headingMinWidth,
+        height: SIZES.headingHeight,
+        depth: depth + 1,
+        parentId: card.nodeId,
+        heading: { group: group },
+      };
+      placed.push(heading);
+      cursor += SIZES.headingHeight + SIZES.headingGap;
+
+      /*
+       * Closed parts flow into rows; an open part stands alone, with its
+       * own parts after it, and the rows go on below what it holds.
+       */
+      let blockWidth: number = 0;
+      let row: Array<Cell> = [];
+
+      const flushRow: () => void = (): void => {
+        if (row.length === 0) {
+          return;
+        }
+
+        let rowHeight: number = 0;
+        let cellX: number = childX;
+        // A part that opens has its toggle on its edge: keep the next clear of it.
+        const gap: number = row.some((cell: Cell): boolean => {
+          return cell.type === "card" && cell.card.canOpen;
+        })
+          ? SIZES.toggleGap
+          : SIZES.itemGap;
+
+        for (const cell of row) {
+          const size: Size = cellSize(cell);
+          placeCell(cell, cellX, cursor, depth + 1, card.nodeId);
+          cellX += size.width + gap;
+          rowHeight = Math.max(rowHeight, size.height);
+        }
+
+        blockWidth = Math.max(blockWidth, cellX - gap - childX);
+        cursor += rowHeight + SIZES.itemGap;
+        row = [];
+      };
+
+      const closedRun: Array<Cell> = [];
+      const flushRun: () => void = (): void => {
+        if (closedRun.length === 0) {
+          return;
+        }
+
+        const perRow: number = getRowLength(closedRun.length, rowLength);
+
+        for (const cell of closedRun) {
+          row.push(cell);
+
+          if (row.length >= perRow) {
+            flushRow();
+          }
+        }
+
+        flushRow();
+        closedRun.length = 0;
+      };
+
+      for (const cell of cells) {
+        if (cell.type === "card" && cell.card.isOpen) {
+          flushRun();
+          const bottom: number = placeCard(
+            cell.card,
+            depth + 1,
+            cursor,
+            card.nodeId,
+          );
+          blockWidth = Math.max(blockWidth, SIZES.cardWidth);
+          cursor = bottom + SIZES.itemGap;
+          continue;
+        }
+
+        closedRun.push(cell);
+      }
+
+      flushRun();
+      cursor -= SIZES.itemGap;
+      // As wide as its parts, and its words where those can be told.
+      const words: number = headingWidth ? headingWidth(heading.heading!) : 0;
+      heading.width =
+        words > 0
+          ? Math.max(blockWidth, words)
+          : Math.max(SIZES.headingMinWidth, blockWidth);
+
+      branches.push({
+        id: `branch:${card.id}->${group.id}`,
+        from: card.id,
+        to: group.id,
+        fromNodeId: card.nodeId,
+        nodeIds: [...group.memberIds],
+        points: lineTo(headingTop + SIZES.headingHeight / 2),
+      });
+    });
+
+    return Math.max(y + size.height, cursor);
+  }
+
+  placeCard(top, 0, 0, null);
+
+  return { placed: placed, branches: branches };
+}
+
+/*
+ * What to frame when a part opens: the part and everything placed straight
+ * under it - its groups' headings, its parts and its "+ N more" - so the
+ * parts that just appeared are on screen with it, not cut off at the edge.
+ */
+export function getTopologyFrameIds(
+  layout: Pick<ResourceTopologyLayout, "placed">,
+  nodeIds: ReadonlyArray<string>,
+): Array<string> {
+  const wanted: Set<string> = new Set<string>(nodeIds);
+  const ids: Array<string> = [];
+
+  for (const item of layout.placed) {
+    const nodeId: string | null =
+      item.card?.nodeId || item.chip?.nodeId || null;
+
+    if (
+      (nodeId !== null && wanted.has(nodeId) && item.kind !== "related") ||
+      (item.parentId !== null && wanted.has(item.parentId) && !item.lane)
+    ) {
+      ids.push(item.id);
+    }
+  }
+
+  return ids;
+}
+
+/*
+ * Everything a part's open branch draws: the part, its groups' headings,
+ * its parts, their parts and so on down - a namespace with its workloads
+ * and the pods of the one that opened with it. Lanes and a focused part's
+ * related column stand beside the tree and are left out.
+ */
+export function getTopologySubtreeIds(
+  layout: Pick<ResourceTopologyLayout, "placed">,
+  nodeIds: ReadonlyArray<string>,
+): Array<string> {
+  const wanted: Set<string> = new Set<string>(nodeIds);
+  const inTree: (item: ResourceTopologyPlaced) => boolean = (
+    item: ResourceTopologyPlaced,
+  ): boolean => {
+    return (
+      !item.lane && item.kind !== "related" && item.kind !== "relatedCaption"
+    );
+  };
+  // What holds each part, as the layout placed it.
+  const holderOf: Map<string, string | null> = new Map<string, string | null>();
+
+  for (const item of layout.placed) {
+    const nodeId: string | null =
+      item.card?.nodeId || item.chip?.nodeId || null;
+
+    if (nodeId !== null && inTree(item)) {
+      holderOf.set(nodeId, item.parentId);
+    }
+  }
+
+  const isUnderWanted: (holderId: string | null) => boolean = (
+    holderId: string | null,
+  ): boolean => {
+    let current: string | null = holderId;
+
+    // A tree is no deeper than its parts are many: the walk always ends.
+    for (
+      let step: number = 0;
+      current !== null && step <= holderOf.size;
+      step++
+    ) {
+      if (wanted.has(current)) {
+        return true;
+      }
+
+      current = holderOf.get(current) ?? null;
+    }
+
+    return false;
+  };
+
+  const ids: Array<string> = [];
+
+  for (const item of layout.placed) {
+    if (!inTree(item)) {
+      continue;
+    }
+
+    const nodeId: string | null =
+      item.card?.nodeId || item.chip?.nodeId || null;
+
+    if (
+      (nodeId !== null && wanted.has(nodeId)) ||
+      isUnderWanted(item.parentId)
+    ) {
+      ids.push(item.id);
+    }
+  }
+
+  return ids;
+}
+
+/* The right edge of what is placed, and the bottom. */
+function extentOf(placed: Array<ResourceTopologyPlaced>): {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+} {
+  let minX: number = Number.POSITIVE_INFINITY;
+  let minY: number = Number.POSITIVE_INFINITY;
+  let maxX: number = Number.NEGATIVE_INFINITY;
+  let maxY: number = Number.NEGATIVE_INFINITY;
+
+  for (const item of placed) {
+    minX = Math.min(minX, item.x);
+    minY = Math.min(minY, item.y);
+    maxX = Math.max(maxX, item.x + item.width);
+    maxY = Math.max(maxY, item.y + item.height);
+  }
+
+  if (!Number.isFinite(minX)) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  }
+
+  return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+}
+
+/*
+ * A lane: its section's name over its parts, each part lined up with the
+ * parts it is related to where it can be, the rest in order after them.
+ */
+function placeLane(
+  section: ResourceTopologyCardItem,
+  side: ResourceTopologyLaneSide,
+  x: number,
+  width: number,
+  draft: Draft,
+  relations: ReadonlyArray<ResourceTopologyLayoutRelation>,
+): void {
+  const centreOf: Map<string, number> = new Map<string, number>();
+
+  for (const item of draft.placed) {
+    const nodeId: string | undefined =
+      item.card?.nodeId || item.chip?.nodeId || undefined;
+
+    if (nodeId && !item.lane) {
+      centreOf.set(nodeId, item.y + item.height / 2);
+    }
+  }
+
+  const cells: Array<Cell> = section.isOpen
+    ? section.groups.flatMap(cellsOf)
+    : [{ type: "card", card: section }];
+
+  // Where each part would like to stand: level with what it is related to.
+  const wanted: Array<{ cell: Cell; centre: number | null; order: number }> =
+    cells.map((cell: Cell, order: number) => {
+      const ids: Array<string> = nodeIdsOfCell(cell);
+      const centres: Array<number> = [];
+
+      for (const relation of relations) {
+        const other: string | null = ids.includes(relation.from)
+          ? relation.to
+          : ids.includes(relation.to)
+            ? relation.from
+            : null;
+        const centre: number | undefined = other
+          ? centreOf.get(other)
+          : undefined;
+
+        if (centre !== undefined) {
+          centres.push(centre);
+        }
+      }
+
+      return {
+        cell: cell,
+        centre:
+          centres.length > 0
+            ? centres.reduce((sum: number, value: number): number => {
+                return sum + value;
+              }, 0) / centres.length
+            : null,
+        order: order,
+      };
+    });
+
+  wanted.sort(
+    (
+      a: { centre: number | null; order: number },
+      b: { centre: number | null; order: number },
+    ): number => {
+      if (a.centre !== null && b.centre !== null && a.centre !== b.centre) {
+        return a.centre - b.centre;
+      }
+
+      if (a.centre === null && b.centre !== null) {
+        return 1;
+      }
+
+      if (a.centre !== null && b.centre === null) {
+        return -1;
+      }
+
+      return a.order - b.order;
+    },
+  );
+
+  const sizeOf: (cell: Cell) => Size = sizeOfCell;
+
+  const firstCentre: number | null = wanted[0]?.centre ?? null;
+  const firstHeight: number = wanted[0] ? sizeOf(wanted[0].cell).height : 0;
+  const headingTop: number =
+    firstCentre !== null
+      ? firstCentre - firstHeight / 2 - SIZES.headingGap - SIZES.headingHeight
+      : 0;
+
+  if (section.isOpen) {
+    draft.placed.push({
+      id: section.id,
+      kind: "heading",
+      x: x,
+      y: headingTop,
+      width: width,
+      height: SIZES.headingHeight,
+      depth: 1,
+      parentId: null,
+      lane: side,
+      heading: laneHeadingOf(section),
+    });
+  }
+
+  let floor: number = section.isOpen
+    ? headingTop + SIZES.headingHeight + SIZES.headingGap
+    : headingTop;
+
+  for (const entry of wanted) {
+    const size: Size = sizeOf(entry.cell);
+    const y: number = Math.max(
+      floor,
+      entry.centre !== null ? entry.centre - size.height / 2 : floor,
+    );
+    const cell: Cell = entry.cell;
+
+    if (cell.type === "card") {
+      draft.placed.push({
+        id: cell.card.id,
+        kind: "card",
+        x: x,
+        y: y,
+        width: size.width,
+        height: size.height,
+        depth: 1,
+        parentId: section.isOpen ? section.nodeId : null,
+        lane: side,
+        card: cell.card,
+      });
+    } else if (cell.type === "chip") {
+      draft.placed.push({
+        id: cell.chip.id,
+        kind: "chip",
+        x: x,
+        y: y,
+        width: size.width,
+        height: size.height,
+        depth: 1,
+        parentId: section.nodeId,
+        lane: side,
+        chip: cell.chip,
+      });
+    } else {
+      draft.placed.push({
+        id: cell.more.id,
+        kind: "more",
+        x: x,
+        y: y,
+        width: size.width,
+        height: size.height,
+        depth: 1,
+        parentId: section.nodeId,
+        lane: side,
+        more: cell.more,
+      });
+    }
+
+    floor = y + size.height + SIZES.itemGap;
+  }
+}
+
+/*
+ * What a focused part is related to: a column after the drawing, one
+ * heading per kind of relation ("Runs here · 12") over small cards, level
+ * with the focused part, so a node running a dozen pods is drawn at a
+ * readable zoom and the lines to them need no words of their own.
+ */
+function placeRelated(visible: ResourceTopologyVisible, draft: Draft): void {
+  if (visible.related.length === 0) {
+    return;
+  }
+
+  const extent: { maxX: number } = extentOf(draft.placed);
+  const focus: ResourceTopologyPlaced | undefined = draft.placed.find(
+    (item: ResourceTopologyPlaced): boolean => {
+      return item.id === visible.focusId;
+    },
+  );
+  const columnX: number = extent.maxX + SIZES.relatedGap;
+  const groups: Map<string, Array<ResourceTopologyRelatedItem>> = new Map<
+    string,
+    Array<ResourceTopologyRelatedItem>
+  >();
+  let rowY: number = focus ? focus.y : 0;
+
+  for (const related of visible.related) {
+    const group: Array<ResourceTopologyRelatedItem> =
+      groups.get(related.label) || [];
+
+    group.push(related);
+    groups.set(related.label, group);
+  }
+
+  for (const [label, members] of groups) {
+    draft.placed.push({
+      id: `related-caption:${label}`,
+      kind: "relatedCaption",
+      x: columnX,
+      y: rowY,
+      width: SIZES.relatedWidth,
+      height: SIZES.captionHeight,
+      depth: 0,
+      parentId: null,
+      relatedCaption: { label: label, count: members.length },
+    });
+    rowY += SIZES.captionHeight;
+
+    for (const related of members) {
+      draft.placed.push({
+        id: related.nodeId,
+        kind: "related",
+        x: columnX,
+        y: rowY,
+        width: SIZES.relatedWidth,
+        height: SIZES.relatedHeight,
+        depth: 0,
+        parentId: null,
+        related: related,
+      });
+      rowY += SIZES.relatedHeight + SIZES.itemGap;
+    }
+
+    rowY += SIZES.groupGap - SIZES.itemGap;
+  }
+}
+
+/*
+ * How well a drawing fits a canvas of this shape: the zoom it is framed at
+ * on a canvas one unit tall. Larger is better.
+ */
+function fitScore(width: number, height: number, aspect: number): number {
+  if (width <= 0 || height <= 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.min(aspect / width, 1 / height);
+}
+
 export function layoutResourceTopology(
   visible: ResourceTopologyVisible,
   options: ResourceTopologyLayoutOptions = { aspect: 1.8 },
 ): ResourceTopologyLayout {
-  const plans: Map<string, BoxPlan> = new Map<string, BoxPlan>();
   const split: {
     top: ResourceTopologyCardItem;
     left: Array<ResourceTopologyCardItem>;
     right: Array<ResourceTopologyCardItem>;
   } = splitLanes(visible.top, options.lanes);
-  const top: ResourceTopologyCardItem = split.top;
-  const laneItems: Set<ResourceTopologyCardItem> =
-    new Set<ResourceTopologyCardItem>([...split.left, ...split.right]);
-  let surroundings: BoxSurroundings = { extraWidth: 0, minHeight: 0 };
+  const relations: ReadonlyArray<ResourceTopologyLayoutRelation> =
+    options.relations || [];
 
-  const blocksOf: (group: ResourceTopologyGroupItem) => Array<Block> = (
-    group: ResourceTopologyGroupItem,
-  ): Array<Block> => {
-    const blocks: Array<Block> = [];
-
-    for (const item of group.items) {
-      if (item.type === "chip") {
-        blocks.push({ type: "chip", chip: item, size: CHIP_SIZE });
-      } else {
-        blocks.push({ type: "card", card: item, size: measure(item) });
-      }
-    }
-
-    if (group.more) {
-      blocks.push({
-        type: "more",
-        more: group.more,
-        size: group.more.asChip ? CHIP_SIZE : CARD_SIZE,
-      });
-    }
-
-    return blocks;
-  };
-
-  /*
-   * A card's size: a closed card is fixed; an open one is a box sized to
-   * hold its groups, shaped as close to the target as its parts allow — the
-   * canvas's shape for the whole drawing, INNER_ASPECT for the boxes in it.
-   */
-  function measure(card: ResourceTopologyCardItem): Size {
-    // The top stays a box when all it holds went to its lanes.
-    if (!card.isOpen || (card.groups.length === 0 && card !== top)) {
-      return CARD_SIZE;
-    }
-
-    const groupBlocks: Array<{
-      group: ResourceTopologyGroupItem;
-      blocks: Array<Block>;
-    }> = card.groups.map((group: ResourceTopologyGroupItem) => {
-      return { group: group, blocks: blocksOf(group) };
-    });
-
-    const plan: BoxPlan =
-      card === top
-        ? planBox(groupBlocks, options.aspect, surroundings)
-        : planBox(
-            groupBlocks,
-            laneItems.has(card) ? LANE_ASPECT : INNER_ASPECT,
-          );
-
-    plans.set(card.id, plan);
-
-    return plan.size;
-  }
-
-  const placed: Array<ResourceTopologyPlaced> = [];
-
-  const place: (
-    card: ResourceTopologyCardItem,
-    x: number,
-    y: number,
-    depth: number,
-  ) => void = (
-    card: ResourceTopologyCardItem,
-    x: number,
-    y: number,
-    depth: number,
-  ): void => {
-    const plan: BoxPlan | undefined = plans.get(card.id);
-
-    if (!plan) {
-      placed.push({
-        id: card.id,
-        kind: "card",
-        x: x,
-        y: y,
-        width: CARD_SIZE.width,
-        height: CARD_SIZE.height,
-        depth: depth,
-        card: card,
-      });
-      return;
-    }
-
-    const captions: Array<ResourceTopologyCaption> = [];
-    placed.push({
-      id: card.id,
-      kind: "container",
-      x: x,
-      y: y,
-      width: plan.size.width,
-      height: plan.size.height,
-      depth: depth,
-      card: card,
-      captions: captions,
-    });
-
-    for (const groupPlan of plan.groups) {
-      /*
-       * A group alone on its line is headed across the box; one beside
-       * others, across its own parts.
-       */
-      const alone: boolean = !plan.groups.some((other: GroupPlan): boolean => {
-        return other !== groupPlan && other.y === groupPlan.y;
-      });
-
-      captions.push({
-        group: groupPlan.group,
-        x: SIZES.padding + groupPlan.x,
-        y: groupPlan.y,
-        width: alone ? plan.contentWidth : groupPlan.width,
-      });
-
-      let rowY: number = groupPlan.y + captionHeightOf(groupPlan.group);
-
-      for (const row of groupPlan.rows) {
-        for (const entry of row.blocks) {
-          const blockX: number = x + SIZES.padding + groupPlan.x + entry.x;
-          const blockY: number = y + rowY;
-
-          if (entry.block.type === "card") {
-            place(entry.block.card, blockX, blockY, depth + 1);
-          } else if (entry.block.type === "chip") {
-            placed.push({
-              id: entry.block.chip.id,
-              kind: "chip",
-              x: blockX,
-              y: blockY,
-              width: CHIP_SIZE.width,
-              height: CHIP_SIZE.height,
-              depth: depth + 1,
-              chip: entry.block.chip,
-            });
-          } else {
-            placed.push({
-              id: entry.block.more.id,
-              kind: "more",
-              x: blockX,
-              y: blockY,
-              width: entry.block.size.width,
-              height: entry.block.size.height,
-              depth: depth + 1,
-              more: entry.block.more,
-            });
-          }
-        }
-
-        rowY += row.height + SIZES.itemGap;
-      }
-    }
-  };
-
-  // The lanes first: the top box is shaped around them.
-  const measureLane: (lane: Array<ResourceTopologyCardItem>) => {
-    sizes: Array<Size>;
-    width: number;
-    height: number;
-  } = (
-    lane: Array<ResourceTopologyCardItem>,
-  ): { sizes: Array<Size>; width: number; height: number } => {
-    const sizes: Array<Size> = lane.map(
-      (card: ResourceTopologyCardItem): Size => {
-        return measure(card);
-      },
-    );
-
-    return {
-      sizes: sizes,
-      width: sizes.reduce((widest: number, size: Size): number => {
-        return Math.max(widest, size.width);
-      }, 0),
-      height:
-        sizes.reduce((total: number, size: Size): number => {
-          return total + size.height;
-        }, 0) +
-        Math.max(0, sizes.length - 1) * SIZES.groupGap,
-    };
-  };
-
-  const leftLane: { sizes: Array<Size>; width: number; height: number } =
-    measureLane(split.left);
-  const rightLane: { sizes: Array<Size>; width: number; height: number } =
-    measureLane(split.right);
-  const leftSpace: number =
-    split.left.length > 0 ? leftLane.width + LANE_GAP : 0;
-  const rightSpace: number =
-    split.right.length > 0 ? rightLane.width + LANE_GAP : 0;
-
-  surroundings = {
-    extraWidth: leftSpace + rightSpace,
-    minHeight: Math.max(leftLane.height, rightLane.height),
-  };
-
-  const topSize: Size = measure(top);
-  const drawingHeight: number = Math.max(
-    topSize.height,
-    leftLane.height,
-    rightLane.height,
-  );
-
-  place(top, leftSpace, (drawingHeight - topSize.height) / 2, 0);
-
-  const placeLane: (
-    lane: Array<ResourceTopologyCardItem>,
-    sizes: { sizes: Array<Size>; height: number },
-    x: number,
-  ) => void = (
-    lane: Array<ResourceTopologyCardItem>,
-    sizes: { sizes: Array<Size>; height: number },
-    x: number,
-  ): void => {
-    let laneY: number = (drawingHeight - sizes.height) / 2;
-
-    lane.forEach((card: ResourceTopologyCardItem, index: number) => {
-      place(card, x, laneY, 0);
-      laneY += sizes.sizes[index]!.height + SIZES.groupGap;
-    });
-  };
-
-  placeLane(split.left, leftLane, 0);
-  placeLane(split.right, rightLane, leftSpace + topSize.width + LANE_GAP);
-
-  let width: number = leftSpace + topSize.width + rightSpace;
-  let height: number = drawingHeight;
-
-  /*
-   * What a focused part is related to: a column beside the drawing, one
-   * heading per kind of relation ("Runs here · 12") over small cards, so a
-   * node running a dozen pods is drawn at a readable zoom and the lines to
-   * them need no words of their own.
-   */
-  if (visible.related.length > 0) {
-    const focus: ResourceTopologyPlaced | undefined = placed.find(
+  const build: (rowLength: number) => Draft = (rowLength: number): Draft => {
+    const draft: Draft = layoutTree(split.top, rowLength, options.headingWidth);
+    /*
+     * The lanes stand a gap from the tree's parts, and clear of every
+     * heading's words where those are measured. A heading only given its
+     * least width (headingMinWidth) may run on past its parts; before a
+     * lane it is cut short of the lane instead, so a host's map is not
+     * drawn wider - and smaller - for room its words may not need.
+     */
+    const treeHeadings: Array<ResourceTopologyPlaced> = draft.placed.filter(
       (item: ResourceTopologyPlaced): boolean => {
-        return item.id === visible.focusId;
+        return item.kind === "heading";
       },
     );
-    const columnX: number = width + SIZES.relatedGap;
-    const groups: Map<string, Array<ResourceTopologyRelatedItem>> = new Map<
-      string,
-      Array<ResourceTopologyRelatedItem>
-    >();
-    let rowY: number = focus ? focus.y : 0;
+    const tree: { minX: number; maxX: number } = extentOf(
+      draft.placed.filter((item: ResourceTopologyPlaced): boolean => {
+        return item.kind !== "heading";
+      }),
+    );
+    let firstLaneX: number = tree.maxX + SIZES.laneGap;
 
-    for (const related of visible.related) {
-      const group: Array<ResourceTopologyRelatedItem> =
-        groups.get(related.label) || [];
-
-      group.push(related);
-      groups.set(related.label, group);
-    }
-
-    for (const [label, members] of groups) {
-      placed.push({
-        id: `related-caption:${label}`,
-        kind: "relatedCaption",
-        x: columnX,
-        y: rowY,
-        width: SIZES.relatedWidth,
-        height: SIZES.captionHeight,
-        depth: 0,
-        relatedCaption: { label: label, count: members.length },
-      });
-      rowY += SIZES.captionHeight;
-
-      for (const related of members) {
-        placed.push({
-          id: related.nodeId,
-          kind: "related",
-          x: columnX,
-          y: rowY,
-          width: SIZES.relatedWidth,
-          height: SIZES.relatedHeight,
-          depth: 0,
-          related: related,
-        });
-        rowY += SIZES.relatedHeight + SIZES.itemGap;
+    if (options.headingWidth) {
+      for (const heading of treeHeadings) {
+        firstLaneX = Math.max(
+          firstLaneX,
+          heading.x + heading.width + SIZES.laneHeadingClearance,
+        );
       }
-
-      rowY += SIZES.groupGap - SIZES.itemGap;
     }
 
-    width = columnX + SIZES.relatedWidth;
-    height = Math.max(height, rowY - SIZES.groupGap);
+    let laneX: number = firstLaneX;
+
+    for (const section of split.right) {
+      const width: number = laneWidthOf(section, options.headingWidth);
+      placeLane(section, "end", laneX, width, draft, relations);
+      laneX += width + SIZES.columnGap;
+    }
+
+    if (split.right.length > 0) {
+      for (const heading of treeHeadings) {
+        heading.width = Math.min(
+          heading.width,
+          firstLaneX - SIZES.laneHeadingClearance - heading.x,
+        );
+      }
+    }
+
+    let laneEdge: number = tree.minX;
+    let gap: number = SIZES.laneGap;
+
+    for (const section of split.left) {
+      const width: number = laneWidthOf(section, options.headingWidth);
+      const x: number = laneEdge - gap - width;
+      placeLane(section, "start", x, width, draft, relations);
+      laneEdge = x;
+      gap = SIZES.columnGap;
+    }
+
+    placeRelated(visible, draft);
+
+    return draft;
+  };
+
+  // The row length whose drawing fits the canvas at the largest zoom.
+  let best: Draft | null = null;
+  let bestRowLength: number = 1;
+  let bestScore: number = Number.NEGATIVE_INFINITY;
+  const tried: ReadonlyArray<number> =
+    options.rowLength !== undefined && options.rowLength >= 1
+      ? [Math.floor(options.rowLength)]
+      : ROW_LENGTHS_TRIED;
+
+  for (const rowLength of tried) {
+    const draft: Draft = build(rowLength);
+    const extent: { minX: number; minY: number; maxX: number; maxY: number } =
+      extentOf(draft.placed);
+    const score: number = fitScore(
+      extent.maxX - extent.minX,
+      extent.maxY - extent.minY,
+      options.aspect,
+    );
+
+    if (score > bestScore + 1e-9) {
+      best = draft;
+      bestRowLength = rowLength;
+      bestScore = score;
+    }
   }
+
+  const draft: Draft = best || build(bestRowLength);
+  const extent: { minX: number; minY: number; maxX: number; maxY: number } =
+    extentOf(draft.placed);
+  const width: number = extent.maxX - extent.minX;
+  const height: number = extent.maxY - extent.minY;
+  const direction: ResourceTopologyDirection = options.direction || "ltr";
+  const moveX: (x: number, itemWidth: number) => number = (
+    x: number,
+    itemWidth: number,
+  ): number => {
+    const fromStart: number = x - extent.minX;
+
+    return direction === "rtl" ? width - fromStart - itemWidth : fromStart;
+  };
+
+  const placed: Array<ResourceTopologyPlaced> = draft.placed.map(
+    (item: ResourceTopologyPlaced): ResourceTopologyPlaced => {
+      return {
+        ...item,
+        x: moveX(item.x, item.width),
+        y: item.y - extent.minY,
+      };
+    },
+  );
+  const branches: Array<ResourceTopologyBranch> = draft.branches.map(
+    (branch: ResourceTopologyBranch): ResourceTopologyBranch => {
+      return {
+        ...branch,
+        points: branch.points.map(
+          (point: [number, number]): [number, number] => {
+            return [moveX(point[0], 0), point[1] - extent.minY];
+          },
+        ),
+      };
+    },
+  );
 
   const byId: Map<string, ResourceTopologyPlaced> = new Map<
     string,
@@ -850,5 +1495,13 @@ export function layoutResourceTopology(
     byId.set(item.id, item);
   }
 
-  return { placed: placed, byId: byId, width: width, height: height };
+  return {
+    placed: placed,
+    byId: byId,
+    branches: branches,
+    width: width,
+    height: height,
+    direction: direction,
+    rowLength: bestRowLength,
+  };
 }
