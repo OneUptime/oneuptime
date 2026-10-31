@@ -182,7 +182,14 @@ export function buildDockerMonitorConfig(args: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
   groupByAttributeKey?: string | undefined;
+  /*
+   * What the query is called in an alert's root cause and on its chart
+   * ("The sum of Container Restarts ..."). The alias when unset.
+   */
+  title?: string | undefined;
 }): MonitorStepDockerMonitor {
+  const title: string = args.title || args.metricAlias;
+
   return {
     hostIdentifier: args.hostIdentifier,
     containerFilters: {},
@@ -191,9 +198,9 @@ export function buildDockerMonitorConfig(args: {
         {
           metricAliasData: {
             metricVariable: args.metricAlias,
-            title: args.metricAlias,
-            description: args.metricAlias,
-            legend: args.metricAlias,
+            title: title,
+            description: title,
+            legend: title,
             legendUnit: undefined,
           },
           metricQueryData: {
@@ -233,6 +240,12 @@ export function buildDockerMonitorConfig(args: {
  *     the complementary healthy comparison ("= 0", "<= 4.5") is unreachable
  *     by construction. The alert stays open until a human closes it, and
  *     the next evaluation reopens it.
+ *
+ * Only Container CPU Throttling is built on this helper now. Container
+ * Restart Loop used it too, and missed half of every crash loop (point 1
+ * below): the agent now sends the restarts since its previous sample of a
+ * container as `container.restarts.increase`, and that template sums them -
+ * see containerRestartLoopTemplate.
  *
  * The alerting path has no rate operator. `transformAsRate` on
  * MetricQueryConfigData is CHART-only (MetricCharts.tsx is its only reader;
@@ -517,59 +530,64 @@ const highMemoryTemplate: DockerAlertTemplate = {
   },
 };
 
+/*
+ * The id stays "docker-restart-loop": it is the stable key the
+ * recommendation catalog and the already-created-monitor diff match on.
+ *
+ * It used to read the growth of `container.restarts` (Docker's lifetime
+ * RestartCount) between two samples of the same minute: a Max and a Min
+ * query per minute and a formula subtracting them
+ * (buildDockerDeltaMonitorConfig). At the agent's 30-second scrape a
+ * restart between the last sample of one minute and the first of the next
+ * was never counted - about half of every crash loop, so a loop of four to
+ * seven restarts in fifteen minutes could pass under "more than 3" - and a
+ * manual restart, which starts Docker's count again at 0, read as the whole
+ * count in one minute and fired. The alerting path cannot difference values
+ * across minutes (no rate or delta in AggregationType or
+ * EvaluateOverTimeType, and formulas are evaluated point by point), so the
+ * agent does it: every sample carries `container.restarts.increase`, the
+ * restarts since its previous sample of the container, however far back
+ * that was (cumulative_to_delta/restarts-increase in
+ * DockerAgent/otel-collector-config.yaml). Summed per minute and over the
+ * window, that is every restart in the window. And docker_stats keeps
+ * sampling a container Docker is restarting - Docker reports it as running
+ * between its runs - so a container that exits the moment it starts is
+ * sampled every 30 seconds too.
+ *
+ * A host whose agent predates `container.restarts.increase` sends nothing
+ * this reads: neither criteria matches, and the docs tell it to update the
+ * agent. That is also why monitors made from the old query are left as
+ * they are rather than rewritten to this one.
+ */
 const containerRestartLoopTemplate: DockerAlertTemplate = {
   id: "docker-restart-loop",
   name: "Container Restart Loop",
   summary: "A container restarts more than 3 times in 15 minutes.",
   description:
-    "Alert when a container's restart count climbs by more than 3 within fifteen minutes, indicating a crash loop. The count only grows between two samples of the same minute, and the agent samples running containers only, so a container that exits the moment it starts is rarely seen at all: Container Restarted (Low Uptime) catches every restart the agent does see. One alert per container.",
+    "Alert when a container restarts more than 3 times within fifteen minutes: Docker keeps restarting it under its restart policy, so it is crash-looping rather than recovering from a one-off failure. Reads container.restarts.increase, the restarts since the agent's previous sample of the container, so every restart counts however far apart the samples are; a restart by hand starts a new count and is not one. An older Docker agent does not send it: update the agent first. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "container_restarts";
 
     return buildDockerMonitorStep({
-      /*
-       * `container.restarts` is Docker's LIFETIME RestartCount, not a
-       * windowed count, and nothing in the pipeline deltas it. Comparing it
-       * to a constant asks "has this container ever crash-looped" — true
-       * forever once true, and unrecoverable against a counter that only
-       * goes up. The loop signal is how much the counter GREW. See
-       * buildDockerDeltaMonitorConfig.
-       */
-      dockerMonitor: buildDockerDeltaMonitorConfig({
+      dockerMonitor: buildDockerMonitorConfig({
         hostIdentifier: args.hostIdentifier,
-        metricName: "container.restarts",
-        maxAlias: "container_restarts_max",
-        minAlias: "container_restarts_min",
-        resultAlias: metricAlias,
-        resultLegend: "Container Restarts (in window)",
+        metricName: "container.restarts.increase",
+        metricAlias,
+        title: "Container Restarts",
         /*
-         * Deliberately no resultLegendUnit: a restart count is
-         * dimensionless, and MetricMonitorCriteria reads a formula's
-         * legendUnit as the sample unit to convert from.
-         */
-        /*
-         * Fifteen minutes, not five. The per-minute Max-minus-Min delta is
-         * a LOWER BOUND: the agent scrapes every 30s and buckets are one
-         * minute, so an isolated restart is only counted when it lands
-         * between the two samples of the SAME minute — roughly half are
-         * missed. Bursts inside one 30s gap are counted in full, and
-         * Docker's restart backoff (doubling, capped at 60s) puts a real
-         * crash loop at ~20 restarts per fifteen minutes, so the threshold
-         * below still clears with room to spare.
-         *
-         * What it cannot see: docker_stats samples RUNNING containers only,
-         * so a container that exits the moment it starts is almost never
-         * sampled, twice in a minute or at all. Taking the counter's growth
-         * across the WHOLE window instead would need the alerting path to
-         * difference values across buckets, which it cannot (no rate or
-         * delta in AggregationType or EvaluateOverTimeType, and formulas
-         * are evaluated point by point); and even that would need two
-         * samples of the container. Container Restarted (Low Uptime) fires
-         * on every restart the agent does sample.
+         * Fifteen minutes: Docker's restart back-off doubles up to a minute
+         * between restarts, so a real crash loop restarts about once a
+         * minute and is well past 3 in fifteen.
          */
         rollingTime: RollingTime.Past15Minutes,
+        /*
+         * Sum WITHIN each container's series: the restarts in each minute.
+         * A minute with no sample of the container has no row, not a zero,
+         * and the increase a later sample sends still counts them.
+         */
+        aggregationType: MetricsAggregationType.Sum,
         groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
@@ -582,19 +600,16 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
         value: 3,
         /*
          * Sum over the window, not the sustained AllValues default: each
-         * sample is ONE MINUTE'S restart increment, and most minutes of a
-         * crash loop are zero, so "every bucket breached" is unreachable.
-         * The window total is the loop count. This is the semantics the
-         * docs have always described for this template ("> 3 / Sum" in
-         * App/FeatureSet/Docs/Content/en/monitor/docker-monitor.md) and
-         * which the code never implemented.
+         * sample is ONE MINUTE'S restarts, and most minutes of a crash
+         * loop have none, so "every minute breached" is unreachable. The
+         * window total is the loop count.
          */
         metricAggregationType: EvaluateOverTimeType.Sum,
         incidentTitle: `[Docker] Container Restart Loop Detected${dockerTitleSuffix(args)}`,
-        incidentDescription: `A Docker container restarted more than 3 times in the last fifteen minutes — it is crash-looping, not recovering from a one-off failure. Check the root cause for the specific container, then read that container's logs and its restart policy.`,
+        incidentDescription: `A Docker container restarted more than 3 times in the last fifteen minutes — it is crash-looping, not recovering from a one-off failure. Check the root cause for the specific container, then read that container's logs (\`docker logs --since 15m\`) and its restart policy. The alert clears once the container stops restarting.`,
         criteriaName: "Restart Loop - Restarts > 3 in 15 min",
         criteriaDescription:
-          "Triggers when a container's restart counter increases by more than 3 across the monitoring window.",
+          "Triggers when a container restarts more than 3 times across the monitoring window, counted from the restarts the agent sends with each sample.",
       }),
       onlineCriteriaInstance: buildDockerOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
