@@ -156,7 +156,7 @@ Oltre al numero di eccezioni, un monitor eccezioni può avvisare su ciò che un 
 | **Regressed Exceptions** | Le eccezioni corrispondenti che avete risolto, tornate e ancora aperte. |
 | **Exception Increase (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
 
-Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambiente e messaggio; il filtro per entità di infrastruttura vale solo per gli altri due.
+Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambiente e messaggio, e anche per entità di infrastruttura: un'eccezione conta quando una delle sue occorrenze nella finestra è arrivata da una delle entità scelte.
 
 ## Esempio pratico: solo le eccezioni di produzione
 

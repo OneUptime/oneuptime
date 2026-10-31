@@ -156,7 +156,7 @@ Utöver hur många undantag som inträffade kan en undantagsmonitor larma om det
 | **Regressed Exceptions** | Matchande undantag som du har löst, som kom tillbaka och fortfarande är öppna. |
 | **Exception Increase (in %)** | Hur långt antalet matchande undantag ligger över det vanliga: dagen före fönstret, per fönster av samma längd, minst ett. Tio undantag efter en lugn dag ger 900 %. |
 
-Nya och återkomna undantag filtreras på tjänst, undantagstyp, miljö och meddelande; filtret på infrastrukturentitet gäller bara de två andra.
+Nya och återkomna undantag filtreras på tjänst, undantagstyp, miljö och meddelande, och även på infrastrukturentitet: ett undantag räknas när en av dess förekomster i fönstret kom från en av de valda entiteterna.
 
 ## Genomgånget exempel: bara produktionsundantag
 

@@ -156,7 +156,7 @@ Besides how many exceptions happened, an Exceptions monitor can alert on what an
 | **Regressed Exceptions** | Matching exceptions you resolved that came back, and are still open. |
 | **Exception Increase (in %)** | How far the number of matching exceptions is above the usual one: the day before the window, per window of its length, taken as at least one. Ten exceptions after a quiet day read 900%. |
 
-New and regressed exceptions are matched by service, exception type, environment and message; the infrastructure entity filter applies to the other two only.
+New and regressed exceptions are matched by service, exception type, environment and message, and by the infrastructure entity filter too: an exception counts when one of its occurrences in the window came from one of the chosen entities.
 
 ## Worked example: production exceptions only
 

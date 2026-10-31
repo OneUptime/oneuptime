@@ -156,7 +156,7 @@ Ud over hvor mange undtagelser der skete, kan en undtagelse-monitor advare ved d
 | **Regressed Exceptions** | Matchende undtagelser, du har løst, som kom tilbage og stadig er åbne. |
 | **Exception Increase (in %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
 
-Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse; filteret efter infrastrukturentitet gælder kun de to andre.
+Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse og også efter infrastrukturentitet: en undtagelse tæller med, når en af dens forekomster i vinduet kom fra en af de valgte entiteter.
 
 ## Gennemgået eksempel: kun produktionsundtagelser
 
