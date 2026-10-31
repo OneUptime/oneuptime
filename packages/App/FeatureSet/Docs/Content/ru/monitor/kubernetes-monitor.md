@@ -86,12 +86,12 @@ flowchart TB
 | Под | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Узел | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Контейнер | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Рабочая нагрузка | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Рабочая нагрузка | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Плоскость управления | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** и **Node CPU Usage** измеряются в ядрах, а не в процентах: `0.18` – это 0,18 ядра. **Pod Phase (Code)** – это код (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): агрегируйте его через «Максимум» или «Минимум», но никогда не через «Сумма». Метрики плоскости управления приходят только тогда, когда включён сбор метрик плоскости управления агентом. **Node Ready Condition** равно 1 при Ready, 0 при NotReady и -1 при Unknown — так выглядит упавший узел: оповещайте при значении меньше 1. **Container Restarts** — нарастающий счётчик перезапусков контейнера; **Container Restarts (Increase)** агент отправляет с каждым замером: перезапуски с его предыдущего замера контейнера, поэтому их сумма за окно — это перезапуски в нём.
+> **Pod CPU Usage** и **Node CPU Usage** измеряются в ядрах, а не в процентах: `0.18` – это 0,18 ядра. **Pod Phase (Code)** – это код (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): агрегируйте его через «Максимум» или «Минимум», но никогда не через «Сумма». Метрики плоскости управления приходят только тогда, когда включён сбор метрик плоскости управления агентом. **Node Ready Condition** равно 1 при Ready, 0 при NotReady и -1 при Unknown — так выглядит упавший узел: оповещайте при значении меньше 1. **Container Restarts** — нарастающий счётчик перезапусков контейнера; **Container Restarts (Increase)** агент отправляет с каждым замером: перезапуски с его предыдущего замера контейнера, поэтому их сумма за окно — это перезапуски в нём. **Job Failed Pods** — нарастающий счётчик неудачных подов задания (Job); **Job Failed Pods (Increase)** агент отправляет с каждым замером: поды задания, завершившиеся неудачей с его предыдущего замера этого задания, поэтому их сумма за окно — это сбои в нём.
 
 ## Критерии мониторинга
 
@@ -161,7 +161,7 @@ flowchart TB
 > **CrashLoopBackOff Detection** суммирует `k8s.container.restarts.increase`, который агент отправляет с каждым замером: перезапуски с его предыдущего замера контейнера. Поэтому он считает каждый перезапуск, как бы далеко ни отстояли замеры друг от друга, сам снимается, когда перезапуски прекращаются, а пересозданный под начинает новый отсчёт, а не читается как перезапуски. Старый агент не отправляет `k8s.container.restarts.increase`: сначала [обновите его](/docs/monitor/kubernetes-agent#обновление). Монитор, созданный из шаблона до этого, читает, насколько вырос `k8s.container.restarts` внутри каждой минуты, и пропускает около половины перезапусков цикла сбоев: удалите его и создайте шаблон заново.
 
 > [!NOTE]
-> **Job Failures** считает, насколько счётчик неудачных подов задания (Job) вырос за окно, а не сам счётчик, поэтому сам снимается, когда сбои прекращаются. Рост виден только между двумя замерами одной минуты: при 30-секундном интервале агента это примерно половина. Задание, исчерпавшее свои повторные попытки, обнаруживается; одиночный сбой может остаться незамеченным.
+> **Job Failures** суммирует `k8s.job.failed_pods.increase`, который агент отправляет с каждым замером: поды задания, завершившиеся неудачей с его предыдущего замера этого задания. Поэтому он считает каждый сбой, как бы далеко ни отстояли замеры друг от друга, сам снимается, когда сбои прекращаются, а задание, пересозданное под тем же именем, начинает новый отсчёт, а не читается как сбои. Сбои до первого замера задания агентом — это точка, с которой начинается его отсчёт, поэтому задание, которое завершается неудачей в первые полминуты и больше не повторяет попыток, может остаться незамеченным. Старый агент не отправляет `k8s.job.failed_pods.increase`: сначала [обновите его](/docs/monitor/kubernetes-agent#обновление). Монитор, созданный из шаблона до этого, читает, насколько вырос `k8s.job.failed_pods` внутри каждой минуты, и пропускает около половины сбоев: удалите его и создайте шаблон заново.
 
 ### Ловите причины, а не только симптомы
 
@@ -191,6 +191,10 @@ flowchart TB
 
 :::details CrashLoopBackOff Detection не сработал при перезапуске
 Шаблон срабатывает, когда контейнер перезапускается в течение 15 минут, а был готов меньше половины этого времени, поэтому контейнер, который перезапустился один раз и сразу вернулся, не оповещает. Он читает `k8s.container.restarts.increase`, который старый агент не отправляет: [обновите агент](/docs/monitor/kubernetes-agent#обновление). Монитор, созданный из шаблона до этого, читает, насколько вырос `k8s.container.restarts` между двумя замерами одной минуты, и пропускает перезапуски между замерами двух минут: удалите его и создайте шаблон заново. Если в `filters.metrics.include` перечислены метрики, которые отправляет агент, добавьте туда `k8s.container.restarts.increase`.
+:::
+
+:::details Job Failures не сработал при неудачном задании
+Шаблон срабатывает, когда под задания завершается неудачей в течение 15 минут, и снимается через пятнадцать минут после последнего сбоя. Он читает `k8s.job.failed_pods.increase`, который старый агент не отправляет: [обновите агент](/docs/monitor/kubernetes-agent#обновление). Монитор, созданный из шаблона до этого, читает, насколько вырос `k8s.job.failed_pods` между двумя замерами одной минуты, и пропускает сбои между замерами двух минут: удалите его и создайте шаблон заново. Сбои до первого замера задания агентом — это точка, с которой начинается его отсчёт, поэтому задание, единственный под которого завершается неудачей в первые полминуты, остаётся незамеченным. Если в `filters.metrics.include` перечислены метрики, которые отправляет агент, добавьте туда `k8s.job.failed_pods.increase`.
 :::
 
 ## Дальнейшие шаги

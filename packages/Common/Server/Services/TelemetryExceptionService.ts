@@ -32,6 +32,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Query from "../Types/Database/Query";
+import Select from "../Types/Database/Select";
 import Includes from "../../Types/BaseDatabase/Includes";
 import logger from "../Utils/Logger";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -153,6 +154,19 @@ export interface DashboardSummaryResult {
   serviceSummaries: Array<DashboardServiceSummary>;
 }
 
+/*
+ * A merged exception's fingerprint, and the exception it was merged into
+ * (TelemetryExceptionMerge): the occurrences that carry the fingerprint
+ * count there.
+ */
+export interface MergedFingerprintSurvivor {
+  // The merged exception's own fingerprint, which its occurrences keep.
+  fingerprint: string;
+  // The exception it was merged into.
+  survivorId: ObjectID;
+  survivorFingerprint: string;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -243,18 +257,63 @@ export class Service extends ProjectReferencesService<Model> {
       return query;
     }
 
+    const survivors: Array<MergedFingerprintSurvivor> =
+      await this.getMergedFingerprintSurvivors({
+        projectId: record["projectId"],
+        fingerprints,
+      });
+
+    return Service.withFingerprintAliases(
+      query,
+      survivors.map((survivor: MergedFingerprintSurvivor): string => {
+        return survivor.survivorFingerprint;
+      }),
+    );
+  }
+
+  /*
+   * THE EXCEPTION EACH MERGED FINGERPRINT WAS MERGED INTO.
+   *
+   * Of these fingerprints of occurrences, each that is a merged exception's,
+   * with the exception it was merged into: the one those occurrences count
+   * on. What withMergedFingerprintAliases widens a lookup with, and what a
+   * caller that matches the rows it looked up back to the fingerprints it
+   * asked about needs, as the rows it gets back carry their own fingerprint
+   * (getExceptionsByFingerprint). One read of the partial index on merged
+   * rows, as root - this is what the data means; who may see the survivors
+   * is up to the read they are looked up with. `projectId` is the project
+   * the fingerprints are of; left out, every project's (a query that names
+   * none). A fingerprint nothing was merged from is not listed. If the read
+   * fails, none is: each fingerprint then finds only its own exception, as
+   * before any merge.
+   */
+  @CaptureSpan()
+  public async getMergedFingerprintSurvivors(data: {
+    projectId?: unknown;
+    fingerprints: Array<string>;
+  }): Promise<Array<MergedFingerprintSurvivor>> {
+    const fingerprints: Array<string> = Service.distinctFingerprints(
+      data.fingerprints,
+    );
+
+    if (fingerprints.length === 0) {
+      return [];
+    }
+
     let merged: Array<Model> = [];
 
     try {
       merged = await this.findBy({
         query: {
-          ...(record["projectId"] !== undefined
-            ? { projectId: record["projectId"] }
+          ...(data.projectId !== undefined
+            ? { projectId: data.projectId }
             : {}),
           fingerprint: new Includes(fingerprints),
           mergedIntoTelemetryExceptionId: QueryHelper.notNull(),
         } as Query<Model>,
         select: {
+          fingerprint: true,
+          mergedIntoTelemetryExceptionId: true,
           mergedIntoTelemetryException: {
             fingerprint: true,
           },
@@ -270,14 +329,157 @@ export class Service extends ProjectReferencesService<Model> {
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      return query;
+      return [];
     }
 
-    return Service.withFingerprintAliases(
-      query,
-      merged.map((row: Model): string => {
-        return row.mergedIntoTelemetryException?.fingerprint || "";
-      }),
+    const survivors: Array<MergedFingerprintSurvivor> = [];
+
+    for (const row of merged) {
+      const fingerprint: string = row.fingerprint || "";
+      const survivorFingerprint: string =
+        row.mergedIntoTelemetryException?.fingerprint || "";
+
+      if (
+        !fingerprint ||
+        !survivorFingerprint ||
+        !row.mergedIntoTelemetryExceptionId
+      ) {
+        continue;
+      }
+
+      survivors.push({
+        fingerprint,
+        survivorId: row.mergedIntoTelemetryExceptionId,
+        survivorFingerprint,
+      });
+    }
+
+    return survivors;
+  }
+
+  /*
+   * THE EXCEPTIONS THE OCCURRENCES OF EACH FINGERPRINT COUNT ON.
+   *
+   * Among the rows a lookup by these fingerprints read - merged rows left
+   * out, the survivors of merged fingerprints brought in
+   * (withMergedFingerprintAliases) - for each fingerprint: the rows that
+   * carry it, then, for a merged exception's, the exception it was merged
+   * into. That one is found by its id, as the mapping names it: a row that
+   * only shares a survivor's fingerprint, in another service, is not it. A
+   * fingerprint none of the rows answers for is left out, and the rows of
+   * each are in the order they were read.
+   */
+  public static getExceptionsByFingerprint(data: {
+    fingerprints: Array<string>;
+    rows: Array<Model>;
+    survivors: Array<MergedFingerprintSurvivor>;
+  }): Map<string, Array<Model>> {
+    const rowById: Map<string, Model> = new Map();
+
+    for (const row of data.rows) {
+      const id: string = row.id?.toString().toLowerCase() || "";
+
+      if (id && !rowById.has(id)) {
+        rowById.set(id, row);
+      }
+    }
+
+    const exceptionsByFingerprint: Map<string, Array<Model>> = new Map();
+
+    for (const fingerprint of Service.distinctFingerprints(data.fingerprints)) {
+      const exceptions: Array<Model> = [];
+
+      const add: (row: Model | undefined) => void = (
+        row: Model | undefined,
+      ): void => {
+        if (row && !exceptions.includes(row)) {
+          exceptions.push(row);
+        }
+      };
+
+      for (const row of data.rows) {
+        if (row.fingerprint === fingerprint) {
+          add(row);
+        }
+      }
+
+      for (const survivor of data.survivors) {
+        if (survivor.fingerprint === fingerprint) {
+          add(rowById.get(survivor.survivorId.toString().toLowerCase()));
+        }
+      }
+
+      if (exceptions.length > 0) {
+        exceptionsByFingerprint.set(fingerprint, exceptions);
+      }
+    }
+
+    return exceptionsByFingerprint;
+  }
+
+  /*
+   * THE EXCEPTIONS THESE FINGERPRINTS OF OCCURRENCES COUNT ON, BY FINGERPRINT.
+   *
+   * The fingerprints a span, a log, a security event or a session replay
+   * names an exception by are its occurrences' fingerprints, which a merged
+   * exception's occurrences keep. So each is answered with the exceptions
+   * it is the fingerprint of, and a merged exception's with the exception
+   * it was merged into (getExceptionsByFingerprint): looked up with the
+   * caller's props, so only the exceptions they may read are answered,
+   * beside one read of what was merged into what
+   * (getMergedFingerprintSurvivors). `limit` is the most rows read.
+   */
+  @CaptureSpan()
+  public async findByOccurrenceFingerprints(data: {
+    projectId: ObjectID;
+    fingerprints: Array<string>;
+    select: Select<Model>;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Array<Model>>> {
+    const fingerprints: Array<string> = Service.distinctFingerprints(
+      data.fingerprints,
+    );
+
+    if (fingerprints.length === 0) {
+      return new Map();
+    }
+
+    const [rows, survivors]: [Array<Model>, Array<MergedFingerprintSurvivor>] =
+      await Promise.all([
+        this.findBy({
+          query: {
+            projectId: data.projectId,
+            fingerprint: new Includes(fingerprints),
+          },
+          select: { ...data.select, _id: true, fingerprint: true },
+          limit: data.limit,
+          skip: 0,
+          props: data.props,
+        }),
+        this.getMergedFingerprintSurvivors({
+          projectId: data.projectId,
+          fingerprints,
+        }),
+      ]);
+
+    return Service.getExceptionsByFingerprint({
+      fingerprints,
+      rows,
+      survivors,
+    });
+  }
+
+  // Each fingerprint once, as asked, without blanks.
+  private static distinctFingerprints(
+    fingerprints: Array<string>,
+  ): Array<string> {
+    return Array.from(
+      new Set(
+        fingerprints.filter((fingerprint: unknown): fingerprint is string => {
+          return typeof fingerprint === "string" && fingerprint.length > 0;
+        }),
+      ),
     );
   }
 

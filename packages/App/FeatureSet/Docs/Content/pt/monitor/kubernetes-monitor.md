@@ -86,12 +86,12 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Nó | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Contêiner | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carga de trabalho | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Carga de trabalho | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plano de controle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem: `0.18` é 0,18 de um núcleo. **Pod Phase (Code)** é um código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agregue-o com Máximo ou Mínimo, nunca com Soma. As métricas do plano de controle só chegam quando a coleta do plano de controle pelo agente está ativada. **Node Ready Condition** vale 1 em Ready, 0 em NotReady e -1 em Unknown, que é o que um nó que caiu informa: alerte abaixo de 1. **Container Restarts** é o contador acumulado de reinícios do contêiner; **Container Restarts (Increase)** é o que o agente envia com cada amostra: os reinícios desde a sua amostra anterior do contêiner, então a soma numa janela dá os reinícios nela.
+> **Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem: `0.18` é 0,18 de um núcleo. **Pod Phase (Code)** é um código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agregue-o com Máximo ou Mínimo, nunca com Soma. As métricas do plano de controle só chegam quando a coleta do plano de controle pelo agente está ativada. **Node Ready Condition** vale 1 em Ready, 0 em NotReady e -1 em Unknown, que é o que um nó que caiu informa: alerte abaixo de 1. **Container Restarts** é o contador acumulado de reinícios do contêiner; **Container Restarts (Increase)** é o que o agente envia com cada amostra: os reinícios desde a sua amostra anterior do contêiner, então a soma numa janela dá os reinícios nela. **Job Failed Pods** é o contador acumulado de pods com falha de um Job; **Job Failed Pods (Increase)** é o que o agente envia com cada amostra: os pods do Job que falharam desde a sua amostra anterior do Job, então a soma numa janela dá as falhas nela.
 
 ## Critérios de monitoramento
 
@@ -161,7 +161,7 @@ Os modelos baseados em métricas por objeto avaliam cada nó, pod, deployment, j
 > **CrashLoopBackOff Detection** soma `k8s.container.restarts.increase`, que o agente envia com cada amostra: os reinícios desde a sua amostra anterior do contêiner. Assim conta cada reinício, por mais distantes que estejam as amostras, se resolve sozinho quando os reinícios param, e um pod recriado começa uma contagem nova em vez de ser lido como reinícios. Um agente mais antigo não envia `k8s.container.restarts.increase`: [atualize-o](/docs/monitor/kubernetes-agent#atualização) primeiro. Um monitor criado a partir do modelo antes disso lê quanto `k8s.container.restarts` cresceu dentro de cada minuto, o que deixa passar cerca de metade dos reinícios de um crash loop: exclua-o e crie o modelo de novo.
 
 > [!NOTE]
-> **Job Failures** conta quanto o contador de pods com falha de um Job cresceu na janela, não o contador em si, então se resolve sozinho quando as falhas param. O crescimento só é visto entre duas amostras do mesmo minuto: no intervalo de 30 segundos do agente, isso é cerca de metade. Um Job que esgota as suas novas tentativas é detectado; uma única falha pode passar despercebida.
+> **Job Failures** soma `k8s.job.failed_pods.increase`, que o agente envia com cada amostra: os pods do Job que falharam desde a sua amostra anterior do Job. Assim conta cada falha, por mais distantes que estejam as amostras, se resolve sozinho quando as falhas param, e um Job recriado com o mesmo nome começa uma contagem nova em vez de ser lido como falhas. As falhas anteriores à primeira amostra de um Job pelo agente são o ponto de partida da sua contagem, então um Job que falha no seu primeiro meio minuto e nunca tenta de novo pode passar despercebido. Um agente mais antigo não envia `k8s.job.failed_pods.increase`: [atualize-o](/docs/monitor/kubernetes-agent#atualização) primeiro. Um monitor criado a partir do modelo antes disso lê quanto `k8s.job.failed_pods` cresceu dentro de cada minuto, o que deixa passar cerca de metade das falhas: exclua-o e crie o modelo de novo.
 
 ### Pegar as causas, não só os sintomas
 
@@ -191,6 +191,10 @@ Os clusters se registram sozinhos a partir dos dados do agente, com o `clusterNa
 
 :::details CrashLoopBackOff Detection não disparou com um reinício
 O modelo dispara quando um contêiner reinicia em 15 minutos enquanto ficou pronto menos da metade desse tempo, então um contêiner que reiniciou uma vez e voltou logo não alerta. Ele lê `k8s.container.restarts.increase`, que um agente mais antigo não envia: [atualize o agente](/docs/monitor/kubernetes-agent#atualização). Um monitor criado a partir do modelo antes disso lê quanto `k8s.container.restarts` cresceu entre duas amostras do mesmo minuto, e deixa passar os reinícios entre as amostras de dois minutos: exclua-o e crie o modelo de novo. Se `filters.metrics.include` lista as métricas que o agente envia, adicione `k8s.container.restarts.increase`.
+:::
+
+:::details Job Failures não disparou com um Job com falha
+O modelo dispara quando um pod de um Job falha em 15 minutos, e se resolve quinze minutos após a última falha. Ele lê `k8s.job.failed_pods.increase`, que um agente mais antigo não envia: [atualize o agente](/docs/monitor/kubernetes-agent#atualização). Um monitor criado a partir do modelo antes disso lê quanto `k8s.job.failed_pods` cresceu entre duas amostras do mesmo minuto, e deixa passar as falhas entre as amostras de dois minutos: exclua-o e crie o modelo de novo. As falhas anteriores à primeira amostra de um Job pelo agente são o ponto de partida da sua contagem, então um Job cujo único pod falha no seu primeiro meio minuto passa despercebido. Se `filters.metrics.include` lista as métricas que o agente envia, adicione `k8s.job.failed_pods.increase`.
 :::
 
 ## Próximos passos

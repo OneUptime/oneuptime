@@ -86,12 +86,12 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 | Podd | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Node Ready Condition** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Container Restarts** är containerns löpande omstartsräknare; **Container Restarts (Increase)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det.
+> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Node Ready Condition** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Container Restarts** är containerns löpande omstartsräknare; **Container Restarts (Increase)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. **Job Failed Pods** är ett Jobs löpande räknare för misslyckade poddar; **Job Failed Pods (Increase)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det.
 
 ## Övervakningskriterier
 
@@ -161,7 +161,7 @@ Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, 
 > **CrashLoopBackOff Detection** summerar `k8s.container.restarts.increase`, som agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern. Så den räknar varje omstart hur långt det än är mellan mätningarna, den rensas av sig själv när omstarterna upphör, och en podd som skapas på nytt börjar en ny räkning i stället för att läsas som omstarter. En äldre agent skickar inte `k8s.container.restarts.increase`: [uppgradera den](/docs/monitor/kubernetes-agent#uppgradering) först. En monitor som skapades från mallen innan dess läser hur mycket `k8s.container.restarts` växte inom varje minut, och missar därmed ungefär hälften av en kraschloops omstarter: ta bort den och skapa mallen igen.
 
 > [!NOTE]
-> **Job Failures** räknar hur mycket ett Jobs räknare för misslyckade poddar växte i fönstret, inte själva räknaren, så den rensas av sig själv när felen upphör. Tillväxten syns bara mellan två mätningar i samma minut: vid agentens intervall på 30 sekunder är det ungefär hälften. Ett Job som förbrukar sina nya försök fångas; ett enstaka fel kan passera obemärkt.
+> **Job Failures** summerar `k8s.job.failed_pods.increase`, som agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet. Så den räknar varje fel hur långt det än är mellan mätningarna, den rensas av sig själv när felen upphör, och ett Job som skapas på nytt under samma namn börjar en ny räkning i stället för att läsas som fel. Felen före agentens första mätning av ett Job är där dess räkning börjar, så ett Job som misslyckas inom sin första halvminut och aldrig försöker igen kan passera obemärkt. En äldre agent skickar inte `k8s.job.failed_pods.increase`: [uppgradera den](/docs/monitor/kubernetes-agent#uppgradering) först. En monitor som skapades från mallen innan dess läser hur mycket `k8s.job.failed_pods` växte inom varje minut, och missar därmed ungefär hälften av felen: ta bort den och skapa mallen igen.
 
 ### Fånga orsaker, inte bara symtom
 
@@ -191,6 +191,10 @@ Kluster registrerar sig själva utifrån agentens data, under det `clusterName` 
 
 :::details CrashLoopBackOff Detection utlöstes inte vid en omstart
 Mallen utlöses när en container startar om inom 15 minuter medan den var redo mindre än hälften av dem, så en container som startade om en gång och kom tillbaka direkt larmar inte. Den läser `k8s.container.restarts.increase`, som en äldre agent inte skickar: [uppgradera agenten](/docs/monitor/kubernetes-agent#uppgradering). En monitor som skapades från mallen innan dess läser hur mycket `k8s.container.restarts` växte mellan två mätningar i samma minut, och missar omstarterna mellan två minuters mätningar: ta bort den och skapa mallen igen. Om `filters.metrics.include` listar de mätvärden agenten skickar, lägg till `k8s.container.restarts.increase`.
+:::
+
+:::details Job Failures utlöstes inte vid ett misslyckat Job
+Mallen utlöses när en podd i ett Job misslyckas inom 15 minuter, och rensas femton minuter efter det senaste felet. Den läser `k8s.job.failed_pods.increase`, som en äldre agent inte skickar: [uppgradera agenten](/docs/monitor/kubernetes-agent#uppgradering). En monitor som skapades från mallen innan dess läser hur mycket `k8s.job.failed_pods` växte mellan två mätningar i samma minut, och missar felen mellan två minuters mätningar: ta bort den och skapa mallen igen. Felen före agentens första mätning av ett Job är där dess räkning börjar, så ett Job vars enda podd misslyckas inom sin första halvminut passerar obemärkt. Om `filters.metrics.include` listar de mätvärden agenten skickar, lägg till `k8s.job.failed_pods.increase`.
 :::
 
 ## Nästa steg
