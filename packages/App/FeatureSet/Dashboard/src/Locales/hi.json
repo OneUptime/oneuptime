@@ -39012,5 +39012,5 @@
   "Release to add them.": "जोड़ने के लिए छोड़ें।",
   "Chosen files": "चुनी गई फ़ाइलें",
   "Click to choose a file or drag & drop.": "फ़ाइल चुनने के लिए क्लिक करें या खींचकर छोड़ें।",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} इस अपवाद का हिस्सा बन जाएगा: इसकी अब तक की और हर नई घटना यहीं गिनी जाएगी, और यह सूची से हट जाएगा। आप इसे इसके पेज से फिर अलग कर सकते हैं।"
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} इस अपवाद का हिस्सा बन जाएगा: इसकी अब तक की और हर नई घटना यहीं गिनी जाएगी, और यह सूची से हट जाएगा। आप इसे इसके पेज से फिर अलग कर सकते हैं।"
 }

@@ -39012,5 +39012,5 @@
   "Release to add them.": "Släpp för att lägga till dem.",
   "Chosen files": "Valda filer",
   "Click to choose a file or drag & drop.": "Klicka för att välja en fil eller dra och släpp.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} blir en del av det här undantaget: dess förekomster, hittills och varje ny, räknas här, och det lämnar listan. Du kan dela upp det igen från dess sida."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} blir en del av det här undantaget: dess förekomster, hittills och varje ny, räknas här, och det lämnar listan. Du kan dela upp det igen från dess sida."
 }

@@ -39012,5 +39012,5 @@
   "Release to add them.": "Slipp for å legge dem til.",
   "Chosen files": "Valgte filer",
   "Click to choose a file or drag & drop.": "Klikk for å velge en fil, eller dra og slipp.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} blir en del av dette unntaket: forekomstene, de hittil og hver ny, telles her, og det forsvinner fra listen. Du kan dele det opp igjen fra siden dets."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} blir en del av dette unntaket: forekomstene, de hittil og hver ny, telles her, og det forsvinner fra listen. Du kan dele det opp igjen fra siden dets."
 }

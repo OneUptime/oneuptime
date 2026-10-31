@@ -369,7 +369,7 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title="Merge into this exception?"
           description={translator.translateTemplate(
-            "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.",
+            "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.",
             {
               name: mergeCandidate.message
                 ? `${mergeCandidate.exceptionType}: ${mergeCandidate.message}`

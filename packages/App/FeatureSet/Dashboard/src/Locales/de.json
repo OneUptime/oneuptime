@@ -39012,5 +39012,5 @@
   "Release to add them.": "Loslassen, um sie hinzuzufügen.",
   "Chosen files": "Ausgewählte Dateien",
   "Click to choose a file or drag & drop.": "Klicken Sie, um eine Datei auszuwählen, oder ziehen Sie sie hierher.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} wird Teil dieser Ausnahme: Ihre Vorkommen, die bisherigen und jedes neue, zählen hier, und sie verschwindet aus der Liste. Auf ihrer Seite können Sie sie wieder trennen."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} wird Teil dieser Ausnahme: Ihre Vorkommen, die bisherigen und jedes neue, zählen hier, und sie verschwindet aus der Liste. Auf ihrer Seite können Sie sie wieder trennen."
 }
