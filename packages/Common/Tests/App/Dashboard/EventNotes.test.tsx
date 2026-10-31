@@ -357,7 +357,12 @@ import Email from "../../../Types/Email";
 import MimeType from "../../../Types/File/MimeType";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
+import {
+  PrivateRecordScope,
+  PrivateRecordScopeContext,
+} from "../../../UI/Utils/PrivateRecordScope";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "../../../Types/StatusPage/SubscriberUpdateNotification";
 import PrivateRecordPublicNotes, {
@@ -2800,6 +2805,85 @@ describe("event notes: a private incident or episode", () => {
 
     // The private notes page, opened to write one (?compose=1).
     expect(link).toHaveAttribute("href", `${SIBLING_ROUTE}?compose=1`);
+  });
+
+  /*
+   * Only for a reader who may write a private note: on a private incident's
+   * page, a member whose owning team may only view it (block 33) used to be
+   * told "Use a private note." and sent to a private notes page whose
+   * composer is locked. The page's private record scope decides.
+   */
+  describe("for a reader whose team that owns it may not write a private note either", () => {
+    const REFUSAL_ALONE: string =
+      "This incident is private, so public notes cannot be added to it.";
+
+    function scopeHolding(permissions: Array<Permission>): PrivateRecordScope {
+      return {
+        tableName: "Incident",
+        held: HeldPermissionsUtil.fromRows({
+          rows: permissions.map((permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          }),
+          globalPermissions: [],
+        }),
+        reason:
+          "This incident is private, so it is changed only with the permissions of the teams that own it, and Checkout SRE, your team that owns it, may not do this.",
+      };
+    }
+
+    async function renderPublicIn(scope: PrivateRecordScope): Promise<void> {
+      render(
+        <PrivateRecordScopeContext.Provider value={scope}>
+          <EventNotes<IncidentPublicNote>
+            {...publicProps({
+              isPrivateEvent: true,
+              siblingModelType: IncidentInternalNote,
+            })}
+          />
+        </PrivateRecordScopeContext.Provider>,
+      );
+      await waitFor(() => {
+        expect(screen.queryByTestId("notes-loading")).toBeNull();
+      });
+    }
+
+    beforeEach(() => {
+      isMasterAdmin = false;
+      // Another team of theirs may change every incident.
+      currentPermissions = [Permission.ProjectMember];
+    });
+
+    test("says why, and points to no private note", async () => {
+      await renderPublicIn(scopeHolding([Permission.Viewer]));
+
+      const message: HTMLElement = screen.getByTestId(
+        "note-composer-private-event",
+      );
+
+      expect(message).toHaveTextContent(REFUSAL_ALONE);
+      expect(message.textContent).not.toContain("Use a private note");
+      expect(within(message).queryByRole("link")).toBeNull();
+    });
+
+    test("once that team may write notes, points to them again", async () => {
+      await renderPublicIn(scopeHolding([Permission.IncidentMember]));
+
+      const message: HTMLElement = screen.getByTestId(
+        "note-composer-private-event",
+      );
+
+      expect(message).toHaveTextContent(
+        "This incident is private, so public notes cannot be added to it. Use a private note.",
+      );
+      expect(
+        within(message).getByRole("link", { name: "Add Private Note" }),
+      ).toHaveAttribute("href", `${SIBLING_ROUTE}?compose=1`);
+    });
   });
 
   test("the header says what its notes are, and that no status page shows them while it is private", async () => {

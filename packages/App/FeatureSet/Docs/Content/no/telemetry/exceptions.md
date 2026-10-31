@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Telt igjen; gjenåpnet<br/>hvis det var løst"]
 ```
 
-- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak.
+- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak. Et nytt unntak grupperes i stedet etter typen og funksjonene og filene i din egen kode i stack trace: linjenumre, bibliotekframes og meldingen holdes utenfor, så varianter kastet fra den samme koden er ett unntak. Uten stack trace grupperer meldingen det, som over. Unntak registrert før denne grupperingen beholder sin.
 - **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen, og unntaket merkes som **Regresjon**. En forekomst fra før du løste det, som først når OneUptime senere, gjenåpner det ikke.
 - **Et arkivert unntak forblir arkivert.** De nye forekomstene telles fortsatt, men de sender ikke lenger varsler.
 
@@ -198,7 +198,7 @@ Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisning
 :::
 
 :::details Én feil vises som flere unntak
-Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak.
+Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**.
 :::
 
 :::details Et løst unntak kommer stadig tilbake

@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "ケースの対象ユーザー (検出がグループ化されているユーザー、または脅威インテリジェンスが把握しているユーザー) を Google Workspace で停止します。停止が解除されるまでサインインをブロックします。",
   "Suspend the user in Google Workspace": "Google Workspace でユーザーを停止",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "操作に使う Google Workspace の接続。ドメイン全体の委任には admin.directory.user と admin.directory.user.security のスコープが必要です。接続の追加とテストは ソース > 接続 で行います。",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "このインシデントは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{team}}にはこの操作が許可されていません。",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "このインシデントは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{teams}}にはこの操作が許可されていません。",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "このインシデントは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチームにはこの操作が許可されていません。",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "このアラートは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{team}}にはこの操作が許可されていません。",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "このアラートは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{teams}}にはこの操作が許可されていません。",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "このアラートは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチームにはこの操作が許可されていません。",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "このエピソードは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{team}}にはこの操作が許可されていません。",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "このエピソードは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{teams}}にはこの操作が許可されていません。",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "このエピソードは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチームにはこの操作が許可されていません。",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "ケースの対象ユーザーの停止を Google Workspace で解除し、再びサインインできるようにします。「Google Workspace でユーザーを停止」を元に戻す操作です。",
   "Unsuspend the user in Google Workspace": "Google Workspace でユーザーの停止を解除",
   "What's new": "新着",
@@ -38960,6 +38969,8 @@
   "Number of new exceptions": "新しい例外の件数",
   "Rise over the usual (in %)": "通常を上回る増加 (%)",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "このグラフは発生した例外の件数を示します。新しい例外、再発した例外、通常を上回る増加では表示されません。",
+  "This incident is private, so public notes cannot be added to it.": "このインシデントは非公開のため、公開メモを追加できません。",
+  "This episode is private, so public notes cannot be added to it.": "このエピソードは非公開のため、公開メモを追加できません。",
   "{{monitorName}}: a new exception": "{{monitorName}}: 新しい例外",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 解決済みの例外が再発",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: 例外が急増",
@@ -39001,5 +39012,5 @@
   "Release to add them.": "離すと追加されます。",
   "Chosen files": "選択したファイル",
   "Click to choose a file or drag & drop.": "クリックしてファイルを1つ選択するか、ドラッグ＆ドロップしてください。",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。"
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} はこの例外の一部になります。これまでの発生も新しい発生もここで数えられ、一覧からは消えます。統合はその例外のページから解除できます。"
 }

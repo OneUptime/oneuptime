@@ -88,7 +88,10 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentPostmortemTemplate from "../../../Models/DatabaseModels/IncidentPostmortemTemplate";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import Permission from "../../../Types/Permission";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../Types/HeldPermissions";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 
@@ -334,6 +337,69 @@ describe("the Postmortem card's buttons", () => {
         onApplyTemplate: () => {},
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * A PRIVATE EPISODE (block 33) is changed only with the permissions of
+   * the teams that own it. Its Postmortem page's Edit locked for a member
+   * whose owning team may only view it, while Apply Template and Generate
+   * with AI - which end in saving the postmortem - stayed offered, through
+   * another team's permission. The page hands them what the reader holds on
+   * the episode (PrivateRecordScope).
+   */
+  test("on a private episode, lock as its Edit does for a member whose owning team may only view it", () => {
+    // Another team of theirs may change every episode.
+    permissionsForTest = [Permission.ProjectMember];
+
+    const reason: string =
+      "This episode is private, so it is changed only with the permissions of the teams that own it, and Checkout SRE, your team that owns it, may not do this.";
+    const heldOf: (permissions: Array<Permission>) => HeldPermissions = (
+      permissions: Array<Permission>,
+    ): HeldPermissions => {
+      return HeldPermissionsUtil.fromRows({
+        rows: permissions.map((permission: Permission): UserPermission => {
+          return {
+            _type: "UserPermission",
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+          };
+        }),
+        globalPermissions: [],
+      });
+    };
+    const buttonsHolding: (
+      permissions: Array<Permission>,
+    ) => Array<CardButtonSchema> = (
+      permissions: Array<Permission>,
+    ): Array<CardButtonSchema> => {
+      return getPostmortemCardButtons({
+        model: new IncidentEpisode(),
+        privateRecordOptions: {
+          held: heldOf(permissions),
+          privateRecordReason: reason,
+        },
+        hasTemplates: true,
+        isAiOffered: true,
+        onGenerateWithAI: () => {},
+        onApplyTemplate: () => {},
+      });
+    };
+
+    const locked: Array<CardButtonSchema> = buttonsHolding([Permission.Viewer]);
+
+    expect(titles(locked)).toEqual(["Generate with AI", "Apply Template"]);
+    for (const button of locked) {
+      expect(button.disabled).toBe(true);
+      expect(button.tooltip).toBe(
+        `You do not have permission to update this Incident Episode. ${reason}`,
+      );
+    }
+
+    // Once that team may change episodes, both are offered again.
+    for (const button of buttonsHolding([Permission.IncidentMember])) {
+      expect(button.disabled).toBeFalsy();
+    }
   });
 });
 

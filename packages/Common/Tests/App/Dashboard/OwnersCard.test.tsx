@@ -79,8 +79,12 @@ import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../Types/HeldPermissions";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import { PrivateRecordScopeContext } from "../../../UI/Utils/PrivateRecordScope";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const INCIDENT_ID: string = "22222222-2222-4222-8222-222222222221";
@@ -522,10 +526,11 @@ describe("OwnersCard", () => {
 
     renderCard();
 
-    await screen.findByRole("button", { name: "Remove Ada Lovelace" });
-
     // The "+" after the avatars: still there, locked, saying why.
-    const locked: HTMLElement = screen.getByTestId("owners-add-locked");
+    const locked: HTMLElement = await screen.findByTestId("owners-add-locked");
+
+    // And no owner offers to be removed: a refusal is not a shortcut.
+    expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
     const button: HTMLElement = within(locked).getByRole("button", {
       name: "Add owner",
     });
@@ -566,6 +571,114 @@ describe("OwnersCard", () => {
     expect(
       within(dialog).getByTestId("people-search-locked-kind"),
     ).toHaveTextContent("You do not have permission to add teams as owners.");
+  });
+
+  /*
+   * An owner's remove button is a shortcut on the avatar: offered for each
+   * kind of owner only to a reader who may remove that kind, so it never
+   * leads to a refusal they could have been spared.
+   */
+  test("a reader who may remove people but not teams is offered Remove on the people only", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([
+        Permission.IncidentViewer,
+        Permission.DeleteIncidentOwnerUser,
+      ]);
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+
+    renderCard();
+
+    expect(
+      await screen.findByRole("button", { name: "Remove Ada Lovelace" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove Platform" }),
+    ).toBeNull();
+  });
+
+  /*
+   * A PRIVATE INCIDENT'S OWNERS PAGE (block 33): the incident is changed
+   * only with the permissions of the teams that own it, and its owners are
+   * a part of it. The page hands the card what the reader holds on it
+   * (PrivateRecordScope). A member whose owning team may only view it -
+   * while another team of theirs may change every incident - reads its
+   * owners, finds Add owner locked saying why, and is offered no Remove.
+   */
+  describe("on a private incident's Owners page", () => {
+    const PRIVATE_REASON: string =
+      "This incident is private, so it is changed only with the permissions of the teams that own it, and Checkout SRE, your team that owns it, may not do this.";
+
+    function heldOf(permissions: Array<Permission>): HeldPermissions {
+      return HeldPermissionsUtil.fromRows({
+        rows: permissions.map((permission: Permission): UserPermission => {
+          return {
+            _type: "UserPermission",
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+          };
+        }),
+        globalPermissions: [],
+      });
+    }
+
+    function renderOnPrivateIncident(held: HeldPermissions): void {
+      render(
+        <PrivateRecordScopeContext.Provider
+          value={{ tableName: "Incident", held: held, reason: PRIVATE_REASON }}
+        >
+          <OwnersCard<IncidentOwnerUser, IncidentOwnerTeam>
+            resourceId={new ObjectID(INCIDENT_ID)}
+            resourceIdField="incidentId"
+            resourceDisplayName="incident"
+            ownerUserModelType={IncidentOwnerUser}
+            ownerTeamModelType={IncidentOwnerTeam}
+          />
+        </PrivateRecordScopeContext.Provider>,
+      );
+    }
+
+    beforeEach(() => {
+      // Their whole snapshot may change every incident, through another team.
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.ProjectMember]);
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+    });
+
+    test("a view-only owning team: the owners are read, Add owner is locked saying why, and nobody offers to be removed", async () => {
+      renderOnPrivateIncident(heldOf([Permission.Viewer]));
+
+      const locked: HTMLElement =
+        await screen.findByTestId("owners-add-locked");
+
+      expect(screen.getByText(/1 person · 1 team/)).toBeInTheDocument();
+      expect(
+        within(locked).getByRole("button", { name: "Add owner" }),
+      ).toBeDisabled();
+      expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
+
+      // The lock says why: the incident's rule, not a permission they hold.
+      fireEvent.mouseEnter(locked);
+      const tooltips: Array<HTMLElement> = screen.getAllByRole("tooltip");
+      expect(tooltips[tooltips.length - 1]).toHaveTextContent(
+        `You do not have permission to add owners. ${PRIVATE_REASON}`,
+      );
+    });
+
+    test("an owning team that may change incidents: Add owner and every Remove are offered", async () => {
+      renderOnPrivateIncident(heldOf([Permission.IncidentMember]));
+
+      expect(
+        await screen.findByRole("button", { name: "Remove Ada Lovelace" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Remove Platform" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId("owners-add-locked")).toBeNull();
+      expect(screen.getByTestId("owners-add-circle")).toBeEnabled();
+    });
   });
 
   /*

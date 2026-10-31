@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Заблокировать в Google Workspace пользователя, о котором кейс: того, по кому сгруппированы обнаружения, или известного разведке угроз. Запрещает вход до разблокировки.",
   "Suspend the user in Google Workspace": "Заблокировать пользователя в Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "Подключение Google Workspace, через которое выполняется действие. Его делегированию на уровне домена нужны области admin.directory.user и admin.directory.user.security. Добавить или проверить подключения можно в разделе Источники > Подключения.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Этот инцидент приватный, поэтому его можно изменить только с правами команд, которым он принадлежит, а {{team}} — ваша команда, которой он принадлежит, — не может этого сделать.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Этот инцидент приватный, поэтому его можно изменить только с правами команд, которым он принадлежит, а {{teams}} — ваши команды, которым он принадлежит, — не могут этого сделать.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Этот инцидент приватный, поэтому его можно изменить только с правами команд, которым он принадлежит, а ваши команды, которым он принадлежит, не могут этого сделать.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Это оповещение приватное, поэтому его можно изменить только с правами команд, которым оно принадлежит, а {{team}} — ваша команда, которой оно принадлежит, — не может этого сделать.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Это оповещение приватное, поэтому его можно изменить только с правами команд, которым оно принадлежит, а {{teams}} — ваши команды, которым оно принадлежит, — не могут этого сделать.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Это оповещение приватное, поэтому его можно изменить только с правами команд, которым оно принадлежит, а ваши команды, которым оно принадлежит, не могут этого сделать.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Этот эпизод приватный, поэтому его можно изменить только с правами команд, которым он принадлежит, а {{team}} — ваша команда, которой он принадлежит, — не может этого сделать.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Этот эпизод приватный, поэтому его можно изменить только с правами команд, которым он принадлежит, а {{teams}} — ваши команды, которым он принадлежит, — не могут этого сделать.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Этот эпизод приватный, поэтому его можно изменить только с правами команд, которым он принадлежит, а ваши команды, которым он принадлежит, не могут этого сделать.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Разблокировать в Google Workspace пользователя из кейса, чтобы он снова мог входить: отмена шага «Заблокировать пользователя в Google Workspace».",
   "Unsuspend the user in Google Workspace": "Разблокировать пользователя в Google Workspace",
   "What's new": "Что нового",
@@ -38960,6 +38969,8 @@
   "Number of new exceptions": "Число новых исключений",
   "Rise over the usual (in %)": "Рост выше обычного (в %)",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "График показывает, сколько исключений произошло. Для новых исключений, вернувшихся исключений и роста выше обычного он не строится.",
+  "This incident is private, so public notes cannot be added to it.": "Этот инцидент приватный, поэтому к нему нельзя добавлять публичные заметки.",
+  "This episode is private, so public notes cannot be added to it.": "Этот эпизод приватный, поэтому к нему нельзя добавлять публичные заметки.",
   "{{monitorName}}: a new exception": "{{monitorName}}: новое исключение",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: устранённое исключение вернулось",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений",
@@ -39001,5 +39012,5 @@
   "Release to add them.": "Отпустите, чтобы добавить их.",
   "Chosen files": "Выбранные файлы",
   "Click to choose a file or drag & drop.": "Нажмите, чтобы выбрать файл, или перетащите его сюда.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} становится частью этого исключения: его появления, прошлые и каждое новое, учитываются здесь, а само оно уходит из списка. Разъединить их можно на его странице."
 }

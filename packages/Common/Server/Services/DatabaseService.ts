@@ -36,6 +36,9 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import PrivateRecordPermission, {
+  PrivateRecordColumn,
+} from "../Types/Database/Permissions/PrivateRecordPermission";
 import PublicPermission from "../Types/Database/Permissions/PublicPermission";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
@@ -10751,12 +10754,104 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (isReadable) {
+      const privateReason: string | null =
+        await this.getPrivateRecordWriteRefusal(data);
+
       return new NotAuthorizedException(
-        `You do not have permission to ${data.type} this ${name.toLowerCase()}.`,
+        `You do not have permission to ${data.type} this ${name.toLowerCase()}.${
+          privateReason ? ` ${privateReason}` : ""
+        }`,
       );
     }
 
     return new NotFoundException(`${name} not found.`);
+  }
+
+  /*
+   * Why a change or a delete of a record the caller may read did not reach
+   * it, when the reason is that the record - or the incident, alert or
+   * episode it is a part of - is private and the caller's permission for
+   * the write is not one of its owners' (PrivateRecordPermission): what
+   * would let them, in the words the API, Slack and Microsoft Teams answer
+   * with. Null for any other reason, which the caller is told as before.
+   */
+  private async getPrivateRecordWriteRefusal(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<string | null> {
+    if (
+      !PrivateRecordPermission.narrows(this.modelType, data.props, data.type)
+    ) {
+      return null;
+    }
+
+    const columns: Array<PrivateRecordColumn> =
+      PrivateRecordPermission.getPrivateRecordColumns(this.modelType);
+
+    // A part of private records: the keys naming them, read as OneUptime.
+    const part: TBaseModel | null = columns.some(
+      (column: PrivateRecordColumn): boolean => {
+        return !column.isRecord;
+      },
+    )
+      ? await this.findOneById({
+          id: data.id,
+          select: Object.fromEntries(
+            columns.map((column: PrivateRecordColumn): [string, true] => {
+              return [column.column, true];
+            }),
+          ) as Select<TBaseModel>,
+          props: { isRoot: true },
+        })
+      : null;
+
+    for (const column of columns) {
+      const key: unknown = column.isRecord
+        ? data.id
+        : part?.getValue(column.column);
+      const recordId: string | null = key ? key.toString() : null;
+
+      if (!recordId || !ObjectID.isValidUUID(recordId)) {
+        continue;
+      }
+
+      const query: Query<BaseModel> | null =
+        PrivateRecordPermission.getUnreachableRecordsQuery({
+          modelType: this.modelType,
+          recordModelType: column.recordModelType,
+          recordIds: [recordId],
+          props: data.props,
+          type: data.type,
+        });
+
+      if (!query) {
+        continue;
+      }
+
+      const unreachable: Array<string> = await DatabaseService.findIdsInProject(
+        {
+          modelType: column.recordModelType,
+          ids: [recordId],
+          query: query,
+          projectId: data.props.tenantId || null,
+        },
+      );
+
+      if (unreachable.length === 0) {
+        continue;
+      }
+
+      return column.isRecord
+        ? PrivateRecordPermission.PRIVATE_WRITE_REASON
+        : PrivateRecordPermission.getPrivateParentWriteReason(
+            (
+              new column.recordModelType().singularName || "record"
+            ).toLowerCase(),
+          );
+    }
+
+    return null;
   }
 
   @CaptureSpan()

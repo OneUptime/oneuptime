@@ -89,8 +89,16 @@ describe.each(EPISODE_PAGES)("$name page", (page: EpisodePage) => {
 
   test(`its ${page.buttonTitle} button is gated on adding to an episode and on reading what is added`, () => {
     expect(code).toContain(`title: "${page.buttonTitle}"`);
+    /*
+     * A member row is a part of the episode: on a private one, asked with
+     * what the reader holds on it - a team of theirs that owns the episode
+     * must be allowed to add to it (PrivateRecordScope).
+     */
     expect(code).toContain(
-      `new ${page.memberModel}(), ModelAction.Create, ), PermissionGate.check(new ${page.recordModel}(), ModelAction.Read), );`,
+      `new ${page.memberModel}(), ModelAction.Create, privateRecordGate(new ${page.memberModel}()), ), PermissionGate.check(new ${page.recordModel}(), ModelAction.Read), );`,
+    );
+    expect(code).toContain(
+      "const privateRecordGate: ( model: BaseModel, ) => PermissionGateOptions | undefined = usePrivateRecordGate();",
     );
     expect(code).toContain("lockUnlessAllowed( PermissionGate.gateCardButton(");
   });

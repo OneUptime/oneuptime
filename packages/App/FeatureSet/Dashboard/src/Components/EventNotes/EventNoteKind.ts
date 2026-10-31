@@ -112,6 +112,12 @@ export interface EventNoteKind<TNote extends BaseModel> {
   // The other kind of note's page for the same event.
   siblingRoute?: Route | undefined;
   /*
+   * The other kind of note's model, where a page says to write one instead:
+   * a private incident's or episode's Public Notes page points to its
+   * private notes only for a reader who may write one.
+   */
+  siblingModelType?: { new (): BaseModel } | undefined;
+  /*
    * The event is a private incident or episode, which takes no public notes
    * (Common/Types/StatusPage/PrivateRecordPublicNotes). Set on a public
    * note kind: its Notes page keeps the public notes the event already has

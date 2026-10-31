@@ -7,6 +7,7 @@ import AccessControlPermission, { LabelGrant } from "./AccessControlPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import PermissionUtil from "./PermissionsUtil";
+import PrivateRecordPermission from "./PrivateRecordPermission";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
 import ReadPermission, { RecordOperation } from "./ReadPermission";
@@ -166,6 +167,9 @@ export default class BasePermission {
    *     (AccessControlPermission.addGrantToQuery). A caller's access is the
    *     union of their teams' grants: read as the labels alone, it denied
    *     what the Owned grant gave;
+   *   - on an update and a delete, a private incident, alert or episode,
+   *     and the parts of one, only where the caller owns it or a team
+   *     granting the operation does (PrivateRecordPermission);
    *   - the record a model is read through (@CanAccessIfCanReadOn): one the
    *     caller may read, and on an update one they may update - by the
    *     labels and the owners the caller's grants on it are limited to
@@ -342,6 +346,22 @@ export default class BasePermission {
         teamIds,
       );
     }
+
+    /*
+     * A private incident, alert or episode, and every part of one (its
+     * notes, owners, state timeline, roles), is changed and deleted only
+     * through the teams that own it: each team's permission reaches the
+     * private records that team owns, and a person's the ones they own
+     * themselves - never the private records only another of their teams
+     * owns, which let them see it (PrivateRecordPermission). Reads are left
+     * to the privacy filters.
+     */
+    query = PrivateRecordPermission.addPrivateRecordScopeToQuery(
+      modelType,
+      query,
+      props,
+      type,
+    );
 
     return await BasePermission.addParentAccessToQuery(
       modelType,

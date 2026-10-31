@@ -1,4 +1,6 @@
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
@@ -31,6 +33,7 @@ import type { WorkspaceCustomFieldsForm } from "./WorkspaceIncidentCustomFields"
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
 import IncidentService from "../../Services/IncidentService";
+import DatabaseService from "../../Services/DatabaseService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateService from "../../Services/IncidentStateService";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
@@ -382,9 +385,28 @@ export default class WorkspaceIncidentActions {
         props: data.props,
         select: {
           title: true,
+          isPrivate: true,
         },
         action: check.action,
       });
+
+    /*
+     * A private incident they see is changed only with the permissions of
+     * the teams that own it (PrivateRecordPermission): told so before the
+     * form opens, never after it is filled in.
+     */
+    await WorkspaceActionAuthorization.assertReachesPrivateRecord({
+      props: data.props,
+      modelType: check.kind === "create" ? check.modelType : Incident,
+      type:
+        check.kind === "create"
+          ? DatabaseRequestType.Create
+          : DatabaseRequestType.Update,
+      service: IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
+      id: data.incidentId,
+      action: check.action,
+      readRecord: found.record,
+    });
 
     return { event: found.event, title: found.record.title || "" };
   }

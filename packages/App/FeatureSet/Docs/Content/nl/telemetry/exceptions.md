@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Opnieuw geteld;<br/>heropend als opgelost"]
 ```
 
-- **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering.
+- **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering. Een nieuwe uitzondering wordt in plaats daarvan gegroepeerd op haar type en de functies en bestanden van uw eigen code in de stacktrace: regelnummers, bibliotheekframes en het bericht tellen niet mee, zodat varianten uit dezelfde code één uitzondering zijn. Zonder stacktrace groepeert haar bericht haar, zoals hierboven. Uitzonderingen die vóór deze groepering zijn vastgelegd, houden de hunne.
 - **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand, en de uitzondering wordt gemarkeerd als **Regressie**. Een voorval van vóór het oplossen dat OneUptime pas later bereikt, heropent haar niet.
 - **Een gearchiveerde uitzondering blijft gearchiveerd.** Haar nieuwe voorvallen worden nog geteld, maar sturen geen meldingen meer.
 
@@ -198,7 +198,7 @@ Controleer eerst de weergave: **Problemen** verbergt gebruikersfouten en verwach
 :::
 
 :::details Eén fout verschijnt als meerdere uitzonderingen
-De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering.
+De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering. Nieuwe uitzonderingen worden in plaats daarvan gegroepeerd op de functies van uw eigen code, dus dit geldt vooral voor eerder vastgelegde uitzonderingen; voeg er twee die dezelfde bug zijn samen via **Vergelijkbare uitzonderingen**.
 :::
 
 :::details Een opgeloste uitzondering komt steeds terug

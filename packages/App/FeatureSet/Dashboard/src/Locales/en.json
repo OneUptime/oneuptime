@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.",
   "Suspend the user in Google Workspace": "Suspend the user in Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.",
   "Unsuspend the user in Google Workspace": "Unsuspend the user in Google Workspace",
   "What's new": "What's new",
@@ -38960,6 +38969,8 @@
   "Number of new exceptions": "Number of new exceptions",
   "Rise over the usual (in %)": "Rise over the usual (in %)",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.",
+  "This incident is private, so public notes cannot be added to it.": "This incident is private, so public notes cannot be added to it.",
+  "This episode is private, so public notes cannot be added to it.": "This episode is private, so public notes cannot be added to it.",
   "{{monitorName}}: a new exception": "{{monitorName}}: a new exception",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: a resolved exception came back",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: exceptions spiked",
@@ -39001,5 +39012,5 @@
   "Release to add them.": "Release to add them.",
   "Chosen files": "Chosen files",
   "Click to choose a file or drag & drop.": "Click to choose a file or drag & drop.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page."
 }

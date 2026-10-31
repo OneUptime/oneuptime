@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Suspender i Google Workspace den bruger, sagen handler om: den, detektionerne er grupperet efter, eller en, trusselsinformationen kender. Blokerer login, til suspenderingen ophæves.",
   "Suspend the user in Google Workspace": "Suspender brugeren i Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "Den Google Workspace-forbindelse, der handles igennem. Dens domæneomfattende delegering skal have scopes admin.directory.user og admin.directory.user.security. Tilføj eller test forbindelser under Kilder > Forbindelser.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Denne hændelse er privat, så kun tilladelserne for de teams, der ejer den, gælder, og {{team}}, dit team, der ejer den, må ikke gøre dette.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Denne hændelse er privat, så kun tilladelserne for de teams, der ejer den, gælder, og {{teams}}, dine teams, der ejer den, må ikke gøre dette.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Denne hændelse er privat, så kun tilladelserne for de teams, der ejer den, gælder, og dine teams, der ejer den, må ikke gøre dette.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Denne advarsel er privat, så kun tilladelserne for de teams, der ejer den, gælder, og {{team}}, dit team, der ejer den, må ikke gøre dette.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Denne advarsel er privat, så kun tilladelserne for de teams, der ejer den, gælder, og {{teams}}, dine teams, der ejer den, må ikke gøre dette.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Denne advarsel er privat, så kun tilladelserne for de teams, der ejer den, gælder, og dine teams, der ejer den, må ikke gøre dette.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Denne episode er privat, så kun tilladelserne for de teams, der ejer den, gælder, og {{team}}, dit team, der ejer den, må ikke gøre dette.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Denne episode er privat, så kun tilladelserne for de teams, der ejer den, gælder, og {{teams}}, dine teams, der ejer den, må ikke gøre dette.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Denne episode er privat, så kun tilladelserne for de teams, der ejer den, gælder, og dine teams, der ejer den, må ikke gøre dette.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Ophæv i Google Workspace suspenderingen af den bruger, sagen handler om, så brugeren kan logge ind igen: fortryder Suspender brugeren i Google Workspace.",
   "Unsuspend the user in Google Workspace": "Ophæv suspenderingen af brugeren i Google Workspace",
   "What's new": "Hvad er nyt",
@@ -38960,6 +38969,8 @@
   "Number of new exceptions": "Antal nye undtagelser",
   "Rise over the usual (in %)": "Stigning over det sædvanlige (i %)",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "Diagrammet viser, hvor mange undtagelser der skete. Det tegnes ikke for nye undtagelser, undtagelser, der kom tilbage, eller en stigning over det sædvanlige.",
+  "This incident is private, so public notes cannot be added to it.": "Denne hændelse er privat, så der kan ikke tilføjes offentlige noter til den.",
+  "This episode is private, so public notes cannot be added to it.": "Denne episode er privat, så der kan ikke tilføjes offentlige noter til den.",
   "{{monitorName}}: a new exception": "{{monitorName}}: en ny undtagelse",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: en løst undtagelse kom tilbage",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: undtagelser toppede",
@@ -39001,5 +39012,5 @@
   "Release to add them.": "Slip for at tilføje dem.",
   "Chosen files": "Valgte filer",
   "Click to choose a file or drag & drop.": "Klik for at vælge en fil, eller træk og slip.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} bliver en del af denne undtagelse: dens forekomster, de hidtidige og hver ny, tælles her, og den forsvinder fra listen. Du kan fjerne fletningen fra dens side."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} bliver en del af denne undtagelse: dens forekomster, de hidtidige og hver ny, tælles her, og den forsvinder fra listen. Du kan fjerne fletningen fra dens side."
 }

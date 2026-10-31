@@ -13,6 +13,7 @@ import PermissionScope from "../../../Types/Database/AccessControl/PermissionSco
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import PrivateRecordPermission from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
 import { getJestSpyOn } from "../../Spy";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
@@ -166,6 +167,22 @@ let service: NoteService;
 
 beforeEach(() => {
   stubProjectDirectory({});
+  /*
+   * A part goes under a private incident only through the teams that own it
+   * (PrivateRecordPermission): the parent read then carries the write's
+   * reach, and a parent it leaves out is read again to say why. Its own
+   * suites hold that (CreateUnderParentScopeEveryModel,
+   * PrivateRecordPermission, PrivateRecordOwnerTeamsPostgres); this one
+   * holds the read itself, for parents that are not private.
+   */
+  getJestSpyOn(
+    PrivateRecordPermission,
+    "isWriteUnderRecordsNarrowed",
+  ).mockReturnValue(false as never);
+  getJestSpyOn(
+    PrivateRecordPermission,
+    "getUnreachableParentIds",
+  ).mockResolvedValue([] as never);
   parentReads = [];
   readableIncidentIds = [INCIDENT_ID];
   service = new NoteService();

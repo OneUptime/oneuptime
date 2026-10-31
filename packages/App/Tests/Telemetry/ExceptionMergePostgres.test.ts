@@ -1,5 +1,6 @@
 import ExceptionUtil, {
   TelemetryExceptionPayload,
+  clearExistingV1FingerprintCache,
 } from "../../FeatureSet/Telemetry/Utils/Exception";
 import Entities from "Common/Models/DatabaseModels/Index";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
@@ -316,6 +317,40 @@ describePostgres("merging exceptions against Postgres", () => {
     await unmerge("c");
     expect((await read("a")).occuranceCount).toBe(1);
     expect((await read("c")).occuranceCount).toBe(4);
+  });
+
+  /*
+   * Grouping v2 on the same database: an exception made before it keeps its
+   * v1 fingerprint and keeps receiving occurrences by it; every other
+   * occurrence is grouped by its v2 fingerprint, so a variant with other line
+   * numbers (another v1, the same v2) joins the new exception.
+   */
+  test("grouping v2: an existing exception keeps its first fingerprint, a new one is made under v2, and its variants join it", async () => {
+    clearExistingV1FingerprintCache();
+
+    // Made before grouping v2: its occurrences carried no v2 fingerprint.
+    await ingest(["old-v1"]);
+
+    const withV2: (v1: string, v2: string) => TelemetryExceptionPayload = (
+      v1: string,
+      v2: string,
+    ): TelemetryExceptionPayload => {
+      return { ...occurrence(v1), fingerprintV2: v2 };
+    };
+
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
+      withV2("old-v1", "old-v2"),
+      withV2("new-v1-line-40", "new-v2"),
+    ]);
+    clearExistingV1FingerprintCache();
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([
+      withV2("new-v1-line-52", "new-v2"),
+    ]);
+
+    const current: Map<string, GroupRow> = await rows();
+    expect(Array.from(current.keys()).sort()).toEqual(["new-v2", "old-v1"]);
+    expect(current.get("old-v1")!.occuranceCount).toBe(2);
+    expect(current.get("new-v2")!.occuranceCount).toBe(2);
   });
 
   test("a seeded sweep of ingests, merges and unmerges: the counts always add up", async () => {

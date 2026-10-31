@@ -3,7 +3,9 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   getDisplayNameColumn,
   getRecordDisplayName,
@@ -88,6 +90,13 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   const translator: Translator = useTranslator();
   const model: TBaseModel = new props.modelType();
   /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its changes are offered only when a team of theirs that owns it
+   * may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  /*
    * The delete card used to be rendered for everybody: a viewer got a live
    * "Delete <X>" button, a confirmation dialog, and then a refusal from the
    * API. It now stays visible but locked, and says which permission is
@@ -96,6 +105,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   const deleteGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Delete,
+    privateRecordOptions,
   );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);

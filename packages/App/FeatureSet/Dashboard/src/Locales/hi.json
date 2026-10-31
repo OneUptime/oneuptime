@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Google Workspace में उस उपयोगकर्ता को निलंबित करें जिसके बारे में केस है: जिस पर डिटेक्शन समूहित हैं, या जिसे थ्रेट इंटेल जानता है। निलंबन हटने तक साइन-इन रोकता है।",
   "Suspend the user in Google Workspace": "Google Workspace में उपयोगकर्ता निलंबित करें",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "वह Google Workspace कनेक्शन जिसके ज़रिए कार्रवाई होगी। उसके डोमेन-व्यापी डेलिगेशन को admin.directory.user और admin.directory.user.security स्कोप चाहिए। स्रोत > कनेक्शन में कनेक्शन जोड़ें या जाँचें।",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "यह घटना निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीम {{team}} को ऐसा करने की अनुमति नहीं है।",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "यह घटना निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीमों {{teams}} को ऐसा करने की अनुमति नहीं है।",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "यह घटना निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीमों को ऐसा करने की अनुमति नहीं है।",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "यह अलर्ट निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीम {{team}} को ऐसा करने की अनुमति नहीं है।",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "यह अलर्ट निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीमों {{teams}} को ऐसा करने की अनुमति नहीं है।",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "यह अलर्ट निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीमों को ऐसा करने की अनुमति नहीं है।",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "यह एपिसोड निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीम {{team}} को ऐसा करने की अनुमति नहीं है।",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "यह एपिसोड निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीमों {{teams}} को ऐसा करने की अनुमति नहीं है।",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "यह एपिसोड निजी है, इसलिए इसे केवल इसकी स्वामी टीमों की अनुमतियों से बदला जा सकता है, और इसकी स्वामी आपकी टीमों को ऐसा करने की अनुमति नहीं है।",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Google Workspace में केस वाले उपयोगकर्ता का निलंबन हटाएँ, ताकि वह फिर से साइन इन कर सके: Google Workspace में उपयोगकर्ता निलंबित करें का उलटा।",
   "Unsuspend the user in Google Workspace": "Google Workspace में उपयोगकर्ता का निलंबन हटाएँ",
   "What's new": "नया क्या है",
@@ -38960,6 +38969,8 @@
   "Number of new exceptions": "नए अपवादों की संख्या",
   "Rise over the usual (in %)": "सामान्य से ज़्यादा बढ़त (% में)",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "चार्ट दिखाता है कि कितने अपवाद हुए। नए अपवादों, फिर से आए अपवादों या सामान्य से ज़्यादा बढ़त के लिए यह नहीं बनाया जाता।",
+  "This incident is private, so public notes cannot be added to it.": "यह घटना निजी है, इसलिए इसमें सार्वजनिक नोट नहीं जोड़े जा सकते।",
+  "This episode is private, so public notes cannot be added to it.": "यह एपिसोड निजी है, इसलिए इसमें सार्वजनिक नोट नहीं जोड़े जा सकते।",
   "{{monitorName}}: a new exception": "{{monitorName}}: एक नया अपवाद",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: सुलझाया गया अपवाद फिर से आया",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: अपवादों में उछाल",
@@ -39001,5 +39012,5 @@
   "Release to add them.": "जोड़ने के लिए छोड़ें।",
   "Chosen files": "चुनी गई फ़ाइलें",
   "Click to choose a file or drag & drop.": "फ़ाइल चुनने के लिए क्लिक करें या खींचकर छोड़ें।",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} इस अपवाद का हिस्सा बन जाएगा: इसकी अब तक की और हर नई घटना यहीं गिनी जाएगी, और यह सूची से हट जाएगा। आप इसे इसके पेज से फिर अलग कर सकते हैं।"
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} इस अपवाद का हिस्सा बन जाएगा: इसकी अब तक की और हर नई घटना यहीं गिनी जाएगी, और यह सूची से हट जाएगा। आप इसे इसके पेज से फिर अलग कर सकते हैं।"
 }
