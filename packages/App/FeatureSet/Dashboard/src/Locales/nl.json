@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Schort in Google Workspace de gebruiker op waar de zaak over gaat: degene waarop de detecties zijn gegroepeerd, of een die bekend is bij dreigingsinformatie. Blokkeert aanmelden tot de opschorting is opgeheven.",
   "Suspend the user in Google Workspace": "Gebruiker opschorten in Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "De Google Workspace-verbinding waarlangs wordt gehandeld. De domeinbrede delegatie heeft de scopes admin.directory.user en admin.directory.user.security nodig. Voeg verbindingen toe of test ze onder Bronnen > Verbindingen.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Dit incident is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en {{team}}, uw team dat eigenaar is, mag dit niet doen.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Dit incident is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en {{teams}}, uw teams die eigenaar zijn, mogen dit niet doen.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Dit incident is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en uw teams die eigenaar zijn, mogen dit niet doen.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Deze waarschuwing is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en {{team}}, uw team dat eigenaar is, mag dit niet doen.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Deze waarschuwing is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en {{teams}}, uw teams die eigenaar zijn, mogen dit niet doen.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Deze waarschuwing is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en uw teams die eigenaar zijn, mogen dit niet doen.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Deze episode is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en {{team}}, uw team dat eigenaar is, mag dit niet doen.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Deze episode is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en {{teams}}, uw teams die eigenaar zijn, mogen dit niet doen.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Deze episode is privé, dus alleen de machtigingen van de teams die eigenaar zijn gelden, en uw teams die eigenaar zijn, mogen dit niet doen.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Hef in Google Workspace de opschorting op van de gebruiker waar de zaak over gaat, zodat die weer kan aanmelden: het ongedaan maken van Gebruiker opschorten in Google Workspace.",
   "Unsuspend the user in Google Workspace": "Opschorting van gebruiker opheffen in Google Workspace",
   "What's new": "Wat is er nieuw",
@@ -38962,6 +38971,8 @@
   "Shown in your public dashboard's header.": "Staat in de kop van je openbare dashboard.",
   "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "Staat in plaats van het logo waar je openbare dashboard donker is. Zonder staat het logo daar op een lichte achtergrond.",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "De grafiek toont hoeveel uitzonderingen er zijn opgetreden. Voor nieuwe uitzonderingen, teruggekomen uitzonderingen of een stijging boven het gewone wordt hij niet getekend.",
+  "This incident is private, so public notes cannot be added to it.": "Dit incident is privé, dus er kunnen geen openbare notities aan worden toegevoegd.",
+  "This episode is private, so public notes cannot be added to it.": "Deze episode is privé, dus er kunnen geen openbare notities aan worden toegevoegd.",
   "{{monitorName}}: a new exception": "{{monitorName}}: een nieuwe uitzondering",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: een opgeloste uitzondering is terug",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: uitzonderingen piekten",
@@ -39003,5 +39014,5 @@
   "Release to add them.": "Laat los om ze toe te voegen.",
   "Chosen files": "Gekozen bestanden",
   "Click to choose a file or drag & drop.": "Klik om een bestand te kiezen of sleep het hierheen.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} wordt deel van deze uitzondering: haar voorvallen, de eerdere en elk nieuw, tellen hier, en ze verdwijnt uit de lijst. U kunt haar op haar pagina weer splitsen."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} wordt deel van deze uitzondering: haar voorvallen, de eerdere en elk nieuw, tellen hier, en ze verdwijnt uit de lijst. U kunt haar op haar pagina weer splitsen."
 }

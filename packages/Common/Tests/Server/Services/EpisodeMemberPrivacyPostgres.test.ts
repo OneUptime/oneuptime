@@ -381,8 +381,9 @@ describePostgres("episode members' privacy against a migrated Postgres", () => {
       `INSERT INTO "Team" ("_id","projectId","name","slug","version") VALUES ($1,$2,'Payroll',$3,1)`,
       [teamId, projectId, `s${teamId}`],
     );
+    // An accepted member: a pending invitation shows no private record.
     await database.query(
-      `INSERT INTO "TeamMember" ("_id","projectId","teamId","userId","version") VALUES ($1,$2,$3,$4,1)`,
+      `INSERT INTO "TeamMember" ("_id","projectId","teamId","userId","hasAcceptedInvitation","version") VALUES ($1,$2,$3,$4,TRUE,1)`,
       [id(), projectId, teamId, people.recordTeamOwnerUserId.toString()],
     );
     await database.query(

@@ -131,7 +131,7 @@ AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 
 | 類別 | 指標 |
 | --- | --- |
-| 叢集健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每個作用中的健康檢查一個序列，帶有 `name` 和 `severity` 標籤，從 Quincy 開始；健康檢查警示範本和概覽中 **Active Health Checks** 的資料來源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（依常駐程式，以 `type` 為鍵）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
+| 叢集健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每個健康檢查一個序列（作用期間為 1，清除後為 0），帶有 `name` 和 `severity` 標籤，從 Quincy 開始；健康檢查警示範本和概覽中 **Active Health Checks** 的資料來源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（依常駐程式，以 `type` 為鍵）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，依 OSD 以 `ceph_daemon` 標籤區分（例如 `osd.3`） |
 | 儲存池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。資料序列只帶有 `pool_id` 標籤；儲存池的名稱在 `ceph_pool_metadata` 上。 |
 | 放置群組 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（皆依儲存池，以 `pool_id` 區分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |

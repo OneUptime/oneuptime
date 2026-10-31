@@ -23,7 +23,11 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -733,10 +737,20 @@ const CallSummaryOfCall: FunctionComponent<{
   );
 };
 
+// What the section's gates ask about: a call of the incident, a part of it.
+const PRIVATE_RECORD_CALL: IncidentVideoCall = new IncidentVideoCall();
+
 const CallSummarySection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * On a private incident, its calls are read again and their root cause
+   * taken into it only through a team of the reader's that owns it
+   * (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_CALL);
   const readings: Array<{ call: IncidentVideoCall; view: CallTranscriptView }> =
     getCallsWithReadings(props.calls, OneUptimeDate.getCurrentDate());
 
@@ -747,10 +761,12 @@ const CallSummarySection: FunctionComponent<ComponentProps> = (
   const canWorkOnCalls: boolean = PermissionGate.check(
     new IncidentVideoCall(),
     ModelAction.Create,
+    privateRecordOptions,
   ).isAllowed;
   const canEditRootCause: boolean = PermissionGate.checkColumnUpdate(
     new Incident(),
     "rootCause",
+    privateRecordOptions,
   ).isAllowed;
 
   return (

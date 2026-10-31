@@ -624,3 +624,77 @@ describe("monitorStorageArray: one breakdown per query", () => {
     expect(response.metricResult).toHaveLength(1);
   });
 });
+
+/*
+ * A storage array query's display unit is the catalog's
+ * (buildStorageArrayMonitorConfig), and its values are read in the catalog's
+ * units too: a template's values are never rescaled, whatever unit the
+ * exporter declares, and a query shown in another unit of the family is
+ * converted from the right one.
+ */
+describe("monitorStorageArray: values in the catalog's units", () => {
+  const LATENCY: string = "purefa_array_performance_latency_usec";
+  const READS: Dictionary<string> = { dimension: "usec_per_read_op" };
+
+  function latencyStep(legendUnit: string | undefined): MonitorStep {
+    const config: MetricQueryConfigData = queryConfig({
+      alias: "read_latency",
+      metricName: LATENCY,
+      attributes: READS,
+    });
+    config.metricAliasData!.legendUnit = legendUnit;
+
+    return storageArrayStep({
+      storageSystem: StorageSystem.PureStorageFlashArray,
+      metricViewConfig: { queryConfigs: [config], formulaConfigs: [] },
+    });
+  }
+
+  function firstValue(response: MetricMonitorResponse): number | undefined {
+    return response.metricResult[0]?.data[0]?.value;
+  }
+
+  beforeEach(() => {
+    mockRawRows({ [LATENCY]: [row(5000, { ...READS })] });
+  });
+
+  test("the High Read Latency template shows microseconds as stored", async () => {
+    const step: MonitorStep = templateStep("purefa-read-latency-high");
+
+    expect(
+      step.data!.storageArrayMonitor!.metricViewConfig.queryConfigs[0]!
+        .metricAliasData!.legendUnit,
+    ).toBe("µs");
+
+    // Even when the exporter declares the metric in another time unit.
+    mockDeclaredUnits({ [LATENCY]: "s" });
+
+    const response: MetricMonitorResponse = await monitorStorageArray({
+      monitorStep: step,
+      monitorId,
+      projectId,
+    });
+
+    expect(firstValue(response)).toBe(5000);
+  });
+
+  test("a query shown in milliseconds reads 5 for 5000 µs", async () => {
+    const response: MetricMonitorResponse = await monitorStorageArray({
+      monitorStep: latencyStep("ms"),
+      monitorId,
+      projectId,
+    });
+
+    expect(firstValue(response)).toBe(5);
+  });
+
+  test("a query with no display unit reads the values as stored", async () => {
+    const response: MetricMonitorResponse = await monitorStorageArray({
+      monitorStep: latencyStep(undefined),
+      monitorId,
+      projectId,
+    });
+
+    expect(firstValue(response)).toBe(5000);
+  });
+});

@@ -302,10 +302,18 @@ describe.each(LINK_PAGES)("the $name page", (c: LinkPageCase) => {
   test("gates the link button on the link and on reading the other side", () => {
     const code: string = dense(c.page);
 
+    /*
+     * The link is a part of the record the page is open on: on a private
+     * one, asked with what the reader holds on it - a team of theirs that
+     * owns it must be allowed to link (PrivateRecordScope).
+     */
     expect(code).toMatch(
       new RegExp(
-        `=lockUnlessAllowed\\(PermissionGate\\.gateCardButton\\(\\{title:"${withoutSpaces(c.linkButton)}",[\\s\\S]{0,200}\\},newIncidentAlert\\(\\),ModelAction\\.Create,\\),PermissionGate\\.check\\(new${c.linkedModel}\\(\\),ModelAction\\.Read\\),\\);`,
+        `=lockUnlessAllowed\\(PermissionGate\\.gateCardButton\\(\\{title:"${withoutSpaces(c.linkButton)}",[\\s\\S]{0,200}\\},newIncidentAlert\\(\\),ModelAction\\.Create,privateRecordGate\\(newIncidentAlert\\(\\)\\),\\),PermissionGate\\.check\\(new${c.linkedModel}\\(\\),ModelAction\\.Read\\),\\);`,
       ),
+    );
+    expect(code).toContain(
+      "constprivateRecordGate:(model:BaseModel,)=>PermissionGateOptions|undefined=usePrivateRecordGate();",
     );
     expect(code).toContain("onClick:()=>{setShowLinkModal(true);},");
   });
@@ -416,8 +424,9 @@ describe("declaring an incident from the alert page", () => {
     expect(code).toMatch(
       /title:"DeclareIncident",[\s\S]{0,400}\},newIncident\(\),ModelAction\.Create,\);/,
     );
+    // Linking this alert to the new incident is a part of the alert, too.
     expect(code).toContain(
-      "declareIncidentButton=PermissionGate.gateCardButton(declareIncidentButton,newIncidentAlert(),ModelAction.Create,);",
+      "declareIncidentButton=PermissionGate.gateCardButton(declareIncidentButton,newIncidentAlert(),ModelAction.Create,privateRecordGate(newIncidentAlert()),);",
     );
     expect(code).toContain(
       "if(linkIncidentButton){cardButtons.push(linkIncidentButton);}if(declareIncidentButton){cardButtons.push(declareIncidentButton);}",

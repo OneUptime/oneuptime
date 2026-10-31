@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "کاربری را که پرونده درباره اوست در Google Workspace تعلیق کنید: همان که تشخیص‌ها بر اساس او گروه‌بندی شده‌اند، یا کسی که اطلاعات تهدید او را می‌شناسد. تا رفع تعلیق، ورود را مسدود می‌کند.",
   "Suspend the user in Google Workspace": "تعلیق کاربر در Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "اتصال Google Workspace که کار از طریق آن انجام می‌شود. تفویض اختیار در سطح دامنه آن به دامنه‌های دسترسی admin.directory.user و admin.directory.user.security نیاز دارد. اتصال‌ها را در منابع > اتصال‌ها اضافه یا آزمایش کنید.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "این حادثه خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و {{team}}، تیم شما که مالک آن است، اجازهٔ این کار را ندارد.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "این حادثه خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و {{teams}}، تیم‌های شما که مالک آن هستند، اجازهٔ این کار را ندارند.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "این حادثه خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و تیم‌های شما که مالک آن هستند، اجازهٔ این کار را ندارند.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "این هشدار خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و {{team}}، تیم شما که مالک آن است، اجازهٔ این کار را ندارد.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "این هشدار خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و {{teams}}، تیم‌های شما که مالک آن هستند، اجازهٔ این کار را ندارند.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "این هشدار خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و تیم‌های شما که مالک آن هستند، اجازهٔ این کار را ندارند.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "این اپیزود خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و {{team}}، تیم شما که مالک آن است، اجازهٔ این کار را ندارد.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "این اپیزود خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و {{teams}}، تیم‌های شما که مالک آن هستند، اجازهٔ این کار را ندارند.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "این اپیزود خصوصی است، بنابراین فقط با دسترسی‌های تیم‌هایی که مالک آن هستند تغییر داده می‌شود، و تیم‌های شما که مالک آن هستند، اجازهٔ این کار را ندارند.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "تعلیق کاربری را که پرونده درباره اوست در Google Workspace لغو کنید تا دوباره وارد شود: برگرداندن تعلیق کاربر در Google Workspace.",
   "Unsuspend the user in Google Workspace": "لغو تعلیق کاربر در Google Workspace",
   "What's new": "چه خبر تازه‌ای هست",
@@ -38962,6 +38971,8 @@
   "Shown in your public dashboard's header.": "در سربرگ داشبورد عمومی شما نشان داده می‌شود.",
   "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "هر جا داشبورد عمومی شما تیره است، به جای لوگو نشان داده می‌شود. بدون آن، لوگو در آنجا روی پس‌زمینه‌ای روشن نشان داده می‌شود.",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "نمودار نشان می‌دهد چند استثنا رخ داده است. برای استثناهای تازه، استثناهای برگشته یا افزایش بیش از معمول رسم نمی‌شود.",
+  "This incident is private, so public notes cannot be added to it.": "این حادثه خصوصی است، بنابراین نمی‌توان یادداشت عمومی به آن افزود.",
+  "This episode is private, so public notes cannot be added to it.": "این اپیزود خصوصی است، بنابراین نمی‌توان یادداشت عمومی به آن افزود.",
   "{{monitorName}}: a new exception": "{{monitorName}}: یک استثنای تازه",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: یک استثنای برطرف‌شده برگشت",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها",
@@ -39003,5 +39014,5 @@
   "Release to add them.": "برای افزودن، رها کنید.",
   "Chosen files": "فایل‌های انتخاب‌شده",
   "Click to choose a file or drag & drop.": "برای انتخاب فایل کلیک کنید یا آن را بکشید و رها کنید.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} بخشی از این استثنا می‌شود: رخدادهای تاکنون و هر رخداد تازه‌اش اینجا شمرده می‌شود و از فهرست بیرون می‌رود. می‌توانید از صفحهٔ خودش آن را جدا کنید."
 }

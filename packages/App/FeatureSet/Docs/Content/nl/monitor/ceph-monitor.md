@@ -64,7 +64,7 @@ Kies onder **Ceph Monitor Configuration** het cluster in **Ceph-cluster**. Elk c
 Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
 - **Wijzigen** — kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Dat stelt de metrics, filters, aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kun je nog wijzigen.
-- **Custom Metric** (onder **Meer velden**) — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool ID** beperken hem tot één daemon of pool.
+- **Custom Metric** (onder **Meer velden**) — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool ID** beperken hem tot één daemon of pool. Een metric die per pool of per daemon wordt bijgehouden, wordt pool voor pool of daemon voor daemon beoordeeld, met één incident per stuk.
 - **Geavanceerd** (onder **Meer velden**) — bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een verhouding van gebruikte capaciteit uit `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Gebruik **Groeperen op** `ceph_daemon` of `pool_id` om elke daemon of pool afzonderlijk te beoordelen.
 
 ### De criteria controleren
@@ -87,7 +87,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **OSD** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `ceph_daemon`, bijvoorbeeld `osd.3`. |
 | **Pool ID** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `pool_id`, bijvoorbeeld `2`. |
 | **Ceph Metric** | Custom Metric | Eén metric uit de [catalogus](#verzamelde-metrics). |
-| **Aggregatie** | Custom Metric | Hoe meetwaarden worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metric. |
+| **Aggregatie** | Custom Metric | Hoe meetwaarden worden gecombineerd: **Gemiddelde**, **Maximum** of **Minimum**. Begint bij de gebruikelijke aggregatie van de metric. Een som of een telling zou elke scrape in een minuut optellen, dus die blijven over voor **Geavanceerd**. |
 | **Tijdsbereik** | Alle | Het voortschuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen waarde in. |
 | **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
@@ -95,7 +95,7 @@ Gegevensreeksen van pools dragen alleen het label `pool_id`: de naam van de pool
 
 ### Reeksen van health checks
 
-`ceph_health_detail` exporteert **één reeks per actieve health check**, met de labels `name` (bijvoorbeeld `OSD_NEARFULL` of `RECENT_CRASH`) en `severity`. Een reeks bestaat alleen zolang de check afgaat, dus geen reeks betekent gezond. Om op een willekeurige Ceph-health check te waarschuwen, filter je op de `name`, ga je af op **Maximum** boven `0` en herstel je bij `0` met **Als geen gegevens** op **Treat As Zero** — precies zo zijn de sjablonen voor health checks gebouwd. `ceph_daemon_health_metrics` werkt op dezelfde manier per daemon, met een label `type` (bijvoorbeeld `SLOW_OPS`) en `ceph_daemon`.
+`ceph_health_detail` exporteert **één serie per health check**, met de labels `name` (bijvoorbeeld `OSD_NEARFULL` of `RECENT_CRASH`) en `severity`. De serie van een check staat op `1` zolang de check actief is en op `0` nadat die is opgeheven, en een check die nooit is afgegaan heeft geen serie. Om op een willekeurige Ceph-health check te waarschuwen, filter je op de `name`, ga je af op **Maximum** boven `0` en herstel je bij `0` met **Als geen gegevens** op **Treat As Zero** — precies zo zijn de sjablonen voor health checks gebouwd. `ceph_daemon_health_metrics` werkt op dezelfde manier per daemon, met een label `type` (bijvoorbeeld `SLOW_OPS`) en `ceph_daemon`.
 
 ## Kant-en-klare waarschuwingssjablonen
 
@@ -270,7 +270,7 @@ De sjablonen die `ceph_health_detail` bewaken — Daemon Crash, Monitor Clock Sk
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Reeksen van health checks, ook `ceph_daemon_health_metrics`, bestaan alleen zolang een check afgaat, dus dat je er geen vindt terwijl het cluster gezond is, is te verwachten.
+Een health check die nooit is afgegaan heeft geen serie, ook in `ceph_daemon_health_metrics`, en een die is opgeheven staat op `0`, dus geen enkele of alleen nullen vinden terwijl het cluster gezond is, is te verwachten.
 :::
 
 :::details Tellers zoals ceph_pool_wr_bytes stijgen alleen maar

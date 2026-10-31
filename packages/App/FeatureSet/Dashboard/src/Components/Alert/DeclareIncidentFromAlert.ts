@@ -10,6 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 
@@ -28,20 +29,31 @@ export const DECLARE_INCIDENT_FROM_ALERT_BUTTON_ID: string =
  * both permissions. They are checked in that order - the same order as the
  * bulk action and the Linked Incidents page - and the first one that is not
  * allowed is the answer, so its reason names the first thing missing.
+ *
+ * `linkOptions`: on a private alert's page, what the reader holds on the
+ * alert (PrivateRecordScope) - its link to the new incident is a part of it,
+ * made only through a team of theirs that owns it.
  */
-export const getDeclareIncidentFromAlertsGate: () => PermissionGateResult =
-  (): PermissionGateResult => {
-    const incidentGate: PermissionGateResult = PermissionGate.check(
-      new Incident(),
-      ModelAction.Create,
-    );
+export const getDeclareIncidentFromAlertsGate: (
+  linkOptions?: PermissionGateOptions | undefined,
+) => PermissionGateResult = (
+  linkOptions?: PermissionGateOptions | undefined,
+): PermissionGateResult => {
+  const incidentGate: PermissionGateResult = PermissionGate.check(
+    new Incident(),
+    ModelAction.Create,
+  );
 
-    if (!incidentGate.isAllowed) {
-      return incidentGate;
-    }
+  if (!incidentGate.isAllowed) {
+    return incidentGate;
+  }
 
-    return PermissionGate.check(new IncidentAlert(), ModelAction.Create);
-  };
+  return PermissionGate.check(
+    new IncidentAlert(),
+    ModelAction.Create,
+    linkOptions,
+  );
+};
 
 /*
  * The header action for one alert, or null when it should not be offered.
@@ -56,8 +68,13 @@ export const getDeclareIncidentFromAlertsGate: () => PermissionGateResult =
  */
 export const getDeclareIncidentFromAlertAction: (
   alertId: ObjectID,
-) => EventPanelAction | null = (alertId: ObjectID): EventPanelAction | null => {
-  const gate: PermissionGateResult = getDeclareIncidentFromAlertsGate();
+  linkOptions?: PermissionGateOptions | undefined,
+) => EventPanelAction | null = (
+  alertId: ObjectID,
+  linkOptions?: PermissionGateOptions | undefined,
+): EventPanelAction | null => {
+  const gate: PermissionGateResult =
+    getDeclareIncidentFromAlertsGate(linkOptions);
 
   if (!gate.isAllowed && !gate.disabledReason) {
     return null;

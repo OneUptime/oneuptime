@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "케이스 대상 사용자(탐지가 묶인 사용자 또는 위협 인텔리전스가 알고 있는 사용자)를 Google Workspace에서 정지합니다. 정지가 해제될 때까지 로그인을 막습니다.",
   "Suspend the user in Google Workspace": "Google Workspace에서 사용자 정지",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "작업에 사용할 Google Workspace 연결입니다. 도메인 전체 위임에 admin.directory.user 및 admin.directory.user.security 범위가 있어야 합니다. 소스 > 연결에서 연결을 추가하거나 테스트하세요.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "이 인시던트는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀 {{team}}은(는) 이 작업을 할 수 없습니다.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "이 인시던트는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀 {{teams}}은(는) 이 작업을 할 수 없습니다.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "이 인시던트는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀은 이 작업을 할 수 없습니다.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "이 경고는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀 {{team}}은(는) 이 작업을 할 수 없습니다.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "이 경고는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀 {{teams}}은(는) 이 작업을 할 수 없습니다.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "이 경고는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀은 이 작업을 할 수 없습니다.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "이 에피소드는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀 {{team}}은(는) 이 작업을 할 수 없습니다.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "이 에피소드는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀 {{teams}}은(는) 이 작업을 할 수 없습니다.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "이 에피소드는 비공개이므로 소유한 팀의 권한으로만 변경할 수 있으며, 소유한 내 팀은 이 작업을 할 수 없습니다.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "케이스 대상 사용자의 정지를 Google Workspace에서 해제해 다시 로그인할 수 있게 합니다. Google Workspace에서 사용자 정지를 되돌립니다.",
   "Unsuspend the user in Google Workspace": "Google Workspace에서 사용자 정지 해제",
   "What's new": "새로운 소식",
@@ -38962,6 +38971,8 @@
   "Shown in your public dashboard's header.": "공개 대시보드의 헤더에 표시됩니다.",
   "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "공개 대시보드가 어두운 곳에서 로고 대신 표시됩니다. 없으면 그곳에서는 로고가 밝은 배경 위에 표시됩니다.",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "차트는 발생한 예외 수를 보여 줍니다. 새 예외, 다시 발생한 예외, 평소보다 증가에는 그려지지 않습니다.",
+  "This incident is private, so public notes cannot be added to it.": "이 인시던트는 비공개이므로 공개 메모를 추가할 수 없습니다.",
+  "This episode is private, so public notes cannot be added to it.": "이 에피소드는 비공개이므로 공개 메모를 추가할 수 없습니다.",
   "{{monitorName}}: a new exception": "{{monitorName}}: 새 예외",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 해결된 예외가 다시 발생",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: 예외 급증",
@@ -39003,5 +39014,5 @@
   "Release to add them.": "놓으면 추가됩니다.",
   "Chosen files": "선택한 파일",
   "Click to choose a file or drag & drop.": "클릭하여 파일 하나를 선택하거나 끌어다 놓으세요.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}}은(는) 이 예외의 일부가 됩니다. 지금까지의 발생과 새 발생 모두 여기에서 집계되고 목록에서는 사라집니다. 해당 페이지에서 병합을 해제할 수 있습니다."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}}은(는) 이 예외의 일부가 됩니다. 지금까지의 발생과 새 발생 모두 여기에서 집계되고 목록에서는 사라집니다. 해당 페이지에서 병합을 해제할 수 있습니다."
 }

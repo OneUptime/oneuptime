@@ -24,6 +24,7 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
@@ -309,6 +310,18 @@ beforeEach(() => {
    * (ProjectReferencesService) has its own suites.
    */
   stubProjectDirectory({});
+  /*
+   * A private episode or record takes a member only through the teams that
+   * own it (PrivateRecordWriteCheck, which reads the database as
+   * OneUptime): EpisodeMemberPrivateEndsPostgres and the private record
+   * suites hold that. Here, what each end's read and entry say.
+   */
+  jest
+    .spyOn(PrivateRecordWriteCheck, "reaches")
+    .mockResolvedValue(true as never);
+  jest
+    .spyOn(PrivateRecordWriteCheck, "findUnreachable")
+    .mockResolvedValue(new Set<string>() as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {
     // quiet
   }) as never);

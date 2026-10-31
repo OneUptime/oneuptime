@@ -46,7 +46,12 @@ import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/Auto
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
+import {
+  PrivateRecordScope,
+  PrivateRecordScopeContext,
+} from "../../../UI/Utils/PrivateRecordScope";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -545,6 +550,69 @@ describe("Try again", () => {
     await settle();
 
     expect(screen.queryByTestId("remediation-try-again")).toBeNull();
+  });
+
+  /*
+   * A PRIVATE INCIDENT (block 33) is changed only with the permissions of
+   * the teams that own it, and Try again changes it: the server answers
+   * "You do not have permission to change this incident" to a member whose
+   * team that owns it may only view it, though another team of theirs may
+   * change every incident. Its page hands the step what they hold on it
+   * (PrivateRecordScope), so Try again is not offered to them.
+   */
+  describe("on a private incident", () => {
+    function scopeHolding(permissions: Array<Permission>): PrivateRecordScope {
+      return {
+        tableName: "Incident",
+        held: HeldPermissionsUtil.fromRows({
+          rows: permissions.map((permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          }),
+          globalPermissions: [],
+        }),
+        reason:
+          "This incident is private, so it is changed only with the permissions of the teams that own it, and Checkout SRE, your team that owns it, may not do this.",
+      };
+    }
+
+    async function renderOnPrivateIncident(
+      scope: PrivateRecordScope,
+    ): Promise<void> {
+      // Their whole snapshot may change every incident, through another team.
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.ProjectMember]);
+      serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+
+      render(
+        <PrivateRecordScopeContext.Provider value={scope}>
+          <RemediationStep
+            incidentId={INCIDENT_ID}
+            investigationStage="reported"
+          />
+        </PrivateRecordScopeContext.Provider>,
+      );
+      await screen.findByTestId("remediation-decision");
+      await settle();
+    }
+
+    test("is not offered to a member whose owning team may only view it", async () => {
+      await renderOnPrivateIncident(scopeHolding([Permission.Viewer]));
+
+      expect(screen.queryByTestId("remediation-try-again")).toBeNull();
+      expect(posts("/auto-remediation/try-again")).toHaveLength(0);
+    });
+
+    test("is offered once that team may change incidents", async () => {
+      await renderOnPrivateIncident(scopeHolding([Permission.IncidentMember]));
+
+      expect(tryAgainButton()).toBeEnabled();
+    });
   });
 });
 

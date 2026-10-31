@@ -131,7 +131,7 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 
 | 범주 | 메트릭 |
 | --- | --- |
-| 클러스터 상태 | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail`(활성 상태 점검마다 하나의 시리즈, `name`과 `severity` 레이블 포함, Quincy부터; 상태 점검 알림 템플릿과 개요의 **Active Health Checks**의 바탕), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics`(데몬별, `type`으로 구분), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| 클러스터 상태 | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail`(상태 점검마다 하나의 시리즈(활성인 동안 1, 해제된 뒤 0), `name`과 `severity` 레이블 포함, Quincy부터; 상태 점검 알림 템플릿과 개요의 **Active Health Checks**의 바탕), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics`(데몬별, `type`으로 구분), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, OSD별로 `ceph_daemon` 레이블(예: `osd.3`)로 구분 |
 | 풀 | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. 데이터 시리즈에는 `pool_id` 레이블만 있고, 풀 이름은 `ceph_pool_metadata`에 있습니다. |
 | 배치 그룹 | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized`(모두 풀별, `pool_id`로 구분), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |

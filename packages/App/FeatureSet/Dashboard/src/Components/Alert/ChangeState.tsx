@@ -6,7 +6,14 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import React, {
   Fragment,
@@ -117,10 +124,23 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
   );
 };
 
+// What the state buttons' gate asks about: a row of the state timeline.
+const PRIVATE_RECORD_STATE_TIMELINE: AlertStateTimeline =
+  new AlertStateTimeline();
+
 const ChangeAlertState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * On a private alert's page, what the reader holds on it: its state is
+   * changed only with the permissions of the teams that own it, so the
+   * state buttons lock, saying why, for a reader whose teams that own it
+   * may not (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string | undefined>(undefined);
@@ -476,7 +496,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
    * allowed everywhere else too). Gated on permissions only - no request.
    */
   const declareIncidentAction: EventPanelAction | null =
-    getDeclareIncidentFromAlertAction(props.alertId);
+    getDeclareIncidentFromAlertAction(props.alertId, privateRecordOptions);
 
   const secondaryActions: Array<EventPanelAction> = [
     ...(declareIncidentAction ? [declareIncidentAction] : []),
@@ -566,11 +586,14 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         stateChangeGate={PermissionGate.check(
           new AlertStateTimeline(),
           ModelAction.Create,
-          {
-            sentence: translationKey(
-              "You do not have permission to change this alert's state.",
-            ),
-          },
+          withPrivateRecordGateOptions(
+            {
+              sentence: translationKey(
+                "You do not have permission to change this alert's state.",
+              ),
+            },
+            privateRecordOptions,
+          ),
         )}
         identifier={props.eventNumber}
         title={props.title}
@@ -660,6 +683,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
               ),
               // Offered only to someone who may post a private note.
               noteModel: new AlertInternalNote(),
+              noteGateOptions: privateRecordOptions,
             }),
             formType: FormType.Create,
           }}

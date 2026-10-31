@@ -38908,6 +38908,15 @@
   "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.": "Suspende no Google Workspace o usuário do caso: aquele em que as detecções estão agrupadas, ou um conhecido pela inteligência de ameaças. Bloqueia o login até ser reativado.",
   "Suspend the user in Google Workspace": "Suspender o usuário no Google Workspace",
   "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.": "A conexão do Google Workspace pela qual agir. A delegação em todo o domínio dela precisa dos escopos admin.directory.user e admin.directory.user.security. Adicione ou teste conexões em Fontes > Conexões.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Este incidente é privado, então só é alterado com as permissões das equipes proprietárias, e {{team}}, sua equipe proprietária, não pode fazer isso.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Este incidente é privado, então só é alterado com as permissões das equipes proprietárias, e {{teams}}, suas equipes proprietárias, não podem fazer isso.",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Este incidente é privado, então só é alterado com as permissões das equipes proprietárias, e suas equipes proprietárias não podem fazer isso.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Este alerta é privado, então só é alterado com as permissões das equipes proprietárias, e {{team}}, sua equipe proprietária, não pode fazer isso.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Este alerta é privado, então só é alterado com as permissões das equipes proprietárias, e {{teams}}, suas equipes proprietárias, não podem fazer isso.",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Este alerta é privado, então só é alterado com as permissões das equipes proprietárias, e suas equipes proprietárias não podem fazer isso.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "Este episódio é privado, então só é alterado com as permissões das equipes proprietárias, e {{team}}, sua equipe proprietária, não pode fazer isso.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "Este episódio é privado, então só é alterado com as permissões das equipes proprietárias, e {{teams}}, suas equipes proprietárias, não podem fazer isso.",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "Este episódio é privado, então só é alterado com as permissões das equipes proprietárias, e suas equipes proprietárias não podem fazer isso.",
   "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.": "Reativa no Google Workspace o usuário do caso para que ele possa entrar de novo: desfaz Suspender o usuário no Google Workspace.",
   "Unsuspend the user in Google Workspace": "Reativar o usuário no Google Workspace",
   "What's new": "Novidades",
@@ -38962,6 +38971,8 @@
   "Shown in your public dashboard's header.": "Aparece no cabeçalho do seu painel público.",
   "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "Aparece no lugar do logotipo onde seu painel público é escuro. Sem ele, o logotipo aparece ali sobre um fundo claro.",
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "O gráfico mostra quantas exceções aconteceram. Ele não é desenhado para exceções novas, exceções que voltaram ou um aumento acima do habitual.",
+  "This incident is private, so public notes cannot be added to it.": "Este incidente é privado, por isso não é possível adicionar notas públicas a ele.",
+  "This episode is private, so public notes cannot be added to it.": "Este episódio é privado, por isso não é possível adicionar notas públicas a ele.",
   "{{monitorName}}: a new exception": "{{monitorName}}: uma exceção nova",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: uma exceção resolvida voltou",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: pico de exceções",
@@ -39003,5 +39014,5 @@
   "Release to add them.": "Solte para adicioná-los.",
   "Chosen files": "Arquivos escolhidos",
   "Click to choose a file or drag & drop.": "Clique para escolher um arquivo ou arraste e solte.",
-  "{{name}} becomes part of this exception: its occurrences, those so far and every new one, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} passa a fazer parte desta exceção: suas ocorrências, as anteriores e cada nova, contam aqui, e ela sai da lista. Você pode desfazer a mesclagem na página dela."
+  "{{name}} becomes part of this exception: all its occurrences, past and new, count here, and it leaves the list. You can unmerge it from its page.": "{{name}} passa a fazer parte desta exceção: suas ocorrências, as anteriores e cada nova, contam aqui, e ela sai da lista. Você pode desfazer a mesclagem na página dela."
 }

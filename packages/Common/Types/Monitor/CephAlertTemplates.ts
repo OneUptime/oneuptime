@@ -58,12 +58,14 @@ export interface CephAlertTemplate {
  * `resource.`-prefixed in ClickHouse.
  *
  * Health-check contract: `ceph_health_detail{name,severity}` (Quincy and
- * later) exports one series per ACTIVE health check — equality-filter on
- * the `name` datapoint label, exactly like the `pve_ha_state` state filter.
- * A series exists only while its check fires, so absence = healthy: the
- * fire criteria use Max > 0 (no data never fires under the default Ignore
- * no-data policy) and the recover criteria use = 0 with TreatAsZero so the
- * monitor returns to Healthy when the series disappears.
+ * later) exports one series per health check the mgr has seen —
+ * equality-filter on the `name` datapoint label, exactly like the
+ * `pve_ha_state` state filter. The mgr writes 1 while the check is active
+ * and 0 once it clears (module.py's health history: `1 if info.active else
+ * 0`), and a check that has never fired has no series: the fire criteria
+ * use Max > 0 (no data never fires under the default Ignore no-data policy)
+ * and the recover criteria use = 0 with TreatAsZero, so the monitor returns
+ * to Healthy on a 0 and on a series that is gone.
  * `ceph_daemon_health_metrics{type,ceph_daemon}` follows the same pattern
  * per daemon.
  */
@@ -182,10 +184,11 @@ export function buildCephOnlineCriteriaInstance(args: {
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
   /*
-   * Health-detail series exist only while the check is active, so the
-   * recover comparison (= 0) would otherwise see no data and never match.
-   * TreatAsZero makes series absence count as 0 — the spec'd
-   * "Max > 0 fire / = 0 recover" semantics.
+   * A check that has never fired, or whose series went with a mgr
+   * failover, has no series, so the recover comparison (= 0) would see no
+   * data and never match. TreatAsZero makes series absence count as 0 —
+   * the spec'd "Max > 0 fire / = 0 recover" semantics. A cleared check's
+   * series reads 0 itself.
    */
   treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
@@ -373,8 +376,8 @@ export function buildCephRatioMonitorConfig(args: {
  * alias and the criteria filters reference the aliases independently
  * (combined with FilterCondition.Any/All). Used by health-check templates
  * that watch two `ceph_health_detail` names at once: a formula like
- * `a + b` would yield no result whenever one check is inactive (health-
- * detail series exist only while a check fires), while independent
+ * `a + b` would yield no result whenever one check has never fired (it
+ * has no series), while independent
  * filters evaluate each alias on its own.
  */
 export function buildCephMultiQueryMonitorConfig(args: {
@@ -436,9 +439,9 @@ const clusterStoppedReportingTemplate: CephAlertTemplate = {
          * The heartbeat. The mgr prometheus module exports exactly one
          * ceph_health_status on every scrape - 0, 1 or 2 - so the series is
          * never empty while the agent can scrape an active manager. The
-         * health checks' own series (ceph_health_detail) exist only while
-         * a check fires, which is why the other templates cannot tell a
-         * silent cluster from a healthy one. Ungrouped and counted: only a
+         * health checks' own series (ceph_health_detail) exist only for
+         * checks that have fired, which is why the other templates cannot
+         * tell a silent cluster from a healthy one. Ungrouped and counted: only a
          * window with no row at all is the breach.
          */
         metricName: "ceph_health_status",
@@ -1135,9 +1138,10 @@ const slowOpsTemplate: CephAlertTemplate = {
  *
  * All of the following watch `ceph_health_detail{name=...}` (or
  * `ceph_daemon_health_metrics{type=...}`) — see the health-check contract
- * comment at the top of this file. Series exist only while a check is
- * active (Quincy+), so every template fires on Max > 0 and recovers on
- * = 0 with TreatAsZero, staying quiet by default.
+ * comment at the top of this file. A check reads 1 while active and 0
+ * once cleared, and has no series until it first fires (Quincy+), so every
+ * template fires on Max > 0 and recovers on = 0 with TreatAsZero, staying
+ * quiet by default.
  */
 
 const pgDamagedTemplate: CephAlertTemplate = {

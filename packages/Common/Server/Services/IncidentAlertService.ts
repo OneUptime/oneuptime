@@ -1,3 +1,8 @@
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseService from "./DatabaseService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import PrivateRecordPermission from "../Types/Database/Permissions/PrivateRecordPermission";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -412,6 +417,13 @@ function withNumber(label: string, number: string): string {
 const NOT_VISIBLE_ALERTS_MESSAGE: string =
   "One or more of the selected alerts do not exist in this project, or you do not have access to them.";
 
+/*
+ * A private alert the caller sees, that none of the teams of theirs that
+ * own it may link to an incident (PrivateRecordPermission).
+ */
+const PRIVATE_ALERTS_TO_LINK_MESSAGE: string =
+  "Some of the alerts are private, and none of the teams of yours that own them may link them to an incident.";
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -618,7 +630,7 @@ export class Service extends ProjectReferencesService<Model> {
       const alert: Alert | null = await CallerVisibleRead.find(() => {
         return AlertService.findOneById({
           id: alertId,
-          select: { _id: true, projectId: true },
+          select: { _id: true, projectId: true, isPrivate: true },
           props: createBy.props,
         });
       });
@@ -629,6 +641,27 @@ export class Service extends ProjectReferencesService<Model> {
       ) {
         throw new BadDataException(
           "The alert to link does not exist in this project, or you do not have access to it.",
+        );
+      }
+
+      /*
+       * A link is as much a part of the alert as of the incident
+       * (PrivateRecordPermission.ALSO_PART_OF): a private alert is linked
+       * only with the permission of a team that owns it, or of a person
+       * who does. The incident's side is held by its own parent rule.
+       */
+      const reachesAlert: boolean = await PrivateRecordWriteCheck.reaches({
+        modelType: Model,
+        type: DatabaseRequestType.Create,
+        recordService: AlertService as unknown as DatabaseService<BaseModel>,
+        recordId: alertId,
+        props: createBy.props,
+        readRecord: alert,
+      });
+
+      if (!reachesAlert) {
+        throw new NotAuthorizedException(
+          `You do not have permission to link this alert to an incident. ${PrivateRecordPermission.getPrivateParentWriteReason("alert")}`,
         );
       }
     }
@@ -1253,6 +1286,7 @@ export class Service extends ProjectReferencesService<Model> {
         },
         select: {
           _id: true,
+          isPrivate: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -1272,6 +1306,27 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (missing.length > 0) {
       throw new BadDataException(NOT_VISIBLE_ALERTS_MESSAGE);
+    }
+
+    /*
+     * A link is as much a part of the alert as of the incident: a private
+     * alert the caller sees is linked only with the permission of a team
+     * that owns it, or of a person who does (PrivateRecordPermission). The
+     * links are written as OneUptime, so it is asked here.
+     */
+    if (!data.props.isRoot) {
+      const outOfReach: Set<string> =
+        await PrivateRecordWriteCheck.findUnreachable({
+          modelType: Model,
+          type: DatabaseRequestType.Create,
+          recordService: AlertService as unknown as DatabaseService<BaseModel>,
+          records: alerts || [],
+          props: data.props,
+        });
+
+      if (outOfReach.size > 0) {
+        throw new NotAuthorizedException(PRIVATE_ALERTS_TO_LINK_MESSAGE);
+      }
     }
 
     return alertIds;

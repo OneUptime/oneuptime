@@ -64,7 +64,7 @@ En **Configuración del monitor de Ceph**, elige el clúster en **Clúster de Ce
 Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
 - **Cambiar**: elige otra [plantilla](#plantillas-de-alerta-predefinidas). Define las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puedes cambiar el **Intervalo de tiempo**.
-- **Custom Metric** (en **Más campos**): elige una métrica en **Métrica de Ceph** y luego ajusta **Agregación** e **Intervalo de tiempo**. **OSD** e **ID del pool** la limitan a un daemon o a un pool.
+- **Custom Metric** (en **Más campos**): elige una métrica en **Métrica de Ceph** y luego ajusta **Agregación** e **Intervalo de tiempo**. **OSD** e **ID del pool** la limitan a un daemon o a un pool. Una métrica que se lleva por pool o por daemon se juzga pool a pool o daemon a daemon, con un incidente para cada uno.
 - **Avanzado** (en **Más campos**): crea tú mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo una proporción de capacidad usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Agrupar por** `ceph_daemon` o `pool_id` para evaluar cada daemon o pool por separado.
 
 ### Revisar los criterios
@@ -87,7 +87,7 @@ Haz clic en **Crear monitor**. OneUptime abre la página del monitor y lo evalú
 | **OSD** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con la etiqueta `ceph_daemon`, por ejemplo `osd.3`. |
 | **ID del pool** | Custom Metric, Avanzado | Opcional. Coincidencia exacta con la etiqueta `pool_id`, por ejemplo `2`. |
 | **Métrica de Ceph** | Custom Metric | Una métrica del [catálogo](#métricas-recopiladas). |
-| **Agregación** | Custom Metric | Cómo se combinan las muestras: **Promedio**, **Máximo**, **Mínimo**, **Suma** o **Recuento**. Empieza con la agregación habitual de la métrica. |
+| **Agregación** | Custom Metric | Cómo se combinan las muestras: **Promedio**, **Máximo** o **Mínimo**. Empieza con la agregación habitual de la métrica. Una suma o un recuento sumarían todas las lecturas de un minuto, así que se dejan para **Avanzado**. |
 | **Intervalo de tiempo** | Todas | La ventana móvil que lee la consulta, de **Past 1 Minute** a **Past 365 Days**. Un monitor nuevo empieza en **Past 1 Minute**; las plantillas fijan el suyo. |
 | **Seleccionar métricas** | Avanzado | El generador de consultas: **Métrica**, **Agregar por**, **Filtrar por atributos**, **Agrupar por**, además de **Añadir métrica** y **Añadir fórmula** para combinar consultas. |
 
@@ -95,7 +95,7 @@ Las series de datos de los pools solo llevan la etiqueta `pool_id`: el nombre de
 
 ### Series de health checks
 
-`ceph_health_detail` exporta **una serie por cada health check activo**, con las etiquetas `name` (por ejemplo `OSD_NEARFULL` o `RECENT_CRASH`) y `severity`. Una serie solo existe mientras su check se activa, así que no tener series significa que todo está bien. Para alertar sobre cualquier health check de Ceph, filtra por su `name`, dispara con **Máximo** por encima de `0` y recupera en `0` con **Si no hay datos** en **Treat As Zero**, exactamente como están hechas las plantillas de health checks. `ceph_daemon_health_metrics` funciona igual por daemon, con una etiqueta `type` (por ejemplo `SLOW_OPS`) y `ceph_daemon`.
+`ceph_health_detail` exporta **una serie por cada health check**, con las etiquetas `name` (por ejemplo `OSD_NEARFULL` o `RECENT_CRASH`) y `severity`. La serie de un check vale `1` mientras el check está activo y `0` después de resolverse, y un check que nunca se ha disparado no tiene serie. Para alertar sobre cualquier health check de Ceph, filtra por su `name`, dispara con **Máximo** por encima de `0` y recupera en `0` con **Si no hay datos** en **Treat As Zero**, exactamente como están hechas las plantillas de health checks. `ceph_daemon_health_metrics` funciona igual por daemon, con una etiqueta `type` (por ejemplo `SLOW_OPS`) y `ceph_daemon`.
 
 ## Plantillas de alerta predefinidas
 
@@ -270,7 +270,7 @@ Las plantillas que vigilan `ceph_health_detail` —Daemon Crash, Monitor Clock S
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Las series de health checks, incluida `ceph_daemon_health_metrics`, solo existen mientras un check se activa, así que es normal no encontrar ninguna cuando el clúster está sano.
+Un health check que nunca se ha disparado no tiene serie, `ceph_daemon_health_metrics` incluido, y uno que se ha resuelto vale `0`, así que es normal no encontrar ninguna, o solo ceros, mientras el clúster está sano.
 :::
 
 :::details Contadores como ceph_pool_wr_bytes solo crecen
