@@ -59,7 +59,7 @@ tests:
           # `filter/telemetry` is optional (metricFilters), so it is allowed
           # for explicitly rather than by a `[\s\S]*?` gap that would also
           # swallow the end of this pipeline and match the next one's.
-          pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)+\\s*processors:\\n\\s*- memory_limiter\\n\\s*- transform/pod-level-mark\\n\\s*- k8sattributes\\n\\s*- transform/pod-level-unmark\\n(?:\\s*- filter/telemetry\\n)?\\s*- resource\\n"
+          pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)+\\s*processors:\\n\\s*- memory_limiter\\n(?:\\s*#[^\\n]*\\n)*\\s*- transform/job-failures-increase\\n\\s*- cumulative_to_delta/job-failures-increase\\n\\s*- transform/pod-level-mark\\n\\s*- k8sattributes\\n\\s*- transform/pod-level-unmark\\n(?:\\s*- filter/telemetry\\n)?\\s*- resource\\n"
 
   - it: keeps the cluster name on the logs pipeline
     templates:

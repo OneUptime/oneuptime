@@ -1583,42 +1583,188 @@ describe("KubernetesAlertTemplates - High Node Memory reads the working set", ()
 });
 
 describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
+  /*
+   * One value a minute: the failed pods the agent sent in that minute
+   * (k8s.job.failed_pods.increase, summed per Job).
+   */
+  const NO_FAILURES: Array<number> = Array(15).fill(0);
+
   test("a Job that failed once and then succeeded on its retry stops alerting", async () => {
-    // status.failed stays at 1 for the life of the Job object.
+    // Its status.failed stays at 1 for the life of the Job; every sample sends 0 more.
     expect(
-      await evaluate("k8s-job-failures", {
-        failed_pods_max: Array(15).fill(1),
-        failed_pods_min: Array(15).fill(1),
-      }),
+      await evaluate("k8s-job-failures", { failed_pods: NO_FAILURES }),
     ).toEqual({ breached: false, healthy: true });
   });
 
   test("a Job whose pods fail in the window fires", async () => {
+    // Three failures, each in a minute of its own.
     expect(
       await evaluate("k8s-job-failures", {
-        failed_pods_max: [0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3],
-        failed_pods_min: [0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+        failed_pods: [0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
       }),
     ).toEqual({ breached: true, healthy: false });
   });
 
-  test("never compares the lifetime failed-pod count", () => {
-    const [offline, online] = getCriteriaInstances("k8s-job-failures");
-
-    for (const instance of [offline, online]) {
-      expect(instance.data.filters[0].metricMonitorOptions.metricAlias).toBe(
-        "failed_pods",
-      );
-      expect(
-        instance.data.filters[0].metricMonitorOptions.metricAggregationType,
-      ).toBe(EvaluateOverTimeType.Sum);
-    }
+  test("fires on a single failure, wherever it fell between two samples", async () => {
+    /*
+     * The per-minute delta saw a single failure only when it fell between
+     * two samples of the same minute: even odds. The increase a sample
+     * sends counts it wherever it fell.
+     */
+    const failures: Array<number> = [...NO_FAILURES];
+    failures[9] = 1;
 
     expect(
-      getQueryConfigs("k8s-job-failures").map((query: any) => {
-        return query.metricQueryData.filterData.aggegationType;
+      await evaluate("k8s-job-failures", { failed_pods: failures }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("a Job sampled minutes apart fires: each sample brings every failure since the last one", async () => {
+    // Three minutes of the window hold a sample; between them, 2, 0 and 1 failures.
+    expect(
+      await evaluate("k8s-job-failures", { failed_pods: [2, 0, 1] }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("whatever the Job's failures, it fires on any in the window and clears on none", async () => {
+    const random: SeededRandom = seededRandom(5_460);
+
+    for (let draw: number = 0; draw < 60; draw++) {
+      const failures: Array<number> = [...NO_FAILURES];
+      const failureCount: number = draw % 3 === 0 ? 0 : 1 + random(7);
+
+      for (let index: number = 0; index < failureCount; index++) {
+        const minute: number = random(15);
+        failures[minute] = (failures[minute] as number) + 1;
+      }
+
+      expect({
+        failures,
+        verdict: await evaluate("k8s-job-failures", { failed_pods: failures }),
+      }).toEqual({
+        failures,
+        verdict:
+          failureCount > 0
+            ? { breached: true, healthy: false }
+            : { breached: false, healthy: true },
+      });
+    }
+  });
+
+  test("sums the failed pods the agent sends with each sample, never the lifetime count", () => {
+    const [offline, online] = getCriteriaInstances("k8s-job-failures");
+    const queries: Array<any> = getQueryConfigs("k8s-job-failures");
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-job-failures"),
+    );
+
+    expect(
+      queries.map((query: any) => {
+        return [
+          query.metricAliasData.metricVariable,
+          query.metricQueryData.filterData.metricName,
+          query.metricQueryData.filterData.aggegationType,
+          query.metricQueryData.groupByAttributeKeys,
+        ];
       }),
-    ).toEqual([MetricsAggregationType.Max, MetricsAggregationType.Min]);
+    ).toEqual([
+      [
+        "failed_pods",
+        "k8s.job.failed_pods.increase",
+        MetricsAggregationType.Sum,
+        ["resource.k8s.namespace.name", "resource.k8s.job.name"],
+      ],
+    ]);
+    // No formula: the criteria compare the failures query itself.
+    expect(monitor.metricViewConfig.formulaConfigs).toEqual([]);
+    // What the root cause and the chart call it.
+    expect(queries[0].metricAliasData.title).toBe("Failed Job Pods");
+    expect(queries[0].metricAliasData.legend).toBe("Failed Job Pods");
+    // A count: no unit to convert from or to.
+    expect(queries[0].metricAliasData.legendUnit).toBeUndefined();
+    expect(monitor.rollingTime).toBe(RollingTime.Past15Minutes);
+
+    for (const instance of [offline, online]) {
+      expect(
+        (instance.data.filters as Array<any>).map((filter: any) => {
+          return [
+            filter.metricMonitorOptions.metricAlias,
+            filter.metricMonitorOptions.metricAggregationType,
+          ];
+        }),
+      ).toEqual([["failed_pods", EvaluateOverTimeType.Sum]]);
+    }
+
+    expect(offline.data.description).not.toContain("same minute");
+    expect(offline.data.description).not.toContain("lower bound");
+    expect(offline.data.description).toContain(
+      "counted from the failed pods the agent sends with each sample",
+    );
+  });
+
+  test("no Kubernetes template reads the lifetime failed-pod count, which only ever grows", () => {
+    for (const template of getAllKubernetesAlertTemplates()) {
+      for (const query of getQueryConfigs(template.id)) {
+        expect({
+          template: template.id,
+          metric: query.metricQueryData.filterData.metricName,
+        }).not.toEqual({
+          template: template.id,
+          metric: "k8s.job.failed_pods",
+        });
+      }
+    }
+  });
+
+  test("says what it reads, that every failure counts, what it cannot see, and that an older agent sends none of it", () => {
+    const template: KubernetesAlertTemplate =
+      getKubernetesAlertTemplateById("k8s-job-failures")!;
+
+    expect(template.name).toBe("Job Failures");
+    expect(template.description).toContain("k8s.job.failed_pods.increase");
+    expect(template.description).toContain("every failure counts");
+    expect(template.description).toContain(
+      "A Job recreated under the same name starts a new count.",
+    );
+    expect(template.description).toContain(
+      "Failures before the agent's first sample of a Job, in its first half-minute, are not counted.",
+    );
+    expect(template.description).toContain(
+      "An older Kubernetes agent does not send the increase: upgrade the agent first.",
+    );
+    // Rendered as text on the recommendation card, so no code spans.
+    expect(template.description).not.toContain("`");
+    // The limits of the per-minute delta it no longer has.
+    expect(template.description).not.toContain("same minute");
+    expect(template.description).not.toContain("can go unseen");
+    expect(template.summary).toBe("A pod of a job fails within 15 minutes.");
+  });
+
+  test("reads the metric the agent's cluster collector makes, from the count it keeps sending", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      ),
+      "utf8",
+    );
+
+    expect(config).toContain(
+      '- copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+    );
+    expect(config).toContain(
+      '- convert_gauge_to_sum("cumulative", true) where name == "k8s.job.failed_pods.increase"',
+    );
+    expect(config).toContain(
+      "  cumulative_to_delta/job-failures-increase:\n        include:\n          metrics:\n            - k8s.job.failed_pods.increase\n          match_type: strict\n        initial_value: drop\n",
+    );
+    expect(config).toContain(
+      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n",
+    );
+    expect(AGENT_EMITTED_METRIC_NAMES).toContain(
+      "k8s.job.failed_pods.increase",
+    );
+    expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.job.failed_pods");
   });
 });
 

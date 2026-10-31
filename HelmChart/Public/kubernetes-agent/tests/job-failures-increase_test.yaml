@@ -1,0 +1,213 @@
+# The cluster collector sends k8s.job.failed_pods.increase: the pods of a Job
+# that failed since the collector's previous sample of the Job, which
+# OneUptime's Job Failures template sums over 15 minutes (k8s-job-failures in
+# packages/Common/Types/Monitor/KubernetesAlertTemplates.ts). The template used
+# to read the growth of k8s.job.failed_pods between two samples of the same
+# minute, and missed every failure between two minutes' samples: about half of
+# them at the agent's 30-second interval.
+#
+# The k8s_cluster receiver sends k8s.job.failed_pods (the Job's status.failed)
+# as an int gauge on the Job's own resource, keyed by k8s.job.uid, which stays
+# the same for the Job's life (receiver internal/jobs/jobs.go at 0.161.0 and
+# 0.96.0); a Job recreated under the same name has a new UID and starts at 0.
+# So, unlike the container restarts, nothing has to come off the resource: a
+# copy rides the metrics pipeline beside the count, made a cumulative sum
+# (cumulative_to_delta leaves gauges alone) and turned into increases per Job.
+# The count goes on unchanged, for the charts.
+#
+# convert_gauge_to_sum is a datapoint function before collector 0.108.0 and a
+# metric one from it (only that from 0.113.0), and `helm upgrade
+# --reuse-values` keeps 0.96.0, so the chart writes it in the context the
+# collector it renders for has (kubernetes-agent.collectorAtLeast).
+# Tests/Ops/validate-collector-configs.sh builds both renders with
+# `otelcol validate`, and Tests/Ops/agent-job-failures-increase-behaviour.sh
+# runs these processors in both collectors on a failing Job.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: processors at 2 spaces and their keys at 4, pipelines at 4
+# and their lists at 8.
+suite: cluster collector sends the Job failures since each Job's previous sample
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+set:
+  clusterName: prod-us
+tests:
+  - it: runs them in the metrics pipeline k8s_cluster feeds, first after the memory limiter
+    asserts:
+      # A strict line chain, so nothing runs between the copy and its
+      # conversion into increases, and the metadata processors still follow.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n"
+      # Nowhere else: not in the restarts pipeline, the traces or the logs.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    (?:metrics/restarts-increase|traces|logs):\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- (?:transform|cumulative_to_delta)/job-failures-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- transform/job-failures-increase\\n[\\s\\S]*- transform/job-failures-increase\\n"
+
+  - it: copies k8s.job.failed_pods and makes the copy a cumulative sum, in metric context on the collector the chart pins
+    asserts:
+      # The whole processor, up to the next one: a copy under its own name,
+      # then, in a group of its own once the copy exists, its gauge made a
+      # monotonic cumulative sum.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/job-failures-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: metric\\n        statements:\\n          - copy_metric\\(name=\"k8s\\.job\\.failed_pods\\.increase\", description=\"Pods of the Job that failed since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.job\\.failed_pods\"\\n      - context: metric\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context: datapoint"
+
+  - it: leaves k8s.job.failed_pods itself as the receiver sends it, for the charts
+    asserts:
+      # Never renamed, converted or dropped: only the copy is.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "where (?:metric\\.)?name == \"k8s\\.job\\.failed_pods\"\\n[\\s\\S]*where (?:metric\\.)?name == \"k8s\\.job\\.failed_pods\"\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?:set|convert_gauge_to_sum)\\([^\\n]*\\) where (?:metric\\.)?name == \"k8s\\.job\\.failed_pods\"\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "k8s\\.job\\.failed_pods\"'"
+      # And nothing switches it off in the receiver.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "k8s\\.job\\.failed_pods:\\s*\\n\\s*enabled:"
+
+  - it: makes the copy a sum in datapoint context for 0.96.0, which a --reuse-values upgrade keeps
+    set:
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/job-failures-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: metric\\n        statements:\\n          - copy_metric\\(name=\"k8s\\.job\\.failed_pods\\.increase\", description=\"Pods of the Job that failed since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.job\\.failed_pods\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+      # Exactly once: never in metric context there too.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "convert_gauge_to_sum\\([^\\n]*k8s\\.job\\.failed_pods\\.increase[\\s\\S]*convert_gauge_to_sum\\([^\\n]*k8s\\.job\\.failed_pods\\.increase"
+
+  - it: and on the releases before 0.108.0, the one that made it a metric function
+    set:
+      image.tag: "0.107.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+
+  - it: in metric context from 0.108.0
+    set:
+      image.tag: "0.108.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: metric\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context: datapoint"
+
+  - it: reads the version at the front of a tag with a v or a digest, and a tag with none as the chart's default
+    set:
+      image.tag: "v0.96.0@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n"
+
+  - it: takes a tag that names no version for this chart's collector
+    set:
+      image.tag: latest
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context: datapoint"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+
+  - it: renders the 0.96.0 form for a release upgraded with --reuse-values from chart 14.0.10
+    values:
+      - values/reuse-values-14.0.10.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n"
+
+  - it: turns only the copy into the failures since each sample, sending nothing for a first sample, with 2 hours of memory
+    asserts:
+      # initial_value drop: a Job's first sample after the agent starts, or a
+      # new Job's, would otherwise send its whole count as one increase - on
+      # every agent restart, for every failed Job a CronJob keeps in its
+      # history. 2h outlives the template's 15-minute window by far. Only the
+      # copy: every other cumulative sum in this pipeline (the Prometheus
+      # scrapes, OBI's) goes on as it came.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulative_to_delta/job-failures-increase:\\n    include:\\n      metrics:\\n        - k8s\\.job\\.failed_pods\\.increase\\n      match_type: strict\\n    initial_value: drop\\n    max_staleness: 2h\\n"
+
+  - it: runs them before the metric filters, so filters.metrics sees the copy under the name it is sent with
+    set:
+      filters.metrics.exclude: ["k8s.pod.network.errors"]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n"
+
+  - it: and before the namespace filters for metrics, which the receiver's own namespace attribute answers
+    set:
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [batch-jobs]
+          scopes: [metrics]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "resource\\.attributes\\[\"k8s\\.namespace\\.name\"\\] != nil and"
+
+  - it: sends them on every preset, since the cluster collector always runs
+    set:
+      preset: gke-autopilot
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/job-failures-increase:\\n"
+
+  - it: sends them on EKS Fargate too
+    set:
+      preset: eks-fargate
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n"
+
+  - it: sends them with eBPF, kube-state-metrics and the control-plane scrapes on, whose metrics share the pipeline
+    set:
+      ebpf.enabled: true
+      kubeStateMetrics.enabled: true
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*        - otlp\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*        - prometheus\\n      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n"
+      # Their own copies are untouched: the transform matches the Job
+      # failures by name alone.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulative_to_delta/job-failures-increase:\\n    include:\\n      metrics:\\n        - k8s\\.job\\.failed_pods\\.increase\\n      match_type: strict\\n"
