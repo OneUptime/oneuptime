@@ -156,7 +156,7 @@ Au-delà du nombre d'exceptions, un moniteur d'exceptions peut alerter sur ce qu
 | **Regressed Exceptions** | Les exceptions correspondantes que vous avez résolues, revenues et toujours ouvertes. |
 | **Exception Increase (in %)** | De combien le nombre d'exceptions correspondantes dépasse l'habitude : la veille de la fenêtre, par fenêtre de même durée, au moins une. Dix exceptions après une journée calme donnent 900 %. |
 
-Les exceptions nouvelles et revenues sont filtrées par service, type d'exception, environnement et message ; le filtre par entité d'infrastructure ne s'applique qu'aux deux autres.
+Les exceptions nouvelles et revenues sont filtrées par service, type d'exception, environnement et message, et aussi par entité d'infrastructure : une exception compte quand l'une de ses occurrences dans la fenêtre vient de l'une des entités choisies.
 
 ## Exemple : seulement les exceptions de production
 

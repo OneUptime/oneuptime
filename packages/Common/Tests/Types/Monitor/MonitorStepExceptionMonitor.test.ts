@@ -83,6 +83,62 @@ describe("MonitorStepExceptionMonitorUtil", () => {
     });
   });
 
+  /*
+   * Whether a monitor is scoped to infrastructure entities: what puts the
+   * entity filter on its occurrence query, and what makes its new and
+   * regressed exceptions the groups of the occurrences it counts.
+   */
+  describe("hasEntityFilter", () => {
+    test("a monitor with entities has one", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.hasEntityFilter({
+          entityKeys: ["host-1"],
+        }),
+      ).toBe(true);
+      expect(
+        MonitorStepExceptionMonitorUtil.hasEntityFilter({
+          entityKeys: ["host-1", "pod-2"],
+        }),
+      ).toBe(true);
+    });
+
+    test("an empty list, or none - a monitor saved before entities - has none", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.hasEntityFilter({ entityKeys: [] }),
+      ).toBe(false);
+      expect(
+        MonitorStepExceptionMonitorUtil.hasEntityFilter({
+          entityKeys: undefined,
+        }),
+      ).toBe(false);
+      expect(
+        MonitorStepExceptionMonitorUtil.hasEntityFilter(
+          MonitorStepExceptionMonitorUtil.getDefault(),
+        ),
+      ).toBe(false);
+    });
+
+    test("is exactly when the occurrence query carries the entity filter", () => {
+      for (const entityKeys of [
+        undefined,
+        [],
+        ["host-1"],
+        ["host-1", "pod-2"],
+      ]) {
+        const monitor: MonitorStepExceptionMonitor = {
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          entityKeys,
+          lastXSecondsOfExceptions: 0,
+        };
+
+        expect(
+          MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitor)
+            .entityKeys !== undefined,
+        ).toBe(MonitorStepExceptionMonitorUtil.hasEntityFilter(monitor));
+      }
+    });
+  });
+
   describe("toAnalyticsQuery", () => {
     test("builds no filters for the empty default when the time window is off", () => {
       const query: Query<ExceptionInstance> =

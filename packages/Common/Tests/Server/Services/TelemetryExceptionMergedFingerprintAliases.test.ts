@@ -402,8 +402,11 @@ describe("what was merged into what (getMergedFingerprintSurvivors)", () => {
     jest
       .spyOn(TelemetryExceptionService, "findBy")
       .mockImplementation((async () => {
-        const noSurvivor: TelemetryException = mergedRow("fp-b", "fp-a");
-        noSurvivor.mergedIntoTelemetryExceptionId = undefined;
+        // The survivor's fingerprint, but not its id.
+        const noSurvivor: TelemetryException = new TelemetryException();
+        noSurvivor.fingerprint = "fp-b";
+        noSurvivor.mergedIntoTelemetryException = new TelemetryException();
+        noSurvivor.mergedIntoTelemetryException.fingerprint = "fp-a";
         return [
           noSurvivor,
           mergedRow("fp-c", ""),

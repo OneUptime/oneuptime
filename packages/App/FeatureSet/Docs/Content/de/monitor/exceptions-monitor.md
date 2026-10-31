@@ -156,7 +156,7 @@ Neben der Anzahl der Ausnahmen kann ein Ausnahmen-Monitor bei dem alarmieren, wo
 | **Regressed Exceptions** | Passende Ausnahmen, die Sie behoben haben, die zurückkamen und noch offen sind. |
 | **Exception Increase (in %)** | Wie weit die Anzahl passender Ausnahmen über der üblichen liegt: der Tag vor dem Fenster, je Fenster seiner Länge, mindestens eine. Zehn Ausnahmen nach einem ruhigen Tag ergeben 900 %. |
 
-Neue und zurückgekommene Ausnahmen werden nach Dienst, Ausnahmetyp, Umgebung und Meldung gefiltert; der Filter nach Infrastruktur-Entität gilt nur für die anderen beiden.
+Neue und zurückgekommene Ausnahmen werden nach Dienst, Ausnahmetyp, Umgebung und Meldung gefiltert und auch nach Infrastruktur-Entität: Eine Ausnahme zählt, wenn eines ihrer Vorkommen im Fenster von einer der gewählten Entitäten kam.
 
 ## Ein Beispiel: nur Produktionsausnahmen
 

@@ -2019,6 +2019,38 @@ describe("the Metrics monitor", () => {
 });
 
 describe("the Exceptions monitor", () => {
+  /*
+   * An infrastructure entity is a property of each occurrence, not of the
+   * exception group: an entity-scoped monitor counts its new and regressed
+   * exceptions among the groups of the window's occurrences it counts,
+   * whose fingerprints it reads first (ExceptionMonitorMeasureReader).
+   */
+  it("applies the infrastructure entity filter to new and regressed exceptions, through their occurrences in the window", () => {
+    const reader: string = oneLine(
+      readSource("Common/Server/Utils/Monitor/ExceptionMonitorMeasures.ts"),
+    );
+
+    expect(reader).toContain(
+      "MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config) ? ExceptionMonitorMeasureReader.readOccurrenceFingerprints({ countQuery: data.countQuery, windowStart, windowEnd, })",
+    );
+    expect(reader).toContain("groupBy: { fingerprint: true },");
+    expect(reader).toContain(
+      "query.fingerprint = new Includes(data.fingerprints);",
+    );
+    expect(
+      MonitorStepExceptionMonitorUtil.hasEntityFilter({
+        entityKeys: ["host:web-1"],
+      }),
+    ).toBe(true);
+
+    expect(EXCEPTIONS).toContain(
+      "New and regressed exceptions are matched by service, exception type, environment and message, and by the infrastructure entity filter too: an exception counts when one of its occurrences in the window came from one of the chosen entities.",
+    );
+    expect(EXCEPTIONS).not.toContain(
+      "the infrastructure entity filter applies to the other two only",
+    );
+  });
+
   it("leaves out resolved and archived exceptions unless told to count them, and the page's table says Off", () => {
     const step: ReturnType<typeof MonitorStepExceptionMonitorUtil.getDefault> =
       MonitorStepExceptionMonitorUtil.getDefault();
