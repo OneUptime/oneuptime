@@ -86,6 +86,7 @@ Klicka på en pil för att se dess begärandefrekvens, felfrekvens och genomsnit
 
 Ett vCenter, ett Kubernetes-kluster, en värd, en Docker- eller Podman-värd, ett Docker Swarm-, Proxmox- eller Ceph-kluster och en lagringsarray har var sin egen sida **Topologi**. Den ritar just den resursen i detalj utifrån dess eget inventarie: vad som ligger i vad, varje del färgad efter hur den mår, och varje öppen incident och varje öppet larm på den del det gäller.
 
+- **Läs det som ett träd.** Resursen står överst, och varje dels delar ritas till höger om den, förbundna med den genom en linje som blir röd eller orange där något kräver uppmärksamhet. Delar med problem inuti öppnas av sig själva, den runda knappen på en del öppnar eller stänger den, och piltangenterna rör sig genom kartan.
 - **Hitta det som kräver uppmärksamhet.** **Kräver uppmärksamhet** behåller bara delarna med problem och vägen till var och en, och sökningen hittar en del var som helst i resursen.
 - **Titta närmare.** Klicka på en del för att se vad den är, med en länk till dess egen sida, och på **Fokusera på detta** för att bara rita den delen, vad den innehåller och vad den hänger ihop med.
 - **Gå åt båda hållen.** **Öppna i Topologi** öppnar resursen på **Infrastruktur**, och dess knapp **Öppna vCenter-topologin**, **Öppna klustertopologin**, **Öppna värdtopologin** eller **Öppna lagringsarrayens topologi** leder tillbaka.

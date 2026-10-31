@@ -38985,7 +38985,7 @@
   "{{number}} users_one": "{{number}} 人のユーザー",
   "Exceptions merged into this one as the same bug. Their occurrences count here, on this page and in the list.": "同じバグとしてこの例外に統合された例外です。その発生はここ、このページと一覧で数えられます。",
   "Merge": "統合",
-  "Merge into this exception?": "この例外に統合しますか?",
+  "Merge into this exception?": "この例外に統合しますか？",
   "Merged By User": "統合したユーザー",
   "Merged By User ID": "統合したユーザーの ID",
   "Merged Into Exception": "統合先の例外",
@@ -39057,6 +39057,10 @@
   "Exception Saved Views": "保存済みの例外ビュー",
   "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "現在の検索、フィルター、時間範囲、ステータス、並べ替え、ページサイズを含む例外一覧のビューを保存して再利用します。",
   "Older Kubernetes agents send only the running restart count.": "古い Kubernetes エージェントは、再起動の累計回数しか送信しません。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "部分の上で、上下の矢印キーで隣の部分へ移動し、左矢印キーで開いて中に入り、右矢印キーで閉じて外に戻ります。",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "部分の上で、上下の矢印キーで隣の部分へ移動し、右矢印キーで開いて中に入り、左矢印キーで閉じて外に戻ります。",
+  "Topology map": "トポロジーマップ",
   "Upgrade the agent": "エージェントをアップグレード",
+  "What is inside": "中にあるもの",
   "When this query has no data in the time range, the chart shows {{metricName}} instead.": "このクエリに時間範囲内のデータがない場合、グラフには代わりに {{metricName}} が表示されます。"
 }

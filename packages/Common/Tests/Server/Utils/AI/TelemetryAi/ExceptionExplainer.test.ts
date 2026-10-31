@@ -31,6 +31,7 @@ import ChangeEvent from "../../../../../Models/AnalyticsModels/ChangeEvent";
 import Service from "../../../../../Models/DatabaseModels/Service";
 import LlmLog from "../../../../../Models/DatabaseModels/LlmLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -377,6 +378,101 @@ describe("explaining an exception", () => {
 
     const result: ExceptionExplanationResult = await explain();
 
+    expect(result.explanation.summary).toBeTruthy();
+  });
+});
+
+/*
+ * The occurrences of the exceptions merged into one count on it
+ * (TelemetryExceptionMerge): the latest occurrence the explanation is
+ * written from is the latest of its own and of theirs
+ * (TelemetryExceptionService.getGroupFingerprints), as its page shows.
+ */
+describe("explaining an exception others were merged into", () => {
+  let merged: Array<string>;
+  let memberReads: Array<Array<unknown>>;
+
+  function latestOccurrenceQuery(): Record<string, unknown> {
+    const call: Array<unknown> = (ExceptionInstanceService.findBy as jest.Mock)
+      .mock.calls[0]!;
+    return (call[0] as { query: Record<string, unknown> }).query;
+  }
+
+  beforeEach(() => {
+    merged = ["fp-merged"];
+    memberReads = [];
+    TelemetryExceptionService.clearGroupFingerprints();
+
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, params: Array<unknown>) => {
+          if (!sql.includes("ROW_NUMBER()")) {
+            return [];
+          }
+
+          memberReads.push(params);
+
+          return merged.map((fingerprint: string) => {
+            return { survivorId: EXCEPTION_ID.toString(), fingerprint };
+          });
+        },
+      },
+    } as never);
+  });
+
+  afterEach(() => {
+    TelemetryExceptionService.clearGroupFingerprints();
+  });
+
+  test("its latest occurrence is the latest of its own and of those merged into it, read as the person asking", async () => {
+    await explain();
+
+    const query: Record<string, unknown> = latestOccurrenceQuery();
+    expect(query["fingerprint"]).toBeInstanceOf(Includes);
+    expect((query["fingerprint"] as Includes).values).toEqual([
+      "fp-1",
+      "fp-merged",
+    ]);
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["primaryEntityId"]).toBe(SERVICE_ID);
+
+    const call: { sort: unknown; limit: number; props: unknown } = (
+      ExceptionInstanceService.findBy as jest.Mock
+    ).mock.calls[0]![0] as { sort: unknown; limit: number; props: unknown };
+    expect(call.limit).toBe(1);
+    expect(call.props).toEqual(CALLER);
+
+    // What was merged into it, in its project: the meaning, not a read of telemetry.
+    expect(memberReads).toEqual([
+      [PROJECT_ID.toString(), [EXCEPTION_ID.toString()], 100, 10000],
+    ]);
+
+    // The merged one's occurrence, and its trace, reach the prompt.
+    const prompt: string = aiRequests[0]!.messages[1]!.content as string;
+    expect(prompt).toContain("## Latest occurrence");
+    expect(prompt).toContain("cart lookup returned nothing");
+  });
+
+  test("nothing merged into it: its own fingerprint alone, exactly as before any merge", async () => {
+    merged = [];
+
+    await explain();
+
+    expect(latestOccurrenceQuery()["fingerprint"]).toBe("fp-1");
+  });
+
+  test("when what was merged cannot be read, its own occurrences are read", async () => {
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async () => {
+          throw new Error("Postgres is down");
+        },
+      },
+    } as never);
+
+    const result: ExceptionExplanationResult = await explain();
+
+    expect(latestOccurrenceQuery()["fingerprint"]).toBe("fp-1");
     expect(result.explanation.summary).toBeTruthy();
   });
 });

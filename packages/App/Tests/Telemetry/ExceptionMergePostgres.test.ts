@@ -34,6 +34,7 @@ import MonitorStepExceptionMonitor, {
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { DataSource, EntityManager } from "Common/node_modules/typeorm";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import { MAX_MERGED_FINGERPRINTS_PER_EXCEPTION } from "Common/Types/Telemetry/ExceptionGroupFingerprints";
 
 /*
  * MERGING EXCEPTIONS, AND UNDOING IT, ON POSTGRES - WITH INGEST IN BETWEEN.
@@ -629,6 +630,239 @@ describePostgres("merging exceptions against Postgres", () => {
     // Unmerged, b counts on its own exception again; c is still a's.
     await unmerge("b");
     expect(await counted(["b", "c"])).toEqual({ b: ["b"], c: ["a"] });
+  });
+
+  /*
+   * The other way round: from an exception to its occurrences, which are
+   * its own fingerprint's and those of the exceptions merged into it
+   * (TelemetryExceptionService.getGroupFingerprints) - read from this
+   * schema with the service's own statement, kept, and read again at once
+   * after a merge or an unmerge through TelemetryExceptionMerge.
+   */
+  describe("an exception's group fingerprints", () => {
+    async function groupOf(fingerprint: string): Promise<Array<string>> {
+      return TelemetryExceptionService.getGroupFingerprintsOf({
+        projectId,
+        exception: { id: (await read(fingerprint))._id, fingerprint },
+      });
+    }
+
+    // Occurrences of each fingerprint, seen the given minutes ago.
+    async function ingestSeen(seen: Record<string, number>): Promise<void> {
+      await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+        Object.entries(seen).map(
+          ([fingerprint, minutesAgo]: [string, number]) => {
+            return {
+              ...occurrence(fingerprint),
+              occurredAt: new Date(Date.now() - minutesAgo * 60 * 1000),
+            };
+          },
+        ),
+      );
+    }
+
+    beforeEach(() => {
+      TelemetryExceptionService.clearGroupFingerprints();
+    });
+
+    afterEach(() => {
+      TelemetryExceptionService.clearGroupFingerprints();
+    });
+
+    test("its own, then those merged into it, the most recently seen first; each merge and unmerge read at once", async () => {
+      await ingestSeen({ a: 1, b: 30, c: 10, d: 20, e: 5 });
+
+      // Nothing merged yet: each is its own fingerprint, and that is kept.
+      expect(await groupOf("a")).toEqual(["a"]);
+
+      await merge("a", ["b", "c"]);
+      expect(await groupOf("a")).toEqual(["a", "c", "b"]);
+      // A merged one has nothing merged into it.
+      expect(await groupOf("b")).toEqual(["b"]);
+
+      // By its fingerprint alone, as the session replays ask.
+      expect(
+        await TelemetryExceptionService.getGroupFingerprintsOfFingerprint({
+          projectId,
+          fingerprint: "a",
+          primaryEntityId: serviceId,
+        }),
+      ).toEqual(["a", "c", "b"]);
+      expect(
+        await TelemetryExceptionService.getGroupFingerprintsOfFingerprint({
+          projectId,
+          fingerprint: "b",
+        }),
+      ).toEqual(["b"]);
+      expect(
+        await TelemetryExceptionService.getGroupFingerprintsOfFingerprint({
+          projectId,
+          fingerprint: "a",
+          primaryEntityId: ObjectID.generate(),
+        }),
+      ).toEqual(["a"]);
+
+      await merge("a", ["d"]);
+      expect(await groupOf("a")).toEqual(["a", "c", "d", "b"]);
+
+      await unmerge("c");
+      expect(await groupOf("a")).toEqual(["a", "d", "b"]);
+      expect(await groupOf("c")).toEqual(["c"]);
+
+      // Merging one others were merged into moves them along.
+      await merge("e", ["a"]);
+      expect(await groupOf("e")).toEqual(["e", "a", "d", "b"]);
+      expect(await groupOf("a")).toEqual(["a"]);
+
+      // In one read for a batch, by id.
+      const groups: Map<
+        string,
+        Array<string>
+      > = await TelemetryExceptionService.getGroupFingerprints({
+        projectId,
+        exceptions: await Promise.all(
+          ["c", "e"].map(async (fingerprint: string) => {
+            return { id: (await read(fingerprint))._id, fingerprint };
+          }),
+        ),
+      });
+      expect(Object.fromEntries(groups)).toEqual({
+        [(await read("c"))._id]: ["c"],
+        [(await read("e"))._id]: ["e", "a", "d", "b"],
+      });
+    });
+
+    test(`at most ${MAX_MERGED_FINGERPRINTS_PER_EXCEPTION} merged into one: those seen last`, async () => {
+      const merged: Array<string> = Array.from(
+        { length: MAX_MERGED_FINGERPRINTS_PER_EXCEPTION + 5 },
+        (_value: unknown, index: number): string => {
+          return `m${String(index).padStart(3, "0")}`;
+        },
+      );
+      const seen: Record<string, number> = { own: 0 };
+
+      // m000 was seen longest ago, m104 last.
+      merged.forEach((fingerprint: string, index: number): void => {
+        seen[fingerprint] = merged.length - index;
+      });
+      await ingestSeen(seen);
+
+      for (let start: number = 0; start < merged.length; start += 20) {
+        await merge("own", merged.slice(start, start + 20));
+      }
+
+      const group: Array<string> = await groupOf("own");
+
+      expect(group).toHaveLength(MAX_MERGED_FINGERPRINTS_PER_EXCEPTION + 1);
+      expect(group[0]).toBe("own");
+      expect(group.slice(1)).toEqual(merged.slice(5).reverse());
+    });
+
+    /*
+     * Random merges, unmerges and ingests through TelemetryExceptionMerge and
+     * the ingest upsert, with the groups read after each: right after a
+     * merge or an unmerge every group is exactly what the rows say, order
+     * included; after an ingest - which forgets nothing - it holds the same
+     * exceptions, as a group kept from before may be in an older order.
+     */
+    test("a seeded sweep of merges, unmerges and ingests: every group is what the rows say", async () => {
+      const fingerprints: Array<string> = Array.from(
+        { length: 9 },
+        (_value: unknown, index: number): string => {
+          return `g${index}`;
+        },
+      );
+      const random: SeededRandom = seededRandom(9241);
+      const seen: Record<string, number> = {};
+
+      fingerprints.forEach((fingerprint: string, index: number): void => {
+        seen[fingerprint] = 60 + index;
+      });
+      await ingestSeen(seen);
+
+      for (let step: number = 0; step < 80; step++) {
+        const choice: number = random(4);
+        let wasMergeOrUnmerge: boolean = false;
+
+        if (choice === 0) {
+          const batch: Record<string, number> = {};
+          batch[fingerprints[random(fingerprints.length)]!] = random(50);
+          await ingestSeen(batch);
+        } else if (choice < 3) {
+          const survivor: string = fingerprints[random(fingerprints.length)]!;
+          const mergedOne: string = fingerprints[random(fingerprints.length)]!;
+          const current: Map<string, GroupRow> = await rows();
+
+          if (
+            survivor !== mergedOne &&
+            !current.get(survivor)!.mergedIntoTelemetryExceptionId &&
+            !current.get(mergedOne)!.mergedIntoTelemetryExceptionId
+          ) {
+            await merge(survivor, [mergedOne]);
+            wasMergeOrUnmerge = true;
+          }
+        } else {
+          const outcome: ExceptionUnmergeOutcome = await unmerge(
+            fingerprints[random(fingerprints.length)]!,
+          );
+          wasMergeOrUnmerge = outcome === ExceptionUnmergeOutcome.Unmerged;
+        }
+
+        // What the rows say, by the statement's order.
+        const current: Array<{
+          _id: string;
+          fingerprint: string;
+          mergedInto: string | null;
+          lastSeenAt: Date | null;
+        }> = await database.query(
+          `SELECT "_id"::text AS "_id", "fingerprint", "mergedIntoTelemetryExceptionId"::text AS "mergedInto", "lastSeenAt" FROM "${schema}"."TelemetryException" ORDER BY "lastSeenAt" DESC NULLS LAST, "fingerprint" ASC`,
+        );
+        const expected: Record<string, Array<string>> = {};
+
+        for (const exception of current) {
+          expected[exception._id] = [
+            exception.fingerprint,
+            ...current
+              .filter((member: { mergedInto: string | null }): boolean => {
+                return member.mergedInto === exception._id;
+              })
+              .map((member: { fingerprint: string }): string => {
+                return member.fingerprint;
+              }),
+          ];
+        }
+
+        const groups: Map<
+          string,
+          Array<string>
+        > = await TelemetryExceptionService.getGroupFingerprints({
+          projectId,
+          exceptions: current.map(
+            (exception: { _id: string; fingerprint: string }) => {
+              return { id: exception._id, fingerprint: exception.fingerprint };
+            },
+          ),
+        });
+
+        for (const exception of current) {
+          const group: Array<string> = groups.get(exception._id)!;
+
+          if (wasMergeOrUnmerge) {
+            expect([step, exception.fingerprint, group]).toEqual([
+              step,
+              exception.fingerprint,
+              expected[exception._id],
+            ]);
+          } else {
+            expect([step, group[0], [...group].sort()]).toEqual([
+              step,
+              exception.fingerprint,
+              [...expected[exception._id]!].sort(),
+            ]);
+          }
+        }
+      }
+    });
   });
 
   test("an unmerge gives the survivor back its own first and last seen", async () => {

@@ -630,6 +630,23 @@ export default class TelemetryExceptionMerge {
         },
       );
 
+    /*
+     * What is merged into the survivor changed, and into each one merged:
+     * the reads of their occurrences go by their groups as they are now
+     * (TelemetryExceptionService.getGroupFingerprints), in every process.
+     */
+    if (
+      mergeResult.merged.some(
+        (entry: { outcome: ExceptionMergeOutcome }): boolean => {
+          return entry.outcome === ExceptionMergeOutcome.Merged;
+        },
+      )
+    ) {
+      await TelemetryExceptionService.forgetGroupFingerprints([
+        data.props.tenantId,
+      ]);
+    }
+
     await TelemetryExceptionActivityService.record({
       entries: activity,
       actor: TelemetryExceptionActivityService.getActor(data.props),
@@ -782,6 +799,13 @@ export default class TelemetryExceptionMerge {
           };
         },
       );
+
+    // The one it was taken out of reads its occurrences without it again.
+    if (unmergeResult.outcome === ExceptionUnmergeOutcome.Unmerged) {
+      await TelemetryExceptionService.forgetGroupFingerprints([
+        unmergedProjectId || data.props.tenantId,
+      ]);
+    }
 
     // On both: the one taken out, and the one it was taken out of.
     if (

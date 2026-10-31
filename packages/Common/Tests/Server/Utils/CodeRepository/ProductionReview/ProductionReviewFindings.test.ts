@@ -28,6 +28,7 @@ import {
   ProductionReviewSection,
   ProductionReviewWhere,
 } from "../../../../../Types/CodeRepository/ProductionReview";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
@@ -742,6 +743,107 @@ describe("ProductionReviewFindings reads", () => {
     expect(query["projectId"]).toBe(PROJECT_ID);
     expect(JSON.stringify(exceptions)).not.toContain("bob@example.com");
     expect(JSON.stringify(exceptions)).not.toContain("Cannot read");
+  });
+
+  /*
+   * The occurrences of the exceptions merged into a group count on it
+   * (TelemetryExceptionMerge): the week's count takes them in, by its own
+   * fingerprint and theirs (TelemetryExceptionService.getGroupFingerprints).
+   */
+  test("exceptions: the week's count takes in the exceptions merged into the group", async () => {
+    TelemetryExceptionService.clearGroupFingerprints();
+    const memberReads: Array<Array<unknown>> = [];
+
+    jest
+      .spyOn(TelemetryExceptionService, "findBy")
+      .mockResolvedValue([exceptionGroup()] as never);
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, params: Array<unknown>) => {
+          memberReads.push(params);
+          return sql.includes("ROW_NUMBER()")
+            ? [
+                {
+                  survivorId: "2b3c4d5e-0000-4000-8000-000000000001",
+                  fingerprint: "fp-merged",
+                },
+              ]
+            : [];
+        },
+      },
+    } as never);
+    // 7 of its own this week, 1240 with the merged one's.
+    const countBy: jest.SpyInstance = jest
+      .spyOn(ExceptionInstanceService, "countBy")
+      .mockImplementation((async (data: { query: JSONObject }) => {
+        return new PositiveNumber(
+          data.query["fingerprint"] instanceof Includes ? 1240 : 7,
+        );
+      }) as never);
+
+    const exceptions: Awaited<
+      ReturnType<typeof ProductionReviewFindings.readExceptions>
+    > = await ProductionReviewFindings.readExceptions({
+      projectId: PROJECT_ID,
+      changed: changed(),
+      servicesById: servicesById(),
+      now: NOW,
+    });
+
+    expect(exceptions![0]!.occurrences).toBe(1240);
+    expect(exceptions![0]!.isWindowCount).toBe(true);
+
+    expect(memberReads).toEqual([
+      [
+        PROJECT_ID.toString(),
+        ["2b3c4d5e-0000-4000-8000-000000000001"],
+        100,
+        10000,
+      ],
+    ]);
+    const query: JSONObject = (
+      countBy.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
+    expect((query["fingerprint"] as unknown as Includes).values).toEqual([
+      "fp-1",
+      "fp-merged",
+    ]);
+    // Still the group's service, in the project, as the system.
+    expect(String(query["primaryEntityId"])).toBe(CHECKOUT);
+    expect((countBy.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
+      isRoot: true,
+      tenantId: PROJECT_ID,
+    });
+    TelemetryExceptionService.clearGroupFingerprints();
+  });
+
+  test("exceptions: nothing merged into the group, its count asks for its own fingerprint alone", async () => {
+    TelemetryExceptionService.clearGroupFingerprints();
+    jest
+      .spyOn(TelemetryExceptionService, "findBy")
+      .mockResolvedValue([exceptionGroup()] as never);
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async () => {
+          return [];
+        },
+      },
+    } as never);
+    const countBy: jest.SpyInstance = jest
+      .spyOn(ExceptionInstanceService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1240));
+
+    await ProductionReviewFindings.readExceptions({
+      projectId: PROJECT_ID,
+      changed: changed(),
+      servicesById: servicesById(),
+      now: NOW,
+    });
+
+    expect(
+      (countBy.mock.calls[0]![0] as { query: JSONObject }).query["fingerprint"],
+    ).toBe("fp-1");
+    TelemetryExceptionService.clearGroupFingerprints();
   });
 
   test("exceptions: a count that cannot be read shows the group's total, saying so", async () => {

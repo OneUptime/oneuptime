@@ -44,6 +44,7 @@ import {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import { toExceptionGroupFingerprints } from "../../../Types/Telemetry/ExceptionGroupFingerprints";
 
 /*
  * Bespoke ClickHouse reads for session-replay playback.
@@ -3200,6 +3201,14 @@ export default class SessionReplayReadService {
     projectId: ObjectID;
     exceptionFingerprint: string;
     /*
+     * The fingerprints of the exceptions merged into it
+     * (TelemetryExceptionService.getGroupFingerprintsOfFingerprint): their
+     * occurrences count on it, so a session that threw one of them threw
+     * it. None, and the lookup is the exception's own fingerprint alone,
+     * exactly as before any merge.
+     */
+    mergedExceptionFingerprints?: Array<string> | undefined;
+    /*
      * Exception fingerprints are unique per primary entity, not per project.
      * Keep this optional for older callers, but exception pages should always
      * provide it so neither the live side index nor finalized headers can mix
@@ -3263,10 +3272,16 @@ export default class SessionReplayReadService {
         -DEFAULT_SESSION_REPLAY_FOR_EXCEPTION_WINDOW_DAYS,
       );
 
+    // Its own fingerprint, then those of the exceptions merged into it.
+    const exceptionFingerprints: Array<string> = toExceptionGroupFingerprints(
+      data.exceptionFingerprint,
+      data.mergedExceptionFingerprints || [],
+    );
+
     const instanceSessionIds: Array<string> =
       await SessionReplayReadService.getSessionIdsForExceptionInstances({
         projectId: data.projectId,
-        exceptionFingerprint: data.exceptionFingerprint,
+        exceptionFingerprints,
         primaryEntityId: data.primaryEntityId,
         primaryEntityType: data.primaryEntityType,
         startTime: startTime,
@@ -3426,10 +3441,10 @@ export default class SessionReplayReadService {
       );
     } else {
       statement.append(
-        SQL`hasAny(exceptionFingerprints, [${{
-          type: TableColumnType.Text,
-          value: data.exceptionFingerprint,
-        }}])`,
+        SessionReplayReadService.hasAnyExceptionFingerprint(
+          "exceptionFingerprints",
+          exceptionFingerprints,
+        ),
       );
     }
 
@@ -3483,10 +3498,10 @@ export default class SessionReplayReadService {
     } else {
       statement.append(" HAVING (");
       statement.append(
-        SQL`hasAny(aggExceptionFingerprints, [${{
-          type: TableColumnType.Text,
-          value: data.exceptionFingerprint,
-        }}])`,
+        SessionReplayReadService.hasAnyExceptionFingerprint(
+          "aggExceptionFingerprints",
+          exceptionFingerprints,
+        ),
       );
       if (instanceSessionIds.length > 0) {
         statement.append(
@@ -3564,6 +3579,31 @@ export default class SessionReplayReadService {
   }
 
   /*
+   * `hasAny(<column>, ...)` over an exception's fingerprints: its own alone,
+   * as the one-element array it was before any merge, or its group's.
+   */
+  private static hasAnyExceptionFingerprint(
+    column: "exceptionFingerprints" | "aggExceptionFingerprints",
+    fingerprints: Array<string>,
+  ): Statement {
+    const statement: Statement = new Statement([`hasAny(${column}, `], []);
+
+    statement.append(
+      fingerprints.length === 1
+        ? SQL`[${{
+            type: TableColumnType.Text,
+            value: fingerprints[0]!,
+          }}])`
+        : SQL`${{
+            type: TableColumnType.ArrayText,
+            value: fingerprints,
+          }})`,
+    );
+
+    return statement;
+  }
+
+  /*
    * Session ids of the pages that threw this exception, from the
    * exception instance table. The instance's `time` sits inside its
    * session, so a session that started inside the window threw inside
@@ -3580,7 +3620,8 @@ export default class SessionReplayReadService {
    */
   private static async getSessionIdsForExceptionInstances(data: {
     projectId: ObjectID;
-    exceptionFingerprint: string;
+    // The exception's own fingerprint first, then those merged into it.
+    exceptionFingerprints: Array<string>;
     primaryEntityId?: ObjectID | undefined;
     primaryEntityType?: ServiceType | undefined;
     startTime: Date;
@@ -3594,10 +3635,25 @@ export default class SessionReplayReadService {
         type: TableColumnType.ObjectID,
         value: data.projectId,
       }}
-        AND fingerprint = ${{
-          type: TableColumnType.Text,
-          value: data.exceptionFingerprint,
-        }}
+        AND `;
+
+    /*
+     * The exception's own fingerprint alone, as before any merge, or any of
+     * its group's.
+     */
+    statement.append(
+      data.exceptionFingerprints.length === 1
+        ? SQL`fingerprint = ${{
+            type: TableColumnType.Text,
+            value: data.exceptionFingerprints[0]!,
+          }}`
+        : SQL`fingerprint IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(data.exceptionFingerprints),
+          }})`,
+    );
+
+    statement.append(SQL`
         AND sessionId != ''
         AND time >= ${{
           type: TableColumnType.DateTime64,
@@ -3609,7 +3665,7 @@ export default class SessionReplayReadService {
             data.endTime.getTime() + SESSION_REPLAY_MAX_SESSION_MS,
           ),
         }}
-    `;
+    `);
 
     if (data.primaryEntityId) {
       statement.append(

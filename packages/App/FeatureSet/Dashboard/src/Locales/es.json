@@ -39057,6 +39057,10 @@
   "Exception Saved Views": "Vistas guardadas de excepciones",
   "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Guarda y reutiliza vistas de la lista de excepciones, incluidos la búsqueda, los filtros, el intervalo de tiempo, el estado, el orden y el tamaño de página actuales.",
   "Older Kubernetes agents send only the running restart count.": "Los agentes de Kubernetes antiguos solo envían el número acumulado de reinicios.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "En una parte, las flechas arriba y abajo pasan entre las partes que tiene al lado, la flecha izquierda la abre y entra, y la flecha derecha la cierra y vuelve a salir.",
+  "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "En una parte, las flechas arriba y abajo pasan entre las partes que tiene al lado, la flecha derecha la abre y entra, y la flecha izquierda la cierra y vuelve a salir.",
+  "Topology map": "Mapa de topología",
   "Upgrade the agent": "Actualizar el agente",
+  "What is inside": "Lo que contiene",
   "When this query has no data in the time range, the chart shows {{metricName}} instead.": "Cuando esta consulta no tiene datos en el intervalo de tiempo, el gráfico muestra {{metricName}} en su lugar."
 }

@@ -36,7 +36,11 @@ export const IDS = {
   proxmox: uuid("37000000", 1),
   ceph: uuid("38000000", 1),
   storageArray: uuid("39000000", 1),
+  cloudAccount: uuid("3a000000", 1),
 };
+
+// The AWS account the cloud account's resources belong to.
+export const CLOUD_ACCOUNT_ID = "123456789012";
 
 export const NAMES = {
   vcenter: "vcenter-prod",
@@ -963,6 +967,167 @@ export function buildEstate(options) {
     relate("k8s-node-1", clusterKey, "member-of");
   }
 
+  /*
+   * -------------------------------------------------------------------
+   * Cloud: the "production" AWS account. Two regions: a network of
+   * subnets with the machines in them, a scaling group, a load balancer,
+   * a database, a queue and a bucket in eu-west-1, a small edge network in
+   * us-east-1, and a CloudFront distribution that is in no region. One
+   * machine has stopped being listed; the database has an open incident
+   * (see Fixture.js). A large estate adds a few hundred machines.
+   * -------------------------------------------------------------------
+   */
+  const cloudRows = [];
+  const arn = (service, region, resource) => {
+    return `arn:aws:${service}:${region}:${CLOUD_ACCOUNT_ID}:${resource}`;
+  };
+  const cloudRow = (fields) => {
+    const row = {
+      _id: nextId("4a000000"),
+      cloudProvider: "aws",
+      cloudAccountId: CLOUD_ACCOUNT_ID,
+      lastSeenAt: fresh,
+      otelCollectorStatus: "disconnected",
+      cloudRelationships: [],
+      isArchived: false,
+      ...fields,
+    };
+    cloudRows.push(row);
+    return row;
+  };
+  const runsIn = (target, targetType) => {
+    return { kind: "runs-in", target, targetType };
+  };
+
+  if (!isEmpty) {
+    for (const [region, vpc, subnets] of [
+      ["eu-west-1", "vpc-0main", ["subnet-0a", "subnet-0b", "subnet-0public"]],
+      ["us-east-1", "vpc-0edge", ["subnet-0edge"]],
+    ]) {
+      cloudRow({
+        name: vpc === "vpc-0main" ? "main" : "edge",
+        cloudResourceType: "AWS::EC2::VPC",
+        providerResourceId: arn("ec2", region, `vpc/${vpc}`),
+        cloudRegion: region,
+      });
+
+      for (const subnet of subnets) {
+        cloudRow({
+          name: subnet.replace("subnet-0", "subnet-"),
+          cloudResourceType: "AWS::EC2::Subnet",
+          providerResourceId: arn("ec2", region, `subnet/${subnet}`),
+          cloudRegion: region,
+          cloudRelationships: [runsIn(vpc, "AWS::EC2::VPC")],
+        });
+      }
+    }
+
+    const machine = (name, region, subnet, extra) => {
+      return cloudRow({
+        name,
+        cloudResourceType: "AWS::EC2::Instance",
+        providerResourceId: arn("ec2", region, `instance/i-0${name}`),
+        cloudRegion: region,
+        cloudRelationships: [
+          runsIn(subnet, "AWS::EC2::Subnet"),
+          ...((extra && extra.relationships) || []),
+        ],
+        ...((extra && extra.fields) || {}),
+      });
+    };
+
+    cloudRow({
+      name: "web-asg",
+      cloudResourceType: "AWS::AutoScaling::AutoScalingGroup",
+      providerResourceId: arn(
+        "autoscaling",
+        "eu-west-1",
+        "autoScalingGroup:uuid:autoScalingGroupName/web-asg",
+      ),
+      cloudRegion: "eu-west-1",
+    });
+
+    for (const [name, subnet] of [
+      ["web-1", "subnet-0a"],
+      ["web-2", "subnet-0b"],
+    ]) {
+      machine(name, "eu-west-1", subnet, {
+        relationships: [
+          {
+            kind: "part-of",
+            target: "web-asg",
+            targetType: "AWS::AutoScaling::AutoScalingGroup",
+          },
+        ],
+      });
+    }
+
+    machine("worker-1", "eu-west-1", "subnet-0a", {
+      // Not listed for three hours: it needs attention.
+      fields: { lastSeenAt: isQuiet ? fresh : stale },
+    });
+    machine("bastion", "eu-west-1", "subnet-0public");
+    machine("edge-proxy", "us-east-1", "subnet-0edge");
+
+    if (isLarge) {
+      for (let index = 1; index <= 300; index++) {
+        machine(
+          `batch-${String(index).padStart(3, "0")}`,
+          "eu-west-1",
+          index % 2 === 0 ? "subnet-0a" : "subnet-0b",
+        );
+      }
+    }
+
+    cloudRow({
+      name: "web-alb",
+      cloudResourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      providerResourceId: arn(
+        "elasticloadbalancing",
+        "eu-west-1",
+        "loadbalancer/app/web-alb/50dc6c495c0c9188",
+      ),
+      cloudRegion: "eu-west-1",
+      cloudRelationships: [
+        {
+          kind: "routes-to",
+          target: "i-0web-1",
+          targetType: "AWS::EC2::Instance",
+        },
+        {
+          kind: "routes-to",
+          target: "i-0web-2",
+          targetType: "AWS::EC2::Instance",
+        },
+      ],
+    });
+    cloudRow({
+      name: "orders-db",
+      cloudResourceType: "AWS::RDS::DBInstance",
+      providerResourceId: arn("rds", "eu-west-1", "db:orders-db"),
+      cloudRegion: "eu-west-1",
+      cloudRelationships: [runsIn("subnet-0b", "AWS::EC2::Subnet")],
+    });
+    cloudRow({
+      name: "orders",
+      cloudResourceType: "AWS::SQS::Queue",
+      providerResourceId: arn("sqs", "eu-west-1", "orders"),
+      cloudRegion: "eu-west-1",
+    });
+    cloudRow({
+      name: "acme-assets",
+      cloudResourceType: "AWS::S3::Bucket",
+      providerResourceId: `arn:aws:s3:::acme-assets`,
+      cloudRegion: "eu-west-1",
+    });
+    cloudRow({
+      name: "assets",
+      cloudResourceType: "AWS::CloudFront::Distribution",
+      providerResourceId: `arn:aws:cloudfront::${CLOUD_ACCOUNT_ID}:distribution/E2QWRUHAPOMQZL`,
+      cloudRegion: "",
+    });
+  }
+
   return {
     vmwareRows,
     k8sRows,
@@ -973,6 +1138,7 @@ export function buildEstate(options) {
     proxmoxRows,
     cephRows,
     storageRows,
+    cloudRows,
     inventory: { projectId: PROJECT_ID, items, relationships },
     hostKey,
   };
