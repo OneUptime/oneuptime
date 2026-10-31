@@ -47,6 +47,7 @@ const PAGES: Record<string, string> = {
   proxmox: `proxmox/37000000-0000-4000-8000-000000000001`,
   ceph: `ceph/38000000-0000-4000-8000-000000000001`,
   storage: `storage-arrays/39000000-0000-4000-8000-000000000001`,
+  cloud: `cloud/accounts/3a000000-0000-4000-8000-000000000001`,
 };
 
 // The id each product's builder gives the resource itself.
@@ -60,6 +61,7 @@ const ROOT_IDS: Record<string, string> = {
   proxmox: "cluster",
   ceph: "cluster",
   storage: "array",
+  cloud: "account",
 };
 
 const SCREENSHOTS: string = path.resolve(
@@ -249,17 +251,16 @@ function stacked(boxes: Array<Box>): Array<string> {
 
 // The tone of the line into a group's heading (or a section's card).
 async function lineTone(page: Page, target: string): Promise<string | null> {
-  return await byTestId(page, `resource-topology-branch-${target}`).getAttribute(
-    "data-tone",
-  );
+  return await byTestId(
+    page,
+    `resource-topology-branch-${target}`,
+  ).getAttribute("data-tone");
 }
 
 // The id of the part the keyboard is on, as the map names it.
 async function focusedPart(page: Page): Promise<string | null> {
   return await page.evaluate((): string | null => {
-    return (
-      document.activeElement?.getAttribute("data-topology-item") || null
-    );
+    return document.activeElement?.getAttribute("data-topology-item") || null;
   });
 }
 
@@ -291,7 +292,9 @@ test.describe("a vCenter's Topology page", () => {
     await expect(
       byTestId(page, "resource-topology-count-vmware.datacenter"),
     ).toContainText("2");
-    await expect(byTestId(page, "resource-topology-card-vcenter")).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-card-vcenter"),
+    ).toBeVisible();
     // Amsterdam has trouble inside: it opens by itself; Frankfurt does not.
     await expect(
       byTestId(
@@ -764,6 +767,7 @@ test.describe("every resource that holds parts", () => {
     "proxmox",
     "ceph",
     "storage",
+    "cloud",
   ]) {
     test(`${product}: the Topology page draws the resource from its own inventory`, async ({
       page,
@@ -797,9 +801,7 @@ test.describe("a tree of cards, never a box inside a box", () => {
       expect(parts.length).toBeGreaterThan(3);
       expect(stacked(parts)).toEqual([]);
       // No frame around parts is drawn at all.
-      await expect(startingWith(page, "resource-topology-box-")).toHaveCount(
-        0,
-      );
+      await expect(startingWith(page, "resource-topology-box-")).toHaveCount(0);
     });
   }
 
@@ -877,9 +879,9 @@ test.describe("a tree of cards, never a box inside a box", () => {
       "vmware.cluster:cluster/Frankfurt/fra-prod",
     );
     // The part the keyboard is on is on screen.
-    expect(
-      await isInsideCanvas(page, page.locator(":focus").first()),
-    ).toBe(true);
+    expect(await isInsideCanvas(page, page.locator(":focus").first())).toBe(
+      true,
+    );
     // Left goes back out; left again closes.
     await page.keyboard.press("ArrowLeft");
     expect(await focusedPart(page)).toBe(
@@ -930,9 +932,9 @@ test.describe("a tree of cards, never a box inside a box", () => {
     const key: string = "cluster|k8s.node";
     const shownAt: number = Date.now();
     await byTestId(page, `resource-topology-group-toggle-${key}`).click();
-    await expect(startingWith(page, "resource-topology-chip-k8s.node:")).toHaveCount(
-      40,
-    );
+    await expect(
+      startingWith(page, "resource-topology-chip-k8s.node:"),
+    ).toHaveCount(40);
     expect(Date.now() - shownAt).toBeLessThan(3000);
     // React Flow holds what is drawn, not the estate.
     expect(await page.locator(".react-flow__node").count()).toBeLessThan(200);

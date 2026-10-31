@@ -37,10 +37,7 @@ import {
   layoutResourceTopology,
   placedNodeId,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
-import {
-  SeededRandom,
-  seededRandom,
-} from "Common/Tests/Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * Where a resource topology's parts go - the customer's ask was a map that
@@ -271,9 +268,7 @@ function isPart(item: ResourceTopologyPlaced): boolean {
 }
 
 // The pairs of things drawn on top of one another.
-function overlapsIn(
-  layout: ResourceTopologyLayout,
-): Array<[string, string]> {
+function overlapsIn(layout: ResourceTopologyLayout): Array<[string, string]> {
   const found: Array<[string, string]> = [];
 
   layout.placed.forEach((a: ResourceTopologyPlaced, index: number) => {
@@ -319,11 +314,7 @@ function linesThroughParts(layout: ResourceTopologyLayout): Array<string> {
       const b: [number, number] = branch.points[index]!;
 
       for (const item of layout.placed) {
-        if (
-          !isPart(item) ||
-          item.id === branch.from ||
-          item.id === branch.to
-        ) {
+        if (!isPart(item) || item.id === branch.from || item.id === branch.to) {
           continue;
         }
 
@@ -335,22 +326,6 @@ function linesThroughParts(layout: ResourceTopologyLayout): Array<string> {
   }
 
   return crossings;
-}
-
-function cardItems(card: ResourceTopologyCardItem): Array<string> {
-  const ids: Array<string> = [];
-
-  for (const group of card.groups) {
-    for (const item of group.items) {
-      ids.push(item.id);
-    }
-
-    if (group.more) {
-      ids.push(group.more.id);
-    }
-  }
-
-  return ids;
 }
 
 function placedOf(
@@ -366,11 +341,16 @@ function placedOf(
   return placed;
 }
 
+interface NamedLayout {
+  name: string;
+  layout: ResourceTopologyLayout;
+}
+
 // The estates every rule is checked on: small, deep, wide, narrowed, drawn.
-function estates(): Array<{ name: string; layout: ResourceTopologyLayout }> {
+function estates(): Array<NamedLayout> {
   const vcenter: ResourceTopologyGraph = vcenterEstate();
   const cluster: ResourceTopologyGraph = clusterEstate(9);
-  const result: Array<{ name: string; layout: ResourceTopologyLayout }> = [
+  const result: Array<NamedLayout> = [
     { name: "a vCenter's first view", layout: lay(view(vcenter)) },
     { name: "a vCenter opened all the way", layout: lay(openAll(vcenter)) },
     {
@@ -401,13 +381,19 @@ function estates(): Array<{ name: string; layout: ResourceTopologyLayout }> {
 }
 
 describe("no part is drawn inside another", () => {
-  test.each(estates())("$name: nothing overlaps anything", ({ layout }) => {
-    expect(overlapsIn(layout)).toEqual([]);
-  });
+  test.each(estates())(
+    "$name: nothing overlaps anything",
+    ({ layout }: NamedLayout) => {
+      expect(overlapsIn(layout)).toEqual([]);
+    },
+  );
 
-  test.each(estates())("$name: no line runs through a part", ({ layout }) => {
-    expect(linesThroughParts(layout)).toEqual([]);
-  });
+  test.each(estates())(
+    "$name: no line runs through a part",
+    ({ layout }: NamedLayout) => {
+      expect(linesThroughParts(layout)).toEqual([]);
+    },
+  );
 
   test("each part drawn is placed exactly once", () => {
     for (const graph of [vcenterEstate(), clusterEstate(4)]) {
@@ -1077,8 +1063,18 @@ describe("a focused part's related parts", () => {
         part("node-b", "nodes", { kind: "k8s.node" }),
       ],
       relations: [
-        { from: "deploy", to: "node-a", label: "Runs on", inverseLabel: "Runs" },
-        { from: "deploy", to: "node-b", label: "Runs on", inverseLabel: "Runs" },
+        {
+          from: "deploy",
+          to: "node-a",
+          label: "Runs on",
+          inverseLabel: "Runs",
+        },
+        {
+          from: "deploy",
+          to: "node-b",
+          label: "Runs on",
+          inverseLabel: "Runs",
+        },
       ],
     });
     const layout: ResourceTopologyLayout = lay(
@@ -1142,7 +1138,12 @@ describe("a focused part's related parts", () => {
             inverseLabel: "Runs here",
           };
         }),
-        { from: "node-a", to: "ns", label: "Serves", inverseLabel: "Served by" },
+        {
+          from: "node-a",
+          to: "ns",
+          label: "Serves",
+          inverseLabel: "Served by",
+        },
       ],
     });
     const layout: ResourceTopologyLayout = lay(

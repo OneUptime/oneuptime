@@ -45,7 +45,8 @@ The suite drives the pages the way a person does:
   to the node it runs on;
 - a host read left to right: what calls it, the host, what it calls, every
   call drawn with its rate;
-- the other six resources drawn from their own inventories;
+- the other six resources, and a cloud account, drawn from their own
+  inventories;
 - the master Topology opened on a vCenter, a cluster and a host from their
   maps, each offering the way back ("Open vCenter topology");
 - a phone's list, dark mode, German, and Persian (the tree and a host's lanes

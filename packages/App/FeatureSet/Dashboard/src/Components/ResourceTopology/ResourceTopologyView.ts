@@ -759,9 +759,7 @@ export function computeResourceTopologyView(
     return members.filter(
       (member: ResourceTopologyNode, index: number): boolean => {
         return (
-          index < limit ||
-          pins.has(member.id) ||
-          pinnedOpen.has(member.id)
+          index < limit || pins.has(member.id) || pinnedOpen.has(member.id)
         );
       },
     );

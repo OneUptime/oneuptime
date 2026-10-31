@@ -776,36 +776,38 @@ export const StatusLine: FunctionComponent<{
           <span style={{ ...LINE, minWidth: 0 }}>{props.status}</span>
         ) : null}
       </span>
-      {props.facts.slice(0, 2).map((fact: ResourceTopologyFact): ReactElement => {
-        return (
-          <span
-            key={fact.label}
-            style={{ flex: "0 0 auto", whiteSpace: "nowrap" }}
-          >
+      {props.facts
+        .slice(0, 2)
+        .map((fact: ResourceTopologyFact): ReactElement => {
+          return (
             <span
-              style={{
-                color: "var(--ou-text-muted, #6b7280)",
-                marginInlineEnd: 3,
-              }}
+              key={fact.label}
+              style={{ flex: "0 0 auto", whiteSpace: "nowrap" }}
             >
-              {tx(fact.label, translator)}
+              <span
+                style={{
+                  color: "var(--ou-text-muted, #6b7280)",
+                  marginInlineEnd: 3,
+                }}
+              >
+                {tx(fact.label, translator)}
+              </span>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color:
+                    fact.tone === "critical"
+                      ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
+                      : fact.tone === "warning"
+                        ? RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR
+                        : "var(--ou-text-primary, #111827)",
+                }}
+              >
+                {fact.value}
+              </span>
             </span>
-            <span
-              style={{
-                fontWeight: 600,
-                color:
-                  fact.tone === "critical"
-                    ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
-                    : fact.tone === "warning"
-                      ? RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR
-                      : "var(--ou-text-primary, #111827)",
-              }}
-            >
-              {fact.value}
-            </span>
-          </span>
-        );
-      })}
+          );
+        })}
     </span>
   );
 };
@@ -1065,7 +1067,10 @@ export const ResourceTopologyCardNode: FunctionComponent<
                 <IssueBadges node={node} />
               </span>
               {isSection ? null : (
-                <span className={TOPOLOGY_DETAIL_CLASS} style={{ display: "block" }}>
+                <span
+                  className={TOPOLOGY_DETAIL_CLASS}
+                  style={{ display: "block" }}
+                >
                   <StatusLine
                     health={node.effectiveHealth}
                     status={statusLine}

@@ -4,7 +4,10 @@ import {
   ResourceTopologyHealth,
   ResourceTopologyNode,
 } from "./ResourceTopologyModel";
-import { ResourceTopologyBranch, getBranchPath } from "./ResourceTopologyLayout";
+import {
+  ResourceTopologyBranch,
+  getBranchPath,
+} from "./ResourceTopologyLayout";
 
 /*
  * How health reads on a resource topology: one colour and one word per

@@ -406,7 +406,9 @@ describe("opening and closing a part", () => {
 
     expect(open).toHaveAttribute("aria-expanded", "false");
     expect(open).toHaveAttribute("title", "Open");
-    expect(open).toHaveAccessibleName("Open ams-dev, 1 ESXi Host · 1 Virtual Machine");
+    expect(open).toHaveAccessibleName(
+      "Open ams-dev, 1 ESXi Host · 1 Virtual Machine",
+    );
 
     fireEvent.click(open);
 

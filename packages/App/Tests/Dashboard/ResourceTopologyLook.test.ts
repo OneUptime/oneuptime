@@ -104,7 +104,9 @@ describe("a card's surface says how the part is doing", () => {
       const tone: ResourceTopologyTone = getResourceTopologyTone(health);
 
       expect(tone.edge).toBe(RESOURCE_TOPOLOGY_HEALTH_COLORS[health]);
-      expect(tone.background).toContain(RESOURCE_TOPOLOGY_HEALTH_COLORS[health]);
+      expect(tone.background).toContain(
+        RESOURCE_TOPOLOGY_HEALTH_COLORS[health],
+      );
       expect(tone.background).toContain("color-mix");
       // Mixed into the theme's own surface, so it reads in dark mode too.
       expect(tone.background).toContain("var(--ou-surface-primary");

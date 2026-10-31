@@ -400,12 +400,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
   }, [graph, viewState, kindLabel, fit, laneOptions]);
 
   // A page read from right to left gets the tree mirrored.
-  const direction: ResourceTopologyDirection = useMemo(
-    (): ResourceTopologyDirection => {
+  const direction: ResourceTopologyDirection =
+    useMemo((): ResourceTopologyDirection => {
       return getPageReadingDirection();
-    },
-    [translator.language],
-  );
+    }, [translator.language]);
   // A lane's parts line up with what they are related to.
   const laneRelations:
     | ReadonlyArray<ResourceTopologyLayoutRelation>

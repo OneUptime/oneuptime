@@ -199,9 +199,10 @@ describe("how deep a resource opens by itself", () => {
     const visible: ResourceTopologyVisible = view(graph);
 
     for (const open of ["dc-0", "dc-0-cl-0", "dc-0-cl-0-h-1"]) {
-      expect({ part: open, isOpen: findCard(visible.top, open)!.isOpen }).toEqual(
-        { part: open, isOpen: true },
-      );
+      expect({
+        part: open,
+        isOpen: findCard(visible.top, open)!.isOpen,
+      }).toEqual({ part: open, isOpen: true });
     }
 
     for (const closed of ["dc-0-cl-1", "dc-0-cl-0-h-0", "dc-0-cl-0-h-2"]) {
@@ -985,7 +986,9 @@ describe("a map about calls: lanes always open, every call's ends shown", () => 
     ];
 
     for (let index: number = 0; index < 12; index++) {
-      nodes.push(part(`container-${index}`, "host", { kind: "entity:Container" }));
+      nodes.push(
+        part(`container-${index}`, "host", { kind: "entity:Container" }),
+      );
 
       for (let service: number = 0; service < 3; service++) {
         nodes.push(
@@ -1114,10 +1117,7 @@ describe("moving through the map from the keyboard", () => {
   });
   const visible: ResourceTopologyVisible = view(graph);
   const dc: ResourceTopologyCardItem = findCard(visible.top, "dc-0")!;
-  const datastores: ResourceTopologyGroupItem = groupOf(
-    dc,
-    "vmware.datastore",
-  );
+  const datastores: ResourceTopologyGroupItem = groupOf(dc, "vmware.datastore");
 
   test("down and up go between the parts side by side, group after group", () => {
     // Clusters first (catalog order), then the datastores.

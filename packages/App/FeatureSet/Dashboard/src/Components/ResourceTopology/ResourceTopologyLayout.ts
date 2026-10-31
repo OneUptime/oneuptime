@@ -621,19 +621,14 @@ export function getTopologyColumnX(depth: number): number {
     return 0;
   }
 
-  return (
-    SIZES.rootIndent + (depth - 1) * (SIZES.cardWidth + SIZES.columnGap)
-  );
+  return SIZES.rootIndent + (depth - 1) * (SIZES.cardWidth + SIZES.columnGap);
 }
 
 /*
  * Lays the tree out once, for rows of at most `rowLength` parts, from the
  * resource at the top. Returns what it placed and the lines between.
  */
-function layoutTree(
-  top: ResourceTopologyCardItem,
-  rowLength: number,
-): Draft {
+function layoutTree(top: ResourceTopologyCardItem, rowLength: number): Draft {
   const placed: Array<ResourceTopologyPlaced> = [];
   const branches: Array<ResourceTopologyBranch> = [];
   const columnX: (depth: number) => number = getTopologyColumnX;
@@ -1063,10 +1058,7 @@ function placeLane(
   const firstHeight: number = wanted[0] ? sizeOf(wanted[0].cell).height : 0;
   const headingTop: number =
     firstCentre !== null
-      ? firstCentre -
-        firstHeight / 2 -
-        SIZES.headingGap -
-        SIZES.headingHeight
+      ? firstCentre - firstHeight / 2 - SIZES.headingGap - SIZES.headingHeight
       : 0;
 
   if (section.isOpen) {

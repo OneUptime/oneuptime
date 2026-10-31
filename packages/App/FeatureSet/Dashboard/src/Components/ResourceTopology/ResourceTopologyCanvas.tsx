@@ -784,10 +784,9 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const next: Element | null | undefined =
-      wrapperRef.current?.querySelector(
-        `[${TOPOLOGY_ITEM_ATTRIBUTE}="${CSS.escape(action.itemId)}"]`,
-      );
+    const next: Element | null | undefined = wrapperRef.current?.querySelector(
+      `[${TOPOLOGY_ITEM_ATTRIBUTE}="${CSS.escape(action.itemId)}"]`,
+    );
 
     if (next instanceof HTMLElement) {
       next.focus();

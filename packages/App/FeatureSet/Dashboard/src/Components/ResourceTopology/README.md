@@ -44,7 +44,7 @@ and work the same way.
    kind lands under one heading, in kind order.
 2. **Builder.** Add `Builders/<Product>Topology.ts`, a pure function from the
    product's inventory rows to `buildResourceTopologyGraph({ rootId, nodes,
-   relations, issues, truncations })`.
+relations, issues, truncations })`.
    - Each node is one part: `id`, `parentId` (what holds it: containment is
      the tree), `kind`, `name`, `health` (`critical`, `warning`, `healthy`,
      `off`, `unknown`), a short `status`, `reasons` it needs attention, up to

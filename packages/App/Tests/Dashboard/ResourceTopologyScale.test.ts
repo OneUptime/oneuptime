@@ -26,10 +26,7 @@ import {
   fitResourceTopology,
   getFitZoom,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyFit";
-import {
-  SeededRandom,
-  seededRandom,
-} from "Common/Tests/Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * Very large estates stay fast and readable: a cluster of 2,000 parts, a
@@ -60,7 +57,11 @@ const HEALTHS: Array<ResourceTopologyHealth> = [
  * A Kubernetes cluster: namespaces of deployments of pods, nodes the pods
  * run on, about one part in ten troubled.
  */
-function clusterOf(namespaces: number, deployments: number, pods: number): {
+function clusterOf(
+  namespaces: number,
+  deployments: number,
+  pods: number,
+): {
   graph: ResourceTopologyGraph;
   size: number;
 } {
@@ -243,9 +244,7 @@ describe("a cluster of 2,000 parts", () => {
     expect(timed.inMs).toBeLessThan(500);
     // A drawing a person can read: bounded by the budget, not the estate.
     expect(timed.result.layout.placed.length).toBeLessThan(120);
-    expect(
-      getFitZoom(timed.result.layout, LAPTOP),
-    ).toBeGreaterThanOrEqual(0.3);
+    expect(getFitZoom(timed.result.layout, LAPTOP)).toBeGreaterThanOrEqual(0.3);
   });
 
   test("Needs attention on it narrows to a bounded drawing, quickly", () => {

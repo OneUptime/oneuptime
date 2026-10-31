@@ -57,6 +57,8 @@ import CephLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/La
 import CephTopology from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Topology";
 import StorageArrayLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Layout";
 import StorageArrayTopology from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Topology";
+import CloudAccountLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Layout";
+import CloudAccountTopology from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Topology";
 import MasterTopologyPage from "../../../App/FeatureSet/Dashboard/src/Pages/Topology/TopologyPage";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -82,7 +84,14 @@ import {
   isTopologyApiUrl,
   topologyRouteFor,
 } from "../../Topology/TopologyApiFixture";
-import { IDS, NAMES, PROJECT_ID, buildEstate, uuid } from "./FixtureData";
+import {
+  CLOUD_ACCOUNT_ID,
+  IDS,
+  NAMES,
+  PROJECT_ID,
+  buildEstate,
+  uuid,
+} from "./FixtureData";
 
 /*
  * ---------------------------------------------------------------------------
@@ -197,6 +206,9 @@ const crashingPod = estate.k8sRows.find((row) => {
 const restartingContainer = estate.dockerRows.find((row) => {
   return row.name === "shop-api-2";
 });
+const ordersDatabase = estate.cloudRows.find((row) => {
+  return row.name === "orders-db";
+});
 
 const incidents =
   ISSUES === "on" && ESTATE !== "quiet" && ESTATE !== "empty"
@@ -237,6 +249,11 @@ const incidents =
           title: "[Ceph] OSD down",
           cephClusters: [{ _id: IDS.ceph }],
           seriesLabels: { ceph_daemon: "osd.5" },
+        }),
+        incident({
+          title: "[AWS] RDS CPU above 90% - orders-db",
+          cloudResources: ordersDatabase ? [{ _id: ordersDatabase._id }] : [],
+          seriesLabels: null,
         }),
       ]
     : [];
@@ -446,6 +463,17 @@ const store = {
     },
   ],
   StorageArrayResource: estate.storageRows,
+  CloudAccount: [
+    {
+      _id: IDS.cloudAccount,
+      name: "production",
+      provider: "aws",
+      accountId: CLOUD_ACCOUNT_ID,
+      lastSeenAt: fresh,
+      isArchived: false,
+    },
+  ],
+  CloudResource: estate.cloudRows,
   IncidentState: incidentStates,
   AlertState: alertStates,
   ScheduledMaintenanceState: [
@@ -476,6 +504,7 @@ const INVENTORY_TABLES = new Set([
   "ProxmoxResource",
   "CephResource",
   "StorageArrayResource",
+  "CloudResource",
 ]);
 let failuresLeft = FAIL === "topology" ? 1 : 0;
 
@@ -818,6 +847,12 @@ const PRODUCTS = [
     StorageArrayTopology,
     PageMap.STORAGE_ARRAY_VIEW,
     PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY,
+  ],
+  [
+    CloudAccountLayout,
+    CloudAccountTopology,
+    PageMap.CLOUD_ACCOUNT_VIEW,
+    PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY,
   ],
 ].map(([Layout, Page, layoutKey, pageKey]) => {
   return {
