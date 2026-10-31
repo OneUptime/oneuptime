@@ -1,6 +1,7 @@
 import AggregatedModel from "../BaseDatabase/AggregatedModel";
 import MetricAliasData from "./MetricAliasData";
 import MetricQueryData from "./MetricQueryData";
+import MetricQueryFallback from "./MetricQueryFallback";
 import MetricsQuery from "./MetricsQuery";
 
 export enum MetricChartType {
@@ -88,4 +89,12 @@ export default interface MetricQueryConfigData {
    * fields above (dashboards, saved views, explorer URLs).
    */
   overlayWithPreviousQuery?: boolean | undefined;
+  /*
+   * Opt-in: a query the Dashboard's Chart widget draws in this one's place
+   * when this one has no data in the window, with a hint saying why (see
+   * MetricQueryFallback). Unset = the query is drawn as it is, with no
+   * second request. Not part of the explorer URL serialization: a link from
+   * a chart opens the query it was drawing.
+   */
+  fallback?: MetricQueryFallback | undefined;
 }

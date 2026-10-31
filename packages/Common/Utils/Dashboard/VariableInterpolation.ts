@@ -131,6 +131,11 @@ export default class DashboardVariableInterpolation {
     return changed ? next : source;
   }
 
+  /*
+   * A query's fallback (MetricQueryConfigData.fallback) is drawn in the
+   * query's place, so it follows the variables too: a chart scoped to one
+   * cluster falls back to that cluster's data, never to every cluster's.
+   */
   public static applyToQueryConfig(
     queryConfig: MetricQueryConfigData,
     variables: Array<DashboardVariable> | undefined,
@@ -139,6 +144,40 @@ export default class DashboardVariableInterpolation {
       return queryConfig;
     }
 
+    const withVariables: MetricQueryConfigData =
+      DashboardVariableInterpolation.applyToQueryFilter(queryConfig, variables);
+
+    const fallbackQueryConfig: MetricQueryConfigData | undefined =
+      queryConfig.fallback?.queryConfig;
+
+    if (!queryConfig.fallback || !fallbackQueryConfig) {
+      return withVariables;
+    }
+
+    const fallbackWithVariables: MetricQueryConfigData =
+      DashboardVariableInterpolation.applyToQueryFilter(
+        fallbackQueryConfig,
+        variables,
+      );
+
+    if (fallbackWithVariables === fallbackQueryConfig) {
+      return withVariables;
+    }
+
+    return {
+      ...withVariables,
+      fallback: {
+        ...queryConfig.fallback,
+        queryConfig: fallbackWithVariables,
+      },
+    };
+  }
+
+  // One query's own filter, its fallback aside.
+  private static applyToQueryFilter(
+    queryConfig: MetricQueryConfigData,
+    variables: Array<DashboardVariable>,
+  ): MetricQueryConfigData {
     const filterData: typeof queryConfig.metricQueryData.filterData =
       queryConfig.metricQueryData?.filterData;
 

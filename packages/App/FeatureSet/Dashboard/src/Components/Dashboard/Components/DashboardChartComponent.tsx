@@ -18,6 +18,10 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
+import { MetricQueryFallbackHint } from "Common/Types/Metrics/MetricQueryFallback";
+import MetricQueryFallbackUtil, {
+  ChartedMetricQueries,
+} from "Common/Utils/Metrics/MetricQueryFallback";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -54,6 +58,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * The slots the last fetch drew from their query's fallback
+   * (MetricQueryConfigData.fallback): set with the results they belong to,
+   * and always [] for a chart whose queries have no fallback.
+   */
+  const [fallbackIndexes, setFallbackIndexes] = useState<Array<number>>([]);
 
   const primaryQueryConfig: MetricQueryConfigData | undefined =
     props.component.arguments.metricQueryConfig;
@@ -219,7 +229,60 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      setMetricResults(results);
+      /*
+       * A query with a fallback that came back empty is asked again with
+       * the fallback in its slot, and the fallback is drawn where it has
+       * data (Common/Utils/Metrics/MetricQueryFallback). A chart without
+       * fallbacks, or whose queries all have data, makes no second request.
+       */
+      let charted: ChartedMetricQueries = MetricQueryFallbackUtil.resolve({
+        queryConfigs: data.queryConfigs,
+        results: results,
+      });
+
+      const fallbackQueryConfigs: Array<MetricQueryConfigData> | null =
+        MetricQueryFallbackUtil.getFallbackQueryConfigs(
+          data.queryConfigs,
+          results,
+        );
+
+      if (fallbackQueryConfigs) {
+        let fallbackResults: Array<AggregatedResult> | undefined = undefined;
+
+        try {
+          fallbackResults = await MetricUtil.fetchResults({
+            metricViewData: { ...data, queryConfigs: fallbackQueryConfigs },
+            defaultTopN: true,
+            topNOverrideScope,
+          });
+        } catch {
+          /*
+           * A fallback that cannot be read is drawn as none: the main
+           * queries' own (empty) chart, as before fallbacks existed.
+           */
+          fallbackResults = undefined;
+        }
+
+        if (!isCurrentFetch()) {
+          return;
+        }
+
+        charted = MetricQueryFallbackUtil.resolve({
+          queryConfigs: data.queryConfigs,
+          results: results,
+          fallbackResults: fallbackResults,
+        });
+      }
+
+      setMetricResults(charted.results);
+      setFallbackIndexes((previous: Array<number>): Array<number> => {
+        return MetricQueryFallbackUtil.isSameFallbackIndexes(
+          previous,
+          charted.fallbackIndexes,
+        )
+          ? previous
+          : charted.fallbackIndexes;
+      });
       setError("");
     } catch (err: unknown) {
       if (!isCurrentFetch()) {
@@ -263,9 +326,23 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     return MetricChartType.LINE;
   }, [props.component.arguments.chartType]);
 
+  /*
+   * The queries drawn: each one's own, or its fallback in the slots the
+   * last fetch fell back in - the very same array when none did. Explorer
+   * links and Investigate read these too, so they open what the chart shows.
+   */
+  const chartedQueryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
+    return MetricQueryFallbackUtil.withFallbacks(queryConfigs, fallbackIndexes);
+  }, [queryConfigs, fallbackIndexes]);
+
+  // Why the chart draws a fallback, and where the fix is: one line each.
+  const fallbackHints: Array<MetricQueryFallbackHint> = useMemo(() => {
+    return MetricQueryFallbackUtil.getHints(queryConfigs, fallbackIndexes);
+  }, [queryConfigs, fallbackIndexes]);
+
   const chartMetricViewData: MetricViewData = useMemo(() => {
     return {
-      queryConfigs: queryConfigs.map((config: MetricQueryConfigData) => {
+      queryConfigs: chartedQueryConfigs.map((config: MetricQueryConfigData) => {
         return {
           ...config,
           metricAliasData: {
@@ -294,7 +371,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       }),
     };
   }, [
-    queryConfigs,
+    chartedQueryConfigs,
     formulaConfigs,
     effectiveStartAndEndDate,
     zoomWindow,
@@ -512,6 +589,59 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
+      {/*
+       * While a query is drawn from its fallback, why - and where the fix
+       * is - in one short line under the title. The fallback's own legend
+       * names what the chart shows.
+       */}
+      {fallbackHints.length > 0 ? (
+        <div
+          className="px-2 pb-1 flex-shrink-0 space-y-0.5"
+          data-testid="chart-fallback-hints"
+        >
+          {fallbackHints.map(
+            (hint: MetricQueryFallbackHint, index: number): ReactElement => {
+              const linkUrl: string | undefined =
+                MetricQueryFallbackUtil.getSafeLinkUrl(hint.linkUrl);
+
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-1 text-xs text-gray-500"
+                  data-testid="chart-fallback-hint"
+                >
+                  <Icon
+                    icon={IconProp.Info}
+                    className="mt-0.5 h-3 w-3 flex-shrink-0 text-gray-400"
+                  />
+                  <span className="min-w-0">
+                    {translator.translateText(hint.text)}
+                    {hint.linkText && linkUrl ? (
+                      <>
+                        {" "}
+                        <a
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                          onClick={(
+                            event: React.MouseEvent<HTMLAnchorElement>,
+                          ): void => {
+                            // Don't let the click also select the widget.
+                            event.stopPropagation();
+                          }}
+                        >
+                          {translator.translateText(hint.linkText)}
+                        </a>
+                      </>
+                    ) : null}
+                  </span>
+                </div>
+              );
+            },
+          )}
+        </div>
+      ) : null}
       {zoomWindow ? (
         <div className="mx-2 mb-1 flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-indigo-50 px-2 py-1">
           <Icon

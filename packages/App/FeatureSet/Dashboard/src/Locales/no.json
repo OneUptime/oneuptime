@@ -39056,8 +39056,11 @@
   "Exception Saved View": "Lagret unntaksvisning",
   "Exception Saved Views": "Lagrede unntaksvisninger",
   "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Lagre og gjenbruk visninger av unntakslisten, inkludert gjeldende søk, filtre, tidsintervall, status, sortering og sidestørrelse.",
+  "Older Kubernetes agents send only the running restart count.": "Eldre Kubernetes-agenter sender bare det samlede antallet omstarter så langt.",
   "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "På en del flytter pil opp og pil ned mellom delene ved siden av, pil venstre åpner den og går inn, og pil høyre lukker den og går ut igjen.",
   "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "På en del flytter pil opp og pil ned mellom delene ved siden av, pil høyre åpner den og går inn, og pil venstre lukker den og går ut igjen.",
   "Topology map": "Topologikart",
-  "What is inside": "Hva den inneholder"
+  "Upgrade the agent": "Oppgrader agenten",
+  "What is inside": "Hva den inneholder",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "Når denne spørringen ikke har data i tidsrommet, viser diagrammet {{metricName}} i stedet."
 }

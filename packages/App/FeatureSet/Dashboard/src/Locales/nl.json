@@ -39056,8 +39056,11 @@
   "Exception Saved View": "Opgeslagen uitzonderingsweergave",
   "Exception Saved Views": "Opgeslagen uitzonderingsweergaven",
   "Save and reuse views of the exceptions list, including the current search, filters, time range, status, sort and page size.": "Sla weergaven van de uitzonderingenlijst op en gebruik ze opnieuw, inclusief de huidige zoekopdracht, filters, het tijdsbereik, de status, de sortering en de paginagrootte.",
+  "Older Kubernetes agents send only the running restart count.": "Oudere Kubernetes-agents sturen alleen het totale aantal herstarts tot nu toe.",
   "On a part, the Up and Down arrows move between the parts beside it, the Left arrow opens it and goes in, and the Right arrow closes it and goes back out.": "Op een onderdeel gaan de pijltjes omhoog en omlaag naar de onderdelen ernaast, opent het pijltje naar links het en gaat erin, en sluit het pijltje naar rechts het en gaat er weer uit.",
   "On a part, the Up and Down arrows move between the parts beside it, the Right arrow opens it and goes in, and the Left arrow closes it and goes back out.": "Op een onderdeel gaan de pijltjes omhoog en omlaag naar de onderdelen ernaast, opent het pijltje naar rechts het en gaat erin, en sluit het pijltje naar links het en gaat er weer uit.",
   "Topology map": "Topologiekaart",
-  "What is inside": "Wat erin zit"
+  "Upgrade the agent": "De agent upgraden",
+  "What is inside": "Wat erin zit",
+  "When this query has no data in the time range, the chart shows {{metricName}} instead.": "Als deze query geen gegevens heeft in het tijdsbereik, toont de grafiek in plaats daarvan {{metricName}}."
 }
