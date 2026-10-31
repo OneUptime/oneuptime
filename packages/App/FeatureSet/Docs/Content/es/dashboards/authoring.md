@@ -91,6 +91,8 @@ El lienzo es una cuadrícula de doce columnas de ancho. Los widgets se ajustan a
 
 Cada tipo de widget tiene un tamaño mínimo, para que lo que dibuja siga siendo legible: un gráfico mide al menos seis columnas de ancho y tres filas de alto, mientras que un solo número cabe en una celda.
 
+La cuadrícula es tan ancha como la pantalla. En una pantalla más estrecha, sus columnas se estrechan y sus filas conservan su altura. En un teléfono, los widgets se muestran uno debajo de otro, cada uno tan ancho como la pantalla, en el orden en que están en la cuadrícula: fila por fila desde arriba y, dentro de una fila, de izquierda a derecha. Allí un gráfico se dibuja más alto, para que su trazado tenga espacio. Al editar en un teléfono ves la cuadrícula, que se desplaza en horizontal.
+
 Para cambiar un widget más tarde, haz clic en él mientras editas. Sus ajustes se abren de nuevo, con dos botones más en la parte inferior:
 
 - **Duplicar widget** añade una copia, con los mismos ajustes, en el primer hueco libre.

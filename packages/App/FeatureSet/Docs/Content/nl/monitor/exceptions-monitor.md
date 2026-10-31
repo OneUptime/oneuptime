@@ -156,7 +156,7 @@ Naast hoeveel uitzonderingen er waren, kan een uitzonderingen-monitor waarschuwe
 | **Regressed Exceptions** | Overeenkomende uitzonderingen die u hebt opgelost, die terugkwamen en nog open zijn. |
 | **Exception Increase (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
 
-Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderingstype, omgeving en bericht; het filter op infrastructuurentiteit geldt alleen voor de andere twee.
+Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderingstype, omgeving en bericht, en ook op infrastructuurentiteit: een uitzondering telt mee wanneer een van haar voorvallen in het venster van een van de gekozen entiteiten kwam.
 
 ## Uitgewerkt voorbeeld: alleen uitzonderingen uit productie
 

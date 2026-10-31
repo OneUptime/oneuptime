@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import DashboardThemeCard from "../../../Components/Dashboard/Branding/DashboardThemeCard";
+import DashboardBrandingCopy from "../../../Components/Dashboard/Branding/DashboardBrandingCopy";
 import ObjectID from "Common/Types/ObjectID";
+import { DetailImageBackdrop } from "Common/UI/Components/Detail/DetailImageBackdrop";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -10,9 +12,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * Dashboards -> a dashboard -> Branding: how the dashboard's public link
- * looks - its page title and description, its logo, its theme (light, dark,
- * or as each visitor's device is set: DashboardThemeCard, right under the
- * logo, as on a status page's Branding page) and its favicon.
+ * looks - its page title and description, its logo and the logo for its
+ * dark theme, its theme (light, dark, or as each visitor's device is set:
+ * DashboardThemeCard, right under the logos, as on a status page's Branding
+ * page) and its favicon.
  */
 const DashboardBranding: FunctionComponent<
   PageComponentProps
@@ -75,14 +78,23 @@ const DashboardBranding: FunctionComponent<
         }}
       />
 
+      {/*
+       * The logo, and a logo made for a dark background - light lettering -
+       * shown instead of it wherever the public dashboard is dark: a Dark
+       * dashboard, one that follows each visitor's device while it is dark,
+       * and any dashboard a visitor turns dark from its toolbar. Optional:
+       * without it the logo sits on a small light backdrop there.
+       */}
       <CardModelDetail<Dashboard>
         name="Dashboard > Branding > Logo"
         cardProps={{
           title: "Logo",
-          description: "Logo will be displayed on the public dashboard header.",
+          description: DashboardBrandingCopy.logoDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Logo"}
+        // Named as its button is: it edited "Dashboard" as a whole before.
+        editModalTitle={"Edit Logo"}
         formFields={[
           {
             field: {
@@ -91,7 +103,20 @@ const DashboardBranding: FunctionComponent<
             title: "Logo",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
-            placeholder: "Upload Logo.",
+            placeholder: DashboardBrandingCopy.logoPlaceholder,
+            description: DashboardBrandingCopy.logoDescription,
+            hideColumnDescription: true,
+          },
+          {
+            field: {
+              darkThemeLogoFile: true,
+            },
+            title: DashboardBrandingCopy.darkThemeLogoTitle,
+            fieldType: FormFieldSchemaType.ImageFile,
+            required: false,
+            placeholder: DashboardBrandingCopy.darkThemeLogoPlaceholder,
+            description: DashboardBrandingCopy.darkThemeLogoDescription,
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
@@ -109,6 +134,24 @@ const DashboardBranding: FunctionComponent<
               fieldType: FieldType.ImageFile,
               title: "Logo",
               placeholder: "No logo uploaded.",
+              /*
+               * Each logo on the page it is made for, in both of the
+               * Dashboard's themes: a dark theme logo's light lettering
+               * would vanish on the card's white frame.
+               */
+              imageBackdrop: DetailImageBackdrop.Light,
+            },
+            {
+              field: {
+                darkThemeLogoFile: {
+                  file: true,
+                  fileType: true,
+                },
+              },
+              fieldType: FieldType.ImageFile,
+              title: DashboardBrandingCopy.darkThemeLogoTitle,
+              placeholder: DashboardBrandingCopy.noDarkThemeLogo,
+              imageBackdrop: DetailImageBackdrop.Dark,
             },
           ],
           modelId: modelId,

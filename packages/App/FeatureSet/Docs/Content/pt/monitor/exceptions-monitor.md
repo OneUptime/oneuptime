@@ -156,7 +156,7 @@ Além de quantas exceções aconteceram, um monitor de exceções pode alertar s
 | **Regressed Exceptions** | Exceções correspondentes que você resolveu, que voltaram e continuam abertas. |
 | **Exception Increase (in %)** | Quanto o número de exceções correspondentes está acima do habitual: o dia anterior à janela, por janela da mesma duração, no mínimo uma. Dez exceções depois de um dia calmo dão 900%. |
 
-Exceções novas e que voltaram são filtradas por serviço, tipo de exceção, ambiente e mensagem; o filtro por entidade de infraestrutura vale só para os outros dois.
+Exceções novas e que voltaram são filtradas por serviço, tipo de exceção, ambiente e mensagem, e também por entidade de infraestrutura: uma exceção conta quando uma das suas ocorrências na janela veio de uma das entidades escolhidas.
 
 ## Exemplo prático: só as exceções de produção
 

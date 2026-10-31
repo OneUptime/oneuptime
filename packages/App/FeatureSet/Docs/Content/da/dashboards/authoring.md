@@ -91,6 +91,8 @@ Lærredet er et gitter, der er tolv kolonner bredt. Widgets klikker fast i det, 
 
 Hver slags widget har en mindste størrelse, så det, den tegner, forbliver læseligt: et diagram er mindst seks kolonner bredt og tre rækker højt, mens et enkelt tal passer i én celle.
 
+Gitteret er lige så bredt som skærmen. På en smallere skærm bliver dets kolonner smallere, og dets rækker beholder deres højde. På en telefon vises widgets under hinanden, hver lige så bred som skærmen, i den rækkefølge de står i gitteret: række for række fra toppen og, inden for en række, fra venstre mod højre. Et diagram tegnes højere dér, så dets kurve har plads. Når du redigerer på en telefon, ser du gitteret, som kan rulles sidelæns.
+
 For at ændre en widget senere klikker du på den, mens du redigerer. Dens indstillinger åbner igen, med to knapper mere nederst:
 
 - **Duplicate Widget** tilføjer en kopi med de samme indstillinger på det første ledige sted.

@@ -5,7 +5,11 @@ import {
   currentZone,
   expectKeptAnswersToBeCronParsers,
 } from "../TestingUtils/CronTabMemoCases";
-import { fastestRun, FastestRun } from "../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../../Helpers/FastestRun";
 import CronParser from "cron-parser";
 import {
   afterEach,
@@ -157,8 +161,12 @@ describe("CronTab.getNextExecutionTime keeps its answer for the minute", () => {
     jest.useRealTimers();
     const calls: number = 2000;
 
-    const parsed: FastestRun<number> = fastestRun({
-      run: (): number => {
+    /*
+     * Timed in turns (fastestRunsCompared): a kept answer's attempts take a
+     * millisecond or two, and one stall could cover them all.
+     */
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         let total: number = 0;
 
         for (let index: number = 0; index < calls; index++) {
@@ -172,11 +180,7 @@ describe("CronTab.getNextExecutionTime keeps its answer for the minute", () => {
 
         return total;
       },
-      limitInMs: 0,
-    });
-
-    const kept: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         let total: number = 0;
 
         for (let index: number = 0; index < calls; index++) {
@@ -185,8 +189,9 @@ describe("CronTab.getNextExecutionTime keeps its answer for the minute", () => {
 
         return total;
       },
-      limitInMs: 0,
     });
+    const parsed: FastestRun<number> = runs.first;
+    const kept: FastestRun<number> = runs.second;
 
     expect(kept.result).toBeGreaterThan(0);
     // Measured about 50 times faster; five leaves room for a busy runner.

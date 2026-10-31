@@ -91,6 +91,8 @@ Il canvas è una griglia larga dodici colonne. I widget si agganciano a essa, e 
 
 Ogni tipo di widget ha una dimensione minima, perché ciò che disegna resti leggibile: un grafico è largo almeno sei colonne e alto tre righe, mentre un singolo numero sta in una cella.
 
+La griglia è larga quanto lo schermo. Su uno schermo più stretto le sue colonne si restringono e le sue righe mantengono la loro altezza. Su un telefono i widget compaiono uno sotto l'altro, ciascuno largo quanto lo schermo, nell'ordine in cui stanno sulla griglia: riga per riga dall'alto e, all'interno di una riga, da sinistra a destra. Lì un grafico viene disegnato più alto, perché il suo tracciato abbia spazio. Quando modifichi da un telefono vedi la griglia, che scorre in orizzontale.
+
 Per cambiare un widget in seguito, fai clic su di esso durante la modifica. Le sue impostazioni si riaprono, con due pulsanti in più in fondo:
 
 - **Duplicate Widget** aggiunge una copia, con le stesse impostazioni, nel primo spazio libero.

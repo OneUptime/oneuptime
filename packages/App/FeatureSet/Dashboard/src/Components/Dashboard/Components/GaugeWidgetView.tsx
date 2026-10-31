@@ -6,6 +6,9 @@ import {
   GaugeArcGeometry,
   computeGaugeArcGeometry,
   computeGaugePercentage,
+  computeGaugeSize,
+  computeGaugeStrokeWidth,
+  computeGaugeValueFontPx,
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
 
@@ -256,19 +259,18 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   );
 
   /*
-   * Gauge sizing — pick a square that fits the available space, then carve
-   * out room above for the title and below for min/max labels. The arc is
-   * a thin half-circle so the value reads cleanly inside; the previous
-   * design used a 10%-wide arc that swallowed the centre digits at small
-   * widget sizes.
+   * Gauge sizing — the largest square that fits the tile across and, with
+   * the title above it and the value, status and min/max labels under its
+   * centre, down (computeGaugeSize). The arc is a thin half-circle so the
+   * value reads cleanly inside; the previous design used a 10%-wide arc
+   * that swallowed the centre digits at small widget sizes.
    */
-  const reservedTitlePx: number = 28;
-  const reservedFooterPx: number = 22;
-  const verticalBudget: number =
-    props.heightInPx - reservedTitlePx - reservedFooterPx;
-  const size: number = Math.min(props.widthInPx - 24, verticalBudget * 1.8);
-  const gaugeSize: number = Math.max(size, 96);
-  const strokeWidth: number = Math.max(gaugeSize * 0.06, 7);
+  const gaugeSize: number = computeGaugeSize({
+    widthInPx: props.widthInPx,
+    heightInPx: props.heightInPx,
+    hasTitle: Boolean(props.title),
+  });
+  const strokeWidth: number = computeGaugeStrokeWidth(gaugeSize);
 
   // Semi-circle arc (180 degrees, from left to right) — see GaugeArcData.
   const arc: GaugeArcGeometry = computeGaugeArcGeometry({
@@ -289,7 +291,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    * Per-character estimate uses 0.55em — accurate enough for tabular nums
    * and the small set of single-word units we render here.
    */
-  const baseValueFontPx: number = Math.max(gaugeSize * 0.22, 22);
+  const baseValueFontPx: number = computeGaugeValueFontPx(gaugeSize);
   const baseUnitFontPx: number = baseValueFontPx * 0.4;
   const unitGapPx: number =
     displayUnit && displayUnit !== "%" ? baseValueFontPx * 0.12 : 0;

@@ -156,7 +156,7 @@ I tillegg til hvor mange unntak som skjedde, kan en unntaksmonitor varsle ved de
 | **Regressed Exceptions** | Samsvarende unntak du har løst, som kom tilbake og fortsatt er åpne. |
 | **Exception Increase (in %)** | Hvor langt antallet samsvarende unntak ligger over det vanlige: dagen før vinduet, per vindu av samme lengde, minst ett. Ti unntak etter en rolig dag gir 900 %. |
 
-Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og melding; filteret etter infrastrukturenhet gjelder bare de to andre.
+Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og melding, og også etter infrastrukturenhet: et unntak telles når en av forekomstene i vinduet kom fra en av de valgte enhetene.
 
 ## Gjennomgått eksempel: bare produksjonsunntak
 

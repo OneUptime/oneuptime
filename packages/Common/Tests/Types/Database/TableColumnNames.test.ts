@@ -10,7 +10,11 @@ import {
   getTableColumnNames,
   getTableColumns,
 } from "../../../Types/Database/TableColumn";
-import { fastestRun, FastestRun } from "../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -245,8 +249,12 @@ describe("getTableColumnNames", () => {
     const monitor: Monitor = new Monitor();
     const calls: number = 20000;
 
-    const before: FastestRun<number> = fastestRun({
-      run: (): number => {
+    /*
+     * Timed in turns (fastestRunsCompared): the kept columns' attempts are
+     * short, and one stall could cover them all.
+     */
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         let found: number = 0;
 
         for (let index: number = 0; index < calls; index++) {
@@ -255,11 +263,7 @@ describe("getTableColumnNames", () => {
 
         return found;
       },
-      limitInMs: 0,
-    });
-
-    const after: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         let found: number = 0;
 
         for (let index: number = 0; index < calls; index++) {
@@ -268,8 +272,9 @@ describe("getTableColumnNames", () => {
 
         return found;
       },
-      limitInMs: 0,
     });
+    const before: FastestRun<number> = runs.first;
+    const after: FastestRun<number> = runs.second;
 
     expect(after.result).toBe(before.result);
     // Measured about 50 times faster; five leaves room for a busy runner.
