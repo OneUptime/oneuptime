@@ -563,16 +563,36 @@ describe("the cards for the signed-in user", () => {
       ],
     ],
     [
-      "a project admin: the role they hold, as the server allows",
+      "a project admin: Project Admin does all three, as the server allows",
       [Permission.ProjectAdmin],
-      [Permission.ProjectAdmin, ROLE_ACCESS_LATER],
-      [Permission.ProjectAdmin, ROLE_ACCESS_LATER],
+      [
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        ROLE_ACCESS_LATER,
+      ],
+      [
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        ROLE_ACCESS_LATER,
+      ],
     ],
     [
       "a project admin also in Members",
       [Permission.ProjectAdmin, Permission.ProjectMember],
-      [Permission.ProjectAdmin, Permission.ProjectMember, ROLE_ACCESS_LATER],
-      [Permission.ProjectAdmin, Permission.ProjectMember, ROLE_ACCESS_LATER],
+      [
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        ROLE_ACCESS_LATER,
+      ],
+      [
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        ROLE_ACCESS_LATER,
+      ],
     ],
     [
       "someone who may only create teams",

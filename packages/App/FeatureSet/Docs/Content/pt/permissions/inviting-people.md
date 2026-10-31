@@ -26,7 +26,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Uma função que pode convidar.** Project Owner, Project Admin ou uma função com a permissão **Invite New Members**. Você só pode convidar pessoas para uma equipe cujas permissões você mesmo tem, porque um convite dá a elas o acesso da equipe.
+- **Uma função que pode convidar.** Project Owner, Project Admin ou uma função com a permissão **Invite New Members**. Você só pode convidar pessoas para uma equipe cujas permissões você mesmo tem, porque um convite dá a elas o acesso da equipe. Um Project Admin sem nenhum bloqueio conta, para isso, como detentor de tudo o que Project Admin já pode fazer: pode convidar pessoas para **Members** ou para uma equipe com qualquer papel mais restrito, mas não para uma equipe que tenha Project Owner, uma permissão de faturamento, **Delete Project**, **Edit Project**, **Edit Team** ou **Invite New Members**.
 - **No OneUptime Cloud, espaço no seu plano.** Cada pessoa do projeto é um assento na fatura dele, a partir do momento em que é convidada. O plano Free tem espaço para uma pessoa. Veja [Cobrança e uso](/docs/configuration/billing#seu-plano-e-seus-assentos).
 - **Sem SCIM Push Groups.** Enquanto seu provedor de identidade gerencia as equipes do projeto pelo SCIM Push Groups, você convida e remove pessoas lá, não no OneUptime.
 

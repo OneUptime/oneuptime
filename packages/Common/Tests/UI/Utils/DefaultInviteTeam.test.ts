@@ -498,33 +498,56 @@ describe("looking the team up", () => {
   });
 
   test("asks the signed-in user's permissions whether the team may be invited to", async () => {
-    projectPermissionsForTest = {
-      projectId: PROJECT_ID,
-      permissions: [
-        {
-          permission: Permission.ProjectAdmin,
-          labelIds: [],
-          isBlockPermission: false,
-          scope: PermissionScope.All,
-          _type: "UserPermission",
-        },
-      ],
-      _type: "UserTenantAccessPermission",
+    const adminRow: UserPermission = {
+      permission: Permission.ProjectAdmin,
+      labelIds: [],
+      isBlockPermission: false,
+      scope: PermissionScope.All,
+      _type: "UserPermission",
     };
 
-    const found: InviteTeam | null = await fetchDefaultInviteTeam({
-      projectId: PROJECT_ID,
-      modelAPI: fakeModelAPI({
-        teams: [team(ADMIN_ID, "Admin"), team(MEMBERS_ID, "Members")],
-        permissions: [
-          teamPermission(ADMIN_ID, Permission.ProjectAdmin),
-          teamPermission(MEMBERS_ID, Permission.ProjectMember),
-        ],
-        calls: [],
-      }),
+    const findFor: (
+      permissions: Array<UserPermission>,
+    ) => Promise<InviteTeam | null> = async (
+      permissions: Array<UserPermission>,
+    ): Promise<InviteTeam | null> => {
+      projectPermissionsForTest = {
+        projectId: PROJECT_ID,
+        permissions: permissions,
+        _type: "UserTenantAccessPermission",
+      };
+
+      return await fetchDefaultInviteTeam({
+        projectId: PROJECT_ID,
+        modelAPI: fakeModelAPI({
+          teams: [team(ADMIN_ID, "Admin"), team(MEMBERS_ID, "Members")],
+          permissions: [
+            teamPermission(ADMIN_ID, Permission.ProjectAdmin),
+            teamPermission(MEMBERS_ID, Permission.ProjectMember),
+          ],
+          calls: [],
+        }),
+      });
+    };
+
+    // A Project Admin hands on Project Member: Project Admin does all it does.
+    expect(await findFor([adminRow])).toEqual({
+      id: MEMBERS_ID,
+      name: "Members",
     });
 
-    expect(found).toBeNull();
+    // Not with a block: then only what they hold themselves.
+    expect(
+      await findFor([
+        adminRow,
+        {
+          permission: Permission.ReadProjectIncident,
+          labelIds: [],
+          isBlockPermission: true,
+          _type: "UserPermission",
+        },
+      ]),
+    ).toBeNull();
   });
 
   test("a master admin may invite to any team", async () => {
@@ -667,7 +690,7 @@ describe("who may hand a team on, by default", () => {
       canSignedInUserGrantAll([Permission.ProjectMember, Permission.Viewer]),
     ).toBe(true);
 
-    // A Project Admin only what they hold themselves.
+    // A Project Admin what Project Admin does, but not Project Owner.
     projectPermissionsForTest = {
       projectId: PROJECT_ID,
       permissions: [
@@ -683,7 +706,13 @@ describe("who may hand a team on, by default", () => {
     };
 
     expect(canSignedInUserGrantAll([Permission.ProjectAdmin])).toBe(true);
-    expect(canSignedInUserGrantAll([Permission.ProjectMember])).toBe(false);
+    expect(canSignedInUserGrantAll([Permission.ProjectMember])).toBe(true);
+    expect(
+      canSignedInUserGrantAll([
+        Permission.ProjectMember,
+        Permission.ProjectOwner,
+      ]),
+    ).toBe(false);
 
     // A master admin anything, as on the server.
     isMasterAdminForTest = true;
