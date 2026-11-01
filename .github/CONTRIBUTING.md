@@ -23,6 +23,17 @@ Pull requests are the best way to propose changes to the codebase (we use [Githu
 5. Make sure your code lints.
 6. Issue that pull request!
 
+## Write Your Pull Request's Title for the Release Notes
+
+Every release's notes are written automatically from the titles of its pull requests, so your title is what people read on the [release page](https://github.com/OneUptime/oneuptime/releases). Write it as `type(area): what changed, for the person using OneUptime`, for example:
+
+- `feat(status-pages): subscribers choose which components they hear about`
+- `fix(monitors): an alert shows the value its criteria judged`
+- `perf(logs): the search box answers in half the time`
+- `docs(helm): how to run behind an ingress of your own`
+
+Use `test`, `ci`, `chore`, `refactor`, `style` or `build` for changes people using OneUptime will not notice, and add a `!` after the type or area (`feat(helm)!: ...`) when an upgrade asks something of them.
+
 ## Licensing of contributions
 
 OneUptime is developed in one repository with two licenses, and the license
