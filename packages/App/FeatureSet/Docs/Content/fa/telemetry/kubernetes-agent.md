@@ -5,6 +5,7 @@
 :::cards
 - [نصب عامل](#نصب-عامل): چهار گام با Helm.
 - [نصب به‌صورت افزونه Amazon EKS](#نصب-بهصورت-افزونه-amazon-eks): از کنسول EKS، بدون Helm.
+- [OpenShift](#openshift): پیش‌تنظیم، محدودیت‌های زمینهٔ امنیتی که می‌سازد، و هشدارهای خود OpenShift.
 - [گزینه‌های پیکربندی](#گزینههای-پیکربندی): فیلترها، نمونه‌برداری، Control Plane، Service Mesh، هزینه‌ها و برچسب‌ها.
 - [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes): `kubectl` فقط‌خواندنی برای OneUptime AI، و اصلاح‌ها وقتی اجازه دهید.
 - [فرستادن داده کمتر](#کاهش-حجم-داده-گردآوریشده): اهرم‌ها، به ترتیب اثرشان.
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,25 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard` (پیش‌فرض) | خوشه‌های خودمدیریت، **EKS on EC2**، **GKE Standard**، **AKS**، minikube، kind، k3s | کالکتور گره `/var/log/pods` را از راه `hostPath` می‌خواند (کمترین سربار) | kubelet، cAdvisor و متریک‌های سیستم‌عامل گره |
 | `gke-autopilot` | **GKE Autopilot** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند (بدون `hostPath`، بدون دسترسی به میزبان) | kubelet و cAdvisor، بدون `hostPath` |
 | `eks-fargate` | **EKS Fargate** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند (بدون `hostPath`، بدون دسترسی به میزبان) | هیچ: Fargate هیچ DaemonSet اجرا نمی‌کند |
+| `openshift` | **OpenShift**: OpenShift Container Platform، ROSA، ARO، OKD | کالکتور گره `/var/log/pods` را از راه `hostPath` می‌خواند، زیر یک محدودیت زمینهٔ امنیتی که چارت برایش می‌سازد | kubelet، cAdvisor و متریک‌های سیستم‌عامل گره |
 
-اگر مطمئن نیستید، با `standard` شروع کنید. اگر نصب با یک خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `preset=gke-autopilot` (یا `eks-fargate` روی Fargate) نصب کنید. GKE Autopilot و EKS Fargate پادهای با امتیاز ویژه را هم که eBPF و پروفایلر به آن‌ها نیاز دارند رد می‌کنند، پس این دو پیش‌تنظیم هر دو را کنار می‌گذارند.
+اگر مطمئن نیستید، با `standard` شروع کنید. اگر نصب با یک خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `preset=gke-autopilot` (یا `eks-fargate` روی Fargate) نصب کنید. GKE Autopilot و EKS Fargate پادهای با امتیاز ویژه را هم که eBPF و پروفایلر به آن‌ها نیاز دارند رد می‌کنند، پس این دو پیش‌تنظیم هر دو را کنار می‌گذارند. روی OpenShift از `openshift` استفاده کنید: ببینید [OpenShift](#openshift).
+
+## OpenShift
+
+با `--set preset=openshift` نصب کنید، همان‌طور که زبانه **OpenShift** در بالا نشان می‌دهد. OpenShift یک پاد را فقط زیر یک محدودیت زمینهٔ امنیتی (SCC) می‌پذیرد که حساب سرویس آن اجازهٔ استفاده از آن را داشته باشد، و تا وقتی مدیری اجازهٔ بیشتری ندهد، آن محدودیت `restricted-v2` است (OpenShift 4.11 و بعد از آن): بدون حجم‌های `hostPath`، بدون کانتینرهای با امتیاز ویژه، و با یک شناسهٔ کاربر از بازهٔ خود namespace. پس پیش‌تنظیم:
+
+- دو SCC می‌سازد که هر کدام فقط به حساب سرویس پادهای خودش داده می‌شود:
+  - یکی برای کالکتور گره: سوار کردن فقط‌خواندنی `hostPath`، اجرا با root و نوع SELinux `spc_t`، بدون امتیاز ویژه، با حذف همهٔ capabilityها؛
+  - یکی برای ابزارگذاری eBPF و پروفایلر: با امتیاز ویژه، در PID namespace میزبان. فقط تا وقتی که یکی از آن دو روشن باشد.
+- می‌گذارد OpenShift شناسهٔ کاربر هر پاد دیگری را برگزیند، که زیر `restricted-v2` اجرا می‌شود.
+- `oneuptime.kubernetes.distribution=openshift` را روی تله‌متری عامل می‌زند، تا **بستر** خوشه **OpenShift** نشان داده شود، و اگر خوشه روی ابری اجرا شود، آن ابر (`cloud.provider`، `cloud.platform`) را هم می‌افزاید.
+
+ساختن SCCها به دسترسی cluster-admin نیاز دارد. بدون این پیش‌تنظیم، انتشار نصب می‌شود، اما OpenShift هرگز پادهای کالکتور گره و eBPF عامل را راه نمی‌اندازد، و یادداشت‌های پس از نصب هم همین را می‌گویند.
+
+**هشدارهای خود OpenShift.** OpenShift همراه با Prometheus و Alertmanager عرضه می‌شود، با هشدارهایی برای اپراتورها، etcd و گره‌هایش. برای اینکه برای هر کدام در OneUptime حادثه‌ای باز شود، در کنسول وب زیر **Administration → Cluster Settings → Configuration → Alertmanager** یک گیرندهٔ وب‌هوک برای OneUptime بیفزایید، همان‌طور که [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) توضیح می‌دهد.
+
+**ترِیس‌ها از کد شما.** ابزارگذاری eBPF بدون تغییر در کد، HTTP، gRPC و SQL را ترِیس می‌کند. برای فرستادن ترِیس از SDKهای OpenTelemetry، یا از Red Hat build of OpenTelemetry، صادرکنندهٔ OTLP آن‌ها را به سوی OneUptime نشانه بگیرید، همان‌طور که [OpenTelemetry](/docs/telemetry/open-telemetry) توضیح می‌دهد.
 
 ## چه چیزی گردآوری می‌شود
 

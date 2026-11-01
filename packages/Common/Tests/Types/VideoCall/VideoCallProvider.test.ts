@@ -57,6 +57,19 @@ describe("VideoCallProvider", () => {
         VideoCallProvider.MicrosoftTeams,
       ],
       ["https://teams.live.com/meet/123", VideoCallProvider.MicrosoftTeams],
+      // A Teams meeting in GCC High and in DoD.
+      [
+        "https://gov.teams.microsoft.us/l/meetup-join/19%3ameeting_x",
+        VideoCallProvider.MicrosoftTeams,
+      ],
+      [
+        "https://dod.teams.microsoft.us/l/meetup-join/19%3ameeting_x",
+        VideoCallProvider.MicrosoftTeams,
+      ],
+      [
+        "https://gov.teams.microsoft.us.evil.example/l/meetup-join/1",
+        VideoCallProvider.CustomLink,
+      ],
       [
         "https://app.slack.com/huddle/T01379XQ9FG/C013E22BPPC",
         VideoCallProvider.SlackHuddle,

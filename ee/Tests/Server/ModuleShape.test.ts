@@ -231,6 +231,19 @@ describe("ee/Server/Index.ts assembly", () => {
     }).not.toThrow();
   });
 
+  test("hands core the logo its branding names, for emails to carry, never throwing", () => {
+    expect(typeof EnterpriseModule.getProductBrandingLogo).toBe("function");
+
+    let logo: Buffer | null | undefined = undefined;
+
+    expect(() => {
+      logo = EnterpriseModule.getProductBrandingLogo?.();
+    }).not.toThrow();
+
+    // Bytes, or nothing: never anything else.
+    expect(logo === null || Buffer.isBuffer(logo)).toBe(true);
+  });
+
   test("hands core OneUptime Cloud's payment provider only with billing on, never throwing", () => {
     expect(typeof EnterpriseModule.getBillingProvider).toBe("function");
 

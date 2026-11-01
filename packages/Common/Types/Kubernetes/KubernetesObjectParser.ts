@@ -564,7 +564,7 @@ export interface KubernetesVPAObject {
  * ============================================================
  */
 
-function parseMetadata(kvList: JSONObject): KubernetesObjectMetadata {
+export function parseMetadata(kvList: JSONObject): KubernetesObjectMetadata {
   const labelsKvList: string | JSONObject | null = getKvValue(kvList, "labels");
   const annotationsKvList: string | JSONObject | null = getKvValue(
     kvList,
@@ -772,7 +772,7 @@ function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
   };
 }
 
-function parseConditions(
+export function parseConditions(
   conditionsArrayValue: JSONObject | null,
 ): Array<KubernetesCondition> {
   if (!conditionsArrayValue) {

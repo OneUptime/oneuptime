@@ -543,6 +543,19 @@ describe("MicrosoftTeamsMessageReader: images and attachments", () => {
     );
   });
 
+  test("an image Graph keeps in a US Government cloud links to the message too, never to Graph", () => {
+    for (const graph of [
+      "https://graph.microsoft.us",
+      "https://dod-graph.microsoft.us",
+    ]) {
+      expect(
+        noteOf(HOSTED_IMAGE.replace("https://graph.microsoft.com", graph), {
+          webUrl: MESSAGE_URL,
+        }),
+      ).toBe(`📎 [image](${MESSAGE_URL})`);
+    }
+  });
+
   test("without the message's own link, it is named, and links nowhere", () => {
     expect(noteOf(HOSTED_IMAGE)).toBe("(image)");
     // A link that is not the message's in Teams is not followed.

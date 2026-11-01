@@ -3,6 +3,7 @@ import { StatusPageApiRoute } from "../../../ServiceRoute";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
+import ObjectID from "../../../Types/ObjectID";
 import Select from "../../Types/Database/Select";
 import FileOwnership from "../File/FileOwnership";
 
@@ -17,8 +18,12 @@ import FileOwnership from "../File/FileOwnership";
  * the backfill could not give one (BackfillFileOwners1797900000000) - leaves
  * it out, as for a page with no logo, rather than show a broken image.
  *
- * The one place an email builds that address; StatusPageEmailLogoGuard
- * keeps it so.
+ * The one place an email builds that address, and reads it back
+ * (readLogoAddress); StatusPageEmailLogoGuard keeps it so. Just before an
+ * email goes out, a logo every mail client can draw, and small enough,
+ * goes inside the email in place of its address (StatusPageCarriedLogo,
+ * Utils/Mail/EmailCarriedLogos.ts), so the reader's mail client fetches
+ * nothing; any other logo stays this address.
  */
 
 /*
@@ -72,9 +77,71 @@ export default class StatusPageEmailLogo {
       return "";
     }
 
+    return this.getLogoAddress({
+      statusPageId: statusPageId,
+      host: data.host,
+      httpProtocol: data.httpProtocol,
+    });
+  }
+
+  /**
+   * The status page whose logo `address` shows - an address exactly as
+   * getLogoUrl writes it for `host` and `httpProtocol` - or null for any
+   * other address. How an email that is about to go out finds the logo it
+   * can carry in place of the address (StatusPageCarriedLogo).
+   */
+  public static readLogoAddress(
+    address: string,
+    data: {
+      host: Hostname;
+      httpProtocol: Protocol;
+    },
+  ): ObjectID | null {
+    let parsed: globalThis.URL;
+
+    try {
+      parsed = new globalThis.URL(address);
+    } catch {
+      return null;
+    }
+
+    if (parsed.search || parsed.hash || parsed.username || parsed.password) {
+      return null;
+    }
+
+    const segments: Array<string> = parsed.pathname.split("/");
+    const statusPageId: string = segments[segments.length - 1] || "";
+
+    if (!ObjectID.isValidUUID(statusPageId)) {
+      return null;
+    }
+
+    let expected: globalThis.URL;
+
+    try {
+      expected = new globalThis.URL(
+        this.getLogoAddress({
+          statusPageId: statusPageId,
+          host: data.host,
+          httpProtocol: data.httpProtocol,
+        }),
+      );
+    } catch {
+      return null;
+    }
+
+    return parsed.href === expected.href ? new ObjectID(statusPageId) : null;
+  }
+
+  // The address of a page's logo on its logo route.
+  private static getLogoAddress(data: {
+    statusPageId: string;
+    host: Hostname;
+    httpProtocol: Protocol;
+  }): string {
     return new URL(data.httpProtocol, data.host)
       .addRoute(StatusPageApiRoute)
-      .addRoute(`/logo/${statusPageId}`)
+      .addRoute(`/logo/${data.statusPageId}`)
       .toString();
   }
 }

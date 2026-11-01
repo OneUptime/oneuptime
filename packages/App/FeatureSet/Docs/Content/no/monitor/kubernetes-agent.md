@@ -4,7 +4,7 @@ OneUptimes Kubernetes-agent er et Helm-chart som samler inn metrikkene, hendelse
 
 :::cards
 - [Installer agenten](#installer-agenten): Fire trinn med Helm.
-- [Velg et preset](#velg-et-preset): Standardclustere, GKE Autopilot eller EKS Fargate.
+- [Velg et preset](#velg-et-preset): Standardclustere, GKE Autopilot, EKS Fargate eller OpenShift.
 - [Vanlige innstillinger](#vanlige-innstillinger): Innstillingene de fleste clustere endrer.
 - [Feilsøking](#feilsøking): Et diagnoseskript og de vanlige problemene.
 :::
@@ -92,10 +92,13 @@ Noen Kubernetes-plattformer lar ikke en workload montere et `hostPath`-volum ell
 | `standard` (standard) | Selvadministrert, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Node-collectoren leser `/var/log/pods` | Kubelet-, cAdvisor- og operativsystemmetrikker |
 | `gke-autopilot` | **GKE Autopilot** | Logg-taileren leser dem gjennom Kubernetes-API-et | Kubelet- og cAdvisor-metrikker, uten `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Logg-taileren leser dem gjennom Kubernetes-API-et | Ingenting: Fargate kjører ingen DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Node-collectoren leser `/var/log/pods` | Kubelet-, cAdvisor- og operativsystemmetrikker |
 
 Er du usikker, lar du `preset` stå tom for å få `standard`. Hvis installasjonen feiler med en Pod Security-feil som nevner `hostPath`, installerer du på nytt med `gke-autopilot`, eller `eks-fargate` på EKS Fargate.
 
-GKE Autopilot og EKS Fargate avviser også privilegerte pods, som eBPF-instrumenteringen og profileringen trenger, så presetene deres utelater begge:
+GKE Autopilot og EKS Fargate avviser også privilegerte pods, som eBPF-instrumenteringen og profileringen trenger, så presetene deres utelater begge.
+
+På OpenShift er `restricted-v2` standard-SCC-en (security context constraint), og den avviser node-collectoren og eBPF-podene. Presetet `openshift` oppretter en SCC for hver av dem, som bare brukes av deres egen tjenestekonto, og lar OpenShift velge bruker-ID for alle andre pods:
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ Profilering krever **Linux 5.10** eller nyere og en privilegert pod med nodens p
 | `oneuptime.url` | (påkrevd) | OneUptime-URL-en din. |
 | `oneuptime.apiKey` | (påkrevd) | Inntaksnøkkelen, fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Sendes som headeren `x-oneuptime-token`; en prosjekt-API-nøkkel virker ikke. |
 | `clusterName` | (påkrevd) | Clusterets navn, unikt i prosjektet. Hver post bærer det som `k8s.cluster.name`. |
-| `preset` | (tom: `standard`) | `standard`, `gke-autopilot` eller `eks-fargate`. Se [Velg et preset](#velg-et-preset). |
+| `preset` | (tom: `standard`) | `standard`, `gke-autopilot`, `eks-fargate` eller `openshift`. Se [Velg et preset](#velg-et-preset). |
 | `oneuptime.labels` | `{}` | Etiketter for hver post fra denne agenten. Se [Merk clusteret med etiketter](#merk-clusteret-med-etiketter). |
 | `namespaceFilters.rules` | Holder `kube-system` utenfor `podLogs` og `ebpfDiscovery` | Regler som tar med eller utelukker namespaces, for `podLogs`, `ebpfDiscovery`, `metrics` og `traces`. Mønstre kan bruke `*`, og utelukkelse vinner alltid. |
 | `filters.logs.minSeverity` | `""` | Forkaster pod-logglinjer under dette nivået: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` eller `FATAL`. |

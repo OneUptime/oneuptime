@@ -5,6 +5,7 @@ OneUptime Kubernetes एजेंट एक Helm चार्ट है जो �
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): Helm के साथ चार चरण।
 - [Amazon EKS ऐड-ऑन के रूप में इंस्टॉल करें](#amazon-eks-ऐड-ऑन-के-रूप-में-इंस्टॉल-करें): EKS कंसोल से, Helm के बिना।
+- [OpenShift](#openshift): प्रीसेट, उसके बनाए सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट, और OpenShift के अपने अलर्ट।
 - [कॉन्फ़िगरेशन विकल्प](#कॉन्फ़िगरेशन-विकल्प): फ़िल्टर, सैंपलिंग, कंट्रोल प्लेन, सर्विस मेश, लागत और लेबल।
 - [Kubernetes AI एजेंट](#kubernetes-ai-एजेंट): OneUptime AI के लिए केवल-पढ़ने वाला `kubectl`, और आपकी अनुमति होने पर सुधार।
 - [कम डेटा भेजें](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना): लीवर, असर के क्रम में।
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,25 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard` (डिफ़ॉल्ट) | स्व-प्रबंधित क्लस्टर, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | नोड कलेक्टर `hostPath` के ज़रिए `/var/log/pods` पढ़ता है (सबसे कम ओवरहेड) | Kubelet, cAdvisor और नोड के OS मेट्रिक्स |
 | `gke-autopilot` | **GKE Autopilot** | लॉग टेलर उन्हें Kubernetes API के ज़रिए पढ़ता है (कोई `hostPath` नहीं, होस्ट तक कोई पहुँच नहीं) | Kubelet और cAdvisor, `hostPath` के बिना |
 | `eks-fargate` | **EKS Fargate** | लॉग टेलर उन्हें Kubernetes API के ज़रिए पढ़ता है (कोई `hostPath` नहीं, होस्ट तक कोई पहुँच नहीं) | कोई नहीं: Fargate कोई DaemonSet नहीं चलाता |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | नोड कलेक्टर `hostPath` के ज़रिए `/var/log/pods` पढ़ता है, उस सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट के तहत जिसे चार्ट उसके लिए बनाता है | Kubelet, cAdvisor और नोड के OS मेट्रिक्स |
 
-अगर आप निश्चित नहीं हैं, तो `standard` से शुरू करें। अगर इंस्टॉल ऐसी Pod Security त्रुटि के साथ विफल हो जिसमें `hostPath` का नाम हो, तो `preset=gke-autopilot` (या Fargate पर `eks-fargate`) के साथ फिर से इंस्टॉल करें। GKE Autopilot और EKS Fargate विशेषाधिकार वाले पॉड भी अस्वीकार करते हैं, जिनकी eBPF और प्रोफ़ाइलर को ज़रूरत है, इसलिए वे दोनों प्रीसेट दोनों को छोड़ देते हैं।
+अगर आप निश्चित नहीं हैं, तो `standard` से शुरू करें। अगर इंस्टॉल ऐसी Pod Security त्रुटि के साथ विफल हो जिसमें `hostPath` का नाम हो, तो `preset=gke-autopilot` (या Fargate पर `eks-fargate`) के साथ फिर से इंस्टॉल करें। GKE Autopilot और EKS Fargate विशेषाधिकार वाले पॉड भी अस्वीकार करते हैं, जिनकी eBPF और प्रोफ़ाइलर को ज़रूरत है, इसलिए वे दोनों प्रीसेट दोनों को छोड़ देते हैं। OpenShift पर `openshift` का उपयोग करें: [OpenShift](#openshift) देखें।
+
+## OpenShift
+
+`--set preset=openshift` के साथ इंस्टॉल करें, जैसा ऊपर का **OpenShift** टैब करता है। OpenShift किसी पॉड को केवल ऐसे सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट (SCC) के तहत चलने देता है जिसका उपयोग उसका सेवा खाता कर सके, और जब तक कोई एडमिन इससे ज़्यादा अनुमति न दे, वह `restricted-v2` होता है (OpenShift 4.11 और उसके बाद): कोई `hostPath` वॉल्यूम नहीं, कोई विशेषाधिकार वाला कंटेनर नहीं, और नेमस्पेस की अपनी रेंज से एक यूज़र ID। इसलिए प्रीसेट:
+
+- दो SCC बनाता है, जिनमें से हर एक का उपयोग केवल उसके अपने पॉड का सेवा खाता करता है:
+  - एक नोड कलेक्टर के लिए: केवल-पढ़ने वाले `hostPath` माउंट, SELinux टाइप `spc_t` के साथ root के रूप में, बिना विशेषाधिकार के, सभी capabilities हटाकर;
+  - एक eBPF इंस्ट्रुमेंटेशन और प्रोफ़ाइलर के लिए: विशेषाधिकार के साथ, होस्ट के PID नेमस्पेस में। केवल तब तक, जब तक इनमें से कोई एक चालू हो।
+- बाकी हर पॉड की यूज़र ID OpenShift को चुनने देता है, और वे पॉड `restricted-v2` के तहत चलते हैं।
+- एजेंट की टेलीमेट्री पर `oneuptime.kubernetes.distribution=openshift` लगाता है, ताकि क्लस्टर के **प्लेटफ़ॉर्म** में **OpenShift** दिखे, और अगर क्लस्टर किसी क्लाउड पर चलता है तो वह क्लाउड (`cloud.provider`, `cloud.platform`) भी जोड़ता है।
+
+SCC बनाने के लिए cluster-admin अधिकार चाहिए। प्रीसेट के बिना रिलीज़ इंस्टॉल तो हो जाती है, लेकिन OpenShift एजेंट के नोड कलेक्टर और eBPF पॉड कभी शुरू नहीं करता, और इंस्टॉल के बाद Helm जो नोट्स छापता है वे भी यही बताते हैं।
+
+**OpenShift के अपने अलर्ट।** OpenShift के साथ Prometheus और Alertmanager आते हैं, जिनमें उसके ऑपरेटर, etcd और नोड के लिए अलर्ट होते हैं। हर अलर्ट के लिए OneUptime में एक घटना खोलने के लिए, वेब कंसोल में **Administration → Cluster Settings → Configuration → Alertmanager** के अंतर्गत OneUptime के लिए एक वेबहुक रिसीवर जोड़ें, जैसा [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) में बताया गया है।
+
+**आपके कोड से ट्रेस।** eBPF इंस्ट्रुमेंटेशन बिना कोड बदले HTTP, gRPC और SQL को ट्रेस करता है। OpenTelemetry SDK से, या Red Hat build of OpenTelemetry से ट्रेस भेजने के लिए, उनके OTLP एक्सपोर्टर को OneUptime की ओर पॉइंट करें, जैसा [OpenTelemetry](/docs/telemetry/open-telemetry) में बताया गया है।
 
 ## क्या इकट्ठा होता है
 

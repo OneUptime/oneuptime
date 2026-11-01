@@ -3397,6 +3397,23 @@ describe("every resource type", () => {
         { timeout: WAIT_TIMEOUT },
       );
 
+      /*
+       * The answers the page gives - this OneUptime's URL, the host's name -
+       * are values of their own: isolated (read left to right inside a
+       * Persian sentence) and kept on one line, never broken at a hyphen.
+       */
+      const answers: Array<HTMLElement> = within(
+        screen.getByTestId("ai-agent-install-installer-asks"),
+      ).getAllByTestId("ai-agent-install-installer-answer");
+      expect(
+        answers.map((answer: HTMLElement): string => {
+          return `${answer.tagName.toLowerCase()} ${answer.textContent}`;
+        }),
+      ).toEqual([`bdi ${getConfiguredOneUptimeUrl()}`, "bdi prod-docker-01"]);
+      for (const answer of answers) {
+        expect(answer).toHaveClass("whitespace-nowrap");
+      }
+
       // The snippet is the way to do it by hand: folded, after the installer.
       const byHand: HTMLElement = screen.getByTestId(
         "ai-agent-install-by-hand",
@@ -3438,6 +3455,21 @@ describe("every resource type", () => {
       expect(
         codeIn(within(byHand).getByTestId("ai-agent-install-command")),
       ).toContain("oneuptime-host-ai-agent:");
+
+      /*
+       * Each value whole - "from .env", "(empty)", the host's name - never
+       * broken mid-word to a column a few letters wide ("(empt" / "y)").
+       */
+      const values: Array<Element> = Array.from(
+        within(byHand)
+          .getByTestId("ai-agent-install-variables")
+          .querySelectorAll("tbody td:nth-child(2)"),
+      );
+      expect(values.length).toBeGreaterThan(5);
+      for (const value of values) {
+        expect(value).toHaveClass("whitespace-nowrap");
+        expect(value).not.toHaveClass("break-all");
+      }
     },
   );
 

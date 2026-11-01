@@ -286,6 +286,8 @@ export default class EnterpriseEdition {
 
   private static hasWarnedAboutUnreadableBranding: boolean = false;
 
+  private static hasWarnedAboutUnreadableBrandingLogo: boolean = false;
+
   private static featureStateListeners: Array<EnterpriseFeatureStateListener> =
     [];
 
@@ -323,6 +325,7 @@ export default class EnterpriseEdition {
     EnterpriseEdition.hasWarnedAboutUnreadableLicense = false;
     EnterpriseEdition.hasWarnedAboutUnknownTrialStart = false;
     EnterpriseEdition.hasWarnedAboutUnreadableBranding = false;
+    EnterpriseEdition.hasWarnedAboutUnreadableBrandingLogo = false;
     EnterpriseEdition.featureStateListeners = [];
   }
 
@@ -683,6 +686,42 @@ export default class EnterpriseEdition {
         EnterpriseEdition.hasWarnedAboutUnreadableBranding = true;
         logger.warn(
           "EnterpriseEdition: the enterprise module could not say how this installation is branded; showing OneUptime's branding. This warning is logged once per process.",
+        );
+        logger.warn(err);
+      }
+
+      return null;
+    }
+  }
+
+  /*
+   * The bytes of the installation's own logo for light backgrounds - the
+   * image getProductBranding's logoUrl shows - or null: on the Community
+   * Edition, when the module has no say in it, when there is no such logo,
+   * and when the module fails. An email that shows the logo carries these
+   * bytes inside itself rather than load them from logoUrl
+   * (Utils/Mail/EmailCarriedLogos.ts), so core only ever asks for the logo
+   * getProductBranding already names. Synchronous, as getProductBranding
+   * is, and it never throws: a module that fails here costs an email its
+   * carried logo, which then loads from logoUrl as before.
+   */
+  public static getProductBrandingLogo(): Buffer | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getProductBrandingLogo) {
+      return null;
+    }
+
+    try {
+      const bytes: unknown = enterpriseModule.getProductBrandingLogo();
+
+      return Buffer.isBuffer(bytes) && bytes.length > 0 ? bytes : null;
+    } catch (err) {
+      if (!EnterpriseEdition.hasWarnedAboutUnreadableBrandingLogo) {
+        EnterpriseEdition.hasWarnedAboutUnreadableBrandingLogo = true;
+        logger.warn(
+          "EnterpriseEdition: the enterprise module could not hand over this installation's logo; emails load it from its address instead. This warning is logged once per process.",
         );
         logger.warn(err);
       }

@@ -40,6 +40,16 @@
     body[override] .st-ReportIndent { margin-left: 0 !important; }
     body[override] .st-ReportTable th, body[override] .st-ReportTable td { padding: 10px 6px !important; font-size: 12px !important; line-height: 18px !important; }
     body[override] .st-ReportTable th { padding: 10px 4px !important; font-size: 11px !important; line-height: 16px !important; }
+    {{!--
+      The uptime report's stat strip: three tiles side by side on a wide
+      screen, three rows on a phone - each label on the left, its value on
+      the right - so a long value has the width of the strip, not a third.
+      Stacked, a tile's inline divider would run down the strip's own right
+      edge, so it goes; the rows draw none (see above).
+    --}}
+    body[override] td.st-Stat { display: block !important; width: auto !important; padding: 10px 16px !important; border-right: 0 !important; text-align: right !important; }
+    body[override] .st-Stat .st-Stat-label { float: left !important; margin: 0 16px 0 0 !important; line-height: 26px !important; }
+    body[override] .st-Stat .st-Stat-value { font-size: 18px !important; line-height: 26px !important; }
     body[override] .st-Button-link { padding-left: 12px !important; padding-right: 12px !important; }
   }
 </style>

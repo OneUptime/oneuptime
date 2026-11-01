@@ -63,9 +63,9 @@ The script asks for your OneUptime URL, the ingestion key and a name for the clu
 Download `docker-compose.yml`, `otel-collector-config.yaml` and `inventory-snapshot.sh` from your OneUptime into a new folder on a manager node:
 
 ```bash
-curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSLO https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 

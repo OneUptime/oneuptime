@@ -4,7 +4,7 @@ OneUptime Kubernetes 代理是一个 Helm Chart，它采集集群的指标、事
 
 :::cards
 - [安装代理](#安装代理): 使用 Helm 的四个步骤。
-- [选择预设](#选择预设): 标准集群、GKE Autopilot 或 EKS Fargate。
+- [选择预设](#选择预设): 标准集群、GKE Autopilot、EKS Fargate 或 OpenShift。
 - [常用选项](#常用选项): 大多数集群会修改的设置。
 - [故障排查](#故障排查): 一个诊断脚本和常见问题。
 :::
@@ -92,10 +92,13 @@ kubectl get pods -n oneuptime-agent
 | `standard`(默认) | 自管理、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | 节点采集器读取 `/var/log/pods` | kubelet、cAdvisor 和操作系统指标 |
 | `gke-autopilot` | **GKE Autopilot** | 日志跟随器通过 Kubernetes API 读取 | kubelet 和 cAdvisor 指标，不使用 `hostPath` |
 | `eks-fargate` | **EKS Fargate** | 日志跟随器通过 Kubernetes API 读取 | 无：Fargate 不运行 DaemonSet |
+| `openshift` | **OpenShift**：OpenShift Container Platform、ROSA、ARO、OKD | 节点采集器读取 `/var/log/pods` | kubelet、cAdvisor 和操作系统指标 |
 
 如果不确定，请不设置 `preset`，以使用 `standard`。如果安装因提到 `hostPath` 的 Pod Security 错误而失败，请用 `gke-autopilot` 重新安装，在 EKS Fargate 上则用 `eks-fargate`。
 
-GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 插桩和性能分析所需的特权 Pod，因此它们的预设会同时省略这两者：
+GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 插桩和性能分析所需的特权 Pod，因此它们的预设会同时省略这两者。
+
+在 OpenShift 上，默认的安全上下文约束(SCC) `restricted-v2` 会拒绝节点采集器和 eBPF Pod。`openshift` 预设会为两者各创建一个 SCC，仅供各自的服务账号使用，并让 OpenShift 为其他所有 Pod 选择用户 ID：
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `oneuptime.url` | (必填) | 你的 OneUptime URL。 |
 | `oneuptime.apiKey` | (必填) | 摄取密钥，来自 **项目设置 → 遥测与 APM → 摄取密钥**。作为 `x-oneuptime-token` 标头发送；项目 API 密钥不起作用。 |
 | `clusterName` | (必填) | 集群的名称，在项目中唯一。每条记录都把它作为 `k8s.cluster.name` 携带。 |
-| `preset` | (空：`standard`) | `standard`、`gke-autopilot` 或 `eks-fargate`。请参阅 [选择预设](#选择预设)。 |
+| `preset` | (空：`standard`) | `standard`、`gke-autopilot`、`eks-fargate` 或 `openshift`。请参阅 [选择预设](#选择预设)。 |
 | `oneuptime.labels` | `{}` | 此代理发送的每条记录的标签。请参阅 [为集群添加标签](#为集群添加标签)。 |
 | `namespaceFilters.rules` | 把 `kube-system` 排除在 `podLogs` 和 `ebpfDiscovery` 之外 | 针对 `podLogs`、`ebpfDiscovery`、`metrics` 和 `traces` 包含或排除命名空间的规则。模式可以使用 `*`，排除始终优先。 |
 | `filters.logs.minSeverity` | `""` | 丢弃低于此级别的 Pod 日志行：`TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR` 或 `FATAL`。 |

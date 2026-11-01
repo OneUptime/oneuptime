@@ -83,7 +83,7 @@ Tout le reste ne se connecte vers l'extérieur que lorsque vous l'activez, et ch
 
 Les connexions dans l'autre sens – SendGrid qui livre les e-mails entrants, Slack et Microsoft Teams qui rappellent – exigent que l'ingress soit joignable depuis Internet. Les adresses privées que l'application et les sondes peuvent joindre, c'est vous qui les choisissez : voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
 
-Le logo de OneUptime voyage à l'intérieur de chaque e-mail qu'envoie OneUptime : il s'affiche donc même sur un réseau sans accès à Internet, et ouvrir un e-mail ne demande rien à aucun autre hôte. Les images que vous importez vous-même, comme votre propre logo ou celui d'une page de statut, s'affichent depuis votre URL OneUptime, que les lecteurs de ces e-mails doivent pouvoir joindre.
+Le logo de OneUptime voyage à l'intérieur de chaque e-mail qu'envoie OneUptime : il s'affiche donc même sur un réseau sans accès à Internet, et ouvrir un e-mail ne demande rien à aucun autre hôte. Un logo que vous importez vous-même, comme le vôtre ou celui d'une page de statut, voyage lui aussi à l'intérieur de l'e-mail lorsqu'il s'agit d'un PNG, d'un JPEG ou d'un GIF de 512 Ko au plus. Toute autre image que vous importez s'affiche depuis votre URL OneUptime, que les lecteurs de ces e-mails doivent pouvoir joindre.
 
 ## Étapes suivantes
 

@@ -194,6 +194,7 @@ OneUptime 重新執行後，**專案設定 > 工作區 > Microsoft Teams** 會�
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**。它也是 Teams 應用程式套件中的機器人 ID，因此必須是 GUID。 |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | 用戶端密碼的 **Value**，而不是它的 ID。 |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**。機器人在此租用戶中以單一租用戶應用程式的身分進行驗證，使用者連接 Microsoft Teams 帳號時也登入此租用戶。 |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | 僅適用於美國政府雲端中的 Microsoft 365 租用戶：`gcc`、`gcc-high` 或 `dod`。商業雲端請保持不設定。請參閱[美國政府雲端](#美國政府雲端)。 |
 | `HOST` | `host` | 你的公開主機名稱。重新導向 URI、訊息端點和 Teams 應用程式套件都以它為基礎產生。 |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`。Azure Bot Service 只會呼叫 HTTPS 端點。 |
 
@@ -202,6 +203,21 @@ OneUptime 重新執行後，**專案設定 > 工作區 > Microsoft Teams** 會�
 - 沒有用戶端 ID 時，Microsoft Teams 頁面會顯示設定指南，而不是 **授予管理員同意**。
 - 沒有用戶端 ID 或密碼時，連接會以 **"此 OneUptime 伺服器未設定 Microsoft Teams。"** 結束。
 - 沒有租用戶 ID 時，機器人無法進行驗證，因此發布訊息和機器人端點都會失敗。
+
+## 美國政府雲端
+
+如果你的 Microsoft 365 租用戶位於 Microsoft 的某個美國政府雲端中，請將 `MICROSOFT_TEAMS_CLOUD`（Helm 中為 `microsoftTeamsApp.cloud`）設為該雲端。之後機器人、Microsoft Teams 登入和 [Teams 會議應用程式](/docs/workspace-connections/video-calls#在自行託管的伺服器上一鍵連接)都會使用該雲端的主機：
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365 雲端 | 登入 | Microsoft Graph |
+| --- | --- | --- | --- |
+| 未設定 | 商業 | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+對於 GCC High 和 DoD，請在 Azure Government 中建立應用程式註冊和 Azure Bot：在第 1 到 5 步中，使用 [Azure Government 入口網站](https://portal.azure.us)代替 Azure 入口網站。其他步驟都相同。要查看伺服器使用的是哪個雲端，請執行 `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`：它會列出該雲端及其主機。
+
+不對應任何雲端的值會讓每個 Microsoft Teams 要求都因一個指明 `MICROSOFT_TEAMS_CLOUD` 的錯誤而停止，因此你的租用戶的登入絕不會被傳送到商業雲端。不支援由世紀互聯（21Vianet）在中國營運的 Microsoft Teams。
 
 ## 網路存取
 
@@ -237,7 +253,7 @@ OneUptime 的 [私人網路存取設定](/docs/self-hosted/private-network-acces
 
 ### 輸出存取和 IP 限制
 
-允許 OneUptime 應用程式進行 DNS 解析和輸出 HTTPS。使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 的驗證和頻道端點，以及為交談提供的連接器服務 URL。商業雲端的備援連接器是 `https://smba.trafficmanager.net/teams/`；交談的服務 URL 可能不同。請遵循 [Microsoft 的防火牆指引](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，並在測試期間檢查被封鎖的流量；這不是一份完整的主機名稱清單。
+允許 OneUptime 應用程式進行 DNS 解析和輸出 HTTPS。使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 的驗證和頻道端點，以及為交談提供的連接器服務 URL。商業雲端的備援連接器是 `https://smba.trafficmanager.net/teams/`；交談的服務 URL 可能不同。請遵循 [Microsoft 的防火牆指引](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，並在測試期間檢查被封鎖的流量；這不是一份完整的主機名稱清單。 在[美國政府雲端](#美國政府雲端)中，這些是該雲端自己的主機。
 
 Microsoft 不支援為 Bot Framework 輸入流量使用固定的 IP 允許清單，因為其來源位址會變動。Teams 用戶端的媒體 IP 範圍並不代表機器人 Webhook 的來源。請保持 Bot Framework 驗證為啟用狀態，而不是把來源 IP 當作身分證明。
 

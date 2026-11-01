@@ -58,6 +58,7 @@ import {
   DOCKER_SWARM_INSTALL_METHODS,
   DockerSwarmInstallMethod,
   getDockerSwarmAgentDownloadCommand,
+  getDockerSwarmAgentFileUrl,
   getDockerSwarmAgentInstallScriptCommand,
   getDockerSwarmSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
@@ -696,7 +697,9 @@ describe("Docker Swarm agent: the install script again, or the files again", () 
       DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND,
     ]);
     for (const file of DOCKER_SWARM_AGENT_FILES) {
-      expect(compose[0]).toContain(`-o ${file}`);
+      expect(compose[0]).toContain(
+        `curl -fsSLO ${getDockerSwarmAgentFileUrl(URL, file)}\n`,
+      );
     }
   });
 

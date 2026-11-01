@@ -1,7 +1,4 @@
-import {
-  MICROSOFT_GRAPH_BASE_URL,
-  MicrosoftTeamsMeetingOrganizer,
-} from "../../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
+import { MicrosoftTeamsMeetingOrganizer } from "../../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
 import MicrosoftTeamsTranscriptClient, {
   GRAPH_SPEAKER_ATTRIBUTION_NOT_ALLOWED_CODE,
   GRAPH_TRANSCRIPTS_DISABLED_CODE,
@@ -59,6 +56,8 @@ const SIGNED_IN_ORGANIZER: MicrosoftTeamsMeetingOrganizer = {
   isSignIn: true,
 };
 
+// Microsoft Graph of the commercial cloud, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_GRAPH_BASE_URL: string = "https://graph.microsoft.com/v1.0";
 const MEETING_URL: string = `${MICROSOFT_GRAPH_BASE_URL}/users/${ORGANIZER_ID}/onlineMeetings/${ENCODED_MEETING_ID}`;
 
 const FIRST_TRANSCRIPT: JSONObject = {

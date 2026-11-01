@@ -194,6 +194,7 @@ Merknader:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Det er også bot-ID-en i Teams-app-pakken, så den må være en GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Klienthemmelighetens **Value**, ikke ID-en. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Boten autentiserer seg som en enkeltleietaker-app i denne leietakeren, og folk logger inn i den for å koble til Microsoft Teams-kontoen sin. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Bare for en Microsoft 365-leietaker i en sky for amerikanske myndigheter: `gcc`, `gcc-high` eller `dod`. La den stå tom for den kommersielle skyen. Se [Skyer for amerikanske myndigheter](#skyer-for-amerikanske-myndigheter). |
 | `HOST` | `host` | Det offentlige vertsnavnet ditt. Omdirigerings-URI-ene, meldingsendepunktet og Teams-app-pakken bygges ut fra det. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service kaller bare HTTPS-endepunkter. |
 
@@ -202,6 +203,21 @@ Alle de tre verdiene `MICROSOFT_TEAMS_APP_*` er påkrevd:
 - Uten klient-ID-en viser Microsoft Teams-siden oppsettsveiledningen i stedet for **Gi administratorsamtykke**.
 - Uten klient-ID-en eller hemmeligheten ender tilkoblingen med **"Microsoft Teams er ikke satt opp på denne OneUptime-serveren."**
 - Uten leietaker-ID-en kan ikke boten autentisere seg, så både posting og bot-endepunktet feiler.
+
+## Skyer for amerikanske myndigheter
+
+Hvis Microsoft 365-leietakeren din ligger i en av Microsofts skyer for amerikanske myndigheter, setter du `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) til den skyen. Boten, Microsoft Teams-påloggingene og [Teams-møteappen](/docs/workspace-connections/video-calls#koble-til-med-ett-klikk-på-en-selvdriftet-server) bruker da vertene dens:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-sky | Pålogging | Microsoft Graph |
+| --- | --- | --- | --- |
+| Ikke satt | Kommersiell | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+For GCC High og DoD oppretter du app-registreringen og Azure Bot i Azure Government: bruk [Azure Government-portalen](https://portal.azure.us) i stedet for Azure-portalen i trinn 1 til 5. Alt annet er det samme. Kjør `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` for å se hvilken sky serveren bruker: den nevner skyen og vertene dens.
+
+En verdi som ikke nevner noen sky, stopper hver Microsoft Teams-forespørsel med en feil som nevner `MICROSOFT_TEAMS_CLOUD`, slik at påloggingene til leietakeren din aldri sendes til den kommersielle skyen. Microsoft Teams drevet av 21Vianet i Kina støttes ikke.
 
 ## Nettverkstilgang
 
@@ -237,7 +253,7 @@ OneUptimes [innstillinger for tilgang til private nettverk](/docs/self-hosted/pr
 
 ### Utgående tilgang og IP-begrensninger
 
-Tillat DNS-oppslag og utgående HTTPS fra OneUptime-appen. Bruk `graph.microsoft.com`, `login.microsoftonline.com`, autentiserings- og kanalendepunktene til Bot Framework, og URL-en til connector-tjenesten som oppgis for en samtale. Reserve-connectoren i den kommersielle skyen er `https://smba.trafficmanager.net/teams/`; tjeneste-URL-ene til samtaler kan være andre. Følg [Microsofts brannmurveiledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0), og undersøk blokkert trafikk under testing; dette er ikke en fullstendig liste over vertsnavn.
+Tillat DNS-oppslag og utgående HTTPS fra OneUptime-appen. Bruk `graph.microsoft.com`, `login.microsoftonline.com`, autentiserings- og kanalendepunktene til Bot Framework, og URL-en til connector-tjenesten som oppgis for en samtale. Reserve-connectoren i den kommersielle skyen er `https://smba.trafficmanager.net/teams/`; tjeneste-URL-ene til samtaler kan være andre. Følg [Microsofts brannmurveiledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0), og undersøk blokkert trafikk under testing; dette er ikke en fullstendig liste over vertsnavn. I en [sky for amerikanske myndigheter](#skyer-for-amerikanske-myndigheter) er dette skyens egne verter.
 
 Microsoft støtter ikke faste IP-tillatelseslister for innkommende Bot Framework-trafikk, fordi kildeadressene endrer seg. IP-områdene for medier fra Teams-klienter beskriver ikke hvor botwebhooks kommer fra. Hold Bot Framework-autentiseringen slått på i stedet for å behandle en kilde-IP som bevis på identitet.
 

@@ -194,6 +194,7 @@ Bemærkninger:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Det er også bot-id'et i Teams-app-pakken, så det skal være et GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Klienthemmelighedens **Value**, ikke dens id. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Botten godkender sig som en single-tenant-app i denne tenant, og folk logger ind i den for at forbinde deres Microsoft Teams-konto. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Kun for en Microsoft 365-tenant i en US Government-cloud: `gcc`, `gcc-high` eller `dod`. Lad den være tom for den kommercielle cloud. Se [US Government-clouds](#us-government-clouds). |
 | `HOST` | `host` | Dit offentlige værtsnavn. Omdirigerings-URI'erne, beskedendpointet og Teams-app-pakken bygges ud fra det. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service kalder kun HTTPS-endpoints. |
 
@@ -202,6 +203,21 @@ Alle tre værdier `MICROSOFT_TEAMS_APP_*` er påkrævede:
 - Uden klient-id'et viser Microsoft Teams-siden opsætningsvejledningen i stedet for **Giv administratorsamtykke**.
 - Uden klient-id'et eller hemmeligheden ender forbindelsen med **"Microsoft Teams er ikke sat op på denne OneUptime-server."**
 - Uden tenant-id'et kan botten ikke godkende sig, så både postning og bot-endpointet fejler.
+
+## US Government-clouds
+
+Hvis din Microsoft 365-tenant ligger i en af Microsofts US Government-clouds, så sæt `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) til den cloud. Botten, Microsoft Teams-logins og [Teams-mødeappen](/docs/workspace-connections/video-calls#forbind-med-ét-klik-på-en-selvhostet-server) bruger så dens værter:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft 365-cloud | Login | Microsoft Graph |
+| --- | --- | --- | --- |
+| Ikke sat | Kommerciel | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+Til GCC High og DoD skal app-registreringen og Azure Bot oprettes i Azure Government: brug [Azure Government-portalen](https://portal.azure.us) i stedet for Azure-portalen i trin 1 til 5. Alt andet er det samme. Kør `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` for at se, hvilken cloud serveren bruger: den nævner cloud'en og dens værter.
+
+En værdi, der ikke nævner nogen cloud, stopper hver Microsoft Teams-anmodning med en fejl, der nævner `MICROSOFT_TEAMS_CLOUD`, så din tenants logins aldrig sendes til den kommercielle cloud. Microsoft Teams drevet af 21Vianet i Kina understøttes ikke.
 
 ## Netværksadgang
 
@@ -237,7 +253,7 @@ OneUptimes [indstillinger for adgang til private netværk](/docs/self-hosted/pri
 
 ### Udgående adgang og IP-begrænsninger
 
-Tillad DNS-opslag og udgående HTTPS fra OneUptime-appen. Brug `graph.microsoft.com`, `login.microsoftonline.com`, Bot Frameworks godkendelses- og kanalendpoints og den connector-tjeneste-URL, der angives for en samtale. Fallback-connectoren i den kommercielle cloud er `https://smba.trafficmanager.net/teams/`; samtalers tjeneste-URL'er kan være andre. Følg [Microsofts firewallvejledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0), og undersøg blokeret trafik under test; dette er ikke en udtømmende liste over værtsnavne.
+Tillad DNS-opslag og udgående HTTPS fra OneUptime-appen. Brug `graph.microsoft.com`, `login.microsoftonline.com`, Bot Frameworks godkendelses- og kanalendpoints og den connector-tjeneste-URL, der angives for en samtale. Fallback-connectoren i den kommercielle cloud er `https://smba.trafficmanager.net/teams/`; samtalers tjeneste-URL'er kan være andre. Følg [Microsofts firewallvejledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0), og undersøg blokeret trafik under test; dette er ikke en udtømmende liste over værtsnavne. I en [US Government-cloud](#us-government-clouds) er det cloud'ens egne værter.
 
 Microsoft understøtter ikke faste IP-tilladelseslister for indgående Bot Framework-trafik, fordi dens kildeadresser ændrer sig. IP-intervallerne for medier fra Teams-klienter beskriver ikke, hvor botwebhooks kommer fra. Hold Bot Framework-godkendelsen slået til i stedet for at behandle en kilde-IP som bevis for identitet.
 

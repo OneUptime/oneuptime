@@ -24,6 +24,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OneUptimeDate from "Common/Types/Date";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
+import { getMicrosoftTeamsAppLink } from "./MicrosoftTeamsAppLink";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -342,8 +343,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
                 onClick={() => {
                   window.open(
-                    "https://teams.microsoft.com/l/app/" +
-                      MicrosoftTeamsAppClientId,
+                    getMicrosoftTeamsAppLink(MicrosoftTeamsAppClientId || ""),
                     "_blank",
                   );
                 }}

@@ -98,12 +98,38 @@ beforeAll(async () => {
   });
 });
 
+/*
+ * Every calendar here opens on 15 October 2026, 10:00 UTC (defaultDate), and
+ * so does its Today: react-big-calendar's Today reads the clock, so the clock
+ * is that moment too. Only Date is faked; timers run as usual. Unpinned,
+ * Today showed November from 1 November 2026 on (14.0.99's gate).
+ */
 beforeEach(async () => {
+  jest.useFakeTimers({
+    now: october(15, 10),
+    doNotFake: [
+      "hrtime",
+      "nextTick",
+      "performance",
+      "queueMicrotask",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+      "requestIdleCallback",
+      "cancelIdleCallback",
+      "setImmediate",
+      "clearImmediate",
+      "setInterval",
+      "clearInterval",
+      "setTimeout",
+      "clearTimeout",
+    ],
+  });
   await i18next.changeLanguage("en");
 });
 
 afterEach(() => {
   cleanup();
+  jest.useRealTimers();
 });
 
 interface RenderOptions {

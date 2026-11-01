@@ -286,8 +286,12 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
       expect(markdown).not.toContain("ONEUPTIME_SERVICE_TOKEN=");
       expect(markdown).not.toContain("DOCKER_SWARM_CLUSTER_NAME=");
       // No agent file downloaded by hand: the script downloads them.
-      expect(markdown).not.toContain("-o docker-compose.yml");
-      expect(markdown).not.toContain("-o otel-collector-config.yaml");
+      expect(markdown).not.toContain(
+        getDockerSwarmAgentFileUrl(URL, "docker-compose.yml"),
+      );
+      expect(markdown).not.toContain(
+        getDockerSwarmAgentFileUrl(URL, "otel-collector-config.yaml"),
+      );
       expect(markdown).not.toContain("# In the agent's folder");
       expect(markdown).not.toContain("delete the `");
     } else {
@@ -752,9 +756,10 @@ describe("the Docker Compose .env", () => {
       0,
       DOCKER_SWARM_AGENT_FILES.length + 1,
     );
+    // Each under its own name (-O), as the other agents' files are.
     expect(download).toEqual([
       ...DOCKER_SWARM_AGENT_FILES.map((fileName: string): string => {
-        return `curl -fsSL ${getDockerSwarmAgentFileUrl(URL, fileName)} -o ${fileName}`;
+        return `curl -fsSLO ${getDockerSwarmAgentFileUrl(URL, fileName)}`;
       }),
       "chmod +x inventory-snapshot.sh",
     ]);

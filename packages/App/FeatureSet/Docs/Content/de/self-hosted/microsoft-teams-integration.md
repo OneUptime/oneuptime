@@ -194,6 +194,7 @@ Hinweise:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | Die **Application (client) ID**. Sie ist auch die Bot-ID im Teams-App-Paket und muss daher eine GUID sein. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Der **Value** des Client Secrets, nicht seine ID. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | Die **Directory (tenant) ID**. Der Bot authentifiziert sich als Single-Tenant-App in diesem Tenant, und Personen melden sich darin an, um ihr Microsoft-Teams-Konto zu verbinden. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Nur für einen Microsoft-365-Tenant in einer US-Government-Cloud: `gcc`, `gcc-high` oder `dod`. Für die kommerzielle Cloud bleibt sie leer. Siehe [US-Government-Clouds](#us-government-clouds). |
 | `HOST` | `host` | Ihr öffentlicher Hostname. Redirect-URIs, der Messaging-Endpunkt und das Teams-App-Paket werden daraus gebildet. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service ruft nur HTTPS-Endpunkte auf. |
 
@@ -202,6 +203,21 @@ Alle drei Werte `MICROSOFT_TEAMS_APP_*` sind erforderlich:
 - Ohne die Client-ID zeigt die Microsoft-Teams-Seite die Einrichtungsanleitung statt **Administratorzustimmung erteilen**.
 - Ohne die Client-ID oder das Secret endet das Verbinden mit **"Microsoft Teams ist auf diesem OneUptime-Server nicht eingerichtet."**
 - Ohne die Tenant-ID kann sich der Bot nicht authentifizieren, daher schlagen das Veröffentlichen und der Bot-Endpunkt fehl.
+
+## US-Government-Clouds
+
+Liegt Ihr Microsoft-365-Tenant in einer der US-Government-Clouds von Microsoft, setzen Sie `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) auf diese Cloud. Der Bot, die Microsoft-Teams-Anmeldungen und die [Teams-Besprechungs-App](/docs/workspace-connections/video-calls#ein-klick-verbindung-auf-einem-selbst-gehosteten-server) nutzen dann deren Hosts:
+
+| `MICROSOFT_TEAMS_CLOUD` | Microsoft-365-Cloud | Anmeldung | Microsoft Graph |
+| --- | --- | --- | --- |
+| Nicht gesetzt | Kommerziell | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+Für GCC High und DoD legen Sie die App-Registrierung und den Azure Bot in Azure Government an: Nutzen Sie in den Schritten 1 bis 5 das [Azure-Government-Portal](https://portal.azure.us) statt des Azure-Portals. Alles andere bleibt gleich. Welche Cloud der Server nutzt, zeigt `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: Es nennt die Cloud und ihre Hosts.
+
+Ein Wert, der keine Cloud nennt, stoppt jede Microsoft-Teams-Anfrage mit einem Fehler, der `MICROSOFT_TEAMS_CLOUD` nennt, damit die Anmeldungen Ihres Tenants nie an die kommerzielle Cloud gehen. Microsoft Teams, betrieben von 21Vianet in China, wird nicht unterstützt.
 
 ## Netzwerkzugriff
 
@@ -237,7 +253,7 @@ Die [Einstellungen für den Zugriff auf private Netzwerke](/docs/self-hosted/pri
 
 ### Ausgehender Zugriff und IP-Beschränkungen
 
-Erlauben Sie DNS-Auflösung und ausgehendes HTTPS von der OneUptime-Anwendung. Sie nutzt `graph.microsoft.com`, `login.microsoftonline.com`, die Authentifizierungs- und Kanal-Endpunkte des Bot Framework und die Connector-Service-URL, die für eine Unterhaltung geliefert wird. Der Fallback-Connector der kommerziellen Cloud ist `https://smba.trafficmanager.net/teams/`; die Service-URLs von Unterhaltungen können abweichen. Wenden Sie die [Firewall-Hinweise von Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) an und prüfen Sie beim Testen blockierten Verkehr; dies ist keine vollständige Liste von Hostnamen.
+Erlauben Sie DNS-Auflösung und ausgehendes HTTPS von der OneUptime-Anwendung. Sie nutzt `graph.microsoft.com`, `login.microsoftonline.com`, die Authentifizierungs- und Kanal-Endpunkte des Bot Framework und die Connector-Service-URL, die für eine Unterhaltung geliefert wird. Der Fallback-Connector der kommerziellen Cloud ist `https://smba.trafficmanager.net/teams/`; die Service-URLs von Unterhaltungen können abweichen. Wenden Sie die [Firewall-Hinweise von Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) an und prüfen Sie beim Testen blockierten Verkehr; dies ist keine vollständige Liste von Hostnamen. In einer [US-Government-Cloud](#us-government-clouds) sind das die eigenen Hosts dieser Cloud.
 
 Microsoft unterstützt keine festen IP-Allowlists für eingehenden Bot-Framework-Verkehr, weil sich seine Quelladressen ändern. Die IP-Bereiche für Medien der Teams-Clients beschreiben nicht die Quellen von Bot-Webhooks. Lassen Sie die Bot-Framework-Authentifizierung eingeschaltet, statt eine Quell-IP als Identitätsnachweis zu behandeln.
 
