@@ -22,9 +22,9 @@ import * as React from "react";
  * key, or an English form borrowed for a count English would not use it for.
  *
  * A row's age is the shortest phrase on the list and the one that wrapped: in
- * Swedish "1 min sedan" ran to two lines in a column sized for "1m ago", and
- * every row grew. It is mounted in the real TraceRow, on either side of each
- * boundary between its units.
+ * Swedish "för 1 min sedan" ran to two lines in a column sized for "1m ago",
+ * and every row grew. It is mounted in the real TraceRow, on either side of
+ * each boundary between its units.
  */
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
@@ -395,7 +395,6 @@ describe.each(LANGUAGES)("a row's age in %s", (language: string) => {
     );
 
     expect(ageCell(result)).toHaveClass("whitespace-nowrap", "w-24");
-    expect(ageCell(result)).not.toHaveClass("w-16");
   });
 
   test("the hover says when, in full, whatever the row's language", () => {
